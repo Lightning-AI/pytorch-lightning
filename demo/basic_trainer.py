@@ -28,16 +28,14 @@ def main(hparams):
     exp.save()
 
     # build model
-    print('loading model...')
     model = ExampleModel(hparams)
-    print('model built')
 
     # callbacks
     early_stop = EarlyStopping(
-        monitor=hparams.early_stop_metric,
-        patience=hparams.early_stop_patience,
+        monitor='val_acc',
+        patience=3,
+        mode='min',
         verbose=True,
-        mode=hparams.early_stop_mode
     )
 
     model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
@@ -46,8 +44,8 @@ def main(hparams):
         save_function=None,
         save_best_only=True,
         verbose=True,
-        monitor=hparams.model_save_monitor_value,
-        mode=hparams.model_save_monitor_mode
+        monitor='val_acc',
+        mode='min'
     )
 
     # configure trainer
