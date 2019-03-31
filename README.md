@@ -65,7 +65,7 @@ trainer.fit(model)
 ```python
 import torch.nn as nn
 
-class ExampleModel(RootModule):
+class My_Model(RootModule):
     def __init__(self):
         # define model
     
