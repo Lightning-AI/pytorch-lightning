@@ -35,10 +35,11 @@ All you do is define the forward passes, your data and lightning runs everything
 8. Model saving.   
 9. Model loading.   
 10. Logging training details (through test-tube).  
-11. Runs training on multiple GPUs (through test-tube).   
-12. Runs training on a GPU cluster managed by SLURM (through test-tube).   
-13. Gives your model hyperparameters parsed from the command line OR a JSON file.   
-14. Runs your model in a dev environment where nothing logs.      
+11. Running training on multiple GPUs (through test-tube).   
+12. Running training on a GPU cluster managed by SLURM (through test-tube).   
+13. Distributing memory-bound models on multiple GPUs.
+14. Gives your model hyperparameters parsed from the command line OR a JSON file.   
+15. Runs your model in a dev environment where nothing logs.      
   
 ## Usage
 To use lightning do 2 things:  
