@@ -31,21 +31,21 @@ Your model.
 
 **Lightning will do the following for you:**   
 
-1. Running the training loop.   
-2. Running the validation loop.   
-3. Running the testing loop.   
+1. Run the training loop.   
+2. Run the validation loop.   
+3. Run the testing loop.   
 4. Early stopping.   
 5. Learning rate annealing. 
 6. Can train complex models like GANs or anything with multiple optimizers.
 7. Weight checkpointing.   
 8. Model saving.   
 9. Model loading.   
-10. Logging training details (through test-tube).  
-11. Running training on multiple GPUs (through test-tube).   
-12. Running training on a GPU cluster managed by SLURM (through test-tube).   
-13. Distributing memory-bound models on multiple GPUs.
-14. Gives your model hyperparameters parsed from the command line OR a JSON file.   
-15. Runs your model in a dev environment where nothing logs.      
+10. Log training details (through test-tube).  
+11. Run training on multiple GPUs (through test-tube).   
+12. Run training on a GPU cluster managed by SLURM (through test-tube).   
+13. Distribute memory-bound models on multiple GPUs.
+14. Give your model hyperparameters parsed from the command line OR a JSON file.   
+15. Run your model in a dev environment where nothing logs.      
   
 ## Usage
 To use lightning do 2 things:  
