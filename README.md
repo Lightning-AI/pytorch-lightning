@@ -2,7 +2,9 @@
 The Keras for ML-researchers in PyTorch.    
 
 ## Usage
-To use lightning, first define a trainer function:   
+To use lightning do 2 things:  
+1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer_main.py) (which will run ALL your models).   
+2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/sample_model_template/model_template.py).   
 
 ```python
 # trainer.py
