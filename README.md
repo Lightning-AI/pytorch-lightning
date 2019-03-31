@@ -10,7 +10,7 @@
   The Keras for ML-researchers in PyTorch. More control. Less boilerplate.    
 </p>
 <p align="center">
-  <a href="https://badge.fury.io/py/pytorch_lightning"><img src="https://badge.fury.io/py/pytorch_lightning.svg"></a>
+  <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
   <a href="https://travis-ci.org/williamFalcon/test-tube"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a>
   <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </p>   
