@@ -1,4 +1,4 @@
-def add_default_args(parser, root_dir, possible_model_names, rand_seed):
+def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
 
     # tng, test, val check intervals
     parser.add_argument('--eval_test_set', dest='eval_test_set', action='store_true', help='true = run test set also')
@@ -32,7 +32,9 @@ def add_default_args(parser, root_dir, possible_model_names, rand_seed):
 
     # model paths
     parser.add_argument('--model_load_weights_path', default=None, type=str)
-    parser.add_argument('--model_name', default='', help=','.join(possible_model_names))
+
+    if possible_model_names is not None:
+        parser.add_argument('--model_name', default='', help=','.join(possible_model_names))
 
     # test_tube settings
     parser.add_argument('-en', '--tt_name', default='r_lib_')
@@ -58,7 +60,9 @@ def add_default_args(parser, root_dir, possible_model_names, rand_seed):
     parser.add_argument('--overfit', default=-1, type=float, help='% of dataset to use with this option. float, or -1 for none')
 
     # debug args
-    parser.add_argument('--random_seed', default=rand_seed, type=int)
+    if rand_seed is not None:
+        parser.add_argument('--random_seed', default=rand_seed, type=int)
+
     parser.add_argument('--live', dest='live', action='store_true', help='runs on gpu without cluster')
     parser.add_argument('--enable_debug', dest='debug', action='store_true', help='enables/disables test tube')
     parser.add_argument('--enable_local', dest='local', action='store_true', help='enables local tng')

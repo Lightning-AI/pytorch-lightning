@@ -1,9 +1,9 @@
 import torch
 import tqdm
 import numpy as np
-from research_lib.root_module.memory import get_gpu_memory_map
+from pytorch_lightning.root_module.memory import get_gpu_memory_map
 import traceback
-from research_lib.root_module.model_saving import TrainerIO
+from pytorch_lightning.root_module.model_saving import TrainerIO
 from torch.optim.lr_scheduler import MultiStepLR
 
 
@@ -11,17 +11,17 @@ class Trainer(TrainerIO):
 
     def __init__(self,
                  experiment,
-                 cluster,
                  checkpoint_callback, early_stop_callback,
+                 cluster=None,
                  process_position=0,
                  current_gpu_name=0,
                  on_gpu=False,
                  enable_tqdm=True,
-                 overfit_pct=None,
+                 overfit_pct=0.0,
                  track_grad_norm=-1,
                  check_val_every_n_epoch=1,
                  fast_dev_run=False,
-                 accumulate_grad_batches=False,
+                 accumulate_grad_batches=1,
                  enable_early_stop=True, max_nb_epochs=5, min_nb_epochs=1,
                  train_percent_check=1.0, val_percent_check=1.0, test_percent_check=1.0, val_check_interval=0.95,
                  log_save_interval=1, add_log_row_interval=1,
@@ -226,7 +226,8 @@ class Trainer(TrainerIO):
         self.experiment.save()
 
         # enable cluster checkpointing
-        self.enable_auto_hpc_walltime_manager()
+        if self.cluster is not None:
+            self.enable_auto_hpc_walltime_manager()
 
         # ---------------------------
         # CORE TRAINING LOOP

@@ -1,12 +1,12 @@
 import os
 import sys
-
-import torch
 import numpy as np
+from time import sleep
+import torch
+
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning.models.trainer import Trainer
 from pytorch_lightning.utils.arg_parse import add_default_args
-from time import sleep
 
 from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
 
@@ -17,11 +17,11 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from pytorch_lightning.models.sample_model_template.model_template import ExampleModel1
+from demo.example_model import ExampleModel
 # ---------------------
 
 AVAILABLE_MODELS = {
-    'model_1': ExampleModel1
+    'model_template': ExampleModel
 }
 
 
@@ -95,28 +95,9 @@ def main(hparams, cluster, results_dict):
     # configure trainer
     trainer = Trainer(
         experiment=exp,
-        on_gpu=on_gpu,
         cluster=cluster,
-        enable_tqdm=hparams.enable_tqdm,
-        overfit_pct=hparams.overfit,
-        track_grad_norm=hparams.track_grad_norm,
-        fast_dev_run=hparams.fast_dev_run,
-        check_val_every_n_epoch=hparams.check_val_every_n_epoch,
-        accumulate_grad_batches=hparams.accumulate_grad_batches,
-        process_position=process_position,
-        current_gpu_name=current_gpu,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
-        enable_early_stop=hparams.enable_early_stop,
-        max_nb_epochs=hparams.max_nb_epochs,
-        min_nb_epochs=hparams.min_nb_epochs,
-        train_percent_check=hparams.train_percent_check,
-        val_percent_check=hparams.val_percent_check,
-        test_percent_check=hparams.test_percent_check,
-        val_check_interval=hparams.val_check_interval,
-        log_save_interval=hparams.log_save_interval,
-        add_log_row_interval=hparams.add_log_row_interval,
-        lr_scheduler_milestones=hparams.lr_scheduler_milestones
     )
 
     # train model
@@ -173,6 +154,8 @@ def optimize_on_cluster(hyperparams):
 if __name__ == '__main__':
 
     model_name = get_model_name(sys.argv)
+    if model_name is None:
+        model_name = 'model_template'
 
     # use default args
     root_dir = os.path.split(os.path.dirname(sys.modules['__main__'].__file__))[0]
@@ -181,7 +164,6 @@ if __name__ == '__main__':
     # allow model to overwrite or extend args
     TRAINING_MODEL = AVAILABLE_MODELS[model_name]
     parser = TRAINING_MODEL.add_model_specific_args(parent_parser)
-    parser.json_config('-c', '--config', default=root_dir + '/run_configs/local.json')
     hyperparams = parser.parse_args()
 
     # format GPU layout
@@ -190,21 +172,25 @@ if __name__ == '__main__':
 
     # RUN TRAINING
     if hyperparams.on_cluster:
+        # Gets called when running via HPC cluster
         print('RUNNING ON SLURM CLUSTER')
         os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(gpu_ids)
         optimize_on_cluster(hyperparams)
 
     elif hyperparams.single_run_gpu:
+        # run on 1 gpu
         print(f'RUNNING 1 TRIAL ON GPU. gpu: {gpu_ids[0]}')
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids[0]
         main(hyperparams, None, None)
 
     elif hyperparams.local or hyperparams.single_run:
+        # run 1 trial but on CPU
         os.environ["CUDA_VISIBLE_DEVICES"] = '0'
         print('RUNNING LOCALLY')
         main(hyperparams, None, None)
 
     else:
+        # multiple GPUs on same machine
         print(f'RUNNING MULTI GPU. GPU ids: {gpu_ids}')
         hyperparams.optimize_parallel_gpu(
             main_local,
@@ -212,3 +198,4 @@ if __name__ == '__main__':
             nb_trials=hyperparams.nb_hopt_trials,
             nb_workers=len(gpu_ids)
         )
+
