@@ -47,6 +47,7 @@ To use lightning do 2 things:
 2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/sample_model_template/model_template.py).     
 
 #### Basic trainer example  
+See [this demo](https://github.com/williamFalcon/pytorch-lightning/blob/master/demo/fully_featured_trainer.py) for a more robust trainer example.   
 
 ```python
 import os
@@ -186,6 +187,8 @@ class My_Model(RootModule):
         parser.add_argument('--out_features', default=20)
         return parser
 ```
+
+
 ### Details    
 
 #### Model definition   
