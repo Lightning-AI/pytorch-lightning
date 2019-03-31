@@ -20,7 +20,25 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-In progress. Documenting now!     
+In progress. Documenting now!  
+
+## What is it?  
+All you do is define the forward passes, your data and lightning runs everything else for you. BUT, you still keep control over every aspect of training:
+
+1. Running the training loop.   
+2. Running the validation loop.   
+3. Running the testing loop.   
+4. Early stopping.   
+5. Learning rate annealing. 
+6. Can train complex models like GANs or anything with multiple optimizers.
+7. Weight checkpointing.   
+8. Model saving.   
+9. Model loading.   
+10. Logging training details (through test-tube).  
+11. Runs training on multiple GPUs (through test-tube).   
+12. Runs training on a GPU cluster managed by SLURM (through test-tube).   
+13. Gives your model hyperparameters parsed from the command line OR a JSON file.   
+14. Runs your model in a dev environment where nothing logs.      
   
 ## Usage
 To use lightning do 2 things:  
