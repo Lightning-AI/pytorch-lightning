@@ -23,7 +23,13 @@ pip install pytorch-lightning
 In progress. Documenting now!  
 
 ## What is it?  
-All you do is define the forward passes, your data and **lightning runs everything else for you:**
+Keras is too abstract for researchers. Lightning makes it so you only have to define your model but still control all details of training if you need to.   
+
+Pytorch   
+<-- Lightning   
+Your model.   
+
+**Lightning will do the following for you:**   
 
 1. Running the training loop.   
 2. Running the validation loop.   
