@@ -87,21 +87,10 @@ def main(hparams):
     early_stop = EarlyStopping(monitor='val_acc', patience=3, mode='min', verbose=True)
 
     model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
-    checkpoint = ModelCheckpoint(
-        filepath=model_save_path,
-        save_function=None,
-        save_best_only=True,
-        verbose=True,
-        monitor='val_acc',
-        mode='min'
-    )
+    checkpoint = ModelCheckpoint(filepath=model_save_path, save_function=None, save_best_only=True, verbose=True, monitor='val_acc', mode='min')
 
     # configure trainer
-    trainer = Trainer(
-        experiment=exp,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
-    )
+    trainer = Trainer(experiment=exp, checkpoint_callback=checkpoint, early_stop_callback=early_stop)
 
     # train model
     trainer.fit(model)
