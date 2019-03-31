@@ -84,12 +84,7 @@ def main(hparams):
     model = ExampleModel(hparams)
 
     # callbacks
-    early_stop = EarlyStopping(
-        monitor='val_acc',
-        patience=3,
-        mode='min',
-        verbose=True,
-    )
+    early_stop = EarlyStopping(monitor='val_acc', patience=3, mode='min', verbose=True)
 
     model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
     checkpoint = ModelCheckpoint(
