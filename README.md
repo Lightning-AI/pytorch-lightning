@@ -46,9 +46,7 @@ To use lightning do 2 things:
 1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer_main.py) (which will run ALL your models).   
 2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/sample_model_template/model_template.py).     
 
-### Example:   
-
-#### Define the trainer   
+#### Basic trainer example  
 
 ```python
 import os
@@ -112,7 +110,8 @@ if __name__ == '__main__':
 
 ```
 
-#### Define the model   
+#### Basic model example  
+Here we only show the method signatures. It's up to you to define the content.   
 
 ```python
 from torch import nn
