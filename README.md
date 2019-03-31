@@ -68,6 +68,7 @@ from torch import nn
 class My_Model(RootModule):
     def __init__(self):
         # define model
+        self.l1 = nn.Linear(200, 10)
     
     # ---------------
     # TRAINING
