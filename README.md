@@ -1,5 +1,5 @@
 # Pytorch-lightning
-Seed for ML research
+The Keras for ML-research in Pytorch. Simple to use, but not as abstracted out.    
 
 ## Usage
 To use lightning, define a model that implements these 10 functions:    
