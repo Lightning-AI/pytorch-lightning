@@ -23,7 +23,7 @@ pip install pytorch-lightning
 In progress. Documenting now!  
 
 ## What is it?  
-All you do is define the forward passes, your data and lightning runs everything else for you. BUT, you still keep control over every aspect of training:
+All you do is define the forward passes, your data and **lightning runs everything else for you:**
 
 1. Running the training loop.   
 2. Running the validation loop.   
