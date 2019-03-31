@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/imgs/lightning_logo.jpg" width="50">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/imgs/lightning_logo.png" width="50">
   </a>
 </p>
 <h3 align="center">
