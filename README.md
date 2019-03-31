@@ -55,7 +55,7 @@ trainer = Trainer(
     lr_scheduler_milestones=None
 )  
 
-# init model
+# init model and train
 model = My_Model()
 trainer.fit(model)
 ```
