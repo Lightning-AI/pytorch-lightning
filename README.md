@@ -56,7 +56,6 @@ class ExampleModel(RootModule):
         optimizer = self.choose_optimizer('adam', self.parameters(), {'lr': self.hparams.learning_rate}, 'optimizer')
         return [optimizer]
     
-    # LIGHTING WILL USE THE LOADERS YOU DEFINE HERE
     @property
     def tng_dataloader(self):
         return pytorch_dataloader('train')
