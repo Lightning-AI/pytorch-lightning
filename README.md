@@ -8,7 +8,7 @@ To use lightning do 2 things:
 
 ### Example:   
 
-### Define the trainer   
+#### Define the trainer   
 
 ```python
 # trainer.py
@@ -60,7 +60,7 @@ model = My_Model()
 trainer.fit(model)
 ```
 
-### Define the model   
+#### Define the model   
 
 ```python
 import torch.nn as nn
