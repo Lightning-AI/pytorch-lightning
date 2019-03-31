@@ -6,6 +6,7 @@ pytorch_lightning/trainer_main.py
 pytorch_lightning.egg-info/PKG-INFO
 pytorch_lightning.egg-info/SOURCES.txt
 pytorch_lightning.egg-info/dependency_links.txt
+pytorch_lightning.egg-info/requires.txt
 pytorch_lightning.egg-info/top_level.txt
 pytorch_lightning/models/__init__.py
 pytorch_lightning/models/trainer.py

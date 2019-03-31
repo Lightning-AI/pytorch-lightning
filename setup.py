@@ -8,6 +8,6 @@ setup(name='pytorch-lightning',
       author='',
       author_email='',
       url='https://github.com/williamFalcon/pytorch-lightning',
-      install_requires=[],
+      install_requires=['test-tube', 'torch', 'tqdm'],
       packages=find_packages()
       )
