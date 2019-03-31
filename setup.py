@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='pytorch-lightning',
-      version='0.0.1',
+      version='0.0.2',
       description='Rapid research framework',
       author='',
       author_email='',
