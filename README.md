@@ -1,5 +1,5 @@
 # Pytorch-lightning
-The Keras for ML-research in Pytorch. Simple to use, but not as abstracted out.    
+The Keras for ML-researchers in PyTorch.    
 
 ## Usage
 To use lightning, first define a trainer function:   
