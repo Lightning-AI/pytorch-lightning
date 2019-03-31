@@ -1,5 +1,29 @@
+<p align="center">
+  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+    <img alt="" src="https://raw.githubusercontent.com/williamfalcon/test-tube/master/imgs/lightning_logo.png" width="50">
+  </a>
+</p>
+<h3 align="center">
+  Pytorch Lightning
+</h3>
+<p align="center">
+  The Keras for ML-researchers in PyTorch. More control. Less boilerplate.    
+</p>
+<p align="center">
+  <a href="https://badge.fury.io/py/pytorch_lightning"><img src="https://badge.fury.io/py/pytorch_lightning.svg"></a>
+  <a href="https://travis-ci.org/williamFalcon/test-tube"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a>
+  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+</p>   
+
+## Docs   
+In progress. Documenting now!     
+
 # Pytorch-lightning
-The Keras for ML-researchers in PyTorch.    
+  
+
+```bash
+pip install pytorch-lightning    
+```
 
 ## Usage
 To use lightning do 2 things:  
