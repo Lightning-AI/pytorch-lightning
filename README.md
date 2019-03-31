@@ -15,16 +15,13 @@
   <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </p>   
 
-## Docs   
-In progress. Documenting now!     
-
-# Pytorch-lightning
-  
-
 ```bash
 pip install pytorch-lightning    
 ```
 
+## Docs   
+In progress. Documenting now!     
+  
 ## Usage
 To use lightning do 2 things:  
 1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer_main.py) (which will run ALL your models).   
