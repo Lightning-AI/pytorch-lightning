@@ -14,7 +14,7 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
     def __init__(self, hparams):
         super(RootModule, self).__init__()
         self.hparams = hparams
-        self.on_gpu = hparams.on_gpu
+
         self.dtype = torch.FloatTensor
         self.exp_save_path = None
         self.current_epoch = 0
@@ -24,6 +24,13 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.overfit = hparams.overfit
         self.gradient_clip = hparams.gradient_clip
         self.num = 2
+
+        # track if gpu was requested for checkpointing
+        self.on_gpu = False
+        try:
+            self.on_gpu = hparams.on_gpu
+        except Exception as e:
+            pass
 
         # computed vars for the dataloaders
         self._tng_dataloader = None
