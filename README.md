@@ -10,6 +10,17 @@ To use lightning, first define a trainer function:
 from pytorch_lightning.models.trainer import Trainer   
 from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
 from my_project import My_Model   
+from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
+
+# --------------
+# TEST TUBE INIT
+exp = Experiment(
+    name='my_exp',
+    debug=True,
+    save_dir='/some/path',
+    autosave=False,
+    description='my desc'
+)
 
 # --------------------
 # CALLBACKS
@@ -32,27 +43,10 @@ checkpoint = ModelCheckpoint(
 
 # configure trainer
 trainer = Trainer(
-    on_gpu=False,
-    enable_tqdm=True,
-    overfit_pct=None,
-    track_grad_norm=-1,
-    fast_dev_run=False,
-    check_val_every_n_epoch=1,
-    accumulate_grad_batches=2,
-    process_position=0,
-    current_gpu_name=0,
+    experiment=experiment,
+    cluster=cluster,
     checkpoint_callback=checkpoint,
-    early_stop_callback=early_stop,
-    enable_early_stop=True,
-    max_nb_epochs=12,
-    min_nb_epochs=2,
-    train_percent_check=1.0,
-    val_percent_check=0.5,
-    test_percent_check=0.5,
-    val_check_interval=0.95,
-    log_save_interval=0.95,
-    add_log_row_interval=20,
-    lr_scheduler_milestones=None
+    early_stop_callback=early_stop
 )  
 
 # init model and train
