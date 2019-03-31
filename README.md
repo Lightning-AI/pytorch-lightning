@@ -53,7 +53,11 @@ trainer = Trainer(
     log_save_interval=0.95,
     add_log_row_interval=20,
     lr_scheduler_milestones=None
-)
+)  
+
+# init model
+model = My_Model()
+trainer.fit(model)
 ```
 
 next define a model that implements these 10 functions:    
