@@ -2,8 +2,61 @@
 The Keras for ML-research in Pytorch. Simple to use, but not as abstracted out.    
 
 ## Usage
-To use lightning, define a model that implements these 10 functions:    
+To use lightning, first define a trainer function:   
 
+```python
+# trainer.py
+
+from pytorch_lightning.models.trainer import Trainer   
+from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+from my_project import My_Model   
+
+# --------------------
+# CALLBACKS
+early_stop = EarlyStopping(
+    monitor='val_loss',
+    patience=3,
+    verbose=True,
+    mode='min'
+)
+
+model_save_path = 'PATH/TO/SAVE'
+checkpoint = ModelCheckpoint(
+    filepath=model_save_path,
+    save_function=None,
+    save_best_only=True,
+    verbose=True,
+    monitor='val_acc',
+    mode='min'
+)
+
+# configure trainer
+trainer = Trainer(
+    on_gpu=False,
+    enable_tqdm=True,
+    overfit_pct=None,
+    track_grad_norm=-1,
+    fast_dev_run=False,
+    check_val_every_n_epoch=1,
+    accumulate_grad_batches=2,
+    process_position=0,
+    current_gpu_name=0,
+    checkpoint_callback=checkpoint,
+    early_stop_callback=early_stop,
+    enable_early_stop=True,
+    max_nb_epochs=12,
+    min_nb_epochs=2,
+    train_percent_check=1.0,
+    val_percent_check=0.5,
+    test_percent_check=0.5,
+    val_check_interval=0.95,
+    log_save_interval=0.95,
+    add_log_row_interval=20,
+    lr_scheduler_milestones=None
+)
+```
+
+next define a model that implements these 10 functions:    
 ```python
 import torch.nn as nn
 
