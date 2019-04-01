@@ -7,7 +7,7 @@
   Pytorch Lightning
 </h3>
 <p align="center">
-  The Keras for ML-researchers in PyTorch. More control. Less boilerplate.    
+  The Keras for ML researchers using PyTorch. More control. Less boilerplate.    
 </p>
 <p align="center">
   <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
