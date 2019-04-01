@@ -1,3 +1,0 @@
-notebooks
-pytorch_lightning
-tests
