@@ -17,7 +17,7 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from demo.example_model import ExampleModel
+from example_model import ExampleModel
 # ---------------------
 
 AVAILABLE_MODELS = {
@@ -57,13 +57,14 @@ def main(hparams, cluster, results_dict):
     sleep(process_position + 1)
 
     # init experiment
+    log_dir = os.path.dirname(os.path.realpath(__file__))
     exp = Experiment(
-        name=hparams.tt_name,
-        debug=hparams.debug,
-        save_dir=hparams.tt_save_path,
-        version=hparams.hpc_exp_number,
+        name='test_tube_exp',
+        debug=True,
+        save_dir=log_dir,
+        version=0,
         autosave=False,
-        description=hparams.tt_description
+        description='test demo'
     )
 
     exp.argparse(hparams)
