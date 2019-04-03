@@ -108,7 +108,7 @@ def get_default_parser(strategy, root_dir):
 
     possible_model_names = list(AVAILABLE_MODELS.keys())
     parser = HyperOptArgumentParser(strategy=strategy, add_help=False)
-    add_default_args(parser, root_dir, possible_model_names, SEED)
+    add_default_args(parser, root_dir, possible_model_names=possible_model_names, rand_seed=SEED)
     return parser
 
 
