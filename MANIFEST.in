@@ -1,0 +1,9 @@
+graft docs
+
+include COPYING
+include AUTHORS
+
+recursive-include src/einsteinpy/tests *.py *.html
+
+prune docs/source/examples/.ipynb_checkpoints
+global-exclude *.py[cod] __pycache__ *.so *.dylib
