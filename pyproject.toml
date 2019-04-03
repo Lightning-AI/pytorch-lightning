@@ -1,0 +1,5 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+]
