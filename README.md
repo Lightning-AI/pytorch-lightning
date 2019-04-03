@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/imgs/lightning_logo.png" width="50">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/lightning_logo.png" width="50">
   </a>
 </p>
 <h3 align="center">
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
 <!--   <a href="https://travis-ci.org/williamFalcon/test-tube"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a> -->
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/COPYING"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </p>   
 
 ```bash
@@ -22,7 +22,7 @@ pip install pytorch-lightning
 ## Docs   
 In progress. Documenting now!  
 
-## Disclaimer 
+## Disclaimer
 This is a research tool I built for myself internally while doing my PhD. The API is not 100% production quality, but my hope is that by open-sourcing, we can all get it there (I don't have too much time nowadays to write production-level code).
 
 ## What is it?  
@@ -38,7 +38,7 @@ Your model.
 2. Run the validation loop.   
 3. Run the testing loop.   
 4. Early stopping.   
-5. Learning rate annealing. 
+5. Learning rate annealing.
 6. Can train complex models like GANs or anything with multiple optimizers.
 7. Weight checkpointing.   
 8. Model saving.   
@@ -49,7 +49,7 @@ Your model.
 13. Distribute memory-bound models on multiple GPUs.
 14. Give your model hyperparameters parsed from the command line OR a JSON file.   
 15. Run your model in a dev environment where nothing logs.      
-  
+
 ## Usage
 To use lightning do 2 things:  
 1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer_main.py) (which will run ALL your models).   
@@ -130,32 +130,32 @@ class My_Model(RootModule):
     def __init__(self):
         # define model
         self.l1 = nn.Linear(200, 10)
-    
+
     # ---------------
     # TRAINING
     def training_step(self, data_batch):
         x, y = data_batch
         y_hat = self.l1(x)
         loss = some_loss(y_hat)
-        
+
         return loss_val, {'train_loss': loss}
-    
+
     def validation_step(self, data_batch):
         x, y = data_batch
         y_hat = self.l1(x)
         loss = some_loss(y_hat)
-        
+
         return loss_val, {'val_loss': loss}
- 
+
      def validation_end(self, outputs):
         total_accs = []
-        
+
         for output in outputs:
             total_accs.append(output['val_acc'].item())
-        
+
         # return a dict
         return {'total_acc': np.mean(total_accs)}
-     
+
      # ---------------
      # SAVING
      def get_save_dict(self):
@@ -167,7 +167,7 @@ class My_Model(RootModule):
     def load_model_specific(self, checkpoint):
         # lightning loads for you. Here's your chance to say what you want to load
         self.load_state_dict(checkpoint['state_dict'])
-    
+
     # ---------------
     # TRAINING CONFIG
     def configure_optimizers(self):
@@ -175,7 +175,7 @@ class My_Model(RootModule):
         # lightning will call automatically
         optimizer = self.choose_optimizer('adam', self.parameters(), {'lr': self.hparams.learning_rate}, 'optimizer')
         return [optimizer]
-    
+
     @property
     def tng_dataloader(self):
         return pytorch_dataloader('train')
@@ -187,7 +187,7 @@ class My_Model(RootModule):
     @property
     def test_dataloader(self):
         return pytorch_dataloader('test')
-        
+
     # ---------------
     # MODIFY YOUR COMMAND LINE ARGS
     @staticmethod
@@ -206,7 +206,7 @@ class My_Model(RootModule):
 | training_step  |  Called with a batch of data during training | data from your dataloaders  | tuple: scalar, dict  |
 | validation_step  |  Called with a batch of data during validation  | data from your dataloaders  | tuple: scalar, dict |
 | validation_end  |  Collate metrics from all validation steps |  outputs: array where each item is the output of a validation step | dict: for logging |
-| get_save_dict  | called when your model needs to be saved (checkpoints, hpc save, etc...)  | None  |  dict to be saved | 
+| get_save_dict  | called when your model needs to be saved (checkpoints, hpc save, etc...)  | None  |  dict to be saved |
 
 #### Model training   
 | Name  | Description  |  Input |  Return |
@@ -222,7 +222,7 @@ class My_Model(RootModule):
 |---|---|---|---|
 | get_save_dict  | called when your model needs to be saved (checkpoints, hpc save, etc...)  | None  |  dict to be saved |
 |  load_model_specific |  called when loading a model | checkpoint: dict you created in get_save_dict  | dict: modified in whatever way you want  |
-    
+
 ## Optional model hooks.   
 Add these to the model whenever you want to configure training behavior.    
 
