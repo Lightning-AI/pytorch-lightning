@@ -97,7 +97,7 @@ class PretrainedEmbedding(torch.nn.Embedding):
 
 if __name__ == '__main__':
     emb = PretrainedEmbedding(
-        embedding_path='/Users/waf/Developer/NGV/research-fermat/fermat/.vector_cache/glove.840B.300d.txt',
+        embedding_path='/Users/waf/Developer',
         embedding_dim=300,
         task_vocab={'hello': 1, 'world': 2}
     )
