@@ -1,6 +1,6 @@
 import torch.nn as nn
 import numpy as np
-from pytorch_lightning.root_module.root_module import RootModule
+from pytorch-lightning.root_module.root_module import RootModule
 from test_tube import HyperOptArgumentParser
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms

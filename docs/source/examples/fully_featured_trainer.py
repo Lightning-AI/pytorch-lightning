@@ -5,10 +5,10 @@ from time import sleep
 import torch
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
-from pytorch_lightning.models.trainer import Trainer
-from pytorch_lightning.utils.arg_parse import add_default_args
+from pytorch-lightning.models.trainer import Trainer
+from pytorch-lightning.utils.arg_parse import add_default_args
 
-from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+from pytorch-lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -27,7 +27,7 @@ AVAILABLE_MODELS = {
 
 """
 Allows training by using command line arguments
-Run by: 
+Run by:
 # TYPE YOUR RUN COMMAND HERE
 """
 
@@ -199,4 +199,3 @@ if __name__ == '__main__':
             nb_trials=hyperparams.nb_hopt_trials,
             nb_workers=len(gpu_ids)
         )
-

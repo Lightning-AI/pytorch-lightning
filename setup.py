@@ -40,7 +40,6 @@ setup(
     },
     packages=find_packages("src"),
     package_dir={"": "src"},
-    entry_points={"console_scripts": ["pytorch-lightning=pytorch-lightning.cli:main"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Education",
