@@ -52,11 +52,11 @@ Your model.
 
 ## Usage
 To use lightning do 2 things:  
-1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer_main.py) (which will run ALL your models).   
-2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/sample_model_template/model_template.py).     
+1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/basic_trainer.py) (which will run ALL your models).   
+2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/example_model.py).     
 
 #### Basic trainer example  
-See [this demo](https://github.com/williamFalcon/pytorch-lightning/blob/master/demo/fully_featured_trainer.py) for a more robust trainer example.   
+See [this demo](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/fully_featured_trainer.py) for a more robust trainer example.   
 
 ```python
 import os
