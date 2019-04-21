@@ -267,7 +267,8 @@ class Trainer(TrainerIO):
                     break
 
                 # give model a chance to end epoch early
-                if self.model.should_stop_epoch():
+                if self.model.should_stop_epoch:
+                    self.model.should_stop_epoch = False
                     break
 
                 # ---------------
