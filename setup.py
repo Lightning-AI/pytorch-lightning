@@ -3,14 +3,11 @@
 from setuptools import setup, find_packages, os
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
-version = {}
-with open(os.path.join("src", "pytorch-lightning", "__init__.py")) as fp:
-    exec(fp.read(), version)
 
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 setup(
     name="pytorch-lightning",
-    version=version["__version__"],
+    version='0.1.dev11',
     description="The Keras for ML researchers using PyTorch",
     author="William Falcon",
     author_email="waf2107@columbia.edu",
@@ -38,8 +35,7 @@ setup(
             "jupyter-client",
         ]
     },
-    packages=find_packages("src"),
-    package_dir={"": "src"},
+    packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Education",
