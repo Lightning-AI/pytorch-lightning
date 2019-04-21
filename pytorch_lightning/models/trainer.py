@@ -86,7 +86,7 @@ class Trainer(TrainerIO):
             self.test_percent_check = overfit_pct
 
     def __is_function_implemented(self, f_name):
-        f_op = getattr(self, f_name, None)
+        f_op = getattr(self.model, f_name, None)
         return callable(f_op)
 
     @property
