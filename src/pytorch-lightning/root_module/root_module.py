@@ -24,7 +24,6 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.overfit = hparams.overfit
         self.gradient_clip = hparams.gradient_clip
         self.num = 2
-        self.should_stop_epoch = False
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
