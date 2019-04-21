@@ -18,3 +18,6 @@ class ModelHooks(torch.nn.Module):
 
     def on_post_performance_check(self):
         pass
+
+    def should_stop_epoch(self):
+        return False

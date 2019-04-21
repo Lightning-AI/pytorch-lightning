@@ -266,6 +266,10 @@ class Trainer(TrainerIO):
                 if met_batch_limit:
                     break
 
+                # give model a chance to end epoch early
+                if self.model.should_stop_epoch():
+                    break
+
                 # ---------------
                 # RUN TRAIN STEP
                 # ---------------
