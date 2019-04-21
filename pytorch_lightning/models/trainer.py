@@ -327,7 +327,7 @@ class Trainer(TrainerIO):
 
         # hook
         if self.__is_function_implemented('on_batch_start'):
-            response = self.model.on_batch_start()
+            response = self.model.on_batch_start(data_batch)
             if response == -1:
                 return
 
