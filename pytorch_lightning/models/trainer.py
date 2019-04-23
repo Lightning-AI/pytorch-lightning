@@ -326,7 +326,7 @@ class Trainer(TrainerIO):
 
     def __run_tng_batch(self, data_batch):
         if data_batch is None:
-            return
+            return 0
 
         # hook
         if self.__is_function_implemented('on_batch_start'):
