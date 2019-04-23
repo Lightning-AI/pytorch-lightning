@@ -270,7 +270,9 @@ class Trainer(TrainerIO):
                 # ---------------
                 # RUN TRAIN STEP
                 # ---------------
-                self.__run_tng_batch(data_batch)
+                batch_result = self.__run_tng_batch(data_batch)
+                if batch_result == -1:
+                    break
 
                 # ---------------
                 # RUN VAL STEP
@@ -330,7 +332,7 @@ class Trainer(TrainerIO):
         if self.__is_function_implemented('on_batch_start'):
             response = self.model.on_batch_start(data_batch)
             if response == -1:
-                return
+                return -1
 
         if self.enable_tqdm:
             self.prog_bar.update(1)
@@ -371,6 +373,8 @@ class Trainer(TrainerIO):
         # activate batch end hook
         if self.__is_function_implemented('on_batch_end'):
             self.model.on_batch_end()
+
+        return 0
 
     def __run_validation(self):
         # decide if can check epochs
