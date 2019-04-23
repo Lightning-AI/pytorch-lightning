@@ -195,6 +195,7 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
         self.model = model
+        model.trainer = self
 
         # transfer data loaders from model
         self.__get_dataloaders(model)
