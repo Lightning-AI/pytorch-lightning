@@ -309,6 +309,7 @@ class Trainer(TrainerIO):
                 if self.__is_function_implemented('on_batch_end'):
                     self.model.on_batch_end()
 
+                # end epoch early
                 if early_stop_epoch:
                     break
 
@@ -325,6 +326,7 @@ class Trainer(TrainerIO):
                 stop = should_stop and met_min_epochs
                 if stop:
                     return
+
 
     def __run_tng_batch(self, data_batch):
         if data_batch is None:
