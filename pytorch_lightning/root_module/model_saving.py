@@ -88,6 +88,7 @@ class TrainerIO(object):
         self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
         self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
         self.global_step = checkpoint['global_step']
+        self.current_epoch = checkpoint['epoch']
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
