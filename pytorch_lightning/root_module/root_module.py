@@ -151,19 +151,23 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
             return 0, 0
 
     @classmethod
-    def load_from_metrics(cls, weights_path, tags_csv, on_gpu):
+    def load_from_metrics(cls, weights_path, tags_csv, on_gpu, map_location=None):
         """
         Primary way of loading model from csv weights path
         :param weights_path:
         :param tags_csv:
         :param on_gpu:
+        :param map_location: dic for mapping storage {'cuda:1':'cuda:0'}
         :return:
         """
         hparams = load_hparams_from_tags_csv(tags_csv)
         hparams.__setattr__('on_gpu', on_gpu)
 
         if on_gpu:
-            checkpoint = torch.load(weights_path)
+            if map_location is not None:
+                checkpoint = torch.load(weights_path, map_location=map_location)
+            else:
+                checkpoint = torch.load(weights_path)
         else:
             checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
 
