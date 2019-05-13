@@ -40,8 +40,7 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
 
         if self.on_gpu:
             print('running on gpu...')
-            self.dtype = torch.cuda.FloatTensor
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            torch.set_default_tensor_type(hparams.default_tensor_type)
 
     def forward(self, *args, **kwargs):
         """
