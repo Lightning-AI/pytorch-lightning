@@ -50,6 +50,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--single_run_gpu', dest='single_run_gpu', action='store_true')
     parser.add_argument('--disable_cuda', dest='disable_cuda', action='store_true')
     parser.add_argument('--default_tensor_type', default='torch.cuda.FloatTensor', type=str)
+    parser.add_argument('--use_amp', dest='use_amp', action='store_true')
 
     # run on hpc
     parser.add_argument('--on_cluster', dest='on_cluster', action='store_true')
