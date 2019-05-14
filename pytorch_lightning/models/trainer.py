@@ -225,7 +225,6 @@ class Trainer(TrainerIO):
                 self.model, self.optimizers[0], opt_level="O2",
                 keep_batchnorm_fp32=True, loss_scale="dynamic"
             )
-            pdb.set_trace()
             self.optimizers[0] = optimizer
             model.trainer = self
 
@@ -369,7 +368,6 @@ class Trainer(TrainerIO):
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
         # backward pass
-        pdb.set_trace()
         if self.use_amp:
             for optimizer in self.optimizers:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
