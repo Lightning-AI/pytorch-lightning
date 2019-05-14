@@ -169,7 +169,7 @@ class Trainer(TrainerIO):
                 continue
 
             # stop short when on fast dev run
-            if max_batches is not None and i >= max_batches:
+            if max_batches is not None and batch_i >= max_batches:
                 break
 
             # -----------------
