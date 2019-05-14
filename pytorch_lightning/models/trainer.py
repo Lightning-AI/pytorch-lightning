@@ -5,8 +5,10 @@ from pytorch_lightning.root_module.memory import get_gpu_memory_map
 import traceback
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from torch.optim.lr_scheduler import MultiStepLR
+import pdb
 
 try:
+    pdb.set_trace()
     from apex import amp
     APEX_AVAILABLE = True
 except ModuleNotFoundError:
