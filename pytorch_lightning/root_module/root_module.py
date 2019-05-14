@@ -51,7 +51,7 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         """
         raise NotImplementedError
 
-    def validation_step(self, data_batch):
+    def validation_step(self, data_batch, batch_nb):
         """
         return whatever outputs will need to be aggregated in validation_end
         :param data_batch:
@@ -67,7 +67,7 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         """
         raise NotImplementedError
 
-    def training_step(self, data_batch):
+    def training_step(self, data_batch, batch_nb):
         """
         return loss, dict with metrics for tqdm
         :param data_batch:
