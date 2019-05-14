@@ -7,9 +7,6 @@ from pytorch_lightning.root_module.model_saving import TrainerIO
 from torch.optim.lr_scheduler import MultiStepLR
 import pdb
 
-
-
-
 try:
     from apex import amp
     APEX_AVAILABLE = True
@@ -86,7 +83,6 @@ class Trainer(TrainerIO):
         use_amp = True
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
-            self.amp_handle = amp.init(enabled=True)
             print('using 16bit precision')
 
     def __determine_data_use_amount(self, train_percent_check, val_percent_check, test_percent_check, overfit_pct):
@@ -223,14 +219,14 @@ class Trainer(TrainerIO):
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
 
-        # if self.use_amp:
-        #     An example
-            # self.model, optimizer = amp.initialize(
-            #     self.model, self.optimizers[0], opt_level="O2",
-            #     keep_batchnorm_fp32=True, loss_scale="dynamic"
-            # )
-            # self.optimizers[0] = optimizer
-            # model.trainer = self
+        if self.use_amp:
+            # An example
+            self.model, optimizer = amp.initialize(
+                self.model, self.optimizers[0], opt_level="O2",
+                keep_batchnorm_fp32=True, loss_scale="dynamic"
+            )
+            self.optimizers[0] = optimizer
+            model.trainer = self
 
         # add lr schedulers
         if self.lr_scheduler_milestones is not None:
@@ -374,7 +370,7 @@ class Trainer(TrainerIO):
         # backward pass
         if self.use_amp:
             for optimizer in self.optimizers:
-                with self.amp_handle.scale_loss(loss, optimizer) as scaled_loss:
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
         else:
             loss.backward()
