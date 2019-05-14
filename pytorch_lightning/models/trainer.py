@@ -223,7 +223,6 @@ class Trainer(TrainerIO):
             # An example
             self.model, optimizer = amp.initialize(
                 self.model, self.optimizers[0], opt_level="O2",
-                keep_batchnorm_fp32=True, loss_scale="dynamic"
             )
             self.optimizers[0] = optimizer
             model.trainer = self
