@@ -8,7 +8,6 @@ from torch.optim.lr_scheduler import MultiStepLR
 import pdb
 
 try:
-    pdb.set_trace()
     from apex import amp
     APEX_AVAILABLE = True
 except ModuleNotFoundError:
@@ -369,6 +368,7 @@ class Trainer(TrainerIO):
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
         # backward pass
+        pdb.set_trace()
         if self.use_amp:
             for optimizer in self.optimizers:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
