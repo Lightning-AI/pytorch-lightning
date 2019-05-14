@@ -32,6 +32,7 @@ class Trainer(TrainerIO):
                  train_percent_check=1.0, val_percent_check=1.0, test_percent_check=1.0, val_check_interval=0.95,
                  log_save_interval=1, add_log_row_interval=1,
                  lr_scheduler_milestones=None,
+                 use_amp=False,
                  nb_sanity_val_steps=5):
 
         # Transfer params
@@ -80,7 +81,6 @@ class Trainer(TrainerIO):
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
         # apex test
-        use_amp = True
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
             print('using 16bit precision')
