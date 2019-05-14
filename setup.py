@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 setup(
     name="pytorch-lightning",
-    version='0.1.dev181',
+    version='0.1.dev182',
     description="The Keras for ML researchers using PyTorch",
     author="William Falcon",
     author_email="waf2107@columbia.edu",
@@ -23,6 +23,7 @@ setup(
     ],
     packages=find_packages(),
     long_description=open("README.md", encoding="utf-8").read(),
+    long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
 )
