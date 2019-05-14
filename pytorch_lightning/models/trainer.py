@@ -163,7 +163,7 @@ class Trainer(TrainerIO):
         outputs = []
 
         # run training
-        for i, data_batch in enumerate(dataloader):
+        for batch_i, data_batch in enumerate(dataloader):
 
             if data_batch is None:
                 continue
@@ -175,7 +175,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            output = model.validation_step(data_batch)
+            output = model.validation_step(data_batch, batch_i)
             outputs.append(output)
 
             # batch done
@@ -290,7 +290,7 @@ class Trainer(TrainerIO):
                 # ---------------
                 # RUN TRAIN STEP
                 # ---------------
-                batch_result = self.__run_tng_batch(data_batch)
+                batch_result = self.__run_tng_batch(data_batch, batch_nb)
                 early_stop_epoch = batch_result == -1
 
                 # ---------------
@@ -348,7 +348,7 @@ class Trainer(TrainerIO):
                     return
 
 
-    def __run_tng_batch(self, data_batch):
+    def __run_tng_batch(self, data_batch, batch_nb):
         if data_batch is None:
             return 0
 
@@ -363,7 +363,7 @@ class Trainer(TrainerIO):
 
         # forward pass
         # return a scalar value and a dic with tqdm metrics
-        loss, model_specific_tqdm_metrics_dic = self.model.training_step(data_batch)
+        loss, model_specific_tqdm_metrics_dic = self.model.training_step(data_batch, batch_nb)
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
         # backward pass
