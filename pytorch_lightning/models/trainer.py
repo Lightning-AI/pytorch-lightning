@@ -81,6 +81,8 @@ class Trainer(TrainerIO):
         # apex test
         use_amp = True
         self.use_amp = use_amp and APEX_AVAILABLE
+        if self.use_amp:
+            print('using 16bit precision')
 
     def __determine_data_use_amount(self, train_percent_check, val_percent_check, test_percent_check, overfit_pct):
         """
