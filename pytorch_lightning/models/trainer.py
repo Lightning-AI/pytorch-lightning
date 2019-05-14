@@ -219,6 +219,7 @@ class Trainer(TrainerIO):
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
 
+        pdb.set_trace()
         if self.use_amp:
             # An example
             self.model, optimizer = amp.initialize(
