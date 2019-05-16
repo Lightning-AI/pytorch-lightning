@@ -372,7 +372,8 @@ class Trainer(TrainerIO):
         if self.use_amp:
             for optimizer in self.optimizers:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
+                    optimizer.backward(scaled_loss)
+                    # scaled_loss.backward()
         else:
             loss.backward()
 
