@@ -33,6 +33,7 @@ class Trainer(TrainerIO):
                  log_save_interval=1, add_log_row_interval=1,
                  lr_scheduler_milestones=None,
                  use_amp=False,
+                 amp_level='O2',
                  nb_sanity_val_steps=5):
 
         # Transfer params
@@ -58,6 +59,7 @@ class Trainer(TrainerIO):
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.lr_scheduler_milestones = [] if lr_scheduler_milestones is None else [int(x.strip()) for x in lr_scheduler_milestones.split(',')]
         self.lr_schedulers = []
+        self.amp_level = amp_level
 
         # training state
         self.optimizers = None
@@ -222,7 +224,7 @@ class Trainer(TrainerIO):
         if self.use_amp:
             # An example
             self.model, optimizer = amp.initialize(
-                self.model, self.optimizers[0], opt_level="O2",
+                self.model, self.optimizers[0], opt_level=self.amp_level,
             )
             self.optimizers[0] = optimizer
             model.trainer = self
