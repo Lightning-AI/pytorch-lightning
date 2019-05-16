@@ -33,6 +33,7 @@ class Trainer(TrainerIO):
                  log_save_interval=1, add_log_row_interval=1,
                  lr_scheduler_milestones=None,
                  use_amp=False,
+                 check_grad_nans=False,
                  amp_level='O2',
                  nb_sanity_val_steps=5):
 
@@ -60,6 +61,7 @@ class Trainer(TrainerIO):
         self.lr_scheduler_milestones = [] if lr_scheduler_milestones is None else [int(x.strip()) for x in lr_scheduler_milestones.split(',')]
         self.lr_schedulers = []
         self.amp_level = amp_level
+        self.check_grad_nans = check_grad_nans
 
         # training state
         self.optimizers = None
@@ -373,10 +375,12 @@ class Trainer(TrainerIO):
             for optimizer in self.optimizers:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
-                    for param in self.model.parameters():
-                        print(param.grad.float().sum())
         else:
             loss.backward()
+
+            if self.check_grad_nans:
+                for param in self.model.parameters():
+                    print(param.grad.float().sum())
 
         self.batch_loss_value += loss.item()
 
