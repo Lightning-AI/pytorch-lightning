@@ -378,9 +378,9 @@ class Trainer(TrainerIO):
         else:
             loss.backward()
 
-            if self.check_grad_nans:
-                for param in self.model.parameters():
-                    print(param.grad.float().sum())
+        if self.check_grad_nans:
+            for param in self.model.parameters():
+                print(param.grad.float().sum())
 
         self.batch_loss_value += loss.item()
 
