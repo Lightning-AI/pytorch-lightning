@@ -17,7 +17,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.5",
     install_requires=[
-        "torch",
+        "torch>=1.0.0",
         "tqdm",
         "test-tube",
     ],
