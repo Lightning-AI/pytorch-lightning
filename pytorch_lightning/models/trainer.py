@@ -5,6 +5,7 @@ from pytorch_lightning.root_module.memory import get_gpu_memory_map
 import traceback
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from torch.optim.lr_scheduler import MultiStepLR
+from torch.nn import DataParallel
 import pdb
 
 try:
@@ -62,6 +63,8 @@ class Trainer(TrainerIO):
         self.lr_schedulers = []
         self.amp_level = amp_level
         self.check_grad_nans = check_grad_nans
+        self.data_parallel = True
+        self.data_parallel_device_ids = [0, 1, 2, 3, 4, 5, 6, 7]
 
         # training state
         self.optimizers = None
@@ -242,7 +245,10 @@ class Trainer(TrainerIO):
 
         # put on gpu if needed
         if self.on_gpu:
-            model = model.cuda()
+            if self.data_parallel:
+                model = DataParallel(model, device_ids=self.data_parallel_device_ids)
+            else:
+                model = model.cuda()
 
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
