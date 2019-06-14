@@ -100,6 +100,9 @@ class TrainerIO(object):
     # PRIVATE OPS
     # ----------------------------------
     def hpc_save(self, folderpath, experiment):
+        # make sure the checkpoint folder exists
+        os.makedirs(folderpath, exist_ok=True)
+
         # save exp to make sure we get all the metrics
         experiment.save()
 
