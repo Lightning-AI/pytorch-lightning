@@ -130,7 +130,7 @@ class TrainerIO(object):
 
     def max_ckpt_in_folder(self, path):
         files = os.listdir(path)
-        files = [x for x if 'ckpt_' in x]
+        files = [x for x in files if 'ckpt_' in x]
         if len(files) == 0:
             return 0
 
