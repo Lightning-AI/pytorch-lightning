@@ -64,7 +64,7 @@ class Trainer(TrainerIO):
         self.amp_level = amp_level
         self.check_grad_nans = check_grad_nans
         self.data_parallel = True
-        self.data_parallel_device_ids = []
+        self.data_parallel_device_ids = [0]
 
         # training state
         self.optimizers = None
