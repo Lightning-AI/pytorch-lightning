@@ -106,7 +106,6 @@ class TrainerIO(object):
         # save exp to make sure we get all the metrics
         experiment.save()
 
-        pdb.set_trace()
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
         if not os.path.exists(folderpath):
