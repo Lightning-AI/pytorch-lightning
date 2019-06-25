@@ -5,10 +5,10 @@ from time import sleep
 import torch
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
-from pytorch-lightning.models.trainer import Trainer
-from pytorch-lightning.utils.arg_parse import add_default_args
+from pytorch_lightning.models.trainer import Trainer
+from pytorch_lightning.utils.arg_parse import add_default_args
 
-from pytorch-lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -17,7 +17,7 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from example_model import ExampleModel
+from docs.source.examples.example_model import ExampleModel
 # ---------------------
 
 AVAILABLE_MODELS = {
