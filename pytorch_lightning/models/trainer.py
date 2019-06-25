@@ -164,9 +164,6 @@ class Trainer(TrainerIO):
         model.zero_grad()
         model.eval()
 
-        # set the model step
-        model.step_split = 'val'
-
         # disable gradients to save memory
         torch.set_grad_enabled(False)
 
