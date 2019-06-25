@@ -58,7 +58,6 @@ To use lightning do 2 things:
 #### Quick demo
 Run the following demo to see how it works:
 ```bash
-
 # install lightning
 pip install pytorch-lightning
 
@@ -68,7 +67,10 @@ cd pytorch-lightning/docs/source/examples
 
 # run demo (on cpu)
 python fully_featured_trainer.py
+```
 
+Without changing the model AT ALL, you can run the model on a single gpu, over multiple gpus, or over multiple nodes.
+```bash
 # run a grid search on two gpus
 python fully_featured_trainer.py --gpus "0;1"
 
