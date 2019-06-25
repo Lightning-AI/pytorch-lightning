@@ -68,7 +68,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     if rand_seed is not None:
         parser.add_argument('--random_seed', default=rand_seed, type=int)
 
-    parser.add_argument('--live', dest='live', action='store_true', help='runs on gpu without cluster')
+    parser.add_argument('--interactive', dest='interactive', action='store_true', help='runs on gpu without cluster')
     parser.add_argument('--debug', dest='debug', action='store_true', help='enables/disables test tube')
     parser.add_argument('--local', dest='local', action='store_true', help='enables local tng')
 
