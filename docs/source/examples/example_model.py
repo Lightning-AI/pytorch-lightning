@@ -55,7 +55,7 @@ class ExampleModel(RootModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, data_batch):
+    def training_step(self, data_batch, batch_i):
         """
         Called inside the training loop
         :param data_batch:
@@ -72,7 +72,7 @@ class ExampleModel(RootModule):
         tqdm_dic = {'tng_loss': loss_val.item()}
         return loss_val, tqdm_dic
 
-    def validation_step(self, data_batch):
+    def validation_step(self, data_batch, batch_i):
         """
         Called inside the validation loop
         :param data_batch:
