@@ -164,6 +164,9 @@ class Trainer(TrainerIO):
         model.zero_grad()
         model.eval()
 
+        # set the model step
+        model.step_split = 'val'
+
         # disable gradients to save memory
         torch.set_grad_enabled(False)
 
@@ -183,7 +186,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            output = model.validation_step(data_batch, batch_i)
+            output = model(data_batch, batch_i)
             outputs.append(output)
 
             # batch done
