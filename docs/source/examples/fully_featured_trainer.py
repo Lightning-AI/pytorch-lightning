@@ -3,6 +3,7 @@ import sys
 import numpy as np
 from time import sleep
 import torch
+import pdb
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning.models.trainer import Trainer
@@ -171,6 +172,8 @@ if __name__ == '__main__':
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
     # RUN TRAINING
+    pdb.set_trace()
+
     if hyperparams.on_cluster:
         # run on HPC cluster
         print('RUNNING ON SLURM CLUSTER')
