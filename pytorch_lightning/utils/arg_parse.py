@@ -1,3 +1,5 @@
+import pdb
+
 def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
 
     # tng, test, val check intervals
@@ -26,6 +28,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--track_grad_norm', default=-1, type=int, help='if > 0, will track this grad norm')
 
     # model saving
+    pdb.set_trace()
     parser.add_argument('--model_save_path', default=root_dir + '/model_weights')
     parser.add_argument('--model_save_monitor_value', default='val_acc')
     parser.add_argument('--model_save_monitor_mode', default='max')
