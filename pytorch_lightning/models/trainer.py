@@ -14,6 +14,7 @@ try:
 except ModuleNotFoundError:
     APEX_AVAILABLE = False
 
+
 class Trainer(TrainerIO):
 
     def __init__(self,
@@ -65,8 +66,6 @@ class Trainer(TrainerIO):
         self.check_grad_nans = check_grad_nans
         self.data_parallel_device_ids = gpus
         self.data_parallel = gpus is not None and len(gpus) > 0
-
-        pdb.set_trace()
 
         # training state
         self.optimizers = None
