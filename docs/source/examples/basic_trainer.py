@@ -2,10 +2,10 @@ import os
 import sys
 
 from test_tube import HyperOptArgumentParser, Experiment
-from pytorch-lightning.models.trainer import Trainer
-from pytorch-lightning.utils.arg_parse import add_default_args
-from pytorch-lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
-from demo.example_model import ExampleModel
+from pytorch_lightning.models.trainer import Trainer
+from pytorch_lightning.utils.arg_parse import add_default_args
+from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+from docs.source.examples.example_model import ExampleModel
 
 
 def main(hparams):
