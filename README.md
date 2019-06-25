@@ -69,8 +69,11 @@ cd pytorch-lightning/docs/source/examples
 # run demo (on cpu)
 python fully_featured_trainer.py
 
-# run demo on 2 gpus
+# run a grid search on two gpus
 python fully_featured_trainer.py --gpus "0;1"
+
+# run single model on multiple gpus
+python fully_featured_trainer.py --gpus "0;1" --interactive
 ```
 
 #### Basic trainer example  
