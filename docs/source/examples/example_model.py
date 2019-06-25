@@ -63,6 +63,7 @@ class ExampleModel(RootModule):
         :param data_batch:
         :return:
         """
+        pdb.set_trace()
         # forward pass
         x, y = data_batch
         x = x.view(x.size(0), -1)
@@ -80,6 +81,7 @@ class ExampleModel(RootModule):
         :param data_batch:
         :return:
         """
+        pdb.set_trace()
         x, y = data_batch
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
