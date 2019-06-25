@@ -55,6 +55,24 @@ To use lightning do 2 things:
 1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/basic_trainer.py) (which will run ALL your models).   
 2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/example_model.py).     
 
+#### Quick demo
+Run the following demo to see how it works:
+```bash
+
+# install lightning
+pip install pytorch-lightning
+
+# clone lightning for the demo
+git clone https://github.com/williamFalcon/pytorch-lightning.git
+cd pytorch-lightning/docs/source/examples
+
+# run demo (on cpu)
+python fully_featured_trainer.py
+
+# run demo on 2 gpus
+python fully_featured_trainer.py --gpus "0;1"
+```
+
 #### Basic trainer example  
 See [this demo](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/fully_featured_trainer.py) for a more robust trainer example.   
 
