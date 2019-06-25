@@ -190,8 +190,8 @@ if __name__ == '__main__':
     gpu_ids = hyperparams.gpus.split(';')
     if hyperparams.interactive:
         # run on 1 gpu
-        print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {str(gpu_ids)}')
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
+        print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {gpu_ids}')
+        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(gpu_ids)
         main(hyperparams, None, None)
 
     else:
