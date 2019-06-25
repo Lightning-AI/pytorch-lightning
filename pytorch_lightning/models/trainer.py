@@ -67,6 +67,9 @@ class Trainer(TrainerIO):
         self.data_parallel_device_ids = gpus
         self.data_parallel = gpus is not None and len(gpus) > 0
 
+        # TODO: remove
+        self.on_gpu = True
+
         # training state
         self.optimizers = None
         self.prog_bar = None
@@ -121,7 +124,7 @@ class Trainer(TrainerIO):
         tqdm_dic.update(self.tqdm_metrics)
         return tqdm_dic
 
-    def __layout_bookeeping(self):
+    def __layout_bookeeping(self, model):
         # training bookeeping
         self.total_batch_nb = 0
         self.running_loss = []
@@ -130,17 +133,17 @@ class Trainer(TrainerIO):
         self.tqdm_metrics = {}
 
         # determine number of training batches
-        self.nb_tng_batches = self.model.nb_batches(self.tng_dataloader)
+        self.nb_tng_batches = model.nb_batches(self.tng_dataloader)
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = self.model.nb_batches(self.val_dataloader)
+        self.nb_val_batches = model.nb_batches(self.val_dataloader)
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
 
         # determine number of test batches
-        self.nb_test_batches = self.model.nb_batches(self.test_dataloader)
+        self.nb_test_batches = model.nb_batches(self.test_dataloader)
         self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
 
         # determine when to check validation
@@ -184,7 +187,6 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            pdb.set_trace()
             output = model(data_batch, batch_i)
             outputs.append(output)
 
@@ -216,14 +218,14 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
-        self.model = model
+
         model.trainer = self
 
         # transfer data loaders from model
         self.__get_dataloaders(model)
 
         # init training constants
-        self.__layout_bookeeping()
+        self.__layout_bookeeping(model)
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
@@ -231,8 +233,8 @@ class Trainer(TrainerIO):
 
         if self.use_amp:
             # An example
-            self.model, optimizer = amp.initialize(
-                self.model, self.optimizers[0], opt_level=self.amp_level,
+            model, optimizer = amp.initialize(
+                model, self.optimizers[0], opt_level=self.amp_level,
             )
             self.optimizers[0] = optimizer
             model.trainer = self
@@ -263,6 +265,7 @@ class Trainer(TrainerIO):
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
+        self.model = model
         self.__train()
 
     def __train(self):

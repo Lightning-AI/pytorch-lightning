@@ -6,7 +6,7 @@ from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 import torch
 import torch.nn.functional as F
-import os
+import os, pdb
 
 
 class ExampleModel(RootModule):
@@ -40,8 +40,9 @@ class ExampleModel(RootModule):
     # ---------------------
     # TRAINING
     # ---------------------
-    def forward(self, x):
+    def forward(self, x, a):
 
+        pdb.set_trace()
         x = self.c_d1(x)
         x = F.tanh(x)
         x = self.c_d1_bn(x)
