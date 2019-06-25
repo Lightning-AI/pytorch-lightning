@@ -50,13 +50,7 @@ class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         :param x:
         :return:
         """
-        if self.from_lightning:
-            # route the forward call to the correct step type
-            if self.training:
-                return self.training_step(*args, **kwargs)
-            else:
-                return self.validation_step(*args, **kwargs)
-
+        raise NotImplementedError
 
     def validation_step(self, data_batch, batch_nb):
         """
