@@ -171,8 +171,9 @@ if __name__ == '__main__':
     # format GPU layout
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
+    # ---------------------
     # RUN TRAINING
-    pdb.set_trace()
+    # ---------------------
 
     # cluster and CPU
     if hyperparams.on_cluster:
