@@ -43,9 +43,7 @@ def main(hparams, cluster, results_dict):
     :param hparams:
     :return:
     """
-    on_gpu = torch.cuda.is_available()
-    if hparams.disable_cuda:
-        on_gpu = False
+    on_gpu = hparams.gpus is not None and torch.cuda.is_available()
 
     device = 'cuda' if on_gpu else 'cpu'
     hparams.__setattr__('device', device)
