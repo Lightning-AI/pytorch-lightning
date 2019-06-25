@@ -6,6 +6,7 @@ from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 import torch
 import torch.nn.functional as F
+import os
 
 
 class ExampleModel(RootModule):
@@ -177,7 +178,7 @@ class ExampleModel(RootModule):
         return self._test_dataloader
 
     @staticmethod
-    def add_model_specific_args(parent_parser):
+    def add_model_specific_args(parent_parser, root_dir):
         parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
 
         # param overwrites
@@ -190,7 +191,7 @@ class ExampleModel(RootModule):
         parser.add_argument('--out_features', default=10)
 
         # data
-        parser.add_argument('--data_root', default='/Users/williamfalcon/Developer/personal/research_lib/research_proj/datasets/mnist', type=str)
+        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
