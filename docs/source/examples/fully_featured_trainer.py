@@ -95,7 +95,7 @@ def main(hparams, cluster, results_dict):
     # gpus are ; separated for inside a node and , within nodes
     gpu_list = None
     if hparams.gpus is not None:
-        gpu_list = map(int, hparams.gpus.split(';'))
+        gpu_list = [int(x) for x in hparams.gpus.split(';')]
 
     # configure trainer
     trainer = Trainer(
