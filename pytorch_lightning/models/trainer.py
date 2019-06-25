@@ -188,6 +188,7 @@ class Trainer(TrainerIO):
             # RUN VALIDATION STEP
             # -----------------
             output = model(data_batch, batch_i)
+            pdb.set_trace()
             outputs.append(output)
 
             # batch done

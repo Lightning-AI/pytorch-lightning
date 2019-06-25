@@ -42,7 +42,6 @@ class ExampleModel(RootModule):
     # ---------------------
     def forward(self, x, a):
 
-        pdb.set_trace()
         x = self.c_d1(x)
         x = F.tanh(x)
         x = self.c_d1_bn(x)
@@ -63,7 +62,6 @@ class ExampleModel(RootModule):
         :param data_batch:
         :return:
         """
-        pdb.set_trace()
         # forward pass
         x, y = data_batch
         x = x.view(x.size(0), -1)
@@ -81,7 +79,6 @@ class ExampleModel(RootModule):
         :param data_batch:
         :return:
         """
-        pdb.set_trace()
         x, y = data_batch
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
