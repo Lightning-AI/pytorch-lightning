@@ -163,6 +163,7 @@ class Trainer(TrainerIO):
         # enable eval mode
         model.zero_grad()
         model.eval()
+        model.from_lightning = True
 
         # disable gradients to save memory
         torch.set_grad_enabled(False)
