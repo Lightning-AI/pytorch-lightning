@@ -188,10 +188,10 @@ if __name__ == '__main__':
 
     # single or multiple GPUs on same machine
     gpu_ids = hyperparams.gpus.split(';')
-    if len(gpu_ids) == 1:
+    if hyperparams.live:
         # run on 1 gpu
-        print(f'RUNNING 1 TRIAL ON GPU. gpu: {gpu_ids[0]}')
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids[0]
+        print(f'RUNNING INTERACTIVE TRIAL ON GPUS. gpu ids: {gpu_ids}')
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
         main(hyperparams, None, None)
 
     else:
