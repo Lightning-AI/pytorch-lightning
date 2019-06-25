@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     # allow model to overwrite or extend args
     TRAINING_MODEL = AVAILABLE_MODELS[model_name]
-    parser = TRAINING_MODEL.add_model_specific_args(parent_parser)
+    parser = TRAINING_MODEL.add_model_specific_args(parent_parser, root_dir)
     hyperparams = parser.parse_args()
 
     # format GPU layout
