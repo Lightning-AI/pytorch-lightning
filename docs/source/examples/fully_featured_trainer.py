@@ -158,6 +158,7 @@ if __name__ == '__main__':
         model_name = 'model_template'
 
     # use default args
+    pdb.set_trace()
     root_dir = os.path.split(os.path.dirname(sys.modules['__main__'].__file__))[0]
     parent_parser = get_default_parser(strategy='random_search', root_dir=root_dir)
 
