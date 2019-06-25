@@ -41,6 +41,7 @@ class ExampleModel(RootModule):
     # TRAINING
     # ---------------------
     def forward(self, x):
+
         x = self.c_d1(x)
         x = F.tanh(x)
         x = self.c_d1_bn(x)
