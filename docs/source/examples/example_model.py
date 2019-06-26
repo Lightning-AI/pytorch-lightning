@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import torch
 import torch.nn.functional as F
 import os, pdb
+from collections import OrderedDict
 
 
 class ExampleModel(RootModule):
@@ -70,8 +71,14 @@ class ExampleModel(RootModule):
         # calculate loss
         loss_val = self.loss(y, y_hat)
 
-        tqdm_dic = {'tng_loss': loss_val.item()}
-        return loss_val, tqdm_dic
+        # tqdm_dic = {'tng_loss': loss_val.item()}
+        # return loss_val, tqdm_dic
+
+        output = OrderedDict({
+            'loss_val': loss_val,
+        })
+        return output
+
 
     def validation_step(self, data_batch, batch_i):
         """
@@ -89,8 +96,13 @@ class ExampleModel(RootModule):
         labels_hat = torch.argmax(y_hat, dim=1)
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-        output = {'y_hat': y_hat, 'val_loss': loss_val.item(), 'val_acc': val_acc}
+        # output = {'y_hat': y_hat, 'val_loss': loss_val.item(), 'val_acc': val_acc}
+        output = OrderedDict({
+            'loss_val': loss_val,
+            'val_acc': val_acc,
+        })
         return output
+
 
     def validation_end(self, outputs):
         """
