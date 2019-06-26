@@ -218,7 +218,6 @@ class Trainer(TrainerIO):
         # enable gradients to save memory
         torch.set_grad_enabled(True)
 
-        pdb.set_trace()
         return val_results
 
     def __get_dataloaders(self, model):
