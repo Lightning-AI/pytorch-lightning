@@ -198,13 +198,10 @@ class Trainer(TrainerIO):
             # -----------------
             if self.data_parallel:
                 output = model(data_batch, batch_i)
+                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
             else:
                 output = model.validation_step(data_batch, batch_i)
-
-            # when DP, we need to aggregate the scalars we received as outputs
-            # use mean as the reduce function
-            if self.data_parallel:
-                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+                output = reduce_distributed_output(output, 1)
 
             outputs.append(output)
 
