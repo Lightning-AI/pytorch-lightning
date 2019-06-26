@@ -75,7 +75,7 @@ class ExampleModel(RootModule):
         # return loss_val, tqdm_dic
 
         output = OrderedDict({
-            'loss_val': loss_val,
+            'tng_loss': loss_val,
         })
         return output
 
