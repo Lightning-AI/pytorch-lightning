@@ -35,19 +35,17 @@ from pytorch_lightning import RootModule
 
 class MyModel(RootModule):
 
-    def init(self):
-        # define model
-    
-    def training_step(self, data_batch, batch_nb):
-    def validation_step(self, data_batch, batch_nb):
-    def validation_end(self, data_batch, batch_nb):
-    def get_save_dict(self):
-    def load_model_specific(self, checkpoint):
-    def configure_optimizers(self):
-    def tng_dataloader(self):
+    def init(self): # define model
+    def training_step(self, data_batch, batch_nb): # what to do with a training batch
+    def validation_step(self, data_batch, batch_nb): # what to do with a val/test batch
+    def validation_end(self, data_batch, batch_nb): # collate all val batch outputs
+    def get_save_dict(self): # return what to save in a checkpoint
+    def load_model_specific(self, checkpoint): # use the checkpoint to reset your model state
+    def configure_optimizers(self): # return a list of optimizers
+    def tng_dataloader(self): # return a pytorch dataloader for each split
     def val_dataloader(self):
     def test_dataloader(self):
-    def add_model_specific_args(parent_parser):
+    def add_model_specific_args(parent_parser): # add args for this model to your argparse
 ```   
 
 2. Automate the training loop using the trainer 
