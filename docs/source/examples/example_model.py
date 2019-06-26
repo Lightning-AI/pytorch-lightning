@@ -97,7 +97,7 @@ class ExampleModel(RootModule):
 
         # output = {'y_hat': y_hat, 'val_loss': loss_val.item(), 'val_acc': val_acc}
         output = OrderedDict({
-            'loss_val': loss_val,
+            'val_loss': loss_val,
             'val_acc': torch.tensor(val_acc),
         })
         return output
