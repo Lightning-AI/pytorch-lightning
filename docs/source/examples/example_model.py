@@ -76,7 +76,7 @@ class ExampleModel(RootModule):
         # return loss_val, tqdm_dic
 
         output = OrderedDict({
-            'loss_val': loss_val.unsqueeze(0),
+            'loss_val': loss_val,
         })
         return output
 
@@ -99,8 +99,8 @@ class ExampleModel(RootModule):
 
         # output = {'y_hat': y_hat, 'val_loss': loss_val.item(), 'val_acc': val_acc}
         output = OrderedDict({
-            'loss_val': loss_val.unsqueeze(0),
-            'val_acc': val_acc.unsqueeze(0),
+            'loss_val': loss_val,
+            'val_acc': torch.tensor(val_acc),
         })
         return output
 
