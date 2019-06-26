@@ -198,6 +198,7 @@ class Trainer(TrainerIO):
             # -----------------
             if self.data_parallel:
                 output = model(data_batch, batch_i)
+                pdb.set_trace()
                 output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
             else:
                 output = model.validation_step(data_batch, batch_i)
