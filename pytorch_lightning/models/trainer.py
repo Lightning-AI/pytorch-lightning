@@ -213,7 +213,7 @@ class Trainer(TrainerIO):
         if self.data_parallel:
             val_results = model.module.validation_end(outputs)
         else:
-            val_results = model.validation_end(output)
+            val_results = model.validation_end(outputs)
 
         # enable train mode again
         model.train()
