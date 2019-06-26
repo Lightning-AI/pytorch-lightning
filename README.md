@@ -91,6 +91,24 @@ Trainer(use_amp=True, amp_level='O2')
 Trainer(gpus=[0, 1, 2, 3])
 ```
 
+- Run grid-search on cluster
+```python
+from test_tube import Experiment, SlurmCluster, HyperOptArgumentParser
+
+def training_fx(hparams, cluster, _):
+    # hparams are local params
+    model = MyModel()
+    trainer = Trainer(...)
+    trainer.fit(model)
+
+parser = HyperOptArgumentParser()
+parser.opt_list('--layers', default=5, type=int, options=[1, 5, 10, 20, 50])
+hyperparams = parser.parse_args()
+
+cluster = SlurmCluster(hyperparam_optimizer=hyperparams)
+cluster.optimize_parallel_cluster_gpu(training_fx)
+```
+
 - Automatic checkpointing
 ```python
 # do 3 things:
