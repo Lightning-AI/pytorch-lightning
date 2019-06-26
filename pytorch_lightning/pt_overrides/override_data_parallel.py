@@ -3,6 +3,7 @@ from torch.nn import DataParallel
 import threading
 import torch
 from torch.cuda._utils import _get_device_index
+import pdb
 
 
 def get_a_var(obj):
@@ -82,6 +83,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):
             with lock:
                 results[i] = e
 
+    pdb.set_trace()
     if len(modules) > 1:
         threads = [threading.Thread(target=_worker,
                                     args=(i, module, input, kwargs, device))

@@ -79,7 +79,6 @@ class ExampleModel(RootModule):
         })
         return output
 
-
     def validation_step(self, data_batch, batch_i):
         """
         Called inside the validation loop
