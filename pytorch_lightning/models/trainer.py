@@ -196,7 +196,10 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            output = model(data_batch, batch_i)
+            if self.data_parallel:
+                output = model(data_batch, batch_i)
+            else:
+                output = model.validation_step(data_batch, batch_i)
 
             # when DP, we need to aggregate the scalars we received as outputs
             # use mean as the reduce function
