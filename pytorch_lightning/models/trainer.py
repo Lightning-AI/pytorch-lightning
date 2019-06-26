@@ -401,10 +401,10 @@ class Trainer(TrainerIO):
         if self.data_parallel:
             output = reduce_distributed_output(output, len(self.gpus))
 
-        pdb.set_trace()
         model_specific_tqdm_metrics_dic = output['tqdm_metrics']
         loss = output['loss']
 
+        pdb.set_trace()
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
         # backward pass
