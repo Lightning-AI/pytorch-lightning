@@ -201,8 +201,8 @@ class ExampleModel(RootModule):
         # network params
         parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
         parser.add_argument('--in_features', default=28*28)
-        parser.add_argument('--hidden_dim', default=50000)
         parser.add_argument('--out_features', default=10)
+        parser.add_argument('--hidden_dim', default=50000) # use 500 for CPU, 50000 for GPU to see speed difference
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
