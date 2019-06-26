@@ -41,8 +41,10 @@ To use lightning do 2 things:
 from pytorch_lightning import Trainer
 from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
 
+# 1 - look at the this page for the interface (https://williamfalcon.github.io/pytorch-lightning/)
 model = MyModel()
 
+# 2 - feed to trainer
 trainer = Trainer(
     checkpoint_callback=ModelCheckpoint(...),
     early_stop_callback=EarlyStopping(...),
