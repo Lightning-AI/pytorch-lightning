@@ -399,7 +399,7 @@ class Trainer(TrainerIO):
         # when DP, we need to aggregate the scalars we received as outputs
         # use mean as the reduce function
         if self.data_parallel:
-            output = reduce_distributed_output(output, len(self.gpus))
+            output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
 
         model_specific_tqdm_metrics_dic = output['tqdm_metrics']
         loss = output['loss']
