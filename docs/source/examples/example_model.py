@@ -116,7 +116,7 @@ class ExampleModel(RootModule):
             accs.append(output['val_acc'])
 
         val_loss_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': np.mean(accs)}
+        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': torch.mean(accs).item()}
         return tqdm_dic
 
     def update_tng_log_metrics(self, logs):
