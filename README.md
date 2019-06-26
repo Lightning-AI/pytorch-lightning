@@ -32,27 +32,9 @@ Keras is too abstract for researchers. Lightning abstracts the full training loo
 ## Why do I want to use lightning?
 Because you want to use best practices and get gpu training, multi-node training, checkpointing, mixed-precision, etc... for free.
 
-To use lightning do 2 things:
-1. Define a model with the lightning interface.
-2. Feed this model to the lightning trainer.
-
-*Example model definition*
-```python
-from pytorch_lightning import Trainer
-from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
-
-# 1 - look at the this page for the interface (https://williamfalcon.github.io/pytorch-lightning/)
-model = MyModel()
-
-# 2 - feed to trainer
-trainer = Trainer(
-    checkpoint_callback=ModelCheckpoint(...),
-    early_stop_callback=EarlyStopping(...),
-    gpus=[0,1]
-)
-
-trainer.fit(model)
-```
+To use lightning do 2 things:  
+1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/basic_trainer.py) (which will run ALL your models).   
+2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/example_model.py).     
 
 ## What are some key lightning features?
 
@@ -91,25 +73,6 @@ Trainer(use_amp=True, amp_level='O2')
 Trainer(gpus=[0, 1, 2, 3])
 ```
 
-- Run grid-search on cluster
-```python
-from test_tube import Experiment, SlurmCluster, HyperOptArgumentParser
-
-def training_fx(hparams, cluster, _):
-    # hparams are local params
-    model = MyModel()
-    trainer = Trainer(...)
-    trainer.fit(model)
-
-# grid search number of layers
-parser = HyperOptArgumentParser(strategy='grid_search')
-parser.opt_list('--layers', default=5, type=int, options=[1, 5, 10, 20, 50])
-hyperparams = parser.parse_args()
-
-cluster = SlurmCluster(hyperparam_optimizer=hyperparams)
-cluster.optimize_parallel_cluster_gpu(training_fx)
-```
-
 - Automatic checkpointing
 ```python
 # do 3 things:
@@ -134,18 +97,25 @@ exp = Experiment(...)
 Trainer(experiment=exp)
 ```
 
- 
-10. Log training details (through test-tube).  
-11. Run training on multiple GPUs (through test-tube).   
-12. Run training on a GPU cluster managed by SLURM (through test-tube).   
-13. Distribute memory-bound models on multiple GPUs.
-14. Give your model hyperparameters parsed from the command line OR a JSON file.   
-15. Run your model in a dev environment where nothing logs.      
+- Run grid-search on cluster
+```python
+from test_tube import Experiment, SlurmCluster, HyperOptArgumentParser
 
-## Usage
-To use lightning do 2 things:  
-1. [Define a trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/basic_trainer.py) (which will run ALL your models).   
-2. [Define a model](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/examples/example_model.py).     
+def training_fx(hparams, cluster, _):
+    # hparams are local params
+    model = MyModel()
+    trainer = Trainer(...)
+    trainer.fit(model)
+
+# grid search number of layers
+parser = HyperOptArgumentParser(strategy='grid_search')
+parser.opt_list('--layers', default=5, type=int, options=[1, 5, 10, 20, 50])
+hyperparams = parser.parse_args()
+
+cluster = SlurmCluster(hyperparam_optimizer=hyperparams)
+cluster.optimize_parallel_cluster_gpu(training_fx)
+```
+
 
 #### Quick demo
 Run the following demo to see how it works:
