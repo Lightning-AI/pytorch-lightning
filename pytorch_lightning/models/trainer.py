@@ -213,7 +213,10 @@ class Trainer(TrainerIO):
                 self.prog_bar.update(1)
 
         # give model a chance to do something with the outputs
-        val_results = model.module.validation_end(outputs)
+        if self.data_parallel:
+            val_results = model.module.validation_end(outputs)
+        else:
+            val_results = model.validation_end(output)
 
         # enable train mode again
         model.train()
