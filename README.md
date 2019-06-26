@@ -22,9 +22,6 @@ pip install pytorch-lightning
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
-## Disclaimer
-This is a research tool I built for myself internally while doing my PhD. The API is not 100% production quality, but my hope is that by open-sourcing, we can all get it there (I don't have too much time nowadays to write production-level code).
-
 ## What is it?  
 Keras is too abstract for researchers. Lightning abstracts the full training loop but gives you control in the critical points.   
 
