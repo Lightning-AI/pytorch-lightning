@@ -65,6 +65,7 @@ class ExampleModel(RootModule):
         """
         # forward pass
         x, y = data_batch
+        print(x.shape)
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
 
@@ -86,6 +87,7 @@ class ExampleModel(RootModule):
         :return:
         """
         x, y = data_batch
+        print(x.shape)
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
 
