@@ -212,7 +212,7 @@ class Trainer(TrainerIO):
         pdb.set_trace()
 
         # give model a chance to do something with the outputs
-        val_results = model.validation_end(outputs)
+        val_results = model.module.validation_end(outputs)
 
         # enable train mode again
         model.train()
