@@ -3,7 +3,6 @@ import sys
 import numpy as np
 from time import sleep
 import torch
-import pdb
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning.models.trainer import Trainer
