@@ -96,7 +96,6 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):
     else:
         _worker(0, modules[0], inputs[0], kwargs_tup[0], devices[0])
 
-    pdb.set_trace()
     outputs = []
     for i in range(len(inputs)):
         output = results[i]
