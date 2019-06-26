@@ -29,7 +29,7 @@ This is a research tool I built for myself internally while doing my PhD. The AP
 Keras is too abstract for researchers. Lightning makes it so you only have to define your model but still control all details of training if you need to.   
 
 To use lightning do 2 things:
-1. Define a model with architecture, training step, validation step, val/train/test dataloaders, optimizers.
+1. Define a model with this interface 
 ```python
 from pytorch_lightning import RootModule
 
@@ -50,7 +50,7 @@ class MyModel(RootModule):
     def add_model_specific_args(parent_parser):
 ```   
 
-2. Give Trainer the model and pass in whatever options you'd like.
+2. Automate the training loop using the trainer 
 
 ```python
 from pytorch_lightning import Trainer
