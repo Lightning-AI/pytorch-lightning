@@ -112,6 +112,7 @@ class ExampleModel(RootModule):
         """
         val_loss_mean = 0
         val_acc_mean = 0
+        pdb.set_trace()
         for output in outputs:
             val_loss_mean += output['val_loss']
             val_acc_mean += output['val_acc']
