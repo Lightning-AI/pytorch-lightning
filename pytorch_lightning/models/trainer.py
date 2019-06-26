@@ -209,8 +209,6 @@ class Trainer(TrainerIO):
             if self.enable_tqdm and self.prog_bar is not None:
                 self.prog_bar.update(1)
 
-        pdb.set_trace()
-
         # give model a chance to do something with the outputs
         val_results = model.module.validation_end(outputs)
 
@@ -219,6 +217,8 @@ class Trainer(TrainerIO):
 
         # enable gradients to save memory
         torch.set_grad_enabled(True)
+
+        pdb.set_trace()
         return val_results
 
     def __get_dataloaders(self, model):
