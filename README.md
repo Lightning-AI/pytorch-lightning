@@ -28,6 +28,43 @@ This is a research tool I built for myself internally while doing my PhD. The AP
 ## What is it?  
 Keras is too abstract for researchers. Lightning makes it so you only have to define your model but still control all details of training if you need to.   
 
+To use lightning do 2 things:
+1. Define a model with architecture, training step, validation step, val/train/test dataloaders, optimizers.
+```python
+from pytorch_lightning import RootModule
+
+class MyModel(RootModule):
+
+    def init(self):
+        # define model
+    
+    def training_step(self, data_batch, batch_nb):
+    def validation_step(self, data_batch, batch_nb):
+    def validation_end(self, data_batch, batch_nb):
+    def get_save_dict(self):
+    def load_model_specific(self, checkpoint):
+    def configure_optimizers(self):
+    def tng_dataloader(self):
+    def val_dataloader(self):
+    def test_dataloader(self):
+    def add_model_specific_args(parent_parser):
+```   
+
+2. Give Trainer the model and pass in whatever options you'd like.
+
+```python
+from pytorch_lightning import Trainer
+from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+
+model = MyModel()
+
+trainer = Trainer(
+    checkpoint_callback=ModelCheckpoint(...),
+    early_stop_callback=EarlyStopping(...),
+    gpus=[0,1]
+)
+```
+
 Pytorch   
 <-- Lightning   
 Your model.   
