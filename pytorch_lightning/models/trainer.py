@@ -394,7 +394,7 @@ class Trainer(TrainerIO):
 
         # forward pass
         # return a scalar value and a dic with tqdm metrics
-        output = self.model(data_batch, batch_nb, False)
+        output = self.model(data_batch, batch_nb)
 
         # when DP, we need to aggregate the scalars we received as outputs
         # use mean as the reduce function
