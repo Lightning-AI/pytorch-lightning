@@ -78,7 +78,7 @@ class ExampleModel(RootModule):
         output = OrderedDict({
             'loss_val': loss_val,
         })
-        return torch.tensor(4)
+        return output
 
     def validation_step(self, data_batch, batch_i):
         """
@@ -102,7 +102,7 @@ class ExampleModel(RootModule):
             'loss_val': loss_val,
             'val_acc': val_acc,
         })
-        return torch.tensor(4)
+        return output
 
 
     def validation_end(self, outputs):

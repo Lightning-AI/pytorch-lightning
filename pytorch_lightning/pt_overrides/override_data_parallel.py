@@ -72,9 +72,9 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):
                 # ---------------
                 # CHANGE
                 if module.training:
-                    return module.training_step(*input, **kwargs)
+                    output = module.training_step(*input, **kwargs)
                 else:
-                    return module.validation_step(*input, **kwargs)
+                    output = module.validation_step(*input, **kwargs)
                 # ---------------
 
             with lock:
