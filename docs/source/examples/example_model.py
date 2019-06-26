@@ -44,7 +44,7 @@ class ExampleModel(RootModule):
     def forward(self, x):
 
         x = self.c_d1(x)
-        x = F.tanh(x)
+        x = torch.tanh(x)
         x = self.c_d1_bn(x)
         x = self.c_d1_drop(x)
 
