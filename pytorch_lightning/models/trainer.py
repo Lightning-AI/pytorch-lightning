@@ -268,6 +268,7 @@ class Trainer(TrainerIO):
 
         # put on gpu if needed
         if self.on_gpu:
+            model.cuda()
             model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
         # run tiny validation to make sure program won't crash during val
