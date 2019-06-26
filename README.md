@@ -107,13 +107,15 @@ def load_model_specific(self, checkpoint):
     self.load_state_dict(checkpoint['state_dict'])
 ```
 
+- Log all details of your experiment (model params, code snapshot, etc...)
+```python
+from test_tube import Experiment
 
+exp = Experiment(...)
+Trainer(experiment=exp)
+```
 
-5. Learning rate annealing.
-6. Can train complex models like GANs or anything with multiple optimizers.
-7. Weight checkpointing.   
-8. Model saving.   
-9. Model loading.   
+ 
 10. Log training details (through test-tube).  
 11. Run training on multiple GPUs (through test-tube).   
 12. Run training on a GPU cluster managed by SLURM (through test-tube).   
