@@ -394,7 +394,13 @@ class Trainer(TrainerIO):
 
         # forward pass
         # return a scalar value and a dic with tqdm metrics
-        # TODO: fix training part...
+        pdb.set_trace()
+        if self.data_parallel:
+            output = self.model(data_batch, batch_nb)
+            output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+        else:
+            output = self.mode(data_batch, batch_nb)
+
         loss, model_specific_tqdm_metrics_dic = self.model.training_step(data_batch, batch_nb)
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
