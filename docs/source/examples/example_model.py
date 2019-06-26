@@ -112,12 +112,12 @@ class ExampleModel(RootModule):
         """
         val_loss_mean = 0
         val_acc_mean = 0
-        pdb.set_trace()
         for output in outputs:
             val_loss_mean += output['val_loss']
             val_acc_mean += output['val_acc']
 
         val_loss_mean /= len(outputs)
+        val_acc_mean /= len(outputs)
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
 
