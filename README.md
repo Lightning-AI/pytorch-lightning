@@ -101,7 +101,8 @@ def training_fx(hparams, cluster, _):
     trainer = Trainer(...)
     trainer.fit(model)
 
-parser = HyperOptArgumentParser()
+# grid search number of layers
+parser = HyperOptArgumentParser(strategy='grid_search')
 parser.opt_list('--layers', default=5, type=int, options=[1, 5, 10, 20, 50])
 hyperparams = parser.parse_args()
 
