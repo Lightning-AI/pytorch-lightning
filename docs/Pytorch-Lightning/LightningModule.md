@@ -3,7 +3,9 @@
 
 A lightning module is a strict superclass of nn.Module, it provides a standard interface for the trainer to interact with the model.
 
-To Define a Lightning Module, implement the following methods:
+The easiest thing to do is copy [this template](lightning_module_template.py) and modify accordingly. 
+
+Otherwise, to Define a Lightning Module, implement the following methods:
 
 **Required**:  
 
