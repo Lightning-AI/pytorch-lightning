@@ -37,7 +37,7 @@ class Trainer(TrainerIO):
                  process_position=0,
                  current_gpu_name=0,
                  gpus=None,
-                 enable_tqdm=True,
+                 progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
                  check_val_every_n_epoch=1,
@@ -58,7 +58,7 @@ class Trainer(TrainerIO):
         self.track_grad_norm = track_grad_norm
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
-        self.enable_tqdm = enable_tqdm
+        self.progress_bar = progress_bar
         self.experiment = experiment
         self.exp_save_path = experiment.get_data_path(experiment.name, experiment.version)
         self.cluster = cluster
@@ -206,7 +206,7 @@ class Trainer(TrainerIO):
             outputs.append(output)
 
             # batch done
-            if self.enable_tqdm and self.prog_bar is not None:
+            if self.progress_bar and self.prog_bar is not None:
                 self.prog_bar.update(1)
 
         # give model a chance to do something with the outputs
@@ -307,7 +307,7 @@ class Trainer(TrainerIO):
             self.batch_loss_value = 0  # accumulated grads
 
             # init progbar when requested
-            if self.enable_tqdm:
+            if self.progress_bar:
                 self.prog_bar = tqdm.tqdm(range(self.total_batches), position=self.process_position)
 
             for batch_nb, data_batch in enumerate(self.tng_dataloader):
@@ -403,7 +403,7 @@ class Trainer(TrainerIO):
             if response == -1:
                 return -1
 
-        if self.enable_tqdm:
+        if self.progress_bar:
             self.prog_bar.update(1)
 
         # forward pass
@@ -453,7 +453,7 @@ class Trainer(TrainerIO):
             self.avg_loss = np.mean(self.running_loss[-100:])
 
             # update progbar
-            if self.enable_tqdm:
+            if self.progress_bar:
                 # add model specific metrics
                 tqdm_metrics = self.__tng_tqdm_dic
                 self.prog_bar.set_postfix(**tqdm_metrics)
@@ -495,7 +495,7 @@ class Trainer(TrainerIO):
             print(e)
             print(traceback.print_exc())
 
-        if self.enable_tqdm:
+        if self.progress_bar:
             # add model specific metrics
             tqdm_metrics = self.__tng_tqdm_dic
             self.prog_bar.set_postfix(**tqdm_metrics)
