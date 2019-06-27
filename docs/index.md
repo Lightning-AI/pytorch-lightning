@@ -1,8 +1,12 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
-###### Quick start
-- [Define a LightningModule](Pytorch-Lightning/LightningModule/)  
-- Set up the trainer   
+###### Main Docs
+- [LightningModule](Pytorch-Lightning/LightningModule)  
+- [Trainer](Trainer/)  
+
+###### New project Quick Start
+- [Define a LightningModule](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/Pytorch-Lightning/lightning_module_template.py)  
+- [Set up a trainer](Trainer/) 
 
 ###### Quick start examples 
 - CPU example   
