@@ -4,7 +4,7 @@ import sys
 from test_tube import HyperOptArgumentParser, Experiment
 from pytorch_lightning.models.trainer import Trainer
 from pytorch_lightning.utils.arg_parse import add_default_args
-from pytorch_lightning.utils.pt_callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks.pt_callbacks import EarlyStopping, ModelCheckpoint
 from docs.source.examples.example_model import ExampleModel
 
 
