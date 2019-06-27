@@ -9,10 +9,10 @@ from pytorch_lightning.root_module.optimization import OptimizerConfig
 from pytorch_lightning.root_module.hooks import ModelHooks
 
 
-class RootModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
+class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
 
     def __init__(self, hparams):
-        super(RootModule, self).__init__()
+        super(LightningModule, self).__init__()
         self.hparams = hparams
 
         self.dtype = torch.FloatTensor

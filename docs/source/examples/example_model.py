@@ -1,6 +1,6 @@
 import torch.nn as nn
 import numpy as np
-from pytorch_lightning.root_module.root_module import RootModule
+from pytorch_lightning.root_module.root_module import LightningModule
 from test_tube import HyperOptArgumentParser
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
@@ -10,7 +10,7 @@ import os, pdb
 from collections import OrderedDict
 
 
-class ExampleModel(RootModule):
+class ExampleModel(LightningModule):
     """
     Sample model to show how to define a template
     """
