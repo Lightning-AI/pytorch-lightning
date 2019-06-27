@@ -18,20 +18,18 @@ But of course the fun is in all the advanced things it can do:
 
 **Training loop**    
 
-- Accumulate gradients
-- Check GPU usage
-- Check which gradients are nan
-- Check validation every n epochs
-- Display metrics in progress bar
-- Display the parameter count by layer
-- Force training for min or max epochs
-- Inspect gradient norms
-- Learning rate annealing
-- Make model overfit on subset of data
-- Multiple optimizers (like GANs)
-- Set how much of the training set to check (1-100%)
-- Show progress bar
-- training_step function
+- [Accumulate gradients](Training%20Loop/#accumulated-gradients)
+- [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
+- [Check GPU usage](Training%20Loop/#Check-gpu-usage)
+- [Check which gradients are nan](Training%20Loop/#check-which-gradients-are-nan)
+- [Check validation every n epochs](Training%20Loop/#check-validation-every-n-epochs)
+- [Display metrics in progress bar](Training%20Loop/#display-metrics-in-progress-bar)
+- [Display the parameter count by layer](Training%20Loop/#display-the-parameter-count-by-layer)
+- [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Inspect gradient norms](Training%20Loop/#inspect-gradient-norms)
+- [Make model overfit on subset of data](Training%20Loop/#make-model-overfit-on-subset-of-data)
+- [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
+- [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 **Validation loop**    
 
