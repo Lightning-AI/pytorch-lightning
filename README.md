@@ -121,8 +121,7 @@ cluster.optimize_parallel_cluster_gpu(training_fx)
 ```
 
 
-#### Quick demo
-Run the following demo to see how it works:
+## Demo
 ```bash
 # install lightning
 pip install pytorch-lightning
