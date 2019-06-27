@@ -1,6 +1,10 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
 ###### Quick start
+- Model interface   
+- Trainer set up   
+
+###### Examples 
 - CPU example   
 - Single GPU example   
 - Multi-gpu example 
@@ -12,6 +16,9 @@
 - Multi-gpu      
 - Multi-node   
 
+###### Checkpointing
+- Model saving
+- Model loading 
 
 ###### Mixed precision training
 - 16-bit mixed precision
