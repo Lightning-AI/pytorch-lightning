@@ -1,7 +1,7 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
 ###### Quick start
-- Define a lightning model   
+- [Define a LightningModule](Pytorch-Lightning/LightningModule/)  
 - Set up the trainer   
 
 ###### Quick start examples 
