@@ -5,8 +5,11 @@
 - [Trainer](Trainer/)  
 
 ###### New project Quick Start
-- [Define a LightningModule](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/Pytorch-Lightning/lightning_module_template.py)  
-- [Set up a trainer](Trainer/) 
+- [Define a LightningModule](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py)  
+
+Pick a trainer
+- [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) 
+- [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_gpu_cluster_template.py)
 
 ###### Quick start examples 
 - CPU example   
