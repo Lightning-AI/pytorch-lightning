@@ -1,4 +1,4 @@
-
+Lighting offers a few options for logging information about model, gpu usage, etc (via test-tube). It also offers printing options for training monitoring.
 
 
 ---
@@ -8,6 +8,13 @@
 trainer = Trainer(progress_bar=True)
 ```
 
+---
+#### Log metric row every k batches 
+Every k batches lightning will make an entry in the metrics log
+``` {.python}
+# DEFAULT (ie: save a .csv log file every 10 batches)
+trainer = Trainer(add_log_row_interval=10)
+```
 
 ---
 #### Process position
@@ -22,25 +29,27 @@ trainer = Trainer(process_position=1)
 ```
 
 ---
-#### Print which gradients are nan 
-This option prints a list of tensors with nan gradients.
-``` {.python}
-# DEFAULT
-trainer = Trainer(print_nan_grads=False)
-```
-
----
 #### Save a snapshot of all hyperparameters 
 Whenever you call .save() on the test-tube experiment it logs all the hyperparameters in current use.
 Give lightning a test-tube Experiment object to automate this for you.
+``` {.python}
+from test-tube import Experiment
+
+exp = Experiment(...)
+Trainer(experiment=exp)
+```
 
 ---
-#### Log metric row every k batches 
-Every k batches lightning will make an entry in the metrics log
+#### Snapshot code for a training run
+Whenever you call .save() on the test-tube experiment it snapshows all code and pushes to a git tag.
+Give lightning a test-tube Experiment object to automate this for you.
 ``` {.python}
-# DEFAULT (ie: save a .csv log file every 100 batches)
-trainer = Trainer(add_log_row_interval=10)
+from test-tube import Experiment
+
+exp = Experiment(create_git_tag=True)
+Trainer(experiment=exp)
 ```
+
 
 ---
 #### Write logs file to csv every k batches 

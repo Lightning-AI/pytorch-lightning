@@ -41,20 +41,22 @@ But of course the fun is in all the advanced things it can do:
 
 **Distributed training**    
 
-- 16-bit mixed precision
-- Single-gpu      
-- Multi-gpu      
-- Multi-node   
+- [16-bit mixed precision](Distributed%20training/#16-bit-mixed-precision)
+- [Multi-GPU](Distributed%20training/#Multi-GPU)
+- [Multi-node](Distributed%20training/#Multi-node)
+- [Single GPU](Distributed%20training/#single-gpu)
+- [Self-balancing architecture](Distributed%20training/#self-balancing-architecture)
+
 
 **Experiment Logging**   
 
 - [Display metrics in progress bar](Logging/#display-metrics-in-progress-bar)
 - Log arbitrary metrics
-- [Process position](Logging/#process-position)
-- [Write logs file to csv every k batches](Logging/#write-logs-file-to-csv-every-k-batches)
 - [Log metric row every k batches](Logging/#log-metric-row-every-k-batches)
-- Save a snapshot of all hyperparameters
-- Save a snapshot of the code for a particular model run
+- [Process position](Logging/#process-position)
+- [Save a snapshot of all hyperparameters](Logging/#save-a-snapshot-of-all-hyperparameters) 
+- [Snapshot code for a training run](Logging/#snapshot-code-for-a-training-run) 
+- [Write logs file to csv every k batches](Logging/#write-logs-file-to-csv-every-k-batches)
 
 **Training loop**    
 

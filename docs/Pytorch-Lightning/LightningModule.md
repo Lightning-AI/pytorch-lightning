@@ -28,7 +28,7 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 
 ---
 
-### training_step
+### training_ste**p
 
 ``` {.python}
 def training_step(self, data_batch, batch_nb)
