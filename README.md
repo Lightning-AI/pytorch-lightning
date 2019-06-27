@@ -36,7 +36,8 @@ To use lightning do 2 things:
 ## What does lightning control for me?
 Everything! Except the following three things:
 
-- Automatic training loop
+*Automatic training loop*    
+
 ```python
 # define what happens for training here
 def training_step(self, data_batch, batch_nb):
@@ -47,7 +48,8 @@ def training_step(self, data_batch, batch_nb):
     loss = my_loss(out, y)
     return {'loss': loss} 
 ```
-- Automatic validation loop   
+
+*Automatic validation loop*      
 
 ```python
 # define what happens for validation here
@@ -60,8 +62,28 @@ def validation_step(self, data_batch, batch_nb):
     return {'loss': loss} 
 ```
 
+*Collate the output of the validation_step*    
 
-Lightning gives you options to control the following:
+```python
+def validation_end(self, outputs):
+    """
+    Called at the end of validation to aggregate outputs
+    :param outputs: list of individual outputs of each validation step
+    :return:
+    """
+    val_loss_mean = 0
+    val_acc_mean = 0
+    for output in outputs:
+        val_loss_mean += output['val_loss']
+        val_acc_mean += output['val_acc']
+
+    val_loss_mean /= len(outputs)
+    val_acc_mean /= len(outputs)
+    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dic
+```
+
+## Lightning gives you options to control the following:
 
 **Checkpointing**    
 
