@@ -71,9 +71,6 @@ class ExampleModel(RootModule):
         # calculate loss
         loss_val = self.loss(y, y_hat)
 
-        # tqdm_dic = {'tng_loss': loss_val.item()}
-        # return loss_val, tqdm_dic
-
         output = OrderedDict({
             'loss': loss_val,
             'tqdm_metrics': {}
@@ -96,7 +93,6 @@ class ExampleModel(RootModule):
         labels_hat = torch.argmax(y_hat, dim=1)
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-        # output = {'y_hat': y_hat, 'val_loss': loss_val.item(), 'val_acc': val_acc}
         output = OrderedDict({
             'val_loss': loss_val,
             'val_acc': torch.tensor(val_acc),
