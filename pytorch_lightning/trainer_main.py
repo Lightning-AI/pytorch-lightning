@@ -97,7 +97,7 @@ def main(hparams, cluster, results_dict):
         experiment=exp,
         on_gpu=on_gpu,
         cluster=cluster,
-        enable_tqdm=hparams.enable_tqdm,
+        progress_bar=hparams.enable_tqdm,
         overfit_pct=hparams.overfit,
         track_grad_norm=hparams.track_grad_norm,
         fast_dev_run=hparams.fast_dev_run,

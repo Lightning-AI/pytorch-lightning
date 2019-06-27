@@ -16,41 +16,6 @@ trainer.fit(model)
 
 But of course the fun is in all the advanced things it can do:
 
-``` {.python}
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from test_tube import Experiment, SlurmCluster
-
-trainer = Trainer(
-                 experiment=Experiment,
-                 checkpoint_callback=ModelCheckpoint, 
-                 early_stop_callback=EarlyStopping,
-                 cluster=SlurmCluster,
-                 process_position=0,
-                 current_gpu_name=0,
-                 gpus=None,
-                 enable_tqdm=True,
-                 overfit_pct=0.0,
-                 track_grad_norm=-1,
-                 check_val_every_n_epoch=1,
-                 fast_dev_run=False,
-                 accumulate_grad_batches=1,
-                 enable_early_stop=True, max_nb_epochs=5, min_nb_epochs=1,
-                 train_percent_check=1.0, 
-                 val_percent_check=1.0, 
-                 test_percent_check=1.0, 
-                 val_check_interval=0.95,
-                 log_save_interval=1, add_log_row_interval=1,
-                 lr_scheduler_milestones=None,
-                 use_amp=False,
-                 check_grad_nans=False,
-                 amp_level='O2',
-                 nb_sanity_val_steps=5):
-)
-```
-
-
-Things you can do with the trainer module:
-
 **Training loop**    
 
 - Accumulate gradients
@@ -58,6 +23,7 @@ Things you can do with the trainer module:
 - Check which gradients are nan
 - Check validation every n epochs
 - Display metrics in progress bar
+- Display the parameter count by layer
 - Force training for min or max epochs
 - Inspect gradient norms
 - Learning rate annealing
