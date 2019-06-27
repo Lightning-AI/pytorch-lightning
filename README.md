@@ -66,7 +66,7 @@ Trainer(early_stopping=callback)
 Trainer(lr_scheduler_milestones=[100, 200])
 ```
 
-- 16 bit precision training   
+- 16 bit precision training (must have apex installed)  
 ```python
 Trainer(use_amp=True, amp_level='O2')
 ```
