@@ -17,7 +17,7 @@ Lightning automatically logs gpu usage to the test tube logs. It'll only do it a
 #### Check which gradients are nan 
 This option prints a list of tensors with nan gradients.
 ``` {.python}
-trainer = Trainer(check_grad_nans=False)
+trainer = Trainer(print_nan_grads=False)
 ```
 
 ---
@@ -31,4 +31,15 @@ trainer = Trainer(check_val_every_n_epoch=1)
 #### Display metrics in progress bar 
 ``` {.python}
 trainer = Trainer(progress_bar=True)
+```
+
+---
+#### Display the parameter count by layer
+By default lightning prints a list of parameters *and submodules* when it starts training.
+
+---
+#### Force training for min or max epochs
+It can be useful to force training for a minimum number of epochs or limit to a max number
+``` {.python}
+trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
 ```
