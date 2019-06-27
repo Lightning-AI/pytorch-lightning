@@ -38,13 +38,20 @@ To use lightning do 2 things:
 - Automatic training loop
 ```python
 # define what happens for training here
-def training_step(self, data_batch, batch_nb):  
+def training_step(self, data_batch, batch_nb):
+    x, y = data_batch
+    out = self.forward(x)
+    loss = my_loss(out, y)
+    return {'loss': loss} 
 ```
 - Automatic validation loop   
 
 ```python
 # define what happens for validation here
-def validation_step(self, data_batch, batch_nb):
+def validation_step(self, data_batch, batch_nb):    x, y = data_batch
+    out = self.forward(x)
+    loss = my_loss(out, y)
+    return {'loss': loss} 
 ```
 
 - Automatic early stopping   
