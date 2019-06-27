@@ -22,22 +22,25 @@ But of course the fun is in all the advanced things it can do:
 - [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
 - [Check GPU usage](Training%20Loop/#Check-gpu-usage)
 - [Check which gradients are nan](Training%20Loop/#check-which-gradients-are-nan)
-- [Check validation every n epochs](Training%20Loop/#check-validation-every-n-epochs)
 - [Display metrics in progress bar](Training%20Loop/#display-metrics-in-progress-bar)
 - [Display the parameter count by layer](Training%20Loop/#display-the-parameter-count-by-layer)
+- [Fast dev run](Training%20Loop/#fast-dev-run)
 - [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Force disable early stop](Training%20Loop/#force-disable-early-stop)
 - [Inspect gradient norms](Training%20Loop/#inspect-gradient-norms)
 - [Make model overfit on subset of data](Training%20Loop/#make-model-overfit-on-subset-of-data)
 - [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
+- [Process position](Training%20Loop/#process-position)
 - [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 **Validation loop**    
 
-- Display metrics in progress bar
-- Set how much of the validation set to check (1-100%)
-- Set validation check frequency within 1 training epoch (1-100%)
-- validation_step function
-- Why does validation run first for 5 steps?
+- [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
+- [Set how much of the validation set to check](Validation%20Loop/#set-how-much-of-the-validation-set-to-check)
+- [Set how much of the test set to check](Validation%20Loop/#set-how-much-of-the-test-set-to-check)
+- [Set validation check frequency within 1 training epoch](Validation%20Loop/#set-validation-check-frequency-within-1-training-epoch)
+- [Set the number of validation sanity steps](Validation%20Loop/#set-the-number-of-validation-sanity-steps)
+- [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
 
 **Distributed training**    
 
