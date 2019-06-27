@@ -23,38 +23,6 @@ trainer = Trainer(lr_scheduler_milestones=[100, 200, 300])
 ```
 
 ---
-#### Check GPU usage
-Lightning automatically logs gpu usage to the test tube logs. It'll only do it at the metric logging interval, so it doesn't slow down training.
-
----
-#### Check which gradients are nan 
-This option prints a list of tensors with nan gradients.
-``` {.python}
-# DEFAULT
-trainer = Trainer(print_nan_grads=False)
-```
-
----
-#### Display metrics in progress bar 
-``` {.python}
-# DEFAULT
-trainer = Trainer(progress_bar=True)
-```
-
----
-#### Display the parameter count by layer
-By default lightning prints a list of parameters *and submodules* when it starts training.
-
----
-#### Fast dev run 
-This flag is meant for debugging a full train/val/test loop. It'll activate callbacks, everything but only with 1 training and 1 validation batch.
-Use this to debug a full run of your program quickly
-``` {.python}
-# DEFAULT
-trainer = Trainer(fast_dev_run=False)
-```
-
----
 #### Force training for min or max epochs
 It can be useful to force training for a minimum number of epochs or limit to a max number
 ``` {.python}
@@ -79,30 +47,6 @@ trainer = Trainer(track_grad_norm=-1)
 
 # track the LP norm (P=2 here)
 trainer = Trainer(track_grad_norm=2)
-```
-
-
----
-#### Make model overfit on subset of data
-A useful debugging trick is to make your model overfit a tiny fraction of the data.
-``` {.python}
-# DEFAULT don't overfit (ie: normal training)
-trainer = Trainer(overfit_pct=0.0)
-
-# overfit on 1% of data 
-trainer = Trainer(overfit_pct=0.01)
-```
-
----
-#### Process position
-When running multiple models on the same machine we want to decide which progress bar to use.
-Lightning will stack progress bars according to this value. 
-``` {.python}
-# DEFAULT
-trainer = Trainer(process_position=0)
-
-# if this is the second model on the node, show the second progress bar below
-trainer = Trainer(process_position=1)
 ```
 
 
