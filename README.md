@@ -36,7 +36,7 @@ To use lightning do 2 things:
 ## What does lightning control for me?
 Everything! Except the following three things:
 
-*Automatic training loop*    
+**Automatic training loop**    
 
 ```python
 # define what happens for training here
@@ -49,7 +49,7 @@ def training_step(self, data_batch, batch_nb):
     return {'loss': loss} 
 ```
 
-*Automatic validation loop*      
+**Automatic validation loop**      
 
 ```python
 # define what happens for validation here
@@ -62,7 +62,7 @@ def validation_step(self, data_batch, batch_nb):
     return {'loss': loss} 
 ```
 
-*Collate the output of the validation_step*    
+**Collate the output of the validation_step**    
 
 ```python
 def validation_end(self, outputs):
