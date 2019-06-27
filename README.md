@@ -30,7 +30,7 @@ Keras and fast.ai are too abstract for researchers. Lightning abstracts the full
 Because you want to use best practices and get gpu training, multi-node training, checkpointing, mixed-precision, etc... for free, but still want granular control of the meat of the training, validation and testing loops.
 
 To use lightning do 2 things:  
-1. [Define a Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) (which will run ALL your models).   
+1. [Define a Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py).   
 2. [Define a LightningModel](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py).     
 
 ## What does lightning control for me?
