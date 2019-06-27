@@ -35,14 +35,6 @@ trainer = Trainer(print_nan_grads=False)
 ```
 
 ---
-#### Check validation every n epochs 
-If you have a small dataset you might want to check validation every n epochs
-``` {.python}
-# DEFAULT
-trainer = Trainer(check_val_every_n_epoch=1)
-```
-
----
 #### Display metrics in progress bar 
 ``` {.python}
 # DEFAULT
@@ -54,11 +46,28 @@ trainer = Trainer(progress_bar=True)
 By default lightning prints a list of parameters *and submodules* when it starts training.
 
 ---
+#### Fast dev run 
+This flag is meant for debugging a full train/val/test loop. It'll activate callbacks, everything but only with 1 training and 1 validation batch.
+Use this to debug a full run of your program quickly
+``` {.python}
+# DEFAULT
+trainer = Trainer(fast_dev_run=False)
+```
+
+---
 #### Force training for min or max epochs
 It can be useful to force training for a minimum number of epochs or limit to a max number
 ``` {.python}
 # DEFAULT
 trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
+```
+
+---
+#### Force disable early stop 
+Use this to turn off early stopping and run training to the [max_epoch](#force-training-for-min-or-max-epochs)
+``` {.python}
+# DEFAULT
+trainer = Trainer(enable_early_stop=True)
 ```
 
 ---
@@ -85,8 +94,21 @@ trainer = Trainer(overfit_pct=0.01)
 ```
 
 ---
+#### Process position
+When running multiple models on the same machine we want to decide which progress bar to use.
+Lightning will stack progress bars according to this value. 
+``` {.python}
+# DEFAULT
+trainer = Trainer(process_position=0)
+
+# if this is the second model on the node, show the second progress bar below
+trainer = Trainer(process_position=1)
+```
+
+
+---
 #### Set how much of the training set to check
-If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag
 ``` {.python}
 # DEFAULT
 trainer = Trainer(train_percent_check=1.0)
