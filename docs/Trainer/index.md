@@ -20,17 +20,9 @@ But of course the fun is in all the advanced things it can do:
 
 - [Accumulate gradients](Training%20Loop/#accumulated-gradients)
 - [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
-- [Check GPU usage](Training%20Loop/#Check-gpu-usage)
-- [Check which gradients are nan](Training%20Loop/#check-which-gradients-are-nan)
-- [Display metrics in progress bar](Training%20Loop/#display-metrics-in-progress-bar)
-- [Display the parameter count by layer](Training%20Loop/#display-the-parameter-count-by-layer)
-- [Fast dev run](Training%20Loop/#fast-dev-run)
 - [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
 - [Force disable early stop](Training%20Loop/#force-disable-early-stop)
-- [Inspect gradient norms](Training%20Loop/#inspect-gradient-norms)
-- [Make model overfit on subset of data](Training%20Loop/#make-model-overfit-on-subset-of-data)
 - [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
-- [Process position](Training%20Loop/#process-position)
 - [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 **Validation loop**    
@@ -40,14 +32,31 @@ But of course the fun is in all the advanced things it can do:
 - [Set how much of the test set to check](Validation%20Loop/#set-how-much-of-the-test-set-to-check)
 - [Set validation check frequency within 1 training epoch](Validation%20Loop/#set-validation-check-frequency-within-1-training-epoch)
 - [Set the number of validation sanity steps](Validation%20Loop/#set-the-number-of-validation-sanity-steps)
-- [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
+
+**Debugging**  
+
+- [Fast dev run](Debugging/#fast-dev-run)
+- [Inspect gradient norms](Debugging/#inspect-gradient-norms)
+- [Log GPU usage](Debugging/#Log-gpu-usage)
+- [Make model overfit on subset of data](Debugging/#make-model-overfit-on-subset-of-data)
+- [Print the parameter count by layer](Debugging/#print-the-parameter-count-by-layer)
+- [Pring which gradients are nan](Debugging/#print-which-gradients-are-nan)
+
+
+**Experiment Logging**   
+
+- [Display metrics in progress bar](Logging/#display-metrics-in-progress-bar)
+- Log arbitrary metrics
+- [Process position](Logging/#process-position)
+- Save a snapshot of all hyperparameters
+- Save a snapshot of the code for a particular model run
 
 **Distributed training**    
 
+- 16-bit mixed precision
 - Single-gpu      
 - Multi-gpu      
 - Multi-node   
-- 16-bit mixed precision
 
 **Checkpointing**    
 
