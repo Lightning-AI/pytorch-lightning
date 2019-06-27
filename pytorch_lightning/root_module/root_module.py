@@ -9,6 +9,7 @@ from pytorch_lightning.root_module.optimization import OptimizerConfig
 from pytorch_lightning.root_module.hooks import ModelHooks
 
 
+
 class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
 
     def __init__(self, hparams):
