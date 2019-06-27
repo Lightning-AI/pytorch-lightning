@@ -33,13 +33,16 @@ To use lightning do 2 things:
 1. [Define a Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) (which will run ALL your models).   
 2. [Define a LightningModel](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py).     
 
-## What are some key lightning features?
+## What does lightning control for me?
+Everything! Except the following three things:
 
 - Automatic training loop
 ```python
 # define what happens for training here
 def training_step(self, data_batch, batch_nb):
     x, y = data_batch
+    
+    # define your own forward and loss calculation
     out = self.forward(x)
     loss = my_loss(out, y)
     return {'loss': loss} 
@@ -48,77 +51,75 @@ def training_step(self, data_batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, data_batch, batch_nb):    x, y = data_batch
+def validation_step(self, data_batch, batch_nb):    
+    x, y = data_batch
+    
+    # define your own forward and loss calculation
     out = self.forward(x)
     loss = my_loss(out, y)
     return {'loss': loss} 
 ```
 
-- Automatic early stopping   
-```python
-callback = EarlyStopping(...)
-Trainer(early_stopping=callback)
-```
 
-- Learning rate annealing     
-```python
-# anneal at 100 and 200 epochs
-Trainer(lr_scheduler_milestones=[100, 200])
-```
+Lightning gives you options to control the following:
 
-- 16 bit precision training (must have apex installed)  
-```python
-Trainer(use_amp=True, amp_level='O2')
-```
+**Checkpointing**    
 
-- multi-gpu training
-```python
-# train on 4 gpus
-Trainer(gpus=[0, 1, 2, 3])
-```
+- Model saving
+- Model loading 
 
-- Automatic checkpointing
-```python
-# do 3 things:
-# 1
-Trainer(checkpoint_callback=ModelCheckpoint)
+**Computing cluster (SLURM)**    
 
-# 2 return what to save in a checkpoint
-def get_save_dict(self):
-    return {'state_dict': self.state_dict()}
+- Automatic checkpointing   
+- Automatic saving, loading  
+- Running grid search on a cluster 
+- Walltime auto-resubmit   
+
+**Debugging**  
+
+- [Fast dev run](Debugging/#fast-dev-run)
+- [Inspect gradient norms](Debugging/#inspect-gradient-norms)
+- [Log GPU usage](Debugging/#Log-gpu-usage)
+- [Make model overfit on subset of data](Debugging/#make-model-overfit-on-subset-of-data)
+- [Print the parameter count by layer](Debugging/#print-the-parameter-count-by-layer)
+- [Pring which gradients are nan](Debugging/#print-which-gradients-are-nan)
 
 
-# 3 use the checkpoint to reset your model state
-def load_model_specific(self, checkpoint):
-    self.load_state_dict(checkpoint['state_dict'])
-```
+**Distributed training**    
 
-- Log all details of your experiment (model params, code snapshot, etc...)
-```python
-from test_tube import Experiment
+- [16-bit mixed precision](Distributed%20training/#16-bit-mixed-precision)
+- [Multi-GPU](Distributed%20training/#Multi-GPU)
+- [Multi-node](Distributed%20training/#Multi-node)
+- [Single GPU](Distributed%20training/#single-gpu)
+- [Self-balancing architecture](Distributed%20training/#self-balancing-architecture)
 
-exp = Experiment(...)
-Trainer(experiment=exp)
-```
 
-- Run grid-search on cluster
-```python
-from test_tube import Experiment, SlurmCluster, HyperOptArgumentParser
+**Experiment Logging**   
 
-def training_fx(hparams, cluster, _):
-    # hparams are local params
-    model = MyModel()
-    trainer = Trainer(...)
-    trainer.fit(model)
+- [Display metrics in progress bar](Logging/#display-metrics-in-progress-bar)
+- Log arbitrary metrics
+- [Log metric row every k batches](Logging/#log-metric-row-every-k-batches)
+- [Process position](Logging/#process-position)
+- [Save a snapshot of all hyperparameters](Logging/#save-a-snapshot-of-all-hyperparameters) 
+- [Snapshot code for a training run](Logging/#snapshot-code-for-a-training-run) 
+- [Write logs file to csv every k batches](Logging/#write-logs-file-to-csv-every-k-batches)
 
-# grid search number of layers
-parser = HyperOptArgumentParser(strategy='grid_search')
-parser.opt_list('--layers', default=5, type=int, options=[1, 5, 10, 20, 50])
-hyperparams = parser.parse_args()
+**Training loop**    
 
-cluster = SlurmCluster(hyperparam_optimizer=hyperparams)
-cluster.optimize_parallel_cluster_gpu(training_fx)
-```
+- [Accumulate gradients](Training%20Loop/#accumulated-gradients)
+- [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
+- [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Force disable early stop](Training%20Loop/#force-disable-early-stop)
+- [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
+- [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
+
+**Validation loop**    
+
+- [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
+- [Set how much of the validation set to check](Validation%20Loop/#set-how-much-of-the-validation-set-to-check)
+- [Set how much of the test set to check](Validation%20Loop/#set-how-much-of-the-test-set-to-check)
+- [Set validation check frequency within 1 training epoch](Validation%20Loop/#set-validation-check-frequency-within-1-training-epoch)
+- [Set the number of validation sanity steps](Validation%20Loop/#set-the-number-of-validation-sanity-steps)
 
 
 ## Demo
