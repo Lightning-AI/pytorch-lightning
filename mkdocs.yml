@@ -1,5 +1,6 @@
 site_name: Pytorch lightning Documentation
-theme: readthedocs
+theme:
+  name: 'material'
 docs_dir: docs
 repo_url: https://github.com/williamFalcon/pytorch-lightning
 site_dir: 'site'
