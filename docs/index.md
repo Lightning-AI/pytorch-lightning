@@ -1,7 +1,7 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
 ###### Main Docs
-- [LightningModule](Pytorch-Lightning/LightningModule)  
+- [LightningModule](LightningModule/LightningModule)  
 - [Trainer](Trainer/)  
 
 ###### New project Quick Start
