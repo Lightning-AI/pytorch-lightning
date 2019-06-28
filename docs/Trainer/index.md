@@ -24,10 +24,8 @@ But of course the fun is in all the advanced things it can do:
 
 **Computing cluster (SLURM)**    
 
-- Automatic checkpointing   
-- Automatic saving, loading  
-- Running grid search on a cluster
-- Walltime auto-resubmit   
+- [Running grid search on a cluster](SLURM%20Managed%20Cluster/#running-grid-search-on-a-cluster)
+- [Walltime auto-resubmit](SLURM%20Managed%20Cluster/#walltime-auto-resubmit)   
 
 **Debugging**  
 

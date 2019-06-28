@@ -170,12 +170,11 @@ class ModelCheckpoint(Callback):
         period: Interval (number of epochs) between checkpoints.
     """
 
-    def __init__(self, filepath, save_function, monitor='val_loss', verbose=0,
+    def __init__(self, filepath, monitor='val_loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
         self.monitor = monitor
-        self.save_function = save_function
         self.verbose = verbose
         self.filepath = filepath
         self.save_best_only = save_best_only
