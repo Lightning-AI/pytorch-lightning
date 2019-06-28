@@ -120,13 +120,13 @@ def validation_end(self, outputs):
 
 **Experiment Logging**   
 
-- [Display metrics in progress bar](Logging/#display-metrics-in-progress-bar)
+- [Display metrics in progress bar](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#display-metrics-in-progress-bar)
 - Log arbitrary metrics
-- [Log metric row every k batches](Logging/#log-metric-row-every-k-batches)
+- [Log metric row every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#log-metric-row-every-k-batches)
 - [Process position](Logging/#process-position)
-- [Save a snapshot of all hyperparameters](Logging/#save-a-snapshot-of-all-hyperparameters) 
-- [Snapshot code for a training run](Logging/#snapshot-code-for-a-training-run) 
-- [Write logs file to csv every k batches](Logging/#write-logs-file-to-csv-every-k-batches)
+- [Save a snapshot of all hyperparameters](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#save-a-snapshot-of-all-hyperparameters) 
+- [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
+- [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
 
 **Training loop**    
 
