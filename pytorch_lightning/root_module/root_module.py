@@ -24,7 +24,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.fast_dev_run = hparams.fast_dev_run
         self.overfit = hparams.overfit
         self.gradient_clip = hparams.gradient_clip
-        self.num = 2
         self.trainer = None
         self.from_lightning = True
 
