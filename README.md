@@ -130,12 +130,12 @@ def validation_end(self, outputs):
 
 **Training loop**    
 
-- [Accumulate gradients](Training%20Loop/#accumulated-gradients)
-- [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
-- [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
-- [Force disable early stop](Training%20Loop/#force-disable-early-stop)
-- [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
-- [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
+- [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
+- [Anneal Learning rate](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#anneal-learning-rate)
+- [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
+- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/Pytorch-Lightning/LightningModule/#configure_optimizers)
+- [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 **Validation loop**    
 
