@@ -8,7 +8,7 @@ To start a new project define these two files.
     - [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) 
     - [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_gpu_cluster_template.py)
 
-###### Doc Shortcuts
+###### Docs shortcuts
 - [LightningModule](LightningModule/RequiredTrainerInterface/)  
 - [Trainer](Trainer/)  
 
