@@ -101,12 +101,12 @@ def validation_end(self, outputs):
 
 **Debugging**  
 
-- [Fast dev run](Debugging/#fast-dev-run)
-- [Inspect gradient norms](Debugging/#inspect-gradient-norms)
-- [Log GPU usage](Debugging/#Log-gpu-usage)
-- [Make model overfit on subset of data](Debugging/#make-model-overfit-on-subset-of-data)
-- [Print the parameter count by layer](Debugging/#print-the-parameter-count-by-layer)
-- [Pring which gradients are nan](Debugging/#print-which-gradients-are-nan)
+- [Fast dev run](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#fast-dev-run)
+- [Inspect gradient norms](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#inspect-gradient-norms)
+- [Log GPU usage](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#Log-gpu-usage)
+- [Make model overfit on subset of data](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data)
+- [Print the parameter count by layer](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-the-parameter-count-by-layer)
+- [Pring which gradients are nan](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-which-gradients-are-nan)
 
 
 **Distributed training**    
