@@ -148,7 +148,7 @@ class LightningTemplateModel(LightningModule):
         return whatever optimizers we want here
         :return: list of optimizers
         """
-        optimizer = optim.Adam(lr=self.hparams.learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         return [optimizer]
 
     def __dataloader(self, train):
