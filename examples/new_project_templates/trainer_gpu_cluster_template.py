@@ -17,7 +17,7 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from .lightning_module_template import LightningTemplateModel
+from examples.new_project_templates.lightning_module_template import LightningTemplateModel
 # ---------------------
 
 AVAILABLE_MODELS = {
