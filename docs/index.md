@@ -24,10 +24,8 @@
 
 ######Computing cluster (SLURM)    
 
-- Automatic checkpointing   
-- Automatic saving, loading  
-- Running grid search on a cluster 
-- Walltime auto-resubmit   
+- [Running grid search on a cluster](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#running-grid-search-on-a-cluster) 
+- [Walltime auto-resubmit](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#walltime-auto-resubmit)   
 
 ######Debugging  
 
