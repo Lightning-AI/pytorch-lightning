@@ -26,7 +26,7 @@ But of course the fun is in all the advanced things it can do:
 
 - Automatic checkpointing   
 - Automatic saving, loading  
-- Running grid search on a cluster 
+- Running grid search on a cluster
 - Walltime auto-resubmit   
 
 **Debugging**  
