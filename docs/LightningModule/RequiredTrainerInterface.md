@@ -1,4 +1,4 @@
-# Lightning module  
+# Lightning Module interface
 [[Github Code](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/root_module/root_module.py)]
 
 A lightning module is a strict superclass of nn.Module, it provides a standard interface for the trainer to interact with the model.
@@ -9,22 +9,22 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 
 **Required**:  
 
-- [training_step](LightningModule.md#training_step)   
-- [validation_step](LightningModule.md#validation_step)
-- [validation_end](LightningModule.md#validation_end)
+- [training_step](RequiredTrainerInterface.md#training_step)   
+- [validation_step](RequiredTrainerInterface.md#validation_step)
+- [validation_end](RequiredTrainerInterface.md#validation_end)
     
-- [configure_optimizers](LightningModule.md#configure_optimizers)
-- [get_save_dict](LightningModule.md#get_save_dict)
-- [load_model_specific](LightningModule.md#load_model_specific)
+- [configure_optimizers](RequiredTrainerInterface.md#configure_optimizers)
+- [get_save_dict](RequiredTrainerInterface.md#get_save_dict)
+- [load_model_specific](RequiredTrainerInterface.md#load_model_specific)
 
-- [tng_dataloader](LightningModule.md#tng_dataloader)
-- [tng_dataloader](LightningModule.md#tng_dataloader)
-- [test_dataloader](LightningModule.md#test_dataloader)
+- [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
+- [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
+- [test_dataloader](RequiredTrainerInterface.md#test_dataloader)
 
 **Optional**:   
 
-- [update_tng_log_metrics](LightningModule.md#update_tng_log_metrics)
-- [add_model_specific_args](LightningModule.md#add_model_specific_args)
+- [update_tng_log_metrics](RequiredTrainerInterface.md#update_tng_log_metrics)
+- [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)
 
 ---
 

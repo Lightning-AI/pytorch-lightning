@@ -2,17 +2,21 @@ Lightning can automate saving and loading checkpoints.
 
 ---
 ### Model saving
-To enable checkpointing, define the checkpoint callback
+To enable checkpointing, define the checkpoint callback and give it to the trainer.
 
 ``` {.python}
 from pytorch_lightning.utils.pt_callbacks import ModelCheckpoint
 
-checkpoint = ModelCheckpoint(
+checkpoint_callback = ModelCheckpoint(
     filepath='/path/to/store/weights.ckpt',
-    save_function=None,
-    save_best_only=not hparams.keep_all_checkpoints,
+    save_best_only=True,
     verbose=True,
-    monitor=hparams.model_save_monitor_value,
-    mode=hparams.model_save_monitor_mode
+    monitor='val_loss',
+    mode='min'
 )
+
+trainer = Trainer(checkpoint_callback=checkpoint_callback)
 ```
+
+
+
