@@ -28,8 +28,8 @@ Keras and fast.ai are too abstract for researchers. Lightning abstracts the full
 
 ## Why do I want to use lightning?
 Because you don't want to define a training loop, validation loop, gradient clipping, checkpointing, loading, 
-gpu training, etc... every time you start a project. Let lightning handle all of that for you and you just define your 
-data and what happens in the training, testing and validation loop 
+gpu training, etc... every time you start a project. Let lightning handle all of that for you! Just define your 
+data and what happens in the training, testing and validation loop and lightning will do the rest.
 
 To use lightning do 2 things:  
 1. [Define a Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py).   
