@@ -139,11 +139,11 @@ def validation_end(self, outputs):
 
 **Validation loop**    
 
-- [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
-- [Set how much of the validation set to check](Validation%20Loop/#set-how-much-of-the-validation-set-to-check)
-- [Set how much of the test set to check](Validation%20Loop/#set-how-much-of-the-test-set-to-check)
-- [Set validation check frequency within 1 training epoch](Validation%20Loop/#set-validation-check-frequency-within-1-training-epoch)
-- [Set the number of validation sanity steps](Validation%20Loop/#set-the-number-of-validation-sanity-steps)
+- [Check validation every n epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#check-validation-every-n-epochs)
+- [Set how much of the validation set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-validation-set-to-check)
+- [Set how much of the test set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-test-set-to-check)
+- [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
+- [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
 
 ## Demo
