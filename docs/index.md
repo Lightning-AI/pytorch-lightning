@@ -3,7 +3,7 @@
 ###### New project Quick Start    
 To start a new project define these two files.   
 
-1. [Define a LightningModule](LightningModule/Examples#template-model-definition)  
+1. [Define a LightningModule](/LightningModule/RequiredTrainerInterface/#template-model-definition)  
 2. Pick a trainer      
     - [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) 
     - [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_gpu_cluster_template.py)
@@ -13,10 +13,10 @@ To start a new project define these two files.
 - [Trainer](Trainer/)  
 
 ###### Quick start examples 
-- [CPU example](https://williamfalcon.github.io/pytorch-lightning/Examples/#cpu-hyperparameter-search)   
-- [Hyperparameter search on single GPU](https://williamfalcon.github.io/pytorch-lightning/Examples/#hyperparameter-search-on-a-single-or-multiple-gpus)    
-- [Hyperparameter search on multiple GPUs on same node](https://williamfalcon.github.io/pytorch-lightning/Examples/#hyperparameter-search-on-a-single-or-multiple-gpus)  
-- [Hyperparameter search on a SLURM HPC cluster](https://williamfalcon.github.io/pytorch-lightning/Examples/#Hyperparameter search on a SLURM HPC cluster)      
+- [CPU example](examples/Examples/#cpu-hyperparameter-search)   
+- [Hyperparameter search on single GPU](examples/Examples/#hyperparameter-search-on-a-single-or-multiple-gpus)    
+- [Hyperparameter search on multiple GPUs on same node](examples/Examples/#hyperparameter-search-on-a-single-or-multiple-gpus)  
+- [Hyperparameter search on a SLURM HPC cluster](examples/Examples/#Hyperparameter search on a SLURM HPC cluster)      
 
 
 ###### Checkpointing    
