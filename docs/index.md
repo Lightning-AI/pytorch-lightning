@@ -1,14 +1,16 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
-###### Doc Shortcuts
-- [LightningModule](LightningModule/RequiredTrainerInterface/)  
-- [Trainer](Trainer/)  
+###### New project Quick Start    
+To start a new project define these two files.   
 
-###### New project Quick Start
 1. [Define a LightningModule](LightningModule/Examples#template-model-definition)  
 2. Pick a trainer      
     - [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) 
     - [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_gpu_cluster_template.py)
+
+###### Doc Shortcuts
+- [LightningModule](LightningModule/RequiredTrainerInterface/)  
+- [Trainer](Trainer/)  
 
 ###### Quick start examples 
 - [CPU example](https://williamfalcon.github.io/pytorch-lightning/Examples/#cpu-hyperparameter-search)   
