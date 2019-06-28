@@ -1,20 +1,20 @@
 # PYTORCH-LIGHTNING DOCUMENTATION
 
-###### Main Docs
-- [LightningModule](LightningModule/LightningModule)  
+###### Doc Shortcuts
+- [LightningModule](LightningModule/RequiredTrainerInterface/)  
 - [Trainer](Trainer/)  
 
 ###### New project Quick Start
-1. [Define a LightningModule](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py)  
+1. [Define a LightningModule](LightningModule/Examples#template-model-definition)  
 2. Pick a trainer      
     - [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py) 
     - [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_gpu_cluster_template.py)
 
 ###### Quick start examples 
-- CPU example   
-- Single GPU example   
-- Multi-gpu example 
-- SLURM cluster grid search example      
+- [CPU example](https://williamfalcon.github.io/pytorch-lightning/Examples/#CPU-hyperparameter-search)   
+- [Hyperparameter search on single GPU](https://williamfalcon.github.io/pytorch-lightning/Examples/#Hyperparameter-search-on-a-single-or-multiple-GPUs)    
+- [Hyperparameter search on multiple GPUs on same node](https://williamfalcon.github.io/pytorch-lightning/Examples/#Hyperparameter-search-on-a-single-or-multiple-GPUs)  
+- [Hyperparameter search on a SLURM HPC cluster](https://williamfalcon.github.io/pytorch-lightning/Examples/#Hyperparameter search on a SLURM HPC cluster)      
 
 
 ###### Checkpointing    
