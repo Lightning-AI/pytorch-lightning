@@ -1,5 +1,3 @@
-# PYTORCH-LIGHTNING DOCUMENTATION
-
 ###### New project Quick Start    
 To start a new project define these two files.   
 
