@@ -19,8 +19,8 @@
 
 ###### Checkpointing    
 
-- Model saving
-- Model loading 
+- [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
+- [Model loading](https://williamfalcon.github.io/pytorch-lightning/LightningModule/methods/#load-from-metrics) 
 
 ######Computing cluster (SLURM)    
 
