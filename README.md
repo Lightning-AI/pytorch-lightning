@@ -111,11 +111,11 @@ def validation_end(self, outputs):
 
 **Distributed training**    
 
-- [16-bit mixed precision](Distributed%20training/#16-bit-mixed-precision)
-- [Multi-GPU](Distributed%20training/#Multi-GPU)
-- [Multi-node](Distributed%20training/#Multi-node)
-- [Single GPU](Distributed%20training/#single-gpu)
-- [Self-balancing architecture](Distributed%20training/#self-balancing-architecture)
+- [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
+- [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
+- [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)
+- [Single GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#single-gpu)
+- [Self-balancing architecture](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#self-balancing-architecture)
 
 
 **Experiment Logging**   
