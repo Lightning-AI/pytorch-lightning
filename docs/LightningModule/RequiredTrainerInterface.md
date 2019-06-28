@@ -361,7 +361,7 @@ def add_model_specific_args(parent_parser, root_dir)
 ```
 Lightning has a list of default argparse commands.
 This method is your chance to add or modify commands specific to your model.
-The argument parser is available anywhere in your model by calling self.hparams
+The [hyperparameter argument parser](https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser/) is available anywhere in your model by calling self.hparams.
 
 ##### Return
 An argument parser

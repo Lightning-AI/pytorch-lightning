@@ -1,231 +1,171 @@
-#### Template model definition
-In 99% of cases you want to just copy this template to start a new lightningModule and change the core of what your model is actually trying to do.
+### Template model definition
+In 99% of cases you want to just copy [this template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py) to start a new lightningModule and change the core of what your model is actually trying to do.
 
-``` {.python}
-import os
-from collections import OrderedDict
-import torch.nn as nn
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
-import torch
-import torch.nn.functional as F
+```bash
+# get a copy of the module template
+wget https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py
+```
+
+---    
+### Trainer Example 
+
+** \_\_main__ function**    
+
+Normally, we want to let the \_\_main__ function start the training.
+Inside the main we parse training arguments with whatever hyperparameters we want. Your LightningModule will have a 
+chance to add hyperparameters.   
+
+```{.python}
 from test_tube import HyperOptArgumentParser
-from torch import optim
 
-from pytorch_lightning.root_module.root_module import LightningModule
+if __name__ == '__main__':
 
+    # use default args given by lightning
+    root_dir = os.path.split(os.path.dirname(sys.modules['__main__'].__file__))[0]
+    parent_parser = HyperOptArgumentParser(strategy='random_search', add_help=False)
+    add_default_args(parent_parser, root_dir)
 
-class LightningTemplateModel(LightningModule):
+    # allow model to overwrite or extend args
+    parser = ExampleModel.add_model_specific_args(parent_parser)
+    hyperparams = parser.parse_args()
+
+    # train model
+    main(hyperparams)
+```
+**Main Function**      
+
+The main function is your entry into the program. This is where you init your model, checkpoint directory, and launch the training.
+The main function should have 3 arguments:   
+- hparams: a configuration of hyperparameters.    
+- slurm_manager: Slurm cluster manager object (can be None)
+- dict: for you to return any values you want (useful in meta-learning, otherwise set to _)    
+
+```{}
+def main(hparams, cluster, results_dict):
     """
-    Sample model to show how to define a template
+    Main training routine specific for this project
+    :param hparams:
+    :return:
     """
+    # init experiment
+    log_dir = os.path.dirname(os.path.realpath(__file__))
+    exp = Experiment(
+        name='test_tube_exp',
+        debug=True,
+        save_dir=log_dir,
+        version=0,
+        autosave=False,
+        description='test demo'
+    )
+    
+    # set the hparams for the experiment
+    exp.argparse(hparams)
+    exp.save()
 
-    def __init__(self, hparams):
-        """
-        Pass in parsed HyperOptArgumentParser to the model
-        :param hparams:
-        """
-        # init superclass
-        super(LightningTemplateModel, self).__init__(hparams)
+    # build model
+    model = MyLightningModule(hparams)
 
-        self.batch_size = hparams.batch_size
+    # callbacks
+    early_stop = EarlyStopping(
+        monitor=hparams.early_stop_metric,
+        patience=hparams.early_stop_patience,
+        verbose=True,
+        mode=hparams.early_stop_mode
+    )
 
-        # build model
-        self.__build_model()
+    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
+    checkpoint = ModelCheckpoint(
+        filepath=model_save_path,
+        save_function=None,
+        save_best_only=True,
+        verbose=True,
+        monitor=hparams.model_save_monitor_value,
+        mode=hparams.model_save_monitor_mode
+    )
 
-    # ---------------------
-    # MODEL SETUP
-    # ---------------------
-    def __build_model(self):
-        """
-        Layout model
-        :return:
-        """
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim)
-        self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
-        self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
+    # configure trainer
+    trainer = Trainer(
+        experiment=exp,
+        cluster=cluster,
+        checkpoint_callback=checkpoint,
+        early_stop_callback=early_stop,
+    )
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features)
+    # train model
+    trainer.fit(model)
+```
 
-    # ---------------------
-    # TRAINING
-    # ---------------------
-    def forward(self, x):
-        """
-        No special modification required for lightning, define as you normally would
-        :param x:
-        :return:
-        """
 
-        x = self.c_d1(x)
-        x = torch.tanh(x)
-        x = self.c_d1_bn(x)
-        x = self.c_d1_drop(x)
 
-        x = self.c_d2(x)
-        logits = F.log_softmax(x, dim=1)
 
-        return logits
+The __main__ function will start training on your **main** function. If you use the HyperParameterOptimizer
+in hyper parameter optimization mode, this main function will get one set of hyperparameters. If you use it as a simple
+argument parser you get the default arguments in the argument parser.
 
-    def loss(self, labels, logits):
-        nll = F.nll_loss(logits, labels)
-        return nll
+So, calling main(hyperparams) runs the model with the default argparse arguments.       
+```{.python}
+main(hyperparams)
+```
 
-    def training_step(self, data_batch, batch_i):
-        """
-        Lightning calls this inside the training loop
-        :param data_batch:
-        :return:
-        """
-        # forward pass
-        x, y = data_batch
-        x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+---
+#### CPU hyperparameter search      
 
-        # calculate loss
-        loss_val = self.loss(y, y_hat)
+```{.python}
+# run a grid search over 20 hyperparameter combinations.
+hyperparams.optimize_parallel_cpu(
+    main_local,
+    nb_trials=20,
+    nb_workers=1
+)
+```
 
-        output = OrderedDict({
-            'loss': loss_val,
-            'tqdm_metrics': {}
-        })
-        return output
+---
+#### Hyperparameter search on a single or multiple GPUs       
+```{.python}
+# run a grid search over 20 hyperparameter combinations.
+hyperparams.optimize_parallel_gpu(
+    main_local,
+    nb_trials=20,
+    nb_workers=1,
+    gpus=[0,1,2,3]
+)
+```
 
-    def validation_step(self, data_batch, batch_i):
-        """
-        Lightning calls this inside the validation loop
-        :param data_batch:
-        :return:
-        """
-        x, y = data_batch
-        x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+---
+#### Hyperparameter search on a SLURM HPC cluster   
+```{.python}    
+def optimize_on_cluster(hyperparams):
+    # enable cluster training
+    cluster = SlurmCluster(
+        hyperparam_optimizer=hyperparams,
+        log_path=hyperparams.tt_save_path,
+        test_tube_exp_name=hyperparams.tt_name
+    )
 
-        loss_val = self.loss(y, y_hat)
+    # email for cluster coms
+    cluster.notify_job_status(email='add_email_here', on_done=True, on_fail=True)
 
-        # acc
-        labels_hat = torch.argmax(y_hat, dim=1)
-        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+    # configure cluster
+    cluster.per_experiment_nb_gpus = hyperparams.per_experiment_nb_gpus
+    cluster.job_time = '48:00:00'
+    cluster.gpu_type = '1080ti'
+    cluster.memory_mb_per_node = 48000
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': torch.tensor(val_acc),
-        })
-        return output
+    # any modules for code to run in env
+    cluster.add_command('source activate pytorch_lightning')
 
-    def validation_end(self, outputs):
-        """
-        Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
-        """
-        val_loss_mean = 0
-        val_acc_mean = 0
-        for output in outputs:
-            val_loss_mean += output['val_loss']
-            val_acc_mean += output['val_acc']
+    # name of exp
+    job_display_name = hyperparams.tt_name.split('_')[0]
+    job_display_name = job_display_name[0:3]
 
-        val_loss_mean /= len(outputs)
-        val_acc_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        return tqdm_dic
+    # run hopt
+    print('submitting jobs...')
+    cluster.optimize_parallel_cluster_gpu(
+        main,
+        nb_trials=hyperparams.nb_hopt_trials,
+        job_name=job_display_name
+    )
 
-    def update_tng_log_metrics(self, logs):
-        return logs
-
-    # ---------------------
-    # MODEL SAVING
-    # ---------------------
-    def get_save_dict(self):
-        checkpoint = {'state_dict': self.state_dict()}
-        return checkpoint
-
-    def load_model_specific(self, checkpoint):
-        self.load_state_dict(checkpoint['state_dict'])
-        pass
-
-    # ---------------------
-    # TRAINING SETUP
-    # ---------------------
-    def configure_optimizers(self):
-        """
-        return whatever optimizers we want here
-        :return: list of optimizers
-        """
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return [optimizer]
-
-    def __dataloader(self, train):
-        # init data generators
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-
-        dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
-
-        loader = torch.utils.data.DataLoader(
-            dataset=dataset,
-            batch_size=self.hparams.batch_size,
-            shuffle=True
-        )
-
-        return loader
-
-    @property
-    def tng_dataloader(self):
-        if self._tng_dataloader is None:
-            try:
-                self._tng_dataloader = self.__dataloader(train=True)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._tng_dataloader
-
-    @property
-    def val_dataloader(self):
-        if self._val_dataloader is None:
-            try:
-                self._val_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._val_dataloader
-
-    @property
-    def test_dataloader(self):
-        if self._test_dataloader is None:
-            try:
-                self._test_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._test_dataloader
-
-    @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):
-        """
-        Parameters you define here will be available to your model through self.hparams
-        :param parent_parser:
-        :param root_dir:
-        :return:
-        """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
-
-        # param overwrites
-        # parser.set_defaults(gradient_clip=5.0)
-
-        # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28*28)
-        parser.add_argument('--out_features', default=10)
-        parser.add_argument('--hidden_dim', default=50000) # use 500 for CPU, 50000 for GPU to see speed difference
-
-        # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-
-        # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
-        parser.opt_list('--batch_size', default=256, type=int, options=[32, 64, 128, 256], tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
-        return parser
-
+# run cluster hyperparameter search    
+optimize_on_cluster(hyperparams)
 ```
