@@ -24,7 +24,7 @@ hparams = parser.parse_args()
 ```    
     
      
-(2). Define the cluster options (over 5 nodes and 8 gpus)    
+(2). Define the cluster options in the [SlurmCluster object](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/) (over 5 nodes and 8 gpus)    
 
 ```{.python}
 from test_tube.hpc import SlurmCluster
