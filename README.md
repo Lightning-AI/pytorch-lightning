@@ -151,10 +151,10 @@ pip install pytorch-lightning
 
 # clone lightning for the demo
 git clone https://github.com/williamFalcon/pytorch-lightning.git
-cd pytorch-lightning/docs/source/examples
+cd examples/new_project_templates/
 
 # run demo (on cpu)
-python fully_featured_trainer.py
+python trainer_gpu_cluster_template.py
 ```
 
 Without changing the model AT ALL, you can run the model on a single gpu, over multiple gpus, or over multiple nodes.

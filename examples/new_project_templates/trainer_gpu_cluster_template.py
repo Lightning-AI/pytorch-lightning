@@ -17,11 +17,11 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from docs.source.examples.example_model import ExampleModel
+from .lightning_module_template import LightningTemplateModel
 # ---------------------
 
 AVAILABLE_MODELS = {
-    'model_template': ExampleModel
+    'model_template': LightningTemplateModel
 }
 
 
