@@ -1,23 +1,32 @@
+#### Template model definition
+In 99% of cases you want to just copy this template to start a new lightningModule and change the core of what your model is actually trying to do.
+
+``` {.python}
+import os
+from collections import OrderedDict
 import torch.nn as nn
-import numpy as np
-from pytorch_lightning.root_module.root_module import LightningModule
-from test_tube import HyperOptArgumentParser
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 import torch
 import torch.nn.functional as F
-import os, pdb
-from collections import OrderedDict
+from test_tube import HyperOptArgumentParser
+from torch import optim
+
+from pytorch_lightning.root_module.root_module import LightningModule
 
 
-class ExampleModel(LightningModule):
+class LightningTemplateModel(LightningModule):
     """
     Sample model to show how to define a template
     """
 
     def __init__(self, hparams):
+        """
+        Pass in parsed HyperOptArgumentParser to the model
+        :param hparams:
+        """
         # init superclass
-        super(ExampleModel, self).__init__(hparams)
+        super(LightningTemplateModel, self).__init__(hparams)
 
         self.batch_size = hparams.batch_size
 
@@ -42,6 +51,11 @@ class ExampleModel(LightningModule):
     # TRAINING
     # ---------------------
     def forward(self, x):
+        """
+        No special modification required for lightning, define as you normally would
+        :param x:
+        :return:
+        """
 
         x = self.c_d1(x)
         x = torch.tanh(x)
@@ -59,7 +73,7 @@ class ExampleModel(LightningModule):
 
     def training_step(self, data_batch, batch_i):
         """
-        Called inside the training loop
+        Lightning calls this inside the training loop
         :param data_batch:
         :return:
         """
@@ -79,7 +93,7 @@ class ExampleModel(LightningModule):
 
     def validation_step(self, data_batch, batch_i):
         """
-        Called inside the validation loop
+        Lightning calls this inside the validation loop
         :param data_batch:
         :return:
         """
@@ -98,7 +112,6 @@ class ExampleModel(LightningModule):
             'val_acc': torch.tensor(val_acc),
         })
         return output
-
 
     def validation_end(self, outputs):
         """
@@ -139,9 +152,8 @@ class ExampleModel(LightningModule):
         return whatever optimizers we want here
         :return: list of optimizers
         """
-        optimizer = self.choose_optimizer(self.hparams.optimizer_name, self.parameters(), {'lr': self.hparams.learning_rate}, 'optimizer')
-        self.optimizers = [optimizer]
-        return self.optimizers
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return [optimizer]
 
     def __dataloader(self, train):
         # init data generators
@@ -189,6 +201,12 @@ class ExampleModel(LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):
+        """
+        Parameters you define here will be available to your model through self.hparams
+        :param parent_parser:
+        :param root_dir:
+        :return:
+        """
         parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
 
         # param overwrites
@@ -209,3 +227,5 @@ class ExampleModel(LightningModule):
         parser.opt_list('--batch_size', default=256, type=int, options=[32, 64, 128, 256], tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
         return parser
+
+```
