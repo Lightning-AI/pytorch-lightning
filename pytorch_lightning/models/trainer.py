@@ -33,6 +33,7 @@ class Trainer(TrainerIO):
     def __init__(self,
                  experiment,
                  checkpoint_callback, early_stop_callback,
+                 gradient_clip=0,
                  cluster=None,
                  process_position=0,
                  current_gpu_name=0,
@@ -53,6 +54,7 @@ class Trainer(TrainerIO):
                  nb_sanity_val_steps=5):
 
         # Transfer params
+        self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = enable_early_stop
         self.track_grad_norm = track_grad_norm
@@ -440,6 +442,11 @@ class Trainer(TrainerIO):
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+
+            # clip gradients
+            if self.gradient_clip > 0:
+                model = self.model.module if self.data_parallel else self.model
+                torch.nn.utils.clip_grad_norm(model.parameters(), self.gradient_clip)
 
             # update gradients across all optimizers
             for optimizer in self.optimizers:

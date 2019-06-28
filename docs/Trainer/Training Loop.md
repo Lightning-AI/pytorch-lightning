@@ -39,6 +39,16 @@ trainer = Trainer(enable_early_stop=True)
 ```
 
 ---
+#### Gradient Clipping 
+Use this to turn off early stopping and run training to the [max_epoch](#force-training-for-min-or-max-epochs)
+``` {.python}
+# DEFAULT (ie: don't clip)
+trainer = Trainer(gradient_clip=0)
+```
+
+
+
+---
 #### Inspect gradient norms
 Looking at grad norms can help you figure out where training might be going wrong.
 ``` {.python}
