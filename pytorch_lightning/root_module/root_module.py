@@ -26,6 +26,7 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.gradient_clip = hparams.gradient_clip
         self.trainer = None
         self.from_lightning = True
+        self.experiment = None
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
