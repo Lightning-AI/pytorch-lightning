@@ -36,7 +36,24 @@ To use lightning do 2 things:
 2. [Define a LightningModel](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py).     
 
 ## What does lightning control for me?
-Everything! Except you define your data and what happens inside the training and validation loop.   
+Everything!    
+Except for these 6 core functions which you defind:    
+
+```{.python}
+# what to do in the training loop
+def training_step(self, data_batch, batch_nb):
+
+# what to do in the validation loop
+def validation_step(self, data_batch, batch_nb):
+
+# how to aggregate validation_step outputs
+def validation_end(self, outputs):
+
+# and your dataloaders
+def tng_dataloader():
+def val_dataloader():
+def test_dataloader():
+```
 
 **Could be as complex as seq-2-seq + attention**    
 
