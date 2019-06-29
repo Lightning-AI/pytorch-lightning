@@ -19,7 +19,8 @@ setup(
     install_requires=[
         "torch>=1.0.0",
         "tqdm",
-        "test-tube",
+        "test-tube>=0.641",
+        "tensorflow>=1.14.0"
     ],
     packages=find_packages(),
     long_description=open("README.md", encoding="utf-8").read(),
