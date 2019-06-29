@@ -56,6 +56,7 @@ def main(hparams, cluster, results_dict):
 
     # init experiment
     log_dir = os.path.dirname(os.path.realpath(__file__))
+    log_dir = os.path.join(log_dir, 'test_tube_demo_logs')
     exp = Experiment(
         name='test_tube_exp',
         save_dir=log_dir,
