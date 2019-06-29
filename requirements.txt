@@ -3,7 +3,6 @@ atomicwrites==1.2.1
 attrs==18.2.0
 certifi==2018.11.29
 cffi==1.11.5
-h5py==2.9.0
 imageio==2.4.1
 mkl-fft==1.0.6
 mkl-random==1.0.2
@@ -25,8 +24,6 @@ sklearn==0.0
 tensorboard==1.14.0
 tensorboardX==1.7
 tensorflow==1.14.0
-tensorflow-estimator==1.14.0
-termcolor==1.1.0
 test-tube==0.643
 torch==1.0.0
 torchvision==0.2.1
