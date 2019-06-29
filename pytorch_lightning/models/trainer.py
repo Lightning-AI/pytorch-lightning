@@ -128,12 +128,14 @@ class Trainer(TrainerIO):
     def __tng_tqdm_dic(self):
         tqdm_dic = {
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
-            'gpu': '{}'.format(self.current_gpu_name),
             'v_nb': '{}'.format(self.experiment.version),
             'epoch': '{}'.format(self.current_epoch),
             'batch_nb':'{}'.format(self.batch_nb),
         }
         tqdm_dic.update(self.tqdm_metrics)
+
+        if self.on_gpu:
+            tqdm_dic['gpu'] = '{}'.format(self.current_gpu_name)
 
         return tqdm_dic
 
@@ -371,7 +373,8 @@ class Trainer(TrainerIO):
                         metrics.update(grad_norm_dic)
 
                     # log metrics
-                    self.experiment.log(metrics)
+                    scalar_metrics = self.__metrics_to_scalars(metrics)
+                    self.experiment.log(scalar_metrics, global_step=self.global_step)
                     self.experiment.save()
 
                 # hook
@@ -397,6 +400,19 @@ class Trainer(TrainerIO):
                 stop = should_stop and met_min_epochs
                 if stop:
                     return
+
+    def __metrics_to_scalars(self, metrics):
+        new_metrics = {}
+        for k, v in metrics.items():
+            if type(v) is torch.Tensor:
+                v = v.item()
+
+            if type(v) is dict:
+                v = self.__metrics_to_scalars(v)
+
+            new_metrics[k] = float(v)
+
+        return new_metrics
 
 
     def __run_tng_batch(self, data_batch, batch_nb):
