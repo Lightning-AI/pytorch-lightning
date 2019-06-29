@@ -121,7 +121,7 @@ Lightning is fully integrated with tensorboardX.
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="600px">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="900px">
   </a>
 </p>
 
@@ -129,7 +129,7 @@ It also adds a text column with all the hyperparameters for this experiment.
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
-        <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="600px">
+        <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="900px">
   </a>
 </p>
 
