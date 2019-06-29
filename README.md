@@ -117,6 +117,13 @@ def validation_end(self, outputs):
 ```
    
 ## TensorboardX    
+<p align="center">
+  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="50">
+        <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="50">
+  </a>
+</p>
+
 All lightning experiments log in a nicely structured folder structure compatible with tensorboardX. Simply run the following command to view your experiments.   
 
 Simply note the path you set for the Experiment    
