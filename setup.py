@@ -19,7 +19,7 @@ setup(
     install_requires=[
         "torch>=1.0.0",
         "tqdm",
-        "test-tube>=0.641",
+        "test-tube>=0.643",
         "tensorflow>=1.14.0"
     ],
     packages=find_packages(),

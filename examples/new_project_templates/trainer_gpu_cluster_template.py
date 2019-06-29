@@ -17,7 +17,7 @@ np.random.seed(SEED)
 # ---------------------
 # DEFINE MODEL HERE
 # ---------------------
-from examples.new_project_templates.lightning_module_template import LightningTemplateModel
+from lightning_module_template import LightningTemplateModel
 # ---------------------
 
 AVAILABLE_MODELS = {
@@ -58,9 +58,7 @@ def main(hparams, cluster, results_dict):
     log_dir = os.path.dirname(os.path.realpath(__file__))
     exp = Experiment(
         name='test_tube_exp',
-        debug=True,
         save_dir=log_dir,
-        version=0,
         autosave=False,
         description='test demo'
     )
@@ -84,7 +82,6 @@ def main(hparams, cluster, results_dict):
     model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
-        save_function=None,
         save_best_only=True,
         verbose=True,
         monitor=hparams.model_save_monitor_value,
@@ -102,7 +99,7 @@ def main(hparams, cluster, results_dict):
         cluster=cluster,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
-        gpus=gpu_list
+        gpus=gpu_list,
     )
 
     # train model
