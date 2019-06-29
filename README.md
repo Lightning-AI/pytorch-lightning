@@ -38,7 +38,7 @@ To use lightning do 2 things:
 ## What does lightning control for me?
 Everything! Except you define your data and what happens inside the training and validation loop.   
 
-**What happens in the training loop**    
+**Could be as complex as seq-2-seq + attention**    
 
 ```python
 # define what happens for training here
@@ -65,7 +65,7 @@ def training_step(self, data_batch, batch_nb):
     return {'loss': loss} 
 ```
 
-**What happens in the validation loop**      
+**Or as basic as CNN image classification**      
 
 ```python
 # define what happens for validation here
@@ -78,7 +78,7 @@ def validation_step(self, data_batch, batch_nb):
     return {'loss': loss} 
 ```
 
-**And what to do with the output of all validation batches**    
+**And you also decide how to collate the output of all validation steps**    
 
 ```python
 def validation_end(self, outputs):
