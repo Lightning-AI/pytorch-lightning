@@ -8,6 +8,7 @@ datasets/
 model_weights/
 app/models/
 pip-wheel-metadata/
+test_tube_exp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
