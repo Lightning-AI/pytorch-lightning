@@ -37,7 +37,7 @@ To use lightning do 2 things:
 
 ## What does lightning control for me?
 Everything!    
-Except for these 6 core functions which you defind:    
+Except for these 6 core functions which you define:    
 
 ```{.python}
 # what to do in the training loop
