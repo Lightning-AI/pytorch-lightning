@@ -148,7 +148,7 @@ And run tensorboard from that dir
 tensorboard --logdir /some/path     
 ```    
 
-## Lightning gives you options to control the following:
+## Lightning automatically automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
 ###### Checkpointing    
 
