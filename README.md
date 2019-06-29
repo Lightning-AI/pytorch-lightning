@@ -125,7 +125,7 @@ Lightning is fully integrated with tensorboardX.
   </a>
 </p>
 
-It also adds a text column with all the hyperparameters for this experiment.      
+Lightning also adds a text column with all the hyperparameters for this experiment.      
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
