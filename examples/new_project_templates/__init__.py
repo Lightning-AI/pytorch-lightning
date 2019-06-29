@@ -1,0 +1,1 @@
+from .lightning_module_template import LightningTemplateModel
