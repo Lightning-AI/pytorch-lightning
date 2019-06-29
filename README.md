@@ -98,6 +98,7 @@ trainer = Trainer(experiment=exp)
 ...
 ```   
 
+And run tensorboard from that dir   
 ```bash
 tensorboard --logdir /some/path     
 ```    
