@@ -84,6 +84,23 @@ def validation_end(self, outputs):
     tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
     return tqdm_dic
 ```
+   
+## TensorboardX    
+All lightning experiments log in a nicely structured folder structure compatible with tensorboardX. Simply run the following command to view your experiments.   
+
+Simply note the path you set for the Experiment    
+``` {.python}   
+from test_tube import Experiment
+from pytorch-lightning import  Trainer
+
+exp = Experiment(save_dir='/some/path')
+trainer = Trainer(experiment=exp)
+...
+```   
+
+```bash
+tensorboard --logdir /some/path     
+```    
 
 ## Lightning gives you options to control the following:
 
