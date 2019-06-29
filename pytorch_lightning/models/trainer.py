@@ -244,7 +244,9 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
 
+        # give model convenience properties
         model.trainer = self
+        model.experiment = self.experiment
 
         # transfer data loaders from model
         self.__get_dataloaders(model)
