@@ -39,7 +39,6 @@ class ModelIO(object):
         pass
 
 
-
 class TrainerIO(object):
 
     # --------------------
