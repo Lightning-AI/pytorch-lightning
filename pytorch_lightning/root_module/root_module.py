@@ -9,7 +9,6 @@ from pytorch_lightning.root_module.optimization import OptimizerConfig
 from pytorch_lightning.root_module.hooks import ModelHooks
 
 
-
 class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
 
     def __init__(self, hparams):
@@ -39,10 +38,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self._tng_dataloader = None
         self._val_dataloader = None
         self._test_dataloader = None
-
-        if self.on_gpu:
-            print('running on gpu...')
-            torch.set_default_tensor_type(hparams.default_tensor_type)
 
     def forward(self, *args, **kwargs):
         """
