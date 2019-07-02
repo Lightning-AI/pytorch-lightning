@@ -21,6 +21,9 @@ class ModelIO(object):
         """
         raise NotImplementedError
 
+    # -------------------------
+    # OPTIONAL HOOKS
+    # -------------------------
     def on_hpc_save(self):
         """
         Hook to do whatever you need right before Slurm manager saves the model
