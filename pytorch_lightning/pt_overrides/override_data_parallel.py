@@ -45,6 +45,15 @@ class LightningDataParallel(DataParallel):
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
+
+class LightningDistributedDataParallel(DistributedDataParallel):
+    """
+    Override the forward call in lightning so it goes to training and validation step respectively
+    """
+
+    def parallel_apply(self, replicas, inputs, kwargs):
+        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
     def forward(self, *inputs, **kwargs):
         print('in forward')
         self._sync_params()
@@ -72,15 +81,6 @@ class LightningDataParallel(DataParallel):
             else:
                 self.reducer.prepare_for_backward([])
         return output
-
-
-class LightningDistributedDataParallel(DistributedDataParallel):
-    """
-    Override the forward call in lightning so it goes to training and validation step respectively
-    """
-
-    def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
 
 def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):
