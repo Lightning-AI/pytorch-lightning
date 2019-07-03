@@ -299,26 +299,28 @@ class Trainer(TrainerIO):
         :param cluster_obj:
         :return:
         """
-        print('in process')
-        print(self.experiment)
+        # recover original exp before went into process
+        self.experiment = self.experiment.get_non_ddp_exp()
 
         # TODO: pass in ip
         ip = "127.0.0.1"
         print(self.data_parallel_device_ids)
 
-
         # configure server
+        print('configuring server')
         rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
         print(f"GPU: {gpu_nb} - Rank: {rank}")
         world_size = self.cluster.per_experiment_nb_nodes * self.cluster.per_experiment_nb_gpus
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=rank, world_size=world_size)
 
         # copy model to each gpu
+        print('starting DDP')
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb])
 
         # continue training routine
+        print('running pretrain')
         self.__run_pretrain_routine(model)
 
     def __run_pretrain_routine(self, model):
