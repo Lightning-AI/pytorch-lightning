@@ -292,7 +292,6 @@ class Trainer(TrainerIO):
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        del state['namelist']
         return {}
 
     def __dp_train(self, gpu_nb, proc_rank):
