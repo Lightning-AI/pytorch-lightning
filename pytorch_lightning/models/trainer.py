@@ -285,12 +285,6 @@ class Trainer(TrainerIO):
         else:
             self.__run_pretrain_routine(model)
 
-    def __getstate__(self):
-        """ This is called before pickling. """
-        state = self.__dict__.copy()
-        # del state['experiment']
-        return state
-
     def dp_train(self, gpu_nb, proc_rank, model):
         """
         Entry point into a DP thread
