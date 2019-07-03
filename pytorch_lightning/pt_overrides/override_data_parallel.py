@@ -1,4 +1,5 @@
 from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 import threading
 import torch
@@ -22,6 +23,15 @@ def get_a_var(obj):
 
 
 class LightningDataParallel(DataParallel):
+    """
+    Override the forward call in lightning so it goes to training and validation step respectively
+    """
+
+    def parallel_apply(self, replicas, inputs, kwargs):
+        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
+
+class LightningDistributedDataParallel(DistributedDataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
     """

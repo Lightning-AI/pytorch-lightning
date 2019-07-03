@@ -5,8 +5,10 @@ from pytorch_lightning.root_module.memory import get_gpu_memory_map
 import traceback
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from torch.optim.lr_scheduler import MultiStepLR
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDataParallel
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 import pdb
+import torch.multiprocessing as mp
+import torch.distributed as dist
 
 try:
     from apex import amp
@@ -277,10 +279,45 @@ class Trainer(TrainerIO):
         # print model summary
         model.summarize()
 
-        # put on gpu if needed
+        # when GPU is called, spawn off a single worker for each gpu
         if self.on_gpu:
-            model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
-            model.cuda(self.data_parallel_device_ids[0])
+            rank = 0
+            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model, self, ))
+        else:
+            self.__run_pretrain_routine(model)
+
+    def __dp_train(self, gpu_nb, proc_rank, model, cluster_obj):
+        """
+        Entry point into a DP thread
+        :param gpu_nb:
+        :param model:
+        :param cluster_obj:
+        :return:
+        """
+        # TODO: pass in ip
+        ip = "127.0.0.1"
+
+        # configure server
+        rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
+        print(f"GPU: {gpu_nb} - Rank: {rank}")
+        world_size = self.cluster.per_experiment_nb_nodes * self.cluster.per_experiment_nb_gpus
+        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=rank, world_size=world_size)
+
+        # copy model to each gpu
+        torch.cuda.set_device(gpu_nb)
+        model.cuda(gpu_nb)
+        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb])
+
+        # continue training routine
+        self.__run_pretrain_routine(model)
+
+
+    def __run_pretrain_routine(self, model):
+        """
+        Sanity check a few things before starting actual training
+        :param model:
+        :return:
+        """
 
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
