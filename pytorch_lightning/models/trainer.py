@@ -281,7 +281,7 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.experiment = self.experiment.get_meta_copy()
-            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(self, ))
+            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(self, ))
         else:
             self.__run_pretrain_routine(model)
 
@@ -299,10 +299,13 @@ class Trainer(TrainerIO):
         :param cluster_obj:
         :return:
         """
+        print('in process')
+        print(self.experiment)
 
         # TODO: pass in ip
         ip = "127.0.0.1"
         print(self.data_parallel_device_ids)
+
 
         # configure server
         rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
