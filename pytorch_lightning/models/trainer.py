@@ -334,7 +334,7 @@ class Trainer(TrainerIO):
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
 
         # save exp to get started
-        if self.self.proc_rank == 0:
+        if self.proc_rank == 0:
             self.experiment.save()
 
         # enable cluster checkpointing
