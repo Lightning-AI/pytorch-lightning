@@ -209,11 +209,11 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            if self.data_parallel:
-                output = model(data_batch, batch_i)
-                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
-            else:
-                output = model.validation_step(data_batch, batch_i)
+            # if self.data_parallel:
+            #     output = model(data_batch, batch_i)
+            #     output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+            # else:
+            output = model.validation_step(data_batch, batch_i)
 
             outputs.append(output)
 
