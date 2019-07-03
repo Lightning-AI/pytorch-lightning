@@ -299,6 +299,9 @@ class Trainer(TrainerIO):
         # recover original exp before went into process
         self.experiment = self.experiment.get_non_ddp_exp()
 
+        # show progbar only on prog_rank 0
+        self.prog_bar = self.prog_bar and proc_rank == 0
+
         # TODO: pass in ip
         ip = "127.0.0.1"
         print(self.data_parallel_device_ids)
@@ -367,7 +370,7 @@ class Trainer(TrainerIO):
             self.batch_loss_value = 0  # accumulated grads
 
             # init progbar when requested
-            if self.progress_bar and self.proc_rank == 0:
+            if self.progress_bar :
                 self.prog_bar = tqdm.tqdm(range(self.total_batches), position=self.process_position)
 
             for batch_nb, data_batch in enumerate(self.tng_dataloader):
