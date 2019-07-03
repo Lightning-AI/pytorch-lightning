@@ -282,12 +282,11 @@ class Trainer(TrainerIO):
         # when GPU is called, spawn off a single worker for each gpu
         if self.on_gpu:
             rank = 0
-            pdb.set_trace()
             mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model ))
         else:
             self.__run_pretrain_routine(model)
 
-    def __dp_train(self, gpu_nb, proc_rank, model, cluster_obj):
+    def __dp_train(self, gpu_nb, proc_rank, model):
         """
         Entry point into a DP thread
         :param gpu_nb:
@@ -297,6 +296,7 @@ class Trainer(TrainerIO):
         """
         # TODO: pass in ip
         ip = "127.0.0.1"
+        print(self.data_parallel_device_ids)
 
         # configure server
         rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
