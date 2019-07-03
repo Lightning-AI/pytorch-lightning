@@ -250,10 +250,6 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
 
-        # give model convenience properties
-        model.trainer = self
-        model.experiment = self.experiment
-
         # transfer data loaders from model
         self.__get_dataloaders(model)
 
@@ -284,7 +280,7 @@ class Trainer(TrainerIO):
         # when GPU is called, spawn off a single worker for each gpu
         if self.on_gpu:
             rank = 0
-            # self.model = model
+            self.experiment = self.experiment.get_meta_copy()
             mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(self, ))
         else:
             self.__run_pretrain_routine(model)
@@ -295,7 +291,7 @@ class Trainer(TrainerIO):
         # del state['experiment']
         return state
 
-    def __dp_train(self, gpu_nb, proc_rank):
+    def __dp_train(self, gpu_nb, proc_rank, model):
         """
         Entry point into a DP thread
         :param gpu_nb:
@@ -303,6 +299,7 @@ class Trainer(TrainerIO):
         :param cluster_obj:
         :return:
         """
+
         # TODO: pass in ip
         ip = "127.0.0.1"
         print(self.data_parallel_device_ids)
@@ -321,14 +318,15 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-
-
     def __run_pretrain_routine(self, model):
         """
         Sanity check a few things before starting actual training
         :param model:
         :return:
         """
+        # give model convenience properties
+        model.trainer = self
+        model.experiment = self.experiment
 
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
