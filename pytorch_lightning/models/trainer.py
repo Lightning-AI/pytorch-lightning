@@ -86,6 +86,9 @@ class Trainer(TrainerIO):
         self.data_parallel_device_ids = gpus
         self.data_parallel = gpus is not None and len(gpus) > 0
 
+        # process info
+        self.proc_rank = 0
+
         # training state
         self.optimizers = None
         self.prog_bar = None
@@ -302,10 +305,10 @@ class Trainer(TrainerIO):
 
         # configure server
         print('configuring server')
-        rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
-        print(f"GPU: {gpu_nb} - Rank: {rank}")
+        self.proc_rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
+        print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
-        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=rank, world_size=world_size)
+        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
 
         # copy model to each gpu
         print('starting DDP')
@@ -331,7 +334,8 @@ class Trainer(TrainerIO):
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
 
         # save exp to get started
-        self.experiment.save()
+        if self.self.proc_rank == 0:
+            self.experiment.save()
 
         # enable cluster checkpointing
         if self.cluster is not None:
@@ -394,7 +398,8 @@ class Trainer(TrainerIO):
 
                 # when batch should be saved
                 if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
-                    self.experiment.save()
+                    if self.proc_rank == 0:
+                        self.experiment.save()
 
                 # when metrics should be logged
                 if batch_nb % self.add_log_row_interval == 0 or early_stop_epoch:
@@ -420,8 +425,9 @@ class Trainer(TrainerIO):
 
                     # log metrics
                     scalar_metrics = self.__metrics_to_scalars(metrics, blacklist=self.__log_vals_blacklist())
-                    self.experiment.log(scalar_metrics, global_step=self.global_step)
-                    self.experiment.save()
+                    if self.proc_rank == 0:
+                        self.experiment.log(scalar_metrics, global_step=self.global_step)
+                        self.experiment.save()
 
                 # hook
                 if self.__is_function_implemented('on_batch_end'):
