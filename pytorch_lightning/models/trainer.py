@@ -41,6 +41,7 @@ class Trainer(TrainerIO):
                  cluster=None,
                  process_position=0,
                  current_gpu_name=0,
+                 nb_gpu_nodes=None,
                  gpus=None,
                  progress_bar=True,
                  overfit_pct=0.0,
@@ -58,6 +59,7 @@ class Trainer(TrainerIO):
                  nb_sanity_val_steps=5):
 
         # Transfer params
+        self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = enable_early_stop
@@ -304,7 +306,7 @@ class Trainer(TrainerIO):
         print('configuring server')
         rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
         print(f"GPU: {gpu_nb} - Rank: {rank}")
-        world_size = self.cluster.per_experiment_nb_nodes * self.cluster.per_experiment_nb_gpus
+        world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=rank, world_size=world_size)
 
         # copy model to each gpu

@@ -101,6 +101,7 @@ def main(hparams, cluster, results_dict):
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
         gpus=gpu_list,
+        nb_gpu_nodes=1
     )
 
     # train model
