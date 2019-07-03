@@ -588,4 +588,5 @@ class Trainer(TrainerIO):
 
         # model checkpointing
         print('save callback...')
-        self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch, logs=self.__tng_tqdm_dic)
+        if self.proc_rank == 0:
+            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch, logs=self.__tng_tqdm_dic)
