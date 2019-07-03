@@ -293,7 +293,7 @@ class Trainer(TrainerIO):
         """ This is called before pickling. """
         state = self.__dict__.copy()
         del state['cluster']
-        return {}
+        return state
 
     def __dp_train(self, gpu_nb, proc_rank):
         """
