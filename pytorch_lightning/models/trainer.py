@@ -281,7 +281,7 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.experiment = self.experiment.get_meta_copy()
-            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(self, ))
+            mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(self, ))
         else:
             self.__run_pretrain_routine(model)
 
@@ -291,7 +291,7 @@ class Trainer(TrainerIO):
         # del state['experiment']
         return state
 
-    def __dp_train(self, gpu_nb, proc_rank, model):
+    def dp_train(self, gpu_nb, proc_rank, model):
         """
         Entry point into a DP thread
         :param gpu_nb:
