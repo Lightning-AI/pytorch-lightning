@@ -282,7 +282,7 @@ class Trainer(TrainerIO):
         # when GPU is called, spawn off a single worker for each gpu
         if self.on_gpu:
             rank = 0
-            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model, self, ))
+            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model ))
         else:
             self.__run_pretrain_routine(model)
 
