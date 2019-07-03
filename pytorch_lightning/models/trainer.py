@@ -29,6 +29,7 @@ def reduce_distributed_output(output, nb_gpus):
             output[k] = reduced
     return output
 
+
 class Trainer(TrainerIO):
 
     def __init__(self,
