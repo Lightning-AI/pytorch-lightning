@@ -30,7 +30,7 @@ def reduce_distributed_output(output, nb_gpus):
     return output
 
 def dummy(gpu, a):
-    print(gpu)
+    print(a)
 
 class Trainer(TrainerIO):
 
