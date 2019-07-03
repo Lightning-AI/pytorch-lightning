@@ -285,7 +285,7 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.model = model
-            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(self, ))
+            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(model, ))
         else:
             self.__run_pretrain_routine(model)
 
