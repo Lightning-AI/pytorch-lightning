@@ -285,9 +285,15 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.model = model
-            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(rank, ))
+            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(self, ))
         else:
             self.__run_pretrain_routine(model)
+
+    def __getstate__(self):
+        """ This is called before pickling. """
+        state = self.__dict__.copy()
+        del state['namelist']
+        return {}
 
     def __dp_train(self, gpu_nb, proc_rank):
         """
