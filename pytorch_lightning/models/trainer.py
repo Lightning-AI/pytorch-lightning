@@ -29,6 +29,8 @@ def reduce_distributed_output(output, nb_gpus):
             output[k] = reduced
     return output
 
+def dummy(gpu, a):
+    print(gpu)
 
 class Trainer(TrainerIO):
 
@@ -283,7 +285,7 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.model = model
-            mp.spawn(self.__dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank))
+            mp.spawn(dummy, nprocs=len(self.data_parallel_device_ids), args=(rank))
         else:
             self.__run_pretrain_routine(model)
 
@@ -312,6 +314,7 @@ class Trainer(TrainerIO):
 
         # continue training routine
         self.__run_pretrain_routine(model)
+
 
 
     def __run_pretrain_routine(self, model):
