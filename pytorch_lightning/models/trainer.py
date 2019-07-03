@@ -292,7 +292,7 @@ class Trainer(TrainerIO):
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        del state['cluster']
+        # del state['cluster']
         del state['experiment']
         return state
 
