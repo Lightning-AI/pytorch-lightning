@@ -163,7 +163,7 @@ class LightningTemplateModel(LightningModule):
         batch_size = self.hparams.batch_size
 
         try:
-            if self.hparams.nb_gpu_nodes > 1:
+            if self.on_gpu:
                 train_sampler = DistributedSampler(dataset, num_replicas=self.trainer.world_size, rank=self.trainer.proc_rank)
 
                 # scale batch size
