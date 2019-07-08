@@ -383,6 +383,7 @@ class Trainer(TrainerIO):
         # now everyone waits until the file has world_size entries
         for i in range(0, 120):
             sleep(1.0)
+            print('sleeping...')
             if os.path.exists(ip_file):
                 lines = list(open(file=ip_file, mode='r'))
                 if len(lines) == world_size:
