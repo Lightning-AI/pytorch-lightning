@@ -332,8 +332,6 @@ class Trainer(TrainerIO):
         print(ip_file_dir)
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
         if proc_rank == 0:
-            os.makedirs(ip_file, exist_ok=True)
-
             # get the proc 0 IP
             root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
             root_ip = root_ip.split(' ')[0]
