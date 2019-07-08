@@ -145,8 +145,8 @@ if __name__ == '__main__':
     parent_parser = get_default_parser(strategy='random_search', root_dir=root_dir)
 
     # cluster args not defined inside the model
-    parent_parser.add_argument('-gpu_partition', type=str)
-    parent_parser.add_argument('-per_experiment_nb_gpus', type=int)
+    parent_parser.add_argument('--gpu_partition', type=str)
+    parent_parser.add_argument('--per_experiment_nb_gpus', type=int)
     parent_parser.add_argument('--nb_gpu_nodes', type=int, default=1)
 
     # allow model to overwrite or extend args
