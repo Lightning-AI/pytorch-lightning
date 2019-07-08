@@ -42,9 +42,6 @@ def main(hparams, cluster, results_dict):
     :param hparams:
     :return:
     """
-    path = 'emv_' + os.environ['SLURM_LOCALID'] + '_id_' + os.environ['SLURM_NODEID']
-    os.makedirs(os.path.join(hparams.test_tube_save_path, path), exist_ok=True)
-
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
@@ -55,12 +52,17 @@ def main(hparams, cluster, results_dict):
     # ------------------------
     # 2 INIT TEST TUBE EXP
     # ------------------------
+    # when using grid search, it's possible for all models to start at once
+    # and use the same test tube experiment version
+    relative_node_id = int(os.environ['SLURM_NODEID'])
+    sleep(relative_node_id + 1)
+
+    # init experiment
     exp = Experiment(
         name=hyperparams.experiment_name,
         save_dir=hyperparams.test_tube_save_path,
         autosave=False,
-        description='test demo',
-        version=cluster.hpc_exp_number
+        description='test demo'
     )
 
     exp.argparse(hparams)
