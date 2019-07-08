@@ -52,12 +52,6 @@ def main(hparams, cluster, results_dict):
     # ------------------------
     # 2 INIT TEST TUBE EXP
     # ------------------------
-    # when using grid search, it's possible for all models to start at once
-    # and use the same test tube experiment version
-    process_position, current_gpu = LightningTemplateModel.get_process_position(hparams.gpus)
-    sleep(process_position + 1)
-
-    # init experiment
     exp = Experiment(
         name=hyperparams.experiment_name,
         save_dir=hyperparams.test_tube_save_path,
