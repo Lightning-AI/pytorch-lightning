@@ -94,7 +94,7 @@ class Trainer(TrainerIO):
         pdb.set_trace()
         if gpus is not None:
             if gpus == '-1':
-                self.data_parallel_device_ids = torch.cuda.device_count()
+                self.data_parallel_device_ids = list(range(0, torch.cuda.device_count()))
             else:
                 self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
 
