@@ -39,8 +39,8 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
         parser.add_argument('--model_name', default='', help=','.join(possible_model_names))
 
     # test_tube settings
-    parser.add_argument('-en', '--tt_name', default='r_lib_')
-    parser.add_argument('-td', '--tt_description', default='test research  lib')
+    parser.add_argument('-en', '--tt_name', default='pt_test')
+    parser.add_argument('-td', '--tt_description', default='pytorch lightning test')
     parser.add_argument('--tt_save_path', default=root_dir + '/test_tube_logs', help='logging dir')
     parser.add_argument('--enable_single_run', dest='single_run', action='store_true')
     parser.add_argument('--nb_hopt_trials', default=1, type=int)
