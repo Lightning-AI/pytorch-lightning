@@ -7,6 +7,8 @@ import torch
 import torch.nn.functional as F
 from test_tube import HyperOptArgumentParser
 from torch import optim
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.root_module.root_module import LightningModule
 
@@ -154,13 +156,22 @@ class LightningTemplateModel(LightningModule):
     def __dataloader(self, train):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-
         dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
 
-        loader = torch.utils.data.DataLoader(
+        # when using multi-node we need to add the datasampler
+        try:
+            if self.hparams.nb_gpu_nodes > 1:
+                train_sampler = DistributedSampler(dataset, num_replicas=self.trainer.world_size, rank=self.trainer.proc_rank)
+                print('using sampler')
+        except Exception as e:
+            print('no sampler')
+            train_sampler = None
+
+        loader = DataLoader(
             dataset=dataset,
             batch_size=self.hparams.batch_size,
-            shuffle=True
+            shuffle=True,
+            sampler=train_sampler
         )
 
         return loader
