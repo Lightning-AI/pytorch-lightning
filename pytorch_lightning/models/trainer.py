@@ -272,6 +272,19 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
+        # CHOOSE OPTIMIZER
+        # filter out the weights that were done on gpu so we can load on good old cpus
+        self.optimizers = model.configure_optimizers()
+
+        # run through amp wrapper
+        if self.use_amp:
+            # An example
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
+            )
+            self.optimizers = optimizers
+            model.trainer = self
+
         # when using gpus, first thing we do is spawn a new process between each worker
         # applies to single gpu, multi-gpu and multi-nodes
         if self.on_gpu:
@@ -368,26 +381,18 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        ref_model = model
+        if self.on_gpu:
+            ref_model = model.module
+
         # set local properties on the model
-        model.on_gpu = self.on_gpu
+        ref_model.on_gpu = self.on_gpu
 
         # transfer data loaders from model
-        self.__get_dataloaders(model)
+        self.__get_dataloaders(ref_model)
 
         # init training constants
-        self.__layout_bookeeping(model)
-
-        # CHOOSE OPTIMIZER
-        # filter out the weights that were done on gpu so we can load on good old cpus
-        self.optimizers = model.configure_optimizers()
-
-        if self.use_amp:
-            # An example
-            model, optimizer = amp.initialize(
-                model, self.optimizers[0], opt_level=self.amp_level,
-            )
-            self.optimizers[0] = optimizer
-            model.trainer = self
+        self.__layout_bookeeping(ref_model)
 
         # add lr schedulers
         if self.lr_scheduler_milestones is not None:
