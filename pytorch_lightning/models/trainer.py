@@ -330,7 +330,7 @@ class Trainer(TrainerIO):
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # set up server using proc 0's ip address
-        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, self.exp_save_path)
+        ip = self.__get_root_node_ip(self.proc_rank, node_rank, self.nb_gpu_nodes, self.exp_save_path)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
@@ -342,7 +342,7 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
+    def __get_root_node_ip(self, proc_rank, node_rank, nb_gpu_nodes, ip_file_dir):
         """
         Resolves the ip address of proc 0.
         Proc 0 writes address to a file. Every other process waits until the ip is available before it starts
@@ -359,7 +359,7 @@ class Trainer(TrainerIO):
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
-        if proc_rank == 0:
+        if proc_rank == 0 and node_rank == 0:
             # get the proc 0 IP
             root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
             root_ip = root_ip.split(' ')[0]
