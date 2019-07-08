@@ -346,7 +346,7 @@ class Trainer(TrainerIO):
             for i in range(0, 120):
                 sleep(1.0)
                 if os.path.exists(ip_file):
-                    ip = open(file=ip_file, mode='r')
+                    ip = list(open(file=ip_file, mode='r'))[0]
                     return ip
 
     def __run_pretrain_routine(self, model):
