@@ -181,7 +181,7 @@ if __name__ == '__main__':
         optimize_on_cluster(hyperparams)
 
     # RUN ON GPUS
-    if hyperparams.gpus is not None:
+    elif hyperparams.gpus is not None:
         # -1 means use all gpus
         # otherwise use the visible ones
         if hyperparams.gpus == '-1':
