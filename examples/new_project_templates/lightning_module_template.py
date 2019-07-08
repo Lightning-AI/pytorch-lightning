@@ -162,15 +162,13 @@ class LightningTemplateModel(LightningModule):
         train_sampler = None
         batch_size = self.hparams.batch_size
 
-        try:
-            if self.on_gpu:
-                train_sampler = DistributedSampler(dataset, num_replicas=self.trainer.world_size, rank=self.trainer.proc_rank)
+        # try:
+        #     if self.on_gpu:
+        train_sampler = DistributedSampler(dataset, num_replicas=self.trainer.world_size, rank=self.trainer.proc_rank)
+        batch_size = batch_size // self.trainer.world_size  # scale batch size
 
-                # scale batch size
-                batch_size = batch_size // self.trainer.world_size
-
-        except Exception as e:
-            pass
+        # except Exception as e:
+        #     pass
 
         should_shuffle = train_sampler is None
         loader = DataLoader(
