@@ -20,19 +20,12 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.current_epoch = 0
         self.global_step = 0
         self.loaded_optimizer_states_dict = {}
-        self.fast_dev_run = hparams.fast_dev_run
-        self.overfit = hparams.overfit
-        self.gradient_clip = hparams.gradient_clip
         self.trainer = None
         self.from_lightning = True
         self.experiment = None
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
-        try:
-            self.on_gpu = hparams.on_gpu
-        except Exception as e:
-            pass
 
         # computed vars for the dataloaders
         self._tng_dataloader = None

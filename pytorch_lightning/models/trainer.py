@@ -270,6 +270,8 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
+        # set local properties on the model
+        self.model.on_gpu = self.on_gpu
 
         # transfer data loaders from model
         self.__get_dataloaders(model)
