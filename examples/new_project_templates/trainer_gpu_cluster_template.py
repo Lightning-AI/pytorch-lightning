@@ -165,9 +165,6 @@ if __name__ == '__main__':
     parser = TRAINING_MODEL.add_model_specific_args(parent_parser, root_dir)
     hyperparams = parser.parse_args()
 
-    # format GPU layout
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
     # ---------------------
     # RUN TRAINING
     # ---------------------
