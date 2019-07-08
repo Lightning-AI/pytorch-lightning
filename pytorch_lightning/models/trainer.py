@@ -303,14 +303,16 @@ class Trainer(TrainerIO):
 
         # when GPU is called, spawn off a single worker for each gpu
         if self.on_gpu:
+            # every process writes their process id + ip to a shared file
+            my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+            my_ip = my_ip.split(' ')[0]
+
+            test_name = f'{os.getpid()}_{my_ip}'
+            ip_dir = os.path.join(self.exp_save_path, '.ips', test_name)
+            os.makedirs(ip_dir, exist_ok=True)
+
             rank = 0
             self.experiment = self.experiment.get_meta_copy()
-
-            # remove any ip tables we saved
-            ip_table_file = os.path.join(self.exp_save_path, '.ip_meta')
-            if os.path.exists(ip_table_file):
-                os.remove(ip_table_file)
-
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model))
         else:
             self.__run_pretrain_routine(model)
