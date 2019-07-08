@@ -382,7 +382,7 @@ class Trainer(TrainerIO):
         os.makedirs(ip_dir, exist_ok=True)
 
         # now everyone waits until the file has world_size entries
-        for i in range(0, 120):
+        for i in range(0, 120*10):
             sleep(1.0)
             nb_folders = [x for x in os.listdir(os.path.join(ip_file_dir, '.ips')) if '.' in x]
             if nb_folders == nb_gpu_nodes:
