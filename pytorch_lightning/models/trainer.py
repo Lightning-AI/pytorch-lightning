@@ -324,12 +324,11 @@ class Trainer(TrainerIO):
 
     def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
         # on one node we use localhost
-        # if nb_gpu_nodes == 1:
-        #     return '127.0.0.1'
+        if nb_gpu_nodes == 1:
+            return '127.0.0.1'
 
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
-        print(ip_file_dir)
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
         if proc_rank == 0:
             # get the proc 0 IP
