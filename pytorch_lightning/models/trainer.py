@@ -91,6 +91,7 @@ class Trainer(TrainerIO):
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
+        pdb.set_trace()
         if gpus is not None:
             if gpus == '-1':
                 self.data_parallel_device_ids = torch.cuda.device_count()
