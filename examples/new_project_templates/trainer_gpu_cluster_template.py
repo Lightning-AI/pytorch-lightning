@@ -110,8 +110,7 @@ def optimize_on_cluster(hyperparams):
     # log all scripts to the test tube folder
     cluster = SlurmCluster(
         hyperparam_optimizer=hyperparams,
-        log_path=hyperparams.test_tube_save_path,
-        test_tube_exp_name=hyperparams.experiment_name
+        log_path=hyperparams.slurm_log_path,
     )
 
     # email for cluster coms
@@ -144,17 +143,22 @@ if __name__ == '__main__':
 
     # use default args
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    log_dir = os.path.join(root_dir, 'pt_lightning_demo_logs')
-    checkpoint_dir = os.path.join(root_dir, 'model_weights')
+    demo_log_dir = os.path.join(root_dir, 'pt_lightning_demo_logs')
+
+    checkpoint_dir = os.path.join(demo_log_dir, 'model_weights')
+    test_tube_dir = os.path.join(demo_log_dir, 'test_tube_data')
+    slurm_out_dir = os.path.join(demo_log_dir, 'slurm_scripts')
+
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # cluster args not defined inside the model
     parent_parser.add_argument('--gpu_partition', type=str)
     parent_parser.add_argument('--per_experiment_nb_gpus', type=int)
     parent_parser.add_argument('--nb_gpu_nodes', type=int, default=1)
-    parent_parser.add_argument('--test_tube_save_path', type=str, default=log_dir)
-    parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a')
+    parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir)
+    parent_parser.add_argument('--slurm_log_path', type=str, default=slurm_out_dir)
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir)
+    parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a')
     parent_parser.add_argument('--gpus', type=str, default='-1')
     parent_parser.add_argument('--nb_hopt_trials', type=int, default=1)
 
