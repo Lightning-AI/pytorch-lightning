@@ -86,7 +86,6 @@ class Trainer(TrainerIO):
         self.lr_schedulers = []
         self.amp_level = amp_level
         self.print_nan_grads = print_nan_grads
-        self.data_parallel_device_ids = gpus
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
