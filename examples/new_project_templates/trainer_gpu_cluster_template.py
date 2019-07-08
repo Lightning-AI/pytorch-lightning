@@ -163,6 +163,8 @@ if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = get_default_parser(strategy='random_search', root_dir=root_dir)
     parent_parser.add_argument('-gpu_partition', type=str)
+    parent_parser.add_argument('-per_experiment_nb_gpus', type=int)
+
 
     # allow model to overwrite or extend args
     TRAINING_MODEL = AVAILABLE_MODELS[model_name]
