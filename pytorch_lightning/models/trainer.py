@@ -103,7 +103,6 @@ class Trainer(TrainerIO):
 
         self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
 
-
         # process info
         self.proc_rank = 0
 
@@ -266,41 +265,15 @@ class Trainer(TrainerIO):
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
+        # when distributed data parallel, we need to distribute the dataset to each node
+        # TODO: implement
+
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
-        # set local properties on the model
-        model.on_gpu = self.on_gpu
-
-        # transfer data loaders from model
-        self.__get_dataloaders(model)
-
-        # init training constants
-        self.__layout_bookeeping(model)
-
-        # CHOOSE OPTIMIZER
-        # filter out the weights that were done on gpu so we can load on good old cpus
-        self.optimizers = model.configure_optimizers()
-
-        if self.use_amp:
-            # An example
-            model, optimizer = amp.initialize(
-                model, self.optimizers[0], opt_level=self.amp_level,
-            )
-            self.optimizers[0] = optimizer
-            model.trainer = self
-
-        # add lr schedulers
-        if self.lr_scheduler_milestones is not None:
-            for optimizer in self.optimizers:
-                scheduler = MultiStepLR(optimizer, self.lr_scheduler_milestones)
-                self.lr_schedulers.append(scheduler)
-
-        # print model summary
-        model.summarize()
-
-        # when GPU is called, spawn off a single worker for each gpu
+        # when using gpus, first thing we do is spawn a new process between each worker
+        # applies to single gpu, multi-gpu and multi-nodes
         if self.on_gpu:
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
@@ -389,6 +362,36 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        # set local properties on the model
+        model.on_gpu = self.on_gpu
+
+        # transfer data loaders from model
+        self.__get_dataloaders(model)
+
+        # init training constants
+        self.__layout_bookeeping(model)
+
+        # CHOOSE OPTIMIZER
+        # filter out the weights that were done on gpu so we can load on good old cpus
+        self.optimizers = model.configure_optimizers()
+
+        if self.use_amp:
+            # An example
+            model, optimizer = amp.initialize(
+                model, self.optimizers[0], opt_level=self.amp_level,
+            )
+            self.optimizers[0] = optimizer
+            model.trainer = self
+
+        # add lr schedulers
+        if self.lr_scheduler_milestones is not None:
+            for optimizer in self.optimizers:
+                scheduler = MultiStepLR(optimizer, self.lr_scheduler_milestones)
+                self.lr_schedulers.append(scheduler)
+
+        # print model summary
+        model.summarize()
+
         # give model convenience properties
         model.trainer = self
         model.experiment = self.experiment
