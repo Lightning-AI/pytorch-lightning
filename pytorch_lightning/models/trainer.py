@@ -9,6 +9,9 @@ from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistr
 import pdb
 import torch.multiprocessing as mp
 import torch.distributed as dist
+import os
+import subprocess
+from time import sleep
 
 try:
     from apex import amp
@@ -302,16 +305,12 @@ class Trainer(TrainerIO):
         # show progbar only on prog_rank 0
         self.prog_bar = self.prog_bar and proc_rank == 0
 
-        # TODO: pass in ip
-        ip = "127.0.0.1"
-        print(self.data_parallel_device_ids)
-
         # configure server
-        print('configuring server')
         self.proc_rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
-        print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, self.exp_save_path)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
+        print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
         # copy model to each gpu
         print('starting DDP')
@@ -322,6 +321,36 @@ class Trainer(TrainerIO):
         # continue training routine
         print('running pretrain')
         self.__run_pretrain_routine(model)
+
+    def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
+        # on one node we use localhost
+        # if nb_gpu_nodes == 1:
+        #     return '127.0.0.1'
+
+        pdb.set_trace()
+
+        # on multi-node, every node rank > 0 waits until rank 0
+        # saves the ip to disk
+        ip_file = os.path.join(ip_file_dir, '.ip_meta')
+        if proc_rank == 0:
+            os.makedirs(ip_file, exist_ok=True)
+
+            # get the proc 0 IP
+            root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+            root_ip = root_ip.split(' ')[0]
+
+            # save the ip to the file
+            with open(file=ip_file, mode='w') as f:
+                f.write(root_ip)
+
+            return root_ip
+        else:
+            # wait up to 120 seconds until proc 0 writes
+            for i in range(0, 120):
+                sleep(1.0)
+                if os.path.exists(ip_file):
+                    ip = open(file=ip_file, mode='r')
+                    return ip
 
     def __run_pretrain_routine(self, model):
         """
