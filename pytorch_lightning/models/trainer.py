@@ -401,11 +401,11 @@ class Trainer(TrainerIO):
                 self.lr_schedulers.append(scheduler)
 
         # print model summary
-        model.summarize()
+        ref_model.summarize()
 
         # give model convenience properties
-        model.trainer = self
-        model.experiment = self.experiment
+        ref_model.trainer = self
+        ref_model.experiment = self.experiment
 
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
