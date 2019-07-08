@@ -12,6 +12,7 @@ import torch.distributed as dist
 import os
 import subprocess
 from time import sleep
+from torch.utils.data.distributed import DistributedSampler
 
 
 try:
@@ -269,6 +270,21 @@ class Trainer(TrainerIO):
         self.tng_dataloader = model.tng_dataloader
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
+
+        if self.on_gpu and type(self.tng_dataloader.sampler) is not DistributedSampler:
+            msg = '''
+            when using multiple gpus and multiple nodes you must pass a DistributedSampler to DataLoader(sampler).
+            
+            ie: this:
+            dataset = myDataset()
+            dataloader = Dataloader(dataset)
+            
+            becomes:
+            dataset = myDataset()
+            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+            dataloader = Dataloader(dataset, sampler=dist_sampler)
+            '''
+            raise Exception(msg)
 
     # -----------------------------
     # MODEL TRAINING
