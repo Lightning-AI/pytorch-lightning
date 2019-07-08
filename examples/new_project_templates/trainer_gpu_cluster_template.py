@@ -46,7 +46,6 @@ def main(hparams, cluster, results_dict):
     # 1 INIT LIGHTNING MODEL
     # ------------------------
     print('loading model...')
-    print(os.environ['SLURM_SRUN_COMM_HOST'])
     model = LightningTemplateModel(hparams)
     print('model built')
 

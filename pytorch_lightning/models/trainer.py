@@ -361,6 +361,8 @@ class Trainer(TrainerIO):
         # saves the ip to disk
         ip_table_name = f'.ip_meta_' + os.environ['SLURM_JOB_ID']
         ip_file = os.path.join(ip_file_dir, ip_table_name)
+        os.makedirs(ip_file_dir, exist_ok=True)
+
         if world_gpu_nb == 0:
             # get the proc 0 IP
             root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
