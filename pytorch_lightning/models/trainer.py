@@ -12,6 +12,7 @@ import torch.distributed as dist
 import os
 import subprocess
 from time import sleep
+import fcntl
 
 try:
     from apex import amp
@@ -316,19 +317,24 @@ class Trainer(TrainerIO):
         :param cluster_obj:
         :return:
         """
+        # world size = all nodes x nb_gpus on each node
+        # 2 nodes, 8 gpus each = 16 world size
+        world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+
         # recover original exp before went into process
         self.experiment = self.experiment.get_non_ddp_exp()
 
         # show progbar only on prog_rank 0
         self.prog_bar = self.prog_bar and proc_rank == 0
 
+        # determine my node rank and the root ip
+        my_node_rank, root_ip = self.__get_root_node_ip(self.nb_gpu_nodes, self.exp_save_path, world_size)
+
         # determine which process we are and world size
-        self.proc_rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
-        world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+        self.proc_rank = my_node_rank * len(self.data_parallel_device_ids) + gpu_nb
 
         # set up server using proc 0's ip address
-        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, self.exp_save_path)
-        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
+        dist.init_process_group("nccl", init_method=f'tcp://{root_ip}:12001', rank=self.proc_rank, world_size=world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
         # copy model to each gpu
@@ -339,12 +345,11 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
+    def __get_root_node_ip(self, nb_gpu_nodes, ip_file_dir, world_size):
         """
         Resolves the ip address of proc 0.
         Proc 0 writes address to a file. Every other process waits until the ip is available before it starts
 
-        :param proc_rank:
         :param nb_gpu_nodes:
         :param ip_file_dir:
         :return:
@@ -356,24 +361,46 @@ class Trainer(TrainerIO):
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
-        if proc_rank == 0:
-            # get the proc 0 IP
-            root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-            root_ip = root_ip.split(' ')[0]
 
-            # save the ip to the file
-            with open(file=ip_file, mode='w') as f:
-                f.write(root_ip)
+        # every process writes their process id + ip to a shared file
+        my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        my_ip = my_ip.split(' ')[0]
+        to_write = f'{my_ip}'
 
-            return root_ip
-        else:
-            # wait up to 120 seconds until proc 0 writes
-            # once written, read proc 0's address and use it to configure server
-            for i in range(0, 120):
-                sleep(1.0)
-                if os.path.exists(ip_file):
-                    ip = list(open(file=ip_file, mode='r'))[0]
-                    return ip
+        # save the ip to the file
+        # block file so only one process can access at a time
+        with open(file=ip_file, mode='a') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            f.write(to_write)
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+        # now everyone waits until the file has world_size entries
+        for i in range(0, 120):
+            sleep(1.0)
+            if os.path.exists(ip_file):
+                lines = list(open(file=ip_file, mode='r'))
+                if len(lines) == world_size:
+                    break
+
+        # the ip_table is written at this point
+        # now every process reads it and decides what rank they are based on their node
+        ip_table = list(open(file=ip_file, mode='r'))
+        my_node_rank, root_ip = self.__determine_my_node_rank(ip_table, my_ip)
+
+        return my_node_rank, root_ip
+
+
+    def __determine_my_node_rank(self, ip_pid_lines, my_ip):
+        # the node rank is the index of my_ip in the world-size ip table
+        # when de-duped and sorted
+        unique_ips = list(set(ip_pid_lines))
+        unique_ips.sort()
+
+        my_node_rank = unique_ips.index(my_ip)
+
+        # use the first ip as the root ip everyone will connect to
+        root_ip = unique_ips[0]
+        return my_node_rank, root_ip
 
     def __run_pretrain_routine(self, model):
         """
