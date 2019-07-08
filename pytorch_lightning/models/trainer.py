@@ -176,7 +176,6 @@ class Trainer(TrainerIO):
 
         # determine number of training batches
         self.nb_tng_batches = len(self.tng_dataloader)
-        print('tng batches: ', self.nb_tng_batches, self.nb_test_batches, self.nb_val_batches)
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
@@ -191,6 +190,8 @@ class Trainer(TrainerIO):
 
         # determine when to check validation
         self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
+
+        print('tng batches: ', self.nb_tng_batches, self.nb_test_batches, self.nb_val_batches)
 
     def __add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
