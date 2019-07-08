@@ -155,6 +155,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--test_tube_save_path', type=str, default=log_dir)
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a')
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir)
+    parent_parser.add_argument('--gpus', type=str, default='-1')
     parent_parser.add_argument('--nb_hopt_trials', type=int, default=1)
 
     # allow model to overwrite or extend args
