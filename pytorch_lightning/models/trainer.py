@@ -86,7 +86,6 @@ class Trainer(TrainerIO):
         self.lr_schedulers = []
         self.amp_level = amp_level
         self.print_nan_grads = print_nan_grads
-        self.data_parallel = gpus is not None and len(gpus) > 0
         self.data_parallel_device_ids = gpus
 
         # gpus come in as a string.
@@ -97,6 +96,8 @@ class Trainer(TrainerIO):
                 self.data_parallel_device_ids = torch.cuda.device_count()
             else:
                 self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
+
+        self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
 
         # process info
         self.proc_rank = 0
