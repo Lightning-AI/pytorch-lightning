@@ -371,23 +371,18 @@ class Trainer(TrainerIO):
         # every process writes their process id + ip to a shared file
         my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         my_ip = my_ip.split(' ')[0]
-        to_write = f'{my_ip}\n'
 
         # save the ip to the file
         # block file so only one process can access at a time
-        with open(file=ip_file, mode='a') as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            f.write(to_write)
-            fcntl.flock(f, fcntl.LOCK_UN)
+        ip_dir = os.path.join(ip_file_dir, '.ips', my_ip)
+        os.makedirs(ip_dir, exist_ok=True)
 
         # now everyone waits until the file has world_size entries
         for i in range(0, 120):
             sleep(1.0)
-            print('sleeping...')
-            if os.path.exists(ip_file):
-                lines = list(open(file=ip_file, mode='r'))
-                if len(lines) == world_size:
-                    break
+            nb_folders = [x for x in os.listdir(os.path.join(ip_file_dir, '.ips')) if '.' in x]
+            if nb_folders == nb_gpu_nodes:
+                break
 
         # the ip_table is written at this point
         # now every process reads it and decides what rank they are based on their node
@@ -395,7 +390,6 @@ class Trainer(TrainerIO):
         my_node_rank, root_ip = self.__determine_my_node_rank(ip_table, my_ip)
 
         return my_node_rank, root_ip
-
 
     def __determine_my_node_rank(self, ip_pid_lines, my_ip):
         # the node rank is the index of my_ip in the world-size ip table
