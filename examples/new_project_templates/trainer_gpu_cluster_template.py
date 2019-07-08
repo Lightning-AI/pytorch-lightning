@@ -56,7 +56,8 @@ def main(hparams, cluster, results_dict):
         name=hyperparams.experiment_name,
         save_dir=hyperparams.test_tube_save_path,
         autosave=False,
-        description='test demo'
+        description='test demo',
+        version=cluster.hpc_exp_number
     )
 
     exp.argparse(hparams)
