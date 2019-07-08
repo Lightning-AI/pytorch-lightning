@@ -42,16 +42,25 @@ def main(hparams, cluster, results_dict):
     :param hparams:
     :return:
     """
-    # delay each training start to not overwrite logs
+    # ------------------------
+    # 1 INIT LIGHTNING MODEL
+    # ------------------------
+    print('loading model...')
+    model = LightningTemplateModel(hparams)
+    print('model built')
+
+    # ------------------------
+    # 2 INIT TEST TUBE EXP
+    # ------------------------
+    # when using grid search, it's possible for all models to start at once
+    # and use the same test tube experiment version
     process_position, current_gpu = LightningTemplateModel.get_process_position(hparams.gpus)
     sleep(process_position + 1)
 
     # init experiment
-    log_dir = os.path.dirname(os.path.realpath(__file__))
-    log_dir = os.path.join(log_dir, 'pt_lightning_demo_logs')
     exp = Experiment(
-        name=hyperparams.tt_name,
-        save_dir=log_dir,
+        name=hyperparams.experiment_name,
+        save_dir=hyperparams.test_tube_save_path,
         autosave=False,
         description='test demo'
     )
@@ -59,29 +68,28 @@ def main(hparams, cluster, results_dict):
     exp.argparse(hparams)
     exp.save()
 
-    # build model
-    print('loading model...')
-    model = LightningTemplateModel(hparams)
-    print('model built')
-
-    # callbacks
+    # ------------------------
+    # 3 DEFINE CALLBACKS
+    # ------------------------
+    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
     early_stop = EarlyStopping(
-        monitor=hparams.early_stop_metric,
-        patience=hparams.early_stop_patience,
+        monitor='val_acc',
+        patience=3,
         verbose=True,
-        mode=hparams.early_stop_mode
+        mode='max'
     )
 
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
         save_best_only=True,
         verbose=True,
-        monitor=hparams.model_save_monitor_value,
-        mode=hparams.model_save_monitor_mode
+        monitor='val_loss',
+        mode='min'
     )
 
-    # configure trainer
+    # ------------------------
+    # 4 INIT TRAINER
+    # ------------------------
     trainer = Trainer(
         experiment=exp,
         cluster=cluster,
@@ -91,23 +99,18 @@ def main(hparams, cluster, results_dict):
         nb_gpu_nodes=hyperparams.nb_gpu_nodes
     )
 
-    # train model
+    # ------------------------
+    # 5 START TRAINING
+    # ------------------------
     trainer.fit(model)
-
-
-def get_default_parser(strategy, root_dir):
-
-    parser = HyperOptArgumentParser(strategy=strategy, add_help=False)
-    add_default_args(parser, root_dir, rand_seed=SEED)
-    return parser
-
 
 def optimize_on_cluster(hyperparams):
     # enable cluster training
+    # log all scripts to the test tube folder
     cluster = SlurmCluster(
         hyperparam_optimizer=hyperparams,
-        log_path=hyperparams.tt_save_path,
-        test_tube_exp_name=hyperparams.tt_name
+        log_path=hyperparams.test_tube_save_path,
+        test_tube_exp_name=hyperparams.experiment_name
     )
 
     # email for cluster coms
@@ -122,19 +125,17 @@ def optimize_on_cluster(hyperparams):
 
     # any modules for code to run in env
     cluster.add_command('source activate lightning')
+
+    # run only on 32GB voltas
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb', comment='use 32gb gpus')
     cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition, comment='use 32gb gpus')
-
-    # name of exp
-    job_display_name = hyperparams.tt_name.split('_')[0]
-    job_display_name = job_display_name[0:3]
 
     # run hopt
     print('submitting jobs...')
     cluster.optimize_parallel_cluster_gpu(
         main,
         nb_trials=hyperparams.nb_hopt_trials,
-        job_name=job_display_name
+        job_name=hyperparams.experiment_name
     )
 
 
@@ -142,12 +143,18 @@ if __name__ == '__main__':
 
     # use default args
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    parent_parser = get_default_parser(strategy='random_search', root_dir=root_dir)
+    log_dir = os.path.join(root_dir, 'pt_lightning_demo_logs')
+    checkpoint_dir = os.path.join(log_dir, 'model_weights')
+    parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # cluster args not defined inside the model
     parent_parser.add_argument('--gpu_partition', type=str)
     parent_parser.add_argument('--per_experiment_nb_gpus', type=int)
     parent_parser.add_argument('--nb_gpu_nodes', type=int, default=1)
+    parent_parser.add_argument('--test_tube_save_path', type=str, default=log_dir)
+    parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a')
+    parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir)
+    parent_parser.add_argument('--nb_hopt_trials', type=int, default=1)
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
