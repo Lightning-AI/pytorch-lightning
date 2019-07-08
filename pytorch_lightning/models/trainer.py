@@ -302,8 +302,7 @@ class Trainer(TrainerIO):
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # set up server using proc 0's ip address
-        ip_tables_dir = os.path.join(self.cluster.log_path, 'ip_tables')
-        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, ip_tables_dir)
+        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
@@ -315,7 +314,7 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __get_root_node_ip(self, world_gpu_nb, nb_gpu_nodes, ip_file_dir):
+    def __get_root_node_ip(self, world_gpu_nb, nb_gpu_nodes):
         """
         Resolves the ip address of proc 0.
         Proc 0 writes address to a file. Every other process waits until the ip is available before it starts
@@ -328,6 +327,9 @@ class Trainer(TrainerIO):
         # on one node we use localhost
         if nb_gpu_nodes == 1:
             return '127.0.0.1'
+
+        # where to store ip_table
+        ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
 
         # the first gpu in the world becomes the host
         # this is based on its global rank
