@@ -20,11 +20,6 @@ np.random.seed(SEED)
 from lightning_module_template import LightningTemplateModel
 # ---------------------
 
-AVAILABLE_MODELS = {
-    'model_template': LightningTemplateModel
-}
-
-
 """
 Allows training by using command line arguments
 Run by:
