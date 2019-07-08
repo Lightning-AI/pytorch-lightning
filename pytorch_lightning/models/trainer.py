@@ -364,6 +364,8 @@ class Trainer(TrainerIO):
         if nb_gpu_nodes == 1:
             return 0, '127.0.0.1'
 
+
+
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
@@ -371,6 +373,10 @@ class Trainer(TrainerIO):
         # every process writes their process id + ip to a shared file
         my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         my_ip = my_ip.split(' ')[0]
+
+        test_name = f'{os.getpid()}_{my_ip}'
+        ip_dir = os.path.join(ip_file_dir, '.ips', test_name)
+        os.makedirs(ip_dir, exist_ok=True)
 
         # save the ip to the file
         # block file so only one process can access at a time
