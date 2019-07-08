@@ -42,7 +42,7 @@ def main(hparams, cluster, results_dict):
     :param hparams:
     :return:
     """
-    path = 'emv_' + os.environ['SLURM_CLUSTER_NAME'] + 'group_' + os.environ['SLURM_*_PACK_GROUP_#']
+    path = 'emv_' + os.environ['SLURM_CLUSTER_NAME']
     os.makedirs(os.path.join(hparams.test_tube_save_path, path), exist_ok=True)
 
     # ------------------------
