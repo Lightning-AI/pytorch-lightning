@@ -12,6 +12,7 @@ import torch.distributed as dist
 import os
 import subprocess
 from time import sleep
+from torch.utils.data.distributed import DistributedSampler
 
 try:
     from apex import amp
@@ -87,6 +88,7 @@ class Trainer(TrainerIO):
         self.amp_level = amp_level
         self.print_nan_grads = print_nan_grads
         self.data_parallel_device_ids = None
+        self.world_size = 1
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -267,7 +269,16 @@ class Trainer(TrainerIO):
         self.val_dataloader = model.val_dataloader
 
         # when distributed data parallel, we need to distribute the dataset to each node
-        # TODO: implement
+        if self.nb_gpu_nodes > 1:
+            self.tng_dataloader = self.__distribute_dataloader(self.tng_dataloader)
+            self.test_dataloader = self.__distribute_dataloader(self.test_dataloader)
+            self.val_dataloader = self.__distribute_dataloader(self.val_dataloader)
+
+    def __distribute_dataloader(self, dataloader):
+        dataset = dataloader.dataset
+        dataset = DistributedSampler(dataset, num_replicas=self.world_size, rank=self.proc_rank)
+        dataloader.dataset = dataset
+        return dataloader
 
     # -----------------------------
     # MODEL TRAINING
@@ -317,11 +328,11 @@ class Trainer(TrainerIO):
 
         # determine which process we are and world size
         self.proc_rank = node_rank * len(self.data_parallel_device_ids) + gpu_nb
-        world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+        self.world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # set up server using proc 0's ip address
         ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
-        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
+        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=self.world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
         # copy model to each gpu
