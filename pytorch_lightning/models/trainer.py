@@ -12,7 +12,7 @@ import torch.distributed as dist
 import os
 import subprocess
 from time import sleep
-from torch.utils.data.distributed import DistributedSampler
+
 
 try:
     from apex import amp
@@ -267,18 +267,6 @@ class Trainer(TrainerIO):
         self.tng_dataloader = model.tng_dataloader
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
-
-        # when distributed data parallel, we need to distribute the dataset to each node
-        if self.nb_gpu_nodes > 1:
-            self.tng_dataloader = self.__distribute_dataloader(self.tng_dataloader)
-            self.test_dataloader = self.__distribute_dataloader(self.test_dataloader)
-            self.val_dataloader = self.__distribute_dataloader(self.val_dataloader)
-
-    def __distribute_dataloader(self, dataloader):
-        dataset = dataloader.dataset
-        dataset = DistributedSampler(dataset, num_replicas=self.world_size, rank=self.proc_rank)
-        dataloader.dataset = dataset
-        return dataloader
 
     # -----------------------------
     # MODEL TRAINING
