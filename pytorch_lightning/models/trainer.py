@@ -99,6 +99,10 @@ class Trainer(TrainerIO):
 
         self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
 
+        # set the correct cuda visible devices (using pci order)
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(self.data_parallel_device_ids)
+
         # process info
         self.proc_rank = 0
 
