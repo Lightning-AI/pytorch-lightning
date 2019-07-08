@@ -173,10 +173,11 @@ class LightningTemplateModel(LightningModule):
         #     print('no sampler')
         #     train_sampler = None
 
+        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=self.hparams.batch_size,
-            shuffle=True,
+            shuffle=should_shuffle,
             sampler=train_sampler
         )
 
