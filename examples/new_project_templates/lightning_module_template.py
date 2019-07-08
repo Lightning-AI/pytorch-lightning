@@ -164,7 +164,6 @@ class LightningTemplateModel(LightningModule):
 
         try:
             if self.on_gpu:
-                print('distributing')
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
         except Exception as e:
