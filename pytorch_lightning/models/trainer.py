@@ -42,7 +42,7 @@ class Trainer(TrainerIO):
                  cluster=None,
                  process_position=0,
                  current_gpu_name=0,
-                 nb_gpu_nodes=None,
+                 nb_gpu_nodes=1,
                  gpus=None,
                  progress_bar=True,
                  overfit_pct=0.0,
