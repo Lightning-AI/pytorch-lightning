@@ -307,7 +307,9 @@ class Trainer(TrainerIO):
             my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
             my_ip = my_ip.split(' ')[0]
 
-            test_name = f'{os.getpid()}_{my_ip}'
+            r = np.random.uniform(0, 1, 1)[0]
+
+            test_name = f'{os.getpid()}_{my_ip}_{r}'
             ip_dir = os.path.join(self.exp_save_path, '.ips', test_name)
             os.makedirs(ip_dir, exist_ok=True)
 
