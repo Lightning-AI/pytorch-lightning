@@ -305,6 +305,12 @@ class Trainer(TrainerIO):
         if self.on_gpu:
             rank = 0
             self.experiment = self.experiment.get_meta_copy()
+
+            # remove any ip tables we saved
+            ip_table_file = os.path.join(self.exp_save_path, '.ip_meta')
+            if os.path.exists(ip_table_file):
+                os.remove(ip_table_file)
+
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(rank, model))
         else:
             self.__run_pretrain_routine(model)
