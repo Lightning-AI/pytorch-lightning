@@ -176,6 +176,7 @@ class Trainer(TrainerIO):
 
         # determine number of training batches
         self.nb_tng_batches = len(self.tng_dataloader)
+        print('tng batches: ', self.nb_tng_batches, self.nb_test_batches, self.nb_val_batches)
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
