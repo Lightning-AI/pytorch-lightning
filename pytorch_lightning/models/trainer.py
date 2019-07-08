@@ -327,10 +327,9 @@ class Trainer(TrainerIO):
         # if nb_gpu_nodes == 1:
         #     return '127.0.0.1'
 
-        pdb.set_trace()
-
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
+        print(ip_file_dir)
         ip_file = os.path.join(ip_file_dir, '.ip_meta')
         if proc_rank == 0:
             os.makedirs(ip_file, exist_ok=True)
