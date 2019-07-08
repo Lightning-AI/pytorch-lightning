@@ -159,16 +159,23 @@ class LightningTemplateModel(LightningModule):
         dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
 
         # when using multi-node we need to add the datasampler
+        train_sampler = None
+        batch_size = self.hparams.batch_size
+
         try:
             if self.hparams.nb_gpu_nodes > 1:
                 train_sampler = DistributedSampler(dataset, num_replicas=self.trainer.world_size, rank=self.trainer.proc_rank)
+
+                # scale batch size
+                batch_size = batch_size // self.trainer.world_size
+
         except Exception as e:
-            train_sampler = None
+            pass
 
         should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
-            batch_size=self.hparams.batch_size,
+            batch_size=batch_size,
             shuffle=should_shuffle,
             sampler=train_sampler
         )
@@ -230,6 +237,9 @@ class LightningTemplateModel(LightningModule):
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
-        parser.opt_list('--batch_size', default=256, type=int, options=[32, 64, 128, 256], tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
+
+        # if using 2 nodes with 4 gpus each the batch size here (256) will be 256 / (2*8) = 16 per gpu
+        parser.opt_list('--batch_size', default=256, type=int, options=[32, 64, 128, 256], tunable=False,
+                        help='batch size will be divided over all the gpus being used across all nodes')
         return parser
