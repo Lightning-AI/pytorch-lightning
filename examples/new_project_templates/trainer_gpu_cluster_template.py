@@ -50,7 +50,7 @@ def main(hparams, cluster, results_dict):
     log_dir = os.path.dirname(os.path.realpath(__file__))
     log_dir = os.path.join(log_dir, 'pt_lightning_demo_logs')
     exp = Experiment(
-        name='test_tube_exp',
+        name=hyperparams.tt_name,
         save_dir=log_dir,
         autosave=False,
         description='test demo'
@@ -83,7 +83,7 @@ def main(hparams, cluster, results_dict):
 
     # configure trainer
     trainer = Trainer(
-        experiment=hyperparams.tt_name,
+        experiment=exp,
         cluster=cluster,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
