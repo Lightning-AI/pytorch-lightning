@@ -289,7 +289,11 @@ class Trainer(TrainerIO):
         :return:
         """
         # node rank using relative slurm id
-        node_rank = int(os.environ['SLURM_NODEID'])
+        # otherwise default to node rank 0
+        try:
+            node_rank = int(os.environ['SLURM_NODEID'])
+        except KeyError as e:
+            node_rank = 0
 
         # recover original exp before went into process
         self.experiment = self.experiment.get_non_ddp_exp()
