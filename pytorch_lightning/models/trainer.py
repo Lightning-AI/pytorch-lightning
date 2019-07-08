@@ -305,9 +305,11 @@ class Trainer(TrainerIO):
         # show progbar only on prog_rank 0
         self.prog_bar = self.prog_bar and proc_rank == 0
 
-        # configure server
+        # determine which process we are and world size
         self.proc_rank = proc_rank * len(self.data_parallel_device_ids) + gpu_nb
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+
+        # set up server using proc 0's ip address
         ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, self.exp_save_path)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
@@ -323,6 +325,15 @@ class Trainer(TrainerIO):
         self.__run_pretrain_routine(model)
 
     def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
+        """
+        Resolves the ip address of proc 0.
+        Proc 0 writes address to a file. Every other process waits until the ip is available before it starts
+
+        :param proc_rank:
+        :param nb_gpu_nodes:
+        :param ip_file_dir:
+        :return:
+        """
         # on one node we use localhost
         if nb_gpu_nodes == 1:
             return '127.0.0.1'
@@ -342,6 +353,7 @@ class Trainer(TrainerIO):
             return root_ip
         else:
             # wait up to 120 seconds until proc 0 writes
+            # once written, read proc 0's address and use it to configure server
             for i in range(0, 120):
                 sleep(1.0)
                 if os.path.exists(ip_file):
