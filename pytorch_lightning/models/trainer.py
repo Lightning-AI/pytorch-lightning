@@ -315,13 +315,11 @@ class Trainer(TrainerIO):
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
         # copy model to each gpu
-        print('starting DDP')
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb])
 
         # continue training routine
-        print('running pretrain')
         self.__run_pretrain_routine(model)
 
     def __get_root_node_ip(self, proc_rank, nb_gpu_nodes, ip_file_dir):
