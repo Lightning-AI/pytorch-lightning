@@ -96,7 +96,7 @@ def main(hparams, cluster, results_dict):
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
         gpus=hparams.gpus,
-        nb_gpu_nodes=1
+        nb_gpu_nodes=hyperparams.nb_gpu_nodes
     )
 
     # train model
@@ -130,12 +130,15 @@ def optimize_on_cluster(hyperparams):
 
     # configure cluster
     cluster.per_experiment_nb_gpus = hyperparams.per_experiment_nb_gpus
-    cluster.job_time = '48:00:00'
-    cluster.gpu_type = '1080ti'
-    cluster.memory_mb_per_node = 48000
+    cluster.per_experiment_nb_nodes = hyperparams.nb_gpu_nodes
+    cluster.job_time = '2:00:00'
+    cluster.gpu_type = 'volta'
+    cluster.memory_mb_per_node = 0
 
     # any modules for code to run in env
-    cluster.add_command('source activate pytorch_lightning')
+    cluster.add_command('source activate lightning')
+    cluster.add_slurm_cmd(cmd='constraint', value='volta32gb', comment='use 32gb gpus')
+    cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition, comment='use 32gb gpus')
 
     # name of exp
     job_display_name = hyperparams.tt_name.split('_')[0]
@@ -159,6 +162,7 @@ if __name__ == '__main__':
     # use default args
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = get_default_parser(strategy='random_search', root_dir=root_dir)
+    parent_parser.add_argument('-gpu_partition', type=str)
 
     # allow model to overwrite or extend args
     TRAINING_MODEL = AVAILABLE_MODELS[model_name]
