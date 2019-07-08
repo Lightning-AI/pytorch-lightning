@@ -329,7 +329,8 @@ class Trainer(TrainerIO):
         world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # set up server using proc 0's ip address
-        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, self.exp_save_path)
+        ip_tables_dir = os.path.join(self.cluster.log_path, 'ip_tables')
+        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes, ip_tables_dir)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=world_size)
         print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
@@ -358,7 +359,8 @@ class Trainer(TrainerIO):
         # the first gpu in the world becomes the host
         # this is based on its global rank
         # saves the ip to disk
-        ip_file = os.path.join(ip_file_dir, '.ip_meta')
+        ip_table_name = f'.ip_meta_' + os.environ['SLURM_JOB_ID']
+        ip_file = os.path.join(ip_file_dir, ip_table_name)
         if world_gpu_nb == 0:
             # get the proc 0 IP
             root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
