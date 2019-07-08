@@ -365,7 +365,7 @@ class Trainer(TrainerIO):
         # every process writes their process id + ip to a shared file
         my_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         my_ip = my_ip.split(' ')[0]
-        to_write = f'{my_ip}'
+        to_write = f'{my_ip}\n'
 
         # save the ip to the file
         # block file so only one process can access at a time
