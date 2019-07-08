@@ -93,9 +93,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         model_summary = ModelSummary(self)
         print(model_summary)
 
-    def nb_batches(self, dataloader):
-        a = math.ceil(float(len(dataloader.dataset) / self.batch_size))
-        return int(a)
 
     def freeze(self):
         for param in self.parameters():
