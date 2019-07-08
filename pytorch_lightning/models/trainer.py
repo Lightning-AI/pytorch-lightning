@@ -358,7 +358,8 @@ class Trainer(TrainerIO):
 
         # the first gpu in the world becomes the host
         # this is based on its global rank
-        # saves the ip to disk
+        # it communicates its ip by saving an ip_table to the slurm cluster logging dir
+        # every other process waits for this ip to appear before continuing
         ip_table_name = f'.ip_meta_' + os.environ['SLURM_JOB_ID']
         ip_file = os.path.join(ip_file_dir, ip_table_name)
         os.makedirs(ip_file_dir, exist_ok=True)
