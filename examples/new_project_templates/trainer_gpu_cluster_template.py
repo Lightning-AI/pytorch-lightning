@@ -104,6 +104,7 @@ def main(hparams, cluster, results_dict):
     # ------------------------
     trainer.fit(model)
 
+
 def optimize_on_cluster(hyperparams):
     # enable cluster training
     # log all scripts to the test tube folder
