@@ -145,7 +145,7 @@ if __name__ == '__main__':
     # use default args
     root_dir = os.path.dirname(os.path.realpath(__file__))
     log_dir = os.path.join(root_dir, 'pt_lightning_demo_logs')
-    checkpoint_dir = os.path.join(log_dir, 'model_weights')
+    checkpoint_dir = os.path.join(root_dir, 'model_weights')
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # cluster args not defined inside the model
