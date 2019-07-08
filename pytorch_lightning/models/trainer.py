@@ -401,7 +401,8 @@ class Trainer(TrainerIO):
                 self.lr_schedulers.append(scheduler)
 
         # print model summary
-        ref_model.summarize()
+        if self.proc_rank == 0:
+            ref_model.summarize()
 
         # give model convenience properties
         ref_model.trainer = self
