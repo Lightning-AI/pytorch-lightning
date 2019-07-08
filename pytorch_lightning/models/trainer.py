@@ -192,8 +192,6 @@ class Trainer(TrainerIO):
         # determine when to check validation
         self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
 
-        print('tng batches: ', self.nb_tng_batches, self.nb_test_batches, self.nb_val_batches)
-
     def __add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
             if type(v) is torch.Tensor:
