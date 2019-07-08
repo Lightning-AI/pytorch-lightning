@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # gpu args
-    parent_parser.add_argument('--gpus', type=str, default='-1', help='how many gpus to use in the node')
+    parent_parser.add_argument('--gpus', type=str, default='-1', help='how many gpus to use in the node. -1 uses all the gpus on the node')
     parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir, help='where to save logs')
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir, help='where to save model')
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a', help='test tube exp name')
