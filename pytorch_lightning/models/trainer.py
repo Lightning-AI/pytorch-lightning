@@ -283,7 +283,6 @@ class Trainer(TrainerIO):
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
-            model.trainer = self
 
         # when using gpus, first thing we do is spawn a new process between each worker
         # applies to single gpu, multi-gpu and multi-nodes
@@ -384,6 +383,8 @@ class Trainer(TrainerIO):
         ref_model = model
         if self.on_gpu:
             ref_model = model.module
+
+        ref_model.trainer = self
 
         # set local properties on the model
         ref_model.on_gpu = self.on_gpu
