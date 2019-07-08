@@ -356,7 +356,7 @@ class Trainer(TrainerIO):
         """
         # on one node we use localhost
         if nb_gpu_nodes == 1:
-            return '127.0.0.1'
+            return 0, '127.0.0.1'
 
         # on multi-node, every node rank > 0 waits until rank 0
         # saves the ip to disk
