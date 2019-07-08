@@ -91,16 +91,18 @@ class Trainer(TrainerIO):
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
         if gpus is not None:
+
             if gpus == '-1':
                 self.data_parallel_device_ids = list(range(0, torch.cuda.device_count()))
             else:
                 self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
 
+            # set the correct cuda visible devices (using pci order)
+            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
+
         self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
 
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(self.data_parallel_device_ids)
 
         # process info
         self.proc_rank = 0
