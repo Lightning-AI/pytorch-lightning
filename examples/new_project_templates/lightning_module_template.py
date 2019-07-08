@@ -210,7 +210,7 @@ class LightningTemplateModel(LightningModule):
 
         # network params
 
-        parser.add_argument('--nb_gpu_nodes', type=int, default=2)
+        parser.add_argument('--nb_gpu_nodes', type=int, default=1)
         parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
         parser.add_argument('--in_features', default=28*28)
         parser.add_argument('--out_features', default=10)

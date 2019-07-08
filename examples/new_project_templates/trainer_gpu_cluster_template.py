@@ -165,7 +165,6 @@ if __name__ == '__main__':
     parent_parser.add_argument('-gpu_partition', type=str)
     parent_parser.add_argument('-per_experiment_nb_gpus', type=int)
 
-
     # allow model to overwrite or extend args
     TRAINING_MODEL = AVAILABLE_MODELS[model_name]
     parser = TRAINING_MODEL.add_model_specific_args(parent_parser, root_dir)
@@ -174,35 +173,39 @@ if __name__ == '__main__':
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    # -1 means use all gpus
-    # otherwise use the visible ones
-    if hyperparams.gpus is not None:
-        if hyperparams.gpus == '-1':
-            gpu_ids = list(range(0, torch.cuda.device_count()))
-        else:
-            gpu_ids = hyperparams.gpus.split(',')
 
-    # cluster and CPU
+    # RUN ON CLUSTER
     if hyperparams.on_cluster:
         # run on HPC cluster
         print('RUNNING ON SLURM CLUSTER')
         optimize_on_cluster(hyperparams)
 
-    elif hyperparams.gpus is None:
+    # RUN ON GPUS
+    if hyperparams.gpus is not None:
+        # -1 means use all gpus
+        # otherwise use the visible ones
+        if hyperparams.gpus == '-1':
+            gpu_ids = list(range(0, torch.cuda.device_count()))
+        else:
+            gpu_ids = hyperparams.gpus.split(',')
+
+        if hyperparams.interactive:
+            print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {gpu_ids}')
+            main(hyperparams, None, None)
+
+        else:
+            # multiple GPUs on same machine
+            print(f'RUNNING MULTI GPU. GPU ids: {gpu_ids}')
+            hyperparams.optimize_parallel_gpu(
+                main_local,
+                gpu_ids=gpu_ids,
+                nb_trials=hyperparams.nb_hopt_trials,
+                nb_workers=len(gpu_ids)
+            )
+
+    # RUN ON CPU
+    else:
         # run on cpu
         print('RUNNING ON CPU')
         main(hyperparams, None, None)
 
-    if hyperparams.interactive:
-        print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {gpu_ids}')
-        main(hyperparams, None, None)
-
-    else:
-        # multiple GPUs on same machine
-        print(f'RUNNING MULTI GPU. GPU ids: {gpu_ids}')
-        hyperparams.optimize_parallel_gpu(
-            main_local,
-            gpu_ids=gpu_ids,
-            nb_trials=hyperparams.nb_hopt_trials,
-            nb_workers=len(gpu_ids)
-        )
