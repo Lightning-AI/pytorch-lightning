@@ -136,6 +136,16 @@ class Trainer(TrainerIO):
         if self.use_amp:
             print('using 16bit precision')
 
+        if self.use_amp and not APEX_AVAILABLE:
+            msg = '''
+            You set use_amp=True but do not have apex installed.
+            Install apex first using this guide and rerun with use_amp=True: 
+            https://github.com/NVIDIA/apex#linux
+            '''
+            raise Warning(msg)
+
+            print('not using 16 bit')
+
     def __determine_data_use_amount(self, train_percent_check, val_percent_check, test_percent_check, overfit_pct):
         """
         Use less data for debugging purposes
