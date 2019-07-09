@@ -1,3 +1,6 @@
+"""
+The trainer handles all the logic for running a val loop, training loop, distributing, etc...
+"""
 from time import sleep
 import subprocess
 import traceback
@@ -22,6 +25,7 @@ try:
     APEX_AVAILABLE = True
 except ModuleNotFoundError:
     APEX_AVAILABLE = False
+
 
 class Trainer(TrainerIO):
 
