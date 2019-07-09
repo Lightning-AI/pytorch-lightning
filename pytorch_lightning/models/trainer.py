@@ -136,7 +136,7 @@ class Trainer(TrainerIO):
         if self.use_amp:
             print('using 16bit precision')
 
-        if self.use_amp and not APEX_AVAILABLE:
+        if use_amp and not APEX_AVAILABLE:
             msg = '''
             You set use_amp=True but do not have apex installed.
             Install apex first using this guide and rerun with use_amp=True: 
