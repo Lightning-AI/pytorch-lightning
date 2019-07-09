@@ -13,6 +13,7 @@ import os
 import subprocess
 from time import sleep
 from torch.utils.data.distributed import DistributedSampler
+import warnings
 
 
 try:
@@ -142,8 +143,7 @@ class Trainer(TrainerIO):
             Install apex first using this guide and rerun with use_amp=True: 
             https://github.com/NVIDIA/apex#linux
             '''
-            raise Warning(msg)
-
+            warnings.warn(msg)
             print('not using 16 bit')
 
     def __determine_data_use_amount(self, train_percent_check, val_percent_check, test_percent_check, overfit_pct):
