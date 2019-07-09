@@ -461,7 +461,7 @@ class Trainer(TrainerIO):
             self.batch_loss_value = 0  # accumulated grads
 
             # init progbar when requested
-            if self.progress_bar :
+            if self.progress_bar:
                 self.prog_bar = tqdm.tqdm(range(self.total_batches), position=self.process_position)
 
             for batch_nb, data_batch in enumerate(self.tng_dataloader):
@@ -595,6 +595,7 @@ class Trainer(TrainerIO):
 
         # backward pass
         if self.use_amp:
+            # scale loss when using amp
             for optimizer in self.optimizers:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
