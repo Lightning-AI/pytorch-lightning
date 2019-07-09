@@ -21,7 +21,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.global_step = 0
         self.loaded_optimizer_states_dict = {}
         self.trainer = None
-        self.from_lightning = True
         self.experiment = None
 
         # track if gpu was requested for checkpointing
