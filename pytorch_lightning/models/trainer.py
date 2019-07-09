@@ -1,19 +1,20 @@
-import torch
-import tqdm
-import numpy as np
-from pytorch_lightning.root_module.memory import get_gpu_memory_map
+from time import sleep
+import subprocess
 import traceback
-from pytorch_lightning.root_module.model_saving import TrainerIO
+import warnings
+import os
+
+import torch
+from torch.utils.data.distributed import DistributedSampler
 from torch.optim.lr_scheduler import MultiStepLR
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
-import pdb
 import torch.multiprocessing as mp
 import torch.distributed as dist
-import os
-import subprocess
-from time import sleep
-from torch.utils.data.distributed import DistributedSampler
-import warnings
+import numpy as np
+import tqdm
+
+from pytorch_lightning.root_module.memory import get_gpu_memory_map
+from pytorch_lightning.root_module.model_saving import TrainerIO
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
 try:
