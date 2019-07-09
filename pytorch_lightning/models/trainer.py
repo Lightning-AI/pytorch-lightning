@@ -218,7 +218,8 @@ class Trainer(TrainerIO):
         :param max_batches: Scalar
         :return:
         """
-        print('validating...')
+        if self.proc_rank == 0:
+            print('validating...')
 
         # enable eval mode
         model.zero_grad()
@@ -347,7 +348,6 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
         dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=self.world_size)
-        print(f"GPU: {gpu_nb} - Rank: {self.proc_rank}")
 
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
