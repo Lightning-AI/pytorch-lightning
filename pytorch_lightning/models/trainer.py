@@ -609,7 +609,11 @@ class Trainer(TrainerIO):
         else:
             output = self.model.training_step(data_batch, batch_nb)
 
-        model_specific_tqdm_metrics_dic = output['tqdm_metrics']
+        try:
+            model_specific_tqdm_metrics_dic = output['tqdm_metrics']
+        except TypeError as e:
+            model_specific_tqdm_metrics_dic = {}
+
         loss = output['loss']
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
