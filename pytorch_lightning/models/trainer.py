@@ -628,6 +628,7 @@ class Trainer(TrainerIO):
             for param in model.parameters():
                 print(param.grad.float().sum())
 
+        # avoid memory leaks
         self.batch_loss_value += loss.item()
 
         # gradient update with accumulated gradients
