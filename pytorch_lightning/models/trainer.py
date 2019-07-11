@@ -360,7 +360,7 @@ class Trainer(TrainerIO):
             raise RuntimeError('Failed to connect using 20 different ip addresses')
 
         try:
-            dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=self.world_size)
+            dist.init_process_group("nccl", init_method=f'tcp://{ip}:{port}', rank=self.proc_rank, world_size=self.world_size)
         except RuntimeError as e:
             # port taken
             warnings.warn(f'port {port} taken, trying port {port}...')
