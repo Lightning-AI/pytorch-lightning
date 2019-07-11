@@ -292,20 +292,20 @@ class Trainer(TrainerIO):
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
 
-        # run through amp wrapper
-        if self.use_amp:
-            # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
-            self.optimizers = optimizers
-
         # when using gpus, first thing we do is spawn a new process between each worker
         # applies to single gpu, multi-gpu and multi-nodes
         if self.on_gpu:
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
         else:
+            # run through amp wrapper
+            if self.use_amp:
+                # An example
+                model, optimizers = amp.initialize(
+                    model, self.optimizers, opt_level=self.amp_level,
+                )
+                self.optimizers = optimizers
+
             self.__run_pretrain_routine(model)
 
     def dp_train(self, gpu_nb, model):
@@ -340,6 +340,15 @@ class Trainer(TrainerIO):
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
+
+        # run through amp wrapper before going to distributed DP
+        if self.use_amp:
+            # An example
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
+            )
+            self.optimizers = optimizers
+
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb])
 
         # continue training routine
