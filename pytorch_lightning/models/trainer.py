@@ -334,8 +334,9 @@ class Trainer(TrainerIO):
         self.world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # set up server using proc 0's ip address
+        # try to init for 20 times at max in case ports are taken
         ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
-        dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=self.world_size)
+        self.__init_tcp_connection(ip)
 
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
@@ -353,6 +354,17 @@ class Trainer(TrainerIO):
 
         # continue training routine
         self.__run_pretrain_routine(model)
+
+    def __init_tcp_connection(self, ip, port=12000, tries=0):
+        if tries > 20:
+            raise RuntimeError('Failed to connect using 20 different ip addresses')
+
+        try:
+            dist.init_process_group("nccl", init_method=f'tcp://{ip}:12001', rank=self.proc_rank, world_size=self.world_size)
+        except RuntimeError as e:
+            # port taken
+            warnings.warn(f'port {port} taken, trying port {port}...')
+            self.__init_tcp_connection(ip, port + 1, tries + 1)
 
     def __get_root_node_ip(self, world_gpu_nb, nb_gpu_nodes):
         """
