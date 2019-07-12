@@ -376,7 +376,7 @@ class Trainer(TrainerIO):
         :return:
         """
         try:
-            os.environ['MASTER_PORT']
+            port = os.environ['MASTER_PORT']
         except Exception as e:
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
