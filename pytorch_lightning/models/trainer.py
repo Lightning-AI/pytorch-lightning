@@ -352,7 +352,7 @@ class Trainer(TrainerIO):
         print('SLURM ROOT NODE: ', root_node)
         print('-'*100)
 
-        dist.init_process_group("nccl", init_method=f'env://{root_node}', rank=self.proc_rank,
+        dist.init_process_group("nccl", init_method=f'env://{root_node}:12007', rank=self.proc_rank,
                                 world_size=self.world_size)
         # self.__init_tcp_connection(ip_file_dir)
 
