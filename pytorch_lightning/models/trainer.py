@@ -339,7 +339,10 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
+        print('-'*100)
+        print('INIT CONN')
         self.__init_tcp_connection()
+        print('-'*100)
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
