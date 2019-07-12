@@ -325,6 +325,8 @@ class Trainer(TrainerIO):
             node_rank = 0
 
         # recover original exp before went into process
+        # init in write mode only on proc 0
+        self.experiment.debug = self.proc_rank > 0
         self.experiment = self.experiment.get_non_ddp_exp()
 
         # show progbar only on prog_rank 0
