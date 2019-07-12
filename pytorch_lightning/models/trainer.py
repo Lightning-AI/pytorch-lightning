@@ -379,7 +379,10 @@ class Trainer(TrainerIO):
         :param tries:
         :return:
         """
-        sleep(self.proc_rank*2)
+        # hack to get nccl to stop throwing error... seems to be an nccl race condition
+        if self.proc_rank > 0:
+            sleep(10.0)
+
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
         os.environ['MASTER_PORT'] = f'{port}'
