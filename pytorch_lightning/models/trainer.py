@@ -363,6 +363,13 @@ class Trainer(TrainerIO):
         self.__run_pretrain_routine(model)
 
     def __init_tcp_connection(self, port=12000, tries=0):
+        """
+        Connect all procs in the world using the env:// init
+        Use the first node as the root address
+        :param port:
+        :param tries:
+        :return:
+        """
         if tries > 20:
             raise RuntimeError('Failed to connect using 20 different ip addresses')
 
@@ -376,53 +383,6 @@ class Trainer(TrainerIO):
             # port taken
             warnings.warn(f'port {port} taken, trying port {port}...')
             self.__init_tcp_connection(port + 1, tries + 1)
-
-    def __get_root_node_ip(self, world_gpu_nb, nb_gpu_nodes):
-        """
-        Resolves the ip address of proc 0.
-        Proc 0 writes address to a file. Every other process waits until the ip is available before it starts
-
-        :param world_gpu_nb: gpu number amongst all the world gpus
-        :param nb_gpu_nodes:
-        :param ip_file_dir:
-        :return:
-        """
-        # on one node we use localhost
-        # if nb_gpu_nodes == 1:
-        #     return '127.0.0.1'
-
-        # where to store ip_table
-        ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
-
-        # the first gpu in the world becomes the host
-        # this is based on its global rank
-        # it communicates its ip by saving an ip_table to the slurm cluster logging dir
-        # every other process waits for this ip to appear before continuing
-        ip_table_name = f'.ip_meta_' + os.environ['SLURM_JOB_ID']
-        ip_file = os.path.join(ip_file_dir, ip_table_name)
-        os.makedirs(ip_file_dir, exist_ok=True)
-
-        if world_gpu_nb == 0:
-            # get the proc 0 IP
-            root_ip = subprocess.run(['hostname', '-I'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-            root_ip = root_ip.split(' ')[0]
-
-            # save the ip to the file
-            with open(file=ip_file, mode='w') as f:
-                f.write(root_ip)
-
-            return root_ip
-        else:
-            # sleep 10 seconds first to give file chance to write
-            sleep(10)
-
-            # wait up to 120 seconds until proc 0 writes
-            # once written, read proc 0's address and use it to configure server
-            for i in range(0, 120):
-                sleep(1.0)
-                if os.path.exists(ip_file):
-                    ip = list(open(file=ip_file, mode='r'))[0]
-                    return ip
 
     def __run_pretrain_routine(self, model):
         """
