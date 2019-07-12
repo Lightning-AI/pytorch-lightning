@@ -149,8 +149,12 @@ class Trainer(TrainerIO):
             self.val_percent_check = overfit_pct
             self.test_percent_check = overfit_pct
 
+    def __get_model(self):
+        return self.model.module if self.data_parallel else self.model
+
     def __is_function_implemented(self, f_name):
-        f_op = getattr(self.model, f_name, None)
+        model = self.__get_model()
+        f_op = getattr(model, f_name, None)
         return callable(f_op)
 
     @property
@@ -476,12 +480,12 @@ class Trainer(TrainerIO):
             for lr_scheduler in self.lr_schedulers:
                 lr_scheduler.step()
 
-            model = self.model.module if self.data_parallel else self.model
+            model = self.__get_model()
             model.current_epoch = epoch_nb
 
             # hook
             if self.__is_function_implemented('on_epoch_start'):
-                model = self.model.module if self.data_parallel else self.model
+                model = self.__get_model()
                 model.on_epoch_start()
 
             self.current_epoch = epoch_nb
@@ -496,7 +500,7 @@ class Trainer(TrainerIO):
                 self.batch_nb = batch_nb
                 self.global_step += 1
 
-                model = self.model.module if self.data_parallel else self.model
+                model = self.__get_model()
                 model.global_step = self.global_step
 
                 # stop when the flag is changed or we've gone past the amount requested in the batches
@@ -528,10 +532,8 @@ class Trainer(TrainerIO):
                     # count items in memory
                     # nb_params, nb_tensors = count_mem_items()
 
-                    if self.data_parallel:
-                        metrics = self.model.module.update_tng_log_metrics(self.__tng_tqdm_dic)
-                    else:
-                        metrics = self.model.update_tng_log_metrics(self.__tng_tqdm_dic)
+                    model = self.__get_model()
+                    metrics = model.update_tng_log_metrics(self.__tng_tqdm_dic)
 
                     # add gpu memory
                     if self.on_gpu:
@@ -540,7 +542,7 @@ class Trainer(TrainerIO):
 
                     # add norms
                     if self.track_grad_norm > 0:
-                        model = self.model.module if self.data_parallel else self.model
+                        model = self.__get_model()
                         grad_norm_dic = model.grad_norm(self.track_grad_norm)
 
                         metrics.update(grad_norm_dic)
@@ -553,7 +555,7 @@ class Trainer(TrainerIO):
 
                 # hook
                 if self.__is_function_implemented('on_batch_end'):
-                    model = self.model.module if self.data_parallel else self.model
+                    model = self.__get_model()
                     model.on_batch_end()
 
                 # end epoch early
@@ -562,7 +564,7 @@ class Trainer(TrainerIO):
 
             # hook
             if self.__is_function_implemented('on_epoch_end'):
-                model = self.model.module if self.data_parallel else self.model
+                model = self.__get_model()
                 model.on_epoch_end()
 
             # early stopping
@@ -600,7 +602,7 @@ class Trainer(TrainerIO):
 
         # hook
         if self.__is_function_implemented('on_batch_start'):
-            model = self.model.module if self.data_parallel else self.model
+            model = self.__get_model()
             response = model.on_batch_start(data_batch)
 
             if response == -1:
@@ -641,7 +643,7 @@ class Trainer(TrainerIO):
             loss.backward()
 
         if self.print_nan_grads:
-            model = self.model.module if self.data_parallel else self.model
+            model = self.__get_model()
             for param in model.parameters():
                 print(param.grad.float().sum())
 
@@ -653,7 +655,7 @@ class Trainer(TrainerIO):
 
             # clip gradients
             if self.gradient_clip > 0:
-                model = self.model.module if self.data_parallel else self.model
+                model = self.__get_model()
                 torch.nn.utils.clip_grad_norm(model.parameters(), self.gradient_clip)
 
             # update gradients across all optimizers
@@ -679,7 +681,8 @@ class Trainer(TrainerIO):
 
         # activate batch end hook
         if self.__is_function_implemented('on_batch_end'):
-            self.model.on_batch_end()
+            model = self.__get_model()
+            model.on_batch_end()
 
         return 0
 
@@ -694,7 +697,8 @@ class Trainer(TrainerIO):
         try:
             # hook
             if self.__is_function_implemented('on_pre_performance_check'):
-                self.model.on_pre_performance_check()
+                model = self.__get_model()
+                model.on_pre_performance_check()
 
             # use full val set on end of epoch
             # use a small portion otherwise
@@ -708,7 +712,8 @@ class Trainer(TrainerIO):
 
             # hook
             if self.__is_function_implemented('on_post_performance_check'):
-                self.model.on_post_performance_check()
+                model = self.__get_model()
+                model.on_post_performance_check()
 
         except Exception as e:
             print(e)
