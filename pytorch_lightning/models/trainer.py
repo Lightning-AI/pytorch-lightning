@@ -385,6 +385,8 @@ class Trainer(TrainerIO):
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
+        sleep(self.proc_rank * 2)
+
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
