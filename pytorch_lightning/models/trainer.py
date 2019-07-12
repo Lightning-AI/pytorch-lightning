@@ -336,10 +336,8 @@ class Trainer(TrainerIO):
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
-        ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
-        dist.init_process_group("nccl", init_method=f'file://{ip_file_dir}', rank=self.proc_rank,
-                                world_size=self.world_size)
-        # self.__init_tcp_connection(ip_file_dir)
+        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
+        self.__init_tcp_connection(ip)
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
@@ -364,16 +362,16 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __init_tcp_connection(self, path, port=12000, tries=0):
+    def __init_tcp_connection(self, ip, port=12000, tries=0):
         if tries > 20:
             raise RuntimeError('Failed to connect using 20 different ip addresses')
 
         try:
-            dist.init_process_group("nccl", init_method=f'file://{path}:{port}', rank=self.proc_rank, world_size=self.world_size)
+            dist.init_process_group("nccl", init_method=f'tcp://{ip}:{port}', rank=self.proc_rank, world_size=self.world_size)
         except RuntimeError as e:
             # port taken
             warnings.warn(f'port {port} taken, trying port {port}...')
-            self.__init_tcp_connection(path, port + 1, tries + 1)
+            self.__init_tcp_connection(ip, port + 1, tries + 1)
 
     def __get_root_node_ip(self, world_gpu_nb, nb_gpu_nodes):
         """
@@ -386,8 +384,8 @@ class Trainer(TrainerIO):
         :return:
         """
         # on one node we use localhost
-        # if nb_gpu_nodes == 1:
-        #     return '127.0.0.1'
+        if nb_gpu_nodes == 1:
+            return '127.0.0.1'
 
         # where to store ip_table
         ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
@@ -411,9 +409,6 @@ class Trainer(TrainerIO):
 
             return root_ip
         else:
-            # sleep 10 seconds first to give file chance to write
-            sleep(10)
-
             # wait up to 120 seconds until proc 0 writes
             # once written, read proc 0's address and use it to configure server
             for i in range(0, 120):
