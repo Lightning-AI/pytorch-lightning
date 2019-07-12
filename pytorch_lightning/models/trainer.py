@@ -336,8 +336,7 @@ class Trainer(TrainerIO):
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
-        # ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
-        ip = os.environ['MASTER_ADDR']
+        ip = self.__get_root_node_ip(self.proc_rank, self.nb_gpu_nodes)
         self.__init_tcp_connection(ip)
 
         # CHOOSE OPTIMIZER
