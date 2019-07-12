@@ -371,7 +371,7 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __init_tcp_connection(self, port=12975):
+    def __init_tcp_connection(self, port=12945):
         """
         Connect all procs in the world using the env:// init
         Use the first node as the root address
@@ -383,8 +383,7 @@ class Trainer(TrainerIO):
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
         os.environ['MASTER_PORT'] = f'{port}'
-        dist.init_process_group("nccl", rank=self.proc_rank)
-        # dist.init_process_group("nccl")
+        dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def __run_pretrain_routine(self, model):
         """
