@@ -376,13 +376,13 @@ class Trainer(TrainerIO):
         :return:
         """
         try:
-            port = os.environ['MASTER_PORT']
+            os.environ['MASTER_PORT']
         except Exception as e:
             port = 12910
+            os.environ['MASTER_PORT'] = f'{port}'
 
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
-        os.environ['MASTER_PORT'] = f'{port}'
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def __run_pretrain_routine(self, model):
