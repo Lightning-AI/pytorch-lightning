@@ -337,17 +337,7 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
-
-        # the first gpu in the world becomes the host
-        # this is based on its global rank
-        # it communicates its ip by saving an ip_table to the slurm cluster logging dir
-        # every other process waits for this ip to appear before continuing
-        ip_table_name = f'ip_meta_' + os.environ['SLURM_JOB_ID']
-        ip_file = os.path.join(ip_file_dir, ip_table_name)
-        os.makedirs(ip_file_dir, exist_ok=True)
-
-        self.__init_tcp_connection(ip_file_dir)
+        self.__init_tcp_connection()
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
@@ -379,7 +369,7 @@ class Trainer(TrainerIO):
         try:
             root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
             os.environ['MASTER_ADDR'] = root_node
-            os.environ['MASTER_PORT'] = '12006'
+            os.environ['MASTER_PORT'] = f'{port}'
             dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
         except RuntimeError as e:
