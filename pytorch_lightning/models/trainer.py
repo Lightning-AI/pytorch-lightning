@@ -382,11 +382,7 @@ class Trainer(TrainerIO):
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
-        print('-'*100)
-        print(f'PORT: {port}')
-        print('-'*100)
-
-        sleep(self.proc_rank * 2)
+        sleep(self.proc_rank*0.5)
 
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
