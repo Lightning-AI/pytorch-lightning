@@ -129,7 +129,7 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
     def get_process_position(gpus):
         try:
             current_gpu = os.environ["CUDA_VISIBLE_DEVICES"]
-            gpu_ids = gpus.split(';')
+            gpu_ids = gpus.split(',')
             process_position = gpu_ids.index(current_gpu)
             return process_position, current_gpu
         except Exception as e:
