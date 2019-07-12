@@ -367,7 +367,7 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __init_tcp_connection(self, port=12975, tries=0):
+    def __init_tcp_connection(self, port=12975):
         """
         Connect all procs in the world using the env:// init
         Use the first node as the root address
