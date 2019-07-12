@@ -336,8 +336,18 @@ class Trainer(TrainerIO):
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
+        # where to store ip_table
         ip_file_dir = os.path.join(self.cluster.log_path, 'ip_tables')
-        dist.init_process_group("nccl", init_method=f'file://{ip_file_dir}', rank=self.proc_rank,
+
+        # the first gpu in the world becomes the host
+        # this is based on its global rank
+        # it communicates its ip by saving an ip_table to the slurm cluster logging dir
+        # every other process waits for this ip to appear before continuing
+        ip_table_name = f'.ip_meta_' + os.environ['SLURM_JOB_ID']
+        ip_file = os.path.join(ip_file_dir, ip_table_name)
+        os.makedirs(ip_file_dir, exist_ok=True)
+
+        dist.init_process_group("nccl", init_method=f'file://{ip_file}', rank=self.proc_rank,
                                 world_size=self.world_size)
         # self.__init_tcp_connection(ip_file_dir)
 
