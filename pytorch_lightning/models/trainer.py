@@ -367,7 +367,7 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __init_tcp_connection(self, port=12945):
+    def __init_tcp_connection(self):
         """
         Connect all procs in the world using the env:// init
         Use the first node as the root address
@@ -375,6 +375,10 @@ class Trainer(TrainerIO):
         :param tries:
         :return:
         """
+        try:
+            port = os.environ['MASTER_PORT']
+        except Exception as e:
+            port = 12910
 
         root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         os.environ['MASTER_ADDR'] = root_node
