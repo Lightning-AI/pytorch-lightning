@@ -597,7 +597,7 @@ class Trainer(TrainerIO):
         try:
             loss = output['loss']
         except Exception as e:
-            if type(loss) is torch.Tensor:
+            if type(output) is torch.Tensor:
                 loss = output
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
