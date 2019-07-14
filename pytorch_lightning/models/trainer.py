@@ -295,7 +295,7 @@ class Trainer(TrainerIO):
 
         # when using gpus, first thing we do is spawn a new process between each worker
         # applies to single gpu, multi-gpu and multi-nodes
-        if self.on_gpu:
+        if self.on_gpu and len(self.data_parallel_device_ids) > 1:
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
         else:
