@@ -294,10 +294,15 @@ class Trainer(TrainerIO):
     def fit(self, model):
 
         # when using gpus, first thing we do is spawn a new process between each worker
-        # applies to single gpu, multi-gpu and multi-nodes
+        #  multi-gpu and multi-nodes
         if self.data_parallel:
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
+
+        # treat 1 gpu as a different case to avoid nccl bugs
+        elif len(self.data_parallel_device_ids) == 1:
+            self.single_gpu_train(model)
+
         else:
             # CHOOSE OPTIMIZER
             # filter out the weights that were done on gpu so we can load on good old cpus
@@ -312,6 +317,24 @@ class Trainer(TrainerIO):
                 self.optimizers = optimizers
 
             self.__run_pretrain_routine(model)
+
+    def single_gpu_train(self, model):
+        torch.cuda.set_device(0)
+        model = model.cuda(0)
+
+        # CHOOSE OPTIMIZER
+        # filter out the weights that were done on gpu so we can load on good old cpus
+        self.optimizers = model.configure_optimizers()
+
+        # run through amp wrapper
+        if self.use_amp:
+            # An example
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
+            )
+            self.optimizers = optimizers
+
+        self.__run_pretrain_routine(model)
 
     def dp_train(self, gpu_nb, model):
         """
