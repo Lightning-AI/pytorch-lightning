@@ -296,11 +296,13 @@ class Trainer(TrainerIO):
         # when using gpus, first thing we do is spawn a new process between each worker
         #  multi-gpu and multi-nodes
         if self.data_parallel:
+            print('DP train')
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
         # treat 1 gpu as a different case to avoid nccl bugs
         elif len(self.data_parallel_device_ids) == 1:
+            print('1 gpu train')
             self.single_gpu_train(model)
 
         else:
