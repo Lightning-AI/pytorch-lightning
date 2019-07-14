@@ -399,7 +399,7 @@ class Trainer(TrainerIO):
         :return:
         """
         ref_model = model
-        if self.on_gpu:
+        if self.data_parallel:
             ref_model = model.module
 
         ref_model.trainer = self
