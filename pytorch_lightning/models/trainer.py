@@ -273,7 +273,7 @@ class Trainer(TrainerIO):
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
-        if self.on_gpu and type(self.tng_dataloader.sampler) is not DistributedSampler:
+        if self.data_parallel and type(self.tng_dataloader.sampler) is not DistributedSampler:
             msg = '''
             when using multiple gpus and multiple nodes you must pass a DistributedSampler to DataLoader(sampler).
             
