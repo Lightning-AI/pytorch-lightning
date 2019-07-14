@@ -323,7 +323,7 @@ class Trainer(TrainerIO):
             self.__run_pretrain_routine(model)
 
     def single_gpu_train(self, model):
-        torch.cuda.set_device(0)
+        # torch.cuda.set_device(0)
         model.cuda(0)
 
         # CHOOSE OPTIMIZER
