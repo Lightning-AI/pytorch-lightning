@@ -216,9 +216,6 @@ class Trainer(TrainerIO):
         :param max_batches: Scalar
         :return:
         """
-        if self.proc_rank == 0:
-            print('validating...')
-
         # enable eval mode
         model.zero_grad()
         model.eval()
