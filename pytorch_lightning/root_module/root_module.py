@@ -78,7 +78,7 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         :param logs:
         :return:
         """
-        raise NotImplementedError
+        return logs
 
     def loss(self, *args, **kwargs):
         """
