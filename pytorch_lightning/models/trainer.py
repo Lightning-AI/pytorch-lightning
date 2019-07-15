@@ -69,7 +69,10 @@ class Trainer(TrainerIO):
         self.process_position = process_position
         self.current_gpu_name = current_gpu_name
         self.checkpoint_callback = checkpoint_callback
-        self.checkpoint_callback.save_function = self.save_checkpoint if self.checkpoint_callback is not None else None
+
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.save_function = self.save_checkpoint
+
         self.early_stop = early_stop_callback
         self.model = None
         self.max_nb_epochs = max_nb_epochs
