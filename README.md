@@ -116,8 +116,8 @@ def validation_end(self, outputs):
     return tqdm_dic
 ```
    
-## TensorboardX    
-Lightning is fully integrated with tensorboardX.   
+## Tensorboard    
+Lightning is fully integrated with tensorboard.   
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
