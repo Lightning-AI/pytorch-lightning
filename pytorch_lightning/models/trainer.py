@@ -300,7 +300,7 @@ class Trainer(TrainerIO):
             mp.spawn(self.dp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
         # treat 1 gpu as a different case to avoid nccl bugs
-        elif len(self.data_parallel_device_ids) == 1:
+        elif self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) == 1:
             self.single_gpu_train(model)
 
         else:
