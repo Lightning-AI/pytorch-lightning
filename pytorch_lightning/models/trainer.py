@@ -45,7 +45,7 @@ class Trainer(TrainerIO):
                  check_val_every_n_epoch=1,
                  fast_dev_run=False,
                  accumulate_grad_batches=1,
-                 enable_early_stop=True, max_nb_epochs=1000, min_nb_epochs=1,
+                 max_nb_epochs=1000, min_nb_epochs=1,
                  train_percent_check=1.0, val_percent_check=1.0, test_percent_check=1.0, val_check_interval=0.95,
                  log_save_interval=100, add_log_row_interval=10,
                  lr_scheduler_milestones=None,
