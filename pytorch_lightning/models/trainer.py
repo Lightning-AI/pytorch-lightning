@@ -31,7 +31,7 @@ class Trainer(TrainerIO):
 
     def __init__(self,
                  experiment,
-                 early_stop_callback,
+                 early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip=0,
                  cluster=None,
@@ -58,7 +58,7 @@ class Trainer(TrainerIO):
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
-        self.enable_early_stop = enable_early_stop
+        self.enable_early_stop = early_stop_callback is not None
         self.track_grad_norm = track_grad_norm
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
