@@ -19,3 +19,6 @@ class ModelHooks(torch.nn.Module):
     def on_post_performance_check(self):
         pass
 
+    def on_tng_metrics(self, metrics):
+        pass
+
