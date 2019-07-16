@@ -566,9 +566,9 @@ class Trainer(TrainerIO):
                 model.on_epoch_end()
 
             # early stopping
-            if self.enable_early_stop:
+            met_min_epochs = epoch_nb > self.min_nb_epochs
+            if self.enable_early_stop and met_min_epochs:
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb, logs=self.__tng_tqdm_dic)
-                met_min_epochs = epoch_nb > self.min_nb_epochs
 
                 # stop training
                 stop = should_stop and met_min_epochs
