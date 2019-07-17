@@ -19,7 +19,7 @@ Cut the learning rate by 10 at every epoch listed in this list.
 trainer = Trainer(lr_scheduler_milestones=None)
 
 # cut LR by 10 at 100, 200, and 300 epochs 
-trainer = Trainer(lr_scheduler_milestones=[100, 200, 300])
+trainer = Trainer(lr_scheduler_milestones='100, 200, 300')
 ```
 
 ---
