@@ -50,7 +50,7 @@ class Trainer(TrainerIO):
                  val_check_interval=0.95,
                  log_save_interval=100, add_log_row_interval=10,
                  lr_scheduler_milestones=None,
-                 use_distributed_dataparallel=True,
+                 distributed_backend='dp',
                  use_amp=False,
                  print_nan_grads=False,
                  print_weights_summary=True,
@@ -110,8 +110,8 @@ class Trainer(TrainerIO):
         # single GPU will also use DP with devices=[0]
         have_gpus = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
         if have_gpus:
-            self.use_ddp = use_distributed_dataparallel
-            self.use_dp = not self.use_ddp
+            self.use_dp = distributed_backend == 'dp'
+            self.use_ddp = distributed_backend == 'ddp'
 
         # process info
         self.proc_rank = 0
