@@ -116,7 +116,7 @@ class LightningTemplateModel(LightningModule):
         :param outputs: list of individual outputs of each validation step
         :return:
         """
-        return outputs.mean()
+        return torch.stack(outputs).mean()
 
         val_loss_mean = 0
         val_acc_mean = 0
