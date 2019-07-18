@@ -371,8 +371,7 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        if self.on_gpu:
-            model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
+        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
         self.__run_pretrain_routine(model)
 
