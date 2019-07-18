@@ -29,7 +29,6 @@ except ModuleNotFoundError:
 
 
 def reduce_distributed_output(output, nb_gpus):
-    pdb.set_trace()
     if nb_gpus <= 1:
         return output
 
