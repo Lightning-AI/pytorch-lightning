@@ -672,7 +672,7 @@ class Trainer(TrainerIO):
 
     def __log_vals_blacklist(self):
         """avoid logging some vals lightning uses to maintain state"""
-        blacklist = {'batch_nb', 'v_nb', 'epoch', 'gpu'}
+        blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
     def __run_tng_batch(self, data_batch, batch_nb):
