@@ -268,6 +268,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
+            pdb.set_trace()
             if self.use_ddp:
                 output = model(data_batch, batch_i)
             elif self.use_dp:
