@@ -271,6 +271,7 @@ class Trainer(TrainerIO):
             if self.use_ddp:
                 output = model(data_batch, batch_i)
             elif self.use_dp:
+                pdb.set_trace()
                 output = model(data_batch, batch_i)
                 output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
 
