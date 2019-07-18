@@ -29,6 +29,9 @@ except ModuleNotFoundError:
 
 
 def reduce_distributed_output(output, nb_gpus):
+    if nb_gpus <= 1:
+        return output
+
     for k, v in output.items():
         # recurse on nested dics
         if isinstance(output[k], dict):
