@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 
 
 def reduce_distributed_output(output, nb_gpus):
-    if nb_gpus <= 1:
+    if nb_gpus <= 1 or type(output) is torch.Tensor:
         return output
 
     for k, v in output.items():
