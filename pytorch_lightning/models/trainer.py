@@ -50,6 +50,7 @@ class Trainer(TrainerIO):
                  val_check_interval=0.95,
                  log_save_interval=100, add_log_row_interval=10,
                  lr_scheduler_milestones=None,
+                 use_distributed_dataparallel=True,
                  use_amp=False,
                  print_nan_grads=False,
                  print_weights_summary=True,
@@ -72,6 +73,7 @@ class Trainer(TrainerIO):
         self.current_gpu_name = current_gpu_name
         self.print_weights_summary = print_weights_summary
         self.checkpoint_callback = checkpoint_callback
+        self.use_distributed_dataparallel = use_distributed_dataparallel
 
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.save_function = self.save_checkpoint
@@ -103,7 +105,7 @@ class Trainer(TrainerIO):
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
 
-        self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 1
+        self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 1 and self.use_distributed_dataparallel
 
         # process info
         self.proc_rank = 0
