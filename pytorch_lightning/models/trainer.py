@@ -372,7 +372,6 @@ class Trainer(TrainerIO):
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
-            print('using ddp')
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
             task = int(os.environ['SLURM_LOCALID'])
@@ -382,7 +381,6 @@ class Trainer(TrainerIO):
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            print('using dp')
             self.dp_train(model)
 
         # ON CPU
