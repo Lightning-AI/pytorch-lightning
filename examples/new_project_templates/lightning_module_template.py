@@ -116,6 +116,7 @@ class LightningTemplateModel(LightningModule):
         :param outputs: list of individual outputs of each validation step
         :return:
         """
+        print(outputs)
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
