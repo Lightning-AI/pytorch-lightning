@@ -377,9 +377,14 @@ class Trainer(TrainerIO):
 
             # whenever we have the correct number of tasks, we let slurm manage processes
             # otherwise we launch the required number of processes
-            nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-            nb_requested_gpus = len(self.data_parallel_device_ids)
-            is_slurm_managing_tasks = nb_slurm_tasks == nb_requested_gpus
+            try:
+                nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                nb_requested_gpus = len(self.data_parallel_device_ids)
+                is_slurm_managing_tasks = nb_slurm_tasks == nb_requested_gpus
+            except Exception as e:
+                # likely not on slurm, so set the slurm managed flag to false
+                is_slurm_managing_tasks = False
+
             if is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
