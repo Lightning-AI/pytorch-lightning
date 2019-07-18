@@ -640,8 +640,8 @@ class Trainer(TrainerIO):
 
         # hook
         if self.__is_function_implemented('on_batch_start'):
-            model = self.__get_model()
-            response = model.on_batch_start(data_batch)
+            model_ref = self.__get_model()
+            response = model_ref.on_batch_start(data_batch)
 
             if response == -1:
                 return -1
@@ -652,9 +652,9 @@ class Trainer(TrainerIO):
         # forward pass
         # return a scalar value and a dic with tqdm metrics
         if self.use_ddp:
-            output = model(data_batch, batch_nb)
+            output = self.model(data_batch, batch_nb)
         elif self.use_dp:
-            output = model(data_batch, batch_nb)
+            output = self.model(data_batch, batch_nb)
             output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
         else:
             output = self.model.training_step(data_batch, batch_nb)
