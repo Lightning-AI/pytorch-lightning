@@ -311,7 +311,6 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            print('validating...')
             if self.use_ddp:
                 output = model(data_batch, batch_i)
             elif self.use_dp:
@@ -430,7 +429,6 @@ class Trainer(TrainerIO):
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
-
 
         self.__run_pretrain_routine(model)
 
