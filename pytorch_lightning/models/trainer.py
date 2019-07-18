@@ -255,7 +255,6 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            pdb.set_trace()
             if self.data_parallel:
                 output = model(data_batch, batch_i)
             else:
