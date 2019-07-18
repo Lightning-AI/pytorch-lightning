@@ -74,6 +74,40 @@ class Trainer(TrainerIO):
                  amp_level='O2',
                  nb_sanity_val_steps=5):
 
+        """
+
+        :param experiment: Test-tube experiment
+        :param early_stop_callback: from pytorch_lightning import EarlyStopping
+        :param checkpoint_callback: from pytorch_lightning import Checkpoint
+        :param gradient_clip:
+        :param cluster:
+        :param process_position:
+        :param current_gpu_name:
+        :param nb_gpu_nodes:
+        :param gpus:
+        :param progress_bar:
+        :param overfit_pct:
+        :param track_grad_norm:
+        :param check_val_every_n_epoch:
+        :param fast_dev_run:
+        :param accumulate_grad_batches:
+        :param max_nb_epochs:
+        :param min_nb_epochs:
+        :param train_percent_check:
+        :param val_percent_check:
+        :param test_percent_check:
+        :param val_check_interval:
+        :param log_save_interval:
+        :param add_log_row_interval:
+        :param lr_scheduler_milestones:
+        :param distributed_backend: 'np' to use DistributedParallel, 'ddp' to use DistributedDataParallel
+        :param use_amp:
+        :param print_nan_grads:
+        :param print_weights_summary:
+        :param amp_level:
+        :param nb_sanity_val_steps:
+        """
+
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
