@@ -311,6 +311,7 @@ class Trainer(TrainerIO):
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
+            # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
             mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
