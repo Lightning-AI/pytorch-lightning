@@ -319,6 +319,7 @@ class Trainer(TrainerIO):
         elif self.use_dp:
             self.dp_train(model)
 
+        # ON CPU
         else:
             # CHOOSE OPTIMIZER
             # filter out the weights that were done on gpu so we can load on good old cpus
