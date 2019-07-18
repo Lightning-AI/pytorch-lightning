@@ -363,9 +363,6 @@ class Trainer(TrainerIO):
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
 
-        # attach model to DP
-        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
-
         # run through amp wrapper
         if self.use_amp:
             # An example
@@ -373,6 +370,9 @@ class Trainer(TrainerIO):
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
+
+        if self.on_gpu:
+            model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
         self.__run_pretrain_routine(model)
 
