@@ -122,6 +122,7 @@ class Trainer(TrainerIO):
             # set the correct cuda visible devices (using pci order)
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
+            print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
