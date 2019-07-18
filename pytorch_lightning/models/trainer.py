@@ -28,6 +28,19 @@ except ModuleNotFoundError:
     APEX_AVAILABLE = False
 
 
+def reduce_distributed_output(output, nb_gpus):
+    for k, v in output.items():
+        # recurse on nested dics
+        if isinstance(output[k], dict):
+            output[k] = reduce_distributed_output(output[k], nb_gpus)
+
+        # reduce only metrics that have the same nb of gpus
+        elif output[k].size(0) == nb_gpus:
+            reduced = torch.mean(output[k])
+            output[k] = reduced
+    return output
+
+
 class Trainer(TrainerIO):
 
     def __init__(self,
@@ -255,8 +268,12 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            if self.data_parallel:
+            if self.use_ddp:
                 output = model(data_batch, batch_i)
+            elif self.use_dp:
+                output = model(data_batch, batch_i)
+                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+
             else:
                 output = model.validation_step(data_batch, batch_i)
 
@@ -631,8 +648,11 @@ class Trainer(TrainerIO):
 
         # forward pass
         # return a scalar value and a dic with tqdm metrics
-        if self.data_parallel:
-            output = self.model(data_batch, batch_nb)
+        if self.use_ddp:
+            output = model(data_batch, batch_nb)
+        elif self.use_dp:
+            output = model(data_batch, batch_nb)
+            output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
         else:
             output = self.model.training_step(data_batch, batch_nb)
 
