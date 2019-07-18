@@ -86,7 +86,7 @@ class LightningTemplateModel(LightningModule):
         output = OrderedDict({
             'loss': loss_val
         })
-        return loss_val
+        return output
 
     def validation_step(self, data_batch, batch_i):
         """
