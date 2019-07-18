@@ -311,6 +311,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
+            print('validating...')
             if self.use_ddp:
                 output = model(data_batch, batch_i)
             elif self.use_dp:
