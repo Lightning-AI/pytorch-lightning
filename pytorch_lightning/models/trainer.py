@@ -393,6 +393,7 @@ class Trainer(TrainerIO):
                 You requested {nb_requested_gpus} GPUs but launched {nb_slurm_tasks} slurm tasks. 
                 We will launch {nb_requested_gpus} processes for you. 
                 We recommend you let slurm manage the processes by setting: --ntasks-per-node={nb_requested_gpus}
+                If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
