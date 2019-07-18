@@ -106,9 +106,9 @@ class LightningTemplateModel(LightningModule):
 
         output = OrderedDict({
             'val_loss': loss_val,
-            'val_acc': torch.tensor(val_acc),
+            'val_acc': torch.tensor(val_acc).cuda(loss_val.device.index),
         })
-        return loss_val
+        return output
 
     def validation_end(self, outputs):
         """
