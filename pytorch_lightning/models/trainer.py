@@ -6,6 +6,7 @@ import subprocess
 import traceback
 import warnings
 import os
+import pdb
 
 import torch
 from torch.utils.data.distributed import DistributedSampler
@@ -254,6 +255,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
+            pdb.set_trace()
             if self.data_parallel:
                 output = model(data_batch, batch_i)
             else:
