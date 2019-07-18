@@ -86,7 +86,7 @@ class LightningTemplateModel(LightningModule):
         output = OrderedDict({
             'loss': loss_val
         })
-        return output
+        return loss_val
 
     def validation_step(self, data_batch, batch_i):
         """
@@ -108,7 +108,7 @@ class LightningTemplateModel(LightningModule):
             'val_loss': loss_val,
             'val_acc': torch.tensor(val_acc),
         })
-        return output
+        return loss_val
 
     def validation_end(self, outputs):
         """
