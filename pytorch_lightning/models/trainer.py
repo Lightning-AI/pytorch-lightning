@@ -375,7 +375,10 @@ class Trainer(TrainerIO):
             print('using ddp')
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
-            mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
+            task = os.environ['SLURM_ARRAY_TASK_ID']
+            print(f'task: {task}')
+            self.ddp_train(task, model)
+            # mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
