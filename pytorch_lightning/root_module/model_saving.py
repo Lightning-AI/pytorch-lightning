@@ -2,7 +2,7 @@ import torch
 import os
 import re
 import pdb
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
 
 class ModelIO(object):
 
@@ -66,7 +66,8 @@ class TrainerIO(object):
         checkpoint['optimizer_states'] = optimizer_states
 
         # request what to save from the model
-        model = self.model.module if type(self.model) is LightningDistributedDataParallel else self.model
+        is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
+        model = self.model.module if is_dp_module else self.model
         checkpoint_dict = model.get_save_dict()
 
         # merge trainer and model saving items
