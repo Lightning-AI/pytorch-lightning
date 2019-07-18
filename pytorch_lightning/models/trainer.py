@@ -449,6 +449,9 @@ class Trainer(TrainerIO):
         except KeyError as e:
             node_rank = 0
 
+        print('-'*100)
+        print(gpu_nb)
+        print('-'*100)
         # recover original exp before went into process
         # init in write mode only on proc 0
         self.experiment.debug = self.proc_rank > 0
