@@ -73,7 +73,6 @@ class Trainer(TrainerIO):
         self.current_gpu_name = current_gpu_name
         self.print_weights_summary = print_weights_summary
         self.checkpoint_callback = checkpoint_callback
-        self.use_distributed_dataparallel = use_distributed_dataparallel
 
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.save_function = self.save_checkpoint
@@ -91,6 +90,8 @@ class Trainer(TrainerIO):
         self.print_nan_grads = print_nan_grads
         self.data_parallel_device_ids = None
         self.world_size = 1
+        self.use_ddp = False
+        self.use_dp = False
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -105,7 +106,12 @@ class Trainer(TrainerIO):
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
 
-        self.data_parallel = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 1 and self.use_distributed_dataparallel
+        # make DP and DDP mutually exclusive
+        # single GPU will also use DP with devices=[0]
+        have_gpus = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
+        if have_gpus:
+            self.use_ddp = use_distributed_dataparallel
+            self.use_dp = not self.use_ddp
 
         # process info
         self.proc_rank = 0
