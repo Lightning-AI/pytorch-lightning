@@ -375,7 +375,7 @@ class Trainer(TrainerIO):
             print('using ddp')
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
-            task = os.environ['SLURM_ARRAY_TASK_ID']
+            task = os.environ['SLURM_LOCALID']
             print(f'task: {task}')
             self.ddp_train(task, model)
             # mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
