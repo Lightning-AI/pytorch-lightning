@@ -84,8 +84,7 @@ class LightningTemplateModel(LightningModule):
         loss_val = self.loss(y, y_hat)
 
         output = OrderedDict({
-            'loss': loss_val,
-            'tqdm_metrics': {}
+            'loss': loss_val
         })
         return output
 
