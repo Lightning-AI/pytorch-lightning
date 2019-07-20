@@ -380,10 +380,7 @@ class Trainer(TrainerIO):
             # otherwise we launch the required number of processes
             try:
                 nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                print('x'*100)
-                print(f'NB_TASKS: {nb_slurm_tasks}')
-                print('x'*100)
-                nb_requested_gpus = len(self.data_parallel_device_ids)
+                nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
                 is_slurm_managing_tasks = nb_slurm_tasks == nb_requested_gpus
             except Exception as e:
                 # likely not on slurm, so set the slurm managed flag to false
