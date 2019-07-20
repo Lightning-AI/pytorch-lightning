@@ -450,6 +450,13 @@ class Trainer(TrainerIO):
         # node rank using relative slurm id
         # otherwise default to node rank 0
         try:
+            print('x'*100)
+            node_id = os.environ['SLURM_NODEID']
+            local_id = os.environ['SLURM_LOCALID']
+            n_nodes = os.environ['SLURM_JOB_NUM_NODES']
+
+            print(f'NODEID: {node_id}, LOCALID: {local_id}, N_NODES: {n_nodes}')
+            print('x'*100)
             self.node_rank = int(os.environ['SLURM_NODEID'])
         except Exception as e:
             self.node_rank = 0
