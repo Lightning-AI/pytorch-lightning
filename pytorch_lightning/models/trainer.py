@@ -514,6 +514,7 @@ class Trainer(TrainerIO):
 
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
+
     def __resolve_root_node_address(self):
         try:
             root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
@@ -521,6 +522,9 @@ class Trainer(TrainerIO):
             if '[' in root_node:
                 name = root_node.split('[')[0]
                 number = root_node.split(',')[0]
+                if '-' in number:
+                    number = number.split('-')[0]
+
                 number = re.sub('[^0-9]', '', number)
                 root_node = name + number
 
