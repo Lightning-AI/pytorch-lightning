@@ -475,10 +475,6 @@ class Trainer(TrainerIO):
         # where to store ip_table
         self.__init_tcp_connection()
 
-        print('-'*100)
-        print(f'INIT COMPLETE')
-        print('-'*100)
-
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
