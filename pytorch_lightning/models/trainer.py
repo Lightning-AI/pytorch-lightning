@@ -512,16 +512,29 @@ class Trainer(TrainerIO):
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
-        try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-        except Exception as e:
-            root_node = '127.0.0.2'
-
+        root_node = self.__resolve_root_node_address()
         os.environ['MASTER_ADDR'] = root_node
+
         print('-'*100)
         print(f'INIT RANK: {self.proc_rank}, NODE:{self.node_rank}, WORLD_SIZE:{self.world_size}, ADDR: {root_node}, PORT: {port}')
         print('-'*100)
+
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
+
+    def __resolve_root_node_address(self):
+        try:
+            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+
+            if '[' in root_node:
+                name = root_node.split('[')[0]
+                number = root_node.split(',')[0]
+                number = re.sub('[^0-9]', '', number)
+                root_node = name + number
+
+        except Exception as e:
+            root_node = '127.0.0.2'
+
+        return root_node
 
     def __run_pretrain_routine(self, model):
         """
