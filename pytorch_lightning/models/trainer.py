@@ -1,12 +1,12 @@
 """
 The trainer handles all the logic for running a val loop, training loop, distributing, etc...
 """
-from time import sleep
 import subprocess
 import traceback
 import warnings
 import os
 import pdb
+import re
 
 import torch
 from torch.utils.data.distributed import DistributedSampler
