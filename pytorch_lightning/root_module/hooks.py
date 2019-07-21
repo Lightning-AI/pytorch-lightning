@@ -36,3 +36,10 @@ class ModelHooks(torch.nn.Module):
         """
         pass
 
+    def on_after_backward(self):
+        """
+        Called after loss.backward() and before optimizers do anything
+        :return:
+        """
+        pass
+
