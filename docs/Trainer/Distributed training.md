@@ -87,7 +87,8 @@ cluster.per_experiment_nb_gpus = 8
 cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
 ```
 
-Finally, make sure to add a distributed sampler to your dataset.    
+Finally, make sure to add a distributed sampler to your dataset. The distributed sampler copies a 
+portion of your dataset onto each GPU. (World_size = gpus_per_node * nb_nodes).   
 
 ```python
 # ie: this:
