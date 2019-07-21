@@ -795,6 +795,11 @@ class Trainer(TrainerIO):
             for optimizer in self.optimizers:
                 optimizer.step()
 
+                # insert after step hook
+                if self.__is_function_implemented('on_before_zero_grad'):
+                    model_ref = self.__get_model()
+                    response = model_ref.on_before_zero_grad(optimizer)
+
                 # clear gradients
                 optimizer.zero_grad()
 
