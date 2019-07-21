@@ -22,3 +22,17 @@ class ModelHooks(torch.nn.Module):
     def on_tng_metrics(self, metrics):
         pass
 
+    def on_before_zero_grad(self, optimizer):
+        """
+        Called after optimizer.step() and before optimizer.zero_grad()
+
+        for optimizer in optimizers:
+            optimizer.step()
+            model.on_before_zero_grad(optimizer) # < ---- called here
+            optimizer.zero_grad
+
+        :param optimizer:
+        :return:
+        """
+        pass
+
