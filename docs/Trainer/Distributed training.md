@@ -4,6 +4,26 @@ Lightning makes multi-gpu training and 16 bit training trivial.
 None of the flags below require changing anything about your lightningModel definition. 
 
 ---
+#### Choosing a backend  
+Lightning supports two backends. DataParallel and DistributedDataParallel. Both can be used for single-node multi-GPU training.
+For multi-node training you must use DistributedDataParallel.   
+
+You can toggle between each mode by setting this flag.
+``` {.python}
+# DEFAULT uses DataParallel
+trainer = Trainer(distributed_backend='dp')
+
+# change to distributed data parallel
+trainer = Trainer(distributed_backend='ddp')
+```
+
+If you request multiple nodes, the back-end will auto-switch to ddp.
+We recommend you use DistributedDataparallel even for single-node multi-GPU training. It is MUCH faster than DP but *may*
+have configuration issues depending on your cluster.
+
+For a deeper understanding of what lightning is doing, feel free to read [this guide](https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565).   
+
+---
 #### 16-bit mixed precision
 16 bit precision can cut your memory footprint by half. If using volta architecture GPUs it can give a dramatic training speed-up as well.    
 First, install apex (if install fails, look [here](https://github.com/NVIDIA/apex)):
@@ -65,6 +85,19 @@ cluster.per_experiment_nb_nodes = 12
 cluster.per_experiment_nb_gpus = 8
 
 cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
+```
+
+Finally, make sure to add a distributed sampler to your dataset.    
+
+```python
+# ie: this:
+dataset = myDataset()
+dataloader = Dataloader(dataset)
+
+# becomes:
+dataset = myDataset()
+dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+dataloader = Dataloader(dataset, sampler=dist_sampler)
 ```
 
 ---
