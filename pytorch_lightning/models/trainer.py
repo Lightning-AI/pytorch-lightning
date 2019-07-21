@@ -154,10 +154,15 @@ class Trainer(TrainerIO):
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
         if gpus is not None:
-            if gpus == '-1':
-                self.data_parallel_device_ids = list(range(0, torch.cuda.device_count()))
+            if type(gpus) is list:
+                self.data_parallel_device_ids = gpus
+            elif type(gpus) is str:
+                if gpus == '-1':
+                    self.data_parallel_device_ids = list(range(0, torch.cuda.device_count()))
+                else:
+                    self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
             else:
-                self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
+                raise Exception('gpus has to be a string or list of ids')
 
             # set the correct cuda visible devices (using pci order)
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
