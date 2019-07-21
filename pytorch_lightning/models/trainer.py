@@ -775,6 +775,11 @@ class Trainer(TrainerIO):
         else:
             loss.backward()
 
+        # insert after step hook
+        if self.__is_function_implemented('on_after_backward'):
+            model_ref = self.__get_model()
+            response = model_ref.on_after_backward()
+
         if self.print_nan_grads:
             model = self.__get_model()
             for param in model.parameters():
