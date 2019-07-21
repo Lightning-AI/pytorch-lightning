@@ -63,7 +63,11 @@ In this setting, the model will run on all 8 GPUs at once using DataParallel und
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
 
-trainer = Trainer(gpus=[0,1,2,3,4,5,6,7])
+# to use DataParallel (default)
+trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='dp')
+
+# RECOMMENDED use DistributedDataParallel
+trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='ddp')
 ```
 
 ---
