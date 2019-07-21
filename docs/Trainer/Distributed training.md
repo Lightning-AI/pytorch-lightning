@@ -40,13 +40,32 @@ In this setting, the model will run on all 8 GPUs at once using DataParallel und
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
-# DEFAULT
+
 trainer = Trainer(gpus=[0,1,2,3,4,5,6,7])
 ```
 
 ---
 #### Multi-node
-COMING SOON.
+Multi-node training is easily done by specifying these flags.
+```python
+# train on 12*8 GPUs
+trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], nb_gpu_nodes=12)
+```
+
+In addition, make sure to set up your SLURM job correctly via the [SlurmClusterObject](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/). In particular, specify the number of tasks per node correctly.
+
+```python
+cluster = SlurmCluster(
+    hyperparam_optimizer=test_tube.HyperOptArgumentParser(),
+    log_path='/some/path/to/save',
+)
+
+# configure cluster
+cluster.per_experiment_nb_nodes = 12 
+cluster.per_experiment_nb_gpus = 8
+
+cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
+```
 
 ---
 #### Self-balancing architecture
