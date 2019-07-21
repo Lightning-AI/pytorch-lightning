@@ -150,6 +150,7 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
 
+
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -175,6 +176,15 @@ class Trainer(TrainerIO):
         if have_gpus:
             self.use_dp = distributed_backend == 'dp'
             self.use_ddp = distributed_backend == 'ddp'
+
+            # use ddp automatically if nb_gpu_nodes > 1
+            if nb_gpu_nodes > 1:
+                self.use_ddp = True
+                self.use_ddp = False
+                w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
+                    'Switching to DistributedDataParallel for you. ' \
+                    'To silence this warning set distributed_backend=ddp'
+                warnings.warn(w)
 
         # process info
         self.proc_rank = 0
