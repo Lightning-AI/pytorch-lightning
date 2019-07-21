@@ -80,6 +80,20 @@ cluster = SlurmCluster(
     log_path='/some/path/to/save',
 )
 
+# OPTIONAL FLAGS WHICH MAY BE CLUSTER DEPENDENT
+# which interface your nodes use for communication
+cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+
+# see output of the NCCL connection process
+# NCCL is how the nodes talk to each other
+cluster.add_command('export NCCL_DEBUG=INFO')
+
+# setting a master port here is a good idea.
+cluster.add_command(f'export MASTER_PORT={PORT}')
+
+# good to load the latest NCCL version
+cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
+
 # configure cluster
 cluster.per_experiment_nb_nodes = 12 
 cluster.per_experiment_nb_gpus = 8
