@@ -506,7 +506,7 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb])
+        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb], find_unused_parameters=True)
 
         # continue training routine
         self.__run_pretrain_routine(model)
