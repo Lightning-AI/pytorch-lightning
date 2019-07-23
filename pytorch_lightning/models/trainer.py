@@ -443,7 +443,6 @@ class Trainer(TrainerIO):
         self.optimizers = model.configure_optimizers()
 
         model.cuda(self.data_parallel_device_ids[0])
-        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
         # run through amp wrapper
         if self.use_amp:
@@ -452,6 +451,8 @@ class Trainer(TrainerIO):
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
+
+        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
         self.__run_pretrain_routine(model)
 
