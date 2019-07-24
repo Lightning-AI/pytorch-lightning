@@ -47,7 +47,7 @@ def main():
     model = get_model()
 
     trainer = Trainer(
-        progress_bar=False,
+        progress_bar=True,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -65,6 +65,7 @@ def main():
     print(trainer.tng_tqdm_dic)
 
     clear_tt_dir()
+
 
 if __name__ == '__main__':
     main()
