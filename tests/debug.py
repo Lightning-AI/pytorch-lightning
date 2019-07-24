@@ -91,7 +91,7 @@ def run_prediction(dataloader, trained_model):
     assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
 
 
-def main():
+def mainasdf():
 
     save_dir = init_save_dir()
     model, hparams = get_model()
@@ -144,6 +144,7 @@ def get_pids(port):
                 yield int(pid)
             except:
                 pass
+
 
 if __name__ == '__main__':
     get_pids(12910)
