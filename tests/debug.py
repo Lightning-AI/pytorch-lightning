@@ -127,6 +127,20 @@ def main():
 
     clear_save_dir()
 
+import subprocess
+import re
+
+def get_pids(port):
+    command = "sudo lsof -i :%s | awk '{print $2}'" % port
+    pids = subprocess.check_output(command, shell=True)
+    pids = pids.strip()
+    if pids:
+        pids = re.sub(' +', ' ', pids)
+        for pid in pids.split('\n'):
+            try:
+                yield int(pid)
+            except:
+                pass
 
 if __name__ == '__main__':
-    main()
+    get_pids(12910)
