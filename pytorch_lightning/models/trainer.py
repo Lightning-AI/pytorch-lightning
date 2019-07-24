@@ -19,7 +19,7 @@ import tqdm
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
-
+from pytorch_lightning.utils.debugging import ForkedPdb
 
 try:
     from apex import amp
@@ -254,8 +254,7 @@ class Trainer(TrainerIO):
 
     @property
     def __tng_tqdm_dic(self):
-        import pdb
-        pdb.set_trace()
+        ForkedPdb().set_trace()
         tqdm_dic = {
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
             'v_nb': '{}'.format(self.experiment.version),
