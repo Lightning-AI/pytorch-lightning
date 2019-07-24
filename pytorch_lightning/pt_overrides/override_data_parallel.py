@@ -77,7 +77,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *inputs, **kwargs):  # pragma: no cover
         self._sync_params()
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
