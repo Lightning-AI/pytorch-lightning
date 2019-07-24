@@ -105,6 +105,8 @@ def main():
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer = Trainer(
+        experiment=exp,
+        checkpoint_callback=checkpoint,
         progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
