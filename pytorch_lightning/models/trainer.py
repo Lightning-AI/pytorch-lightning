@@ -161,6 +161,18 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = None
         self.nb_test_batches = None
 
+        # manages slurm task
+        # whenever we have the correct number of tasks, we let slurm manage processes
+        # otherwise we launch the required number of processes
+        self.nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
+        self.nb_slurm_tasks = 0
+        try:
+            self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+            self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+        except Exception as e:
+            # likely not on slurm, so set the slurm managed flag to false
+            self.is_slurm_managing_tasks = False
+
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -404,25 +416,14 @@ class Trainer(TrainerIO):
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
 
-            # whenever we have the correct number of tasks, we let slurm manage processes
-            # otherwise we launch the required number of processes
-            nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
-            nb_slurm_tasks = 0
-            try:
-                nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                is_slurm_managing_tasks = nb_slurm_tasks == nb_requested_gpus
-            except Exception as e:
-                # likely not on slurm, so set the slurm managed flag to false
-                is_slurm_managing_tasks = False
-
-            if is_slurm_managing_tasks:
+            if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
                 msg = f"""
-                You requested {nb_requested_gpus} GPUs but launched {nb_slurm_tasks} slurm tasks. 
-                We will launch {nb_requested_gpus} processes for you. 
-                We recommend you let slurm manage the processes by setting: --ntasks-per-node={nb_requested_gpus}
+                You requested {self.nb_requested_gpus} GPUs but launched {self.nb_slurm_tasks} slurm tasks. 
+                We will launch {self.nb_requested_gpus} processes for you. 
+                We recommend you let slurm manage the processes by setting: --ntasks-per-node={self.nb_requested_gpus}
                 If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
