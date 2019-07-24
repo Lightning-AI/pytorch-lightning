@@ -5,11 +5,10 @@ import math
 from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.grads import GradInformation
 from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
-from pytorch_lightning.root_module.optimization import OptimizerConfig
 from pytorch_lightning.root_module.hooks import ModelHooks
 
 
-class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
+class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, hparams):
         super(LightningModule, self).__init__()
