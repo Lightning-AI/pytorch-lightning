@@ -307,6 +307,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     if trainer.use_ddp:
         trainer.model = pretrained_model
+        trainer.optimizers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
