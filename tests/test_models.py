@@ -184,8 +184,8 @@ def run_gpu_model_test(trainer_options):
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
-    trainer_options.checkpoint_callback = checkpoint
-    trainer_options.experiment = exp
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
 
     # fit model
     trainer = Trainer(**trainer_options)
