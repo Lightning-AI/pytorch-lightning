@@ -123,11 +123,11 @@ class ModelSummary(object):
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         '''
 
-        df = pd.DataFrame( np.zeros( (len(self.layer_names), 3) ) )
         cols = ['Name', 'Type', 'Params']
         if self.model.example_input_array is not None:
             cols.extend(['In_sizes', 'Out_sizes'])
 
+        df = pd.DataFrame(np.zeros( (len(self.layer_names), len(cols))))
         df.columns = cols
 
         df['Name'] = self.layer_names
