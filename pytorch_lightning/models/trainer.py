@@ -19,7 +19,7 @@ import tqdm
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utils.debugging import IncompatibleArgumentsException
+from pytorch_lightning.utils.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -392,7 +392,7 @@ class Trainer(TrainerIO):
             dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
             dataloader = Dataloader(dataset, sampler=dist_sampler)
             '''
-            raise Exception(msg)
+            raise MisconfigurationException(msg)
 
     # -----------------------------
     # MODEL TRAINING
@@ -467,7 +467,7 @@ class Trainer(TrainerIO):
             m = f'amp level {self.amp_level} with DataParallel is not supported. ' \
                 f'See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227. ' \
                 f'We recommend you switch to ddp if you want to use amp'
-            raise IncompatibleArgumentsException(m)
+            raise MisconfigurationException(m)
 
         # run through amp wrapper
         if self.use_amp:

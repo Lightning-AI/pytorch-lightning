@@ -1,5 +1,5 @@
 import pdb
 import sys
 
-class IncompatibleArgumentsException(Exception):
+class MisconfigurationException(Exception):
     pass
