@@ -124,16 +124,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def get_process_position(gpus):
-        try:
-            current_gpu = os.environ["CUDA_VISIBLE_DEVICES"]
-            gpu_ids = gpus.split(',')
-            process_position = gpu_ids.index(current_gpu)
-            return process_position, current_gpu
-        except Exception as e:
-            return 0, 0
-
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, on_gpu, map_location=None):
         """
