@@ -3,9 +3,14 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
+import numpy as np
 import warnings
 import torch
 import os
+
+SEED = 2334
+torch.manual_seed(SEED)
+np.random.seed(SEED)
 
 
 def get_model():
@@ -26,6 +31,10 @@ def get_exp():
     exp = Experiment(debug=True)
     return exp
 
+def assert_ok_acc(trainer):
+    # this model should get 0.80+ acc
+    assert trainer.tng_tqdm_dic['val_acc'] > 0.80
+
 def test_cpu_model():
     model = get_model()
 
@@ -38,10 +47,11 @@ def test_cpu_model():
 
     result = trainer.fit(model)
 
-    metrics = result.__tng_tqdm_dic
+    metrics = trainer.tng_tqdm_dic
     print(metrics)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 def test_single_gpu_model():
@@ -66,6 +76,7 @@ def test_single_gpu_model():
     result = trainer.fit(model)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 def test_multi_gpu_model_dp():
@@ -93,6 +104,7 @@ def test_multi_gpu_model_dp():
     result = trainer.fit(model)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 def test_multi_gpu_model_ddp():
@@ -121,6 +133,7 @@ def test_multi_gpu_model_ddp():
     result = trainer.fit(model)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 def test_amp_gpu_ddp():
@@ -150,6 +163,7 @@ def test_amp_gpu_ddp():
     result = trainer.fit(model)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 def test_amp_gpu_dp():
@@ -179,6 +193,7 @@ def test_amp_gpu_dp():
     result = trainer.fit(model)
 
     assert result == 1
+    assert_ok_acc(trainer)
 
 
 if __name__ == '__main__':
