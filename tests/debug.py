@@ -62,7 +62,7 @@ def main():
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
-    trainer.tng_tqdm_dic
+    print(trainer.tng_tqdm_dic)
 
     clear_tt_dir()
 
