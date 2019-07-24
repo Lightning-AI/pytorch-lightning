@@ -25,7 +25,7 @@ def get_model():
                            'hidden_dim': 1000})
     model = LightningTemplateModel(hparams)
 
-    return model
+    return model, hparams
 
 
 def get_exp(debug=True):
@@ -57,10 +57,11 @@ def clear_save_dir():
 def main():
 
     save_dir = init_save_dir()
-    model = get_model()
+    model, hparams = get_model()
 
     # exp file to get meta
     exp = get_exp(False)
+    exp.add_meta_from_hyperopt(hparams)
     exp.save()
 
     # exp file to get weights
