@@ -9,7 +9,7 @@ from torch.cuda._utils import _get_device_index
 import pdb
 
 
-def _find_tensors(obj):
+def _find_tensors(obj):  # pragma: no cover
     r"""
     Recursively find all tensors contained in the specified object.
     """
@@ -22,8 +22,7 @@ def _find_tensors(obj):
     return []
 
 
-
-def get_a_var(obj):
+def get_a_var(obj):  # pragma: no cover
     if isinstance(obj, torch.Tensor):
         return obj
 
