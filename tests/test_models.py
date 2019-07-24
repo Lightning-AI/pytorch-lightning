@@ -195,7 +195,7 @@ def test_multi_gpu_model_dp():
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        gpus=[0, 1]
+        gpus='-1'
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
