@@ -105,7 +105,7 @@ class LightningTemplateModel(LightningModule):
         x = x.view(x.size(0), -1)
         print('-'*100)
         print('VAL')
-        print('x: ', x.device)
+        print('x: ', x.device, x.shape)
         print('model: ', self.c_d1.weight.device, self.c_d1.bias.device)
         print('-'*100)
         y_hat = self.forward(x)
