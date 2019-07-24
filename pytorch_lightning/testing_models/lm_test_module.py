@@ -18,7 +18,7 @@ class LightningTestModel(LightningModule):
     Sample model to show how to define a template
     """
 
-    def __init__(self, hparams, force_remove_distributed_sampler):
+    def __init__(self, hparams, force_remove_distributed_sampler=False):
         """
         Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
