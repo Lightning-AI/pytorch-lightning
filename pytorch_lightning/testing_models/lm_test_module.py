@@ -126,13 +126,23 @@ class LightningTestModel(LightningModule):
             loss_val = loss_val.unsqueeze(0)
             val_acc = val_acc.unsqueeze(0)
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
+        # alternate possible outputs to test
+        if self.trainer.batch_nb % 0 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            })
+            return output
+        if self.trainer.batch_nb % 1 == 0:
+            return val_acc
 
-        # can also return just a scalar instead of a dict (return loss_val)
-        return output
+        if self.trainer.batch_nb % 2 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+                'test_dic': {'val_loss_a': loss_val}
+            })
+            return output
 
     def validation_end(self, outputs):
         """
@@ -152,6 +162,7 @@ class LightningTestModel(LightningModule):
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
+
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
 
