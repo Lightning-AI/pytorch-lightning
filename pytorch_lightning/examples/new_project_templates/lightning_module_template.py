@@ -98,6 +98,8 @@ class LightningTemplateModel(LightningModule):
         """
         x, y = data_batch
         x = x.view(x.size(0), -1)
+        print('x: ', x.device)
+        print('model: ', self.c_d1.weight.device)
         y_hat = self.forward(x)
 
         loss_val = self.loss(y, y_hat)
@@ -107,8 +109,6 @@ class LightningTemplateModel(LightningModule):
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         val_acc = torch.tensor(val_acc)
 
-        import pdb
-        pdb.set_trace()
         if self.on_gpu:
             val_acc = val_acc.cuda(loss_val.device.index)
 
