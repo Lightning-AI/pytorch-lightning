@@ -570,7 +570,11 @@ class Trainer(TrainerIO):
         :return:
         """
         # sets the appropriate port
-        self.__find_open_port()
+        try:
+            port = os.environ['MASTER_PORT']
+        except Exception as e:
+            port = 12910
+            os.environ['MASTER_PORT'] = f'{port}'
 
         root_node = self.__resolve_root_node_address()
         os.environ['MASTER_ADDR'] = root_node

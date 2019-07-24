@@ -113,6 +113,8 @@ def test_multi_gpu_model_ddp():
         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
     trainer_options = dict(
         progress_bar=False,
         max_nb_epochs=1,
@@ -136,6 +138,8 @@ def test_amp_gpu_ddp():
     if not torch.cuda.device_count() > 1:
         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
     trainer_options = dict(
         progress_bar=True,
