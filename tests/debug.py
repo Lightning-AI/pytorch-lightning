@@ -105,14 +105,10 @@ def main():
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer = Trainer(
-        checkpoint_callback=checkpoint,
-        progress_bar=True,
-        experiment=exp,
+        progress_bar=False,
         max_nb_epochs=1,
-        train_percent_check=0.7,
-        val_percent_check=0.1,
         gpus=[0, 1],
-        distributed_backend='ddp',
+        distributed_backend='dp',
         use_amp=True
     )
 

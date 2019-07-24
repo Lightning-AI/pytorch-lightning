@@ -107,6 +107,8 @@ class LightningTemplateModel(LightningModule):
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         val_acc = torch.tensor(val_acc)
 
+        import pdb
+        pdb.set_trace()
         if self.on_gpu:
             val_acc = val_acc.cuda(loss_val.device.index)
 
