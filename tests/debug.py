@@ -86,7 +86,8 @@ def main():
     # load trained model
     pdb.set_trace()
     tags_path = exp.get_data_path(exp.name, exp.version)
-    LightningTemplateModel.load_from_metrics(weights_path=save_dir, tags_csv=)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    LightningTemplateModel.load_from_metrics(weights_path=save_dir, tags_csv=tags_path)
 
     clear_save_dir()
 
