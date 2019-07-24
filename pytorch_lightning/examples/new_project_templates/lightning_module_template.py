@@ -55,6 +55,7 @@ class LightningTemplateModel(LightningModule):
         :return:
         """
 
+        print(x.device)
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
