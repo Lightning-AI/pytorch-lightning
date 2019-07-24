@@ -254,6 +254,8 @@ class Trainer(TrainerIO):
 
     @property
     def __tng_tqdm_dic(self):
+        import pdb
+        pdb.set_trace()
         tqdm_dic = {
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
             'v_nb': '{}'.format(self.experiment.version),
