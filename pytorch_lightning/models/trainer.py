@@ -618,7 +618,7 @@ class Trainer(TrainerIO):
             self.experiment.save()
 
         # enable cluster checkpointing
-        if self.cluster is not None:
+        if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
         # ---------------------------
