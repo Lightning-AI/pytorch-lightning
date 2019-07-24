@@ -458,8 +458,6 @@ class Trainer(TrainerIO):
         # filter out the weights that were done on gpu so we can load on good old cpus
         self.optimizers = model.configure_optimizers()
 
-        model.cuda(self.data_parallel_device_ids[0])
-
         # run through amp wrapper
         if self.use_amp:
             # An example
