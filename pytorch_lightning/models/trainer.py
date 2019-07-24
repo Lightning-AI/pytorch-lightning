@@ -460,6 +460,8 @@ class Trainer(TrainerIO):
 
         # run through amp wrapper
         if self.use_amp:
+            model.cuda(self.data_parallel_device_ids[0])
+
             # An example
             model, optimizers = amp.initialize(
                 model, self.optimizers, opt_level=self.amp_level,
