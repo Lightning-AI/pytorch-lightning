@@ -34,6 +34,11 @@ class ModelSummary(object):
         in_sizes = []
         out_sizes = []
         input_ = self.model.example_input_array
+
+        if self.model.on_gpu:
+            input_ = input_.cuda(0)
+
+
         for i in range(1, len(mods)):
             m = mods[i]
             if type(input_) is list or type(input_) is tuple:
