@@ -50,8 +50,8 @@ def main():
         progress_bar=True,
         experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
         gpus=[0, 1],
         distributed_backend='ddp',
         use_amp=True
@@ -61,8 +61,6 @@ def main():
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
-
-    print(trainer.tng_tqdm_dic)
 
     clear_tt_dir()
 
