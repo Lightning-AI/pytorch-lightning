@@ -38,7 +38,7 @@ def test_ddp_sampler_error():
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
     trainer_options = dict(
-        progress_bar=True,
+        progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
