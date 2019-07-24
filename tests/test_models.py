@@ -32,7 +32,7 @@ def get_model():
 def get_exp():
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=True, save_dir=root_dir)
+    exp = Experiment(debug=True, save_dir=root_dir, name='tests_tt_dir')
     return exp
 
 
