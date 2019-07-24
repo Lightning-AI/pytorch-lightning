@@ -128,12 +128,14 @@ def mainasdf():
     clear_save_dir()
 
 
-def get_pids(port):
+
+
+if __name__ == '__main__':
     import subprocess
     import re
 
     print('getting pid')
-    command = "sudo lsof -i :%s | awk '{print $2}'" % port
+    command = "sudo lsof -i :%s | awk '{print $2}'" % 12910
     pids = subprocess.check_output(command, shell=True)
     pids = pids.strip()
     print(pids)
@@ -144,7 +146,3 @@ def get_pids(port):
                 yield int(pid)
             except:
                 pass
-
-
-if __name__ == '__main__':
-    get_pids(12910)
