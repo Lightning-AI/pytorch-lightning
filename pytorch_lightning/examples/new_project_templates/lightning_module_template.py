@@ -54,10 +54,6 @@ class LightningTemplateModel(LightningModule):
         :param x:
         :return:
         """
-        print('-'*100)
-        print('x: ', x.device)
-        print('model: ', self.c_d1.weight.device)
-        print('-'*100)
 
         x = self.c_d1(x)
         x = torch.tanh(x)
