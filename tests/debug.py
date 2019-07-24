@@ -135,7 +135,7 @@ if __name__ == '__main__':
     import re
 
     print('getting pid')
-    command = "sudo lsof -i :%s | awk '{print $2}'" % 12910
+    command = "lsof -i :%s | awk '{print $2}'" % 12910
     pids = subprocess.check_output(command, shell=True)
     pids = pids.strip()
     print(pids)
