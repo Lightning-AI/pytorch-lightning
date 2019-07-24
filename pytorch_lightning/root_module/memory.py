@@ -50,7 +50,7 @@ class ModelSummary(object):
                 else:
                     out = m(input_)
 
-                if type(input_) is tuple or type(input_) is list:
+                if type(input_) is tuple or type(input_) is list:  # pragma: no cover
                     in_size = []
                     for x in input_:
                         if type(x) is list:
