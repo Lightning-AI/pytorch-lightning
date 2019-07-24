@@ -87,7 +87,12 @@ def main():
     pdb.set_trace()
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=save_dir, tags_csv=tags_path, on_gpu=True)
+
+    pdb.set_trace()
+    checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(save_dir, checkpoints[0])
+
+    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir, tags_csv=tags_path, on_gpu=True)
 
     # run prediction
     for batch in model.test_dataloader:
