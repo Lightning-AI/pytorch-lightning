@@ -21,6 +21,70 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_amp_gpu_ddp_slurm_managed():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        progress_bar=True,
+        max_nb_epochs=1,
+        gpus=[0, 1],
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.is_slurm_managing_tasks = True
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # test model loading
+    pretrained_model = load_model(exp, save_dir, True)
+
+    # test model preds
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers = pretrained_model.configure_optimizers()
+
+    # test HPC loading / saving
+    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_load(save_dir, on_gpu=True)
+
+    clear_save_dir()
+
 
 def test_cpu_model():
     """
