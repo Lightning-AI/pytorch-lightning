@@ -114,6 +114,7 @@ class Trainer(TrainerIO):
         """
 
         # Transfer params
+
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -149,6 +150,7 @@ class Trainer(TrainerIO):
         self.node_rank = 0
         self.use_ddp = False
         self.use_dp = False
+        self.default_ddp_port = 12910
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -396,10 +398,13 @@ class Trainer(TrainerIO):
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    def __kill_ddp_ports(self, port_nb):
     def fit(self, model):
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
+            self.__kill_ddp_ports(self.default_ddp_port)
+
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
 
@@ -548,11 +553,13 @@ class Trainer(TrainerIO):
         try:
             port = os.environ['MASTER_PORT']
         except Exception as e:
-            port = 12910
+            port = self.default_ddp_port
             os.environ['MASTER_PORT'] = f'{port}'
 
         root_node = self.__resolve_root_node_address()
         os.environ['MASTER_ADDR'] = root_node
+
+        self.default_ddp_port = port
 
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
