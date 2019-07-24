@@ -397,29 +397,6 @@ class Trainer(TrainerIO):
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    def __find_open_port(self, port=None):
-
-        if port is None:
-            try:
-                port = os.environ['MASTER_PORT']
-            except Exception as e:
-                port = 12801
-                os.environ['MASTER_PORT'] = f'{port}'
-
-        # check for pids
-        command = "lsof -i :%s | awk '{print $2}'" % port
-        pids = subprocess.check_output(command, shell=True)
-        pids = pids.strip()
-        pids = str(pids)
-
-        # if no processes on this port, then we're good
-        if len(pids) == 0:
-            return
-
-        # port wasn't open. Pick a new port and keep trying
-        port = int(port) + 1
-        self.__find_open_port(str(port))
-
     def fit(self, model):
 
         # when using multi-node or DDP within a node start each module in a separate process
