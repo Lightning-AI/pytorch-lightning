@@ -306,6 +306,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     run_prediction(model.test_dataloader, pretrained_model)
 
     if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers = pretrained_model.configure_optimizers()
 
