@@ -58,7 +58,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def configure_optimizers(self):
         """
-        Return array of optimizers
+        Return a list of optimizers and a list of schedulers (could be empty)
         :return:
         """
         raise NotImplementedError

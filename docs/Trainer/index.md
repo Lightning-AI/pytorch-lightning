@@ -59,7 +59,6 @@ But of course the fun is in all the advanced things it can do:
 **Training loop**    
 
 - [Accumulate gradients](Training%20Loop/#accumulated-gradients)
-- [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
 - [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
 - [Force disable early stop](Training%20Loop/#force-disable-early-stop)
 - [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)

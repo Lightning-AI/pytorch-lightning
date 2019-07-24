@@ -128,12 +128,13 @@ class ExampleModel1(LightningModule):
     # ---------------------
     def configure_optimizers(self):
         """
-        return whatever optimizers we want here
+        return whatever optimizers and (optionally) schedulers we want here
         :return: list of optimizers
         """
         optimizer = self.choose_optimizer(self.hparams.optimizer_name, self.parameters(), {'lr': self.hparams.learning_rate}, 'optimizer')
         self.optimizers = [optimizer]
-        return self.optimizers
+        self.schedulers = []
+        return self.optimizers, self.schedulers
 
     def __dataloader(self, train):
         # init data generators
