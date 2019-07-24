@@ -45,7 +45,7 @@ class ModelSummary(object):
 
             for i in range(1, len(mods)):
                 m = mods[i]
-                if type(input_) is list or type(input_) is tuple:
+                if type(input_) is list or type(input_) is tuple:  # pragma: no cover
                     out = m(*input_)
                 else:
                     out = m(input_)
@@ -62,7 +62,7 @@ class ModelSummary(object):
 
                 in_sizes.append(in_size)
 
-                if type(out) is tuple or type(out) is list:
+                if type(out) is tuple or type(out) is list:  # pragma: no cover
                     out_size = np.asarray([x.size() for x in out])
                 else:
                     out_size = np.array(out.size())
