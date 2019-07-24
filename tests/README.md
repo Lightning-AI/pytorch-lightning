@@ -15,6 +15,10 @@ pip install -r requirements.txt
 
 # run tests
 py.test
+
+# or to generate coverage 
+pip install coverage
+coverage run tests/test_models.py   
 ```
 
 To test models that require GPU make sure to run the above command on a GPU machine.
