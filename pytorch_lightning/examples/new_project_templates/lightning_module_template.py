@@ -85,7 +85,7 @@ class LightningTemplateModel(LightningModule):
         loss_val = self.loss(y, y_hat)
 
         output = OrderedDict({
-            'loss': loss_val.unsqueeze(1)
+            'loss': loss_val.unsqueeze(0)
         })
 
         # can also return just a scalar instead of a dict (return loss_val)
@@ -112,8 +112,8 @@ class LightningTemplateModel(LightningModule):
             val_acc = val_acc.cuda(loss_val.device.index)
 
         output = OrderedDict({
-            'val_loss': loss_val.unsqueeze(1),
-            'val_acc': val_acc.unsqueeze(1),
+            'val_loss': loss_val.unsqueeze(0),
+            'val_acc': val_acc.unsqueeze(0),
         })
 
         # can also return just a scalar instead of a dict (return loss_val)
