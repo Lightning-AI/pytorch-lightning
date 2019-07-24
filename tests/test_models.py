@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utils.debugging import IncompatibleArgumentsException
 import numpy as np
 import warnings
@@ -56,6 +56,28 @@ def test_all_features_cpu_model():
 
     run_gpu_model_test(trainer_options, on_gpu=False)
 
+
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    stopping = EarlyStopping()
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.4
+    )
+
+    run_gpu_model_test(trainer_options, on_gpu=False)
 
 def test_single_gpu_model():
     """
