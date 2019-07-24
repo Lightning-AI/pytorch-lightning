@@ -161,17 +161,6 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = None
         self.nb_test_batches = None
 
-        # manages slurm task
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        self.nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
-        self.nb_slurm_tasks = 0
-        try:
-            self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-            self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
-        except Exception as e:
-            # likely not on slurm, so set the slurm managed flag to false
-            self.is_slurm_managing_tasks = False
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -207,6 +196,19 @@ class Trainer(TrainerIO):
                     'Switching to DistributedDataParallel for you. ' \
                     'To silence this warning set distributed_backend=ddp'
                 warnings.warn(w)
+
+        # extract SLURM flag vars
+        # whenever we have the correct number of tasks, we let slurm manage processes
+        # otherwise we launch the required number of processes
+        if self.use_ddp:
+            self.nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
+            self.nb_slurm_tasks = 0
+            try:
+                self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+            except Exception as e:
+                # likely not on slurm, so set the slurm managed flag to false
+                self.is_slurm_managing_tasks = False
 
         # process info
         self.proc_rank = 0
