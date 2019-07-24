@@ -41,7 +41,7 @@ def test_amp_gpu_ddp_slurm_managed():
     trainer_options = dict(
         progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus=[0],
         distributed_backend='ddp',
         use_amp=True
     )
