@@ -41,7 +41,7 @@ class ModelSummary(object):
         if self.model.trainer.use_amp:
             input_ = input_.half()
 
-        with torch.no_grad:
+        with torch.no_grad():
 
             for i in range(1, len(mods)):
                 m = mods[i]
