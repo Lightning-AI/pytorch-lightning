@@ -1,10 +1,11 @@
-
 atomicwrites==1.2.1
 attrs==18.2.0
 certifi==2018.11.29
 cffi==1.11.5
+coverage==4.5.3
 imageio==2.4.1
 mkl-fft==1.0.6
+mkdocs==1.0.4
 mkl-random==1.0.2
 more-itertools==5.0.0
 numpy==1.15.4
@@ -14,7 +15,7 @@ Pillow==5.3.0
 pluggy==0.8.0
 py==1.7.0
 pycparser==2.19
-pytest==4.0.2
+pytest==5.0.1
 python-dateutil==2.7.5
 pytz==2018.7
 scikit-learn==0.20.2
@@ -25,7 +26,7 @@ tensorboard==1.14.0
 tensorboardX==1.7
 tensorflow==1.14.0
 test-tube==0.643
-torch==1.0.0
+torch==1.1.0
 torchvision==0.2.1
 tqdm==4.32.1
 twine==1.13.0
