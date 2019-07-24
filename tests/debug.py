@@ -63,7 +63,7 @@ def main():
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test prediction
-    data = model.test_dataloader
+    data = model.val_dataloader
     for batch in data:
         break
 
