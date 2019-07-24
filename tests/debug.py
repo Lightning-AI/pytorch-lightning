@@ -111,7 +111,7 @@ def main():
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='dp',
-        use_amp=False
+        use_amp=True
     )
 
     result = trainer.fit(model)

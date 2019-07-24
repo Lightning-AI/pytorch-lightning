@@ -460,6 +460,14 @@ class Trainer(TrainerIO):
 
         model.cuda(self.data_parallel_device_ids[0])
 
+        # check for this bug (amp + dp + !01 doesn't work)
+        # https://github.com/NVIDIA/apex/issues/227
+        if self.use_dp and self.use_amp and self.amp_level != 'O1':
+            m = f'amp level {self.amp_level} with DataParallel is not supported. ' \
+                f'See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227. ' \
+                f'We recommend you switch to ddp if you want to use amp'
+            raise Exception(m)
+
         # run through amp wrapper
         if self.use_amp:
 
