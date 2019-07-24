@@ -71,7 +71,7 @@ def test_amp_gpu_ddp_slurm_managed():
     # test root model address
     assert trainer.resolve_root_node_address('abc') == 'abc'
     assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc24'
+    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading
