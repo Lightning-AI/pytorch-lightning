@@ -35,6 +35,10 @@ def test_cpu_model():
     )
 
     model, hparams = get_model()
+
+    # test memory gathering
+    model.count_mem_items()
+
     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
