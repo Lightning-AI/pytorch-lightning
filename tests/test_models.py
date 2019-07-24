@@ -40,7 +40,7 @@ def clear_tt_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     tt_dir = os.path.join(root_dir, 'tests_tt_dir')
     if os.path.exists(tt_dir):
-        os.remove(tt_dir)
+        os.rmdir(tt_dir)
 
 
 def assert_ok_acc(trainer):
@@ -53,6 +53,8 @@ def test_cpu_model():
     Make sure model trains on CPU
     :return:
     """
+    clear_tt_dir()
+
     model = get_model()
 
     trainer = Trainer(
@@ -79,6 +81,7 @@ def test_single_gpu_model():
         warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
         return
 
+    clear_tt_dir()
     model = get_model()
 
     trainer = Trainer(
@@ -110,6 +113,7 @@ def test_multi_gpu_model_dp():
         warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    clear_tt_dir()
     model = get_model()
 
     trainer = Trainer(
@@ -141,6 +145,7 @@ def test_multi_gpu_model_ddp():
         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    clear_tt_dir()
     model = get_model()
 
     trainer = Trainer(
@@ -173,6 +178,7 @@ def test_amp_gpu_ddp():
         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    clear_tt_dir()
     model = get_model()
 
     trainer = Trainer(
@@ -206,6 +212,7 @@ def test_amp_gpu_dp():
         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    clear_tt_dir()
     model = get_model()
 
     trainer = Trainer(
@@ -225,6 +232,7 @@ def test_amp_gpu_dp():
     assert_ok_acc(trainer)
 
     clear_tt_dir()
+
 
 if __name__ == '__main__':
     pytest.main([__file__])
