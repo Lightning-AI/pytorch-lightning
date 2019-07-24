@@ -46,7 +46,8 @@ def clear_tt_dir():
 
 def assert_ok_acc(trainer):
     # this model should get 0.80+ acc
-    assert trainer.tng_tqdm_dic['val_acc'] > 0.70, "model failed to get expected 0.80 validation accuracy"
+    acc = trainer.tng_tqdm_dic['val_acc']
+    assert acc > 0.70, f'model failed to get expected 0.80 validation accuracy. Got: {acc}'
 
 
 def test_cpu_model():
