@@ -57,6 +57,8 @@ class TrainerIO(object):
             'global_step': self.global_step
         }
 
+        from pytorch_lightning.utils.debugging import ForkedPdb
+        ForkedPdb().set_trace()
         if self.checkpoint_callback is not None:
             checkpoint['checkpoint_callback_best'] = self.checkpoint_callback_best.best
 
