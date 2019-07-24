@@ -369,7 +369,7 @@ class Trainer(TrainerIO):
 
         return val_results
 
-    def __get_dataloaders(self, model):
+    def get_dataloaders(self, model):
         """
         Dataloaders are provided by the model
         :param model:
@@ -591,7 +591,7 @@ class Trainer(TrainerIO):
         ref_model.on_gpu = self.on_gpu
 
         # transfer data loaders from model
-        self.__get_dataloaders(ref_model)
+        self.get_dataloaders(ref_model)
 
         # init training constants
         self.__layout_bookeeping()

@@ -37,7 +37,7 @@ def test_ddp_sampler_error():
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
-    trainer_options = dict(
+    trainer = Trainer(
         progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
@@ -46,7 +46,7 @@ def test_ddp_sampler_error():
     )
 
     with pytest.raises(MisconfigurationException):
-        run_gpu_model_test(trainer_options, model, hparams)
+        trainer.get_dataloaders(model)
 
 
 def test_cpu_model():
