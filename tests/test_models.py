@@ -227,7 +227,6 @@ def test_amp_gpu_dp():
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4,
         gpus=[0, 1],
         distributed_backend='dp',
         use_amp=True
