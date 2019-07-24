@@ -152,7 +152,7 @@ class Trainer(TrainerIO):
 
         # bookkeeping
         self.avg_loss = 0
-
+        self.batch_nb = 0
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
