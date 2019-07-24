@@ -135,7 +135,6 @@ def test_amp_gpu_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'amp + gpu model failed to complete'
-    assert_ok_acc(trainer)
 
     clear_save_dir()
 
@@ -169,7 +168,6 @@ def test_multi_gpu_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'multi-gpu ddp model failed to complete'
-    assert_ok_acc(trainer)
 
     clear_save_dir()
 
