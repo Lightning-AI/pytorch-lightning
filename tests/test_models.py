@@ -173,8 +173,8 @@ def test_multi_gpu_model_ddp():
     trainer_options = dict(
         progress_bar=False,
         max_nb_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
         gpus=[0, 1],
         distributed_backend='ddp'
     )
