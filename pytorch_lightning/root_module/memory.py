@@ -115,13 +115,16 @@ class ModelSummary(object):
         '''
 
         df = pd.DataFrame( np.zeros( (len(self.layer_names), 3) ) )
-        df.columns = ['Name', 'Type', 'Params', 'In_sizes', 'Out_sizes']
+        df.columns = ['Name', 'Type', 'Params']
 
         df['Name'] = self.layer_names
         df['Type'] = self.layer_types
         df['Params'] = self.param_nums
-        df['In_sizes'] = self.in_sizes
-        df['Out_sizes'] = self.out_sizes
+
+        if self.example_input_array:
+            df.columns.extend(['In_sizes', 'Out_sizes'])
+            df['In_sizes'] = self.in_sizes
+            df['Out_sizes'] = self.out_sizes
 
         self.summary = df
         return
@@ -130,7 +133,9 @@ class ModelSummary(object):
         self.get_layer_names()
         self.get_parameter_sizes()
         self.get_parameter_nums()
-        self.get_variable_sizes()
+
+        if self.example_input_array:
+            self.get_variable_sizes()
         self.make_summary()
 
 
