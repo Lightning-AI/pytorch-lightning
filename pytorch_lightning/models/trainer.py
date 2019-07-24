@@ -556,14 +556,15 @@ class Trainer(TrainerIO):
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
-        root_node = self.__resolve_root_node_address()
+        # figure out the root node addr
+        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
-    def __resolve_root_node_address(self):
+    def resolve_root_node_address(self, root_node):
         try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-
             if '[' in root_node:
                 name = root_node.split('[')[0]
                 number = root_node.split(',')[0]
