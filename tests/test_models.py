@@ -21,6 +21,54 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_hpc_save_load_gpu_models():
+    """
+    Make sure DP works
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+    model, hparams = get_model()
+    trainer_options = dict(
+        progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus=[0, 1]
+    )
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_load(save_dir, on_gpu=True)
+
+    clear_save_dir()
+
+
 def test_cpu_model():
     """
     Make sure model trains on CPU
@@ -106,52 +154,6 @@ def test_single_gpu_model():
 
     run_gpu_model_test(trainer_options, model, hparams)
 
-
-def test_hpc_save_load_gpu_models():
-    """
-    Make sure DP works
-    :return:
-    """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
-        return
-    model, hparams = get_model()
-    trainer_options = dict(
-        progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        gpus=[0, 1]
-    )
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=True)
-
-    clear_save_dir()
 
 
 
