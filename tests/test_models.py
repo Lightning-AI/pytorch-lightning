@@ -14,6 +14,7 @@ np.random.seed(SEED)
 
 
 def get_model():
+    # set up model with these hyperparams
     root_dir = os.path.dirname(os.path.realpath(__file__))
     hparams = Namespace(**{'drop_prob': 0.2,
                            'batch_size': 32,
@@ -29,6 +30,7 @@ def get_model():
 
 
 def get_exp():
+    # set up exp object without actually saving logs
     exp = Experiment(debug=True)
     return exp
 
@@ -39,6 +41,10 @@ def assert_ok_acc(trainer):
 
 
 def test_cpu_model():
+    """
+    Make sure model trains on CPU
+    :return:
+    """
     model = get_model()
 
     trainer = Trainer(
