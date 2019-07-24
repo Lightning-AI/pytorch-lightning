@@ -139,4 +139,4 @@ if __name__ == '__main__':
     pids = subprocess.check_output(command, shell=True)
     pids = pids.strip()
 
-    print(str(pids))
+    print(len(pids))
