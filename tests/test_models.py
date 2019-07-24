@@ -36,6 +36,13 @@ def get_exp():
     return exp
 
 
+def clear_tt_dir():
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    tt_dir = os.path.join(root_dir, 'tests_tt_dir')
+    if os.path.exists(tt_dir):
+        os.remove(tt_dir)
+
+
 def assert_ok_acc(trainer):
     # this model should get 0.80+ acc
     assert trainer.tng_tqdm_dic['val_acc'] > 0.80, "model failed to get expected 0.80 validation accuracy"
@@ -54,11 +61,13 @@ def test_cpu_model():
         train_percent_check=0.4,
         val_percent_check=0.4
     )
-
     result = trainer.fit(model)
-    assert result == 1, 'cpu model failed to complete'
 
+    # correct result and ok accuracy
+    assert result == 1, 'cpu model failed to complete'
     assert_ok_acc(trainer)
+
+    clear_tt_dir()
 
 
 def test_single_gpu_model():
@@ -82,8 +91,11 @@ def test_single_gpu_model():
 
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'single gpu model failed to complete'
     assert_ok_acc(trainer)
+
+    clear_tt_dir()
 
 
 def test_multi_gpu_model_dp():
@@ -110,8 +122,11 @@ def test_multi_gpu_model_dp():
 
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'multi-gpu dp model failed to complete'
     assert_ok_acc(trainer)
+
+    clear_tt_dir()
 
 
 def test_multi_gpu_model_ddp():
@@ -139,8 +154,11 @@ def test_multi_gpu_model_ddp():
 
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'multi-gpu ddp model failed to complete'
     assert_ok_acc(trainer)
+
+    clear_tt_dir()
 
 
 def test_amp_gpu_ddp():
@@ -169,8 +187,11 @@ def test_amp_gpu_ddp():
 
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
     assert_ok_acc(trainer)
+
+    clear_tt_dir()
 
 
 def test_amp_gpu_dp():
@@ -199,9 +220,11 @@ def test_amp_gpu_dp():
 
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'amp + gpu model failed to complete'
     assert_ok_acc(trainer)
 
+    clear_tt_dir()
 
 if __name__ == '__main__':
     pytest.main([__file__])
