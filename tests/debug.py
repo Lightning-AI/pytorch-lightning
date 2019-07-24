@@ -66,7 +66,7 @@ def main():
     data = model.test_dataloader
     for batch in data:
         break
-    out = model(data[0])
+    out = model(batch[0])
     print(out)
 
 
