@@ -98,13 +98,15 @@ def test_amp_gpu_dp():
         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    trainer_options = dict(
-        progress_bar=False,
-        max_nb_epochs=1,
-        gpus=[0, 1],
-        distributed_backend='dp',
-        use_amp=True
-    )
+    try:
+        trainer_options = dict(
+            max_nb_epochs=1,
+            gpus=[0, 1],
+            distributed_backend='dp',
+            use_amp=True
+        )
+    except Exception as e:
+        assert 'https://github.com/NVIDIA/apex/issues/227' in e
 
     run_gpu_model_test(trainer_options)
 
