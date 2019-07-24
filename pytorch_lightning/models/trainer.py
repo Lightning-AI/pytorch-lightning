@@ -472,7 +472,7 @@ class Trainer(TrainerIO):
 
         self.__run_pretrain_routine(model)
 
-    def ddp_train(self, gpu_nb, model, d):
+    def ddp_train(self, gpu_nb, model):
         """
         Entry point into a DP thread
         :param gpu_nb:
