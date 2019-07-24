@@ -28,7 +28,8 @@ class LightningTemplateModel(LightningModule):
 
         self.batch_size = hparams.batch_size
 
-        self.example_input_array = torch.rand(5, 3 * 28 * 28)
+        # if you specify an example input, the summary will show input/output for each layer
+        self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
         self.__build_model()
