@@ -35,6 +35,26 @@ def test_cpu_model():
 
     run_gpu_model_test(trainer_options, on_gpu=False)
 
+def test_all_features_cpu_model():
+    """
+    Make sure model trains on CPU
+    :return:
+    """
+
+    trainer_options = dict(
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.4
+    )
+
+    run_gpu_model_test(trainer_options, on_gpu=False)
+
 
 def test_single_gpu_model():
     """
