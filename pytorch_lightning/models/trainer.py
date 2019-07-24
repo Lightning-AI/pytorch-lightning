@@ -444,11 +444,7 @@ class Trainer(TrainerIO):
 
             # run through amp wrapper
             if self.use_amp:
-                # An example
-                model, optimizers = amp.initialize(
-                    model, self.optimizers, opt_level=self.amp_level,
-                )
-                self.optimizers = optimizers
+                raise MisconfigurationException('amp + cpu is not supported. Please use a GPU option')
 
             self.__run_pretrain_routine(model)
 

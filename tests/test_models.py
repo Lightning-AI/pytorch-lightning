@@ -40,7 +40,8 @@ def test_cpu_model_with_amp():
 
     model, hparams = get_model()
 
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    with pytest.raises(MisconfigurationException):
+        run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
 def test_amp_gpu_ddp_slurm_managed():
