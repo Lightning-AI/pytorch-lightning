@@ -87,7 +87,7 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def enable_auto_hpc_walltime_manager(self):
+    def enable_auto_hpc_walltime_manager(self):  # pragma: no cover
         if self.cluster is None:
             return
 
