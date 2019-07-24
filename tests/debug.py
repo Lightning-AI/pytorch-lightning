@@ -132,6 +132,7 @@ def get_pids(port):
     import subprocess
     import re
 
+    print('getting pid')
     command = "sudo lsof -i :%s | awk '{print $2}'" % port
     pids = subprocess.check_output(command, shell=True)
     pids = pids.strip()
