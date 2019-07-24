@@ -344,7 +344,7 @@ class Trainer(TrainerIO):
         # run training
         for batch_i, data_batch in enumerate(dataloader):
 
-            if data_batch is None:
+            if data_batch is None:  # pragma: no cover
                 continue
 
             # stop short when on fast dev run
