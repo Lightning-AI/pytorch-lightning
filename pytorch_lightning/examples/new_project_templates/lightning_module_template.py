@@ -78,6 +78,11 @@ class LightningTemplateModel(LightningModule):
         # forward pass
         x, y = data_batch
         x = x.view(x.size(0), -1)
+        print('-'*100)
+        print('TRAIN')
+        print('x: ', x.device)
+        print('model: ', self.c_d1.weight.device)
+        print('-'*100)
         y_hat = self.forward(x)
 
         # calculate loss
@@ -99,6 +104,7 @@ class LightningTemplateModel(LightningModule):
         x, y = data_batch
         x = x.view(x.size(0), -1)
         print('-'*100)
+        print('VAL')
         print('x: ', x.device)
         print('model: ', self.c_d1.weight.device)
         print('-'*100)
