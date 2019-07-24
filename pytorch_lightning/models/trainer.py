@@ -482,8 +482,6 @@ class Trainer(TrainerIO):
         """
         # node rank using relative slurm id
         # otherwise default to node rank 0
-        d['helloooo'] = 12.0
-
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)
