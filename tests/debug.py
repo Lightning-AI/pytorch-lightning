@@ -87,7 +87,7 @@ def main():
     pdb.set_trace()
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=save_dir, tags_csv=tags_path)
+    trained_model = LightningTemplateModel.load_from_metrics(weights_path=save_dir, tags_csv=tags_path, on_gpu=True)
 
     # run prediction
     for batch in model.test_dataloader:
