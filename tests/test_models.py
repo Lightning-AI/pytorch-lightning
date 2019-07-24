@@ -106,7 +106,7 @@ def test_amp_gpu_dp():
             use_amp=True
         )
     except Exception as e:
-        assert 'https://github.com/NVIDIA/apex/issues/227' in e
+        assert 'https://github.com/NVIDIA/apex/issues/227' in str(e)
 
     run_gpu_model_test(trainer_options)
 
