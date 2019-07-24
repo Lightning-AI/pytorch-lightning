@@ -150,6 +150,9 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
 
+        # bookkeeping
+        self.avg_loss = 0
+
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
