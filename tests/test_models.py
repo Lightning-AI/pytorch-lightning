@@ -4,6 +4,7 @@ from pytorch_lightning.examples.new_project_templates.lightning_module_template 
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utils.debugging import IncompatibleArgumentsException
 import numpy as np
 import warnings
 import torch
@@ -90,17 +91,14 @@ def test_amp_gpu_dp():
         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    try:
-        trainer_options = dict(
-            max_nb_epochs=1,
-            gpus=[0, 1],
-            distributed_backend='dp',
-            use_amp=True
-        )
-    except Exception as e:
-        assert 'https://github.com/NVIDIA/apex/issues/227' in str(e)
-
-    run_gpu_model_test(trainer_options)
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gpus=[0, 1],
+        distributed_backend='dp',
+        use_amp=True
+    )
+    with pytest.raises(IncompatibleArgumentsException):
+        run_gpu_model_test(trainer_options)
 
 
 def test_multi_gpu_model_ddp():
