@@ -109,7 +109,7 @@ def main():
         progress_bar=True,
         experiment=exp,
         max_nb_epochs=1,
-        train_percent_check=0.2,
+        train_percent_check=0.5,
         val_percent_check=0.1,
         gpus=[0, 1],
         distributed_backend='ddp',
