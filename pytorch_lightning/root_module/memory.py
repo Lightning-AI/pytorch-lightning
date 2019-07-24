@@ -152,7 +152,7 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def print_mem_stack():
+def print_mem_stack(): # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -161,7 +161,7 @@ def print_mem_stack():
             pass
 
 
-def count_mem_items():
+def count_mem_items(): # pragma: no cover
     nb_params = 0
     nb_tensors = 0
     for obj in gc.get_objects():
