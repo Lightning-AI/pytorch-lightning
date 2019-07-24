@@ -188,7 +188,7 @@ class Trainer(TrainerIO):
             self.use_ddp = distributed_backend == 'ddp'
 
             # use ddp automatically if nb_gpu_nodes > 1
-            if nb_gpu_nodes > 1 and self.use_dp:
+            if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
                 self.use_ddp = True
                 self.use_dp = False
                 w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
