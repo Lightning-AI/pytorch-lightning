@@ -1,7 +1,7 @@
 import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
-from argparse import Namespace
+from test_tube.argparse_hopt import TTNamespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
 import numpy as np
@@ -15,7 +15,7 @@ import pdb
 def get_model():
     # set up model with these hyperparams
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    hparams = Namespace(**{'drop_prob': 0.2,
+    hparams = TTNamespace(**{'drop_prob': 0.2,
                            'batch_size': 32,
                            'in_features': 28*28,
                            'learning_rate': 0.001*8,
