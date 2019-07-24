@@ -35,9 +35,10 @@ def test_cpu_model():
 
     run_gpu_model_test(trainer_options, on_gpu=False)
 
+
 def test_all_features_cpu_model():
     """
-    Make sure model trains on CPU
+    Test each of the trainer options
     :return:
     """
 
