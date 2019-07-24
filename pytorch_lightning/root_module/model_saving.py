@@ -42,6 +42,7 @@ class ModelIO(object):
 class TrainerIO(object):
 
     def __get_model(self):
+        print(type(self.model))
         is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
         model = self.model.module if is_dp_module else self.model
         return model
