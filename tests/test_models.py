@@ -43,6 +43,10 @@ def test_early_stopping_cpu_model():
     model, hparams = get_model()
     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
 
 def test_cpu_model_with_amp():
     """
@@ -132,6 +136,10 @@ def test_amp_gpu_ddp_slurm_managed():
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
     trainer.hpc_load(save_dir, on_gpu=True)
+
+    # test freeze on gpu
+    model.freeze()
+    model.unfreeze()
 
     clear_save_dir()
 
