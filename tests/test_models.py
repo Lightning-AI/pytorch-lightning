@@ -79,6 +79,7 @@ def test_early_stopping_cpu_model():
 
     run_gpu_model_test(trainer_options, on_gpu=False)
 
+
 def test_single_gpu_model():
     """
     Make sure single GPU works (DP mode)
