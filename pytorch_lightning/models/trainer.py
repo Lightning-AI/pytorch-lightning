@@ -71,7 +71,6 @@ class Trainer(TrainerIO):
                  train_percent_check=1.0, val_percent_check=1.0, test_percent_check=1.0,
                  val_check_interval=0.95,
                  log_save_interval=100, add_log_row_interval=10,
-                 lr_scheduler_milestones=None,
                  distributed_backend='dp',
                  use_amp=False,
                  print_nan_grads=False,
@@ -104,7 +103,6 @@ class Trainer(TrainerIO):
         :param val_check_interval:
         :param log_save_interval:
         :param add_log_row_interval:
-        :param lr_scheduler_milestones:
         :param distributed_backend: 'np' to use DistributedParallel, 'ddp' to use DistributedDataParallel
         :param use_amp:
         :param print_nan_grads:
@@ -141,7 +139,6 @@ class Trainer(TrainerIO):
         self.early_stop_callback = early_stop_callback
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
-        self.lr_scheduler_milestones = [] if lr_scheduler_milestones is None else [int(x.strip()) for x in lr_scheduler_milestones.split(',')]
         self.lr_schedulers = []
         self.amp_level = amp_level
         self.print_nan_grads = print_nan_grads
@@ -444,7 +441,7 @@ class Trainer(TrainerIO):
 
             # CHOOSE OPTIMIZER
             # filter out the weights that were done on gpu so we can load on good old cpus
-            self.optimizers = model.configure_optimizers()
+            self.optimizers, self.lr_schedulers = model.configure_optimizers()
 
             self.__run_pretrain_routine(model)
 
@@ -456,7 +453,7 @@ class Trainer(TrainerIO):
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
-        self.optimizers = model.configure_optimizers()
+        self.optimizers, self.lr_schedulers = model.configure_optimizers()
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -507,7 +504,7 @@ class Trainer(TrainerIO):
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
-        self.optimizers = model.configure_optimizers()
+        self.optimizers, self.lr_schedulers = model.configure_optimizers()
 
         # MODEL
         # copy model to each gpu
@@ -586,12 +583,6 @@ class Trainer(TrainerIO):
 
         # init training constants
         self.__layout_bookeeping()
-
-        # add lr schedulers
-        if self.lr_scheduler_milestones is not None:
-            for optimizer in self.optimizers:
-                scheduler = MultiStepLR(optimizer, self.lr_scheduler_milestones)
-                self.lr_schedulers.append(scheduler)
 
         # print model summary
         if self.proc_rank == 0 and self.print_weights_summary:
