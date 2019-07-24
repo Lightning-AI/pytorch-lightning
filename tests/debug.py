@@ -88,7 +88,7 @@ def run_prediction(dataloader, trained_model):
 
     print(val_acc)
 
-    assert val_acc > 0.60, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
+    assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
         progress_bar=True,
         experiment=exp,
         max_nb_epochs=1,
-        train_percent_check=0.5,
+        train_percent_check=0.7,
         val_percent_check=0.1,
         gpus=[0, 1],
         distributed_backend='ddp',
