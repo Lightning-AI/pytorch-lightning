@@ -406,20 +406,11 @@ class Trainer(TrainerIO):
                 port = 12910
                 os.environ['MASTER_PORT'] = f'{port}'
 
-        def get_pids(port):
-            command = "sudo lsof -i :%s | awk '{print $2}'" % port
-            pids = subprocess.check_output(command, shell=True)
-            pids = pids.strip()
-            if pids:
-                pids = re.sub(' +', ' ', pids)
-                for pid in pids.split('\n'):
-                    try:
-                        yield int(pid)
-                    except:
-                        pass
-
-        # get pids in this port
-        pids = set(get_pids(port))
+        # check for pids
+        command = "lsof -i :%s | awk '{print $2}'" % port
+        pids = subprocess.check_output(command, shell=True)
+        pids = pids.strip()
+        pids = str(pids)
 
         # if no processes on this port, then we're good
         if len(pids) == 0:
