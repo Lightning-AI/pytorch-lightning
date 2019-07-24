@@ -27,14 +27,3 @@ class GradInformation(nn.Module):
         results['grad_{}_norm_total'.format(norm_type)] = round(total_norm.data.cpu().numpy().flatten()[0], 3)
         return results
 
-
-    def describe_grads(self):
-        for p in self.parameters():
-            g = p.grad.data.numpy().flatten()
-            print(np.max(g), np.min(g), np.mean(g))
-
-
-    def describe_params(self):
-        for p in self.parameters():
-            g = p.data.numpy().flatten()
-            print(np.max(g), np.min(g), np.mean(g))
