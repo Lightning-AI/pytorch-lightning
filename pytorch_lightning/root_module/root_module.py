@@ -92,7 +92,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         model_summary = ModelSummary(self)
         print(model_summary)
 
-
     def freeze(self):
         for param in self.parameters():
             param.requires_grad = False
