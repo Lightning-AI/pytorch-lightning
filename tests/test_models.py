@@ -27,13 +27,16 @@ def get_model():
 
     return model
 
+
 def get_exp():
     exp = Experiment(debug=True)
     return exp
 
+
 def assert_ok_acc(trainer):
     # this model should get 0.80+ acc
     assert trainer.tng_tqdm_dic['val_acc'] > 0.80
+
 
 def test_cpu_model():
     model = get_model()
