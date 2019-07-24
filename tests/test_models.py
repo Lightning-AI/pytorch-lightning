@@ -50,228 +50,228 @@ def test_amp_gpu_ddp():
     run_gpu_model_test(trainer_options, model, hparams)
 
 
-#
-# def test_cpu_model():
-#     """
-#     Make sure model trains on CPU
-#     :return:
-#     """
-#
-#     trainer_options = dict(
-#         progress_bar=False,
-#         experiment=get_exp(),
-#         max_nb_epochs=1,
-#         train_percent_check=0.4,
-#         val_percent_check=0.4
-#     )
-#
-#     model, hparams = get_model()
-#
-#     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-#
-#
-# def test_all_features_cpu_model():
-#     """
-#     Test each of the trainer options
-#     :return:
-#     """
-#
-#     trainer_options = dict(
-#         gradient_clip=1.0,
-#         overfit_pct=0.20,
-#         track_grad_norm=2,
-#         print_nan_grads=True,
-#         progress_bar=False,
-#         experiment=get_exp(),
-#         max_nb_epochs=1,
-#         train_percent_check=0.4,
-#         val_percent_check=0.4
-#     )
-#
-#     model, hparams = get_model()
-#     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-#
-#
-# def test_early_stopping_cpu_model():
-#     """
-#     Test each of the trainer options
-#     :return:
-#     """
-#
-#     stopping = EarlyStopping()
-#     trainer_options = dict(
-#         early_stop_callback=stopping,
-#         gradient_clip=1.0,
-#         overfit_pct=0.20,
-#         track_grad_norm=2,
-#         print_nan_grads=True,
-#         progress_bar=False,
-#         experiment=get_exp(),
-#         max_nb_epochs=1,
-#         train_percent_check=0.4,
-#         val_percent_check=0.4
-#     )
-#
-#     model, hparams = get_model()
-#     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-#
-#
-# def test_single_gpu_model():
-#     """
-#     Make sure single GPU works (DP mode)
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
-#         return
-#     model, hparams = get_model()
-#
-#     trainer_options = dict(
-#         progress_bar=False,
-#         max_nb_epochs=1,
-#         train_percent_check=0.1,
-#         val_percent_check=0.1,
-#         gpus=[0]
-#     )
-#
-#     run_gpu_model_test(trainer_options, model, hparams)
-#
-#
-# def test_multi_gpu_model_dp():
-#     """
-#     Make sure DP works
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a GPU node to run this test')
-#         return
-#     if not torch.cuda.device_count() > 1:
-#         warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
-#         return
-#     model, hparams = get_model()
-#     trainer_options = dict(
-#         progress_bar=False,
-#         max_nb_epochs=1,
-#         train_percent_check=0.1,
-#         val_percent_check=0.1,
-#         gpus=[0, 1]
-#     )
-#
-#     run_gpu_model_test(trainer_options, model, hparams)
-#
-#     # test memory helper functions
-#     memory.get_gpu_memory_map()
-#
-#
-# def test_amp_gpu_dp():
-#     """
-#     Make sure DP + AMP work
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a GPU node to run this test')
-#         return
-#     if not torch.cuda.device_count() > 1:
-#         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
-#         return
-#     model, hparams = get_model()
-#     trainer_options = dict(
-#         max_nb_epochs=1,
-#         gpus='0, 1',  # test init with gpu string
-#         distributed_backend='dp',
-#         use_amp=True
-#     )
-#     with pytest.raises(MisconfigurationException):
-#         run_gpu_model_test(trainer_options, model, hparams)
-#
-#
-# def test_multi_gpu_model_ddp():
-#     """
-#     Make sure DDP works
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a GPU node to run this test')
-#         return
-#     if not torch.cuda.device_count() > 1:
-#         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
-#         return
-#
-#     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-#     model, hparams = get_model()
-#     trainer_options = dict(
-#         progress_bar=False,
-#         max_nb_epochs=1,
-#         train_percent_check=0.1,
-#         val_percent_check=0.1,
-#         gpus=[0, 1],
-#         distributed_backend='ddp'
-#     )
-#
-#     run_gpu_model_test(trainer_options, model, hparams)
-#
-#
-# def test_amp_gpu_ddp():
-#     """
-#     Make sure DDP + AMP work
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
-#         return
-#     if not torch.cuda.device_count() > 1:
-#         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
-#         return
-#
-#     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-#
-#     hparams = get_hparams()
-#     model = LightningTestModel(hparams)
-#
-#     trainer_options = dict(
-#         progress_bar=True,
-#         max_nb_epochs=1,
-#         gpus=[0, 1],
-#         distributed_backend='ddp',
-#         use_amp=True
-#     )
-#
-#     run_gpu_model_test(trainer_options, model, hparams)
-#
-#
-# def test_ddp_sampler_error():
-#     """
-#     Make sure DDP + AMP work
-#     :return:
-#     """
-#     if not torch.cuda.is_available():
-#         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
-#         return
-#     if not torch.cuda.device_count() > 1:
-#         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
-#         return
-#
-#     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-#
-#     hparams = get_hparams()
-#     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
-#
-#     exp = get_exp(True)
-#     exp.save()
-#
-#     trainer = Trainer(
-#         experiment=exp,
-#         progress_bar=False,
-#         max_nb_epochs=1,
-#         gpus=[0, 1],
-#         distributed_backend='ddp',
-#         use_amp=True
-#     )
-#
-#     with pytest.raises(MisconfigurationException):
-#         trainer.get_dataloaders(model)
-#
-#     clear_save_dir()
+
+def test_cpu_model():
+    """
+    Make sure model trains on CPU
+    :return:
+    """
+
+    trainer_options = dict(
+        progress_bar=False,
+        experiment=get_exp(),
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.4
+    )
+
+    model, hparams = get_model()
+
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+
+def test_all_features_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    trainer_options = dict(
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.4
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    stopping = EarlyStopping()
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.4
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+
+def test_single_gpu_model():
+    """
+    Make sure single GPU works (DP mode)
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
+        return
+    model, hparams = get_model()
+
+    trainer_options = dict(
+        progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus=[0]
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_multi_gpu_model_dp():
+    """
+    Make sure DP works
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+    model, hparams = get_model()
+    trainer_options = dict(
+        progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus=[0, 1]
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+    # test memory helper functions
+    memory.get_gpu_memory_map()
+
+
+def test_amp_gpu_dp():
+    """
+    Make sure DP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+    model, hparams = get_model()
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gpus='0, 1',  # test init with gpu string
+        distributed_backend='dp',
+        use_amp=True
+    )
+    with pytest.raises(MisconfigurationException):
+        run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_multi_gpu_model_ddp():
+    """
+    Make sure DDP works
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_amp_gpu_ddp():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        progress_bar=True,
+        max_nb_epochs=1,
+        gpus=[0, 1],
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_ddp_sampler_error():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
+
+    exp = get_exp(True)
+    exp.save()
+
+    trainer = Trainer(
+        experiment=exp,
+        progress_bar=False,
+        max_nb_epochs=1,
+        gpus=[0, 1],
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    with pytest.raises(MisconfigurationException):
+        trainer.get_dataloaders(model)
+
+    clear_save_dir()
 
 
 # ------------------------------------------------------------------------
