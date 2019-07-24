@@ -3,6 +3,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
+from pytorch_lightning.callbacks import ModelCheckpoint
 import numpy as np
 import warnings
 import torch
@@ -27,21 +28,70 @@ def get_model():
                            'hidden_dim': 1000})
     model = LightningTemplateModel(hparams)
 
-    return model
+    return model, hparams
 
 
-def get_exp():
+def get_exp(debug=True):
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=True, save_dir=root_dir, name='tests_tt_dir')
+    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir')
     return exp
 
 
-def clear_tt_dir():
+def init_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    tt_dir = os.path.join(root_dir, 'tests_tt_dir')
-    if os.path.exists(tt_dir):
-        shutil.rmtree(tt_dir)
+    save_dir = os.path.join(root_dir, 'save_dir')
+
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    return save_dir
+
+
+def clear_save_dir():
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    save_dir = os.path.join(root_dir, 'save_dir')
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+
+
+def load_model(exp, save_dir):
+
+    # load trained model
+    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+
+    checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(save_dir, checkpoints[0])
+
+    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir, tags_csv=tags_path, on_gpu=True)
+
+    assert trained_model is not None, 'loading model failed'
+
+    return trained_model
+
+
+def run_prediction(dataloader, trained_model):
+    # run prediction on 1 batch
+    for batch in dataloader:
+        break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    y_hat = trained_model(x)
+
+    # acc
+    labels_hat = torch.argmax(y_hat, dim=1)
+    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+    val_acc = torch.tensor(val_acc)
+    val_acc = val_acc.item()
+
+    print(val_acc)
+
+    assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
 
 
 def assert_ok_acc(trainer):
@@ -55,9 +105,9 @@ def test_cpu_model():
     Make sure model trains on CPU
     :return:
     """
-    clear_tt_dir()
+    save_dir = init_save_dir()
 
-    model = get_model()
+    model, hparams = get_model()
 
     trainer = Trainer(
         progress_bar=False,
@@ -72,7 +122,7 @@ def test_cpu_model():
     assert result == 1, 'cpu model failed to complete'
     assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    clear_save_dir()
 
 
 def test_single_gpu_model():
@@ -84,8 +134,8 @@ def test_single_gpu_model():
         warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
         return
 
-    clear_tt_dir()
-    model = get_model()
+    save_dir = init_save_dir()
+    model, hparams = get_model()
 
     trainer = Trainer(
         progress_bar=False,
@@ -102,7 +152,7 @@ def test_single_gpu_model():
     assert result == 1, 'single gpu model failed to complete'
     assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    clear_save_dir()
 
 
 def test_multi_gpu_model_dp():
@@ -117,8 +167,8 @@ def test_multi_gpu_model_dp():
         warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    clear_tt_dir()
-    model = get_model()
+    save_dir = init_save_dir()
+    model, hparams = get_model()
 
     trainer = Trainer(
         progress_bar=False,
@@ -135,7 +185,7 @@ def test_multi_gpu_model_dp():
     assert result == 1, 'multi-gpu dp model failed to complete'
     assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    clear_save_dir()
 
 
 def test_amp_gpu_dp():
@@ -150,8 +200,8 @@ def test_amp_gpu_dp():
         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    clear_tt_dir()
-    model = get_model()
+    save_dir = init_save_dir()
+    model, hparams = get_model()
 
     trainer = Trainer(
         progress_bar=False,
@@ -169,7 +219,7 @@ def test_amp_gpu_dp():
     assert result == 1, 'amp + gpu model failed to complete'
     assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    clear_save_dir()
 
 
 def test_multi_gpu_model_ddp():
@@ -184,8 +234,8 @@ def test_multi_gpu_model_ddp():
         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    clear_tt_dir()
-    model = get_model()
+    save_dir = init_save_dir()
+    model, hparams = get_model()
 
     trainer = Trainer(
         progress_bar=False,
@@ -203,7 +253,7 @@ def test_multi_gpu_model_ddp():
     assert result == 1, 'multi-gpu ddp model failed to complete'
     assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    clear_save_dir()
 
 
 def test_amp_gpu_ddp():
@@ -218,15 +268,25 @@ def test_amp_gpu_ddp():
         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    clear_tt_dir()
-    model = get_model()
+
+    save_dir = init_save_dir()
+    model, hparams = get_model()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
 
     trainer = Trainer(
-        progress_bar=False,
-        experiment=get_exp(),
+        checkpoint_callback=checkpoint,
+        progress_bar=True,
+        experiment=exp,
         max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        train_percent_check=0.7,
+        val_percent_check=0.1,
         gpus=[0, 1],
         distributed_backend='ddp',
         use_amp=True
@@ -236,10 +296,14 @@ def test_amp_gpu_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
-    assert_ok_acc(trainer)
 
-    clear_tt_dir()
+    # test model loading
+    pretrained_model = load_model(exp, save_dir)
 
+    # test model preds
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    clear_save_dir()
 
 
 if __name__ == '__main__':
