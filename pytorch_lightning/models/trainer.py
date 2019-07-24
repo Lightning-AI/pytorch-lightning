@@ -567,7 +567,7 @@ class Trainer(TrainerIO):
             try:
                 port = os.environ['MASTER_PORT']
             except Exception as e:
-                port = self.default_ddp_port
+                port = 12910
                 os.environ['MASTER_PORT'] = f'{port}'
 
             self._ddp_port = port
