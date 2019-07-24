@@ -108,7 +108,7 @@ class LightningTemplateModel(LightningModule):
 
         output = OrderedDict({
             'val_loss': loss_val,
-            'val_acc': torch.tensor(val_acc).cuda(loss_val.device.index),
+            'val_acc': torch.tensor(val_acc).type(loss_val.dtype),
         })
 
         # can also return just a scalar instead of a dict (return loss_val)

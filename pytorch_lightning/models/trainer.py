@@ -436,6 +436,10 @@ class Trainer(TrainerIO):
 
             self.__run_pretrain_routine(model)
 
+        # return 1 when finished
+        # used for testing or when we need to know that training succeeded
+        return 1
+
     def dp_train(self, model):
 
         # CHOOSE OPTIMIZER
