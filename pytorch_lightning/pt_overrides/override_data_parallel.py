@@ -112,7 +112,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         return output
 
 
-def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):
+def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no cover
     r"""Applies each `module` in :attr:`modules` in parallel on arguments
     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
     on each of :attr:`devices`.
