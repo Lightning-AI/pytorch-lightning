@@ -59,6 +59,7 @@ def test_cpu_model():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -86,6 +87,7 @@ def test_single_gpu_model():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -118,6 +120,7 @@ def test_multi_gpu_model_dp():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -150,6 +153,7 @@ def test_multi_gpu_model_ddp():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -183,6 +187,7 @@ def test_amp_gpu_ddp():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -217,6 +222,7 @@ def test_amp_gpu_dp():
     model = get_model()
 
     trainer = Trainer(
+        progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
