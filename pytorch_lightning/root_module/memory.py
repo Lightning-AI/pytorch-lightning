@@ -124,14 +124,18 @@ class ModelSummary(object):
         '''
 
         df = pd.DataFrame( np.zeros( (len(self.layer_names), 3) ) )
-        df.columns = ['Name', 'Type', 'Params']
+        cols = ['Name', 'Type', 'Params']
+        if self.model.example_input_array is not None:
+            cols.extend(['In_sizes', 'Out_sizes'])
+
+        df.columns = cols
 
         df['Name'] = self.layer_names
         df['Type'] = self.layer_types
         df['Params'] = self.param_nums
 
         if self.model.example_input_array is not None:
-            df.columns.extend(['In_sizes', 'Out_sizes'])
+
             df['In_sizes'] = self.in_sizes
             df['Out_sizes'] = self.out_sizes
 
