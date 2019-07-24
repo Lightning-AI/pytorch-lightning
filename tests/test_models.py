@@ -231,19 +231,10 @@ def test_amp_gpu_ddp():
     run_gpu_model_test(trainer_options, model, hparams)
 
 
-
-
-
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
-
 def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
-    """
-        Make sure DDP + AMP work
-        :return:
-        """
-
     save_dir = init_save_dir()
 
     # exp file to get meta
