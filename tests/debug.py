@@ -138,4 +138,5 @@ if __name__ == '__main__':
     command = "lsof -i :%s | awk '{print $2}'" % 12910
     pids = subprocess.check_output(command, shell=True)
     pids = pids.strip()
+
     print(pids)
