@@ -41,8 +41,7 @@ def clear_tt_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     tt_dir = os.path.join(root_dir, 'tests_tt_dir')
     if os.path.exists(tt_dir):
-        shutil.move(tt_dir, '/efs/trash')
-        # shutil.rmtree(tt_dir)
+        shutil.rmtree(tt_dir)
 
 
 def assert_ok_acc(trainer):
