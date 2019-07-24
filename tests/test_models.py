@@ -36,9 +36,6 @@ def test_cpu_model():
 
     model, hparams = get_model()
 
-    # test memory gathering
-    model.count_mem_items()
-
     run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
@@ -236,6 +233,9 @@ def test_ddp_sampler_error():
         distributed_backend='ddp',
         use_amp=True
     )
+
+    # test memory gathering
+    trainer.count_mem_items()
 
     with pytest.raises(MisconfigurationException):
         trainer.get_dataloaders(model)
