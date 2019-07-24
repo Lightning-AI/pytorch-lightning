@@ -223,7 +223,7 @@ class Trainer(TrainerIO):
             
             this run will NOT use 16 bit precision
             '''
-            warnings.warn(msg)
+            raise ModuleNotFoundError(msg)
 
     @property
     def data_parallel(self):
