@@ -150,10 +150,6 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
 
-        # bookkeeping
-        self.avg_loss = 0
-        self.batch_nb = 0
-
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -430,7 +426,7 @@ class Trainer(TrainerIO):
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            self.__dp_train(model)
 
         # ON CPU
         else:
@@ -452,7 +448,7 @@ class Trainer(TrainerIO):
         # used for testing or when we need to know that training succeeded
         return 1
 
-    def dp_train(self, model):
+    def __dp_train(self, model):
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
