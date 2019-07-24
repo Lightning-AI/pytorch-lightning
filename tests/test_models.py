@@ -137,7 +137,7 @@ def test_amp_gpu_dp():
 
     trainer_options = dict(
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',
         use_amp=True
     )
