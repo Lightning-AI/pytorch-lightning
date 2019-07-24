@@ -36,4 +36,11 @@ This file fits a tiny model on MNIST using these different set-ups.
 3. Multiple (2) GPUs using DP + apex (for 16-bit precision).
 3. Multiple (2) GPUs using DDP + apex (for 16-bit precision).   
 
+For each set up it also tests:
+1. model saving.
+2. model loading.
+3. predicting with a loaded model.
+4. simulated save from HPC signal.
+5. simulated load from HPC signal.
+
 
