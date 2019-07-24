@@ -21,6 +21,28 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_amp_gpu_dp_ok_1():
+    """
+    Make sure DP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
+    model, hparams = get_model()
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gpus='0, 1',  # test init with gpu string
+        distributed_backend='dp',
+        amp_level='O1',
+        use_amp=True
+    )
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
