@@ -264,6 +264,14 @@ class Trainer(TrainerIO):
 
         return tqdm_dic
 
+    @property
+    def tng_tqdm_dic(self):
+        """
+        Read-only for tqdm metrics
+        :return:
+        """
+        return self.__tng_tqdm_dic
+
     def __layout_bookeeping(self):
         # training bookeeping
         self.total_batch_nb = 0
