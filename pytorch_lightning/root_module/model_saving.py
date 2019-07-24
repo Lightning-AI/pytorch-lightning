@@ -51,13 +51,18 @@ class TrainerIO(object):
         torch.save(checkpoint, filepath)
 
     def dump_checkpoint(self):
+
         checkpoint = {
             'epoch': self.current_epoch,
-            'checkpoint_callback_best': self.checkpoint_callback.best,
-            'early_stop_callback_wait': self.early_stop_callback.wait,
-            'early_stop_callback_patience': self.early_stop_callback.patience,
             'global_step': self.global_step
         }
+
+        if self.checkpoint_callback is not None:
+            checkpoint['checkpoint_callback_best'] = self.checkpoint_callback_best.best
+
+        if self.early_stop_callback is not None:
+            checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
+            checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
         optimizer_states = []
         for i, optimizer in enumerate(self.optimizers):
@@ -104,9 +109,13 @@ class TrainerIO(object):
         :param checkpoint:
         :return:
         """
-        self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
-        self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
-        self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
+
+        if self.early_stop_callback is not None:
+            self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
+            self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']
 
