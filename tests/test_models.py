@@ -130,8 +130,6 @@ def test_multi_gpu_model_dp():
     run_gpu_model_test(trainer_options, model, hparams)
 
     # test memory helper functions
-    memory.count_mem_items()
-    memory.print_mem_stack()
     memory.get_gpu_memory_map()
 
 
