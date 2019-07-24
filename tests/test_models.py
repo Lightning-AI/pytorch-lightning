@@ -52,25 +52,15 @@ def test_single_gpu_model():
         warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
         return
 
-    save_dir = init_save_dir()
-    model, hparams = get_model()
-
-    trainer = Trainer(
+    trainer_options = dict(
         progress_bar=False,
-        experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
         gpus=[0]
     )
 
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'single gpu model failed to complete'
-    assert_ok_acc(trainer)
-
-    clear_save_dir()
+    run_gpu_model_test(trainer_options)
 
 
 def test_multi_gpu_model_dp():
@@ -85,25 +75,15 @@ def test_multi_gpu_model_dp():
         warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    save_dir = init_save_dir()
-    model, hparams = get_model()
-
-    trainer = Trainer(
+    trainer_options = dict(
         progress_bar=False,
-        experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
         gpus=[0, 1]
     )
 
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'multi-gpu dp model failed to complete'
-    assert_ok_acc(trainer)
-
-    clear_save_dir()
+    run_gpu_model_test(trainer_options)
 
 
 def test_amp_gpu_dp():
@@ -118,25 +98,15 @@ def test_amp_gpu_dp():
         warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    save_dir = init_save_dir()
-    model, hparams = get_model()
-
-    trainer = Trainer(
+    trainer_options = dict(
         progress_bar=False,
-        experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=0.4,
         gpus=[0, 1],
         distributed_backend='dp',
         use_amp=True
     )
 
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + gpu model failed to complete'
-
-    clear_save_dir()
+    run_gpu_model_test(trainer_options)
 
 
 def test_multi_gpu_model_ddp():
@@ -151,25 +121,16 @@ def test_multi_gpu_model_ddp():
         warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
-    save_dir = init_save_dir()
-    model, hparams = get_model()
-
-    trainer = Trainer(
+    trainer_options = dict(
         progress_bar=False,
-        experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
         gpus=[0, 1],
         distributed_backend='ddp'
     )
 
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'multi-gpu ddp model failed to complete'
-
-    clear_save_dir()
+    run_gpu_model_test(trainer_options)
 
 
 def test_amp_gpu_ddp():
@@ -184,6 +145,32 @@ def test_amp_gpu_ddp():
         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    trainer_options = dict(
+        progress_bar=True,
+        max_nb_epochs=1,
+        gpus=[0, 1],
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    run_gpu_model_test(trainer_options)
+
+
+# ------------------------------------------------------------------------
+# UTILS
+# ------------------------------------------------------------------------
+
+def run_gpu_model_test(trainer_options):
+    """
+        Make sure DDP + AMP work
+        :return:
+        """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        return
 
     save_dir = init_save_dir()
     model, hparams = get_model()
@@ -196,18 +183,12 @@ def test_amp_gpu_ddp():
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
-    trainer = Trainer(
-        checkpoint_callback=checkpoint,
-        progress_bar=True,
-        experiment=exp,
-        max_nb_epochs=1,
-        train_percent_check=0.7,
-        val_percent_check=0.1,
-        gpus=[0, 1],
-        distributed_backend='ddp',
-        use_amp=True
-    )
+    # add these to the trainer options
+    trainer_options.checkpoint_callback = checkpoint
+    trainer_options.experiment = exp
 
+    # fit model
+    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # correct result and ok accuracy
@@ -222,9 +203,6 @@ def test_amp_gpu_ddp():
     clear_save_dir()
 
 
-# ------------------------------------------------------------------------
-# UTILS
-# ------------------------------------------------------------------------
 def get_model():
     # set up model with these hyperparams
     root_dir = os.path.dirname(os.path.realpath(__file__))
