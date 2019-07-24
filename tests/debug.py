@@ -50,7 +50,7 @@ def main():
         progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
-        train_percent_check=1.0,
+        train_percent_check=0.4,
         val_percent_check=0.4,
         gpus=[0, 1],
         distributed_backend='ddp',

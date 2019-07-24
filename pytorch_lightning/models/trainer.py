@@ -150,6 +150,16 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
 
+        # training bookeeping
+        self.total_batch_nb = 0
+        self.running_loss = []
+        self.avg_loss = 0
+        self.batch_nb = 0
+        self.tqdm_metrics = {}
+        self.nb_val_batches = None
+        self.nb_tng_batches = None
+        self.nb_test_batches = None
+
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -273,12 +283,6 @@ class Trainer(TrainerIO):
         return self.__tng_tqdm_dic
 
     def __layout_bookeeping(self):
-        # training bookeeping
-        self.total_batch_nb = 0
-        self.running_loss = []
-        self.avg_loss = 0
-        self.batch_nb = 0
-        self.tqdm_metrics = {}
 
         # determine number of training batches
         self.nb_tng_batches = len(self.tng_dataloader)
