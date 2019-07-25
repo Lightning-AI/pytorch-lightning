@@ -18,7 +18,7 @@
 </p>   
 
 ```bash
-pip install pytorch-lightning    
+pip install pytorch-lightning  
 ```
 
 ## Docs   
