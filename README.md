@@ -37,6 +37,8 @@ When starting a new project the last thing you want to do is recode a training l
 
 With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: Data and training, validation loop logic. Don't worry about multiple gpus or speeding up your code, lightning will do that for you!
 
+## How do I do use it?   
+
 To use lightning do 2 things:  
 1. [Define a LightningModel](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
 ```python
