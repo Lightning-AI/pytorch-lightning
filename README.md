@@ -303,4 +303,8 @@ python single_gpu_node_template.py --gpus "0,1"
 python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ```
 
-
+## Bleeding edge
+If you can't wait for the next release, install the most up to date code with:  
+```bash
+pip install git+https://github.com/williamFalcon/pytorch-lightning.git@master --upgrade
+```
