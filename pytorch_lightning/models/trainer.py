@@ -678,7 +678,7 @@ class Trainer(TrainerIO):
                     # nb_params, nb_tensors = count_mem_items()
 
                     model = self.__get_model()
-                    metrics = model.update_tng_log_metrics(self.__tng_tqdm_dic)
+                    metrics = self.__tng_tqdm_dic
 
                     # add gpu memory
                     if self.on_gpu:

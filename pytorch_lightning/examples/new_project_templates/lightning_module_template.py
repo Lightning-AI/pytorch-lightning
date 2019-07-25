@@ -152,9 +152,6 @@ class LightningTemplateModel(LightningModule):
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
 
-    def update_tng_log_metrics(self, logs):
-        return logs
-
     # ---------------------
     # MODEL SAVING
     # ---------------------
