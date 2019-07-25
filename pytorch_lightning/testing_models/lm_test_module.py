@@ -25,7 +25,7 @@ class LightningTestModel(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTestModel, self).__init__(hparams)
+        super(LightningTestModel, self).__init__()
 
         self.batch_size = hparams.batch_size
 
