@@ -5,11 +5,10 @@ import math
 from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.grads import GradInformation
 from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
-from pytorch_lightning.root_module.optimization import OptimizerConfig
 from pytorch_lightning.root_module.hooks import ModelHooks
 
 
-class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
+class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, hparams):
         super(LightningModule, self).__init__()
@@ -22,6 +21,7 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         self.loaded_optimizer_states_dict = {}
         self.trainer = None
         self.experiment = None
+        self.example_input_array = None
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
@@ -71,15 +71,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         """
         raise NotImplementedError
 
-    def update_tng_log_metrics(self, logs):
-        """
-        Chance to update metrics to be logged for training step.
-        For example, add music, images, etc... to log
-        :param logs:
-        :return:
-        """
-        return logs
-
     def loss(self, *args, **kwargs):
         """
         Expand model_out into your components
@@ -91,7 +82,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
     def summarize(self):
         model_summary = ModelSummary(self)
         print(model_summary)
-
 
     def freeze(self):
         for param in self.parameters():
@@ -124,16 +114,6 @@ class LightningModule(GradInformation, ModelIO, OptimizerConfig, ModelHooks):
         :return:
         """
         raise NotImplementedError
-
-    @staticmethod
-    def get_process_position(gpus):
-        try:
-            current_gpu = os.environ["CUDA_VISIBLE_DEVICES"]
-            gpu_ids = gpus.split(',')
-            process_position = gpu_ids.index(current_gpu)
-            return process_position, current_gpu
-        except Exception as e:
-            return 0, 0
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, on_gpu, map_location=None):

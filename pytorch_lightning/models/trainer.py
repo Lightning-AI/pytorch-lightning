@@ -19,12 +19,12 @@ import tqdm
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
-
+from pytorch_lightning.utils.debugging import MisconfigurationException
 
 try:
     from apex import amp
     APEX_AVAILABLE = True
-except ModuleNotFoundError:
+except ModuleNotFoundError: # pragma: no cover
     APEX_AVAILABLE = False
 
 
@@ -114,6 +114,7 @@ class Trainer(TrainerIO):
         """
 
         # Transfer params
+
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -150,6 +151,16 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
 
+        # training bookeeping
+        self.total_batch_nb = 0
+        self.running_loss = []
+        self.avg_loss = 0
+        self.batch_nb = 0
+        self.tqdm_metrics = {}
+        self.nb_val_batches = None
+        self.nb_tng_batches = None
+        self.nb_test_batches = None
+
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -178,13 +189,26 @@ class Trainer(TrainerIO):
             self.use_ddp = distributed_backend == 'ddp'
 
             # use ddp automatically if nb_gpu_nodes > 1
-            if nb_gpu_nodes > 1 and self.use_dp:
+            if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
                 self.use_ddp = True
                 self.use_dp = False
                 w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
                     'Switching to DistributedDataParallel for you. ' \
                     'To silence this warning set distributed_backend=ddp'
                 warnings.warn(w)
+
+        # extract SLURM flag vars
+        # whenever we have the correct number of tasks, we let slurm manage processes
+        # otherwise we launch the required number of processes
+        if self.use_ddp:
+            self.nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
+            self.nb_slurm_tasks = 0
+            try:
+                self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+            except Exception as e:
+                # likely not on slurm, so set the slurm managed flag to false
+                self.is_slurm_managing_tasks = False
 
         # process info
         self.proc_rank = 0
@@ -215,7 +239,7 @@ class Trainer(TrainerIO):
         if self.use_amp:
             print('using 16bit precision')
 
-        if use_amp and not APEX_AVAILABLE:
+        if use_amp and not APEX_AVAILABLE:  # pragma: no cover
             msg = '''
             You set use_amp=True but do not have apex installed.
             Install apex first using this guide and rerun with use_amp=True: 
@@ -223,7 +247,7 @@ class Trainer(TrainerIO):
             
             this run will NOT use 16 bit precision
             '''
-            warnings.warn(msg)
+            raise ModuleNotFoundError(msg)
 
     @property
     def data_parallel(self):
@@ -251,6 +275,7 @@ class Trainer(TrainerIO):
 
     @property
     def __tng_tqdm_dic(self):
+        # ForkedPdb().set_trace()
         tqdm_dic = {
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
             'v_nb': '{}'.format(self.experiment.version),
@@ -264,13 +289,15 @@ class Trainer(TrainerIO):
 
         return tqdm_dic
 
+    @property
+    def tng_tqdm_dic(self):
+        """
+        Read-only for tqdm metrics
+        :return:
+        """
+        return self.__tng_tqdm_dic
+
     def __layout_bookeeping(self):
-        # training bookeeping
-        self.total_batch_nb = 0
-        self.running_loss = []
-        self.avg_loss = 0
-        self.batch_nb = 0
-        self.tqdm_metrics = {}
 
         # determine number of training batches
         self.nb_tng_batches = len(self.tng_dataloader)
@@ -317,7 +344,7 @@ class Trainer(TrainerIO):
         # run training
         for batch_i, data_batch in enumerate(dataloader):
 
-            if data_batch is None:
+            if data_batch is None:  # pragma: no cover
                 continue
 
             # stop short when on fast dev run
@@ -356,7 +383,7 @@ class Trainer(TrainerIO):
 
         return val_results
 
-    def __get_dataloaders(self, model):
+    def get_dataloaders(self, model):
         """
         Dataloaders are provided by the model
         :param model:
@@ -379,7 +406,7 @@ class Trainer(TrainerIO):
             dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
             dataloader = Dataloader(dataset, sampler=dist_sampler)
             '''
-            raise Exception(msg)
+            raise MisconfigurationException(msg)
 
     # -----------------------------
     # MODEL TRAINING
@@ -391,25 +418,14 @@ class Trainer(TrainerIO):
             # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
             self.experiment = self.experiment.get_meta_copy()
 
-            # whenever we have the correct number of tasks, we let slurm manage processes
-            # otherwise we launch the required number of processes
-            nb_requested_gpus = len(self.data_parallel_device_ids) * self.nb_gpu_nodes
-            nb_slurm_tasks = 0
-            try:
-                nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                is_slurm_managing_tasks = nb_slurm_tasks == nb_requested_gpus
-            except Exception as e:
-                # likely not on slurm, so set the slurm managed flag to false
-                is_slurm_managing_tasks = False
-
-            if is_slurm_managing_tasks:
+            if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
                 msg = f"""
-                You requested {nb_requested_gpus} GPUs but launched {nb_slurm_tasks} slurm tasks. 
-                We will launch {nb_requested_gpus} processes for you. 
-                We recommend you let slurm manage the processes by setting: --ntasks-per-node={nb_requested_gpus}
+                You requested {self.nb_requested_gpus} GPUs but launched {self.nb_slurm_tasks} slurm tasks. 
+                We will launch {self.nb_requested_gpus} processes for you. 
+                We recommend you let slurm manage the processes by setting: --ntasks-per-node={self.nb_requested_gpus}
                 If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
@@ -418,7 +434,7 @@ class Trainer(TrainerIO):
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            self.__dp_train(model)
 
         # ON CPU
         else:
@@ -428,15 +444,15 @@ class Trainer(TrainerIO):
 
             # run through amp wrapper
             if self.use_amp:
-                # An example
-                model, optimizers = amp.initialize(
-                    model, self.optimizers, opt_level=self.amp_level,
-                )
-                self.optimizers = optimizers
+                raise MisconfigurationException('amp + cpu is not supported. Please use a GPU option')
 
             self.__run_pretrain_routine(model)
 
-    def dp_train(self, model):
+        # return 1 when finished
+        # used for testing or when we need to know that training succeeded
+        return 1
+
+    def __dp_train(self, model):
 
         # CHOOSE OPTIMIZER
         # filter out the weights that were done on gpu so we can load on good old cpus
@@ -444,13 +460,13 @@ class Trainer(TrainerIO):
 
         model.cuda(self.data_parallel_device_ids[0])
 
-        # run through amp wrapper
-        if self.use_amp:
-            # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
-            self.optimizers = optimizers
+        # check for this bug (amp + dp + !01 doesn't work)
+        # https://github.com/NVIDIA/apex/issues/227
+        if self.use_dp and self.use_amp:
+            m = f'amp level {self.amp_level} with DataParallel is not supported. ' \
+                f'See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227. ' \
+                f'We recommend you switch to ddp if you want to use amp'
+            raise MisconfigurationException(m)
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
@@ -520,22 +536,22 @@ class Trainer(TrainerIO):
         :param tries:
         :return:
         """
+        # sets the appropriate port
         try:
             port = os.environ['MASTER_PORT']
         except Exception as e:
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
-        root_node = self.__resolve_root_node_address()
+        # figure out the root node addr
+        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
-
-    def __resolve_root_node_address(self):
+    def resolve_root_node_address(self, root_node):
         try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-
             if '[' in root_node:
                 name = root_node.split('[')[0]
                 number = root_node.split(',')[0]
@@ -566,7 +582,7 @@ class Trainer(TrainerIO):
         ref_model.on_gpu = self.on_gpu
 
         # transfer data loaders from model
-        self.__get_dataloaders(ref_model)
+        self.get_dataloaders(ref_model)
 
         # init training constants
         self.__layout_bookeeping()
@@ -593,7 +609,7 @@ class Trainer(TrainerIO):
             self.experiment.save()
 
         # enable cluster checkpointing
-        if self.cluster is not None:
+        if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
         # ---------------------------
@@ -662,7 +678,7 @@ class Trainer(TrainerIO):
                     # nb_params, nb_tensors = count_mem_items()
 
                     model = self.__get_model()
-                    metrics = model.update_tng_log_metrics(self.__tng_tqdm_dic)
+                    metrics = self.__tng_tqdm_dic
 
                     # add gpu memory
                     if self.on_gpu:
