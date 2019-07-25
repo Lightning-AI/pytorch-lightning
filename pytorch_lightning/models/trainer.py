@@ -854,30 +854,25 @@ class Trainer(TrainerIO):
         elif not can_check_epoch:
             return
 
-        try:
-            # hook
-            if self.__is_function_implemented('on_pre_performance_check'):
-                model = self.__get_model()
-                model.on_pre_performance_check()
+        # hook
+        if self.__is_function_implemented('on_pre_performance_check'):
+            model = self.__get_model()
+            model.on_pre_performance_check()
 
-            # use full val set on end of epoch
-            # use a small portion otherwise
-            max_batches = None if not self.fast_dev_run else 1
-            model_specific_tqdm_metrics_dic = self.validate(
-                self.model,
-                self.val_dataloader,
-                max_batches
-            )
-            self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
+        # use full val set on end of epoch
+        # use a small portion otherwise
+        max_batches = None if not self.fast_dev_run else 1
+        model_specific_tqdm_metrics_dic = self.validate(
+            self.model,
+            self.val_dataloader,
+            max_batches
+        )
+        self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
-            # hook
-            if self.__is_function_implemented('on_post_performance_check'):
-                model = self.__get_model()
-                model.on_post_performance_check()
-
-        except Exception as e:
-            print(e)
-            print(traceback.print_exc())
+        # hook
+        if self.__is_function_implemented('on_post_performance_check'):
+            model = self.__get_model()
+            model.on_post_performance_check()
 
         if self.progress_bar:
             # add model specific metrics
