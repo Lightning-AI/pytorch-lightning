@@ -1,7 +1,7 @@
 ###### New project Quick Start    
 To start a new project define these two files.   
 
-1. [Define a LightningModule](/LightningModule/RequiredTrainerInterface/) 
+1. [Define a LightningModule](/pytorch-lightning/LightningModule/RequiredTrainerInterface/) 
 2. Pick a trainer      
     - [Basic CPU Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/single_cpu_template.py) 
     - [GPU cluster Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/multi_node_cluster_template.py)
