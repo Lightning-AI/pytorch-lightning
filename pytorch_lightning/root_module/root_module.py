@@ -71,15 +71,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def update_tng_log_metrics(self, logs):
-        """
-        Chance to update metrics to be logged for training step.
-        For example, add music, images, etc... to log
-        :param logs:
-        :return:
-        """
-        return logs
-
     def loss(self, *args, **kwargs):
         """
         Expand model_out into your components
