@@ -8,8 +8,8 @@ from pytorch_lightning.root_module.decorators import data_loader
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
 
-    def __init__(self):
-        super(LightningModule, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(LightningModule, self).__init__(*args, **kwargs)
 
         self.dtype = torch.FloatTensor
         self.exp_save_path = None
