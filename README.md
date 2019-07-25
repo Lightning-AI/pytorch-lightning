@@ -29,13 +29,13 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Keras and fast.ai are too abstract for researchers. Lightning abstracts the full training loop but gives you control in the critical points.   
+Lightning defers training and validation loop logic to you. It guarantees correct, modern best practices for the core training logic.
 
 
 ## Why do I want to use lightning?
-Because you don't want to define a training loop, validation loop, gradient clipping, checkpointing, loading, 
-gpu training, etc... every time you start a project. Let lightning handle all of that for you! Just define your 
-data and what happens in the training, testing and validation loop and lightning will do the rest.
+When starting a new project the last thing you want to do is recode a training loop, model loading/saving, distributed training, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
+
+With lightning, you guarantee those parts of your code work, and focus on what the meat of the research is, what is the data and to do insie a training and validation loop. Don't worry about multiple gpus or speeding up your code, lightning will do that for you!
 
 To use lightning do 2 things:  
 1. [Define a LightningModel](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
