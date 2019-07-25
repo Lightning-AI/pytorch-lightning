@@ -3,7 +3,7 @@ from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.grads import GradInformation
 from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.root_module.hooks import ModelHooks
-from pytorch_lightning.root_module.decorators import data_loader
+import pytorch_lightning as ptl
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -84,7 +84,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         for param in self.parameters():
             param.requires_grad = True
 
-    @data_loader
+    @ptl.data_loader
     def tng_dataloader(self):
         """
         Implement a function to load an h5py of this data
@@ -92,7 +92,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @data_loader
+    @ptl.data_loader
     def test_dataloader(self):
         """
         Implement a function to load an h5py of this data
@@ -100,7 +100,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @data_loader
+    @ptl.data_loader
     def val_dataloader(self):
         """
         Implement a function to load an h5py of this data

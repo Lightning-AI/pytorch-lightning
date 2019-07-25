@@ -1,6 +1,6 @@
 import torch.nn as nn
 import numpy as np
-from pytorch_lightning.root_module.root_module import LightningModule
+from pytorch_lightning import LightningModule
 from test_tube import HyperOptArgumentParser
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
@@ -149,7 +149,7 @@ class ExampleModel1(LightningModule):
 
         return loader
 
-    @property
+    @data_loader
     def tng_dataloader(self):
         if self._tng_dataloader is None:
             try:
