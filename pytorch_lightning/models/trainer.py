@@ -438,13 +438,13 @@ class Trainer(TrainerIO):
 
         # ON CPU
         else:
-            # CHOOSE OPTIMIZER
-            # filter out the weights that were done on gpu so we can load on good old cpus
-            self.optimizers = model.configure_optimizers()
-
             # run through amp wrapper
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported. Please use a GPU option')
+
+            # CHOOSE OPTIMIZER
+            # filter out the weights that were done on gpu so we can load on good old cpus
+            self.optimizers = model.configure_optimizers()
 
             self.__run_pretrain_routine(model)
 
