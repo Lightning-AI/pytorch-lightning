@@ -163,7 +163,7 @@ def test_cpu_model_with_amp():
 
     model, hparams = get_model()
 
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
 

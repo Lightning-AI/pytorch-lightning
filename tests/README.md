@@ -1,6 +1,9 @@
 # Pytorch-Lightning Tests
 
 ## Running tests
+The automatic travis tests ONLY run CPU-based tests. Although these cover most of the use cases,
+run on a 2-GPU machine to validate the full test-suite.
+
 
 To run all tests do the following:
 ```bash
