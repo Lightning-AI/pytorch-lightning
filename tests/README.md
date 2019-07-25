@@ -18,10 +18,6 @@ pip install -r requirements.txt
 
 # run tests
 py.test
-
-# or to generate coverage 
-pip install coverage
-coverage run tests/test_models.py   
 ```
 
 To test models that require GPU make sure to run the above command on a GPU machine.
@@ -45,5 +41,18 @@ For each set up it also tests:
 3. predicting with a loaded model.
 4. simulated save from HPC signal.
 5. simulated load from HPC signal.
+
+## Running Coverage   
+
+```bash
+cd pytorch-lightning
+
+# generate coverage 
+pip install coverage
+coverage run tests/test_models.py   
+
+# print coverage stats
+coverage report -m   
+```
 
 
