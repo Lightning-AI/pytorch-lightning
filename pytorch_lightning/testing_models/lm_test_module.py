@@ -13,23 +13,26 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.root_module.root_module import LightningModule
 
 
-class LightningTemplateModel(LightningModule):
+class LightningTestModel(LightningModule):
     """
     Sample model to show how to define a template
     """
 
-    def __init__(self, hparams):
+    def __init__(self, hparams, force_remove_distributed_sampler=False):
         """
         Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
         """
         # init superclass
-        super(LightningTemplateModel, self).__init__(hparams)
+        super(LightningTestModel, self).__init__(hparams)
 
         self.batch_size = hparams.batch_size
 
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)
+
+        # remove to test warning for dist sampler
+        self.force_remove_distributed_sampler = force_remove_distributed_sampler
 
         # build model
         self.__build_model()
@@ -123,13 +126,23 @@ class LightningTemplateModel(LightningModule):
             loss_val = loss_val.unsqueeze(0)
             val_acc = val_acc.unsqueeze(0)
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
+        # alternate possible outputs to test
+        if self.trainer.batch_nb % 1 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            })
+            return output
+        if self.trainer.batch_nb % 2 == 0:
+            return val_acc
 
-        # can also return just a scalar instead of a dict (return loss_val)
-        return output
+        if self.trainer.batch_nb % 3 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+                'test_dic': {'val_loss_a': loss_val}
+            })
+            return output
 
     def validation_end(self, outputs):
         """
@@ -149,8 +162,12 @@ class LightningTemplateModel(LightningModule):
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
+
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
+
+    def on_tng_metrics(self, logs):
+        logs['some_tensor_to_test'] = torch.rand(1)
 
     # ---------------------
     # MODEL SAVING
@@ -184,7 +201,7 @@ class LightningTemplateModel(LightningModule):
         batch_size = self.hparams.batch_size
 
         try:
-            if self.on_gpu:
+            if self.on_gpu and not self.force_remove_distributed_sampler:
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
         except Exception as e:
@@ -231,7 +248,7 @@ class LightningTemplateModel(LightningModule):
         return self._test_dataloader
 
     @staticmethod
-    def add_model_specific_args(parent_parser, root_dir): # pragma: no cover
+    def add_model_specific_args(parent_parser, root_dir):
         """
         Parameters you define here will be available to your model through self.hparams
         :param parent_parser:

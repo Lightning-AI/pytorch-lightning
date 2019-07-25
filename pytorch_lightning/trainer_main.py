@@ -52,10 +52,6 @@ def main(hparams, cluster, results_dict):
     hparams.__setattr__('nb_gpus', torch.cuda.device_count())
     hparams.__setattr__('inference_mode', hparams.model_load_weights_path is not None)
 
-    # delay each training start to not overwrite logs
-    process_position, current_gpu = TRAINING_MODEL.get_process_position(hparams.gpus)
-    sleep(process_position + 1)
-
     # init experiment
     exp = Experiment(
         name=hparams.tt_name,

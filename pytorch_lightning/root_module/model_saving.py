@@ -41,6 +41,12 @@ class ModelIO(object):
 
 class TrainerIO(object):
 
+    def __get_model(self):
+        print(type(self.model))
+        is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
+        model = self.model.module if is_dp_module else self.model
+        return model
+
     # --------------------
     # MODEL SAVE CHECKPOINT
     # --------------------
@@ -51,13 +57,18 @@ class TrainerIO(object):
         torch.save(checkpoint, filepath)
 
     def dump_checkpoint(self):
+
         checkpoint = {
             'epoch': self.current_epoch,
-            'checkpoint_callback_best': self.checkpoint_callback.best,
-            'early_stop_callback_wait': self.early_stop_callback.wait,
-            'early_stop_callback_patience': self.early_stop_callback.patience,
             'global_step': self.global_step
         }
+
+        if self.checkpoint_callback is not None:
+            checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
+
+        if self.early_stop_callback is not None:
+            checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
+            checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
         optimizer_states = []
         for i, optimizer in enumerate(self.optimizers):
@@ -66,8 +77,7 @@ class TrainerIO(object):
         checkpoint['optimizer_states'] = optimizer_states
 
         # request what to save from the model
-        is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
-        model = self.model.module if is_dp_module else self.model
+        model = self.__get_model()
         checkpoint_dict = model.get_save_dict()
 
         # merge trainer and model saving items
@@ -77,7 +87,7 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def enable_auto_hpc_walltime_manager(self):
+    def enable_auto_hpc_walltime_manager(self):  # pragma: no cover
         if self.cluster is None:
             return
 
@@ -104,9 +114,13 @@ class TrainerIO(object):
         :param checkpoint:
         :return:
         """
-        self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
-        self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
-        self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
+
+        if self.early_stop_callback is not None:
+            self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
+            self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']
 
@@ -135,7 +149,8 @@ class TrainerIO(object):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, ckpt_number)
 
         # give model a chance to do something on hpc_save
-        self.on_hpc_save()
+        model = self.__get_model()
+        model.on_hpc_save()
 
         # request what to save from the model
         checkpoint_dict = self.dump_checkpoint()
@@ -155,11 +170,11 @@ class TrainerIO(object):
         self.restore_training_state(checkpoint)
 
         # load model state
-        model = self.model.module if type(self.model) is LightningDataParallel else self.model
+        model = self.__get_model()
         model.load_model_specific(checkpoint)
 
         # call model hook
-        self.on_hpc_load()
+        model.on_hpc_load()
 
     def max_ckpt_in_folder(self, path):
         files = os.listdir(path)
