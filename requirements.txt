@@ -4,7 +4,6 @@ certifi==2018.11.29
 cffi==1.11.5
 coverage==4.5.3
 imageio==2.4.1
-mkl-fft==1.0.6
 mkdocs==1.0.4
 mkl-random==1.0.2
 more-itertools==5.0.0
