@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.root_module.root_module import LightningModule
+import pytorch_lightning as ptl
 
 
 class LightningTestModel(LightningModule):
@@ -217,35 +218,17 @@ class LightningTestModel(LightningModule):
 
         return loader
 
-    @property
+    @ptl.data_loader
     def tng_dataloader(self):
-        if self._tng_dataloader is None:
-            try:
-                self._tng_dataloader = self.__dataloader(train=True)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._tng_dataloader
+        return self.__dataloader(train=True)
 
-    @property
+    @ptl.data_loader
     def val_dataloader(self):
-        if self._val_dataloader is None:
-            try:
-                self._val_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._val_dataloader
+        return self.__dataloader(train=False)
 
-    @property
+    @ptl.data_loader
     def test_dataloader(self):
-        if self._test_dataloader is None:
-            try:
-                self._test_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._test_dataloader
+        return self.__dataloader(train=False)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):
