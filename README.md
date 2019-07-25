@@ -301,7 +301,7 @@ python single_cpu_template.py
 # train on multiple-gpus 
 python single_gpu_node_template.py --gpus "0,1"
 
-# train on 32 gpus on a cluster
+# train on 32 gpus on a cluster (run on a SLURM managed cluster)
 python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 
 ```
