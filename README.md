@@ -40,10 +40,10 @@ With lightning, you guarantee those parts of your code work so you can focus on 
 To use lightning do 2 things:  
 1. [Define a LightningModel](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
 ```python
-from pytorch_lightning import LightningModule
+import pytorch_lightning as ptl
 import torch
 
-class CoolModel(LightningModule):
+class CoolModel(ptl.LightningModule):
 
     def __init(self):
         self.l1 = torch.nn.Linear(28*28, 10)
@@ -64,23 +64,18 @@ class CoolModel(LightningModule):
     def configure_optimizers(self):
         return [optim.Adam(self.parameters(), lr=0.02)]
     
-    @property
+    @ptl.data_loader
     def tng_dataloader(self):
-        if not self._tng_dataloader:
-            self._tng_dataloader = DataLoader(MNIST('path/to/save', train=True), batch_size=32)
-        return self._tng_dataloader
+        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
-    @property
+    @ptl.data_loader
     def val_dataloader(self):
-        if not self._val_dataloader:
-            self._val_dataloader = DataLoader(MNIST('path/to/save', train=False), batch_size=32)
-        return self._val_dataloader
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
         
-    @property
+    @ptl.data_loader
     def test_dataloader(self):
-        if not self._test_dataloader:
-            self._test_dataloader = DataLoader(MNIST('path/to/save', train=False), batch_size=32)
-        return self._test_dataloader
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)   
+        
 ```
 
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
