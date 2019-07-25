@@ -287,7 +287,7 @@ pip install pytorch-lightning
 
 # clone lightning for the demo
 git clone https://github.com/williamFalcon/pytorch-lightning.git
-cd examples/new_project_templates/
+cd pytorch_lightning/examples/new_project_templates/
 
 # run demo (on cpu)
 python trainer_gpu_cluster_template.py
@@ -295,11 +295,15 @@ python trainer_gpu_cluster_template.py
 
 Without changing the model AT ALL, you can run the model on a single gpu, over multiple gpus, or over multiple nodes.
 ```bash
-# run a grid search on two gpus
-python fully_featured_trainer.py --gpus "0;1"
+# train on cpu 
+python single_cpu_template.py
 
-# run single model on multiple gpus
-python fully_featured_trainer.py --gpus "0;1" --interactive
+# train on multiple-gpus 
+python single_gpu_node_template.py --gpus "0,1"
+
+# train on 32 gpus on a cluster
+python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
+
 ```
 
 
