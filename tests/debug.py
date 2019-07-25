@@ -91,7 +91,7 @@ def run_prediction(dataloader, trained_model):
     assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
 
 
-def mainasdf():
+def main():
 
     save_dir = init_save_dir()
     model, hparams = get_model()
@@ -128,15 +128,5 @@ def mainasdf():
     clear_save_dir()
 
 
-
-
 if __name__ == '__main__':
-    import subprocess
-    import re
-
-    print('getting pid')
-    command = "lsof -i :%s | awk '{print $2}'" % 12910
-    pids = subprocess.check_output(command, shell=True)
-    pids = pids.strip()
-
-    print(len(pids))
+    main()

@@ -203,14 +203,17 @@ class LightningTemplateModel(LightningModule):
 
     @ptl.data_loader
     def tng_dataloader(self):
+        print('tng data loader called')
         return self.__dataloader(train=True)
 
     @ptl.data_loader
     def val_dataloader(self):
+        print('val data loader called')
         return self.__dataloader(train=False)
 
     @ptl.data_loader
     def test_dataloader(self):
+        print('test data loader called')
         return self.__dataloader(train=False)
 
     @staticmethod
