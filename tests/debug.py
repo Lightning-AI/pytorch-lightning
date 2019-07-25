@@ -11,6 +11,55 @@ import os
 import shutil
 import pdb
 
+import pytorch_lightning as ptl
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+
+
+class CoolModel(ptl.LightningModule):
+
+    def __init(self):
+        super(CoolModel, self).__init__()
+        # not the best model...
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
+    def forward(self, x):
+        return torch.relu(self.l1(x))
+
+    def my_loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'tng_loss': self.my_loss(y_hat, y)}
+
+    def validation_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'val_loss': self.my_loss(y_hat, y)}
+
+    def validation_end(self, outputs):
+        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
+        return avg_loss
+
+    def configure_optimizers(self):
+        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+
+    @ptl.data_loader
+    def tng_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+
+    @ptl.data_loader
+    def val_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+
+    @ptl.data_loader
+    def test_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+
 
 def get_model():
     # set up model with these hyperparams
@@ -94,11 +143,9 @@ def run_prediction(dataloader, trained_model):
 def main():
 
     save_dir = init_save_dir()
-    model, hparams = get_model()
 
     # exp file to get meta
     exp = get_exp(False)
-    exp.argparse(hparams)
     exp.save()
 
     # exp file to get weights
@@ -112,6 +159,8 @@ def main():
         gpus=[0, 1],
         distributed_backend='dp',
     )
+
+    model = CoolModel()
 
     result = trainer.fit(model)
 

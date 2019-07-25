@@ -8,9 +8,8 @@ from pytorch_lightning.root_module.decorators import data_loader
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
 
-    def __init__(self, hparams):
+    def __init__(self):
         super(LightningModule, self).__init__()
-        self.hparams = hparams
 
         self.dtype = torch.FloatTensor
         self.exp_save_path = None
@@ -64,18 +63,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def summarize(self):
-        model_summary = ModelSummary(self)
-        print(model_summary)
-
-    def freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
-
-    def unfreeze(self):
-        for param in self.parameters():
-            param.requires_grad = True
-
     @data_loader
     def tng_dataloader(self):
         """
@@ -127,6 +114,18 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         model.load_model_specific(checkpoint)
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         return model
+
+    def summarize(self):
+        model_summary = ModelSummary(self)
+        print(model_summary)
+
+    def freeze(self):
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def unfreeze(self):
+        for param in self.parameters():
+            param.requires_grad = True
 
 
 
