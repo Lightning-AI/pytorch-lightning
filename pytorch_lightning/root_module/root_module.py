@@ -64,14 +64,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def loss(self, *args, **kwargs):
-        """
-        Expand model_out into your components
-        :param model_out:
-        :return:
-        """
-        raise NotImplementedError
-
     def summarize(self):
         model_summary = ModelSummary(self)
         print(model_summary)
