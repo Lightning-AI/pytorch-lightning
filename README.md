@@ -49,32 +49,33 @@ from torchvision.datasets import MNIST
 class CoolModel(ptl.LightningModule):
 
     def __init(self):
+        super(CoolModel, self).__init__()
         # not the best model...
-        self.l1 = torch.nn.Linear(28*28, 10)
-        
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
     def forward(self, x):
         return torch.relu(self.l1(x))
-    
+
     def my_loss(self, y_hat, y):
         return F.cross_entropy(y_hat, y)
-    
+
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
         return {'tng_loss': self.my_loss(y_hat, y)}
-    
+
     def validation_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
         return {'val_loss': self.my_loss(y_hat, y)}
-        
+
     def validation_end(self, outputs):
         avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
         return avg_loss
-        
+
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
-    
+
     @ptl.data_loader
     def tng_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
@@ -82,10 +83,10 @@ class CoolModel(ptl.LightningModule):
     @ptl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
-        
+
     @ptl.data_loader
     def test_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)    
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 ```
 
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
