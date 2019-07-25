@@ -544,25 +544,25 @@ class Trainer(TrainerIO):
             os.environ['MASTER_PORT'] = f'{port}'
 
         # figure out the root node addr
-        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        try:
+            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        except Exception as e:
+            root_node = '127.0.0.2'
+
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def resolve_root_node_address(self, root_node):
-        try:
-            if '[' in root_node:
-                name = root_node.split('[')[0]
-                number = root_node.split(',')[0]
-                if '-' in number:
-                    number = number.split('-')[0]
+        if '[' in root_node:
+            name = root_node.split('[')[0]
+            number = root_node.split(',')[0]
+            if '-' in number:
+                number = number.split('-')[0]
 
-                number = re.sub('[^0-9]', '', number)
-                root_node = name + number
-
-        except Exception as e:
-            root_node = '127.0.0.2'
+            number = re.sub('[^0-9]', '', number)
+            root_node = name + number
 
         return root_node
 
