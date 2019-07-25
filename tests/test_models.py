@@ -55,7 +55,9 @@ def test_amp_gpu_ddp_slurm_managed():
         warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
         return
 
+    # simulate setting slurm flags
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    os.environ['SLURM_LOCALID'] = 0
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
