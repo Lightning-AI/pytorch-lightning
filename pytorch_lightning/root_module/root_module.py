@@ -3,7 +3,7 @@ from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.grads import GradInformation
 from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.root_module.hooks import ModelHooks
-import pytorch_lightning as ptl
+from pytorch_lightning.root_module.decorators import data_loader
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
