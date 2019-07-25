@@ -66,18 +66,21 @@ class CoolModel(LightningModule):
     
     @property
     def tng_dataloader(self):
-        mnist = MNIST('path/to/save', train=True)
-        return DataLoader(mnist, batch_size=32)
+        if not self._tng_dataloader:
+            self._tng_dataloader = DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+        return self._tng_dataloader
 
     @property
     def val_dataloader(self):
-        mnist = MNIST('path/to/save', train=False)
-        return DataLoader(mnist, batch_size=32)
+        if not self._val_dataloader:
+            self._val_dataloader = DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return self._val_dataloader
         
     @property
     def test_dataloader(self):
-        mnist = MNIST('sam/as/val/for/simplicity', train=False)
-        return DataLoader(mnist, batch_size=32)   
+        if not self._test_dataloader:
+            self._test_dataloader = DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return self._test_dataloader
 ```
 
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
