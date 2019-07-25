@@ -237,10 +237,10 @@ def load_model_specific(self, checkpoint):
 ### tng_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def tng_dataloader(self)
 ```
-Called by lightning during training loop. Define it as a property.
+Called by lightning during training loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
@@ -270,10 +270,10 @@ def tng_dataloader(self):
 ### val_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def tng_dataloader(self)
 ```
-Called by lightning during validation loop. Define it as a property.
+Called by lightning during validation loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
@@ -303,10 +303,10 @@ def val_dataloader(self):
 ### test_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def test_dataloader(self)
 ```
-Called by lightning during test loop. Define it as a property.
+Called by lightning during test loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
