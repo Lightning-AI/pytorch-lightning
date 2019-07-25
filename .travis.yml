@@ -6,6 +6,7 @@ cache: pip
 install:
   - pip install -e .
   - pip install -r requirements.txt --ignore-installed
+  - pip install numpy -I
 
 # keep build from timing out
 dist: xenial
