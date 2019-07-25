@@ -7,6 +7,7 @@ from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utils.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
+from pytorch_lightning.models.trainer import reduce_distributed_output
 import numpy as np
 import warnings
 import torch
@@ -21,6 +22,26 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_dp_output_reduce():
+
+    # test identity when we have a single gpu
+    out = torch.rand(3, 1)
+    assert reduce_distributed_output(out, nb_gpus=1) == out
+
+    # average when we have multiples
+    assert reduce_distributed_output(out, nb_gpus=2) == out.mean()
+
+    # when we have a dict of vals
+    out = {
+        'a': out,
+        'b': {
+            'c': out
+        }
+    }
+    reduced = reduce_distributed_output(out, nb_gpus=3)
+    assert reduced['a'] == out['a']
+    assert reduced['b']['c'] == out['b']['c']
+
 
 def test_amp_gpu_ddp_slurm_managed():
     """
@@ -75,7 +96,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
-    # test model loading
+    # test model loading with a map_location
     map_location = 'cuda:1'
     pretrained_model = load_model(exp, save_dir, True, map_location)
 
