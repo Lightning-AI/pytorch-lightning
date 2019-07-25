@@ -84,7 +84,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         for param in self.parameters():
             param.requires_grad = True
 
-    @ptl.data_loader
+    @data_loader
     def tng_dataloader(self):
         """
         Implement a function to load an h5py of this data
@@ -92,7 +92,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @ptl.data_loader
+    @data_loader
     def test_dataloader(self):
         """
         Implement a function to load an h5py of this data
@@ -100,7 +100,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @ptl.data_loader
+    @data_loader
     def val_dataloader(self):
         """
         Implement a function to load an h5py of this data
