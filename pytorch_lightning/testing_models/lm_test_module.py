@@ -26,6 +26,7 @@ class LightningTestModel(LightningModule):
         """
         # init superclass
         super(LightningTestModel, self).__init__()
+        self.hparams = hparams
 
         self.batch_size = hparams.batch_size
 
