@@ -27,6 +27,8 @@ np.random.seed(SEED)
 def test_loading_meta_tags():
     hparams = get_hparams()
 
+    save_dir = init_save_dir()
+
     # save tags
     exp = get_exp(False)
     exp.tag({'some_str':'a_str', 'an_int': 1, 'a_float': 2.0})
@@ -40,7 +42,6 @@ def test_loading_meta_tags():
     assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
 
     clear_save_dir()
-
 
 def test_dp_output_reduce():
 
