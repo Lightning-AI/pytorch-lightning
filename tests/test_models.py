@@ -45,7 +45,7 @@ def test_dp_output_reduce():
 
 def test_cpu_slurm_managed():
     """
-    SLURM checkpointing works
+    Verify model save/load/checkpoint on CPU
     :return:
     """
     hparams = get_hparams()
