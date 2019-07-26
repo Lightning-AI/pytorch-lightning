@@ -612,8 +612,9 @@ class Trainer(TrainerIO):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # update the lr scheduler
-            for lr_scheduler in self.lr_schedulers:
-                lr_scheduler.step()
+            if self.lr_schedulers is not None:
+                for lr_scheduler in self.lr_schedulers:
+                    lr_scheduler.step()
 
             model = self.__get_model()
             model.current_epoch = epoch_nb
