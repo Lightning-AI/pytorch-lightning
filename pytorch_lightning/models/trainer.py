@@ -10,7 +10,6 @@ import re
 
 import torch
 from torch.utils.data.distributed import DistributedSampler
-from torch.optim.lr_scheduler import MultiStepLR
 import torch.multiprocessing as mp
 import torch.distributed as dist
 import numpy as np
