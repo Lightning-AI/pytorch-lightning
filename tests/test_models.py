@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
 from pytorch_lightning.testing_models.lm_test_module import LightningTestModel
 from argparse import Namespace
-from test_tube import Experiment
+from test_tube import Experiment, SlurmCluster
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utils.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
@@ -43,17 +43,13 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_cpu_slurm_managed():
+def test_cpu_slurm_saving_loading():
     """
     Verify model save/load/checkpoint on CPU
     :return:
     """
     hparams = get_hparams()
     model = LightningTestModel(hparams)
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-    )
 
     save_dir = init_save_dir()
 
@@ -62,19 +58,27 @@ def test_cpu_slurm_managed():
     exp.argparse(hparams)
     exp.save()
 
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    real_global_step = trainer.global_step
 
-    # correct result and ok accuracy
+    # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
+
+    # test saving checkpoint
+    ckpt_test = os.path.join(save_dir, 'test.ckpt')
+    trainer.save_checkpoint(ckpt_test)
+
+    # test registering a save function
+    trainer.enable_auto_hpc_walltime_manager()
 
     # test model loading with a map_location
     pretrained_model = load_model(exp, save_dir, True)
@@ -85,9 +89,14 @@ def test_cpu_slurm_managed():
     trainer.model = pretrained_model
     trainer.optimizers = pretrained_model.configure_optimizers()
 
-    # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    # test HPC saving
+    saved_filepath = trainer.hpc_save(save_dir, exp)
+    assert os.path.exists(saved_filepath)
+
+    # test HPC loading
+    trainer.global_step = 20000000
     trainer.hpc_load(save_dir, on_gpu=False)
+    assert trainer.global_step == real_global_step and trainer.global_step != 20000000
 
     # test freeze on gpu
     model.freeze()

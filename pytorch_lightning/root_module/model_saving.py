@@ -86,7 +86,7 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def enable_auto_hpc_walltime_manager(self):  # pragma: no cover
+    def enable_auto_hpc_walltime_manager(self):
         if self.cluster is None:
             return
 
@@ -156,6 +156,8 @@ class TrainerIO(object):
 
         # do the actual save
         torch.save(checkpoint_dict, filepath)
+
+        return filepath
 
     def hpc_load(self, folderpath, on_gpu):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
