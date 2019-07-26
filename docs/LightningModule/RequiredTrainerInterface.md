@@ -234,7 +234,7 @@ Tuple - List of optimizers and list of schedulers
 ``` {.python}
 # most cases
 def configure_optimizers(self):
-    opt = Adam(self.model.parameters(), lr=0.01)
+    opt = Adam(self.parameters(), lr=0.01)
     return [opt], []
     
 # gan example, with scheduler for discriminator
