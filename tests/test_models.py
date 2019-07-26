@@ -8,11 +8,13 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utils.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
+from pytorch_lightning.root_module import model_saving
 import numpy as np
 import warnings
 import torch
 import os
 import shutil
+import pdb
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -22,6 +24,25 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_loading_meta_tags():
+    hparams = get_hparams()
+
+    save_dir = init_save_dir()
+
+    # save tags
+    exp = get_exp(False)
+    exp.tag({'some_str':'a_str', 'an_int': 1, 'a_float': 2.0})
+    exp.argparse(hparams)
+    exp.save()
+
+    # load tags
+    tags_path = exp.get_data_path(exp.name, exp.version) + '/meta_tags.csv'
+    tags = model_saving.load_hparams_from_tags_csv(tags_path)
+
+    pdb.set_trace()
+    assert len(tags) >=3
+
+
 def test_dp_output_reduce():
 
     # test identity when we have a single gpu
