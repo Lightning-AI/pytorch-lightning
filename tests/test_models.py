@@ -39,7 +39,7 @@ def test_loading_meta_tags():
     tags_path = exp.get_data_path(exp.name, exp.version) + '/meta_tags.csv'
     tags = model_saving.load_hparams_from_tags_csv(tags_path)
 
-    assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
+    assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
     clear_save_dir()
 
