@@ -500,6 +500,9 @@ class Trainer(TrainerIO):
         self.proc_rank = self.node_rank * len(self.data_parallel_device_ids) + gpu_nb
         self.world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
+        # let the exp know the rank to avoid overwriting logs
+        self.experiment.rank = self.proc_rank
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
