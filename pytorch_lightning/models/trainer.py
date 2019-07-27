@@ -24,7 +24,7 @@ from pytorch_lightning.utils.debugging import MisconfigurationException
 try:
     from apex import amp
     APEX_AVAILABLE = True
-except ModuleNotFoundError: # pragma: no cover
+except Exception:
     APEX_AVAILABLE = False
 
 
