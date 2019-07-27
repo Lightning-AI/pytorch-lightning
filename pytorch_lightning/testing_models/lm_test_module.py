@@ -11,22 +11,30 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.root_module.root_module import LightningModule
+import pytorch_lightning as ptl
 
 
-class LightningTemplateModel(LightningModule):
+class LightningTestModel(LightningModule):
     """
     Sample model to show how to define a template
     """
 
-    def __init__(self, hparams):
+    def __init__(self, hparams, force_remove_distributed_sampler=False):
         """
         Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
         """
         # init superclass
-        super(LightningTemplateModel, self).__init__(hparams)
+        super(LightningTestModel, self).__init__()
+        self.hparams = hparams
 
         self.batch_size = hparams.batch_size
+
+        # if you specify an example input, the summary will show input/output for each layer
+        self.example_input_array = torch.rand(5, 28 * 28)
+
+        # remove to test warning for dist sampler
+        self.force_remove_distributed_sampler = force_remove_distributed_sampler
 
         # build model
         self.__build_model()
@@ -78,15 +86,21 @@ class LightningTemplateModel(LightningModule):
         # forward pass
         x, y = data_batch
         x = x.view(x.size(0), -1)
+
         y_hat = self.forward(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
 
+        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
+        if self.trainer.use_dp:
+            loss_val = loss_val.unsqueeze(0)
+
         output = OrderedDict({
-            'loss': loss_val,
-            'tqdm_metrics': {}
+            'loss': loss_val
         })
+
+        # can also return just a scalar instead of a dict (return loss_val)
         return output
 
     def validation_step(self, data_batch, batch_i):
@@ -104,12 +118,33 @@ class LightningTemplateModel(LightningModule):
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        val_acc = torch.tensor(val_acc)
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': torch.tensor(val_acc),
-        })
-        return output
+        if self.on_gpu:
+            val_acc = val_acc.cuda(loss_val.device.index)
+
+        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
+        if self.trainer.use_dp:
+            loss_val = loss_val.unsqueeze(0)
+            val_acc = val_acc.unsqueeze(0)
+
+        # alternate possible outputs to test
+        if self.trainer.batch_nb % 1 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            })
+            return output
+        if self.trainer.batch_nb % 2 == 0:
+            return val_acc
+
+        if self.trainer.batch_nb % 3 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+                'test_dic': {'val_loss_a': loss_val}
+            })
+            return output
 
     def validation_end(self, outputs):
         """
@@ -117,6 +152,10 @@ class LightningTemplateModel(LightningModule):
         :param outputs: list of individual outputs of each validation step
         :return:
         """
+        # if returned a scalar from validation_step, outputs is a list of tensor scalars
+        # we return just the average in this case (if we want)
+        # return torch.stack(outputs).mean()
+
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
@@ -125,22 +164,12 @@ class LightningTemplateModel(LightningModule):
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
+
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
 
-    def update_tng_log_metrics(self, logs):
-        return logs
-
-    # ---------------------
-    # MODEL SAVING
-    # ---------------------
-    def get_save_dict(self):
-        checkpoint = {'state_dict': self.state_dict()}
-        return checkpoint
-
-    def load_model_specific(self, checkpoint):
-        self.load_state_dict(checkpoint['state_dict'])
-        pass
+    def on_tng_metrics(self, logs):
+        logs['some_tensor_to_test'] = torch.rand(1)
 
     # ---------------------
     # TRAINING SETUP
@@ -163,7 +192,7 @@ class LightningTemplateModel(LightningModule):
         batch_size = self.hparams.batch_size
 
         try:
-            if self.on_gpu:
+            if self.on_gpu and not self.force_remove_distributed_sampler:
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
         except Exception as e:
@@ -179,35 +208,17 @@ class LightningTemplateModel(LightningModule):
 
         return loader
 
-    @property
+    @ptl.data_loader
     def tng_dataloader(self):
-        if self._tng_dataloader is None:
-            try:
-                self._tng_dataloader = self.__dataloader(train=True)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._tng_dataloader
+        return self.__dataloader(train=True)
 
-    @property
+    @ptl.data_loader
     def val_dataloader(self):
-        if self._val_dataloader is None:
-            try:
-                self._val_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._val_dataloader
+        return self.__dataloader(train=False)
 
-    @property
+    @ptl.data_loader
     def test_dataloader(self):
-        if self._test_dataloader is None:
-            try:
-                self._test_dataloader = self.__dataloader(train=False)
-            except Exception as e:
-                print(e)
-                raise e
-        return self._test_dataloader
+        return self.__dataloader(train=False)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):

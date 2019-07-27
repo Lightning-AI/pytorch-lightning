@@ -21,7 +21,8 @@ pretrained_model = MyLightningModule.load_from_metrics(
     map_location=None
 )
     
-# predict 
+# predict
+pretrained_model.eval()
 pretrained_model.freeze()
 y_hat = pretrained_model(x)
 ```
