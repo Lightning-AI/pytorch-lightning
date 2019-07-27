@@ -182,7 +182,6 @@ class TrainerIO(object):
         # call model hook
         model.on_hpc_load(checkpoint)
 
-
     def max_ckpt_in_folder(self, path):
         files = os.listdir(path)
         files = [x for x in files if 'ckpt_' in x]
