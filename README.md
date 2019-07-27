@@ -100,11 +100,16 @@ from pytorch_lightning import Trainer
 from test_tube import Experiment
 
 model = CoolModel()
-
-# fit on 32 gpus across 4 nodes
-model = CoolModel()
 exp = Experiment(save_dir=os.getcwd())
+
+# train on cpu
 trainer = Trainer(experiment=exp, max_nb_epochs=1)
+
+# train on 4 gpus
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3])
+
+# train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3, 4, 5, 6, 7], nb_gpu_nodes=4)
 
 # train (1 epoch only here for demo)
 trainer.fit(model)
