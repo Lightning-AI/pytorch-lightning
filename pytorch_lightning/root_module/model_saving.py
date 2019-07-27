@@ -176,7 +176,6 @@ class TrainerIO(object):
         model = self.__get_model()
 
         # load the state_dict on the model automatically
-        pdb.set_trace()
         model.load_state_dict(checkpoint['state_dict'])
 
         # call model hook
