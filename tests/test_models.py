@@ -24,6 +24,73 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_cpu_slurm_save_load():
+    """
+    Verify model save/load/checkpoint on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_step = trainer.global_step
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # predict with trained model before saving
+    # make a prediction
+    for batch in model.test_dataloader:
+        break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    model.eval()
+    pred_before_saving = model(x)
+
+    # test registering a save function
+    trainer.enable_auto_hpc_walltime_manager()
+
+    # test HPC saving
+    # simulate snapshot on slurm
+    saved_filepath = trainer.hpc_save(save_dir, exp)
+    assert os.path.exists(saved_filepath)
+
+    # wipe-out trainer model
+    # we want to see if the weights come back correctly
+    trainer.model = LightningTestModel(hparams)
+
+    # test HPC loading
+    trainer.global_step = 20000000
+    trainer.hpc_load(save_dir, on_gpu=False)
+    assert trainer.global_step == real_global_step and trainer.global_step != 20000000
+
+    # predict with loaded model to make sure answers are the same
+    trainer.model.eval()
+    new_pred = trainer.model(x)
+    assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+    clear_save_dir()
+
+
 def test_loading_meta_tags():
     hparams = get_hparams()
 
@@ -123,70 +190,6 @@ def test_model_saving_loading():
     clear_save_dir()
 
 
-def test_cpu_slurm_save_load():
-    """
-    Verify model save/load/checkpoint on CPU
-    :return:
-    """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-        cluster=SlurmCluster(),
-        experiment=exp,
-        checkpoint_callback=ModelCheckpoint(save_dir)
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    real_global_step = trainer.global_step
-
-    # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # predict with trained model before saving
-    # make a prediction
-    for batch in model.test_dataloader:
-        break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    model.eval()
-    pred_before_saving = model(x)
-
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
-
-    # test HPC saving
-    # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(save_dir, exp)
-    assert os.path.exists(saved_filepath)
-
-    # wipe-out trainer model
-    # we want to see if the weights come back correctly
-    trainer.model = LightningTestModel(hparams)
-
-    # test HPC loading
-    trainer.global_step = 20000000
-    trainer.hpc_load(save_dir, on_gpu=False)
-    assert trainer.global_step == real_global_step and trainer.global_step != 20000000
-
-    # predict with loaded model to make sure answers are the same
-    trainer.model.eval()
-    new_pred = trainer.model(x)
-    assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
-    clear_save_dir()
 
 
 def test_model_freeze_unfreeze():
