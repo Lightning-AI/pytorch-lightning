@@ -24,6 +24,16 @@ have configuration issues depending on your cluster.
 For a deeper understanding of what lightning is doing, feel free to read [this guide](https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565).   
 
 ---
+#### CUDA flags   
+CUDA flags make certain GPUs visible to your script. 
+Lightning sets these for you automatically, there's NO NEED to do this yourself.
+```python
+# lightning will set according to what you give the trainer
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+```
+
+---
 #### 16-bit mixed precision
 16 bit precision can cut your memory footprint by half. If using volta architecture GPUs it can give a dramatic training speed-up as well.    
 First, install apex (if install fails, look [here](https://github.com/NVIDIA/apex)):
@@ -43,10 +53,6 @@ trainer = Trainer(amp_level='O2', use_amp=False)
 #### Single-gpu
 Make sure you're on a GPU machine. 
 ```python
-# set these flags
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 # DEFAULT
 trainer = Trainer(gpus=[0])
 ```
@@ -56,13 +62,6 @@ trainer = Trainer(gpus=[0])
 Make sure you're on a GPU machine. You can set as many GPUs as you want.
 In this setting, the model will run on all 8 GPUs at once using DataParallel under the hood.
 ```python
-# set these flags
-# lightning sets these flags for you automatically
-# no need to set yourself
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
-
-
 # to use DataParallel (default)
 trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='dp')
 
