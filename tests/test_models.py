@@ -66,6 +66,10 @@ def test_dp_output_reduce():
 
 
 def test_model_saving_loading():
+    """
+    Tests use case where trainer saves the model, and user loads it from tags independently
+    :return:
+    """
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
