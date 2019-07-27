@@ -115,7 +115,8 @@ trainer = Trainer(experiment=exp, max_nb_epochs=1)
 trainer.fit(model)
 
 # view tensorflow logs 
-print(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')  
+print(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+print('and going to http://localhost:6006 on your browser')
 ```
 
 
