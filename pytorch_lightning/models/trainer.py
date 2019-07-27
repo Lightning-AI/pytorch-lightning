@@ -161,7 +161,6 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = None
         self.nb_test_batches = None
 
-
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
