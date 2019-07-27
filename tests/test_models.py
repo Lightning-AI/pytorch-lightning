@@ -24,6 +24,88 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_cpu_slurm_save_load():
+    """
+    Verify model save/load/checkpoint on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    cluster_a = SlurmCluster()
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=cluster_a,
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_step = trainer.global_step
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # predict with trained model before saving
+    # make a prediction
+    for batch in model.test_dataloader:
+        break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    model.eval()
+    pred_before_saving = model(x)
+
+    # test registering a save function
+    trainer.enable_auto_hpc_walltime_manager()
+
+    # test HPC saving
+    # simulate snapshot on slurm
+    saved_filepath = trainer.hpc_save(save_dir, exp)
+    assert os.path.exists(saved_filepath)
+
+    # wipe-out trainer and model
+    # retrain with not much data... this simulates picking training back up after slurm
+    # we want to see if the weights come back correctly
+    continue_tng_hparams = get_hparams(continue_training=True, hpc_exp_number=cluster_a.hpc_exp_number)
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(continue_tng_hparams),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir),
+    )
+    trainer = Trainer(**trainer_options)
+    model = LightningTestModel(hparams)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_pred_same():
+        assert trainer.global_step == real_global_step and trainer.global_step > 0
+
+        # predict with loaded model to make sure answers are the same
+        trainer.model.eval()
+        new_pred = trainer.model(x)
+        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+    model.on_epoch_start = assert_pred_same
+
+    # by calling fit again, we trigger training, loading weights from the cluster
+    # and our hook to predict using current model before any more weight updates
+    trainer.fit(model)
+
+    clear_save_dir()
+
+
 def test_loading_meta_tags():
     hparams = get_hparams()
 
@@ -42,6 +124,7 @@ def test_loading_meta_tags():
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
     clear_save_dir()
+
 
 def test_dp_output_reduce():
 
@@ -64,9 +147,9 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_cpu_slurm_saving_loading():
+def test_model_saving_loading():
     """
-    Verify model save/load/checkpoint on CPU
+    Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
     hparams = get_hparams()
@@ -89,41 +172,47 @@ def test_cpu_slurm_saving_loading():
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    real_global_step = trainer.global_step
 
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    # test saving checkpoint
-    ckpt_test = os.path.join(save_dir, 'test.ckpt')
-    trainer.save_checkpoint(ckpt_test)
+    # make a prediction
+    for batch in model.test_dataloader:
+        break
 
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
+    x, y = batch
+    x = x.view(x.size(0), -1)
 
-    # test model loading with a map_location
-    pretrained_model = load_model(exp, save_dir, True)
+    # generate preds before saving model
+    model.eval()
+    pred_before_saving = model(x)
 
-    # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
+    # save model
+    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
 
-    trainer.model = pretrained_model
-    trainer.optimizers = pretrained_model.configure_optimizers()
+    # load new model
+    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path, tags_csv=tags_path, on_gpu=False)
+    model_2.eval()
 
-    # test HPC saving
-    saved_filepath = trainer.hpc_save(save_dir, exp)
-    assert os.path.exists(saved_filepath)
-
-    # test HPC loading
-    trainer.global_step = 20000000
-    trainer.hpc_load(save_dir, on_gpu=False)
-    assert trainer.global_step == real_global_step and trainer.global_step != 20000000
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
+    # make prediction
+    # assert that both predictions are the same
+    new_pred = model_2(x)
+    assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
     clear_save_dir()
+
+
+
+
+def test_model_freeze_unfreeze():
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    model.freeze()
+    model.unfreeze()
 
 
 def test_amp_gpu_ddp_slurm_managed():
@@ -494,16 +583,24 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     clear_save_dir()
 
 
-def get_hparams():
+def get_hparams(continue_training=False, hpc_exp_number=0):
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    hparams = Namespace(**{'drop_prob': 0.2,
-                           'batch_size': 32,
-                           'in_features': 28*28,
-                           'learning_rate': 0.001*8,
-                           'optimizer_name': 'adam',
-                           'data_root': os.path.join(root_dir, 'mnist'),
-                           'out_features': 10,
-                           'hidden_dim': 1000})
+
+    args = {
+        'drop_prob': 0.2,
+        'batch_size': 32,
+        'in_features': 28*28,
+        'learning_rate': 0.001*8,
+        'optimizer_name': 'adam',
+        'data_root': os.path.join(root_dir, 'mnist'),
+        'out_features': 10,
+        'hidden_dim': 1000}
+
+    if continue_training:
+        args['test_tube_do_checkpoint_load'] = True
+        args['hpc_exp_number'] = hpc_exp_number
+
+    hparams = Namespace(**args)
     return hparams
 
 

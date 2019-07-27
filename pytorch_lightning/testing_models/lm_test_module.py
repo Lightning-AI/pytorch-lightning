@@ -172,17 +172,6 @@ class LightningTestModel(LightningModule):
         logs['some_tensor_to_test'] = torch.rand(1)
 
     # ---------------------
-    # MODEL SAVING
-    # ---------------------
-    def get_save_dict(self):
-        checkpoint = {'state_dict': self.state_dict()}
-        return checkpoint
-
-    def load_model_specific(self, checkpoint):
-        self.load_state_dict(checkpoint['state_dict'])
-        pass
-
-    # ---------------------
     # TRAINING SETUP
     # ---------------------
     def configure_optimizers(self):
