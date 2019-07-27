@@ -80,9 +80,8 @@ def test_cpu_slurm_save_load():
     trainer.model = LightningTestModel(hparams)
 
     # test HPC loading
-    trainer.global_step = 20000000
     trainer.hpc_load(save_dir, on_gpu=False)
-    assert trainer.global_step == real_global_step and trainer.global_step != 20000000
+    assert trainer.global_step == real_global_step and trainer.global_step > 0
 
     # predict with loaded model to make sure answers are the same
     trainer.model.eval()
