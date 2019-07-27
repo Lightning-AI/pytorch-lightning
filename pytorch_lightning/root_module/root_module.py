@@ -108,11 +108,13 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
 
+        # load the state_dict on the model automatically
         model = cls(hparams)
+        model.load_state_dict(checkpoint['state_dict'])
 
-        # allow model to load
-        model.load_model_specific(checkpoint)
-        model.load_state_dict(checkpoint['state_dict'], strict=False)
+        # give model a chance to load something
+        model.on_load_checkpoint(checkpoint)
+
         return model
 
     def summarize(self):

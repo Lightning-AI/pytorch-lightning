@@ -161,7 +161,6 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = None
         self.nb_test_batches = None
 
-
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -611,14 +610,18 @@ class Trainer(TrainerIO):
         if self.proc_rank == 0:
             self.experiment.save()
 
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.model = model
+
         # enable cluster checkpointing
+        # also restores training state
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
-        self.model = model
         self.__train()
 
     def __train(self):
