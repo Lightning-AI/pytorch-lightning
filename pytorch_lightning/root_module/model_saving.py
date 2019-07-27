@@ -81,10 +81,10 @@ class TrainerIO(object):
         # request what to save from the model
         model = self.__get_model()
         checkpoint_dict = model.get_save_dict()
-
-        # merge trainer and model saving items
-        checkpoint['state_dict'] = checkpoint_dict
         checkpoint.update(checkpoint_dict)
+
+        # add the state_dict from the model
+        checkpoint['state_dict'] = checkpoint_dict
         return checkpoint
 
     # --------------------
@@ -185,6 +185,7 @@ class TrainerIO(object):
 
         # call model hook
         model.on_hpc_load()
+
 
     def max_ckpt_in_folder(self, path):
         files = os.listdir(path)

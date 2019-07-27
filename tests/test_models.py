@@ -43,6 +43,7 @@ def test_loading_meta_tags():
 
     clear_save_dir()
 
+
 def test_dp_output_reduce():
 
     # test identity when we have a single gpu
@@ -62,6 +63,61 @@ def test_dp_output_reduce():
     reduced = reduce_distributed_output(out, nb_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
+
+
+def test_model_saving_loading():
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_step = trainer.global_step
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # make a prediction
+    for batch in model.test_dataloader:
+        break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    # generate preds before saving model
+    model.eval()
+    pred_before_saving = model(x)
+
+    # save model
+    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path, tags_csv=tags_path, on_gpu=False)
+    model_2.eval()
+
+    # make prediction
+    # assert that both predictions are the same
+    new_pred = model_2(x)
+    assert torch.eq(pred_before_saving, new_pred)
+
+    clear_save_dir()
 
 
 def test_cpu_slurm_saving_loading():
