@@ -14,8 +14,6 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [validation_end](RequiredTrainerInterface.md#validation_end)
     
 - [configure_optimizers](RequiredTrainerInterface.md#configure_optimizers)
-- [get_save_dict](RequiredTrainerInterface.md#get_save_dict)
-- [load_model_specific](RequiredTrainerInterface.md#load_model_specific)
 
 - [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
 - [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
@@ -23,6 +21,8 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 
 **Optional**:   
 
+- [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)
+- [on_load_checkpoint](RequiredTrainerInterface.md#on_load_checkpoint)
 - [update_tng_log_metrics](RequiredTrainerInterface.md#update_tng_log_metrics)
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)
 
@@ -245,34 +245,35 @@ def configure_optimizers(self):
 ```
 
 --- 
-### get_save_dict 
+### on_save_checkpoint 
 
 ``` {.python}
-def get_save_dict(self)
+def on_save_checkpoint(self, checkpoint)
 ```
-Called by lightning to checkpoint your model. Lightning saves current epoch, current batch nb, etc...
-All you have to return is what specifically about your lightning model you want to checkpoint.
+Called by lightning to checkpoint your model. Lightning saves the training state (current epoch, global_step, etc)
+and also saves the model state_dict. If you want to save anything else, use this method to add your own
+key-value pair.
 
 ##### Return
-Dictionary - No required keys. Most of the time as described in this example.   
+Nothing
 
 **Example**
 
 ``` {.python}
-def get_save_dict(self):
-    # 99% of use cases this is all you need to return
-    checkpoint = {'state_dict': self.state_dict()}
-    return checkpoint
+def on_save_checkpoint(self, checkpoint):
+    # 99% of use cases you don't need to implement this method 
+    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 ```
 
 --- 
-### load_model_specific 
+### on_load_checkpoint 
 
 ``` {.python}
-def load_model_specific(self, checkpoint)
+def on_load_checkpoint(self, checkpoint)
 ```
-Called by lightning to restore your model. This is your chance to restore your model using the keys you added in get_save_dict.
-Lightning will automatically restore current epoch, batch nb, etc. 
+Called by lightning to restore your model. Lighting auto-restores global step, epoch, etc...
+It also restores the model state_dict.
+If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
 ##### Return
 Nothing  
@@ -280,9 +281,9 @@ Nothing
 **Example**
 
 ``` {.python}
-def load_model_specific(self, checkpoint):
-    # you defined 'state_dict' in get_save_dict()
-    self.load_state_dict(checkpoint['state_dict'])
+def on_load_checkpoint(self, checkpoint):
+    # 99% of the time you don't need to implement this method
+    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 ```
 
 --- 
