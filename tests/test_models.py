@@ -74,8 +74,9 @@ def test_cpu_slurm_save_load():
     saved_filepath = trainer.hpc_save(save_dir, exp)
     assert os.path.exists(saved_filepath)
 
-    # wipe-out trainer model
+    # wipe-out trainer and model
     # we want to see if the weights come back correctly
+    trainer = Trainer(**trainer_options)
     trainer.model = LightningTestModel(hparams)
 
     # test HPC loading
