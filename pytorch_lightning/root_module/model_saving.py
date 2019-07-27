@@ -79,7 +79,7 @@ class TrainerIO(object):
 
         # add the state_dict from the model
         model = self.__get_model()
-        checkpoint['state_dict'] = model.get_state_dict
+        checkpoint['state_dict'] = model.state_dict()
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
