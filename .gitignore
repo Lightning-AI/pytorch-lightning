@@ -9,6 +9,7 @@ model_weights/
 app/models/
 pip-wheel-metadata/
 test_tube_exp/
+tests/tests_tt_dir/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

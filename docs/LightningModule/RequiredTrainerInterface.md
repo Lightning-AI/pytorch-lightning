@@ -3,7 +3,7 @@
 
 A lightning module is a strict superclass of nn.Module, it provides a standard interface for the trainer to interact with the model.
 
-The easiest thing to do is copy [this template](../../examples/new_project_templates/lightning_module_template.py) and modify accordingly. 
+The easiest thing to do is copy [this template](../../pytorch_lightning/examples/new_project_templates/lightning_module_template.py) and modify accordingly. 
 
 Otherwise, to Define a Lightning Module, implement the following methods:
 
@@ -14,8 +14,6 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [validation_end](RequiredTrainerInterface.md#validation_end)
     
 - [configure_optimizers](RequiredTrainerInterface.md#configure_optimizers)
-- [get_save_dict](RequiredTrainerInterface.md#get_save_dict)
-- [load_model_specific](RequiredTrainerInterface.md#load_model_specific)
 
 - [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
 - [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)
@@ -23,8 +21,62 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 
 **Optional**:   
 
+- [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)
+- [on_load_checkpoint](RequiredTrainerInterface.md#on_load_checkpoint)
 - [update_tng_log_metrics](RequiredTrainerInterface.md#update_tng_log_metrics)
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)
+
+---
+**Minimal example**
+```python
+import pytorch_lightning as ptl
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+
+class CoolModel(ptl.LightningModule):
+
+    def __init(self):
+        super(CoolModel, self).__init__()
+        # not the best model...
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
+    def forward(self, x):
+        return torch.relu(self.l1(x))
+
+    def my_loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'tng_loss': self.my_loss(y_hat, y)}
+
+    def validation_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'val_loss': self.my_loss(y_hat, y)}
+
+    def validation_end(self, outputs):
+        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
+        return avg_loss
+
+    def configure_optimizers(self):
+        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+
+    @ptl.data_loader
+    def tng_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+
+    @ptl.data_loader
+    def val_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+
+    @ptl.data_loader
+    def test_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+```
 
 ---
 
@@ -193,34 +245,35 @@ def configure_optimizers(self):
 ```
 
 --- 
-### get_save_dict 
+### on_save_checkpoint 
 
 ``` {.python}
-def get_save_dict(self)
+def on_save_checkpoint(self, checkpoint)
 ```
-Called by lightning to checkpoint your model. Lightning saves current epoch, current batch nb, etc...
-All you have to return is what specifically about your lightning model you want to checkpoint.
+Called by lightning to checkpoint your model. Lightning saves the training state (current epoch, global_step, etc)
+and also saves the model state_dict. If you want to save anything else, use this method to add your own
+key-value pair.
 
 ##### Return
-Dictionary - No required keys. Most of the time as described in this example.   
+Nothing
 
 **Example**
 
 ``` {.python}
-def get_save_dict(self):
-    # 99% of use cases this is all you need to return
-    checkpoint = {'state_dict': self.state_dict()}
-    return checkpoint
+def on_save_checkpoint(self, checkpoint):
+    # 99% of use cases you don't need to implement this method 
+    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 ```
 
 --- 
-### load_model_specific 
+### on_load_checkpoint 
 
 ``` {.python}
-def load_model_specific(self, checkpoint)
+def on_load_checkpoint(self, checkpoint)
 ```
-Called by lightning to restore your model. This is your chance to restore your model using the keys you added in get_save_dict.
-Lightning will automatically restore current epoch, batch nb, etc. 
+Called by lightning to restore your model. Lighting auto-restores global step, epoch, etc...
+It also restores the model state_dict.
+If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
 ##### Return
 Nothing  
@@ -228,19 +281,19 @@ Nothing
 **Example**
 
 ``` {.python}
-def load_model_specific(self, checkpoint):
-    # you defined 'state_dict' in get_save_dict()
-    self.load_state_dict(checkpoint['state_dict'])
+def on_load_checkpoint(self, checkpoint):
+    # 99% of the time you don't need to implement this method
+    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 ```
 
 --- 
 ### tng_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def tng_dataloader(self)
 ```
-Called by lightning during training loop. Define it as a property.
+Called by lightning during training loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
@@ -248,32 +301,26 @@ Pytorch DataLoader
 **Example**
 
 ``` {.python}
-@property
+@ptl.data_loader
 def tng_dataloader(self):
-    if self._tng_dataloader is None:
-        try:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-            dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
-            loader = torch.utils.data.DataLoader(
-                dataset=dataset,
-                batch_size=self.hparams.batch_size,
-                shuffle=True
-            )
-            self._tng_dataloader = loader
-        except Exception as e:
-            raise e
-            
-    return self._tng_dataloader
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
+    loader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=self.hparams.batch_size,
+        shuffle=True
+    )
+    return loader
 ```
 
 --- 
 ### val_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def tng_dataloader(self)
 ```
-Called by lightning during validation loop. Define it as a property.
+Called by lightning during validation loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
@@ -281,32 +328,27 @@ Pytorch DataLoader
 **Example**
 
 ``` {.python}
-@property
+@ptl.data_loader
 def val_dataloader(self):
-    if self._val_dataloader is None:
-        try:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-            dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
-            loader = torch.utils.data.DataLoader(
-                dataset=dataset,
-                batch_size=self.hparams.batch_size,
-                shuffle=True
-            )
-            self._val_dataloader = loader
-        except Exception as e:
-            raise e
-            
-    return self._val_dataloader
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+    loader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=self.hparams.batch_size,
+        shuffle=True
+    )
+    
+    return loader
 ```
 
 --- 
 ### test_dataloader 
 
 ``` {.python}
-@property
+@ptl.data_loader
 def test_dataloader(self)
 ```
-Called by lightning during test loop. Define it as a property.
+Called by lightning during test loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
 Pytorch DataLoader
@@ -314,22 +356,17 @@ Pytorch DataLoader
 **Example**
 
 ``` {.python}
-@property
+@ptl.data_loader
 def test_dataloader(self):
-    if self._test_dataloader is None:
-        try:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-            dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
-            loader = torch.utils.data.DataLoader(
-                dataset=dataset,
-                batch_size=self.hparams.batch_size,
-                shuffle=True
-            )
-            self._test_dataloader = loader
-        except Exception as e:
-            raise e
-            
-    return self._test_dataloader
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+    loader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=self.hparams.batch_size,
+        shuffle=True
+    )
+    
+    return loader
 ```
 
 --- 

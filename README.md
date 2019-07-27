@@ -9,31 +9,103 @@
 <p align="center">
   The Keras for ML researchers using PyTorch. More control. Less boilerplate.    
 </p>
+
 <p align="center">
   <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
-<!--   <a href="https://travis-ci.org/williamFalcon/test-tube"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a> -->
+  <a href="https://pepy.tech/project/pytorch-lightning"><img src="https://pepy.tech/badge/pytorch-lightning" alt="PyPI version" height="18"></a>
+  <a href="https://github.com/williamFalcon/pytorch-lightning/tree/master/tests"><img src="https://github.com/williamFalcon/pytorch-lightning/blob/master/coverage.svg"></a>
+  <a href="https://travis-ci.org/williamFalcon/pytorch-lightning"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a>
+  <a href="https://williamfalcon.github.io/pytorch-lightning/"><img src="https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest"></a>
   <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/COPYING"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </p>   
 
 ```bash
-pip install pytorch-lightning    
+pip install pytorch-lightning  
 ```
 
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Keras and fast.ai are too abstract for researchers. Lightning abstracts the full training loop but gives you control in the critical points.   
+Lightning defers training and validation loop logic to you. It guarantees correct, modern best practices for the core training logic.
 
 
 ## Why do I want to use lightning?
-Because you don't want to define a training loop, validation loop, gradient clipping, checkpointing, loading, 
-gpu training, etc... every time you start a project. Let lightning handle all of that for you! Just define your 
-data and what happens in the training, testing and validation loop and lightning will do the rest.
+When starting a new project the last thing you want to do is recode a training loop, model loading/saving, distributed training, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
+
+With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: Data and training, validation loop logic. Don't worry about multiple gpus or speeding up your code, lightning will do that for you!
+
+## How do I do use it?   
 
 To use lightning do 2 things:  
-1. [Define a Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/trainer_cpu_template.py).   
-2. [Define a LightningModel](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py).     
+1. [Define a LightningModel](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
+```python
+import pytorch_lightning as ptl
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+
+class CoolModel(ptl.LightningModule):
+
+    def __init(self):
+        super(CoolModel, self).__init__()
+        # not the best model...
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
+    def forward(self, x):
+        return torch.relu(self.l1(x))
+
+    def my_loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'tng_loss': self.my_loss(y_hat, y)}
+
+    def validation_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'val_loss': self.my_loss(y_hat, y)}
+
+    def validation_end(self, outputs):
+        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
+        return avg_loss
+
+    def configure_optimizers(self):
+        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+
+    @ptl.data_loader
+    def tng_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+
+    @ptl.data_loader
+    def val_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+
+    @ptl.data_loader
+    def test_dataloader(self):
+        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+```
+
+2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
+```python
+from pytorch_lightning import Trainer
+from test_tube import Experiment
+
+model = CoolModel()
+
+# fit on 32 gpus across 4 nodes
+exp = Experiment(save_dir='some/dir')
+trainer = Trainer(experiment=exp, nb_gpu_nodes=4, gpus=[0,1,2,3,4,5,6,7])
+
+trainer.fit(model)
+
+# see all experiment metrics here
+# tensorboard --log_dir some/dir   
+```
+
 
 ## What does lightning control for me?
 Everything!    
@@ -116,8 +188,8 @@ def validation_end(self, outputs):
     return tqdm_dic
 ```
    
-## TensorboardX    
-Lightning is fully integrated with tensorboardX.   
+## Tensorboard    
+Lightning is fully integrated with tensorboard.   
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
@@ -148,7 +220,7 @@ And run tensorboard from that dir
 tensorboard --logdir /some/path     
 ```    
 
-## Lightning automatically automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
+## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
 ###### Checkpointing    
 
@@ -215,19 +287,22 @@ pip install pytorch-lightning
 
 # clone lightning for the demo
 git clone https://github.com/williamFalcon/pytorch-lightning.git
-cd examples/new_project_templates/
+cd pytorch_lightning/examples/new_project_templates/
 
-# run demo (on cpu)
-python trainer_gpu_cluster_template.py
+# all of the following demos use the SAME model to show no modification needs to be made to your code
+
+# train on cpu 
+python single_cpu_template.py
+
+# train on multiple-gpus 
+python single_gpu_node_template.py --gpus "0,1"
+
+# train on 32 gpus on a cluster (run on a SLURM managed cluster)
+python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ```
 
-Without changing the model AT ALL, you can run the model on a single gpu, over multiple gpus, or over multiple nodes.
+## Bleeding edge
+If you can't wait for the next release, install the most up to date code with:  
 ```bash
-# run a grid search on two gpus
-python fully_featured_trainer.py --gpus "0;1"
-
-# run single model on multiple gpus
-python fully_featured_trainer.py --gpus "0;1" --interactive
+pip install git+https://github.com/williamFalcon/pytorch-lightning.git@master --upgrade
 ```
-
-

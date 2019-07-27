@@ -33,33 +33,42 @@ class ModelSummary(object):
         mods = list(self.model.modules())
         in_sizes = []
         out_sizes = []
-        input_ = self.example_input_array
-        for i in range(1, len(mods)):
-            m = mods[i]
-            if type(input_) is list or type(input_) is tuple:
-                out = m(*input_)
-            else:
-                out = m(input_)
+        input_ = self.model.example_input_array
 
-            if type(input_) is tuple or type(input_) is list:
-                in_size = []
-                for x in input_:
-                    if type(x) is list:
-                        in_size.append(len(x))
-                    else:
-                        in_size.append(x.size())
-            else:
-                in_size = np.array(input_.size())
+        if self.model.on_gpu:
+            input_ = input_.cuda(0)
 
-            in_sizes.append(in_size)
+        if self.model.trainer.use_amp:
+            input_ = input_.half()
 
-            if type(out) is tuple or type(out) is list:
-                out_size = np.asarray([x.size() for x in out])
-            else:
-                out_size = np.array(out.size())
+        with torch.no_grad():
 
-            out_sizes.append(out_size)
-            input_ = out
+            for i in range(1, len(mods)):
+                m = mods[i]
+                if type(input_) is list or type(input_) is tuple:  # pragma: no cover
+                    out = m(*input_)
+                else:
+                    out = m(input_)
+
+                if type(input_) is tuple or type(input_) is list:  # pragma: no cover
+                    in_size = []
+                    for x in input_:
+                        if type(x) is list:
+                            in_size.append(len(x))
+                        else:
+                            in_size.append(x.size())
+                else:
+                    in_size = np.array(input_.size())
+
+                in_sizes.append(in_size)
+
+                if type(out) is tuple or type(out) is list:  # pragma: no cover
+                    out_size = np.asarray([x.size() for x in out])
+                else:
+                    out_size = np.array(out.size())
+
+                out_sizes.append(out_size)
+                input_ = out
 
         self.in_sizes = in_sizes
         self.out_sizes = out_sizes
@@ -114,12 +123,21 @@ class ModelSummary(object):
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         '''
 
-        df = pd.DataFrame( np.zeros( (len(self.layer_names), 3) ) )
-        df.columns = ['Name', 'Type', 'Params']
+        cols = ['Name', 'Type', 'Params']
+        if self.model.example_input_array is not None:
+            cols.extend(['In_sizes', 'Out_sizes'])
+
+        df = pd.DataFrame(np.zeros( (len(self.layer_names), len(cols))))
+        df.columns = cols
 
         df['Name'] = self.layer_names
         df['Type'] = self.layer_types
         df['Params'] = self.param_nums
+
+        if self.model.example_input_array is not None:
+
+            df['In_sizes'] = self.in_sizes
+            df['Out_sizes'] = self.out_sizes
 
         self.summary = df
         return
@@ -128,10 +146,13 @@ class ModelSummary(object):
         self.get_layer_names()
         self.get_parameter_sizes()
         self.get_parameter_nums()
+
+        if self.model.example_input_array is not None:
+            self.get_variable_sizes()
         self.make_summary()
 
 
-def print_mem_stack():
+def print_mem_stack(): # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -140,7 +161,7 @@ def print_mem_stack():
             pass
 
 
-def count_mem_items():
+def count_mem_items(): # pragma: no cover
     nb_params = 0
     nb_tensors = 0
     for obj in gc.get_objects():
