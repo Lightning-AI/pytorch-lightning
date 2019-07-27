@@ -77,9 +77,7 @@ class CoolModel(ptl.LightningModule):
         return {'avg_val_loss': avg_loss}
 
     def configure_optimizers(self):
-        optim = torch.optim.Adam(self.parameters(), lr=0.02)
-        self.optimizers = [optim]
-        return self.optimizers
+        return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @ptl.data_loader
     def tng_dataloader(self):
