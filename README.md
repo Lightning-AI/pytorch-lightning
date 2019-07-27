@@ -102,8 +102,8 @@ from test_tube import Experiment
 model = CoolModel()
 exp = Experiment(save_dir=os.getcwd())
 
-# train on cpu
-trainer = Trainer(experiment=exp, max_nb_epochs=1)
+# train on cpu using only 10% of the data (for demo purposes)
+trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus
 # trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3])
