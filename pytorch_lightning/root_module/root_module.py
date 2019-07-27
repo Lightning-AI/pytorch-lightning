@@ -110,9 +110,12 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         model = cls(hparams)
 
-        # allow model to load
+        # give model a chance to load something
         model.load_model_specific(checkpoint)
-        model.load_state_dict(checkpoint['state_dict'], strict=False)
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'])
+
         return model
 
     def summarize(self):
