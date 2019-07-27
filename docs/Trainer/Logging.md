@@ -50,6 +50,33 @@ exp = Experiment(create_git_tag=True)
 Trainer(experiment=exp)
 ```
 
+---
+### Tensorboard support   
+The experiment object is a strict subclass of Pytorch SummaryWriter. However, this class
+also snapshots every detail about the experiment (data folder paths, code, hyperparams),
+and allows you to visualize it using tensorboard.
+``` {.python}
+from test_tube import Experiment, HyperOptArgumentParser
+
+# exp hyperparams
+args = HyperOptArgumentParser()
+hparams = args.parse_args()
+
+# this is a summaryWriter with nicer logging structure
+exp = Experiment(save_dir='/some/path', create_git_tag=True)
+
+# track experiment details (must be ArgumentParser or HyperOptArgumentParser).
+# each option in the parser is tracked
+exp.argparse(hparams)
+exp.tag({'description': 'running demo'})
+
+# trainer uses the exp object to log exp data
+trainer = Trainer(experiment=exp)
+trainer.fit(model)
+
+# view logs at:
+# tensorboard --logdir /some/path   
+```
 
 ---
 #### Write logs file to csv every k batches 
