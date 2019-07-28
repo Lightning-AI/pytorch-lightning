@@ -163,7 +163,8 @@ class LightningTemplateModel(LightningModule):
         :return: list of optimizers
         """
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return [optimizer]
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+        return [optimizer], [scheduler]
 
     def __dataloader(self, train):
         # init data generators
@@ -220,7 +221,6 @@ class LightningTemplateModel(LightningModule):
         # parser.set_defaults(gradient_clip=5.0)
 
         # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
         parser.add_argument('--in_features', default=28*28, type=int)
         parser.add_argument('--out_features', default=10, type=int)
         parser.add_argument('--hidden_dim', default=50000, type=int) # use 500 for CPU, 50000 for GPU to see speed difference

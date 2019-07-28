@@ -12,17 +12,6 @@ trainer = Trainer(accumulate_grad_batches=1)
 ```
 
 ---
-#### Anneal Learning rate
-Cut the learning rate by 10 at every epoch listed in this list.
-``` {.python}
-# DEFAULT (don't anneal)
-trainer = Trainer(lr_scheduler_milestones=None)
-
-# cut LR by 10 at 100, 200, and 300 epochs 
-trainer = Trainer(lr_scheduler_milestones='100, 200, 300')
-```
-
----
 #### Force training for min or max epochs
 It can be useful to force training for a minimum number of epochs or limit to a max number
 ``` {.python}
