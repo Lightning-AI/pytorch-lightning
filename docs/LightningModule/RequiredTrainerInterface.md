@@ -3,7 +3,7 @@
 
 A lightning module is a strict superclass of nn.Module, it provides a standard interface for the trainer to interact with the model.
 
-The easiest thing to do is copy [this minimal example](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) and modify accordingly. 
+The easiest thing to do is copy the [minimal example](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) below and modify accordingly. 
 
 Otherwise, to Define a Lightning Module, implement the following methods:
 
@@ -27,7 +27,7 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)
 
 ---
-**Minimal example**
+### Minimal example   
 ```python
 import os
 import torch
