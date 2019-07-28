@@ -1,7 +1,10 @@
 ###### New project Quick Start    
-To start a new project you define two files, a LightningModule and a Trainer file.
+To start a new project you define two files, a LightningModule and a Trainer file.    
+
 A separate trainer file allows to run many LightningModules. Each LightningModule has the core
-logic to a particular research project. For example, one lightningModule could be an image classifier, the other
+logic to a particular research project.    
+
+For example, one lightningModule could be an image classifier, the other
 one could be a seq-2-seq model, both (optionally) ran by the same trainer file.
 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
