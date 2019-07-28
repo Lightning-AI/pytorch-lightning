@@ -772,7 +772,7 @@ class Trainer(TrainerIO):
             output = self.model.training_step(data_batch, batch_nb)
 
         try:
-            model_specific_tqdm_metrics_dic = output['tqdm_metrics']
+            model_specific_tqdm_metrics_dic = output['prog']
         except Exception as e:
             model_specific_tqdm_metrics_dic = {}
 
