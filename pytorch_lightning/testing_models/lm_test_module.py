@@ -179,8 +179,9 @@ class LightningTestModel(LightningModule):
         return whatever optimizers we want here
         :return: list of optimizers
         """
+        # try no scheduler for this model (testing purposes)
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return [optimizer]
+        return [optimizer], []
 
     def __dataloader(self, train):
         # init data generators
