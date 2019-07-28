@@ -230,7 +230,7 @@ Lightning will call .backward() and .step() on each one in every epoch.  If you 
 
 
 ##### Return
-Tuple - List of optimizers and list of schedulers
+List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
 
 **Example**
 
@@ -238,7 +238,7 @@ Tuple - List of optimizers and list of schedulers
 # most cases
 def configure_optimizers(self):
     opt = Adam(self.parameters(), lr=0.01)
-    return [opt], []
+    return [opt]
     
 # gan example, with scheduler for discriminator
 def configure_optimizers(self):
