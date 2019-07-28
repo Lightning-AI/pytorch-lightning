@@ -4,7 +4,7 @@ A separate trainer file allows to run many LightningModules. Each LightningModul
 logic to a particular research project. For example, one lightningModule could be an image classifier, the other
 one could be a seq-2-seq model, both (optionally) ran by the same trainer file.
 
-1. [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
+1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
     - [Basic CPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/single_cpu_template.py) 
     - [Multi-GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/single_gpu_node_template.py)
