@@ -225,26 +225,27 @@ def validation_end(self, outputs):
 def configure_optimizers(self)
 ```
 
-Set up as many optimizers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
-Lightning will call .backward() and .step() on each one.  If you use 16 bit precision it will also handle that.
+Set up as many optimizers and (optionally) learning rate schedulers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
+Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
 
 
 ##### Return
-List - List of optimizers
+Tuple - List of optimizers and list of schedulers
 
 **Example**
 
 ``` {.python}
 # most cases
 def configure_optimizers(self):
-    opt = Adam(lr=0.01)
-    return [opt]
+    opt = Adam(self.parameters(), lr=0.01)
+    return [opt], []
     
-# gan example
+# gan example, with scheduler for discriminator
 def configure_optimizers(self):
-    generator_opt = Adam(lr=0.01)
-    disriminator_opt = Adam(lr=0.02)
-    return [generator_opt, disriminator_opt] 
+    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+    return [generator_opt, disriminator_opt], [discriminator_sched]
 ```
 
 --- 

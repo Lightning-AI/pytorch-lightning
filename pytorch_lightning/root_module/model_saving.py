@@ -71,11 +71,19 @@ class TrainerIO(object):
             checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
             checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
+        # save optimizers
         optimizer_states = []
         for i, optimizer in enumerate(self.optimizers):
             optimizer_states.append(optimizer.state_dict())
 
         checkpoint['optimizer_states'] = optimizer_states
+        
+        # save lr schedulers
+        lr_schedulers = []
+        for i, scheduler in enumerate(self.lr_schedulers):
+            lr_schedulers.append(scheduler.state_dict())
+
+        checkpoint['lr_schedulers'] = lr_schedulers
 
         # add the state_dict from the model
         model = self.__get_model()
@@ -130,6 +138,11 @@ class TrainerIO(object):
         optimizer_states = checkpoint['optimizer_states']
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
+        
+        # restore the lr schedulers
+        lr_schedulers = checkpoint['lr_schedulers']
+        for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
+            scheduler.load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
