@@ -102,13 +102,16 @@ class TrainerIO(object):
             return
 
         # allow test tube to handle model check pointing automatically
-        self.cluster.set_checkpoint_save_function(
-            self.hpc_save,
-            kwargs={
-                'folderpath': self.checkpoint_callback.filepath,
-                'experiment': self.experiment
-            }
-        )
+        # only if proc 0 so we don't trigger world_size resubmits
+        if self.proc_rank == 0:
+            self.cluster.set_checkpoint_save_function(
+                self.hpc_save,
+                kwargs={
+                    'folderpath': self.checkpoint_callback.filepath,
+                    'experiment': self.experiment
+                }
+            )
+
         self.cluster.set_checkpoint_load_function(
             self.hpc_load,
             kwargs={

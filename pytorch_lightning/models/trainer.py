@@ -612,7 +612,7 @@ class Trainer(TrainerIO):
 
         # enable cluster checkpointing
         # also restores training state
-        if self.cluster is not None and self.proc_rank == 0:  # pragma: no cover
+        if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
         # ---------------------------
