@@ -1,4 +1,4 @@
-# Pytorch-Lightning Tests
+# PyTorch-Lightning Tests
 
 ## Running tests
 The automatic travis tests ONLY run CPU-based tests. Although these cover most of the use cases,
