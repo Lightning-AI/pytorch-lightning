@@ -7,7 +7,7 @@
   Pytorch Lightning
 </h3>
 <p align="center">
-  The Keras for ML researchers using PyTorch. More control. Less boilerplate.    
+  The PyTorch Keras for ML researchers. More control. Less boilerplate.    
 </p>
 
 <p align="center">
