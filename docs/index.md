@@ -71,7 +71,7 @@ one could be a seq-2-seq model, both (optionally) ran by the same trainer file.
 - [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
 - [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
 - [Learning rate scheduling](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
-- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/PyTorch-Lightning/LightningModule/#configure_optimizers)
+- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
 - [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 ###### Validation loop    
