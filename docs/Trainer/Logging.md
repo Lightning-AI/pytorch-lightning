@@ -52,7 +52,7 @@ Trainer(experiment=exp)
 
 ---
 ### Tensorboard support   
-The experiment object is a strict subclass of Pytorch SummaryWriter. However, this class
+The experiment object is a strict subclass of PyTorch SummaryWriter. However, this class
 also snapshots every detail about the experiment (data folder paths, code, hyperparams),
 and allows you to visualize it using tensorboard.
 ``` {.python}

@@ -4,7 +4,7 @@
   </a>
 </p>
 <h3 align="center">
-  Pytorch Lightning
+  PyTorch Lightning
 </h3>
 <p align="center">
   The Keras for ML researchers using PyTorch. More control. Less boilerplate.    

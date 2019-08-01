@@ -300,7 +300,7 @@ def tng_dataloader(self)
 Called by lightning during training loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 
@@ -327,7 +327,7 @@ def tng_dataloader(self)
 Called by lightning during validation loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 
@@ -355,7 +355,7 @@ def test_dataloader(self)
 Called by lightning during test loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 
