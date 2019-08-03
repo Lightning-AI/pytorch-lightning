@@ -31,9 +31,11 @@ Lightning defers training and validation loop logic to you. It guarantees correc
 
 
 ## Why do I want to use lightning?
-When starting a new project the last thing you want to do is recode a training loop, model loading/saving, distributed training, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
+When starting a new project the last thing you want to do is recode a training loop, multi-cluster training, 16-bit precision, early-stopping, model loading/saving, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
 
-With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: Data and training, validation loop logic. Don't worry about multiple gpus or speeding up your code, lightning will do that for you!
+With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: The data and the training/validation loop logic. 
+
+Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
 ## How do I do use it?   
 
