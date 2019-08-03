@@ -318,6 +318,19 @@ python single_gpu_node_template.py --gpus "0,1"
 python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ```
 
+## Contributing    
+Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
+
+#### Bug fixes:  
+1. Submit a github issue.   
+2. Fix it.  
+3. Submit a PR! 
+
+#### New Features:  
+1. Submit a github issue.   
+2. We'll agree on the feature scope.     
+3. Submit a PR! (with updated docs and tests 🙃).    
+
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
 ```bash
