@@ -49,25 +49,28 @@ But of course the fun is in all the advanced things it can do:
 **Experiment Logging**   
 
 - [Display metrics in progress bar](Logging/#display-metrics-in-progress-bar)
-- Log arbitrary metrics
 - [Log metric row every k batches](Logging/#log-metric-row-every-k-batches)
 - [Process position](Logging/#process-position)
+- [Tensorboard support](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support)
 - [Save a snapshot of all hyperparameters](Logging/#save-a-snapshot-of-all-hyperparameters) 
 - [Snapshot code for a training run](Logging/#snapshot-code-for-a-training-run) 
 - [Write logs file to csv every k batches](Logging/#write-logs-file-to-csv-every-k-batches)
 
 **Training loop**    
 
-- [Accumulate gradients](Training%20Loop/#accumulated-gradients)
-- [Anneal Learning rate](Training%20Loop/#anneal-learning-rate)
-- [Force training for min or max epochs](Training%20Loop/#force-training-for-min-or-max-epochs)
-- [Force disable early stop](Training%20Loop/#force-disable-early-stop)
-- [Use multiple optimizers (like GANs)](../Pytorch-lightning/LightningModule/#configure_optimizers)
-- [Set how much of the training set to check (1-100%)](Training%20Loop/#set-how-much-of-the-training-set-to-check)
+- [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
+- [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
+- [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
+- [Hooks](hooks)
+- [Learning rate scheduling](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
+- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
+- [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 **Validation loop**    
 
 - [Check validation every n epochs](Validation%20Loop/#check-validation-every-n-epochs)
+- [Hooks](hooks)
 - [Set how much of the validation set to check](Validation%20Loop/#set-how-much-of-the-validation-set-to-check)
 - [Set how much of the test set to check](Validation%20Loop/#set-how-much-of-the-test-set-to-check)
 - [Set validation check frequency within 1 training epoch](Validation%20Loop/#set-validation-check-frequency-within-1-training-epoch)
