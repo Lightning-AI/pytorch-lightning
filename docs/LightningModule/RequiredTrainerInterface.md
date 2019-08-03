@@ -3,7 +3,7 @@
 
 A lightning module is a strict superclass of nn.Module, it provides a standard interface for the trainer to interact with the model.
 
-The easiest thing to do is copy [this template](../../pytorch_lightning/examples/new_project_templates/lightning_module_template.py) and modify accordingly. 
+The easiest thing to do is copy the [minimal example](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) below and modify accordingly. 
 
 Otherwise, to Define a Lightning Module, implement the following methods:
 
@@ -27,23 +27,26 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)
 
 ---
-**Minimal example**
+### Minimal example   
 ```python
-import pytorch_lightning as ptl
+import os
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
+
+import pytorch_lightning as ptl
 
 class CoolModel(ptl.LightningModule):
 
-    def __init(self):
+    def __init__(self):
         super(CoolModel, self).__init__()
         # not the best model...
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
     def forward(self, x):
-        return torch.relu(self.l1(x))
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def my_loss(self, y_hat, y):
         return F.cross_entropy(y_hat, y)
@@ -51,7 +54,7 @@ class CoolModel(ptl.LightningModule):
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
-        return {'tng_loss': self.my_loss(y_hat, y)}
+        return {'loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
         x, y = batch
@@ -59,23 +62,23 @@ class CoolModel(ptl.LightningModule):
         return {'val_loss': self.my_loss(y_hat, y)}
 
     def validation_end(self, outputs):
-        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
-        return avg_loss
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        return {'avg_val_loss': avg_loss}
 
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @ptl.data_loader
     def tng_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @ptl.data_loader
     def val_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @ptl.data_loader
     def test_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 
 ---
@@ -222,26 +225,27 @@ def validation_end(self, outputs):
 def configure_optimizers(self)
 ```
 
-Set up as many optimizers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
-Lightning will call .backward() and .step() on each one.  If you use 16 bit precision it will also handle that.
+Set up as many optimizers and (optionally) learning rate schedulers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
+Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
 
 
 ##### Return
-List - List of optimizers
+List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
 
 **Example**
 
 ``` {.python}
 # most cases
 def configure_optimizers(self):
-    opt = Adam(lr=0.01)
+    opt = Adam(self.parameters(), lr=0.01)
     return [opt]
     
-# gan example
+# gan example, with scheduler for discriminator
 def configure_optimizers(self):
-    generator_opt = Adam(lr=0.01)
-    disriminator_opt = Adam(lr=0.02)
-    return [generator_opt, disriminator_opt] 
+    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+    return [generator_opt, disriminator_opt], [discriminator_sched]
 ```
 
 --- 
@@ -296,7 +300,7 @@ def tng_dataloader(self)
 Called by lightning during training loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 
@@ -323,7 +327,7 @@ def tng_dataloader(self)
 Called by lightning during validation loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 
@@ -351,7 +355,7 @@ def test_dataloader(self)
 Called by lightning during test loop. Make sure to use the @ptl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
-Pytorch DataLoader
+PyTorch DataLoader
 
 **Example**
 

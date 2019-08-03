@@ -1,4 +1,4 @@
-The lightning training loop handles everything except the actual computations of your model. To decide what will happen in your training loop, define the [training_step function](../../Pytorch-lightning/LightningModule/#training_step).
+The lightning training loop handles everything except the actual computations of your model. To decide what will happen in your training loop, define the [training_step function](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#training_step).
 
 Below are all the things lightning automates for you in the training loop.
 
@@ -9,17 +9,6 @@ Accumulated gradients runs K small batches of size N before doing a backwards pa
 ``` {.python}
 # DEFAULT (ie: no accumulated grads)
 trainer = Trainer(accumulate_grad_batches=1)
-```
-
----
-#### Anneal Learning rate
-Cut the learning rate by 10 at every epoch listed in this list.
-``` {.python}
-# DEFAULT (don't anneal)
-trainer = Trainer(lr_scheduler_milestones=None)
-
-# cut LR by 10 at 100, 200, and 300 epochs 
-trainer = Trainer(lr_scheduler_milestones='100, 200, 300')
 ```
 
 ---

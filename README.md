@@ -4,10 +4,10 @@
   </a>
 </p>
 <h3 align="center">
-  Pytorch Lightning
+  PyTorch Lightning
 </h3>
 <p align="center">
-  The Keras for ML researchers using PyTorch. More control. Less boilerplate.    
+  The PyTorch Keras for ML researchers. More control. Less boilerplate.    
 </p>
 
 <p align="center">
@@ -31,30 +31,35 @@ Lightning defers training and validation loop logic to you. It guarantees correc
 
 
 ## Why do I want to use lightning?
-When starting a new project the last thing you want to do is recode a training loop, model loading/saving, distributed training, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
+When starting a new project the last thing you want to do is recode a training loop, multi-cluster training, 16-bit precision, early-stopping, model loading/saving, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
 
-With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: Data and training, validation loop logic. Don't worry about multiple gpus or speeding up your code, lightning will do that for you!
+With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: The data and the training/validation loop logic. 
+
+Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
 ## How do I do use it?   
 
 To use lightning do 2 things:  
 1. [Define a LightningModel](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
 ```python
-import pytorch_lightning as ptl
+import os
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
+
+import pytorch_lightning as ptl
 
 class CoolModel(ptl.LightningModule):
 
-    def __init(self):
+    def __init__(self):
         super(CoolModel, self).__init__()
         # not the best model...
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
     def forward(self, x):
-        return torch.relu(self.l1(x))
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def my_loss(self, y_hat, y):
         return F.cross_entropy(y_hat, y)
@@ -62,7 +67,7 @@ class CoolModel(ptl.LightningModule):
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
-        return {'tng_loss': self.my_loss(y_hat, y)}
+        return {'loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
         x, y = batch
@@ -70,23 +75,23 @@ class CoolModel(ptl.LightningModule):
         return {'val_loss': self.my_loss(y_hat, y)}
 
     def validation_end(self, outputs):
-        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
-        return avg_loss
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        return {'avg_val_loss': avg_loss}
 
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @ptl.data_loader
     def tng_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @ptl.data_loader
     def val_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @ptl.data_loader
     def test_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
@@ -95,15 +100,23 @@ from pytorch_lightning import Trainer
 from test_tube import Experiment
 
 model = CoolModel()
+exp = Experiment(save_dir=os.getcwd())
 
-# fit on 32 gpus across 4 nodes
-exp = Experiment(save_dir='some/dir')
-trainer = Trainer(experiment=exp, nb_gpu_nodes=4, gpus=[0,1,2,3,4,5,6,7])
+# train on cpu using only 10% of the data (for demo purposes)
+trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
+# train on 4 gpus
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3])
+
+# train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3, 4, 5, 6, 7], nb_gpu_nodes=4)
+
+# train (1 epoch only here for demo)
 trainer.fit(model)
 
-# see all experiment metrics here
-# tensorboard --log_dir some/dir   
+# view tensorflow logs 
+print(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+print('and going to http://localhost:6006 on your browser')
 ```
 
 
@@ -222,6 +235,7 @@ tensorboard --logdir /some/path
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
+
 ###### Checkpointing    
 
 - [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
@@ -254,9 +268,9 @@ tensorboard --logdir /some/path
 ###### Experiment Logging   
 
 - [Display metrics in progress bar](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#display-metrics-in-progress-bar)
-- Log arbitrary metrics
 - [Log metric row every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#log-metric-row-every-k-batches)
 - [Process position](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#process-position)
+- [Tensorboard support](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support)
 - [Save a snapshot of all hyperparameters](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#save-a-snapshot-of-all-hyperparameters) 
 - [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
 - [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
@@ -264,20 +278,23 @@ tensorboard --logdir /some/path
 ###### Training loop    
 
 - [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
-- [Anneal Learning rate](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#anneal-learning-rate)
 - [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
 - [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
 - [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
-- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/Pytorch-Lightning/LightningModule/#configure_optimizers)
+- [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
+- [Learning rate scheduling](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)    
+- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
 - [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 
 ###### Validation loop    
 
 - [Check validation every n epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#check-validation-every-n-epochs)
+- [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
 - [Set how much of the validation set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-validation-set-to-check)
 - [Set how much of the test set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-test-set-to-check)
 - [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
+
 
 
 ## Demo
@@ -300,6 +317,19 @@ python single_gpu_node_template.py --gpus "0,1"
 # train on 32 gpus on a cluster (run on a SLURM managed cluster)
 python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ```
+
+## Contributing    
+Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
+
+#### Bug fixes:  
+1. Submit a github issue.   
+2. Fix it.  
+3. Submit a PR! 
+
+#### New Features:  
+1. Submit a github issue.   
+2. We'll agree on the feature scope.     
+3. Submit a PR! (with updated docs and tests 🙃).    
 
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
