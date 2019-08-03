@@ -19,7 +19,7 @@ setup(
     install_requires=[
         "torch>=1.1.0",
         "tqdm",
-        "test-tube>=0.6.7.6",
+        "test-tube>=0.6.7.5",
     ],
     packages=find_packages(),
     long_description=open("README.md", encoding="utf-8").read(),
