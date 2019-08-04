@@ -80,6 +80,15 @@ class CoolModel(ptl.LightningModule):
     def test_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
+---   
+### How do these methods fit into the broader training?     
+The LightningModule interface is on the right. Each method corresponds to a part of a research project. Lightning automates everything not in blue.    
+
+<p align="center">
+  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" height="800px">
+  </a>
+</p>   
 
 ---
 
