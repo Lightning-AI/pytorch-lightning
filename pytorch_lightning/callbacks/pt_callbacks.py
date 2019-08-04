@@ -1,5 +1,6 @@
 import numpy as np
-import os, shutil
+import os
+import shutil
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
