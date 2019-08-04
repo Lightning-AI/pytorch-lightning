@@ -5,7 +5,7 @@ from test_tube import HyperOptArgumentParser, Experiment
 from pytorch_lightning.models.trainer import Trainer
 from pytorch_lightning.utils.arg_parse import add_default_args
 from pytorch_lightning.callbacks.pt_callbacks import EarlyStopping, ModelCheckpoint
-from docs.source.examples.example_model import ExampleModel
+from lightning_module_template import LightningTemplateModel
 
 
 def main(hparams):
@@ -28,7 +28,7 @@ def main(hparams):
     exp.save()
 
     # build model
-    model = ExampleModel(hparams)
+    model = LightningTemplateModel(hparams)
 
     # callbacks
     early_stop = EarlyStopping(
