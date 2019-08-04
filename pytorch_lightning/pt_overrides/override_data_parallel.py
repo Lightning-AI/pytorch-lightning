@@ -6,7 +6,6 @@ from itertools import chain
 import threading
 import torch
 from torch.cuda._utils import _get_device_index
-import pdb
 
 
 def _find_tensors(obj):  # pragma: no cover
