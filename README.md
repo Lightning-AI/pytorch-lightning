@@ -122,14 +122,14 @@ print('and going to http://localhost:6006 on your browser')
 
 ## What does lightning control for me?   
 
+Everything in gray!    
+You define the blue parts using the LightningModule interface:  
+
 <p align="center">
   <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg">
     <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg" height="700px">
   </a>
-</p>
-
-Everything in gray!    
-You define the blue parts using the LightningModule interface:    
+</p>  
 
 ```{.python}
 # what to do in the training loop
