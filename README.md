@@ -123,7 +123,7 @@ print('and going to http://localhost:6006 on your browser')
 ## What does lightning control for me?   
 
 <p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg">
     <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" height="500px">
   </a>
 </p>
