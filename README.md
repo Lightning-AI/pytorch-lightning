@@ -212,7 +212,7 @@ def validation_end(self, outputs):
 Lightning is fully integrated with tensorboard.   
 
 <p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
     <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="900px">
   </a>
 </p>
@@ -220,7 +220,7 @@ Lightning is fully integrated with tensorboard.
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
 <p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
         <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="900px">
   </a>
 </p>
