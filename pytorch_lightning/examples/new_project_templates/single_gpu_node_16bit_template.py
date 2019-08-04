@@ -1,5 +1,5 @@
 """
-Runs a model on a single node across N-gpus.
+16-bit single node, CPU example
 """
 import os
 import numpy as np

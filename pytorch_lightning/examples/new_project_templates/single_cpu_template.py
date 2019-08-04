@@ -1,5 +1,5 @@
 """
-Runs a model on a single node across N-gpus.
+Runs a model on a single node on CPU only..
 """
 import os
 import numpy as np

@@ -1,5 +1,5 @@
 """
-Runs a model on a single node across N-gpus.
+Runs a model on a single node across N-gpus using dataParallel
 """
 import os
 import numpy as np
