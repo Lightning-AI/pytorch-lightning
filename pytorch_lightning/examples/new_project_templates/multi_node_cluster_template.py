@@ -1,13 +1,10 @@
 import os
-import sys
 import numpy as np
 from time import sleep
 import torch
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning.models.trainer import Trainer
-from pytorch_lightning.utils.arg_parse import add_default_args
-
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 SEED = 2334
