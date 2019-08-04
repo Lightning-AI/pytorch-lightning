@@ -120,7 +120,14 @@ print('and going to http://localhost:6006 on your browser')
 ```
 
 
-## What does lightning control for me?
+## What does lightning control for me?   
+
+<p align="center">
+  <a href="https://williamfalcon.github.io/pytorch-lightning/">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" width="900px">
+  </a>
+</p>
+
 Everything!    
 Except for these 6 core functions which you define:    
 
