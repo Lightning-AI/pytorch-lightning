@@ -33,7 +33,7 @@ trainer = Trainer(process_position=1)
 Whenever you call .save() on the test-tube experiment it logs all the hyperparameters in current use.
 Give lightning a test-tube Experiment object to automate this for you.
 ``` {.python}
-from test-tube import Experiment
+from test_tube import Experiment
 
 exp = Experiment(...)
 Trainer(experiment=exp)
@@ -44,7 +44,7 @@ Trainer(experiment=exp)
 Whenever you call .save() on the test-tube experiment it snapshows all code and pushes to a git tag.
 Give lightning a test-tube Experiment object to automate this for you.
 ``` {.python}
-from test-tube import Experiment
+from test_tube import Experiment
 
 exp = Experiment(create_git_tag=True)
 Trainer(experiment=exp)
