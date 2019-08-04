@@ -1,7 +1,6 @@
 import torch
 import os
 import re
-import pdb
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
 
 
@@ -77,7 +76,7 @@ class TrainerIO(object):
             optimizer_states.append(optimizer.state_dict())
 
         checkpoint['optimizer_states'] = optimizer_states
-        
+
         # save lr schedulers
         lr_schedulers = []
         for i, scheduler in enumerate(self.lr_schedulers):
@@ -141,7 +140,7 @@ class TrainerIO(object):
         optimizer_states = checkpoint['optimizer_states']
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-        
+
         # restore the lr schedulers
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
