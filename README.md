@@ -27,7 +27,7 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Lightning defers training and validation loop logic to you. It guarantees correct, modern best practices for the core training logic.
+Lightning is a very lightweight wrapper on PyTorch. It defers core training and validation logic to you and automes the rest. It guarantees correct, modern best practices for the core training logic.
 
 
 ## Why do I want to use lightning?
