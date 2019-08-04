@@ -124,11 +124,11 @@ print('and going to http://localhost:6006 on your browser')
 
 <p align="center">
   <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" width="900px">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" height="500px">
   </a>
 </p>
 
-Everything!    
+Everything in gray!    
 Except for these 6 core functions which you define:    
 
 ```{.python}
