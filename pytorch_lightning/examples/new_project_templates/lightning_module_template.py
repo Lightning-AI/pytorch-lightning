@@ -1,3 +1,6 @@
+"""
+Example template for defining a system
+"""
 import os
 from collections import OrderedDict
 import torch.nn as nn

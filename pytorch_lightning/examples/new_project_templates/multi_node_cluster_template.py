@@ -1,3 +1,6 @@
+"""
+Multi-node example (GPU)
+"""
 import os
 import numpy as np
 from time import sleep
