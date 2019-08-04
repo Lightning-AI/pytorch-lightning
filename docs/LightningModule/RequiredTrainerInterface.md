@@ -85,8 +85,8 @@ class CoolModel(ptl.LightningModule):
 The LightningModule interface is on the right. Each method corresponds to a part of a research project. Lightning automates everything not in blue.    
 
 <p align="center">
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview.jpg" height="800px">
+  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg">
+    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg" height="900px">
   </a>
 </p>   
 
