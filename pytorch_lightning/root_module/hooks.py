@@ -1,5 +1,6 @@
 import torch
 
+
 class ModelHooks(torch.nn.Module):
     def on_batch_start(self, data_batch):
         pass
