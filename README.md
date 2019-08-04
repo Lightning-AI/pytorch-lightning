@@ -129,7 +129,7 @@ print('and going to http://localhost:6006 on your browser')
 </p>
 
 Everything in gray!    
-Except for these 6 core functions which you define:    
+You define the blue parts using the LightningModule interface:    
 
 ```{.python}
 # what to do in the training loop
