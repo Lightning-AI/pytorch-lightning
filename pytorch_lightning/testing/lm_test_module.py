@@ -202,7 +202,7 @@ class LightningTestModel(LightningModule):
             if self.on_gpu and not self.force_remove_distributed_sampler:
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception as e:
+        except Exception:
             pass
 
         should_shuffle = train_sampler is None
@@ -242,19 +242,20 @@ class LightningTestModel(LightningModule):
 
         # network params
         parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28*28, type=int)
+        parser.add_argument('--in_features', default=28 * 28, type=int)
         parser.add_argument('--out_features', default=10, type=int)
-        parser.add_argument('--hidden_dim', default=50000, type=int) # use 500 for CPU, 50000 for GPU to see speed difference
+        # use 500 for CPU, 50000 for GPU to see speed difference
+        parser.add_argument('--hidden_dim', default=50000, type=int)
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001*8, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
+        parser.opt_list('--learning_rate', default=0.001 * 8, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
 
         # if using 2 nodes with 4 gpus each the batch size here (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256*8, type=int, options=[32, 64, 128, 256], tunable=False,
+        parser.opt_list('--batch_size', default=256 * 8, type=int, options=[32, 64, 128, 256], tunable=False,
                         help='batch size will be divided over all the gpus being used across all nodes')
         return parser
