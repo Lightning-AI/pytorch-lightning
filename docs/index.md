@@ -9,9 +9,9 @@ one could be a seq-2-seq model, both (optionally) ran by the same trainer file.
 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
-    - [Basic CPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/single_cpu_template.py) 
-    - [Multi-GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/single_gpu_node_template.py)
-    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/examples/new_project_templates/multi_node_cluster_template.py)
+    - [Basic CPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/single_cpu_template.py) 
+    - [Multi-GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/single_gpu_node_template.py)
+    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/multi_node_cluster_template.py)
 
 ###### Docs shortcuts
 - [LightningModule](LightningModule/RequiredTrainerInterface/)  
