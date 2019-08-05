@@ -23,7 +23,7 @@ from ..utilities.debugging import MisconfigurationException
 try:
     from apex import amp
     APEX_AVAILABLE = True
-except Exception:
+except ImportError:
     APEX_AVAILABLE = False
 
 
