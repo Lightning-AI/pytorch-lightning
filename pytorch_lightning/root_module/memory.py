@@ -1,13 +1,13 @@
-import torch
-import gc
-import subprocess
-import numpy as np
-import pandas as pd
-
-
 '''
 Generates a summary of a model's layers and dimensionality
 '''
+
+import gc
+
+import torch
+import subprocess
+import numpy as np
+import pandas as pd
 
 
 class ModelSummary(object):

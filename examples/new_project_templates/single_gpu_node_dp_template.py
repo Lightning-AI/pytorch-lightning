@@ -13,7 +13,7 @@ SEED = 2334
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
-from lightning_module_template import LightningTemplateModel
+from .lightning_module_template import LightningTemplateModel
 
 
 def main(hparams):
