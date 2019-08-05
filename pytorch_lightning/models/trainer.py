@@ -814,7 +814,7 @@ class Trainer(TrainerIO):
             # clip gradients
             if self.gradient_clip > 0:
                 model = self.__get_model()
-                torch.nn.utils.clip_grad_norm(model.parameters(), self.gradient_clip)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip)
 
             # update gradients across all optimizers
             for optimizer in self.optimizers:
