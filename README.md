@@ -1,25 +1,21 @@
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/lightning_logo.png" width="50">
-  </a>
-</p>
-<h3 align="center">
-  PyTorch Lightning
-</h3>
-<p align="center">
-  The PyTorch Keras for ML researchers. More control. Less boilerplate.    
-</p>
+![Logo](./docs/source/_static/lightning_logo_medium.png)
 
-<p align="center">
-  <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
-  <a href="https://pepy.tech/project/pytorch-lightning"><img src="https://pepy.tech/badge/pytorch-lightning" alt="PyPI version" height="18"></a>
-    <a href="https://pepy.tech/project/pytorch-lightning"><img src="https://img.shields.io/badge/python-3.6-blue.svg" alt="Supported Python Version" height="18"></a>
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/tests/README.md#running-coverage"><img src="https://github.com/williamFalcon/pytorch-lightning/blob/master/coverage.svg"></a>
-  <a href="https://travis-ci.org/williamFalcon/pytorch-lightning"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a>
-  <a href="https://williamfalcon.github.io/pytorch-lightning/"><img src="https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest"></a>
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
-</p>   
+# PyTorch Lightning
 
+**The PyTorch Keras for ML researchers. More control. Less boilerplate.**
+
+
+[![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
+[![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
+[![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
+[![Build status](https://ci.appveyor.com/api/projects/status/rum89d7hq8l1kfye?svg=true)](https://ci.appveyor.com/project/Borda/pytorch-lightning)
+[![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
+[![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
+[![license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
+
+
+Simple installation from PyPI
 ```bash
 pip install pytorch-lightning  
 ```
@@ -137,11 +133,7 @@ print('and going to http://localhost:6006 on your browser')
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-<p align="center">
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg" height="700px">
-  </a>
-</p>  
+![Ouverview](./docs/source/_static/overview_flat.jpg)
 
 ```{.python}
 # what to do in the training loop
@@ -223,19 +215,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard.   
 
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="900px">
-  </a>
-</p>
+![tensorboard-support](./docs/source/_static/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
-        <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="900px">
-  </a>
-</p>
+![tensorboard-support](./docs/source/_static/tf_tags.png)
 
 Simply note the path you set for the Experiment    
 ``` {.python}   
