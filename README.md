@@ -37,6 +37,15 @@ With lightning, you guarantee those parts of your code work so you can focus on 
 
 Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
+## README outline    
+- [How do I use it](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it)     
+- [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
+- [Tensorboard integration](https://github.com/williamFalcon/pytorch-lightning#tensorboard)    
+- [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
+- [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
+- [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
+- [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)
+
 ## How do I do use it?   
 
 To use lightning do 2 things:  
