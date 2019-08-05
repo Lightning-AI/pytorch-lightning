@@ -1,17 +1,48 @@
+# vim ft=yaml
+
+# After changing this file, check it on:
+#   http://yaml-online-parser.appspot.com/
+
+# See doc/travis_notes.txt for some guidelines
+
+# this file is *not* meant to cover or endorse the use of travis, but rather to
+# help confirm pull requests to this project.
+
+dist: xenial  # Ubuntu 16.04
+
+env:
+  global:
+    - DISPLAY=""
+
 language: python
-python:
-  - "3.7"
-# command to install dependencies
+
+matrix:
+  include:
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+    - python: 3.7
+      env: TOXENV=py37
+
+# See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
+
 install:
-  - pip install -e .
+  - sudo apt-get install python-opencv openslide-tools
   - pip install -r requirements.txt
-  - pip install -r tests/requirements.txt
-  - pip install -U numpy
+  - pip install -r ./tests/requirements.txt
+  - pip install tox
+  - pip --version ; pip list
 
-# keep build from timing out
-dist: xenial
-
-# command to run tests
 script:
-  - py.test -v # or py.test for Python versions 3.5 and below
+  # integration
+  - tox --sitepackages
+  - python setup.py install --user --dry-run
+
+after_success:
+  - coverage report
+  - codecov
+
+notifications:
+  email: false
