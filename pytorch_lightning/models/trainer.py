@@ -460,9 +460,11 @@ class Trainer(TrainerIO):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            m = f'amp level {self.amp_level} with DataParallel is not supported. ' \
-                f'See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227. ' \
-                f'We recommend you switch to ddp if you want to use amp'
+            m = """
+            Amp level %r with DataParallel is not supported.
+            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
+            We recommend you switch to ddp if you want to use amp
+            """ % self.amp_level
             raise MisconfigurationException(m)
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
@@ -543,7 +545,7 @@ class Trainer(TrainerIO):
             port = os.environ['MASTER_PORT']
         except Exception:
             port = 12910
-            os.environ['MASTER_PORT'] = f'{port}'
+            os.environ['MASTER_PORT'] = str(port)
 
         # figure out the root node addr
         try:

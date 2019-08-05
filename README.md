@@ -1,4 +1,4 @@
-![Logo](./docs/source/_static/lightning_logo_medium.png)
+![Logo](./docs/source/_static/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -123,7 +123,7 @@ trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorflow logs 
-print(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
 ```
 

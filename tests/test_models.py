@@ -670,13 +670,13 @@ def run_prediction(dataloader, trained_model):
 
     print(val_acc)
 
-    assert val_acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {val_acc})'
+    assert val_acc > 0.50, 'this model is expected to get > 0.50 in test set (it got %f)' % val_acc
 
 
 def assert_ok_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
-    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+    assert acc > 0.50, 'model failed to get expected 0.50 validation accuracy. Got: %f' % acc
 
 
 if __name__ == '__main__':

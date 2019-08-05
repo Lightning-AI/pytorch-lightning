@@ -102,5 +102,5 @@ if __name__ == '__main__':
     # RUN TRAINING
     # ---------------------
     # run on HPC cluster
-    print(f'RUNNING ON CPU')
+    print('RUNNING ON CPU')
     main(hyperparams)
