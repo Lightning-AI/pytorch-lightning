@@ -41,8 +41,6 @@ install:
   # The AppVeyor 'rollout builds' option is supposed to serve the same
   # purpose but it is problematic because it tends to cancel builds pushed
   # directly to master instead of just PR builds (or the converse).
-  - choco upgrade chocolatey
-  - choco install -y opencv
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%path%
   - pip install -U --user pip
   - pip install -r requirements.txt
