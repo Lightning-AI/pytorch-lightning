@@ -1,20 +1,20 @@
+import os
+import shutil
+import warnings
+
 import pytest
+import numpy as np
+import torch
 from pytorch_lightning import Trainer
-from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
-from pytorch_lightning.testing_models.lm_test_module import LightningTestModel
+from examples import LightningTemplateModel
+from pytorch_lightning.testing.lm_test_module import LightningTestModel
 from argparse import Namespace
 from test_tube import Experiment, SlurmCluster
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.utils.debugging import MisconfigurationException
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
-import numpy as np
-import warnings
-import torch
-import os
-import shutil
-import pdb
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -230,8 +230,6 @@ def test_model_saving_loading():
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
     clear_save_dir()
-
-
 
 
 def test_model_freeze_unfreeze():
