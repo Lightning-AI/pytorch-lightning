@@ -1,5 +1,5 @@
 """
-Runs a model on a single node across N-gpus using dataParallel
+Runs a model on a single node on CPU only..
 """
 import os
 import numpy as np
@@ -13,7 +13,7 @@ SEED = 2334
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
-from lightning_module_template import LightningTemplateModel
+from .lightning_module_template import LightningTemplateModel
 
 
 def main(hparams):
@@ -70,7 +70,6 @@ def main(hparams):
         experiment=exp,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
-        gpus=hparams.gpus,
     )
 
     # ------------------------
@@ -91,7 +90,6 @@ if __name__ == '__main__':
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # gpu args
-    parent_parser.add_argument('--gpus', type=str, default='-1', help='how many gpus to use in the node. -1 uses all the gpus on the node')
     parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir, help='where to save logs')
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir, help='where to save model')
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a', help='test tube exp name')
@@ -104,5 +102,5 @@ if __name__ == '__main__':
     # RUN TRAINING
     # ---------------------
     # run on HPC cluster
-    print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {hyperparams.gpus}')
+    print(f'RUNNING ON CPU')
     main(hyperparams)

@@ -8,17 +8,17 @@ import os
 import pdb
 import re
 
+import numpy as np
+import tqdm
 import torch
 from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
-import numpy as np
-import tqdm
 
-from pytorch_lightning.root_module.memory import get_gpu_memory_map
-from pytorch_lightning.root_module.model_saving import TrainerIO
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utils.debugging import MisconfigurationException
+from ..root_module.memory import get_gpu_memory_map
+from ..root_module.model_saving import TrainerIO
+from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
+from ..utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp

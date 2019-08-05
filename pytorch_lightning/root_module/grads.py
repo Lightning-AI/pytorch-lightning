@@ -1,9 +1,8 @@
-from torch import nn
-
 """
 Module to describe gradients
 """
 
+from torch import nn
 
 class GradInformation(nn.Module):
 

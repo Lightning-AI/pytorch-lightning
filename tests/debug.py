@@ -1,15 +1,10 @@
-import pytest
 from pytorch_lightning import Trainer
-from pytorch_lightning.examples.new_project_templates.lightning_module_template import LightningTemplateModel
+from examples import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
-import numpy as np
-import warnings
-import torch
 import os
 import shutil
-import pdb
 
 import pytorch_lightning as ptl
 import torch

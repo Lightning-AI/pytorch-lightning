@@ -1,17 +1,18 @@
 import os
 from collections import OrderedDict
-import torch.nn as nn
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
+
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from test_tube import HyperOptArgumentParser
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from torchvision.datasets import MNIST
+from torchvision import transforms
+from test_tube import HyperOptArgumentParser
 
-from pytorch_lightning.root_module.root_module import LightningModule
-import pytorch_lightning as ptl
+from ..root_module.root_module import LightningModule
+from pytorch_lightning import data_loader
 
 
 class LightningTestModel(LightningModule):
@@ -214,15 +215,15 @@ class LightningTestModel(LightningModule):
 
         return loader
 
-    @ptl.data_loader
+    @data_loader
     def tng_dataloader(self):
         return self.__dataloader(train=True)
 
-    @ptl.data_loader
+    @data_loader
     def val_dataloader(self):
         return self.__dataloader(train=False)
 
-    @ptl.data_loader
+    @data_loader
     def test_dataloader(self):
         return self.__dataloader(train=False)
 
