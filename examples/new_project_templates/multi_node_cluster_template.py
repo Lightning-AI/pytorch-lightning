@@ -14,17 +14,7 @@ SEED = 2334
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
-# ---------------------
-# DEFINE MODEL HERE
-# ---------------------
-from lightning_module_template import LightningTemplateModel
-# ---------------------
-
-"""
-Allows training by using command line arguments
-Run by:
-# TYPE YOUR RUN COMMAND HERE
-"""
+from .lightning_module_template import LightningTemplateModel
 
 
 def main_local(hparams):

@@ -1,7 +1,9 @@
-import numpy as np
 import os
 import shutil
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
+
+import numpy as np
+
+from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
 class Callback(object):
@@ -261,4 +263,3 @@ if __name__ == '__main__':
         print(loss)
         if should_stop:
             break
-
