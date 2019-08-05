@@ -29,7 +29,6 @@ matrix:
 cache: pip
 
 install:
-  - sudo apt-get install python-opencv openslide-tools
   - pip install -r requirements.txt
   - pip install -r ./tests/requirements.txt
   - pip install tox
