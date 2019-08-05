@@ -172,7 +172,7 @@ class Trainer(TrainerIO):
             # set the correct cuda visible devices (using pci order)
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
-            print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+            print('VISIBLE GPUS: %r' % os.environ["CUDA_VISIBLE_DEVICES"])
 
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
@@ -415,12 +415,12 @@ class Trainer(TrainerIO):
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                msg = f"""
-                You requested {self.nb_requested_gpus} GPUs but launched {self.nb_slurm_tasks} slurm tasks.
-                We will launch {self.nb_requested_gpus} processes for you.
-                We recommend you let slurm manage the processes by setting: --ntasks-per-node={self.nb_requested_gpus}
+                msg = """
+                You requested %(nb_gpus)s GPUs but launched %(nb_tasks)s slurm tasks.
+                We will launch %(nb_gpus)s processes for you.
+                We recommend you let slurm manage the processes by setting: --ntasks-per-node=%(nb_gpus)s
                 If you're not using SLURM, ignore this message!
-                """
+                """ % {'nb_gpus': self.nb_requested_gpus, 'nb_tasks': self.nb_slurm_tasks}
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
