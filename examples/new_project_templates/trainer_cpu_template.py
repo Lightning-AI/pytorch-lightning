@@ -67,7 +67,7 @@ if __name__ == '__main__':
     add_default_args(parent_parser, root_dir)
 
     # allow model to overwrite or extend args
-    parser = ExampleModel.add_model_specific_args(parent_parser)
+    parser = LightningTemplateModel.add_model_specific_args(parent_parser)
     hyperparams = parser.parse_args()
 
     # train model

@@ -136,11 +136,9 @@ def test_cpu_slurm_save_load():
 def test_loading_meta_tags():
     hparams = get_hparams()
 
-    save_dir = init_save_dir()
-
     # save tags
     exp = get_exp(False)
-    exp.tag({'some_str':'a_str', 'an_int': 1, 'a_float': 2.0})
+    exp.tag({'some_str': 'a_str', 'an_int': 1, 'a_float': 2.0})
     exp.argparse(hparams)
     exp.save()
 
@@ -502,7 +500,6 @@ def test_multi_gpu_model_ddp():
     run_gpu_model_test(trainer_options, model, hparams)
 
 
-
 def test_ddp_sampler_error():
     """
     Make sure DDP + AMP work
@@ -587,8 +584,8 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     args = {
         'drop_prob': 0.2,
         'batch_size': 32,
-        'in_features': 28*28,
-        'learning_rate': 0.001*8,
+        'in_features': 28 * 28,
+        'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
         'data_root': os.path.join(root_dir, 'mnist'),
         'out_features': 10,

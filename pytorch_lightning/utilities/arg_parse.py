@@ -3,6 +3,9 @@ List of default args which mught be useful for all the available flags
 Might need to update with the new flags
 """
 
+import os
+
+
 def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
 
     # tng, test, val check intervals
@@ -44,7 +47,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     # test_tube settings
     parser.add_argument('-en', '--tt_name', default='pt_test')
     parser.add_argument('-td', '--tt_description', default='pytorch lightning test')
-    parser.add_argument('--tt_save_path', default=root_dir + '/test_tube_logs', help='logging dir')
+    parser.add_argument('--tt_save_path', default=os.path.join(root_dir, 'test_tube_logs'), help='logging dir')
     parser.add_argument('--enable_single_run', dest='single_run', action='store_true')
     parser.add_argument('--nb_hopt_trials', default=1, type=int)
     parser.add_argument('--log_stdout', dest='log_stdout', action='store_true')
@@ -55,8 +58,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--default_tensor_type', default='torch.cuda.FloatTensor', type=str)
     parser.add_argument('--use_amp', dest='use_amp', action='store_true')
     parser.add_argument('--check_grad_nans', dest='check_grad_nans', action='store_true')
-    parser.add_argument('--amp_level', default='O2',type=str)
-
+    parser.add_argument('--amp_level', default='O2', type=str)
 
     # run on hpc
     parser.add_argument('--on_cluster', dest='on_cluster', action='store_true')

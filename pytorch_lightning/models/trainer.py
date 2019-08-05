@@ -1,12 +1,10 @@
 """
 The trainer handles all the logic for running a val loop, training loop, distributing, etc...
 """
-import subprocess
-import traceback
-import warnings
+
 import os
-import pdb
 import re
+import warnings
 
 import numpy as np
 import tqdm
@@ -201,7 +199,7 @@ class Trainer(TrainerIO):
             try:
                 self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
                 self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
-            except Exception as e:
+            except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
 
@@ -235,13 +233,13 @@ class Trainer(TrainerIO):
             print('using 16bit precision')
 
         if use_amp and not APEX_AVAILABLE:  # pragma: no cover
-            msg = '''
+            msg = """
             You set use_amp=True but do not have apex installed.
-            Install apex first using this guide and rerun with use_amp=True: 
+            Install apex first using this guide and rerun with use_amp=True:
             https://github.com/NVIDIA/apex#linux
-            
+
             this run will NOT use 16 bit precision
-            '''
+            """
             raise ModuleNotFoundError(msg)
 
     @property
@@ -275,7 +273,7 @@ class Trainer(TrainerIO):
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
             'v_nb': '{}'.format(self.experiment.version),
             'epoch': '{}'.format(self.current_epoch),
-            'batch_nb':'{}'.format(self.batch_nb),
+            'batch_nb': '{}'.format(self.batch_nb),
         }
         tqdm_dic.update(self.tqdm_metrics)
 
@@ -389,18 +387,18 @@ class Trainer(TrainerIO):
         self.val_dataloader = model.val_dataloader
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
-            msg = '''
+            msg = """
             when using multiple gpus and multiple nodes you must pass a DistributedSampler to DataLoader(sampler).
-            
+
             ie: this:
             dataset = myDataset()
             dataloader = Dataloader(dataset)
-            
+
             becomes:
             dataset = myDataset()
             dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
             dataloader = Dataloader(dataset, sampler=dist_sampler)
-            '''
+            """
             raise MisconfigurationException(msg)
 
     # -----------------------------
@@ -418,8 +416,8 @@ class Trainer(TrainerIO):
                 self.ddp_train(task, model)
             else:
                 msg = f"""
-                You requested {self.nb_requested_gpus} GPUs but launched {self.nb_slurm_tasks} slurm tasks. 
-                We will launch {self.nb_requested_gpus} processes for you. 
+                You requested {self.nb_requested_gpus} GPUs but launched {self.nb_slurm_tasks} slurm tasks.
+                We will launch {self.nb_requested_gpus} processes for you.
                 We recommend you let slurm manage the processes by setting: --ntasks-per-node={self.nb_requested_gpus}
                 If you're not using SLURM, ignore this message!
                 """
@@ -484,7 +482,7 @@ class Trainer(TrainerIO):
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)
-        except Exception as e:
+        except Exception:
             self.node_rank = 0
 
         # recover original exp before went into process
@@ -543,14 +541,14 @@ class Trainer(TrainerIO):
         # sets the appropriate port
         try:
             port = os.environ['MASTER_PORT']
-        except Exception as e:
+        except Exception:
             port = 12910
             os.environ['MASTER_PORT'] = f'{port}'
 
         # figure out the root node addr
         try:
             root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-        except Exception as e:
+        except Exception:
             root_node = '127.0.0.2'
 
         root_node = self.resolve_root_node_address(root_node)
@@ -773,14 +771,14 @@ class Trainer(TrainerIO):
 
         try:
             model_specific_tqdm_metrics_dic = output['prog']
-        except Exception as e:
+        except Exception:
             model_specific_tqdm_metrics_dic = {}
 
         # if output dict doesn't have the keyword loss
         # then assume the output=loss if scalar
         try:
             loss = output['loss']
-        except Exception as e:
+        except Exception:
             if type(output) is torch.Tensor:
                 loss = output
 
