@@ -1,4 +1,7 @@
-
+"""
+List of default args which mught be useful for all the available flags
+Might need to update with the new flags
+"""
 
 def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
 
