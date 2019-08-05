@@ -43,6 +43,7 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Tensorboard integration](https://github.com/williamFalcon/pytorch-lightning#tensorboard)    
 - [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
+- [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
 - [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)
 
@@ -333,6 +334,11 @@ python single_gpu_node_template.py --gpus "0,1"
 # train on 32 gpus on a cluster (run on a SLURM managed cluster)
 python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ```
+
+## Tutorials   
+- [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
+- [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
+- [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)    
 
 ## Contributing    
 Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
