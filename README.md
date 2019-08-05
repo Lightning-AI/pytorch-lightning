@@ -321,7 +321,8 @@ pip install pytorch-lightning
 
 # clone lightning for the demo
 git clone https://github.com/williamFalcon/pytorch-lightning.git
-cd pytorch_lightning/examples/new_project_templates/
+cd pytorch-lightning
+cd examples/new_project_templates/
 
 # all of the following demos use the SAME model to show no modification needs to be made to your code
 
