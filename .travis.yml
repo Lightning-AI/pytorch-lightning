@@ -37,7 +37,7 @@ install:
 script:
   # integration
   - tox --sitepackages
-  - python setup.py install --user --dry-run
+  - python setup.py install --dry-run
 
 after_success:
   - coverage report
