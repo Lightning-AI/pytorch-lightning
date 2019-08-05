@@ -46,7 +46,8 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
 - [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
-- [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)
+- [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
+- [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
 
 ## How do I do use it?   
 
@@ -340,7 +341,23 @@ python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
 - [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
-- [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)    
+- [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)     
+
+## FAQ    
+**Why was Lightning created?**     
+Lightning has 3 goals in mind:
+1. Maximal flexibility while abstracting out the common boilerplate across research projects.   
+2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.   
+3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.    
+
+**How does Lightning compare with Ignite and fast.ai?**     
+[Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).    
+
+**Is this another library I have to learn?**    
+Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!   
+
+**Are there plans to support Python 2?**          
+Nope.    
 
 ## Contributing    
 Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
