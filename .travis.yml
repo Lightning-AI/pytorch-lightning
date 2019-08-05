@@ -6,6 +6,7 @@ cache: pip
 install:
   - pip install -e .
   - pip install -r requirements.txt
+  - pip install -r tests/requirements.txt
   - pip install -U numpy
 
 # keep build from timing out
@@ -13,4 +14,4 @@ dist: xenial
 
 # command to run tests
 script:
-  - py.test # or py.test for Python versions 3.5 and below
+  - py.test -v # or py.test for Python versions 3.5 and below
