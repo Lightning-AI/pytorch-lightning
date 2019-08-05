@@ -94,7 +94,7 @@ cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
 cluster.add_command('export NCCL_DEBUG=INFO')
 
 # setting a master port here is a good idea.
-cluster.add_command(f'export MASTER_PORT={PORT}')
+cluster.add_command('export MASTER_PORT=%r' % PORT)
 
 # good to load the latest NCCL version
 cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])

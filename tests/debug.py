@@ -132,7 +132,7 @@ def run_prediction(dataloader, trained_model):
 
     print(val_acc)
 
-    assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
+    assert val_acc > 0.70, 'this model is expected to get > 0.7 in test set (it got %f)' % val_acc
 
 
 def main():

@@ -196,6 +196,6 @@ def get_gpu_memory_map():
     gpu_memory = [int(x) for x in result.strip().split('\n')]
     gpu_memory_map = {}
     for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = f'gpu_{k}'
+        k = 'gpu_%i' % k
         gpu_memory_map[k] = v
     return gpu_memory_map
