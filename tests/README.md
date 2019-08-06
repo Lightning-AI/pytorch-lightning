@@ -43,6 +43,7 @@ For each set up it also tests:
 5. simulated load from HPC signal.
 
 ## Running Coverage   
+Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed. 
 
 ```bash
 cd pytorch-lightning
