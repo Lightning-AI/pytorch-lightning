@@ -10,7 +10,7 @@ from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning.models.trainer import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-from .lightning_module_template import LightningTemplateModel
+from examples.new_project_templates.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)

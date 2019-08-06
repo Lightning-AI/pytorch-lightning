@@ -6,7 +6,7 @@ from pytorch_lightning.models.trainer import Trainer
 from pytorch_lightning.utilities.arg_parse import add_default_args
 from pytorch_lightning.callbacks.pt_callbacks import EarlyStopping, ModelCheckpoint
 
-from .lightning_module_template import LightningTemplateModel
+from examples.new_project_templates.lightning_module_template import LightningTemplateModel
 
 
 def main(hparams):
