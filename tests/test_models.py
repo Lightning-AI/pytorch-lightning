@@ -30,10 +30,12 @@ def test_amp_gpu_ddp():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a GPU node to run this test')
         return
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a node with 2+ GPUs to run this test')
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -105,7 +107,8 @@ def test_cpu_slurm_save_load():
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    continue_tng_hparams = get_hparams(continue_training=True, hpc_exp_number=cluster_a.hpc_exp_number)
+    continue_tng_hparams = get_hparams(continue_training=True,
+                                       hpc_exp_number=cluster_a.hpc_exp_number)
     trainer_options = dict(
         max_nb_epochs=1,
         cluster=SlurmCluster(continue_tng_hparams),
@@ -219,7 +222,8 @@ def test_model_saving_loading():
     # load new model
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path, tags_csv=tags_path, on_gpu=False)
+    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
+                                                   tags_csv=tags_path, on_gpu=False)
     model_2.eval()
 
     # make prediction
@@ -244,10 +248,12 @@ def test_amp_gpu_ddp_slurm_managed():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
         return
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
         return
 
     # simulate setting slurm flags
@@ -411,7 +417,8 @@ def test_single_gpu_model():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_single_gpu_model cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_single_gpu_model cannot run.'
+                      ' Rerun on a GPU node to run this test')
         return
     model, hparams = get_model()
 
@@ -432,10 +439,12 @@ def test_multi_gpu_model_dp():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_multi_gpu_model_dp cannot run.'
+                      ' Rerun on a GPU node to run this test')
         return
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        warnings.warn('test_multi_gpu_model_dp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
         return
     model, hparams = get_model()
     trainer_options = dict(
@@ -458,10 +467,12 @@ def test_amp_gpu_dp():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_amp_gpu_dp cannot run.'
+                      ' Rerun on a GPU node to run this test')
         return
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_dp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        warnings.warn('test_amp_gpu_dp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
         return
     model, hparams = get_model()
     trainer_options = dict(
@@ -480,10 +491,12 @@ def test_multi_gpu_model_ddp():
     :return:
     """
     if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a GPU node to run this test')
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
         return
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])

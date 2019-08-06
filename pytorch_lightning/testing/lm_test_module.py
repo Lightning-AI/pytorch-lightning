@@ -48,11 +48,13 @@ class LightningTestModel(LightningModule):
         Layout model
         :return:
         """
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim)
+        self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
+                              out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
+                              out_features=self.hparams.out_features)
 
     # ---------------------
     # TRAINING
@@ -191,8 +193,10 @@ class LightningTestModel(LightningModule):
 
     def __dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = MNIST(root=self.hparams.data_root, train=train,
+                        transform=transform, download=True)
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
@@ -251,11 +255,15 @@ class LightningTestModel(LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001 * 8, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
+        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
+                        options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
+        parser.opt_list('--optimizer_name', default='adam', type=str,
+                        options=['adam'], tunable=False)
 
-        # if using 2 nodes with 4 gpus each the batch size here (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256 * 8, type=int, options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all the gpus being used across all nodes')
+        # if using 2 nodes with 4 gpus each the batch size here
+        #  (256) will be 256 / (2*8) = 16 per gpu
+        parser.opt_list('--batch_size', default=256 * 8, type=int,
+                        options=[32, 64, 128, 256], tunable=False,
+                        help='batch size will be divided over all gpus being used across all nodes')
         return parser

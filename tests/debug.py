@@ -107,7 +107,8 @@ def load_model(exp, save_dir):
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir, tags_csv=tags_path, on_gpu=True)
+    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
+                                                             tags_csv=tags_path, on_gpu=True)
 
     assert trained_model is not None, 'loading model failed'
 
