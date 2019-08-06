@@ -12,7 +12,7 @@ coverage:
     project:
       default:
         against: auto
-        target: 90% # specify the target coverage for each commit status
+        target: 100% # specify the target coverage for each commit status
         threshold: 20% # allow this little decrease on project
         # https://github.com/codecov/support/wiki/Filtering-Branches
         # branches: master

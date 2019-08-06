@@ -105,7 +105,7 @@ class Trainer(TrainerIO):
         :param log_save_interval:
         :param add_log_row_interval:
         :param distributed_backend:
-            'np' to use DistributedParallel, 'ddp' to use DistributedDataParallel
+            'np' to use DistributedParallel, 'dp' to use DistributedDataParallel
         :param use_amp:
         :param print_nan_grads:
         :param print_weights_summary:
