@@ -28,7 +28,7 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. It defers core training and validation logic to you and automates the rest. It guarantees correct, modern best practices for the core training logic.
+Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. It defers core training and validation logic to you and automates the rest. It guarantees tested, correct, modern best practices for the automated parts.
 
 
 ## Why do I want to use lightning?
