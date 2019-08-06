@@ -18,7 +18,7 @@ references:
         check-manifest --ignore tox.ini
         python setup.py check -m -s
         coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
-        flake8 . --max-line-length=100
+        flake8 . --max-line-length=120
         codecov
 
 jobs:

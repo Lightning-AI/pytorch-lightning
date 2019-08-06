@@ -3,7 +3,8 @@ import re
 
 import torch
 
-from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
+from ..pt_overrides.override_data_parallel import (
+    LightningDistributedDataParallel, LightningDataParallel)
 
 
 class ModelIO(object):
@@ -45,7 +46,8 @@ class ModelIO(object):
 class TrainerIO(object):
 
     def __get_model(self):
-        is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
+        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
+                                               LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
 

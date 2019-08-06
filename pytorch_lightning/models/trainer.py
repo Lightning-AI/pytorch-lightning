@@ -15,7 +15,8 @@ import torch.distributed as dist
 
 from ..root_module.memory import get_gpu_memory_map
 from ..root_module.model_saving import TrainerIO
-from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
+from ..pt_overrides.override_data_parallel import (
+    LightningDistributedDataParallel, LightningDataParallel)
 from ..utilities.debugging import MisconfigurationException
 
 try:
@@ -64,17 +65,20 @@ class Trainer(TrainerIO):
                  check_val_every_n_epoch=1,
                  fast_dev_run=False,
                  accumulate_grad_batches=1,
-                 max_nb_epochs=1000, min_nb_epochs=1,
-                 train_percent_check=1.0, val_percent_check=1.0, test_percent_check=1.0,
+                 max_nb_epochs=1000,
+                 min_nb_epochs=1,
+                 train_percent_check=1.0,
+                 val_percent_check=1.0,
+                 test_percent_check=1.0,
                  val_check_interval=0.95,
-                 log_save_interval=100, add_log_row_interval=10,
+                 log_save_interval=100,
+                 add_log_row_interval=10,
                  distributed_backend='dp',
                  use_amp=False,
                  print_nan_grads=False,
                  print_weights_summary=True,
                  amp_level='O2',
                  nb_sanity_val_steps=5):
-
         """
 
         :param experiment: Test-tube experiment
@@ -100,16 +104,15 @@ class Trainer(TrainerIO):
         :param val_check_interval:
         :param log_save_interval:
         :param add_log_row_interval:
-        :param distributed_backend: 'np' to use DistributedParallel, 'ddp' to use DistributedDataParallel
+        :param distributed_backend:
+            'np' to use DistributedParallel, 'ddp' to use DistributedDataParallel
         :param use_amp:
         :param print_nan_grads:
         :param print_weights_summary:
         :param amp_level:
         :param nb_sanity_val_steps:
         """
-
         # Transfer params
-
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -171,13 +174,13 @@ class Trainer(TrainerIO):
 
             # set the correct cuda visible devices (using pci order)
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in self.data_parallel_device_ids])
+            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in
+                                                           self.data_parallel_device_ids])
             print('VISIBLE GPUS: %r' % os.environ["CUDA_VISIBLE_DEVICES"])
 
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
-        have_gpus = self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) > 0
-        if have_gpus:
+        if self.data_parallel_device_ids:
             self.use_dp = distributed_backend == 'dp'
             self.use_ddp = distributed_backend == 'ddp'
 
@@ -224,7 +227,8 @@ class Trainer(TrainerIO):
         self.val_dataloader = None
 
         # how much of the data to use
-        self.__determine_data_use_amount(train_percent_check, val_percent_check, test_percent_check, overfit_pct)
+        self.__determine_data_use_amount(train_percent_check, val_percent_check,
+                                         test_percent_check, overfit_pct)
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
         # 16 bit mixed precision training using apex
@@ -246,7 +250,8 @@ class Trainer(TrainerIO):
     def data_parallel(self):
         return self.use_dp or self.use_ddp
 
-    def __determine_data_use_amount(self, train_percent_check, val_percent_check, test_percent_check, overfit_pct):
+    def __determine_data_use_amount(self, train_percent_check, val_percent_check,
+                                    test_percent_check, overfit_pct):
         """
         Use less data for debugging purposes
         """
@@ -388,17 +393,18 @@ class Trainer(TrainerIO):
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
-            when using multiple gpus and multiple nodes you must pass a DistributedSampler to DataLoader(sampler).
+when using multiple gpus and multiple nodes you must pass
+ a DistributedSampler to DataLoader(sampler).
 
-            ie: this:
-            dataset = myDataset()
-            dataloader = Dataloader(dataset)
+ie: this:
+dataset = myDataset()
+dataloader = Dataloader(dataset)
 
-            becomes:
-            dataset = myDataset()
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-            dataloader = Dataloader(dataset, sampler=dist_sampler)
-            """
+becomes:
+dataset = myDataset()
+dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+dataloader = Dataloader(dataset, sampler=dist_sampler)
+"""
             raise MisconfigurationException(msg)
 
     # -----------------------------
@@ -408,7 +414,8 @@ class Trainer(TrainerIO):
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
-            # must copy only the meta of the exp so it survives pickle/unpickle when going to new process
+            # must copy only the meta of the exp so it survives pickle/unpickle
+            #  when going to new process
             self.experiment = self.experiment.get_meta_copy()
 
             if self.is_slurm_managing_tasks:
@@ -416,11 +423,11 @@ class Trainer(TrainerIO):
                 self.ddp_train(task, model)
             else:
                 msg = """
-                You requested %(nb_gpus)s GPUs but launched %(nb_tasks)s slurm tasks.
-                We will launch %(nb_gpus)s processes for you.
-                We recommend you let slurm manage the processes by setting: --ntasks-per-node=%(nb_gpus)s
-                If you're not using SLURM, ignore this message!
-                """ % {'nb_gpus': self.nb_requested_gpus, 'nb_tasks': self.nb_slurm_tasks}
+You requested %(nb_gpus)s GPUs but launched %(nb_tasks)s slurm tasks.
+We will launch %(nb_gpus)s processes for you.
+We recommend you let slurm manage the processes by setting: --ntasks-per-node=%(nb_gpus)s
+If you're not using SLURM, ignore this message!
+""" % {'nb_gpus': self.nb_requested_gpus, 'nb_tasks': self.nb_slurm_tasks}
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
@@ -433,7 +440,8 @@ class Trainer(TrainerIO):
         else:
             # run through amp wrapper
             if self.use_amp:
-                raise MisconfigurationException('amp + cpu is not supported. Please use a GPU option')
+                raise MisconfigurationException('amp + cpu is not supported.'
+                                                ' Please use a GPU option')
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
@@ -461,10 +469,10 @@ class Trainer(TrainerIO):
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
             m = """
-            Amp level %r with DataParallel is not supported.
-            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-            We recommend you switch to ddp if you want to use amp
-            """ % self.amp_level
+Amp level %r with DataParallel is not supported.
+See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
+We recommend you switch to ddp if you want to use amp
+""" % self.amp_level
             raise MisconfigurationException(m)
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
@@ -527,7 +535,8 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb], find_unused_parameters=True)
+        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
+                                                 find_unused_parameters=True)
 
         # continue training routine
         self.__run_pretrain_routine(model)
@@ -642,7 +651,8 @@ class Trainer(TrainerIO):
 
             # init progbar when requested
             if self.progress_bar:
-                self.prog_bar = tqdm.tqdm(range(self.total_batches), position=self.process_position)
+                self.prog_bar = tqdm.tqdm(range(self.total_batches),
+                                          position=self.process_position)
 
             for batch_nb, data_batch in enumerate(self.tng_dataloader):
                 self.batch_nb = batch_nb
@@ -651,7 +661,8 @@ class Trainer(TrainerIO):
                 model = self.__get_model()
                 model.global_step = self.global_step
 
-                # stop when the flag is changed or we've gone past the amount requested in the batches
+                # stop when the flag is changed or we've gone past the amount
+                #  requested in the batches
                 self.total_batch_nb += 1
                 met_batch_limit = batch_nb > self.nb_tng_batches
                 if met_batch_limit:
@@ -698,7 +709,8 @@ class Trainer(TrainerIO):
                         model.on_tng_metrics(metrics)
 
                     # log metrics
-                    scalar_metrics = self.__metrics_to_scalars(metrics, blacklist=self.__log_vals_blacklist())
+                    scalar_metrics = self.__metrics_to_scalars(
+                        metrics, blacklist=self.__log_vals_blacklist())
                     if self.proc_rank == 0:
                         self.experiment.log(scalar_metrics, global_step=self.global_step)
                         self.experiment.save()
@@ -720,7 +732,8 @@ class Trainer(TrainerIO):
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
             if self.enable_early_stop and met_min_epochs:
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb, logs=self.__tng_tqdm_dic)
+                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
+                                                                    logs=self.__tng_tqdm_dic)
 
                 # stop training
                 stop = should_stop and met_min_epochs
@@ -828,7 +841,8 @@ class Trainer(TrainerIO):
                 # clear gradients
                 optimizer.zero_grad()
 
-            # queuing loss across batches blows it up proportionally... divide out the number accumulated
+            # queuing loss across batches blows it up proportionally...
+            #  divide out the number accumulated
             self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
 
             # track loss
@@ -885,4 +899,5 @@ class Trainer(TrainerIO):
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None:
             print('save callback...')
-            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch, logs=self.__tng_tqdm_dic)
+            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
+                                                  logs=self.__tng_tqdm_dic)
