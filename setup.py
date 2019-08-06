@@ -24,7 +24,7 @@ setup(
     zip_safe=False,
 
     keywords=["deep learning", "pytorch", "AI"],
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     install_requires=[
         "torch>=1.1.0",
         "tqdm",

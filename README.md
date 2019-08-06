@@ -1,3 +1,5 @@
+<div align="center">
+
 ![Logo](./docs/source/_static/lightning_logo_small.png)
 
 # PyTorch Lightning
@@ -14,6 +16,7 @@
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
 [![license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
 
+</div>
 
 Simple installation from PyPI
 ```bash
