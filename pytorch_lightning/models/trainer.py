@@ -180,7 +180,8 @@ class Trainer(TrainerIO):
 
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
-        if self.data_parallel_device_ids:
+        requested_gpus = self.data_parallel_device_ids is not None
+        if requested_gpus and len(self.data_parallel_device_ids) > 0:
             self.use_dp = distributed_backend == 'dp'
             self.use_ddp = distributed_backend == 'ddp'
 
