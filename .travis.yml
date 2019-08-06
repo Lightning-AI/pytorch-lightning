@@ -31,7 +31,6 @@ cache: pip
 install:
   - pip install -r requirements.txt
   - pip install -r ./tests/requirements.txt
-  - pip install tox
   - pip --version ; pip list
 
 script:

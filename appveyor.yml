@@ -45,7 +45,6 @@ install:
   - pip install -U --user pip
   - pip install -r requirements.txt
   - pip install -r ./tests/requirements.txt
-  - pip install tox
 
 # scripts to run before tests (working directory and environment changes are persisted from the previous steps such as "before_build")
 before_test:

@@ -1,0 +1,60 @@
+version: 2.0
+
+references:
+
+  install_pips: &install_pips
+    run:
+      name: Install PyPI dependences
+      command: |
+        pip install -r requirements.txt --user
+        sudo pip install -r ./tests/requirements.txt
+        python --version ; pwd ; ls -l
+        pip --version ; pip list
+
+  test_coverage: &test_coverage
+    run:
+      name: Testing and Formating
+      command: |
+        check-manifest --ignore tox.ini
+        python setup.py check -m -s
+        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
+        flake8 . --max-line-length=100
+        codecov
+
+jobs:
+
+  Py3.6:
+    docker:
+      - image: circleci/python:3.6
+    steps: &steps
+      - checkout
+      # INSTALLATION
+      - *install_pips
+      # TESTING
+      - *test_coverage
+      # DOCUMENTATION
+
+      # PASSING
+      - run:
+          name: Finalise
+          command: |
+            python setup.py install --user
+            coverage report && coverage xml -o test-reports/coverage.xml
+      # RESULTS
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports
+
+  Py3.7:
+    docker:
+      - image: circleci/python:3.7
+    steps: *steps
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - Py3.6
+      - Py3.7
