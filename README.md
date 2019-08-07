@@ -13,7 +13,11 @@
 <!-- 
 removed until windows install issues resolved.
 [![Build status](https://ci.appveyor.com/api/projects/status/rum89d7hq8l1kfye?svg=true)](https://ci.appveyor.com/project/Borda/pytorch-lightning) -->
+<!-- 
+removed until codecov badge isn't empy. likely a config error showing nothing on master.
 [![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
+-->
+[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
