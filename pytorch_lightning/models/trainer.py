@@ -261,7 +261,7 @@ class Trainer(TrainerIO):
 
             if '.ckpt' in name:
                 epoch = name.split('epoch_')[1]
-                epoch = int(re.sub('[^0-9]', '' ,epoch))
+                epoch = int(re.sub('[^0-9]', '', epoch))
 
                 if epoch > last_epoch:
                     last_epoch = epoch
