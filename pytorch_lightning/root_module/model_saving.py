@@ -3,7 +3,7 @@ import re
 
 import torch
 
-from ..pt_overrides.override_data_parallel import (
+from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
 
