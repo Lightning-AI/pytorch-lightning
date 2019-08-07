@@ -38,3 +38,17 @@ self.trainer.current_epoch
 ...   
 ```   
 
+## Debugging   
+The LightningModule also offers these tricks to help debug.   
+
+---   
+#### example_input_array    
+In the LightningModule init, you can set a dummy tensor for this property
+to get a print out of sizes coming into and out of every layer.   
+```python
+def __init__(self):
+    # put the dimensions of the first input to your system
+    self.example_input_array = torch.rand(5, 28 * 28)
+```    
+
+
