@@ -26,6 +26,73 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_cpu_restore_training():
+    """
+    Verify continue training session on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    test_exp_version = 10
+    exp = get_exp(False, version=test_exp_version)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=2,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_epoch = trainer.current_epoch
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # wipe-out trainer and model
+    # retrain with not much data... this simulates picking training back up after slurm
+    # we want to see if the weights come back correctly
+    new_exp = get_exp(False, version=test_exp_version)
+    trainer_options = dict(
+        max_nb_epochs=2,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
+        experiment=new_exp,
+        checkpoint_callback=ModelCheckpoint(save_dir),
+    )
+    trainer = Trainer(**trainer_options)
+    model = LightningTestModel(hparams)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_good_acc():
+        assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
+
+        # if model and state loaded correctly, predictions will be good even though we
+        # haven't trained with the new loaded model
+        trainer.model.eval()
+        run_prediction(trainer.val_dataloader, trainer.model)
+
+    model.on_sanity_check_start = assert_good_acc
+
+    # by calling fit again, we trigger training, loading weights from the cluster
+    # and our hook to predict using current model before any more weight updates
+    trainer.fit(model)
+
+    clear_save_dir()
+
+
 def test_amp_gpu_ddp():
     """
     Make sure DDP + AMP work
@@ -54,6 +121,8 @@ def test_amp_gpu_ddp():
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
+
+
 
 
 def test_cpu_slurm_save_load():
@@ -622,10 +691,10 @@ def get_model():
     return model, hparams
 
 
-def get_exp(debug=True):
+def get_exp(debug=True, version=None):
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir')
+    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir', version=version)
     return exp
 
 
