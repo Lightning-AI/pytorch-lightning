@@ -6,14 +6,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 import shutil
 
-import pytorch_lightning as ptl
+import pytorch_lightning as pl
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 
-class CoolModel(ptl.LightningModule):
+class CoolModel(pl.LightningModule):
 
     def __init(self):
         super(CoolModel, self).__init__()
@@ -43,15 +43,15 @@ class CoolModel(ptl.LightningModule):
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @ptl.data_loader
+    @pl.data_loader
     def tng_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 

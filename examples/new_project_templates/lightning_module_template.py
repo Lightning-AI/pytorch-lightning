@@ -13,7 +13,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-import pytorch_lightning as ptl
+import pytorch_lightning as pl
 from pytorch_lightning.root_module.root_module import LightningModule
 
 
@@ -195,17 +195,17 @@ class LightningTemplateModel(LightningModule):
 
         return loader
 
-    @ptl.data_loader
+    @pl.data_loader
     def tng_dataloader(self):
         print('tng data loader called')
         return self.__dataloader(train=True)
 
-    @ptl.data_loader
+    @pl.data_loader
     def val_dataloader(self):
         print('val data loader called')
         return self.__dataloader(train=False)
 
-    @ptl.data_loader
+    @pl.data_loader
     def test_dataloader(self):
         print('test data loader called')
         return self.__dataloader(train=False)
