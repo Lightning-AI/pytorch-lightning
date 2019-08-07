@@ -11,7 +11,7 @@ from torchvision.datasets import MNIST
 from torchvision import transforms
 from test_tube import HyperOptArgumentParser
 
-from ..root_module.root_module import LightningModule
+from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning import data_loader
 
 
