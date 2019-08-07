@@ -38,7 +38,9 @@ script:
 
 after_success:
   - coverage report
-  - codecov
+  # disable auto coverage bc it isn't accurate since it misses gpu code.
+  # to get coverage, run local and push results
+  # - codecov
 
 notifications:
   email: false
