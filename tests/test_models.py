@@ -123,8 +123,6 @@ def test_amp_gpu_ddp():
     run_gpu_model_test(trainer_options, model, hparams)
 
 
-
-
 def test_cpu_slurm_save_load():
     """
     Verify model save/load/checkpoint on CPU
