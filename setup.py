@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
+# Always prefer setuptools over distutils
+from os import path
 from setuptools import setup
 
 import pytorch_lightning
 
-# https://packaging.python.org/guides/single-sourcing-package-version/
+PATH_HERE = path.abspath(path.dirname(__file__))
 
+with open(path.join(PATH_HERE, 'requirements.txt'), encoding='utf-8') as fp:
+    requirements = [rq.rstrip() for rq in fp.readlines() if not rq.startswith('#')]
+
+# https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 setup(
     name="pytorch-lightning",
@@ -25,11 +31,7 @@ setup(
 
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.6",
-    install_requires=[
-        "torch>=1.1.0",
-        "tqdm",
-        "test-tube>=0.6.7.6",
-    ],
+    install_requires=requirements,
 
     classifiers=[
         'Environment :: Console',
