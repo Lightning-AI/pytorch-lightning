@@ -244,6 +244,30 @@ class Trainer(TrainerIO):
             '''
             raise ModuleNotFoundError(msg)
 
+        # restore training and model
+        self.restore_state_if_existing_checkpoint()
+
+    def restore_state_if_existing_checkpoint(self):
+        # restore trainer state and model if there is a weight for this experiment
+        last_epoch = -1
+        last_ckpt_name = None
+
+        # find last epoch
+        checkpoints = os.listdir(self.checkpoint_callback.filepath)
+        for name in checkpoints:
+            if '.ckpt' in name:
+                epoch = name.split('epoch_')[1]
+                epoch = re.sub('[^0-9]', '' ,epoch)
+
+                if epoch > last_epoch:
+                    last_epoch = epoch
+                    last_ckpt_name = name
+
+        # restore last checkpoint
+        last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
+        self.restore(last_ckpt_path, self.on_gpu)
+        print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+
     @property
     def data_parallel(self):
         return self.use_dp or self.use_ddp
