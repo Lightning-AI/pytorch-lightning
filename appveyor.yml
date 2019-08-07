@@ -12,20 +12,22 @@ environment:
     # See: http://www.appveyor.com/docs/installed-software#python
 
 
-    - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "64"
-      TOXENV: "py35"
+    # - PYTHON: "C:\\Python35-x64"
+    #   PYTHON_VERSION: "3.5.x"
+    #   PYTHON_ARCH: "64"
+    #  TOXENV: "py35"
 
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
       TOXENV: "py36"
+      PIP_PYVER: "36"
 
     - PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
       TOXENV: "py37"
+      PIP_PYVER: "37"
 
 build: off
 
@@ -43,6 +45,8 @@ install:
   # directly to master instead of just PR builds (or the converse).
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%path%
   - pip install -U --user pip
+  - pip install "https://download.pytorch.org/whl/cu90/torch-1.1.0-cp%PIP_PYVER%-cp%PIP_PYVER%m-win_amd%PYTHON_ARCH%.whl"
+    pip install "https://download.pytorch.org/whl/cu90/torchvision-0.3.0-cp%PIP_PYVER%-cp%PIP_PYVER%m-win_amd%PYTHON_ARCH%.whl"
   - pip install -r requirements.txt
   - pip install -r ./tests/requirements.txt
 
