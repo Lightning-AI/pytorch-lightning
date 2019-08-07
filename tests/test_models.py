@@ -75,6 +75,9 @@ def test_cpu_restore_training():
     new_exp = get_exp(False, version=test_exp_version)
     trainer_options = dict(
         max_nb_epochs=1,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
         experiment=new_exp,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
