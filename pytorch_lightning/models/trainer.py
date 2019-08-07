@@ -264,9 +264,10 @@ class Trainer(TrainerIO):
                     last_ckpt_name = name
 
         # restore last checkpoint
-        last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
-        self.restore(last_ckpt_path, self.on_gpu)
-        print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+        if last_ckpt_name is not None:
+            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
+            self.restore(last_ckpt_path, self.on_gpu)
+            print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
 
     @property
     def data_parallel(self):
