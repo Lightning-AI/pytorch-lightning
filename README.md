@@ -1,25 +1,30 @@
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/lightning_logo.png" width="50">
-  </a>
-</p>
-<h3 align="center">
-  PyTorch Lightning
-</h3>
-<p align="center">
-  The PyTorch Keras for ML researchers. More control. Less boilerplate.    
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="https://badge.fury.io/py/pytorch-lightning"><img src="https://badge.fury.io/py/pytorch-lightning.svg" alt="PyPI version" height="18"></a>
-  <a href="https://pepy.tech/project/pytorch-lightning"><img src="https://pepy.tech/badge/pytorch-lightning" alt="PyPI version" height="18"></a>
-    <a href="https://pepy.tech/project/pytorch-lightning"><img src="https://img.shields.io/badge/python-3.6-blue.svg" alt="Supported Python Version" height="18"></a>
-  <a href="https://github.com/williamFalcon/pytorch-lightning/tree/master/tests"><img src="https://github.com/williamFalcon/pytorch-lightning/blob/master/coverage.svg"></a>
-  <a href="https://travis-ci.org/williamFalcon/pytorch-lightning"><img src="https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master"></a>
-  <a href="https://williamfalcon.github.io/pytorch-lightning/"><img src="https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest"></a>
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
-</p>   
+![Logo](./docs/source/_static/lightning_logo_small.png)
 
+# PyTorch Lightning
+
+**The PyTorch Keras for ML researchers. More control. Less boilerplate.**
+
+
+[![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
+[![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
+[![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
+<!-- 
+removed until windows install issues resolved.
+[![Build status](https://ci.appveyor.com/api/projects/status/rum89d7hq8l1kfye?svg=true)](https://ci.appveyor.com/project/Borda/pytorch-lightning) -->
+<!-- 
+removed until codecov badge isn't empy. likely a config error showing nothing on master.
+[![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
+-->
+[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
+
+</div>
+
+Simple installation from PyPI
 ```bash
 pip install pytorch-lightning  
 ```
@@ -28,7 +33,7 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. It defers core training and validation logic to you and automates the rest. It guarantees correct, modern best practices for the core training logic.
+Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. It defers core training and validation logic to you and automates the rest. It guarantees tested, correct, modern best practices for the automated parts.
 
 
 ## Why do I want to use lightning?
@@ -38,6 +43,7 @@ With lightning, you guarantee those parts of your code work so you can focus on 
 
 Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
+---   
 ## README Table of Contents        
 - [How do I use it](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it)     
 - [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
@@ -45,10 +51,12 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
-- [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
+- [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/CONTRIBUTING.md)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
+- [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)
 - [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
 
+---   
 ## How do I do use it?   
 
 To use lightning do 2 things:  
@@ -61,9 +69,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 
-import pytorch_lightning as ptl
+import pytorch_lightning as pl
 
-class CoolModel(ptl.LightningModule):
+class CoolModel(pl.LightningModule):
 
     def __init__(self):
         super(CoolModel, self).__init__()
@@ -93,15 +101,15 @@ class CoolModel(ptl.LightningModule):
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @ptl.data_loader
+    @pl.data_loader
     def tng_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
@@ -127,21 +135,16 @@ trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorflow logs 
-print(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
 ```
-
 
 ## What does lightning control for me?   
 
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-<p align="center">
-  <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg" height="700px">
-  </a>
-</p>  
+![Ouverview](./docs/source/_static/overview_flat.jpg)
 
 ```{.python}
 # what to do in the training loop
@@ -223,19 +226,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard.   
 
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_loss.png" width="900px">
-  </a>
-</p>
+![tensorboard-support](./docs/source/_static/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-<p align="center">
-  <a href="https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support">
-        <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/tf_tags.png" width="900px">
-  </a>
-</p>
+![tensorboard-support](./docs/source/_static/tf_tags.png)
 
 Simply note the path you set for the Experiment    
 ``` {.python}   
@@ -259,6 +254,7 @@ tensorboard --logdir /some/path
 
 - [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
 - [Model loading](https://williamfalcon.github.io/pytorch-lightning/LightningModule/methods/#load-from-metrics) 
+- [Restoring training session](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#restoring-training-session)
 
 ###### Computing cluster (SLURM)    
 
@@ -315,7 +311,6 @@ tensorboard --logdir /some/path
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
 
-
 ## Demo
 ```bash
 # install lightning
@@ -343,6 +338,7 @@ python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 - [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
 - [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)     
 
+---   
 ## FAQ    
 **Why was Lightning created?**     
 Lightning has 3 goals in mind:
@@ -357,20 +353,7 @@ Lightning has 3 goals in mind:
 Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!   
 
 **Are there plans to support Python 2?**          
-Nope.    
-
-## Contributing    
-Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
-
-#### Bug fixes:  
-1. Submit a github issue.   
-2. Fix it.  
-3. Submit a PR! 
-
-#### New Features:  
-1. Submit a github issue.   
-2. We'll agree on the feature scope.     
-3. Submit a PR! (with updated docs and tests 🙃).    
+Nope.     
 
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  

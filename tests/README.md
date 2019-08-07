@@ -17,7 +17,7 @@ pip install -e .
 pip install -r requirements.txt
 
 # run tests
-py.test
+py.test -v
 ```
 
 To test models that require GPU make sure to run the above command on a GPU machine.
@@ -43,16 +43,21 @@ For each set up it also tests:
 5. simulated load from HPC signal.
 
 ## Running Coverage   
+Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed. 
 
 ```bash
 cd pytorch-lightning
 
 # generate coverage 
 pip install coverage
-coverage run tests/test_models.py   
+coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
 
 # print coverage stats
-coverage report -m   
+coverage report -m
+
+# exporting resulys
+coverage xml
+codecov -t 17327163-8cca-4a5d-86c8-ca5f2ef700bc  -v
 ```
 
 

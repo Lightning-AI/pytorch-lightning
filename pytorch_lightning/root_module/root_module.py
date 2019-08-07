@@ -1,10 +1,10 @@
 import torch
 
-from .memory import ModelSummary
-from .grads import GradInformation
-from .model_saving import ModelIO, load_hparams_from_tags_csv
-from .hooks import ModelHooks
-from .decorators import data_loader
+from pytorch_lightning.root_module.memory import ModelSummary
+from pytorch_lightning.root_module.grads import GradInformation
+from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
+from pytorch_lightning.root_module.hooks import ModelHooks
+from pytorch_lightning.root_module.decorators import data_loader
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -129,6 +129,3 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
-
-
-

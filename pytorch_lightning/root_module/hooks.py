@@ -2,6 +2,14 @@ import torch
 
 
 class ModelHooks(torch.nn.Module):
+
+    def on_sanity_check_start(self):
+        """
+        Called before starting validate
+        :return:
+        """
+        pass
+
     def on_batch_start(self, data_batch):
         pass
 
@@ -43,4 +51,3 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         pass
-

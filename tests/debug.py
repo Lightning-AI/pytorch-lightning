@@ -6,14 +6,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 import shutil
 
-import pytorch_lightning as ptl
+import pytorch_lightning as pl
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 
-class CoolModel(ptl.LightningModule):
+class CoolModel(pl.LightningModule):
 
     def __init(self):
         super(CoolModel, self).__init__()
@@ -43,15 +43,15 @@ class CoolModel(ptl.LightningModule):
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @ptl.data_loader
+    @pl.data_loader
     def tng_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
@@ -61,8 +61,8 @@ def get_model():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     hparams = Namespace(**{'drop_prob': 0.2,
                            'batch_size': 32,
-                           'in_features': 28*28,
-                           'learning_rate': 0.001*8,
+                           'in_features': 28 * 28,
+                           'learning_rate': 0.001 * 8,
                            'optimizer_name': 'adam',
                            'data_root': os.path.join(root_dir, 'mnist'),
                            'out_features': 10,
@@ -107,7 +107,8 @@ def load_model(exp, save_dir):
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir, tags_csv=tags_path, on_gpu=True)
+    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
+                                                             tags_csv=tags_path, on_gpu=True)
 
     assert trained_model is not None, 'loading model failed'
 
@@ -132,7 +133,7 @@ def run_prediction(dataloader, trained_model):
 
     print(val_acc)
 
-    assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
+    assert val_acc > 0.70, 'this model is expected to get > 0.7 in test set (it got %f)' % val_acc
 
 
 def main():

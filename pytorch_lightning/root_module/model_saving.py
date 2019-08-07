@@ -3,7 +3,8 @@ import re
 
 import torch
 
-from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel, LightningDataParallel
+from pytorch_lightning.pt_overrides.override_data_parallel import (
+    LightningDistributedDataParallel, LightningDataParallel)
 
 
 class ModelIO(object):
@@ -45,7 +46,8 @@ class ModelIO(object):
 class TrainerIO(object):
 
     def __get_model(self):
-        is_dp_module = type(self.model) is LightningDistributedDataParallel or type(self.model) is LightningDataParallel
+        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
+                                               LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
 
@@ -57,6 +59,22 @@ class TrainerIO(object):
 
         # do the actual save
         torch.save(checkpoint, filepath)
+
+    def restore(self, checkpoint_path, on_gpu):
+
+        if on_gpu:
+            checkpoint = torch.load(checkpoint_path)
+        else:
+            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+
+        # load training state (affects trainer only)
+        self.restore_training_state(checkpoint)
+
+        # load model state
+        model = self.__get_model()
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'])
 
     def dump_checkpoint(self):
 
@@ -198,15 +216,15 @@ class TrainerIO(object):
         # call model hook
         model.on_hpc_load(checkpoint)
 
-    def max_ckpt_in_folder(self, path):
+    def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         files = os.listdir(path)
-        files = [x for x in files if 'ckpt_' in x]
+        files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0
 
         ckpt_vs = []
         for name in files:
-            name = name.split('ckpt_')[-1]
+            name = name.split(name_key)[-1]
             name = re.sub('[^0-9]', '', name)
             ckpt_vs.append(int(name))
 
