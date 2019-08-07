@@ -3,7 +3,7 @@ import shutil
 
 import numpy as np
 
-from ..pt_overrides.override_data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
 class Callback(object):
