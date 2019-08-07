@@ -1,5 +1,5 @@
 """
-The trainer handles all the logic for running a val loop, training loop, distributing, etc...
+The trainer handles all the logic for running a val loop, training loop, distributing, etc.. .
 """
 
 import os
@@ -246,6 +246,32 @@ class Trainer(TrainerIO):
             this run will NOT use 16 bit precision
             """
             raise ModuleNotFoundError(msg)
+
+    def restore_state_if_existing_checkpoint(self):
+        # restore trainer state and model if there is a weight for this experiment
+        last_epoch = -1
+        last_ckpt_name = None
+
+        # find last epoch
+        checkpoints = os.listdir(self.checkpoint_callback.filepath)
+        for name in checkpoints:
+            # ignore hpc ckpts
+            if 'hpc_' in name:
+                continue
+
+            if '.ckpt' in name:
+                epoch = name.split('epoch_')[1]
+                epoch = int(re.sub('[^0-9]', '' ,epoch))
+
+                if epoch > last_epoch:
+                    last_epoch = epoch
+                    last_ckpt_name = name
+
+        # restore last checkpoint
+        if last_ckpt_name is not None:
+            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
+            self.restore(last_ckpt_path, self.on_gpu)
+            print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
 
     @property
     def data_parallel(self):
@@ -609,9 +635,6 @@ We recommend you switch to ddp if you want to use amp
         ref_model.trainer = self
         ref_model.experiment = self.experiment
 
-        # run tiny validation to make sure program won't crash during val
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
-
         # save exp to get started
         if self.proc_rank == 0:
             self.experiment.save()
@@ -620,14 +643,23 @@ We recommend you switch to ddp if you want to use amp
         # if cluster resets state, the model will update with the saved weights
         self.model = model
 
+        # restore training and model before hpc call
+        self.restore_state_if_existing_checkpoint()
+
         # enable cluster checkpointing
         # also restores training state
+        # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
+
+        # run tiny validation to make sure program won't crash during val
+        ref_model.on_sanity_check_start()
+        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
 
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
+
         self.__train()
 
     def __train(self):
