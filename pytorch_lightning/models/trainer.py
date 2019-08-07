@@ -621,9 +621,6 @@ class Trainer(TrainerIO):
         ref_model.trainer = self
         ref_model.experiment = self.experiment
 
-        # run tiny validation to make sure program won't crash during val
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
-
         # save exp to get started
         if self.proc_rank == 0:
             self.experiment.save()
@@ -641,9 +638,14 @@ class Trainer(TrainerIO):
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
+        # run tiny validation to make sure program won't crash during val
+        model.on_sanity_check_start()
+        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
+
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
+
         self.__train()
 
     def __train(self):
