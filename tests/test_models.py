@@ -52,6 +52,77 @@ def test_amp_gpu_ddp():
     run_gpu_model_test(trainer_options, model, hparams)
 
 
+def test_cpu_restore_training():
+    """
+    Verify continue training session on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    test_exp_version = 10
+    exp = get_exp(False, version=test_exp_version)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_step = trainer.global_step
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # predict with trained model before saving
+    # make a prediction
+    for batch in model.test_dataloader:
+        break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    model.eval()
+    pred_before_saving = model(x)
+
+    # wipe-out trainer and model
+    # retrain with not much data... this simulates picking training back up after slurm
+    # we want to see if the weights come back correctly
+    new_exp = get_exp(False, version=test_exp_version)
+    trainer_options = dict(
+        max_nb_epochs=1,
+        experiment=new_exp,
+        checkpoint_callback=ModelCheckpoint(save_dir),
+    )
+    trainer = Trainer(**trainer_options)
+    model = LightningTestModel(hparams)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_pred_same():
+        assert trainer.global_step == real_global_step and trainer.global_step > 0
+
+        # predict with loaded model to make sure answers are the same
+        trainer.model.eval()
+        new_pred = trainer.model(x)
+        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+    model.on_epoch_start = assert_pred_same
+
+    # by calling fit again, we trigger training, loading weights from the cluster
+    # and our hook to predict using current model before any more weight updates
+    trainer.fit(model)
+
+    clear_save_dir()
+
+
 def test_cpu_slurm_save_load():
     """
     Verify model save/load/checkpoint on CPU
@@ -610,10 +681,10 @@ def get_model():
     return model, hparams
 
 
-def get_exp(debug=True):
+def get_exp(debug=True, version=None):
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir')
+    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir', version=version)
     return exp
 
 
