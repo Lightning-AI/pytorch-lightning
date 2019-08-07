@@ -252,6 +252,10 @@ class Trainer(TrainerIO):
         # find last epoch
         checkpoints = os.listdir(self.checkpoint_callback.filepath)
         for name in checkpoints:
+            # ignore hpc ckpts
+            if 'hpc_' in name:
+                continue
+
             if '.ckpt' in name:
                 epoch = name.split('epoch_')[1]
                 epoch = int(re.sub('[^0-9]', '' ,epoch))
