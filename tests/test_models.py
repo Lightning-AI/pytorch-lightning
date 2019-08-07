@@ -74,7 +74,7 @@ def test_cpu_restore_training():
     # we want to see if the weights come back correctly
     new_exp = get_exp(False, version=test_exp_version)
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_nb_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
