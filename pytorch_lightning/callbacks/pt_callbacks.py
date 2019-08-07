@@ -122,9 +122,9 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         stop_training = False
         if current is None:
-            print('Early stopping conditioned on metric `%s` ''which is not available. Available metrics are: %s' %
-                (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning
-            )
+            print('Early stopping conditioned on metric `%s` '
+                  'which is not available. Available metrics are: %s' %
+                  (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
             exit(-1)
 
         if self.monitor_op(current - self.min_delta, self.best):
@@ -188,8 +188,7 @@ class ModelCheckpoint(Callback):
 
         if mode not in ['auto', 'min', 'max']:
             print('ModelCheckpoint mode %s is unknown, '
-                          'fallback to auto mode.' % (mode),
-                          RuntimeWarning)
+                  'fallback to auto mode.' % (mode), RuntimeWarning)
             mode = 'auto'
 
         if mode == 'min':
@@ -233,8 +232,8 @@ class ModelCheckpoint(Callback):
             if self.save_best_only:
                 current = logs.get(self.monitor)
                 if current is None:
-                    print('Can save best model only with %s available, '
-                                  'skipping.' % (self.monitor), RuntimeWarning)
+                    print('Can save best model only with %s available,'
+                          ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
                         if self.verbose > 0:

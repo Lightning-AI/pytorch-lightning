@@ -11,10 +11,7 @@ rm -rf ./dist/*
 python3 setup.py sdist
 twine upload dist/*
 
-
-
 # to update docs
 # cd to root dir
 # mkdocs gh-deploy
-
 

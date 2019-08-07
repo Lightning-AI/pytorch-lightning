@@ -94,7 +94,7 @@ class ModelSummary(object):
         mods = list(self.model.modules())
         sizes = []
 
-        for i in range(1,len(mods)):
+        for i in range(1, len(mods)):
             m = mods[i]
             p = list(m.parameters())
             modsz = []
@@ -127,7 +127,7 @@ class ModelSummary(object):
         if self.model.example_input_array is not None:
             cols.extend(['In_sizes', 'Out_sizes'])
 
-        df = pd.DataFrame(np.zeros( (len(self.layer_names), len(cols))))
+        df = pd.DataFrame(np.zeros((len(self.layer_names), len(cols))))
         df.columns = cols
 
         df['Name'] = self.layer_names
@@ -152,16 +152,16 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def print_mem_stack(): # pragma: no cover
+def print_mem_stack():  # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
                 print(type(obj), obj.size())
-        except Exception as e:
+        except Exception:
             pass
 
 
-def count_mem_items(): # pragma: no cover
+def count_mem_items():  # pragma: no cover
     nb_params = 0
     nb_tensors = 0
     for obj in gc.get_objects():
@@ -172,7 +172,7 @@ def count_mem_items(): # pragma: no cover
                     nb_params += 1
                 else:
                     nb_tensors += 1
-        except Exception as e:
+        except Exception:
             pass
 
     return nb_params, nb_tensors
@@ -196,6 +196,6 @@ def get_gpu_memory_map():
     gpu_memory = [int(x) for x in result.strip().split('\n')]
     gpu_memory_map = {}
     for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = f'gpu_{k}'
+        k = 'gpu_%i' % k
         gpu_memory_map[k] = v
     return gpu_memory_map
