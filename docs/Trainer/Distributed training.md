@@ -28,9 +28,12 @@ For a deeper understanding of what lightning is doing, feel free to read [this g
 Due to an issue with apex and DistributedDataParallel (PyTorch and NVIDIA issue), Lightning does
 not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.   
 
+Below are the possible configurations we support.    
+
 | 1 GPU  | 1+ GPUs  | DP  | DDP  | 16-bit  | command |
 |---|---|---|---|---|---|
-| Y  |   |   |   | Y | ```Trainer(gpus=[0])``` |
+| Y  |   |   |   |  | ```Trainer(gpus=[0])``` |
+| Y  |   |   |   | Y | ```Trainer(gpus=[0], use_amp=True)``` |
 |   | Y | Y |   |   | ```Trainer(gpus=[0, ...])``` |
 |   | Y |  | Y  |  | ```Trainer(gpus=[0, ...], distributed_backend='ddp')``` |
 |   | Y |  | Y  | Y | ```Trainer(gpus=[0, ...], distributed_backend='ddp', use_amp=True)``` |
