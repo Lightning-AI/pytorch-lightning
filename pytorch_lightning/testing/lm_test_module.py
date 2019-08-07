@@ -48,11 +48,13 @@ class LightningTestModel(LightningModule):
         Layout model
         :return:
         """
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim)
+        self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
+                              out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
+                              out_features=self.hparams.out_features)
 
     # ---------------------
     # TRAINING
@@ -191,8 +193,10 @@ class LightningTestModel(LightningModule):
 
     def __dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = MNIST(root=self.hparams.data_root, train=train,
+                        transform=transform, download=True)
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
@@ -202,7 +206,7 @@ class LightningTestModel(LightningModule):
             if self.on_gpu and not self.force_remove_distributed_sampler:
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception as e:
+        except Exception:
             pass
 
         should_shuffle = train_sampler is None
@@ -242,19 +246,24 @@ class LightningTestModel(LightningModule):
 
         # network params
         parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28*28, type=int)
+        parser.add_argument('--in_features', default=28 * 28, type=int)
         parser.add_argument('--out_features', default=10, type=int)
-        parser.add_argument('--hidden_dim', default=50000, type=int) # use 500 for CPU, 50000 for GPU to see speed difference
+        # use 500 for CPU, 50000 for GPU to see speed difference
+        parser.add_argument('--hidden_dim', default=50000, type=int)
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001*8, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
+        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
+                        options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
+        parser.opt_list('--optimizer_name', default='adam', type=str,
+                        options=['adam'], tunable=False)
 
-        # if using 2 nodes with 4 gpus each the batch size here (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256*8, type=int, options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all the gpus being used across all nodes')
+        # if using 2 nodes with 4 gpus each the batch size here
+        #  (256) will be 256 / (2*8) = 16 per gpu
+        parser.opt_list('--batch_size', default=256 * 8, type=int,
+                        options=[32, 64, 128, 256], tunable=False,
+                        help='batch size will be divided over all gpus being used across all nodes')
         return parser

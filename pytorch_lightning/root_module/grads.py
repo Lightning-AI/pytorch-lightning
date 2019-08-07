@@ -4,6 +4,7 @@ Module to describe gradients
 
 from torch import nn
 
+
 class GradInformation(nn.Module):
 
     def grad_norm(self, norm_type):
@@ -16,12 +17,13 @@ class GradInformation(nn.Module):
                     total_norm += param_norm ** norm_type
                     norm = param_norm ** (1 / norm_type)
 
-                    results['grad_{}_norm_{}'.format(norm_type, i)] = round(norm.data.cpu().numpy().flatten()[0], 3)
-                except Exception as e:
+                    grad = round(norm.data.cpu().numpy().flatten()[0], 3)
+                    results['grad_{}_norm_{}'.format(norm_type, i)] = grad
+                except Exception:
                     # this param had no grad
                     pass
 
         total_norm = total_norm ** (1. / norm_type)
-        results['grad_{}_norm_total'.format(norm_type)] = round(total_norm.data.cpu().numpy().flatten()[0], 3)
+        grad = round(total_norm.data.cpu().numpy().flatten()[0], 3)
+        results['grad_{}_norm_total'.format(norm_type)] = grad
         return results
-
