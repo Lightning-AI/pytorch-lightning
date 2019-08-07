@@ -155,6 +155,8 @@ class TrainerIO(object):
         self.current_epoch = checkpoint['epoch']
 
         # restore the optimizers
+        import pdb
+        pdb.set_trace()
         optimizer_states = checkpoint['optimizer_states']
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
