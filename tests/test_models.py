@@ -93,7 +93,7 @@ def test_cpu_restore_training():
         new_pred = trainer.model(x)
         assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
-    model.on_epoch_start = assert_pred_same
+    model.on_sanity_check_start = assert_pred_same
 
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
