@@ -65,9 +65,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 
-import pytorch_lightning as ptl
+import pytorch_lightning as pl
 
-class CoolModel(ptl.LightningModule):
+class CoolModel(pl.LightningModule):
 
     def __init__(self):
         super(CoolModel, self).__init__()
@@ -97,15 +97,15 @@ class CoolModel(ptl.LightningModule):
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @ptl.data_loader
+    @pl.data_loader
     def tng_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
-    @ptl.data_loader
+    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
@@ -352,7 +352,7 @@ Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!
 Nope.    
 
 ## Contributing    
-Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
+Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
 
 ## Lightning Design Principles   
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.    
