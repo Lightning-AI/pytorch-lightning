@@ -299,7 +299,7 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = len(self.val_dataloader)
+        self.nb_val_batches = sum([len(dataloader) for dataloader in self.val_dataloader])
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
@@ -318,12 +318,13 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def validate(self, model, dataloader, max_batches):
+    def validate(self, model, dataloader, max_batches, dataloader_i):
         """
         Run validation code
         :param model: PT model
         :param dataloader: PT dataloader
         :param max_batches: Scalar
+        :param dataloader_index: Scalar
         :return:
         """
         # enable eval mode
@@ -356,7 +357,7 @@ class Trainer(TrainerIO):
                 output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
 
             else:
-                output = model.validation_step(data_batch, batch_i)
+                output = model.validation_step(data_batch, batch_i, dataloader_i)
 
             outputs.append(output)
 
@@ -386,7 +387,7 @@ class Trainer(TrainerIO):
         """
         self.tng_dataloader = model.tng_dataloader
         self.test_dataloader = model.test_dataloader
-        self.val_dataloader = model.val_dataloader
+        self.val_dataloader = model.val_dataloader if type(model.val_dataloader) == list else [model.val_dataloader]
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = '''
@@ -600,7 +601,7 @@ class Trainer(TrainerIO):
         ref_model.experiment = self.experiment
 
         # run tiny validation to make sure program won't crash during val
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
+        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
 
         # save exp to get started
         if self.proc_rank == 0:
@@ -865,12 +866,13 @@ class Trainer(TrainerIO):
         # use full val set on end of epoch
         # use a small portion otherwise
         max_batches = None if not self.fast_dev_run else 1
-        model_specific_tqdm_metrics_dic = self.validate(
+        model_specific_tqdm_metrics_dic = [self.validate(
             self.model,
-            self.val_dataloader,
-            max_batches
-        )
-        self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
+            dataloader,
+            max_batches,
+            index,
+        ) for index, dataloader in enumerate(self.val_dataloader)]
+        map(self.__add_tqdm_metrics, model_specific_tqdm_metrics_dic)
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):
