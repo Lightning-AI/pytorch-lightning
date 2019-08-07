@@ -394,7 +394,9 @@ class Trainer(TrainerIO):
 
             elif self.single_gpu:
                 gpu_id = self.data_parallel_device_ids[0]
-                data_batch = [x.cuda(gpu_id) for x in data_batch if isinstance(x, torch.Tensor)]
+                for i, x in enumerate(data_batch):
+                    if isinstance(x, torch.Tensor):
+                        data_batch[i] = x.cuda(gpu_id)
                 output = model.validation_step(data_batch, batch_i)
 
             else:
@@ -849,7 +851,9 @@ We recommend you switch to ddp if you want to use amp
             output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
-            data_batch = [x.cuda(gpu_id) for x in data_batch if isinstance(x, torch.Tensor)]
+            for i, x in enumerate(data_batch):
+                if isinstance(x, torch.Tensor):
+                    data_batch[i] = x.cuda(gpu_id)
             output = self.model.training_step(data_batch.cuda(self.data_parallel_device_ids[0]), batch_nb)
 
         else:
