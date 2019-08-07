@@ -854,7 +854,7 @@ We recommend you switch to ddp if you want to use amp
             for i, x in enumerate(data_batch):
                 if isinstance(x, torch.Tensor):
                     data_batch[i] = x.cuda(gpu_id)
-            output = self.model.training_step(data_batch.cuda(self.data_parallel_device_ids[0]), batch_nb)
+            output = self.model.training_step(data_batch, batch_nb)
 
         else:
             output = self.model.training_step(data_batch, batch_nb)
