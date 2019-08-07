@@ -362,6 +362,11 @@ Nope.
 ## Contributing    
 Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
 
+#### Formatting
+
+We use [`black`](https://github.com/python/black) for formatting code. You can
+install it with `pip install black` and run it from the project root with `black .`
+
 #### Bug fixes:  
 1. Submit a github issue.   
 2. Fix it.  

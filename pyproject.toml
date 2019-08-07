@@ -3,3 +3,6 @@ requires = [
     "setuptools",
     "wheel",
 ]
+
+[tool.black]
+target-version = ['py35']

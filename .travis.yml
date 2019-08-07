@@ -8,10 +8,14 @@ install:
   - pip install -r requirements.txt
   - pip install -r tests/requirements.txt
   - pip install -U numpy
+  - pip install -U black
 
 # keep build from timing out
 dist: xenial
 
 # command to run tests
+before_script:
+  - black --check --verbose .
+
 script:
   - py.test -v # or py.test for Python versions 3.5 and below
