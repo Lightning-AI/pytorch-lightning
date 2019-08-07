@@ -74,9 +74,6 @@ class TrainerIO(object):
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
 
-        # call model hook
-        model.on_hpc_load(checkpoint)
-
     def dump_checkpoint(self):
 
         checkpoint = {
