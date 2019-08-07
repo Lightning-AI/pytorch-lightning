@@ -47,9 +47,11 @@ class LightningDataParallel(DataParallel):
 
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device_obj:
-                raise RuntimeError("module must have its parameters and buffers "
-                                   "on device {} (device_ids[0]) but found one of "
-                                   "them on device: {}".format(self.src_device_obj, t.device))
+                raise RuntimeError(
+                    "module must have its parameters and buffers "
+                    "on device {} (device_ids[0]) but found one of "
+                    "them on device: {}".format(self.src_device_obj, t.device)
+                )
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
         if len(self.device_ids) == 1:
@@ -59,13 +61,14 @@ class LightningDataParallel(DataParallel):
             else:
                 return self.module.validation_step(*inputs[0], **kwargs[0])
 
-        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        replicas = self.replicate(self.module, self.device_ids[: len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
         return self.gather(outputs, self.output_device)
 
-
     def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+        return parallel_apply(
+            replicas, inputs, kwargs, self.device_ids[: len(replicas)]
+        )
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
@@ -74,7 +77,9 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     """
 
     def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+        return parallel_apply(
+            replicas, inputs, kwargs, self.device_ids[: len(replicas)]
+        )
 
     def forward(self, *inputs, **kwargs):  # pragma: no cover
         self._sync_params()
@@ -93,7 +98,9 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
-                outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+                outputs = self.parallel_apply(
+                    self._module_copies[: len(inputs)], inputs, kwargs
+                )
                 output = self.gather(outputs, self.output_device)
         else:
             output = self.module(*inputs, **kwargs)
@@ -165,10 +172,12 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 results[i] = e
 
     if len(modules) > 1:
-        threads = [threading.Thread(target=_worker,
-                                    args=(i, module, input, kwargs, device))
-                   for i, (module, input, kwargs, device) in
-                   enumerate(zip(modules, inputs, kwargs_tup, devices))]
+        threads = [
+            threading.Thread(target=_worker, args=(i, module, input, kwargs, device))
+            for i, (module, input, kwargs, device) in enumerate(
+                zip(modules, inputs, kwargs_tup, devices)
+            )
+        ]
 
         for thread in threads:
             thread.start()

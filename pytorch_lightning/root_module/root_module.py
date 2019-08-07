@@ -8,7 +8,6 @@ from .decorators import data_loader
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
-
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
@@ -99,7 +98,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :return:
         """
         hparams = load_hparams_from_tags_csv(tags_csv)
-        hparams.__setattr__('on_gpu', on_gpu)
+        hparams.__setattr__("on_gpu", on_gpu)
 
         if on_gpu:
             if map_location is not None:
@@ -107,11 +106,13 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             else:
                 checkpoint = torch.load(weights_path)
         else:
-            checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
+            checkpoint = torch.load(
+                weights_path, map_location=lambda storage, loc: storage
+            )
 
         # load the state_dict on the model automatically
         model = cls(hparams)
-        model.load_state_dict(checkpoint['state_dict'])
+        model.load_state_dict(checkpoint["state_dict"])
 
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
@@ -129,6 +130,3 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
-
-
-

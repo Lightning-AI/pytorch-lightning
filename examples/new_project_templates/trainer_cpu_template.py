@@ -22,7 +22,7 @@ def main(hparams):
         save_dir=hparams.tt_save_path,
         version=hparams.hpc_exp_number,
         autosave=False,
-        description=hparams.tt_description
+        description=hparams.tt_description,
     )
 
     exp.argparse(hparams)
@@ -32,38 +32,31 @@ def main(hparams):
     model = LightningTemplateModel(hparams)
 
     # callbacks
-    early_stop = EarlyStopping(
-        monitor='val_acc',
-        patience=3,
-        mode='min',
-        verbose=True,
-    )
+    early_stop = EarlyStopping(monitor="val_acc", patience=3, mode="min", verbose=True)
 
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
+    model_save_path = "{}/{}/{}".format(hparams.model_save_path, exp.name, exp.version)
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
         save_best_only=True,
         verbose=True,
-        monitor='val_acc',
-        mode='min'
+        monitor="val_acc",
+        mode="min",
     )
 
     # configure trainer
     trainer = Trainer(
-        experiment=exp,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
+        experiment=exp, checkpoint_callback=checkpoint, early_stop_callback=early_stop
     )
 
     # train model
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # use default args given by lightning
-    root_dir = os.path.split(os.path.dirname(sys.modules['__main__'].__file__))[0]
-    parent_parser = HyperOptArgumentParser(strategy='random_search', add_help=False)
+    root_dir = os.path.split(os.path.dirname(sys.modules["__main__"].__file__))[0]
+    parent_parser = HyperOptArgumentParser(strategy="random_search", add_help=False)
     add_default_args(parent_parser, root_dir)
 
     # allow model to overwrite or extend args

@@ -1,6 +1,6 @@
-'''
+"""
 Generates a summary of a model's layers and dimensionality
-'''
+"""
 
 import gc
 
@@ -11,11 +11,10 @@ import pandas as pd
 
 
 class ModelSummary(object):
-
     def __init__(self, model):
-        '''
+        """
         Generates summaries of model layers and dimensions.
-        '''
+        """
         self.model = model
         self.in_sizes = []
         self.out_sizes = []
@@ -29,7 +28,7 @@ class ModelSummary(object):
         return self.summary.__str__()
 
     def get_variable_sizes(self):
-        '''Run sample input through each layer to get output sizes'''
+        """Run sample input through each layer to get output sizes"""
         mods = list(self.model.modules())
         in_sizes = []
         out_sizes = []
@@ -75,7 +74,7 @@ class ModelSummary(object):
         return
 
     def get_layer_names(self):
-        '''Collect Layer Names'''
+        """Collect Layer Names"""
         mods = list(self.model.named_modules())
         names = []
         layers = []
@@ -83,18 +82,18 @@ class ModelSummary(object):
             names += [m[0]]
             layers += [str(m[1].__class__)]
 
-        layer_types = [x.split('.')[-1][:-2] for x in layers]
+        layer_types = [x.split(".")[-1][:-2] for x in layers]
 
         self.layer_names = names
         self.layer_types = layer_types
         return
 
     def get_parameter_sizes(self):
-        '''Get sizes of all parameters in `model`'''
+        """Get sizes of all parameters in `model`"""
         mods = list(self.model.modules())
         sizes = []
 
-        for i in range(1,len(mods)):
+        for i in range(1, len(mods)):
             m = mods[i]
             p = list(m.parameters())
             modsz = []
@@ -106,7 +105,7 @@ class ModelSummary(object):
         return
 
     def get_parameter_nums(self):
-        '''Get number of parameters in each layer'''
+        """Get number of parameters in each layer"""
         param_nums = []
         for mod in self.param_sizes:
             all_params = 0
@@ -117,27 +116,27 @@ class ModelSummary(object):
         return
 
     def make_summary(self):
-        '''
+        """
         Makes a summary listing with:
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
-        '''
+        """
 
-        cols = ['Name', 'Type', 'Params']
+        cols = ["Name", "Type", "Params"]
         if self.model.example_input_array is not None:
-            cols.extend(['In_sizes', 'Out_sizes'])
+            cols.extend(["In_sizes", "Out_sizes"])
 
-        df = pd.DataFrame(np.zeros( (len(self.layer_names), len(cols))))
+        df = pd.DataFrame(np.zeros((len(self.layer_names), len(cols))))
         df.columns = cols
 
-        df['Name'] = self.layer_names
-        df['Type'] = self.layer_types
-        df['Params'] = self.param_nums
+        df["Name"] = self.layer_names
+        df["Type"] = self.layer_types
+        df["Params"] = self.param_nums
 
         if self.model.example_input_array is not None:
 
-            df['In_sizes'] = self.in_sizes
-            df['Out_sizes'] = self.out_sizes
+            df["In_sizes"] = self.in_sizes
+            df["Out_sizes"] = self.out_sizes
 
         self.summary = df
         return
@@ -152,23 +151,27 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def print_mem_stack(): # pragma: no cover
+def print_mem_stack():  # pragma: no cover
     for obj in gc.get_objects():
         try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+            if torch.is_tensor(obj) or (
+                hasattr(obj, "data") and torch.is_tensor(obj.data)
+            ):
                 print(type(obj), obj.size())
         except Exception as e:
             pass
 
 
-def count_mem_items(): # pragma: no cover
+def count_mem_items():  # pragma: no cover
     nb_params = 0
     nb_tensors = 0
     for obj in gc.get_objects():
         try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+            if torch.is_tensor(obj) or (
+                hasattr(obj, "data") and torch.is_tensor(obj.data)
+            ):
                 obj_type = str(type(obj))
-                if 'parameter' in obj_type:
+                if "parameter" in obj_type:
                     nb_params += 1
                 else:
                     nb_tensors += 1
@@ -188,14 +191,13 @@ def get_gpu_memory_map():
         Values are memory usage as integers in MB.
     """
     result = subprocess.check_output(
-        [
-            'nvidia-smi', '--query-gpu=memory.used',
-            '--format=csv,nounits,noheader'
-        ], encoding='utf-8')
+        ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
+        encoding="utf-8",
+    )
     # Convert lines into a dictionary
-    gpu_memory = [int(x) for x in result.strip().split('\n')]
+    gpu_memory = [int(x) for x in result.strip().split("\n")]
     gpu_memory_map = {}
     for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = f'gpu_{k}'
+        k = f"gpu_{k}"
         gpu_memory_map[k] = v
     return gpu_memory_map

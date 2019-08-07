@@ -1,4 +1,3 @@
-
 def data_loader(fn):
     """
     Decorator to make any fx with this use the lazy property
@@ -6,7 +5,7 @@ def data_loader(fn):
     :return:
     """
 
-    attr_name = '_lazy_' + fn.__name__
+    attr_name = "_lazy_" + fn.__name__
 
     @property
     def _data_loader(self):

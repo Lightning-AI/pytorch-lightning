@@ -48,11 +48,15 @@ class LightningTestModel(LightningModule):
         Layout model
         :return:
         """
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim)
+        self.c_d1 = nn.Linear(
+            in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim
+        )
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features)
+        self.c_d2 = nn.Linear(
+            in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features
+        )
 
     # ---------------------
     # TRAINING
@@ -99,10 +103,9 @@ class LightningTestModel(LightningModule):
 
         # alternate possible outputs to test
         if self.trainer.batch_nb % 1 == 0:
-            output = OrderedDict({
-                'loss': loss_val,
-                'prog': {'some_val': loss_val * loss_val}
-            })
+            output = OrderedDict(
+                {"loss": loss_val, "prog": {"some_val": loss_val * loss_val}}
+            )
             return output
         if self.trainer.batch_nb % 2 == 0:
             return loss_val
@@ -134,20 +137,19 @@ class LightningTestModel(LightningModule):
 
         # alternate possible outputs to test
         if self.trainer.batch_nb % 1 == 0:
-            output = OrderedDict({
-                'val_loss': loss_val,
-                'val_acc': val_acc,
-            })
+            output = OrderedDict({"val_loss": loss_val, "val_acc": val_acc})
             return output
         if self.trainer.batch_nb % 2 == 0:
             return val_acc
 
         if self.trainer.batch_nb % 3 == 0:
-            output = OrderedDict({
-                'val_loss': loss_val,
-                'val_acc': val_acc,
-                'test_dic': {'val_loss_a': loss_val}
-            })
+            output = OrderedDict(
+                {
+                    "val_loss": loss_val,
+                    "val_acc": val_acc,
+                    "test_dic": {"val_loss_a": loss_val},
+                }
+            )
             return output
 
     def validation_end(self, outputs):
@@ -163,17 +165,17 @@ class LightningTestModel(LightningModule):
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
-            val_loss_mean += output['val_loss']
-            val_acc_mean += output['val_acc']
+            val_loss_mean += output["val_loss"]
+            val_acc_mean += output["val_acc"]
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
 
-        tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        tqdm_dic = {"val_loss": val_loss_mean.item(), "val_acc": val_acc_mean.item()}
         return tqdm_dic
 
     def on_tng_metrics(self, logs):
-        logs['some_tensor_to_test'] = torch.rand(1)
+        logs["some_tensor_to_test"] = torch.rand(1)
 
     # ---------------------
     # TRAINING SETUP
@@ -191,8 +193,12 @@ class LightningTestModel(LightningModule):
 
     def __dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train, transform=transform, download=True)
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))]
+        )
+        dataset = MNIST(
+            root=self.hparams.data_root, train=train, transform=transform, download=True
+        )
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
@@ -210,7 +216,7 @@ class LightningTestModel(LightningModule):
             dataset=dataset,
             batch_size=batch_size,
             shuffle=should_shuffle,
-            sampler=train_sampler
+            sampler=train_sampler,
         )
 
         return loader
@@ -235,26 +241,51 @@ class LightningTestModel(LightningModule):
         :param root_dir:
         :return:
         """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
+        parser = HyperOptArgumentParser(
+            strategy=parent_parser.strategy, parents=[parent_parser]
+        )
 
         # param overwrites
         # parser.set_defaults(gradient_clip=5.0)
 
         # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28*28, type=int)
-        parser.add_argument('--out_features', default=10, type=int)
-        parser.add_argument('--hidden_dim', default=50000, type=int) # use 500 for CPU, 50000 for GPU to see speed difference
+        parser.opt_list(
+            "--drop_prob", default=0.2, options=[0.2, 0.5], type=float, tunable=False
+        )
+        parser.add_argument("--in_features", default=28 * 28, type=int)
+        parser.add_argument("--out_features", default=10, type=int)
+        parser.add_argument(
+            "--hidden_dim", default=50000, type=int
+        )  # use 500 for CPU, 50000 for GPU to see speed difference
 
         # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
+        parser.add_argument(
+            "--data_root", default=os.path.join(root_dir, "mnist"), type=str
+        )
 
         # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001*8, type=float, options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str, options=['adam'], tunable=False)
+        parser.opt_list(
+            "--learning_rate",
+            default=0.001 * 8,
+            type=float,
+            options=[0.0001, 0.0005, 0.001, 0.005],
+            tunable=False,
+        )
+        parser.opt_list(
+            "--optimizer_name",
+            default="adam",
+            type=str,
+            options=["adam"],
+            tunable=False,
+        )
 
         # if using 2 nodes with 4 gpus each the batch size here (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256*8, type=int, options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all the gpus being used across all nodes')
+        parser.opt_list(
+            "--batch_size",
+            default=256 * 8,
+            type=int,
+            options=[32, 64, 128, 256],
+            tunable=False,
+            help="batch size will be divided over all the gpus being used across all nodes",
+        )
         return parser

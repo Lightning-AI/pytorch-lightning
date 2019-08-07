@@ -14,7 +14,6 @@ from torchvision.datasets import MNIST
 
 
 class CoolModel(ptl.LightningModule):
-
     def __init(self):
         super(CoolModel, self).__init__()
         # not the best model...
@@ -29,15 +28,15 @@ class CoolModel(ptl.LightningModule):
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
-        return {'tng_loss': self.my_loss(y_hat, y)}
+        return {"tng_loss": self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
-        return {'val_loss': self.my_loss(y_hat, y)}
+        return {"val_loss": self.my_loss(y_hat, y)}
 
     def validation_end(self, outputs):
-        avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
+        avg_loss = torch.stack([x for x in outputs["val_loss"]]).mean()
         return avg_loss
 
     def configure_optimizers(self):
@@ -45,28 +44,32 @@ class CoolModel(ptl.LightningModule):
 
     @ptl.data_loader
     def tng_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
+        return DataLoader(MNIST("path/to/save", train=True), batch_size=32)
 
     @ptl.data_loader
     def val_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST("path/to/save", train=False), batch_size=32)
 
     @ptl.data_loader
     def test_dataloader(self):
-        return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
+        return DataLoader(MNIST("path/to/save", train=False), batch_size=32)
 
 
 def get_model():
     # set up model with these hyperparams
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    hparams = Namespace(**{'drop_prob': 0.2,
-                           'batch_size': 32,
-                           'in_features': 28*28,
-                           'learning_rate': 0.001*8,
-                           'optimizer_name': 'adam',
-                           'data_root': os.path.join(root_dir, 'mnist'),
-                           'out_features': 10,
-                           'hidden_dim': 1000})
+    hparams = Namespace(
+        **{
+            "drop_prob": 0.2,
+            "batch_size": 32,
+            "in_features": 28 * 28,
+            "learning_rate": 0.001 * 8,
+            "optimizer_name": "adam",
+            "data_root": os.path.join(root_dir, "mnist"),
+            "out_features": 10,
+            "hidden_dim": 1000,
+        }
+    )
     model = LightningTemplateModel(hparams)
 
     return model, hparams
@@ -75,13 +78,13 @@ def get_model():
 def get_exp(debug=True):
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir')
+    exp = Experiment(debug=debug, save_dir=root_dir, name="tests_tt_dir")
     return exp
 
 
 def init_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, "save_dir")
 
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
@@ -93,7 +96,7 @@ def init_save_dir():
 
 def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, "save_dir")
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
 
@@ -102,14 +105,16 @@ def load_model(exp, save_dir):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    tags_path = os.path.join(tags_path, "meta_tags.csv")
 
-    checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
+    checkpoints = [x for x in os.listdir(save_dir) if ".ckpt" in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir, tags_csv=tags_path, on_gpu=True)
+    trained_model = LightningTemplateModel.load_from_metrics(
+        weights_path=weights_dir, tags_csv=tags_path, on_gpu=True
+    )
 
-    assert trained_model is not None, 'loading model failed'
+    assert trained_model is not None, "loading model failed"
 
     return trained_model
 
@@ -132,7 +137,9 @@ def run_prediction(dataloader, trained_model):
 
     print(val_acc)
 
-    assert val_acc > 0.70, f'this model is expected to get > 0.7 in test set (it got {val_acc})'
+    assert (
+        val_acc > 0.70
+    ), f"this model is expected to get > 0.7 in test set (it got {val_acc})"
 
 
 def main():
@@ -152,7 +159,7 @@ def main():
         progress_bar=True,
         max_nb_epochs=1,
         gpus=[0, 1],
-        distributed_backend='dp',
+        distributed_backend="dp",
     )
 
     model = CoolModel()
@@ -160,7 +167,7 @@ def main():
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, "amp + ddp model failed to complete"
 
     # test model loading
     pretrained_model = load_model(exp, save_dir)
@@ -171,5 +178,5 @@ def main():
     clear_save_dir()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

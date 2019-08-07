@@ -80,8 +80,9 @@ class EarlyStopping(Callback):
             from the name of the monitored quantity.
     """
 
-    def __init__(self, monitor='val_loss',
-                 min_delta=0.0, patience=0, verbose=0, mode='auto'):
+    def __init__(
+        self, monitor="val_loss", min_delta=0.0, patience=0, verbose=0, mode="auto"
+    ):
         super(EarlyStopping, self).__init__()
 
         self.monitor = monitor
@@ -91,16 +92,16 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
 
-        if mode not in ['auto', 'min', 'max']:
-            print('EarlyStopping mode %s is unknown, fallback to auto mode.' % mode)
-            mode = 'auto'
+        if mode not in ["auto", "min", "max"]:
+            print("EarlyStopping mode %s is unknown, fallback to auto mode." % mode)
+            mode = "auto"
 
-        if mode == 'min':
+        if mode == "min":
             self.monitor_op = np.less
-        elif mode == 'max':
+        elif mode == "max":
             self.monitor_op = np.greater
         else:
-            if 'acc' in self.monitor:
+            if "acc" in self.monitor:
                 self.monitor_op = np.greater
             else:
                 self.monitor_op = np.less
@@ -122,8 +123,11 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         stop_training = False
         if current is None:
-            print('Early stopping conditioned on metric `%s` ''which is not available. Available metrics are: %s' %
-                (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning
+            print(
+                "Early stopping conditioned on metric `%s` "
+                "which is not available. Available metrics are: %s"
+                % (self.monitor, ",".join(list(logs.keys()))),
+                RuntimeWarning,
             )
             exit(-1)
 
@@ -141,7 +145,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
+            print("Epoch %05d: early stopping" % (self.stopped_epoch + 1))
 
 
 class ModelCheckpoint(Callback):
@@ -173,9 +177,17 @@ class ModelCheckpoint(Callback):
         period: Interval (number of epochs) between checkpoints.
     """
 
-    def __init__(self, filepath, monitor='val_loss', verbose=0,
-                 save_best_only=False, save_weights_only=False,
-                 mode='auto', period=1, prefix=''):
+    def __init__(
+        self,
+        filepath,
+        monitor="val_loss",
+        verbose=0,
+        save_best_only=False,
+        save_weights_only=False,
+        mode="auto",
+        period=1,
+        prefix="",
+    ):
         super(ModelCheckpoint, self).__init__()
         self.monitor = monitor
         self.verbose = verbose
@@ -186,20 +198,22 @@ class ModelCheckpoint(Callback):
         self.epochs_since_last_save = 0
         self.prefix = prefix
 
-        if mode not in ['auto', 'min', 'max']:
-            print('ModelCheckpoint mode %s is unknown, '
-                          'fallback to auto mode.' % (mode),
-                          RuntimeWarning)
-            mode = 'auto'
+        if mode not in ["auto", "min", "max"]:
+            print(
+                "ModelCheckpoint mode %s is unknown, "
+                "fallback to auto mode." % (mode),
+                RuntimeWarning,
+            )
+            mode = "auto"
 
-        if mode == 'min':
+        if mode == "min":
             self.monitor_op = np.less
             self.best = np.Inf
-        elif mode == 'max':
+        elif mode == "max":
             self.monitor_op = np.greater
             self.best = -np.Inf
         else:
-            if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
+            if "acc" in self.monitor or self.monitor.startswith("fmeasure"):
                 self.monitor_op = np.greater
                 self.best = -np.Inf
             else:
@@ -207,7 +221,7 @@ class ModelCheckpoint(Callback):
                 self.best = np.Inf
 
     def save_model(self, filepath, overwrite):
-        dirpath = '/'.join(filepath.split('/')[:-1])
+        dirpath = "/".join(filepath.split("/")[:-1])
 
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -229,37 +243,51 @@ class ModelCheckpoint(Callback):
         self.epochs_since_last_save += 1
         if self.epochs_since_last_save >= self.period:
             self.epochs_since_last_save = 0
-            filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, epoch + 1)
+            filepath = "{}/{}_ckpt_epoch_{}.ckpt".format(
+                self.filepath, self.prefix, epoch + 1
+            )
             if self.save_best_only:
                 current = logs.get(self.monitor)
                 if current is None:
-                    print('Can save best model only with %s available, '
-                                  'skipping.' % (self.monitor), RuntimeWarning)
+                    print(
+                        "Can save best model only with %s available, "
+                        "skipping." % (self.monitor),
+                        RuntimeWarning,
+                    )
                 else:
                     if self.monitor_op(current, self.best):
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
-                                  ' saving model to %s'
-                                  % (epoch + 1, self.monitor, self.best,
-                                     current, filepath))
+                            print(
+                                "\nEpoch %05d: %s improved from %0.5f to %0.5f,"
+                                " saving model to %s"
+                                % (
+                                    epoch + 1,
+                                    self.monitor,
+                                    self.best,
+                                    current,
+                                    filepath,
+                                )
+                            )
                         self.best = current
                         self.save_model(filepath, overwrite=True)
 
                     else:
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s did not improve' %
-                                  (epoch + 1, self.monitor))
+                            print(
+                                "\nEpoch %05d: %s did not improve"
+                                % (epoch + 1, self.monitor)
+                            )
             else:
                 if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                    print("\nEpoch %05d: saving model to %s" % (epoch + 1, filepath))
                 self.save_model(filepath, overwrite=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
     for i, loss in enumerate(losses):
-        should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
+        should_stop = c.on_epoch_end(i, logs={"val_loss": loss})
         print(loss)
         if should_stop:
             break
