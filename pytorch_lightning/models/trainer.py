@@ -1,5 +1,5 @@
 """
-The trainer handles all the logic for running a val loop, training loop, distributing, etc...
+The trainer handles all the logic for running a val loop, training loop, distributing, etc.. .
 """
 import subprocess
 import traceback
