@@ -70,6 +70,9 @@ def test_cpu_restore_training():
 
     trainer_options = dict(
         max_nb_epochs=1,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
