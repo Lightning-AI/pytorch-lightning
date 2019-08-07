@@ -630,8 +630,6 @@ class Trainer(TrainerIO):
         self.model = model
 
         # restore training and model before hpc call
-        import pdb
-        pdb.set_trace()
         self.restore_state_if_existing_checkpoint()
 
         # enable cluster checkpointing
