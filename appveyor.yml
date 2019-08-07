@@ -63,4 +63,4 @@ test_script:
 
 on_success:
   - coverage report
-  - codecov
+  # - codecov
