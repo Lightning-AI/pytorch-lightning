@@ -29,7 +29,7 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. It defers core training and validation logic to you and automates the rest. It guarantees correct, modern best practices for the core training logic.
+Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. It defers core training and validation logic to you and automates the rest. It guarantees tested, correct, modern best practices for the automated parts.
 
 
 ## Why do I want to use lightning?
@@ -39,6 +39,7 @@ With lightning, you guarantee those parts of your code work so you can focus on 
 
 Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
+---   
 ## README Table of Contents        
 - [How do I use it](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it)     
 - [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
@@ -48,8 +49,10 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
 - [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
+- [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)
 - [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
 
+---   
 ## How do I do use it?   
 
 To use lightning do 2 things:  
@@ -131,7 +134,6 @@ trainer.fit(model)
 print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
 ```
-
 
 ## What does lightning control for me?   
 
@@ -305,7 +307,6 @@ tensorboard --logdir /some/path
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
 
-
 ## Demo
 ```bash
 # install lightning
@@ -333,6 +334,7 @@ python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 - [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
 - [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)     
 
+---   
 ## FAQ    
 **Why was Lightning created?**     
 Lightning has 3 goals in mind:
@@ -351,6 +353,26 @@ Nope.
 
 ## Contributing    
 Welcome to the PTL community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!  
+
+## Lightning Design Principles   
+We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.    
+
+##### No PyTorch interference   
+We don't want to add any abstractions on top of pure PyTorch. This gives researchers all the control they need without having to learn yet another framework.    
+
+##### Simple Internal Code    
+It's useful for users to look at the code and understand very quickly what's happening. Many users won't be engineers. Thus we need to value clear, simple code over condensed ninja moves. While that's super cool, this isn't the project for that :)      
+
+##### Force User Decisions To Best Practices    
+There are 1,000 ways to do something. However, something eventually becomes standard practice that everyone does. Thus we pick one way of doing it and force everyone to do it this way. A good example is accumulated gradients. There are many ways to implement, we just pick one and force users to use that one. A bad forced decision would be to make users use a specific library to do something.    
+
+When something becomes a best practice, we add it to the framework. This likely looks like code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
+
+##### Simple External API    
+What makes sense to you may not make sense to others. Create an issue with an API change suggestion and validate that it makes sense for others. Treat code changes how you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.    
+
+##### Gain User Trust    
+As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.    
 
 #### Bug fixes:  
 1. Submit a github issue.   
