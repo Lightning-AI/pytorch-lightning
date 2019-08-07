@@ -135,16 +135,16 @@ class LightningTestModel(LightningModule):
             val_acc = val_acc.unsqueeze(0)
 
         # alternate possible outputs to test
-        if self.trainer.batch_nb % 1 == 0:
+        if batch_i % 1 == 0:
             output = OrderedDict({
                 'val_loss': loss_val,
                 'val_acc': val_acc,
             })
             return output
-        if self.trainer.batch_nb % 2 == 0:
+        if batch_i % 2 == 0:
             return val_acc
 
-        if self.trainer.batch_nb % 3 == 0:
+        if batch_i % 3 == 0:
             output = OrderedDict({
                 'val_loss': loss_val,
                 'val_acc': val_acc,
