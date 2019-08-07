@@ -244,9 +244,6 @@ class Trainer(TrainerIO):
             '''
             raise ModuleNotFoundError(msg)
 
-        # restore training and model
-        self.restore_state_if_existing_checkpoint()
-
     def restore_state_if_existing_checkpoint(self):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
@@ -623,6 +620,9 @@ class Trainer(TrainerIO):
         # give model convenience properties
         ref_model.trainer = self
         ref_model.experiment = self.experiment
+
+        # restore training and model
+        self.restore_state_if_existing_checkpoint()
 
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
