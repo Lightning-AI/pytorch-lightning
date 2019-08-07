@@ -636,9 +636,6 @@ We recommend you switch to ddp if you want to use amp
         ref_model.trainer = self
         ref_model.experiment = self.experiment
 
-        # run tiny validation to make sure program won't crash during val
-        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
-
         # save exp to get started
         if self.proc_rank == 0:
             self.experiment.save()
@@ -658,7 +655,7 @@ We recommend you switch to ddp if you want to use amp
 
         # run tiny validation to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
+        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
 
         # ---------------------------
         # CORE TRAINING LOOP
