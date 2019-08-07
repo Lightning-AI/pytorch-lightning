@@ -24,6 +24,19 @@ have configuration issues depending on your cluster.
 For a deeper understanding of what lightning is doing, feel free to read [this guide](https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565).   
 
 ---
+#### Distributed and 16-bit precision.    
+Due to an issue with apex and DistributedDataParallel (PyTorch and NVIDIA issue), Lightning does
+not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.   
+
+| 1 GPU  | 1+ GPUs  | DP  | DDP  | 16-bit  | command |
+|---|---|---|---|---|---|
+| Y  |   |   |   | Y | ```Trainer(gpus=[0])``` |
+|   | Y | Y |   |   | ```Trainer(gpus=[0, ...])``` |
+|   | Y |  | Y  |  | ```Trainer(gpus=[0, ...], distributed_backend='ddp')``` |
+|   | Y |  | Y  | Y | ```Trainer(gpus=[0, ...], distributed_backend='ddp', use_amp=True)``` |
+
+
+---
 #### CUDA flags   
 CUDA flags make certain GPUs visible to your script. 
 Lightning sets these for you automatically, there's NO NEED to do this yourself.
