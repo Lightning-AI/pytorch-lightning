@@ -12,6 +12,7 @@ include LICENSE
 
 exclude *.sh
 exclude *.toml
+exclude *.svg    
 recursive-include examples *.py
 recursive-include pytorch_lightning *.py
 
