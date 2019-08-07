@@ -25,10 +25,6 @@ coverage:
         # threshold: 50% # allow this much decrease on patch
     changes: false
 
-ignore:
-  - "pytorch_lightning/utilities/arg_parse.py"
-  - "raise *"
-
 parsers:
   gcov:
     branch_detection:
