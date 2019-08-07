@@ -172,7 +172,7 @@ def training_step(self, data_batch, batch_nb):
     # define your own forward and loss calculation
     hidden_states = self.encoder(x)
      
-    # even as complex as a seq-2seq + attn model
+    # even as complex as a seq-2-seq + attn model
     # (this is just a toy, non-working example to illustrate)
     start_token = '<SOS>'
     last_hidden = torch.zeros(...)
