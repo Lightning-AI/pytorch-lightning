@@ -621,9 +621,6 @@ class Trainer(TrainerIO):
         ref_model.trainer = self
         ref_model.experiment = self.experiment
 
-        # restore training and model
-        self.restore_state_if_existing_checkpoint()
-
         # run tiny validation to make sure program won't crash during val
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
 
@@ -635,8 +632,12 @@ class Trainer(TrainerIO):
         # if cluster resets state, the model will update with the saved weights
         self.model = model
 
+        # restore training and model before hpc call
+        self.restore_state_if_existing_checkpoint()
+
         # enable cluster checkpointing
         # also restores training state
+        # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
