@@ -643,7 +643,7 @@ class Trainer(TrainerIO):
             self.enable_auto_hpc_walltime_manager()
 
         # run tiny validation to make sure program won't crash during val
-        model.on_sanity_check_start()
+        ref_model.on_sanity_check_start()
         _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
 
         # ---------------------------
