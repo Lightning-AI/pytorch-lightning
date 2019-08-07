@@ -681,10 +681,14 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     return hparams
 
 
-def get_model():
+def get_model(use_test_model=False):
     # set up model with these hyperparams
     hparams = get_hparams()
-    model = LightningTemplateModel(hparams)
+
+    if use_test_model:
+        model = LightningTestModel(hparams)
+    else:
+        model = LightningTemplateModel(hparams)
 
     return model, hparams
 
