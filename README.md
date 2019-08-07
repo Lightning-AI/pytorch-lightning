@@ -51,7 +51,7 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
-- [Contributing](https://github.com/williamFalcon/pytorch-lightning#contributing)    
+- [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/CONTRIBUTING.md)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
 - [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)
 - [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
