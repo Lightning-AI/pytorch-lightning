@@ -58,17 +58,6 @@ def test_cpu_restore_training():
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    # predict with trained model before saving
-    # make a prediction
-    for batch in model.test_dataloader:
-        break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    model.eval()
-    pred_before_saving = model(x)
-
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
@@ -85,15 +74,15 @@ def test_cpu_restore_training():
     model = LightningTestModel(hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
-    def assert_pred_same():
+    def assert_good_acc():
         assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
 
-        # predict with loaded model to make sure answers are the same
+        # if model and state loaded correctly, predictions will be good even though we
+        # haven't trained with the new loaded model
         trainer.model.eval()
-        new_pred = trainer.model(x)
-        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+        run_prediction(trainer.val_dataloader, trainer.model)
 
-    model.on_sanity_check_start = assert_pred_same
+    model.on_sanity_check_start = assert_good_acc
 
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
