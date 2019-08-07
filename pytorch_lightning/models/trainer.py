@@ -196,7 +196,7 @@ class Trainer(TrainerIO):
                 warnings.warn(w)
 
         # remove dp and ddp when requesting single gpu
-        if len(self.data_parallel_device_ids) == 1:
+        if self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) == 1:
             self.use_ddp = False
             self.use_dp = False
             self.single_gpu = True
