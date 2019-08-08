@@ -370,6 +370,10 @@ Nope.
 **Are there plans to support virtualenv?**    
 Nope. Please use anaconda or miniconda.    
 
+**Which PyTorch versions do you support?**    
+Lightning 0.4.2+ supports PyTorch 1.2.0.    
+For PyTorch 1.1.0 install Lightning 0.4.0 with test-tube=0.6.7.6.    
+
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
 ```bash
