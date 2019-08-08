@@ -37,16 +37,10 @@ def test_simple_cpu():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    test_exp_version = 10
-    exp = get_exp(False, version=test_exp_version)
-    exp.argparse(hparams)
-    exp.save()
-
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
-        experiment=exp,
     )
 
     # fit model
