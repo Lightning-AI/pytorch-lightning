@@ -260,7 +260,8 @@ class Trainer(TrainerIO):
         last_ckpt_name = None
 
         # do nothing if there's not dir or callback
-        if self.checkpoint_callback is None or not os.path.exists(self.checkpoint_callback.filepath):
+        no_ckpt_callback = self.checkpoint_callback is None
+        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
             return
 
         # find last epoch
