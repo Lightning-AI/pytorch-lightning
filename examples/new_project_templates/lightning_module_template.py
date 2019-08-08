@@ -163,7 +163,7 @@ class LightningTemplateModel(LightningModule):
             if self.trainer.use_dp:
                 val_acc_mean = torch.mean(val_acc)
 
-            val_acc_mean += output['val_acc']
+            val_acc_mean += val_acc_mean
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
