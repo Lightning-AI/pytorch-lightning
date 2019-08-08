@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version='0.3.6.9',
+    version='0.4.0',
     description='The Keras for ML researchers using PyTorch',
     author='William Falcon',
     author_email='waf2107@columbia.edu',
