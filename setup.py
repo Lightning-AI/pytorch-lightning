@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
 # Always prefer setuptools over distutils
+from os import path
 from setuptools import setup, find_packages
+
+PATH_HERE = path.abspath(path.dirname(__file__))
+
+with open(path.join(PATH_HERE, 'requirements.txt'), encoding='utf-8') as fp:
+    requirements = [rq.rstrip() for rq in fp.readlines() if not rq.startswith('#')]
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 
@@ -20,7 +26,7 @@ setup(
     author_email='waf2107@columbia.edu',
     url='https://github.com/williamFalcon/pytorch-lightning',
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license='Apache-2",
+    license='Apache-2',
     packages=find_packages(),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -28,11 +34,7 @@ setup(
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
-    install_requires=[
-        'torch>=1.1.0',
-        'tqdm',
-        'test-tube>=0.6.7.6',
-    ],
+    install_requires=requirements,
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',
