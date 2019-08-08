@@ -396,10 +396,13 @@ class Trainer(TrainerIO):
             elif self.use_dp:
                 output = model(data_batch, batch_i)
             elif self.single_gpu:
+                # put inputs on gpu manually
                 gpu_id = self.data_parallel_device_ids[0]
                 for i, x in enumerate(data_batch):
                     if isinstance(x, torch.Tensor):
                         data_batch[i] = x.cuda(gpu_id)
+
+                # do non dp, ddp step
                 output = model.validation_step(data_batch, batch_i)
 
             else:
