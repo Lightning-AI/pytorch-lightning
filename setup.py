@@ -32,6 +32,7 @@ setup(
         'torch>=1.1.0',
         'tqdm',
         'test-tube>=0.6.7.6',
+        'pandas>=0.20.3',
     ],
     classifiers=[
         'Environment :: Console',
