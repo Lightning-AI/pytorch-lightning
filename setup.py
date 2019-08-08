@@ -29,9 +29,9 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     install_requires=[
-        'torch==1.1.0',
+        'torch==1.2.0',
         'tqdm',
-        'test-tube>=0.6.7.6',
+        'test-tube==0.6.8',
         'pandas>=0.20.3',
     ],
     classifiers=[
