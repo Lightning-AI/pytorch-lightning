@@ -26,6 +26,38 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_simple_cpu():
+    """
+    Verify continue training session on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    test_exp_version = 10
+    exp = get_exp(False, version=test_exp_version)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.1,
+        experiment=exp,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    clear_save_dir()
+
 
 def test_amp_single_gpu():
     """
