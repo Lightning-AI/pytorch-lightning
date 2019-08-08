@@ -1,7 +1,9 @@
+coverage==4.5.3
+mkdocs==1.0.4
+pytest==5.0.1
 scikit-learn==0.20.2
 tqdm==4.32.1
 twine==1.13.0
 numpy==1.16.4
 torch>=1.1.0
-torchvision>=0.3.0
-pandas
+torchvision==0.3.0
