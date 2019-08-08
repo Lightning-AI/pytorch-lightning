@@ -117,12 +117,23 @@ class CoolModel(pl.LightningModule):
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
 ```python
 from pytorch_lightning import Trainer
-from test_tube import Experiment
 
 model = CoolModel()
+
+# most basic trainer, uses good defaults
+trainer = Trainer()    
+trainer.fit(model)   
+```     
+
+Or with tensorboard logger and some options turned on such as multi-gpu, etc...    
+```python   
+from test_tube import Experiment    
+
+# PyTorch summarywriter with a few bells and whistles    
 exp = Experiment(save_dir=os.getcwd())
 
 # train on cpu using only 10% of the data (for demo purposes)
+# pass in experi
 trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus
@@ -137,7 +148,7 @@ trainer.fit(model)
 # view tensorflow logs 
 print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
-```
+```    
 
 ## What does lightning control for me?   
 
