@@ -167,7 +167,7 @@ class LightningTemplateModel(LightningModule):
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
         return tqdm_dic
 
     # ---------------------
