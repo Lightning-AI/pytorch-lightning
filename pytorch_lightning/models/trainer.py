@@ -869,7 +869,8 @@ We recommend you switch to ddp if you want to use amp
 
             # reduce prog metrics for tqdm when using dp
             if self.use_dp:
-                prog_output = reduce_distributed_output(prog_output, len(self.data_parallel_device_ids))
+                nb_gpus = len(self.data_parallel_device_ids)
+                prog_output = reduce_distributed_output(prog_output, nb_gpus)
 
             model_specific_tqdm_metrics_dic = prog_output
         except Exception:
