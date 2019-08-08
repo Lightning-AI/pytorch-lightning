@@ -32,6 +32,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.6",
     install_requires=requirements,
+    # setup_requires=['numpy'],
 
     classifiers=[
         'Environment :: Console',
