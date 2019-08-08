@@ -21,6 +21,11 @@ What makes sense to you may not make sense to others. Create an issue with an AP
 #### Gain User Trust    
 As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.    
 
+## Contribution types    
+Currently looking for help implementing new features or adding bug fixes. 
+
+A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) we're in a good state there thanks to all the early contributors (even pre-beta release)!   
+
 ## Bug fixes:  
 1. Submit a github issue.   
 2. Fix it.  
