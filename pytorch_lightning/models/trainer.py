@@ -395,8 +395,6 @@ class Trainer(TrainerIO):
                 output = model(data_batch, batch_i)
             elif self.use_dp:
                 output = model(data_batch, batch_i)
-                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
-
             elif self.single_gpu:
                 gpu_id = self.data_parallel_device_ids[0]
                 for i, x in enumerate(data_batch):
@@ -853,7 +851,6 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(data_batch, batch_nb)
         elif self.use_dp:
             output = self.model(data_batch, batch_nb)
-            output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
             for i, x in enumerate(data_batch):
@@ -865,7 +862,13 @@ We recommend you switch to ddp if you want to use amp
             output = self.model.training_step(data_batch, batch_nb)
 
         try:
-            model_specific_tqdm_metrics_dic = output['prog']
+            prog_output = output['prog']
+
+            # reduce prog metrics for tqdm when using dp
+            if self.use_dp:
+                prog_output = reduce_distributed_output(prog_output, len(self.data_parallel_device_ids))
+
+            model_specific_tqdm_metrics_dic = prog_output
         except Exception:
             model_specific_tqdm_metrics_dic = {}
 
@@ -876,6 +879,10 @@ We recommend you switch to ddp if you want to use amp
         except Exception:
             if type(output) is torch.Tensor:
                 loss = output
+
+        # when using dp need to reduce the loss
+        if self.use_dp:
+            loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
@@ -959,12 +966,12 @@ We recommend you switch to ddp if you want to use amp
         # use full val set on end of epoch
         # use a small portion otherwise
         max_batches = None if not self.fast_dev_run else 1
-        model_specific_tqdm_metrics_dic = self.validate(
+        validation_results = self.validate(
             self.model,
             self.val_dataloader,
             max_batches
         )
-        self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
+        self.__add_tqdm_metrics(validation_results)
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):
