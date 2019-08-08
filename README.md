@@ -367,6 +367,9 @@ Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!
 **Are there plans to support Python 2?**          
 Nope.     
 
+**Are there plans to support virtualenv?**    
+Nope. Please use anaconda or miniconda.    
+
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
 ```bash
