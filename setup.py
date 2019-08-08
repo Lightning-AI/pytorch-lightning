@@ -1,38 +1,39 @@
 #!/usr/bin/env python
 
 # Always prefer setuptools over distutils
-from os import path
-from setuptools import setup
-
-import pytorch_lightning
-
-PATH_HERE = path.abspath(path.dirname(__file__))
-
-with open(path.join(PATH_HERE, 'requirements.txt'), encoding='utf-8') as fp:
-    requirements = [rq.rstrip() for rq in fp.readlines() if not rq.startswith('#')]
+from setuptools import setup, find_packages
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
+
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
+
+# https://packaging.python.org/discussions/install-requires-vs-requirements/
+# keep the meta-data here for simplicity in reading this file... it's not obvious
+# what happens and to non-engineers they won't know to look in init...
+# the goal of the project is simplicity for researchers, don't want to add too much
+# engineer specific practices
 setup(
-    name="pytorch-lightning",
-    version=pytorch_lightning.__version__,
-    description=pytorch_lightning.__doc__,
-    author=pytorch_lightning.__author__,
-    author_email=pytorch_lightning.__author_email__,
-    url=pytorch_lightning.__homepage__,
-    license=pytorch_lightning.__license__,
-    packages=['pytorch_lightning'],
-
-    long_description=open("README.md", encoding="utf-8").read(),
+    name='pytorch-lightning',
+    version='0.3.6.9',
+    description='The Keras for ML researchers using PyTorch',
+    author='William Falcon',
+    author_email='waf2107@columbia.edu',
+    url='https://github.com/williamFalcon/pytorch-lightning',
+    download_url='https://github.com/williamFalcon/pytorch-lightning',
+    license='Apache-2',
+    packages=find_packages(),
+    long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
-
     include_package_data=True,
     zip_safe=False,
-
-    keywords=["deep learning", "pytorch", "AI"],
-    python_requires=">=3.6",
-    install_requires=requirements,
-
+    keywords=['deep learning', 'pytorch', 'AI'],
+    python_requires='>=3.6',
+    install_requires=[
+        'torch>=1.1.0',
+        'tqdm',
+        'test-tube>=0.6.7.6',
+        'pandas>=0.20.3',
+    ],
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',
