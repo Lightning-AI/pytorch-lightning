@@ -151,12 +151,23 @@ class LightningTemplateModel(LightningModule):
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
-            val_loss_mean += output['val_loss']
-            val_acc_mean += output['val_acc']
+            val_loss = output['val_loss']
+
+            # reduce manually when using dp
+            if self.trainer.use_dp:
+                val_loss = torch.mean(val_loss)
+            val_loss_mean += val_loss
+
+            # reduce manually when using dp
+            val_acc = output['val_acc']
+            if self.trainer.use_dp:
+                val_acc_mean = torch.mean(val_acc)
+
+            val_acc_mean += val_acc_mean
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
         return tqdm_dic
 
     # ---------------------
