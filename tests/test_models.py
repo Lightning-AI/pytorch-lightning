@@ -26,6 +26,60 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_simple_cpu():
+    """
+    Verify continue training session on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    clear_save_dir()
+
+
+def test_amp_single_gpu():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        progress_bar=True,
+        max_nb_epochs=1,
+        gpus=[0],
+        distributed_backend='dp',
+        use_amp=True
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
 
 def test_cpu_restore_training():
     """

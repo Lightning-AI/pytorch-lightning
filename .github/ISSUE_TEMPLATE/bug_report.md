@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+### Common bugs:
+1. Tensorboard not showing in Jupyter-notebook see [issue 79](https://github.com/williamFalcon/pytorch-lightning/issues/79).    
+2. PyTorch 1.1.0 vs 1.2.0 support [see FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
@@ -26,12 +30,6 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS]
  - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
  - Version [e.g. 22]
 
 **Additional context**

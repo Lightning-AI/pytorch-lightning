@@ -18,7 +18,7 @@ def on_epoch_start(self):
 ```
 
 ---
-#### on_batch_end
+#### on_epoch_end
 Called in the training loop at the very end of the epoch.   
 ```python
 def on_epoch_end(self):
@@ -31,6 +31,14 @@ Called in the training loop before anything happens for that batch.
 ```python
 def on_batch_start(self):
     # do something when the batch starts
+```
+
+---
+#### on_batch_end
+Called in the training loop after the batch.   
+```python
+def on_batch_end(self):
+    # do something when the batch ends 
 ```
 
 ---

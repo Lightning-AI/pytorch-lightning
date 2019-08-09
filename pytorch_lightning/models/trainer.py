@@ -50,7 +50,7 @@ def reduce_distributed_output(output, nb_gpus):
 class Trainer(TrainerIO):
 
     def __init__(self,
-                 experiment,
+                 experiment=None,
                  early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip=0,
@@ -105,7 +105,7 @@ class Trainer(TrainerIO):
         :param log_save_interval:
         :param add_log_row_interval:
         :param distributed_backend:
-            'np' to use DistributedParallel, 'dp' to use DistributedDataParallel
+            'do' to use DistributedParallel, 'dp' to use DistributedDataParallel, 'n' to use none
         :param use_amp:
         :param print_nan_grads:
         :param print_weights_summary:
@@ -122,7 +122,9 @@ class Trainer(TrainerIO):
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.progress_bar = progress_bar
         self.experiment = experiment
-        self.exp_save_path = experiment.get_data_path(experiment.name, experiment.version)
+        self.exp_save_path = None
+        if self.experiment is not None:
+            self.exp_save_path = experiment.get_data_path(experiment.name, experiment.version)
         self.cluster = cluster
         self.process_position = process_position
         self.current_gpu_name = current_gpu_name
@@ -147,6 +149,7 @@ class Trainer(TrainerIO):
         self.node_rank = 0
         self.use_ddp = False
         self.use_dp = False
+        self.single_gpu = False
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -193,6 +196,12 @@ class Trainer(TrainerIO):
                     'Switching to DistributedDataParallel for you. ' \
                     'To silence this warning set distributed_backend=ddp'
                 warnings.warn(w)
+
+        # remove dp and ddp when requesting single gpu
+        if self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) == 1:
+            self.use_ddp = False
+            self.use_dp = False
+            self.single_gpu = True
 
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
@@ -252,6 +261,11 @@ class Trainer(TrainerIO):
         last_epoch = -1
         last_ckpt_name = None
 
+        # do nothing if there's not dir or callback
+        no_ckpt_callback = self.checkpoint_callback is None
+        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
+            return
+
         # find last epoch
         checkpoints = os.listdir(self.checkpoint_callback.filepath)
         for name in checkpoints:
@@ -300,13 +314,15 @@ class Trainer(TrainerIO):
 
     @property
     def __tng_tqdm_dic(self):
-        # ForkedPdb().set_trace()
         tqdm_dic = {
             'tng_loss': '{0:.3f}'.format(self.avg_loss),
-            'v_nb': '{}'.format(self.experiment.version),
             'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
+
+        if self.experiment is not None:
+            tqdm_dic['v_nb'] = self.experiment.version
+
         tqdm_dic.update(self.tqdm_metrics)
 
         if self.on_gpu:
@@ -384,7 +400,15 @@ class Trainer(TrainerIO):
                 output = model(data_batch, batch_i)
             elif self.use_dp:
                 output = model(data_batch, batch_i)
-                output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+            elif self.single_gpu:
+                # put inputs on gpu manually
+                gpu_id = self.data_parallel_device_ids[0]
+                for i, x in enumerate(data_batch):
+                    if isinstance(x, torch.Tensor):
+                        data_batch[i] = x.cuda(gpu_id)
+
+                # do non dp, ddp step
+                output = model.validation_step(data_batch, batch_i)
 
             else:
                 output = model.validation_step(data_batch, batch_i, dataloader_i)
@@ -444,7 +468,8 @@ dataloader = Dataloader(dataset, sampler=dist_sampler)
         if self.use_ddp:
             # must copy only the meta of the exp so it survives pickle/unpickle
             #  when going to new process
-            self.experiment = self.experiment.get_meta_copy()
+            if self.experiment is not None:
+                self.experiment = self.experiment.get_meta_copy()
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
@@ -464,6 +489,9 @@ If you're not using SLURM, ignore this message!
         elif self.use_dp:
             self.__dp_train(model)
 
+        elif self.single_gpu:
+            self.__single_gpu_train(model)
+
         # ON CPU
         else:
             # run through amp wrapper
@@ -482,6 +510,24 @@ If you're not using SLURM, ignore this message!
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def __single_gpu_train(self, model):
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers = model.configure_optimizers()
+        if len(self.optimizers) == 2:
+            self.optimizers, self.lr_schedulers = self.optimizers
+
+        model.cuda(self.data_parallel_device_ids[0])
+
+        if self.use_amp:
+            # An example
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
+            )
+            self.optimizers = optimizers
+
+        self.__run_pretrain_routine(model)
 
     def __dp_train(self, model):
 
@@ -525,8 +571,9 @@ We recommend you switch to ddp if you want to use amp
 
         # recover original exp before went into process
         # init in write mode only on proc 0
-        self.experiment.debug = self.proc_rank > 0
-        self.experiment = self.experiment.get_non_ddp_exp()
+        if self.experiment is not None:
+            self.experiment.debug = self.proc_rank > 0
+            self.experiment = self.experiment.get_non_ddp_exp()
 
         # show progbar only on prog_rank 0
         self.prog_bar = self.prog_bar and self.node_rank == 0 and gpu_nb == 0
@@ -536,7 +583,8 @@ We recommend you switch to ddp if you want to use amp
         self.world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
 
         # let the exp know the rank to avoid overwriting logs
-        self.experiment.rank = self.proc_rank
+        if self.experiment is not None:
+            self.experiment.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -634,10 +682,12 @@ We recommend you switch to ddp if you want to use amp
 
         # give model convenience properties
         ref_model.trainer = self
-        ref_model.experiment = self.experiment
+
+        if self.experiment is not None:
+            ref_model.experiment = self.experiment
 
         # save exp to get started
-        if self.proc_rank == 0:
+        if self.proc_rank == 0 and self.experiment is not None:
             self.experiment.save()
 
         # track model now.
@@ -717,7 +767,7 @@ We recommend you switch to ddp if you want to use amp
 
                 # when batch should be saved
                 if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
-                    if self.proc_rank == 0:
+                    if self.proc_rank == 0 and self.experiment is not None:
                         self.experiment.save()
 
                 # when metrics should be logged
@@ -745,7 +795,7 @@ We recommend you switch to ddp if you want to use amp
                     # log metrics
                     scalar_metrics = self.__metrics_to_scalars(
                         metrics, blacklist=self.__log_vals_blacklist())
-                    if self.proc_rank == 0:
+                    if self.proc_rank == 0 and self.experiment is not None:
                         self.experiment.log(scalar_metrics, global_step=self.global_step)
                         self.experiment.save()
 
@@ -774,7 +824,7 @@ We recommend you switch to ddp if you want to use amp
                 if stop:
                     return
 
-    def __metrics_to_scalars(self, metrics, blacklist=[]):
+    def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
         for k, v in metrics.items():
             if type(v) is torch.Tensor:
@@ -814,12 +864,25 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(data_batch, batch_nb)
         elif self.use_dp:
             output = self.model(data_batch, batch_nb)
-            output = reduce_distributed_output(output, len(self.data_parallel_device_ids))
+        elif self.single_gpu:
+            gpu_id = self.data_parallel_device_ids[0]
+            for i, x in enumerate(data_batch):
+                if isinstance(x, torch.Tensor):
+                    data_batch[i] = x.cuda(gpu_id)
+            output = self.model.training_step(data_batch, batch_nb)
+
         else:
             output = self.model.training_step(data_batch, batch_nb)
 
         try:
-            model_specific_tqdm_metrics_dic = output['prog']
+            prog_output = output['prog']
+
+            # reduce prog metrics for tqdm when using dp
+            if self.use_dp:
+                nb_gpus = len(self.data_parallel_device_ids)
+                prog_output = reduce_distributed_output(prog_output, nb_gpus)
+
+            model_specific_tqdm_metrics_dic = prog_output
         except Exception:
             model_specific_tqdm_metrics_dic = {}
 
@@ -830,6 +893,10 @@ We recommend you switch to ddp if you want to use amp
         except Exception:
             if type(output) is torch.Tensor:
                 loss = output
+
+        # when using dp need to reduce the loss
+        if self.use_dp:
+            loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
@@ -913,6 +980,7 @@ We recommend you switch to ddp if you want to use amp
         # use full val set on end of epoch
         # use a small portion otherwise
         max_batches = None if not self.fast_dev_run else 1
+<<<<<<< HEAD
         model_specific_tqdm_metrics_dic = [self.validate(
             self.model,
             dataloader,
@@ -920,6 +988,14 @@ We recommend you switch to ddp if you want to use amp
             index,
         ) for index, dataloader in enumerate(self.val_dataloader)]
         map(self.__add_tqdm_metrics, model_specific_tqdm_metrics_dic)
+=======
+        validation_results = self.validate(
+            self.model,
+            self.val_dataloader,
+            max_batches
+        )
+        self.__add_tqdm_metrics(validation_results)
+>>>>>>> upstream/master
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):

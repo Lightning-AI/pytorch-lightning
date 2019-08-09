@@ -117,12 +117,23 @@ class CoolModel(pl.LightningModule):
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
 ```python
 from pytorch_lightning import Trainer
-from test_tube import Experiment
 
 model = CoolModel()
+
+# most basic trainer, uses good defaults
+trainer = Trainer()    
+trainer.fit(model)   
+```     
+
+Or with tensorboard logger and some options turned on such as multi-gpu, etc...    
+```python   
+from test_tube import Experiment    
+
+# PyTorch summarywriter with a few bells and whistles    
 exp = Experiment(save_dir=os.getcwd())
 
 # train on cpu using only 10% of the data (for demo purposes)
+# pass in experi
 trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus
@@ -137,7 +148,7 @@ trainer.fit(model)
 # view tensorflow logs 
 print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
-```
+```    
 
 ## What does lightning control for me?   
 
@@ -269,6 +280,7 @@ tensorboard --logdir /some/path
 - [Make model overfit on subset of data](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data)
 - [Print the parameter count by layer](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-the-parameter-count-by-layer)
 - [Print which gradients are nan](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-which-gradients-are-nan)
+- [Print input and output size of every module in system](https://williamfalcon.github.io/pytorch-lightning/LightningModule/properties/#example_input_array)
 
 
 ###### Distributed training    
@@ -354,6 +366,13 @@ Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!
 
 **Are there plans to support Python 2?**          
 Nope.     
+
+**Are there plans to support virtualenv?**    
+Nope. Please use anaconda or miniconda.    
+
+**Which PyTorch versions do you support?**    
+Lightning 0.4.2+ supports PyTorch 1.2.0.    
+For PyTorch 1.1.0 install Lightning 0.4.0 with test-tube=0.6.7.6.    
 
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
