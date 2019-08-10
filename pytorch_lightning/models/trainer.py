@@ -923,7 +923,6 @@ We recommend you switch to ddp if you want to use amp
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
-            
             # queuing loss across batches blows it up proportionally...
             # divide out the number of accumulated batches
             self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
