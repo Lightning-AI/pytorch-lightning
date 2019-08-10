@@ -923,6 +923,10 @@ We recommend you switch to ddp if you want to use amp
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+            
+            # queuing loss across batches blows it up proportionally...
+            #  divide out the number accumulated
+            self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
 
             # clip gradients
             if self.gradient_clip > 0:
@@ -940,10 +944,6 @@ We recommend you switch to ddp if you want to use amp
 
                 # clear gradients
                 optimizer.zero_grad()
-
-            # queuing loss across batches blows it up proportionally...
-            #  divide out the number accumulated
-            self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
 
             # track loss
             self.running_loss.append(self.batch_loss_value)
