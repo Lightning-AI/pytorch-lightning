@@ -3,7 +3,7 @@ In 99% of cases you want to just copy [this template](https://github.com/william
 
 ```bash
 # get a copy of the module template
-wget https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py
+wget https://raw.githubusercontent.com/williamFalcon/pytorch-lightning/master/examples/new_project_templates/lightning_module_template.py
 ```
 
 ---    
