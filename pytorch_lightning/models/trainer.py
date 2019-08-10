@@ -918,14 +918,14 @@ We recommend you switch to ddp if you want to use amp
             for param in model.parameters():
                 print(param.grad.float().sum())
 
-        # avoid memory leaks
+        # accumulate loss (if accumulate_grad_batches=1 no effect)
         self.batch_loss_value += loss
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
             
             # queuing loss across batches blows it up proportionally...
-            #  divide out the number accumulated
+            # divide out the number of accumulated batches
             self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
 
             # clip gradients
