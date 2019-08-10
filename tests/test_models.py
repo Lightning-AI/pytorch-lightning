@@ -665,7 +665,7 @@ def test_ddp_sampler_error():
         use_amp=True
     )
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(UserWarning):
         trainer.get_dataloaders(model)
 
     clear_save_dir()

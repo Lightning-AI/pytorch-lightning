@@ -444,8 +444,9 @@ class Trainer(TrainerIO):
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
-when using multiple gpus and multiple nodes you must pass
- a DistributedSampler to DataLoader(sampler).
+You're using multiple gpus and multiple nodes without using a DistributedSampler
+to assign a subset of your data to each process. To silence this warning, pass a
+DistributedSampler to your DataLoader.
 
 ie: this:
 dataset = myDataset()
@@ -455,8 +456,10 @@ becomes:
 dataset = myDataset()
 dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
 dataloader = Dataloader(dataset, sampler=dist_sampler)
+
+If you want each process to load the full dataset, ignore this warning.
 """
-            raise MisconfigurationException(msg)
+            warnings.warn(msg)
 
     # -----------------------------
     # MODEL TRAINING
