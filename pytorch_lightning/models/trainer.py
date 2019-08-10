@@ -898,6 +898,9 @@ We recommend you switch to ddp if you want to use amp
             loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
+        
+        # accumulate loss (if accumulate_grad_batches=1 no effect)
+        loss = loss / self.accumulate_grad_batches
 
         # backward pass
         if self.use_amp:
@@ -918,15 +921,11 @@ We recommend you switch to ddp if you want to use amp
             for param in model.parameters():
                 print(param.grad.float().sum())
 
-        # accumulate loss (if accumulate_grad_batches=1 no effect)
-        self.batch_loss_value += loss
+        # track total loss for logging (avoid mem leaks)
+        self.batch_loss_value += loss.item()
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
-            # queuing loss across batches blows it up proportionally...
-            # divide out the number of accumulated batches
-            self.batch_loss_value = self.batch_loss_value / self.accumulate_grad_batches
-
             # clip gradients
             if self.gradient_clip > 0:
                 model = self.__get_model()
@@ -944,10 +943,7 @@ We recommend you switch to ddp if you want to use amp
                 # clear gradients
                 optimizer.zero_grad()
 
-            # avoid memory leak
-            self.batch_loss_value = self.batch_loss_value.item()
-
-            # track loss
+            # calculate running loss for display
             self.running_loss.append(self.batch_loss_value)
             self.batch_loss_value = 0
             self.avg_loss = np.mean(self.running_loss[-100:])
