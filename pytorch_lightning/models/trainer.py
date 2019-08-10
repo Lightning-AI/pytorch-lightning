@@ -919,7 +919,7 @@ We recommend you switch to ddp if you want to use amp
                 print(param.grad.float().sum())
 
         # avoid memory leaks
-        self.batch_loss_value += loss.item()
+        self.batch_loss_value += loss
 
         # gradient update with accumulated gradients
         if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
@@ -944,6 +944,9 @@ We recommend you switch to ddp if you want to use amp
 
                 # clear gradients
                 optimizer.zero_grad()
+
+            # avoid memory leak
+            self.batch_loss_value = self.batch_loss_value.item()
 
             # track loss
             self.running_loss.append(self.batch_loss_value)
