@@ -899,7 +899,7 @@ We recommend you switch to ddp if you want to use amp
 
         self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
         
-        # accumulate loss (if accumulate_grad_batches=1 no effect)
+        # accumulate loss (if accumulate_grad_batches = 1 no effect)
         loss = loss / self.accumulate_grad_batches
 
         # backward pass
