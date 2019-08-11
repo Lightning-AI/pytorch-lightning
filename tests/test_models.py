@@ -614,6 +614,7 @@ def test_all_features_cpu_model():
         print_nan_grads=True,
         progress_bar=False,
         experiment=get_exp(),
+        accumulate_grad_batches=2,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
