@@ -345,7 +345,7 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = len(self.val_dataloader)
+        self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
@@ -364,7 +364,7 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def validate(self, model, dataloader, max_batches):
+    def validate(self, model, dataloader, max_batches, dataloader_index):
         """
         Run validation code
         :param model: PT model
@@ -407,10 +407,10 @@ class Trainer(TrainerIO):
                         data_batch[i] = x.cuda(gpu_id)
 
                 # do non dp, ddp step
-                output = model.validation_step(data_batch, batch_i)
+                output = model.validation_step(data_batch, batch_i, dataloader_index)
 
             else:
-                output = model.validation_step(data_batch, batch_i)
+                output = model.validation_step(data_batch, batch_i, dataloader_index)
 
             outputs.append(output)
 
@@ -440,7 +440,7 @@ class Trainer(TrainerIO):
         """
         self.tng_dataloader = model.tng_dataloader
         self.test_dataloader = model.test_dataloader
-        self.val_dataloader = model.val_dataloader
+        self.val_dataloader = model.val_dataloader if isinstance(model.val_dataloader, list) else [model.val_dataloader]
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
@@ -707,7 +707,7 @@ We recommend you switch to ddp if you want to use amp
 
         # run tiny validation to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
+        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_index=index) for index, dataloader in enumerate(self.val_dataloader)]
 
         # ---------------------------
         # CORE TRAINING LOOP
@@ -980,12 +980,13 @@ We recommend you switch to ddp if you want to use amp
         # use full val set on end of epoch
         # use a small portion otherwise
         max_batches = None if not self.fast_dev_run else 1
-        validation_results = self.validate(
+        validation_results = [self.validate(
             self.model,
-            self.val_dataloader,
-            max_batches
-        )
-        self.__add_tqdm_metrics(validation_results)
+            dataloader,
+            max_batches,
+            index
+        ) for index, dataloader in enumerate(self.val_dataloader)]
+        _ = [self.add_tqdm_metrics(metric) for metric in validation_results]
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):
