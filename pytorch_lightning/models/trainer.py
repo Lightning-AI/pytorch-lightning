@@ -1006,7 +1006,7 @@ We recommend you switch to ddp if you want to use amp
             max_batches,
             index
         ) for index, dataloader in enumerate(self.val_dataloader)]
-        _ = [self.add_tqdm_metrics(metric) for metric in validation_results]
+        _ = [self.__add_tqdm_metrics(metric) for metric in validation_results]
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):
