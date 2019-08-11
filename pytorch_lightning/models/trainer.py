@@ -315,7 +315,11 @@ class Trainer(TrainerIO):
 
     def __is_overriden(self, f_name):
         model = self.__get_model()
-        return f_name in model.__dict__
+        try:
+            model.__dict__[f_name]
+            return True
+        except KeyError:
+            return False
 
     @property
     def __tng_tqdm_dic(self):
