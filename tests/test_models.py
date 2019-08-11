@@ -10,7 +10,7 @@ from test_tube import Experiment, SlurmCluster
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing.lm_test_module import LightningTestModel
+from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
@@ -26,6 +26,122 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    stopping = EarlyStopping(monitor='val_loss')
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+
+def test_no_val_module():
+    """
+    Tests use case where trainer saves the model, and user loads it from tags independently
+    :return:
+    """
+    hparams = get_hparams()
+    model = NoValModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # save model
+    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
+                                                   tags_csv=tags_path, on_gpu=False)
+    model_2.eval()
+
+    # make prediction
+    clear_save_dir()
+
+
+def test_no_val_end_module():
+    """
+    Tests use case where trainer saves the model, and user loads it from tags independently
+    :return:
+    """
+    hparams = get_hparams()
+    model = NoValEndTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        cluster=SlurmCluster(),
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # save model
+    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
+                                                   tags_csv=tags_path, on_gpu=False)
+    model_2.eval()
+
+    # make prediction
+    clear_save_dir()
+
+
 def test_simple_cpu():
     """
     Verify continue training session on CPU
@@ -445,33 +561,6 @@ def test_amp_gpu_ddp_slurm_managed():
     clear_save_dir()
 
 
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-
-    stopping = EarlyStopping()
-    trainer_options = dict(
-        early_stop_callback=stopping,
-        gradient_clip=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        print_nan_grads=True,
-        progress_bar=False,
-        experiment=get_exp(),
-        train_percent_check=0.1,
-        val_percent_check=0.1
-    )
-
-    model, hparams = get_model()
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
-
-
 def test_cpu_model_with_amp():
     """
     Make sure model trains on CPU
@@ -525,6 +614,7 @@ def test_all_features_cpu_model():
         print_nan_grads=True,
         progress_bar=False,
         experiment=get_exp(),
+        accumulate_grad_batches=2,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4

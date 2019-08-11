@@ -36,18 +36,20 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     def validation_step(self, data_batch, batch_nb):
         """
         return whatever outputs will need to be aggregated in validation_end
+        OPTIONAL
         :param data_batch:
         :return:
         """
-        raise NotImplementedError
+        pass
 
     def validation_end(self, outputs):
         """
         Outputs has the appended output after each validation step
+        OPTIONAL
         :param outputs:
         :return: dic_with_metrics for tqdm
         """
-        raise NotImplementedError
+        pass
 
     def training_step(self, data_batch, batch_nb):
         """
@@ -67,7 +69,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     @data_loader
     def tng_dataloader(self):
         """
-        Implement a function to load an h5py of this data
+        Implement a PyTorch DataLoader
         :return:
         """
         raise NotImplementedError
@@ -75,18 +77,18 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     @data_loader
     def test_dataloader(self):
         """
-        Implement a function to load an h5py of this data
+        Implement a PyTorch DataLoader
         :return:
         """
-        raise NotImplementedError
+        return None
 
     @data_loader
     def val_dataloader(self):
         """
-        Implement a function to load an h5py of this data
+        Implement a PyTorch DataLoader
         :return:
         """
-        raise NotImplementedError
+        return None
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, on_gpu, map_location=None):
