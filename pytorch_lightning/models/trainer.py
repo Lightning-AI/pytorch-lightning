@@ -422,11 +422,13 @@ class Trainer(TrainerIO):
             if self.progress_bar and self.prog_bar is not None:
                 self.prog_bar.update(1)
 
-        # give model a chance to do something with the outputs
-        if self.data_parallel:
-            val_results = model.module.validation_end(outputs)
-        else:
-            val_results = model.validation_end(outputs)
+        # give model a chance to do something with the outputs (and method defined)
+        val_results = {}
+        if self.__is_function_implemented('validation_end'):
+            if self.data_parallel:
+                val_results = model.module.validation_end(outputs)
+            else:
+                val_results = model.validation_end(outputs)
 
         # enable train mode again
         model.train()
