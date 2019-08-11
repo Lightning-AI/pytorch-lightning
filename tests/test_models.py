@@ -10,7 +10,7 @@ from test_tube import Experiment, SlurmCluster
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel, MultiValModel
+from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
