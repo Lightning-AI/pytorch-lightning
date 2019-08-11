@@ -142,7 +142,6 @@ def test_no_val_end_module():
     clear_save_dir()
 
 
-
 def test_simple_cpu():
     """
     Verify continue training session on CPU
