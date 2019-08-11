@@ -252,7 +252,7 @@ def test_cpu_restore_training():
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        run_prediction(trainer.val_dataloader, trainer.model)
+        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
     model.on_sanity_check_start = assert_good_acc
 
