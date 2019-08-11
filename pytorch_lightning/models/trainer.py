@@ -313,6 +313,8 @@ class Trainer(TrainerIO):
         return callable(f_op)
 
     def __is_overriden(self, f_name):
+        import pdb
+        pdb.set_trace()
         model = self.__get_model()
         model_op = getattr(model, f_name, None)
         parent_op = getattr(model.super(), f_name, None)
