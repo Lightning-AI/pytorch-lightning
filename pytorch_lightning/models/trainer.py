@@ -314,6 +314,8 @@ class Trainer(TrainerIO):
         return callable(f_op)
 
     def __is_overriden(self, f_name):
+        import pdb
+        pdb.set_trace()
         model = self.__get_model()
         return f_name in model.__dict__
 
