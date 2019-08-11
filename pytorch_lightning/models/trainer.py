@@ -13,7 +13,6 @@ from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
@@ -316,7 +315,7 @@ class Trainer(TrainerIO):
     def __is_overriden(self, f_name):
         model = self.__get_model()
         model_op = getattr(model, f_name, None)
-        parent_op = getattr(LightningModule(), f_name, None)
+        parent_op = getattr(model.super(), f_name, None)
         return model_op.__code__ is not parent_op.__code__
 
     @property
