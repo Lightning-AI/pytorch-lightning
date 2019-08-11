@@ -317,9 +317,8 @@ class Trainer(TrainerIO):
         model = self.__get_model()
         super_object = super(model.__class__, model)
 
-        import pdb
-        pdb.set_trace()
-        is_overriden = hasattr(model, f_name) and not hasattr(super_object, f_name)
+        # when code pointers are different, it was overriden
+        is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
         return is_overriden
 
     @property
