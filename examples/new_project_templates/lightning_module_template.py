@@ -218,7 +218,7 @@ class LightningTemplateModel(LightningModule):
     @pl.data_loader
     def val_dataloader(self):
         print('val data loader called')
-        return self.__dataloader(train=False)
+        return [self.__dataloader(train=False) for i in range(2)]
 
     @pl.data_loader
     def test_dataloader(self):
