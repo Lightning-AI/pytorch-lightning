@@ -13,6 +13,7 @@ from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 
+from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
@@ -312,6 +313,14 @@ class Trainer(TrainerIO):
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
+    def __is_overriden(self, f_name):
+        model = self.__get_model()
+        super_object = super(model.__class__, model)
+
+        # when code pointers are different, it was overriden
+        is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
+        return is_overriden
+
     @property
     def __tng_tqdm_dic(self):
         tqdm_dic = {
@@ -345,13 +354,13 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = len(self.val_dataloader)
+        self.nb_val_batches = len(self.val_dataloader) if self.val_dataloader is not None else 0
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
 
         # determine number of test batches
-        self.nb_test_batches = len(self.test_dataloader)
+        self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
         self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
 
         # determine when to check validation
@@ -372,6 +381,10 @@ class Trainer(TrainerIO):
         :param max_batches: Scalar
         :return:
         """
+        # skip validation if model has no validation_step defined
+        if not self.__is_overriden('validation_step'):
+            return {}
+
         # enable eval mode
         model.zero_grad()
         model.eval()
@@ -418,11 +431,13 @@ class Trainer(TrainerIO):
             if self.progress_bar and self.prog_bar is not None:
                 self.prog_bar.update(1)
 
-        # give model a chance to do something with the outputs
-        if self.data_parallel:
-            val_results = model.module.validation_end(outputs)
-        else:
-            val_results = model.validation_end(outputs)
+        # give model a chance to do something with the outputs (and method defined)
+        val_results = {}
+        if self.__is_overriden('validation_end'):
+            if self.data_parallel:
+                val_results = model.module.validation_end(outputs)
+            else:
+                val_results = model.validation_end(outputs)
 
         # enable train mode again
         model.train()
@@ -439,6 +454,7 @@ class Trainer(TrainerIO):
         :return:
         """
         self.tng_dataloader = model.tng_dataloader
+
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
