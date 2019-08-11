@@ -153,8 +153,8 @@ class LightningTestModel(LightningModule):
             return output
         if batch_i % 5 == 0:
             output = OrderedDict({
-            f'val_loss_{dataloader_i}': loss_val,
-            f'val_acc_{dataloader_i}': val_acc,
+                f'val_loss_{dataloader_i}': loss_val,
+                f'val_acc_{dataloader_i}': val_acc,
             })
             return output
 
