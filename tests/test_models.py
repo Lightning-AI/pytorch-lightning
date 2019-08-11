@@ -671,6 +671,31 @@ def test_ddp_sampler_error():
     clear_save_dir()
 
 
+def test_multiple_val_dataloader():
+    """
+    Verify multiple val_dataloader
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    _ = trainer.fit(model)
+
+    # traning complete
+    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+
+
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
