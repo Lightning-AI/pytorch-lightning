@@ -5,10 +5,9 @@ from pytorch_lightning.root_module.grads import GradInformation
 from pytorch_lightning.root_module.model_saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.decorators import data_loader
-from abc import ABC, abstractmethod
 
 
-class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
@@ -52,7 +51,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         pass
 
-    @abstractmethod
     def training_step(self, data_batch, batch_nb):
         """
         return loss, dict with metrics for tqdm
@@ -61,7 +59,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def configure_optimizers(self):
         """
         Return a list of optimizers and a list of schedulers (could be empty)
