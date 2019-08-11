@@ -319,7 +319,7 @@ class Trainer(TrainerIO):
         model = self.__get_model()
         model_op_id = model.__dict__[f_name]
         parent_op_id = LightningModule.__dict__[f_name]
-        return model_op.__code__ is not parent_op.__code__
+        return model_op_id is not parent_op_id
 
     @property
     def __tng_tqdm_dic(self):
