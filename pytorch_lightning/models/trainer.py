@@ -718,10 +718,6 @@ We recommend you switch to ddp if you want to use amp
     def __train(self):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
-            # update the lr scheduler
-            if self.lr_schedulers is not None:
-                for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step()
 
             model = self.__get_model()
             model.current_epoch = epoch_nb
@@ -759,6 +755,11 @@ We recommend you switch to ddp if you want to use amp
                 # ---------------
                 batch_result = self.__run_tng_batch(data_batch, batch_nb)
                 early_stop_epoch = batch_result == -1
+                
+                # update the lr scheduler
+                if self.lr_schedulers is not None:
+                    for lr_scheduler in self.lr_schedulers:
+                        lr_scheduler.step()
 
                 # ---------------
                 # RUN VAL STEP
