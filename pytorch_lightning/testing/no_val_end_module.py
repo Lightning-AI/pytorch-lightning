@@ -15,7 +15,7 @@ from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning import data_loader
 
 
-class LightningTestModel(LightningModule):
+class NoValEndTestModel(LightningModule):
     """
     Sample model to show how to define a template
     """
@@ -26,7 +26,7 @@ class LightningTestModel(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTestModel, self).__init__()
+        super(NoValEndTestModel, self).__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
