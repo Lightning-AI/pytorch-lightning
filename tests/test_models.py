@@ -55,17 +55,6 @@ def test_no_val_module():
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    # make a prediction
-    for batch in model.test_dataloader:
-        break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    # generate preds before saving model
-    model.eval()
-    pred_before_saving = model(x)
-
     # save model
     new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
@@ -78,10 +67,6 @@ def test_no_val_module():
     model_2.eval()
 
     # make prediction
-    # assert that both predictions are the same
-    new_pred = model_2(x)
-    assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
     clear_save_dir()
 
 
@@ -114,17 +99,6 @@ def test_no_val_end_module():
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    # make a prediction
-    for batch in model.test_dataloader:
-        break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    # generate preds before saving model
-    model.eval()
-    pred_before_saving = model(x)
-
     # save model
     new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
@@ -137,11 +111,8 @@ def test_no_val_end_module():
     model_2.eval()
 
     # make prediction
-    # assert that both predictions are the same
-    new_pred = model_2(x)
-    assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
     clear_save_dir()
+
 
 
 def test_simple_cpu():
