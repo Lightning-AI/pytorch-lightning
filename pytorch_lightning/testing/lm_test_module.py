@@ -109,7 +109,7 @@ class LightningTestModel(LightningModule):
         if self.trainer.batch_nb % 2 == 0:
             return loss_val
 
-    def validation_step(self, data_batch, batch_i):
+    def validation_step(self, data_batch, batch_i, dataloader_i):
         """
         Lightning calls this inside the validation loop
         :param data_batch:
@@ -151,6 +151,11 @@ class LightningTestModel(LightningModule):
                 'test_dic': {'val_loss_a': loss_val}
             })
             return output
+        if batch_i % 4 == 0:
+            output = OrderedDict({
+                f'val_loss{dataloader_i}' : loss_val,
+                f'val_acc{dataloader_i}' : val_acc,
+            })
 
     def validation_end(self, outputs):
         """
@@ -225,7 +230,7 @@ class LightningTestModel(LightningModule):
 
     @data_loader
     def val_dataloader(self):
-        return self.__dataloader(train=False)
+        return [self.__dataloader(train=False) for i in range(2)]
 
     @data_loader
     def test_dataloader(self):
