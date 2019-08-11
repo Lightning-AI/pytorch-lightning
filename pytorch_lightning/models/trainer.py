@@ -314,10 +314,13 @@ class Trainer(TrainerIO):
         return callable(f_op)
 
     def __is_overriden(self, f_name):
+        model = self.__get_model()
+        super_object = super(model.__class__, model)
+
         import pdb
         pdb.set_trace()
-        model = self.__get_model()
-        return f_name in model.__dict__
+        is_overriden = hasattr(model, f_name) and not hasattr(super_object, f_name)
+        return is_overriden
 
     @property
     def __tng_tqdm_dic(self):

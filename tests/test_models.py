@@ -26,33 +26,6 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-
-    stopping = EarlyStopping(monitor='val_loss')
-    trainer_options = dict(
-        early_stop_callback=stopping,
-        gradient_clip=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        print_nan_grads=True,
-        progress_bar=False,
-        experiment=get_exp(),
-        train_percent_check=0.1,
-        val_percent_check=0.1
-    )
-
-    model, hparams = get_model()
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
-
-
 def test_no_val_module():
     """
     Tests use case where trainer saves the model, and user loads it from tags independently
@@ -559,6 +532,33 @@ def test_amp_gpu_ddp_slurm_managed():
     model.unfreeze()
 
     clear_save_dir()
+
+
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    stopping = EarlyStopping(monitor='val_loss')
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        progress_bar=False,
+        experiment=get_exp(),
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
 
 
 def test_cpu_model_with_amp():
