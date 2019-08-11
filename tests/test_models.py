@@ -767,7 +767,7 @@ def test_multiple_val_dataloader():
     :return:
     """
     hparams = get_hparams()
-    model = MultiValTestModel(hparams)
+    model = LightningTemplateModel(hparams)
 
     save_dir = init_save_dir()
 
