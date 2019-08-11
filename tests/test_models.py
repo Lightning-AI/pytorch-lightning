@@ -767,7 +767,7 @@ def test_multiple_val_dataloader():
     :return:
     """
     hparams = get_hparams()
-    model = MultiValModel(hparams)
+    model = MultiValTestModel(hparams)
 
     save_dir = init_save_dir()
 
