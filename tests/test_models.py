@@ -540,7 +540,7 @@ def test_early_stopping_cpu_model():
     :return:
     """
 
-    stopping = EarlyStopping()
+    stopping = EarlyStopping(monitor='val_acc')
     trainer_options = dict(
         early_stop_callback=stopping,
         gradient_clip=1.0,
