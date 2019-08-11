@@ -479,8 +479,8 @@ If you want each process to load the full dataset, ignore this warning.
 """
             warnings.warn(msg)
 
-        if self.use_ddp and not all(isinstance(dataloader, DistributedSampler) for\
-             dataloader in self.val_dataloader):
+        if self.use_ddp and not all(isinstance(dataloader, DistributedSampler) for
+                dataloader in self.val_dataloader):
             msg = """
 You're val_dataloader(s) are not all DistributedSamplers.
 You're using multiple gpus and multiple nodes without using a DistributedSampler
@@ -746,8 +746,8 @@ We recommend you switch to ddp if you want to use amp
 
         # run tiny validation to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps,\
-            dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
+        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps,
+                dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
 
         # ---------------------------
         # CORE TRAINING LOOP
