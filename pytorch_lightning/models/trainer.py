@@ -364,7 +364,7 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def validate(self, model, dataloader, max_batches, dataloader_index):
+    def validate(self, model, dataloader, max_batches, dataloader_i):
         """
         Run validation code
         :param model: PT model
@@ -407,10 +407,10 @@ class Trainer(TrainerIO):
                         data_batch[i] = x.cuda(gpu_id)
 
                 # do non dp, ddp step
-                output = model.validation_step(data_batch, batch_i, dataloader_index)
+                output = model.validation_step(data_batch, batch_i, dataloader_i)
 
             else:
-                output = model.validation_step(data_batch, batch_i, dataloader_index)
+                output = model.validation_step(data_batch, batch_i, dataloader_i)
 
             outputs.append(output)
 
@@ -707,7 +707,7 @@ We recommend you switch to ddp if you want to use amp
 
         # run tiny validation to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_index=index) for index, dataloader in enumerate(self.val_dataloader)]
+        _ = [self.validate(model, dataloader, max_batches=self.nb_sanity_val_steps, dataloader_i=index) for index, dataloader in enumerate(self.val_dataloader)]
 
         # ---------------------------
         # CORE TRAINING LOOP
