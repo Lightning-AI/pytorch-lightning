@@ -31,7 +31,7 @@ setup(
     install_requires=[
         'torch==1.2.0',
         'tqdm',
-        'test-tube==0.6.8',
+        'test-tube>=0.6.9',
         'pandas>=0.20.3',
     ],
     classifiers=[
