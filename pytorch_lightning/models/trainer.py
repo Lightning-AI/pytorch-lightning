@@ -359,7 +359,7 @@ class Trainer(TrainerIO):
         if self.val_dataloader is not None:
             if isinstance(self.val_dataloader, list):
                 self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
-                
+
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
@@ -459,7 +459,7 @@ class Trainer(TrainerIO):
 
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
-        
+
         # handle returning an actual dataloader instead of a list of loaders
         have_val_loaders = self.val_dataloader is not None
         if have_val_loaders and not isinstance(self.val_dataloader, list):
