@@ -763,11 +763,6 @@ We recommend you switch to ddp if you want to use amp
     def __train(self):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
-            # update the lr scheduler
-            if self.lr_schedulers is not None:
-                for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step()
-
             # get model
             model = self.__get_model()
 
@@ -787,12 +782,16 @@ We recommend you switch to ddp if you want to use amp
             # -----------------
             self.run_tng_epoch()
 
+            # update LR schedulers
+            if self.lr_schedulers is not None:
+                for lr_scheduler in self.lr_schedulers:
+                    lr_scheduler.step()
+
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
             if self.enable_early_stop and met_min_epochs:
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
                                                                     logs=self.__tng_tqdm_dic)
-
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
