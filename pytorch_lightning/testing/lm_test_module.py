@@ -231,7 +231,7 @@ class LightningTestModel(LightningModule):
 
     @data_loader
     def val_dataloader(self):
-        return [self.__dataloader(train=False) for i in range(2)]
+        return self.__dataloader(train=False)
 
     @data_loader
     def test_dataloader(self):
