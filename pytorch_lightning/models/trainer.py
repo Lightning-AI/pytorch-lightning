@@ -357,8 +357,7 @@ class Trainer(TrainerIO):
         # val datasets could be none, 1 or 2+
         self.nb_val_batches = 0
         if self.val_dataloader is not None:
-            if isinstance(self.val_dataloader, list):
-                self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
+            self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
 
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
