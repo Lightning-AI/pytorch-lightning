@@ -92,6 +92,8 @@ The LightningModule interface is on the right. Each method corresponds to a part
 
 ### training_step
 
+**REQUIRED**
+
 ``` {.python}
 def training_step(self, data_batch, batch_nb)
 ```
@@ -139,10 +141,13 @@ def training_step(self, data_batch, batch_nb):
 ### validation_step
 
 ``` {.python}
-def validation_step(self, data_batch, batch_nb)
+def validation_step(self, data_batch, batch_nb, dataloader_i)
 ```
+**OPTIONAL**    
+If you don't need to validate you don't need to implement this method.    
 
-In this step you'd normally do the forward pass and calculate the loss for a batch. You can also do fancier things like multiple forward passes or something specific to your model.
+In this step you'd normally do the forward pass and calculate the loss for a batch. You can also do fancier things like multiple forward passes, calculate accuracy, or save example outputs (using self.experiment or whatever you want). Really, anything you want.       
+
 This is most likely the same as your training_step. But unlike training step, the outputs from here will go to validation_end for collation.
 
 **Params**   
@@ -151,6 +156,7 @@ This is most likely the same as your training_step. But unlike training step, th
 |---|---|
 |  data_batch | The output of your dataloader. A tensor, tuple or list  |
 |  batch_nb | Integer displaying which batch this is  |
+|  dataloader_i | Integer displaying which dataloader this is  |
 
 **Return**   
 
@@ -189,8 +195,12 @@ def validation_step(self, data_batch, batch_nb):
 ``` {.python}
 def validation_end(self, outputs)
 ```
+**OPTIONAL**    
+If you didn't define a validation_step, this won't be called.       
 
-Called at the end of the validation loop with the output of each validation_step.
+Called at the end of the validation loop with the output of each validation_step.  Called once per validation dataset.   
+
+The outputs here are strictly for the progress bar. If you don't need to display anything, don't return anything.    
 
 **Params**    
 
@@ -331,10 +341,13 @@ def tng_dataloader(self):
 @pl.data_loader
 def tng_dataloader(self)
 ```
-Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
+**OPTIONAL**    
+If you don't need a validation dataset and a validation_step, you don't need to implement this method.    
+
+Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
 
 ##### Return
-PyTorch DataLoader
+PyTorch DataLoader or list of PyTorch Dataloaders.    
 
 **Example**
 
@@ -350,6 +363,11 @@ def val_dataloader(self):
     )
     
     return loader
+
+# can also return multiple dataloaders   
+@pl.data_loader
+def val_dataloader(self):
+    return [loader_a, loader_b, ..., loader_n]   
 ```
 
 --- 
@@ -359,6 +377,9 @@ def val_dataloader(self):
 @pl.data_loader
 def test_dataloader(self)
 ```
+**OPTIONAL**    
+If you don't need a test dataset and a test_step, you don't need to implement this method.    
+
 Called by lightning during test loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
 
 ##### Return
