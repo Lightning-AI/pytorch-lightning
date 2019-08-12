@@ -357,7 +357,7 @@ class Trainer(TrainerIO):
         # val datasets could be none, 1 or 2+
         self.nb_val_batches = 0
         if self.val_dataloader is not None:
-            if isinstance(val_dataloader) is list:
+            if isinstance(self.val_dataloader) is list:
                 self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
             else:
                 self.nb_val_batches = len(dataloader)
