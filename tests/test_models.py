@@ -780,10 +780,16 @@ def test_multiple_val_dataloader():
 
     # fit model
     trainer = Trainer(**trainer_options)
-    _ = trainer.fit(model)
+    result = trainer.fit(model)
 
-    # traning complete
+    # verify tng completed
+    assert result == 1
+
+    # verify there are 2 val loaders
     assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+    
+    # make sure predictions are good for each val set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
 
 # ------------------------------------------------------------------------
