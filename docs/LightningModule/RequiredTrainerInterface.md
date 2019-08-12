@@ -46,24 +46,25 @@ class CoolModel(pl.LightningModule):
     def forward(self, x):
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def my_loss(self, y_hat, y):
-        return F.cross_entropy(y_hat, y)
-
     def training_step(self, batch, batch_nb):
+        # REQUIRED
         x, y = batch
         y_hat = self.forward(x)
-        return {'loss': self.my_loss(y_hat, y)}
+        return {'loss': F.cross_entropy(y_hat, y)(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
+        # OPTIONAL
         x, y = batch
         y_hat = self.forward(x)
-        return {'val_loss': self.my_loss(y_hat, y)}
+        return {'val_loss': F.cross_entropy(y_hat, y)(y_hat, y)}
 
     def validation_end(self, outputs):
+        # OPTIONAL
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         return {'avg_val_loss': avg_loss}
 
     def configure_optimizers(self):
+        # REQUIRED
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @pl.data_loader
@@ -72,10 +73,13 @@ class CoolModel(pl.LightningModule):
 
     @pl.data_loader
     def val_dataloader(self):
+        # OPTIONAL
+        # can also return a list of val dataloaders
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @pl.data_loader
     def test_dataloader(self):
+        # OPTIONAL
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 ---   
@@ -88,11 +92,9 @@ The LightningModule interface is on the right. Each method corresponds to a part
   </a>
 </p>   
 
----
+## Required Methods    
 
 ### training_step
-
-**REQUIRED**
 
 ``` {.python}
 def training_step(self, data_batch, batch_nb)
@@ -136,7 +138,64 @@ def training_step(self, data_batch, batch_nb):
     return output
 ```
 
----
+--- 
+### tng_dataloader 
+
+``` {.python}
+@pl.data_loader
+def tng_dataloader(self)
+```
+Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
+
+##### Return
+PyTorch DataLoader
+
+**Example**
+
+``` {.python}
+@pl.data_loader
+def tng_dataloader(self):
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
+    loader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=self.hparams.batch_size,
+        shuffle=True
+    )
+    return loader
+```
+
+--- 
+### configure_optimizers 
+
+``` {.python}
+def configure_optimizers(self)
+```
+
+Set up as many optimizers and (optionally) learning rate schedulers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
+Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
+
+
+##### Return
+List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
+
+**Example**
+
+``` {.python}
+# most cases
+def configure_optimizers(self):
+    opt = Adam(self.parameters(), lr=0.01)
+    return [opt]
+    
+# gan example, with scheduler for discriminator
+def configure_optimizers(self):
+    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+    return [generator_opt, disriminator_opt], [discriminator_sched]
+```
+
+## Optional Methods    
 
 ### validation_step
 
@@ -194,8 +253,7 @@ def validation_step(self, data_batch, batch_nb):
 
 ``` {.python}
 def validation_end(self, outputs)
-```
-**OPTIONAL**    
+```   
 If you didn't define a validation_step, this won't be called.       
 
 Called at the end of the validation loop with the output of each validation_step.  Called once per validation dataset.   
@@ -233,36 +291,6 @@ def validation_end(self, outputs):
     val_acc_mean /= len(outputs)
     tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
     return tqdm_dic
-```
-
---- 
-### configure_optimizers 
-
-``` {.python}
-def configure_optimizers(self)
-```
-
-Set up as many optimizers and (optionally) learning rate schedulers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
-Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
-
-
-##### Return
-List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
-
-**Example**
-
-``` {.python}
-# most cases
-def configure_optimizers(self):
-    opt = Adam(self.parameters(), lr=0.01)
-    return [opt]
-    
-# gan example, with scheduler for discriminator
-def configure_optimizers(self):
-    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
-    return [generator_opt, disriminator_opt], [discriminator_sched]
 ```
 
 --- 
@@ -305,33 +333,6 @@ Nothing
 def on_load_checkpoint(self, checkpoint):
     # 99% of the time you don't need to implement this method
     self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
-```
-
---- 
-### tng_dataloader 
-
-``` {.python}
-@pl.data_loader
-def tng_dataloader(self)
-```
-Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
-
-##### Return
-PyTorch DataLoader
-
-**Example**
-
-``` {.python}
-@pl.data_loader
-def tng_dataloader(self):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
-    loader = torch.utils.data.DataLoader(
-        dataset=dataset,
-        batch_size=self.hparams.batch_size,
-        shuffle=True
-    )
-    return loader
 ```
 
 --- 
