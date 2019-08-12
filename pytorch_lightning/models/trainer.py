@@ -758,7 +758,6 @@ We recommend you switch to ddp if you want to use amp
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
-
         self.__train()
 
     def __train(self):
