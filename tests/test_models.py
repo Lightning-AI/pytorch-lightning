@@ -787,7 +787,7 @@ def test_multiple_val_dataloader():
 
     # verify there are 2 val loaders
     assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
-    
+
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
