@@ -354,7 +354,11 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = len(self.val_dataloader) if self.val_dataloader is not None else 0
+        # val datasets could be none, 1 or 2+
+        self.nb_val_batches = 0
+        if self.val_dataloader is not None:
+            self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
+
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
@@ -373,7 +377,7 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def validate(self, model, dataloader, max_batches):
+    def validate(self, model, dataloader, max_batches, dataloader_i):
         """
         Run validation code
         :param model: PT model
@@ -381,9 +385,6 @@ class Trainer(TrainerIO):
         :param max_batches: Scalar
         :return:
         """
-        # skip validation if model has no validation_step defined
-        if not self.__is_overriden('validation_step'):
-            return {}
 
         # enable eval mode
         model.zero_grad()
@@ -409,9 +410,9 @@ class Trainer(TrainerIO):
             # RUN VALIDATION STEP
             # -----------------
             if self.use_ddp:
-                output = model(data_batch, batch_i)
+                output = model(data_batch, batch_i, dataloader_i)
             elif self.use_dp:
-                output = model(data_batch, batch_i)
+                output = model(data_batch, batch_i, dataloader_i)
             elif self.single_gpu:
                 # put inputs on gpu manually
                 gpu_id = self.data_parallel_device_ids[0]
@@ -420,10 +421,10 @@ class Trainer(TrainerIO):
                         data_batch[i] = x.cuda(gpu_id)
 
                 # do non dp, ddp step
-                output = model.validation_step(data_batch, batch_i)
+                output = model.validation_step(data_batch, batch_i, dataloader_i)
 
             else:
-                output = model.validation_step(data_batch, batch_i)
+                output = model.validation_step(data_batch, batch_i, dataloader_i)
 
             outputs.append(output)
 
@@ -458,8 +459,35 @@ class Trainer(TrainerIO):
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
+        # handle returning an actual dataloader instead of a list of loaders
+        have_val_loaders = self.val_dataloader is not None
+        if have_val_loaders and not isinstance(self.val_dataloader, list):
+            self.val_dataloader = [self.val_dataloader]
+
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
+You're using multiple gpus and multiple nodes without using a DistributedSampler
+to assign a subset of your data to each process. To silence this warning, pass a
+DistributedSampler to your DataLoader.
+
+ie: this:
+dataset = myDataset()
+dataloader = Dataloader(dataset)
+
+becomes:
+dataset = myDataset()
+dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+dataloader = Dataloader(dataset, sampler=dist_sampler)
+
+If you want each process to load the full dataset, ignore this warning.
+"""
+            warnings.warn(msg)
+
+        if self.use_ddp and\
+                not all(isinstance(dataloader, DistributedSampler)
+                        for dataloader in self.val_dataloader):
+            msg = """
+You're val_dataloader(s) are not all DistributedSamplers.
 You're using multiple gpus and multiple nodes without using a DistributedSampler
 to assign a subset of your data to each process. To silence this warning, pass a
 DistributedSampler to your DataLoader.
@@ -721,9 +749,11 @@ We recommend you switch to ddp if you want to use amp
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
-        # run tiny validation to make sure program won't crash during val
+        # run tiny validation (if validation defined) to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = self.validate(model, self.val_dataloader, max_batches=self.nb_sanity_val_steps)
+        if self.val_dataloader is not None:
+            for ds_i, dataloader in enumerate(self.val_dataloader):
+                self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
         # ---------------------------
         # CORE TRAINING LOOP
@@ -988,30 +1018,30 @@ We recommend you switch to ddp if you want to use amp
         elif not can_check_epoch:
             return
 
-        # hook
-        if self.__is_function_implemented('on_pre_performance_check'):
-            model = self.__get_model()
-            model.on_pre_performance_check()
+        # validate only if model has validation_step defined
+        if self.__is_overriden('validation_step'):
 
-        # use full val set on end of epoch
-        # use a small portion otherwise
-        max_batches = None if not self.fast_dev_run else 1
-        validation_results = self.validate(
-            self.model,
-            self.val_dataloader,
-            max_batches
-        )
-        self.__add_tqdm_metrics(validation_results)
+            # hook
+            if self.__is_function_implemented('on_pre_performance_check'):
+                model = self.__get_model()
+                model.on_pre_performance_check()
 
-        # hook
-        if self.__is_function_implemented('on_post_performance_check'):
-            model = self.__get_model()
-            model.on_post_performance_check()
+            # use full val set on end of epoch
+            # use a small portion otherwise
+            max_batches = None if not self.fast_dev_run else 1
+            for ds_i, dataloader in enumerate(self.val_dataloader):
+                val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
+                self.__add_tqdm_metrics(val_out_metrics)
 
-        if self.progress_bar:
-            # add model specific metrics
-            tqdm_metrics = self.__tng_tqdm_dic
-            self.prog_bar.set_postfix(**tqdm_metrics)
+            # hook
+            if self.__is_function_implemented('on_post_performance_check'):
+                model = self.__get_model()
+                model.on_post_performance_check()
+
+            if self.progress_bar:
+                # add model specific metrics
+                tqdm_metrics = self.__tng_tqdm_dic
+                self.prog_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None:

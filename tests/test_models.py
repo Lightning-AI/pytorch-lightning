@@ -252,7 +252,7 @@ def test_cpu_restore_training():
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        run_prediction(trainer.val_dataloader, trainer.model)
+        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
     model.on_sanity_check_start = assert_good_acc
 
@@ -759,6 +759,37 @@ def test_ddp_sampler_error():
         trainer.get_dataloaders(model)
 
     clear_save_dir()
+
+
+def test_multiple_val_dataloader():
+    """
+    Verify multiple val_dataloader
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTemplateModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify tng completed
+    assert result == 1
+
+    # verify there are 2 val loaders
+    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+
+    # make sure predictions are good for each val set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
 
 # ------------------------------------------------------------------------
