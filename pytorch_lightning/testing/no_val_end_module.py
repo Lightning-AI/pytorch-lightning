@@ -109,7 +109,7 @@ class NoValEndTestModel(LightningModule):
         if self.trainer.batch_nb % 2 == 0:
             return loss_val
 
-    def validation_step(self, data_batch, batch_i):
+    def validation_step(self, data_batch, batch_i, dataloader_i):
         """
         Lightning calls this inside the validation loop
         :param data_batch:
