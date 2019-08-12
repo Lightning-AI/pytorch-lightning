@@ -413,9 +413,9 @@ class Trainer(TrainerIO):
             # RUN VALIDATION STEP
             # -----------------
             if self.use_ddp:
-                output = model(data_batch, batch_i)
+                output = model(data_batch, batch_i, dataloader_i)
             elif self.use_dp:
-                output = model(data_batch, batch_i)
+                output = model(data_batch, batch_i, dataloader_i)
             elif self.single_gpu:
                 # put inputs on gpu manually
                 gpu_id = self.data_parallel_device_ids[0]
