@@ -1030,13 +1030,10 @@ We recommend you switch to ddp if you want to use amp
         # use full val set on end of epoch
         # use a small portion otherwise
         max_batches = None if not self.fast_dev_run else 1
-        validation_results = [self.validate(
-            self.model,
-            dataloader,
-            max_batches,
-            index
-        ) for index, dataloader in enumerate(self.val_dataloader)]
-        _ = [self.__add_tqdm_metrics(metric) for metric in validation_results]
+        validation_results = []
+        for ds_i, dataloader in enumerate(self.val_dataloader):
+            val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
+            self.__add_tqdm_metrics(val_out_metrics)
 
         # hook
         if self.__is_function_implemented('on_post_performance_check'):
