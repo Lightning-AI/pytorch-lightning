@@ -756,10 +756,8 @@ We recommend you switch to ddp if you want to use amp
 
         # run tiny validation to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        _ = [self.validate(model,
-                           dataloader,
-                           self.nb_sanity_val_steps,
-                           index) for index, dataloader in enumerate(self.val_dataloader)]
+        for ds_i, dataloader in enumerate(self.val_dataloader):
+            self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
         # ---------------------------
         # CORE TRAINING LOOP
