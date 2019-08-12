@@ -463,8 +463,11 @@ class Trainer(TrainerIO):
         self.tng_dataloader = model.tng_dataloader
 
         self.test_dataloader = model.test_dataloader
-        self.val_dataloader = model.val_dataloader if \
-            isinstance(model.val_dataloader, list) else [model.val_dataloader]
+        self.val_dataloader = model.val_dataloader
+        
+        # handle returning an actual dataloader instead of a list of loaders
+        if not isinstance(model.val_dataloader, list):
+            self.val_dataloader = [self.val_dataloader]
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
