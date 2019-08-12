@@ -137,7 +137,7 @@ from test_tube import Experiment
 exp = Experiment(save_dir=os.getcwd())
 
 # train on cpu using only 10% of the data (for demo purposes)
-# pass in experi
+# pass in experiment for automatic tensorboard logging.    
 trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus
