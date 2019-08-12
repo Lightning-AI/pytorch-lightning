@@ -388,9 +388,6 @@ class Trainer(TrainerIO):
         :param max_batches: Scalar
         :return:
         """
-        # skip validation if model has no validation_step defined
-        if not self.__is_overriden('validation_step'):
-            return {}
 
         # enable eval mode
         model.zero_grad()
@@ -1024,28 +1021,30 @@ We recommend you switch to ddp if you want to use amp
         elif not can_check_epoch:
             return
 
-        # hook
-        if self.__is_function_implemented('on_pre_performance_check'):
-            model = self.__get_model()
-            model.on_pre_performance_check()
+        # validate only if model has validation_step defined
+        if self.__is_overriden('validation_step'):
 
-        # use full val set on end of epoch
-        # use a small portion otherwise
-        max_batches = None if not self.fast_dev_run else 1
-        validation_results = []
-        for ds_i, dataloader in enumerate(self.val_dataloader):
-            val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
-            self.__add_tqdm_metrics(val_out_metrics)
+            # hook
+            if self.__is_function_implemented('on_pre_performance_check'):
+                model = self.__get_model()
+                model.on_pre_performance_check()
 
-        # hook
-        if self.__is_function_implemented('on_post_performance_check'):
-            model = self.__get_model()
-            model.on_post_performance_check()
+            # use full val set on end of epoch
+            # use a small portion otherwise
+            max_batches = None if not self.fast_dev_run else 1
+            for ds_i, dataloader in enumerate(self.val_dataloader):
+                val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
+                self.__add_tqdm_metrics(val_out_metrics)
 
-        if self.progress_bar:
-            # add model specific metrics
-            tqdm_metrics = self.__tng_tqdm_dic
-            self.prog_bar.set_postfix(**tqdm_metrics)
+            # hook
+            if self.__is_function_implemented('on_post_performance_check'):
+                model = self.__get_model()
+                model.on_post_performance_check()
+
+            if self.progress_bar:
+                # add model specific metrics
+                tqdm_metrics = self.__tng_tqdm_dic
+                self.prog_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None:
