@@ -466,7 +466,8 @@ class Trainer(TrainerIO):
         self.val_dataloader = model.val_dataloader
         
         # handle returning an actual dataloader instead of a list of loaders
-        if not isinstance(model.val_dataloader, list):
+        have_val_loaders = self.val_dataloader is not None
+        if have_val_loaders and not isinstance(self.val_dataloader, list):
             self.val_dataloader = [self.val_dataloader]
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
