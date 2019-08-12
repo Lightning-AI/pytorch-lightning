@@ -354,8 +354,14 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
 
         # determine number of validation batches
-        self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader) \
-            if self.val_dataloader[0] is not None else 0
+        # val datasets could be none, 1 or 2+
+        self.nb_val_batches = 0
+        if self.val_dataloader is not None:
+            if type(val_dataloader) is list:
+                self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
+            else:
+                self.nb_val_batches = len(dataloader)
+                
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
         self.nb_val_batches = self.nb_val_batches
