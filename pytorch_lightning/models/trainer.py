@@ -755,10 +755,11 @@ We recommend you switch to ddp if you want to use amp
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
-        # run tiny validation to make sure program won't crash during val
+        # run tiny validation (if validation defined) to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        for ds_i, dataloader in enumerate(self.val_dataloader):
-            self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
+        if self.val_dataloader is not None:
+            for ds_i, dataloader in enumerate(self.val_dataloader):
+                self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
         # ---------------------------
         # CORE TRAINING LOOP
