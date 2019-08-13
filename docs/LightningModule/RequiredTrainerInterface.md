@@ -185,6 +185,9 @@ def configure_optimizers(self)
 Set up as many optimizers and (optionally) learning rate schedulers as you need. Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple. 
 Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
 
+**Note:** If you use multiple optimizers, training_step will have an additional ```optimizer_idx``` parameter.    
+
+
 
 ##### Return
 List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
