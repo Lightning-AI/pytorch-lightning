@@ -976,7 +976,7 @@ We recommend you switch to ddp if you want to use amp
             self.prog_bar.update(1)
 
         # call training_step once per optimizer
-        for optimizer in self.optimizers:
+        for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
             loss, model_specific_tqdm_metrics_dic = self.__tng_forward(data_batch, batch_nb)
@@ -1012,15 +1012,10 @@ We recommend you switch to ddp if you want to use amp
                 self.__clip_gradients()
 
                 # update gradients for this optimizer
-                optimizer.step()
-
-                # insert after step hook
-                if self.__is_function_implemented('on_before_zero_grad'):
-                    model_ref = self.__get_model()
-                    model_ref.on_before_zero_grad(optimizer)
-
-                # clear gradients
-                optimizer.zero_grad()
+                # optimizer_step() calls .step and .zer_grad
+                # override function to modify this behavior
+                model = self.__get_model()
+                model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
 
                 # calculate running loss for display
                 self.running_loss.append(self.batch_loss_value)

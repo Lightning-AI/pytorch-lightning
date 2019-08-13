@@ -75,7 +75,10 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :param optimizer_i:
         :return:
         """
-        pass
+        optimizer.step()
+
+        # clear gradients
+        optimizer.zero_grad()
 
     @data_loader
     def tng_dataloader(self):
