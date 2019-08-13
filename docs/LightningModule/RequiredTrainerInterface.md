@@ -193,7 +193,10 @@ def configure_optimizers(self):
     disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
     discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
     return [generator_opt, disriminator_opt], [discriminator_sched]
-```
+```  
+
+If you need to control how often those optimizers step or override the default .step() schedule, override 
+the [optimizer_step](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#optimizer_step) hook.   
 
 ## Optional Methods    
 
