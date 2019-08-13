@@ -8,3 +8,8 @@ site_description: 'Documentation for PyTorch LightningModule, the researcher ver
 
 dev_addr: '0.0.0.0:8000'
 #google_analytics: ['UA-aasd', 'sitename']
+
+markdown_extensions:
+  - codehilite:
+      guess_lang: false
+      linenums: true
