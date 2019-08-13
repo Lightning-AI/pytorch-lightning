@@ -33,11 +33,21 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def validation_step(self, data_batch, batch_nb):
+    def training_step(self, *args, **kwargs):
+        """
+        return loss, dict with metrics for tqdm
+        :param called with batch, batch_nb
+        additional: optimizer_i if multiple optimizers used
+        :return:
+        """
+        raise NotImplementedError
+
+    def validation_step(self, *args, **kwargs):
         """
         return whatever outputs will need to be aggregated in validation_end
         OPTIONAL
-        :param data_batch:
+        :param called with batch, batch_nb
+        additional: dataset_i if multiple val datasets used
         :return:
         """
         pass
@@ -50,14 +60,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :return: dic_with_metrics for tqdm
         """
         pass
-
-    def training_step(self, data_batch, batch_nb):
-        """
-        return loss, dict with metrics for tqdm
-        :param data_batch:
-        :return:
-        """
-        raise NotImplementedError
 
     def configure_optimizers(self):
         """
