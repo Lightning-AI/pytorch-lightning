@@ -893,7 +893,7 @@ We recommend you switch to ddp if you want to use amp
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
-    def __tng_forward(self, data_batch, batch_nb):
+    def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param data_batch:
@@ -903,19 +903,24 @@ We recommend you switch to ddp if you want to use amp
         # ---------------
         # FORWARD
         # ---------------
+        # enable not needing to add opt_idx to training_step
+        args = [data_batch, batch_nb]
+        if len(self.optimizers) > 1:
+            args.append(opt_idx)
+
         if self.use_ddp:
-            output = self.model(data_batch, batch_nb)
+            output = self.model(*args)
         elif self.use_dp:
-            output = self.model(data_batch, batch_nb)
+            output = self.model(*args)
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
             for i, x in enumerate(data_batch):
                 if isinstance(x, torch.Tensor):
                     data_batch[i] = x.cuda(gpu_id)
-            output = self.model.training_step(data_batch, batch_nb)
+            output = self.model.training_step(*args)
 
         else:
-            output = self.model.training_step(data_batch, batch_nb)
+            output = self.model.training_step(*args)
 
         # ---------------
         # TQDM metrics
@@ -979,7 +984,7 @@ We recommend you switch to ddp if you want to use amp
         for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
-            loss, model_specific_tqdm_metrics_dic = self.__tng_forward(data_batch, batch_nb)
+            loss, model_specific_tqdm_metrics_dic = self.__tng_forward(data_batch, batch_nb, opt_idx)
 
             # track metrics
             self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
