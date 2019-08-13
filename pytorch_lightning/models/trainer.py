@@ -379,6 +379,8 @@ class Trainer(TrainerIO):
 
     def __validation_forward(self, model, data_batch, batch_i, dataloader_i):
         # make dataloader_i arg in validation_step optional
+        # obviously determine that data_batch has List type
+        data_batch = list(data_batch)
         args = [data_batch, batch_i]
         if len(self.val_dataloader) > 1:
             args.append(dataloader_i)
@@ -390,9 +392,18 @@ class Trainer(TrainerIO):
         elif self.single_gpu:
             # put inputs on gpu manually
             gpu_id = self.data_parallel_device_ids[0]
+            # add support of List[torch.Tensor] && Dict[key: torch.Tensor]
             for i, x in enumerate(data_batch):
                 if isinstance(x, torch.Tensor):
                     data_batch[i] = x.cuda(gpu_id)
+                elif isinstance(x, list):
+                    for x_iter, sample in enumerate(x):
+                        if isinstance(sample, torch.Tensor):
+                            data_batch[i][x_iter] = sample.cuda(gpu_id)
+                elif isinstance(x, dict):
+                    for key, sample in x.items():
+                        if isinstance(sample, torch.Tensor):
+                            data_batch[i][key] = sample.cuda(gpu_id)
 
             # do non dp, ddp step
             output = model.validation_step(*args)
@@ -916,6 +927,7 @@ We recommend you switch to ddp if you want to use amp
         # FORWARD
         # ---------------
         # enable not needing to add opt_idx to training_step
+        data_batch = list(data_batch)
         args = [data_batch, batch_nb]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
@@ -926,9 +938,19 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(*args)
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
+            # add support of List[torch.Tensor] & Dict[key: torch.Tensor] too
             for i, x in enumerate(data_batch):
                 if isinstance(x, torch.Tensor):
                     data_batch[i] = x.cuda(gpu_id)
+                elif isinstance(x, list):
+                    for x_iter, sample in enumerate(x):
+                        if isinstance(sample, torch.Tensor):
+                            data_batch[i][x_iter] = sample.cuda(gpu_id)
+                elif isinstance(x, dict):
+                    for key, sample in x.items():
+                        if isinstance(sample, torch.Tensor):
+                            data_batch[i][key] = sample.cuda(gpu_id)
+
             output = self.model.training_step(*args)
 
         else:
