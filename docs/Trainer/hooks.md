@@ -92,6 +92,9 @@ def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
         if batch_nb % 4 == 0 :
             optimizer.step()
             optimizer.zero_grad()    
+    
+    # ...
+    # add as many optimizers as you want 
 ```
 
 ---
