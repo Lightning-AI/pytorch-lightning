@@ -77,7 +77,7 @@ import pytorch_lightning as pl
 class CoolSystem(pl.LightningModule):
 
     def __init__(self):
-        super(CoolModel, self).__init__()
+        super(CoolSystem, self).__init__()
         # not the best model...
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
