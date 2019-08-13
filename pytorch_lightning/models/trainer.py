@@ -893,6 +893,73 @@ We recommend you switch to ddp if you want to use amp
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
+    def __tng_forward(self, data_batch, batch_nb):
+        """
+        Handle forward for each training case (distributed, single gpu, etc...)
+        :param data_batch:
+        :param batch_nb:
+        :return:
+        """
+        # ---------------
+        # FORWARD
+        # ---------------
+        if self.use_ddp:
+            output = self.model(data_batch, batch_nb)
+        elif self.use_dp:
+            output = self.model(data_batch, batch_nb)
+        elif self.single_gpu:
+            gpu_id = self.data_parallel_device_ids[0]
+            for i, x in enumerate(data_batch):
+                if isinstance(x, torch.Tensor):
+                    data_batch[i] = x.cuda(gpu_id)
+            output = self.model.training_step(data_batch, batch_nb)
+
+        else:
+            output = self.model.training_step(data_batch, batch_nb)
+
+        # ---------------
+        # TQDM metrics
+        # ---------------
+        try:
+            prog_output = output['prog']
+
+            # reduce prog metrics for tqdm when using dp
+            if self.use_dp:
+                nb_gpus = len(self.data_parallel_device_ids)
+                prog_output = reduce_distributed_output(prog_output, nb_gpus)
+
+            model_specific_tqdm_metrics_dic = prog_output
+        except Exception:
+            model_specific_tqdm_metrics_dic = {}
+
+        # ---------------
+        # EXTRACT LOSS
+        # ---------------
+        # if output dict doesn't have the keyword loss
+        # then assume the output=loss if scalar
+        try:
+            loss = output['loss']
+        except Exception:
+            if type(output) is torch.Tensor:
+                loss = output
+
+        # when using dp need to reduce the loss
+        if self.use_dp:
+            loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
+
+        return loss, model_specific_tqdm_metrics_dic
+
+    def __clip_gradients(self):
+        if self.gradient_clip > 0:
+            model = self.__get_model()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip)
+
+    def __print_nan_grads(self):
+        if self.print_nan_grads:
+            model = self.__get_model()
+            for param in model.parameters():
+                print(param.grad.float().sum())
+
     def __run_tng_batch(self, data_batch, batch_nb):
         if data_batch is None:
             return 0
@@ -908,107 +975,63 @@ We recommend you switch to ddp if you want to use amp
         if self.progress_bar:
             self.prog_bar.update(1)
 
-        # forward pass
-        # return a scalar value and a dic with tqdm metrics
-        if self.use_ddp:
-            output = self.model(data_batch, batch_nb)
-        elif self.use_dp:
-            output = self.model(data_batch, batch_nb)
-        elif self.single_gpu:
-            gpu_id = self.data_parallel_device_ids[0]
-            for i, x in enumerate(data_batch):
-                if isinstance(x, torch.Tensor):
-                    data_batch[i] = x.cuda(gpu_id)
-            output = self.model.training_step(data_batch, batch_nb)
+        # call training_step once per optimizer
+        for optimizer in self.optimizers:
 
-        else:
-            output = self.model.training_step(data_batch, batch_nb)
+            # forward pass
+            loss, model_specific_tqdm_metrics_dic = self.__tng_forward(data_batch, batch_nb)
 
-        try:
-            prog_output = output['prog']
+            # track metrics
+            self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
 
-            # reduce prog metrics for tqdm when using dp
-            if self.use_dp:
-                nb_gpus = len(self.data_parallel_device_ids)
-                prog_output = reduce_distributed_output(prog_output, nb_gpus)
+            # accumulate loss
+            # (if accumulate_grad_batches = 1 no effect)
+            loss = loss / self.accumulate_grad_batches
 
-            model_specific_tqdm_metrics_dic = prog_output
-        except Exception:
-            model_specific_tqdm_metrics_dic = {}
-
-        # if output dict doesn't have the keyword loss
-        # then assume the output=loss if scalar
-        try:
-            loss = output['loss']
-        except Exception:
-            if type(output) is torch.Tensor:
-                loss = output
-
-        # when using dp need to reduce the loss
-        if self.use_dp:
-            loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
-
-        self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
-
-        # accumulate loss (if accumulate_grad_batches = 1 no effect)
-        loss = loss / self.accumulate_grad_batches
-
-        # backward pass
-        if self.use_amp:
-            # scale loss when using amp
-            for optimizer in self.optimizers:
+            # backward pass
+            if self.use_amp:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
-        else:
-            loss.backward()
+            else:
+                loss.backward()
 
-        # insert after step hook
-        if self.__is_function_implemented('on_after_backward'):
-            model_ref = self.__get_model()
-            response = model_ref.on_after_backward()
+            # insert after step hook
+            if self.__is_function_implemented('on_after_backward'):
+                model_ref = self.__get_model()
+                model_ref.on_after_backward()
 
-        if self.print_nan_grads:
-            model = self.__get_model()
-            for param in model.parameters():
-                print(param.grad.float().sum())
+            # nan grads
+            self.__print_nan_grads()
 
-        # track total loss for logging (avoid mem leaks)
-        self.batch_loss_value += loss.item()
+            # track total loss for logging (avoid mem leaks)
+            self.batch_loss_value += loss.item()
 
-        # gradient update with accumulated gradients
-        if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
-            # clip gradients
-            if self.gradient_clip > 0:
-                model = self.__get_model()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip)
+            # gradient update with accumulated gradients
+            if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+                # clip gradients
+                self.__clip_gradients()
 
-            # update gradients across all optimizers
-            for opt_idx, optimizer in enumerate(self.optimizers):
-                # allow user to override what happens in the optimizer step
-                if self.__is_function_implemented('optimizer_step'):
-                    model = self.__get_model()
-                    model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
-                else:
-                    optimizer.step()
+                # update gradients for this optimizer
+                optimizer.step()
 
-                    # insert after step hook
-                    if self.__is_function_implemented('on_before_zero_grad'):
-                        model_ref = self.__get_model()
-                        response = model_ref.on_before_zero_grad(optimizer)
+                # insert after step hook
+                if self.__is_function_implemented('on_before_zero_grad'):
+                    model_ref = self.__get_model()
+                    model_ref.on_before_zero_grad(optimizer)
 
-                    # clear gradients
-                    optimizer.zero_grad()
+                # clear gradients
+                optimizer.zero_grad()
 
-            # calculate running loss for display
-            self.running_loss.append(self.batch_loss_value)
-            self.batch_loss_value = 0
-            self.avg_loss = np.mean(self.running_loss[-100:])
+                # calculate running loss for display
+                self.running_loss.append(self.batch_loss_value)
+                self.batch_loss_value = 0
+                self.avg_loss = np.mean(self.running_loss[-100:])
 
-            # update progbar
-            if self.progress_bar:
-                # add model specific metrics
-                tqdm_metrics = self.__tng_tqdm_dic
-                self.prog_bar.set_postfix(**tqdm_metrics)
+                # update progbar
+                if self.progress_bar:
+                    # add model specific metrics
+                    tqdm_metrics = self.__tng_tqdm_dic
+                    self.prog_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
         if self.__is_function_implemented('on_batch_end'):
