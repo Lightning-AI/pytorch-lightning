@@ -200,7 +200,10 @@ def configure_optimizers(self):
 ### validation_step
 
 ``` {.python}
-def validation_step(self, data_batch, batch_nb, dataloader_i)
+def validation_step(self, data_batch, batch_nb)   
+
+# if have multiple val dataloaders:  
+def validation_step(self, data_batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
 If you don't need to validate you don't need to implement this method.    
