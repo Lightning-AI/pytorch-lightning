@@ -109,7 +109,7 @@ class NoValEndTestModel(LightningModule):
         if self.trainer.batch_nb % 2 == 0:
             return loss_val
 
-    def validation_step(self, data_batch, batch_i, dataloader_i):
+    def validation_step(self, data_batch, batch_nb):
         """
         Lightning calls this inside the validation loop
         :param data_batch:
@@ -135,16 +135,16 @@ class NoValEndTestModel(LightningModule):
             val_acc = val_acc.unsqueeze(0)
 
         # alternate possible outputs to test
-        if batch_i % 1 == 0:
+        if batch_nb % 1 == 0:
             output = OrderedDict({
                 'val_loss': loss_val,
                 'val_acc': val_acc,
             })
             return output
-        if batch_i % 2 == 0:
+        if batch_nb % 2 == 0:
             return val_acc
 
-        if batch_i % 3 == 0:
+        if batch_nb % 3 == 0:
             output = OrderedDict({
                 'val_loss': loss_val,
                 'val_acc': val_acc,

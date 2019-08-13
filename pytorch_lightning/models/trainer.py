@@ -377,6 +377,32 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
+    def __validation_forward(self, model, data_batch, batch_i, dataloader_i):
+        # make dataloader_i arg in validation_step optional
+        args = [data_batch, batch_i]
+        if len(self.val_dataloader) > 1:
+            args.append(dataloader_i)
+
+        if self.use_ddp:
+            output = model(*args)
+        elif self.use_dp:
+            output = model(*args)
+        elif self.single_gpu:
+            # put inputs on gpu manually
+            gpu_id = self.data_parallel_device_ids[0]
+            for i, x in enumerate(data_batch):
+                if isinstance(x, torch.Tensor):
+                    data_batch[i] = x.cuda(gpu_id)
+
+            # do non dp, ddp step
+            output = model.validation_step(*args)
+
+        else:
+            # CPU
+            output = model.validation_step(*args)
+
+        return output
+
     def validate(self, model, dataloader, max_batches, dataloader_i):
         """
         Run validation code
@@ -409,23 +435,9 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            if self.use_ddp:
-                output = model(data_batch, batch_i, dataloader_i)
-            elif self.use_dp:
-                output = model(data_batch, batch_i, dataloader_i)
-            elif self.single_gpu:
-                # put inputs on gpu manually
-                gpu_id = self.data_parallel_device_ids[0]
-                for i, x in enumerate(data_batch):
-                    if isinstance(x, torch.Tensor):
-                        data_batch[i] = x.cuda(gpu_id)
+            output = self.__validation_forward(model, data_batch, batch_i, dataloader_i)
 
-                # do non dp, ddp step
-                output = model.validation_step(data_batch, batch_i, dataloader_i)
-
-            else:
-                output = model.validation_step(data_batch, batch_i, dataloader_i)
-
+            # track outputs for collation
             outputs.append(output)
 
             # batch done

@@ -105,7 +105,7 @@ class LightningTemplateModel(LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_step(self, data_batch, batch_i, dataloader_i):
+    def validation_step(self, data_batch, batch_i):
         """
         Lightning calls this inside the validation loop
         :param data_batch:
@@ -218,7 +218,7 @@ class LightningTemplateModel(LightningModule):
     @pl.data_loader
     def val_dataloader(self):
         print('val data loader called')
-        return [self.__dataloader(train=False) for i in range(2)]
+        return self.__dataloader(train=False)
 
     @pl.data_loader
     def test_dataloader(self):
