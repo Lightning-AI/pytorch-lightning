@@ -1016,8 +1016,7 @@ We recommend you switch to ddp if you want to use amp
                 # clip gradients
                 self.__clip_gradients()
 
-                # update gradients for this optimizer
-                # optimizer_step() calls .step and .zero_grad
+                # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
                 model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
