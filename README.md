@@ -58,7 +58,9 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 
 ---   
 ## How do I do use it?   
-The research code goes into a LightningModule and you train it using a Trainer. Think of the LightningModule as a *system* such as seq-2-seq, GAN, etc... However, the LightningModule can ALSO just be a simple classifier such as the example below.   
+The research code goes into a [LightningModule]((https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)) which you fit using a Trainer.    
+
+Think of the LightningModule as a *system* such as seq-2-seq, GAN, etc... However, the LightningModule can ALSO just be a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
 1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
