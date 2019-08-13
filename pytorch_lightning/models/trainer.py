@@ -983,16 +983,21 @@ We recommend you switch to ddp if you want to use amp
                 torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip)
 
             # update gradients across all optimizers
-            for optimizer in self.optimizers:
-                optimizer.step()
+            for opt_idx, optimizer in enumerate(self.optimizers):
+                # allow user to override what happens in the optimizer step
+                if self.__is_function_implemented('optimizer_step'):
+                    model = self.__get_model()
+                    model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
+                else:
+                    optimizer.step()
 
-                # insert after step hook
-                if self.__is_function_implemented('on_before_zero_grad'):
-                    model_ref = self.__get_model()
-                    response = model_ref.on_before_zero_grad(optimizer)
+                    # insert after step hook
+                    if self.__is_function_implemented('on_before_zero_grad'):
+                        model_ref = self.__get_model()
+                        response = model_ref.on_before_zero_grad(optimizer)
 
-                # clear gradients
-                optimizer.zero_grad()
+                    # clear gradients
+                    optimizer.zero_grad()
 
             # calculate running loss for display
             self.running_loss.append(self.batch_loss_value)

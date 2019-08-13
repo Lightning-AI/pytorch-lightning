@@ -66,6 +66,17 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):
+        """
+        Do something instead of the standard optimizer behavior
+        :param epoch_nb:
+        :param batch_nb:
+        :param optimizer:
+        :param optimizer_i:
+        :return:
+        """
+        pass
+
     @data_loader
     def tng_dataloader(self):
         """
