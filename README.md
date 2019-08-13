@@ -87,7 +87,7 @@ class CoolModel(pl.LightningModule):
         y_hat = self.forward(x)
         return {'loss': F.cross_entropy(y_hat, y)}
 
-    def validation_step(self, batch, batch_nb, dataloader_i):
+    def validation_step(self, batch, batch_nb):
         # OPTIONAL
         x, y = batch
         y_hat = self.forward(x)
