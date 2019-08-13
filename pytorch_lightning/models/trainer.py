@@ -984,10 +984,10 @@ We recommend you switch to ddp if you want to use amp
         for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
-            loss, model_specific_tqdm_metrics_dic = self.__tng_forward(data_batch, batch_nb, opt_idx)
+            loss, model_specific_tqdm_metrics = self.__tng_forward(data_batch, batch_nb, opt_idx)
 
             # track metrics
-            self.__add_tqdm_metrics(model_specific_tqdm_metrics_dic)
+            self.__add_tqdm_metrics(model_specific_tqdm_metrics)
 
             # accumulate loss
             # (if accumulate_grad_batches = 1 no effect)
