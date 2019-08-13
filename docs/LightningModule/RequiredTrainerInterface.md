@@ -14,11 +14,11 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [configure_optimizers](RequiredTrainerInterface.md#configure_optimizers)    
 
 **Optional**:   
+
 - [validation_step](RequiredTrainerInterface.md#validation_step)    
 - [validation_end](RequiredTrainerInterface.md#validation_end)    
 - [val_dataloader](RequiredTrainerInterface.md#val_dataloader)    
 - [test_dataloader](RequiredTrainerInterface.md#test_dataloader)    
-
 - [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)    
 - [on_load_checkpoint](RequiredTrainerInterface.md#on_load_checkpoint)    
 - [update_tng_log_metrics](RequiredTrainerInterface.md#update_tng_log_metrics)    
