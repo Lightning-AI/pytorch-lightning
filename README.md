@@ -379,8 +379,19 @@ Nope.
 Nope. Please use anaconda or miniconda.    
 
 **Which PyTorch versions do you support?**    
-Lightning 0.4.2+ supports PyTorch 1.2.0.    
-For PyTorch 1.1.0 install Lightning 0.4.0 with test-tube=0.6.7.6.    
+##### PyTorch 1.1.0       
+```bash    
+# install pytorch 1.1.0 using the official instructions   
+
+# install test-tube 0.6.7.6 which supports 1.1.0   
+pip install test-tube==0.6.7.6   
+
+# install latest Lightning version without upgrading deps    
+pip install -U --no-deps pytorch-lightning
+```     
+
+##### PyTorch 1.2.0   
+Install via pip as normal   
 
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  
