@@ -11,6 +11,7 @@ pip-wheel-metadata/
 test_tube_exp/
 tests/tests_tt_dir/
 tests/save_dir
+default/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
