@@ -560,7 +560,7 @@ If you're not using SLURM, ignore this message!
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
             self.optimizers = model.configure_optimizers()
-            if len(self.optimizers) == 2:
+            if len(self.optimizers) == 2 and type(self.optimizers[0]) is list:
                 self.optimizers, self.lr_schedulers = self.optimizers
 
             self.__run_pretrain_routine(model)
