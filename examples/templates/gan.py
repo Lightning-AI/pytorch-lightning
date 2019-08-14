@@ -77,9 +77,6 @@ class GAN(pl.LightningModule):
         super(GAN, self).__init__()
         self.hparams = hparams
 
-        # let trainer show inputs/outputs for each layer (generator in this case)
-        # self.example_input_array = torch.rand(10, hparams.latent_dim)
-
         # networks
         mnist_shape = (1, 28, 28)
         self.generator = Generator(latent_dim=hparams.latent_dim, img_shape=mnist_shape)
