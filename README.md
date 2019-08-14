@@ -379,11 +379,14 @@ Nope.
 Nope. Please use anaconda or miniconda.    
 
 **Which PyTorch versions do you support?**    
-##### PyTorch 1.1.0    
-First install PyTorch 1.1.0    
-Then install test-tube 0.6.7.6     
-Then upgrade Lightning without upgrading its deps    
-```python
+##### PyTorch 1.1.0       
+```bash    
+# install pytorch 1.1.0 using the official instructions   
+
+# install test-tube 0.6.7.6 which supports 1.1.0   
+pip install test-tube==0.6.7.6   
+
+# install latest Lightning version without upgrading deps    
 pip install -U --no-deps pytorch-lightning
 ```     
 
