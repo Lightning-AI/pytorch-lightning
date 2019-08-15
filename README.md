@@ -101,7 +101,8 @@ class CoolSystem(pl.LightningModule):
 
     def configure_optimizers(self):
         # REQUIRED
-        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+        # can return multiple optimizers and learning_rate schedulers
+        return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
     def tng_dataloader(self):
