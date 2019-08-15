@@ -26,6 +26,41 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_single_gpu_batch_parse():
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    trainer = Trainer()
+
+    # batch is just a tensor
+    batch = torch.rand(2, 3)
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch.device.index == 0 and batch.type() == 'torch.cuda.FloatTensor'
+
+    # tensor list
+    batch = [torch.rand(2, 3), torch.rand(2, 3)]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0].device.index == 0 and batch[0].type() == 'torch.cuda.FloatTensor'
+    assert batch[1].device.index == 0 and batch[1].type() == 'torch.cuda.FloatTensor'
+
+    # tensor list of lists
+    batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
+    assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
+
+    # tensor dict
+    batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
+    assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
+
 
 def test_early_stopping_cpu_model():
     """

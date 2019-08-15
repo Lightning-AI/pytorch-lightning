@@ -390,9 +390,8 @@ class Trainer(TrainerIO):
         elif self.single_gpu:
             # put inputs on gpu manually
             gpu_id = self.data_parallel_device_ids[0]
-            for i, x in enumerate(data_batch):
-                if isinstance(x, torch.Tensor):
-                    data_batch[i] = x.cuda(gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
+            args[0] = data_batch
 
             # do non dp, ddp step
             output = model.validation_step(*args)
@@ -905,6 +904,24 @@ We recommend you switch to ddp if you want to use amp
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
+    def transfer_batch_to_gpu(self, batch, gpu_id):
+        # base case
+        if isinstance(batch, torch.Tensor):
+            return batch.cuda(gpu_id)
+
+        # when list
+        elif isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+            return batch
+
+        # when dict
+        elif isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
+
+            return batch
+
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
@@ -926,9 +943,8 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(*args)
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
-            for i, x in enumerate(data_batch):
-                if isinstance(x, torch.Tensor):
-                    data_batch[i] = x.cuda(gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
+            args[0] = data_batch
             output = self.model.training_step(*args)
 
         else:
