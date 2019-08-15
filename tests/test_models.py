@@ -32,19 +32,19 @@ def test_optimizer_return_options():
 
     # single optimizer
     optim, lr_sched = trainer.init_optimizers('fake_opt')
-    assert len(optim) == 1 and lr_sched is None
+    assert len(optim) == 1 and len(lr_sched) == 0
 
     # opt tuple
     opts = ('fake_opt_a', 'fake_opt_b')
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert lr_sched is None
+    assert len(lr_sched) == 0
 
     # opt list
     opts = ['fake_opt_a', 'fake_opt_b']
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert lr_sched is None
+    assert len(lr_sched) == 0
 
     # opt tuple of lists
     opts = (['fake_opt_a'], ['lr_scheduler'])
