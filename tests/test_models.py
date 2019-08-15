@@ -93,7 +93,6 @@ def test_single_gpu_batch_parse():
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
 
-
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
