@@ -26,6 +26,7 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_optimizer_return_options
 
 def test_early_stopping_cpu_model():
     """
