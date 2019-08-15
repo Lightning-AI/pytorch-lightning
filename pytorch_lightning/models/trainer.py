@@ -905,6 +905,21 @@ We recommend you switch to ddp if you want to use amp
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
+    def transfer_batch_to_gpu(self, batch, gpu_id):
+        # base case
+        if isinstance(batch, torch.Tensor):
+            return batch.cuda(gpu_id)
+
+        # when list
+        elif isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+
+        # when dict
+        elif isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
+
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
