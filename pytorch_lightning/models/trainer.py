@@ -390,8 +390,7 @@ class Trainer(TrainerIO):
         elif self.single_gpu:
             # put inputs on gpu manually
             gpu_id = self.data_parallel_device_ids[0]
-            gpu_id = self.data_parallel_device_ids[0]
-            self.transfer_batch_to_gpu(data_batch, gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
 
             # do non dp, ddp step
             output = model.validation_step(*args)
@@ -943,7 +942,7 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(*args)
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
-            self.transfer_batch_to_gpu(data_batch, gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
             output = self.model.training_step(*args)
 
         else:
