@@ -26,7 +26,33 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_optimizer_return_options
+def test_optimizer_return_options():
+
+    trainer = Trainer()
+
+    # single optimizer
+    optim, lr_sched = trainer.init_optimizers(torch.optim.Adam())
+    assert len(optim) == 1 and lr_sched is None
+
+    # opt tuple
+    opts = (torch.optim.Adam(), torch.optim.Adam())
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    assert lr_sched is None
+
+    # opt list
+    opts = [torch.optim.Adam(), torch.optim.Adam()]
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    assert lr_sched is None
+
+    # opt tuple of lists
+    opts = ([torch.optim.Adam()], ['lr_scheduler'])
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1
+    assert optim[0] == opts[0] and lr_sched[0] == 'lr_scheduler'
+
+
 
 def test_early_stopping_cpu_model():
     """

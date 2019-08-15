@@ -561,7 +561,7 @@ If you want each process to load the full dataset, ignore this warning.
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model)
+            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.__run_pretrain_routine(model)
 
@@ -569,8 +569,7 @@ If you want each process to load the full dataset, ignore this warning.
         # used for testing or when we need to know that training succeeded
         return 1
 
-    def init_optimizers(self, model):
-        optimizers = model.configure_optimizers()
+    def init_optimizers(self, optimizers):
 
         # two lists
         if len(optimizers) == 2 and isinstance(optimizers[0], list):
@@ -588,7 +587,7 @@ If you want each process to load the full dataset, ignore this warning.
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model)
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -605,7 +604,7 @@ If you want each process to load the full dataset, ignore this warning.
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model)
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -663,7 +662,7 @@ If you want each process to load the full dataset, ignore this warning.
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model)
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         # MODEL
         # copy model to each gpu
