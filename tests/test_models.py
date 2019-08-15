@@ -50,7 +50,7 @@ def test_optimizer_return_options():
     opts = (['fake_opt_a'], ['lr_scheduler'])
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0] and lr_sched[0] == 'lr_scheduler'
+    assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
 
 
 
