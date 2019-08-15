@@ -53,7 +53,7 @@ def test_single_gpu_batch_parse():
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
     batch = trainer.transfer_batch_to_gpu(batch, 0)
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
-    assert batch[1][1].device.index == 0 and batch[1][1].type() == 'torch.cuda.FloatTensor'
+    assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
 
     # tensor dict
     batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
