@@ -12,6 +12,7 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
+from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
@@ -532,12 +533,15 @@ If you want each process to load the full dataset, ignore this warning.
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                msg = """
-You requested %(nb_gpus)s GPUs but launched %(nb_tasks)s slurm tasks.
-We will launch %(nb_gpus)s processes for you.
-We recommend you let slurm manage the processes by setting: --ntasks-per-node=%(nb_gpus)s
-If you're not using SLURM, ignore this message!
-""" % {'nb_gpus': self.nb_requested_gpus, 'nb_tasks': self.nb_slurm_tasks}
+                nb_gpus = self.nb_requested_gpus
+                nb_tasks = self.nb_slurm_tasks
+                msg = f"""
+                You requested {nb_gpus}s GPUs but launched {nb_tasks}s slurm tasks.
+                We will launch {nb_gpus}s processes for you.
+                We recommend you let slurm manage the processes by setting:
+                --ntasks-per-node={nb_gpus}s
+                If you're not using SLURM, ignore this message!
+                """
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
@@ -558,9 +562,7 @@ If you're not using SLURM, ignore this message!
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers = model.configure_optimizers()
-            if len(self.optimizers) == 2 and type(self.optimizers[0]) is list:
-                self.optimizers, self.lr_schedulers = self.optimizers
+            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.__run_pretrain_routine(model)
 
@@ -568,12 +570,25 @@ If you're not using SLURM, ignore this message!
         # used for testing or when we need to know that training succeeded
         return 1
 
+    def init_optimizers(self, optimizers):
+
+        # single optimizer
+        if isinstance(optimizers, Optimizer):
+            return [optimizers], []
+
+        # two lists
+        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
+            optimizers, lr_schedulers = optimizers
+            return optimizers, lr_schedulers
+
+        # single list or tuple
+        elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
+            return optimizers, []
+
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -590,20 +605,18 @@ If you're not using SLURM, ignore this message!
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            m = """
-Amp level %r with DataParallel is not supported.
-See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-We recommend you switch to ddp if you want to use amp
-""" % self.amp_level
+            m = f"""
+            Amp level {self.amp_level} with DataParallel is not supported.
+            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
+            We recommend you switch to ddp if you want to use amp
+            """
             raise MisconfigurationException(m)
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
@@ -650,9 +663,7 @@ We recommend you switch to ddp if you want to use amp
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         # MODEL
         # copy model to each gpu

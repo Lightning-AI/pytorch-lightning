@@ -26,6 +26,37 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_optimizer_return_options():
+
+    trainer = Trainer()
+    model, hparams = get_model()
+
+    # single optimizer
+    opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
+    opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
+    optim, lr_sched = trainer.init_optimizers(opt_a)
+    assert len(optim) == 1 and len(lr_sched) == 0
+
+    # opt tuple
+    opts = (opt_a, opt_b)
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    assert len(lr_sched) == 0
+
+    # opt list
+    opts = [opt_a, opt_b]
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    assert len(lr_sched) == 0
+
+    # opt tuple of lists
+    opts = ([opt_a], ['lr_scheduler'])
+    optim, lr_sched = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1
+    assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
+
+
 def test_single_gpu_batch_parse():
     if not torch.cuda.is_available():
         warnings.warn('test_amp_gpu_ddp cannot run.'
