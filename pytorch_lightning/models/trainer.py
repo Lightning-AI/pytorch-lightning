@@ -12,6 +12,7 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
+from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
@@ -571,7 +572,7 @@ If you want each process to load the full dataset, ignore this warning.
     def init_optimizers(self, optimizers):
 
         # single optimizer
-        if not isinstance(optimizers, list):
+        if isinstance(optimizers, Optimizer):
             return [optimizers], []
 
         # two lists

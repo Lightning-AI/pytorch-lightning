@@ -30,25 +30,28 @@ np.random.seed(SEED)
 def test_optimizer_return_options():
 
     trainer = Trainer()
+    model, hparams = get_model()
 
     # single optimizer
-    optim, lr_sched = trainer.init_optimizers('fake_opt')
+    opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
+    opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
+    optim, lr_sched = trainer.init_optimizers(opt_a)
     assert len(optim) == 1 and len(lr_sched) == 0
 
     # opt tuple
-    opts = ('fake_opt_a', 'fake_opt_b')
+    opts = (opt_a, opt_b)
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
     assert len(lr_sched) == 0
 
     # opt list
-    opts = ['fake_opt_a', 'fake_opt_b']
+    opts = [opt_a, opt_b]
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
     assert len(lr_sched) == 0
 
     # opt tuple of lists
-    opts = (['fake_opt_a'], ['lr_scheduler'])
+    opts = ([opt_a], ['lr_scheduler'])
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1
     assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
