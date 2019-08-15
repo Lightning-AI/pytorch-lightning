@@ -571,6 +571,10 @@ If you want each process to load the full dataset, ignore this warning.
 
     def init_optimizers(self, optimizers):
 
+        # single optimizer
+        if not isinstance(optimizers, list):
+            return [optimizers], []
+
         # two lists
         if len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
@@ -579,10 +583,6 @@ If you want each process to load the full dataset, ignore this warning.
         # single list or tuple
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
-
-        # single optimizer case
-        else:
-            return [optimizers], []
 
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
