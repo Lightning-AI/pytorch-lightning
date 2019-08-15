@@ -578,11 +578,11 @@ If you want each process to load the full dataset, ignore this warning.
 
         # single list or tuple
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
-            return optimizers, None
+            return optimizers, []
 
         # single optimizer case
         else:
-            return [optimizers], None
+            return [optimizers], []
 
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
