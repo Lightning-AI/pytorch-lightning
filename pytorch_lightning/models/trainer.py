@@ -538,7 +538,7 @@ If you want each process to load the full dataset, ignore this warning.
                 msg = f"""
                 You requested {nb_gpus}s GPUs but launched {nb_tasks}s slurm tasks.
                 We will launch {nb_gpus}s processes for you.
-                We recommend you let slurm manage the processes by setting: 
+                We recommend you let slurm manage the processes by setting:
                 --ntasks-per-node={nb_gpus}s
                 If you're not using SLURM, ignore this message!
                 """
