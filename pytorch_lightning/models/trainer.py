@@ -573,7 +573,7 @@ If you want each process to load the full dataset, ignore this warning.
 
         # two lists
         if len(optimizers) == 2 and isinstance(optimizers[0], list):
-            optimizers, lr_schedulers = self.optimizers
+            optimizers, lr_schedulers = optimizers
             return optimizers, lr_schedulers
 
         # single list or tuple
