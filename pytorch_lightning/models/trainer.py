@@ -913,11 +913,14 @@ We recommend you switch to ddp if you want to use amp
         elif isinstance(batch, list):
             for i, x in enumerate(batch):
                 batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+            return batch
 
         # when dict
         elif isinstance(batch, dict):
             for k, v in batch.items():
                 batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
+
+            return batch
 
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
