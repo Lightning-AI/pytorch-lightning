@@ -325,7 +325,7 @@ class Trainer(TrainerIO):
     @property
     def __tng_tqdm_dic(self):
         tqdm_dic = {
-            'tng_loss': '{0:.3f}'.format(self.avg_loss),
+            'loss': '{0:.3f}'.format(self.avg_loss),
             'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
