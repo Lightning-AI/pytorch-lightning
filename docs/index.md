@@ -1,7 +1,6 @@
 ###### New project Quick Start    
-To start a new project you define two files, a LightningModule and a Trainer file.    
-
-Here's an example of how you would use Lightning for research.   
+To start a new project define two files, a LightningModule and a Trainer file.    
+To illustrate Lightning power and simplicity, here's an example of a typical research flow.    
 
 ###### Case 1: BERT    
 Let's say you're working on something like BERT but want to try different ways of training or even different networks.  
@@ -52,8 +51,10 @@ trainer = Trainer(gpus=[0, 1, 2, 3], use_amp=True)
 trainer.fit(model)
 ```
 
-Notice that without writing any GPU or 16-bit specific code, your models gain that capability by  
-using Lightning.    
+Notice a few things about this flow:   
+1. You're writing pure PyTorch... no unnecessary abstractions or new libraries to learn.   
+2. You get free GPU and 16-bit support without writing any of that code in your model.   
+3. You also get all of the capabilities below (without coding or testing yourself).     
 
 ---    
 ###### Templates 
