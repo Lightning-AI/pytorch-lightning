@@ -233,9 +233,9 @@ def validation_step(self, data_batch, batch_nb, dataloader_idx)
 **OPTIONAL**    
 If you don't need to validate you don't need to implement this method.    
 
-In this step you'd normally do the forward pass and calculate the loss for a batch. You can also do fancier things like multiple forward passes, calculate accuracy, or save example outputs (using self.experiment or whatever you want). Really, anything you want.       
+In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
 
-This is most likely the same as your training_step. But unlike training step, the outputs from here will go to validation_end for collation.
+The dict you return here will be available in the validation_end method. 
 
 **Params**   
 
@@ -249,7 +249,7 @@ This is most likely the same as your training_step. But unlike training step, th
 
 | Return  | description  | optional |
 |---|---|---|   
-|  dict | Dict of OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
+|  dict | Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
 
 **Example**
 
