@@ -263,6 +263,7 @@ def validation_step(self, data_batch, batch_nb):
     loss = self.loss(out, x)
     
     # log 6 example images
+    # or generated text... or whatever
     sample_imgs = x[:6]
     grid = torchvision.utils.make_grid(sample_imgs)
     self.experiment.add_image('example_images', grid, 0) 
