@@ -1,12 +1,62 @@
 ###### New project Quick Start    
 To start a new project you define two files, a LightningModule and a Trainer file.    
 
-A separate trainer file allows to run many LightningModules. Each LightningModule has the core
-logic to a particular research project.    
+Here's an example of how you would use Lightning for research.   
 
-For example, one lightningModule could be an image classifier, the other
-one could be a seq-2-seq model, both (optionally) ran by the same trainer file.
+###### Case 1: BERT    
+Let's say you're working on something like BERT but want to try different ways of training or even different networks.  
+You would define a single LightningModule and use flags to switch between your different ideas.   
+```python
+class BERT(pl.LightningModule):
+    def __init__(self, model_name, task):
+        self.task = task
+    
+        if model_name == 'transformer':
+            self.net = Transformer()
+        elif model_name == 'my_cool_version':
+            self.net = MyCoolVersion()
+            
+    def training_step(self, batch, batch_nb):
+        if self.task == 'standard_bert':
+            # do standard bert training with self.net...
+            # return loss
+            
+        if self.task == 'my_cool_task':
+            # do my own version with self.net
+            # return loss
+```   
 
+###### Case 2: COOLER NOT BERT    
+But if you wanted to try something **completely** different, you'd define a new module for that.    
+```python
+
+class CoolerNotBERT(pl.LightningModule):
+    def __init__(self):
+        self.net = ...
+        
+    def training_step(self, batch, batch_nb):
+        # do some other cool task
+        # return loss   
+```   
+
+###### Rapid research flow    
+Then you could do rapid research by switching between these two and using the same trainer.   
+```python
+
+if use_bert:
+    model = BERT()
+else:
+    model = CoolerNotBERT()
+    
+trainer = Trainer(gpus=[0, 1, 2, 3], use_amp=True)
+trainer.fit(model)
+```
+
+Notice that without writing any GPU or 16-bit specific code, your models gain that capability by  
+using Lightning.    
+
+---    
+###### Templates 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
     - [Basic CPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/single_cpu_template.py) 
