@@ -54,7 +54,10 @@ trainer = Trainer(track_grad_norm=2)
 
 ---
 #### Set how much of the training set to check
-If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
+
+train_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+
 ``` {.python}
 # DEFAULT
 trainer = Trainer(train_percent_check=1.0)
