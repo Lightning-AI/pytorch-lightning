@@ -23,6 +23,9 @@ trainer = Trainer(track_grad_norm=2)
 ---
 #### Make model overfit on subset of data
 A useful debugging trick is to make your model overfit a tiny fraction of the data.
+
+setting `overfit_pct > 0` will overwrite train_percent_check, val_percent_check, test_percent_check
+
 ``` {.python}
 # DEFAULT don't overfit (ie: normal training)
 trainer = Trainer(overfit_pct=0.0)
