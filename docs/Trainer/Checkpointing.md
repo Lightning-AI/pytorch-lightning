@@ -38,6 +38,7 @@ trainer.fit(model)
 ```
 
 The trainer restores:  
+
 - global_step    
 - current_epoch    
 - All optimizers    
