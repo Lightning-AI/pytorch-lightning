@@ -185,7 +185,8 @@ class ModelCheckpoint(Callback):
         self.period = period
         self.epochs_since_last_check = 0
         self.prefix = prefix
-        self.bestk = {} # {epoch: monitor}
+        self.bestk = {}
+        # {epoch: monitor}
         self.best = 0
 
         if mode not in ['auto', 'min', 'max']:
@@ -240,7 +241,7 @@ class ModelCheckpoint(Callback):
                     except OSError:
                         os.remove(path_to_delete)
 
-        # delegate the saving to the model
+        delegate the saving to the model
         self.save_function(filepath)
 
     def on_epoch_end(self, epoch, logs=None):
@@ -255,10 +256,12 @@ class ModelCheckpoint(Callback):
                     print('Can save best model only with %s available,'
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
-                    if (len(self.bestk.keys()) < self.save_top_k) or (self.monitor_op(current, self.bestk[self.kth])):
+                    if ((len(self.bestk.keys()) < self.save_top_k)
+                            or (self.monitor_op(current, self.bestk[self.kth]))):
                         if len(self.bestk.keys()) == self.save_top_k:
                             # need to pop the kth
-                            delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, self.kth + 1)
+                            delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
+                                self.filepath, self.prefix, self.kth + 1)
                             self.bestk.pop(self.kth)
                             self.del_model(delpath)
                         self.bestk[epoch] = current
