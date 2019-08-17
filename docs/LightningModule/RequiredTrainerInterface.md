@@ -385,7 +385,7 @@ def on_load_checkpoint(self, checkpoint):
 
 ``` {.python}
 @pl.data_loader
-def tng_dataloader(self)
+def val_dataloader(self)
 ```
 **OPTIONAL**    
 If you don't need a validation dataset and a validation_step, you don't need to implement this method.    
@@ -457,7 +457,7 @@ def test_dataloader(self):
 def update_tng_log_metrics(self, logs)
 ```
 Called by lightning right before it logs metrics for this batch.
-This is a chance to ammend or add to the metrics about to be logged.
+This is a chance to amend or add to the metrics about to be logged.
 
 ##### Return
 Dict 
