@@ -156,11 +156,11 @@ class ModelCheckpoint(Callback):
         filepath: string, path to save the model file.
         monitor: quantity to monitor.
         verbose: verbosity mode, 0 or 1.
-        save_best_only: if `save_best_only=True`,
-            the latest best model according to
-            the quantity monitored will not be overwritten.
+        save_top_k: if `save_top_k == k`,
+            the best k models according to
+            the quantity monitored will be saved.
         mode: one of {auto, min, max}.
-            If `save_best_only=True`, the decision
+            If `save_top_k > 0`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,

@@ -42,7 +42,7 @@ def main(hparams):
     model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
-        save_best_only=True,
+        save_top_k=1,
         verbose=True,
         monitor='val_acc',
         mode='min'

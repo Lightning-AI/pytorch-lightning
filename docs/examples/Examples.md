@@ -77,7 +77,7 @@ def main(hparams, cluster, results_dict):
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
         save_function=None,
-        save_best_only=True,
+        save_top_k=1,
         verbose=True,
         monitor=hparams.model_save_monitor_value,
         mode=hparams.model_save_monitor_mode
