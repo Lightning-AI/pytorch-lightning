@@ -256,8 +256,8 @@ class ModelCheckpoint(Callback):
                     print('Can save best model only with %s available,'
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
-                    if ((len(self.bestk.keys()) < self.save_top_k)
-                            or (self.monitor_op(current, self.bestk[self.kth]))):
+                    if ((len(self.bestk.keys()) < self.save_top_k) or
+                            (self.monitor_op(current, self.bestk[self.kth]))):
                         if len(self.bestk.keys()) == self.save_top_k:
                             # need to pop the kth
                             delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
