@@ -1,4 +1,4 @@
-i Lightning can automate saving and loading checkpoints.
+Lightning can automate saving and loading checkpoints.
 
 ---
 ### Model saving
