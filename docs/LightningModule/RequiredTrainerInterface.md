@@ -442,7 +442,7 @@ def test_dataloader(self):
 def update_tng_log_metrics(self, logs)
 ```
 Called by lightning right before it logs metrics for this batch.
-This is a chance to ammend or add to the metrics about to be logged.
+This is a chance to amend or add to the metrics about to be logged.
 
 ##### Return
 Dict 
