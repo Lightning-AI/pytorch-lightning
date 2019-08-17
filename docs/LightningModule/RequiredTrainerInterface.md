@@ -370,7 +370,7 @@ def on_load_checkpoint(self, checkpoint):
 
 ``` {.python}
 @pl.data_loader
-def tng_dataloader(self)
+def val_dataloader(self)
 ```
 **OPTIONAL**    
 If you don't need a validation dataset and a validation_step, you don't need to implement this method.    
