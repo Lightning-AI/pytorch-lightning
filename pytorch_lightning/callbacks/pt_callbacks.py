@@ -241,7 +241,7 @@ class ModelCheckpoint(Callback):
                     except OSError:
                         os.remove(path_to_delete)
 
-        delegate the saving to the model
+        # delegate the saving to the model
         self.save_function(filepath)
 
     def on_epoch_end(self, epoch, logs=None):
