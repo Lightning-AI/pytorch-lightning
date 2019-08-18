@@ -10,7 +10,7 @@ Current dtype
 
 ---
 #### experiment    
-An instance of test-tube Experiment which you can use to log anything for tensorboarX.   
+An instance of test-tube Experiment which you can use to log anything for tensorboardX.   
 ```{.python}
 self.experiment.add_embedding(...)   
 self.experiment.log({'val_loss': 0.9})   
