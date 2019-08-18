@@ -370,6 +370,7 @@ class Trainer(TrainerIO):
 
         # determine when to check validation
         self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
+        self.val_check_batch = max(1, self.val_check_batch)
 
     def __add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
