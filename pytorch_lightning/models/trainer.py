@@ -362,7 +362,6 @@ class Trainer(TrainerIO):
 
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
-        self.nb_val_batches = self.nb_val_batches
 
         # determine number of test batches
         self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
