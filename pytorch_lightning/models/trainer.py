@@ -1094,9 +1094,9 @@ If you want each process to load the full dataset, ignore this warning.
                 model = self.__get_model()
                 model.on_pre_performance_check()
 
-            # use full val set on end of epoch
+            # use val_percent_check set on end of epoch
             # use a small portion otherwise
-            max_batches = None if not self.fast_dev_run else 1
+            max_batches = self.nb_val_batches if not self.fast_dev_run else 1
             for ds_i, dataloader in enumerate(self.val_dataloader):
                 val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
                 self.__add_tqdm_metrics(val_out_metrics)
