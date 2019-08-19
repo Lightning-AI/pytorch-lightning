@@ -864,7 +864,7 @@ def test_gradient_accumulation_scheduling():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    schedule = {1:3, 3:6}  # according this schedule, first 2 epoches will be factor == 3, and next epoches is 6
+    schedule = {1:3, 3:6}  # according to this schedule, first 2 epochs will be factor == 3, and next epochs is 6
     accumulator = GradientAccumulationScheduler(schedule)
 
     trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=1)
