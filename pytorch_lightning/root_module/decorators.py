@@ -1,3 +1,21 @@
+from builtins import property as _property # Prevents recursive call.
+
+def property(fn):
+    # Warning: This shadows the usual property, so @property use
+    # below this definition is invalid unless the safe variant is needed.
+    """
+    Makes properties in subclasses of nn.Module (e.g. LightningModule)
+     return more informative AttributeError exceptions.
+    :param fn:
+    :return:
+    """
+    @_property
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except AttributeError as e:
+            raise RuntimeError('An AttributeError was encountered: ' + str(e)) from e
+    return wrapper
 
 def data_loader(fn):
     """
