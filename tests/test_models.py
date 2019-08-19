@@ -11,7 +11,7 @@ from test_tube import Experiment, SlurmCluster
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
@@ -26,6 +26,56 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+def test_model_checkpoint_options():
+    """
+    Test ModelCheckpoint options
+    :return:
+    """
+    def my_own_save_function(filepath):
+        open(filepath, 'a').close()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
+    # period=1 by default
+    w = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
+    w.save_function = my_own_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = os.listdir(save_dir)
+    
+    assert len(file_lists) == 10, "Should save 10 models when save_top_k=0"
+
+    clear_save_dir()
+
+    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1)
+    w.save_function = my_own_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = os.listdir(save_dir)
+    
+    assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
+
+    clear_save_dir()
+
+    w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
+    w.save_function = my_own_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = os.listdir(save_dir)
+    
+    assert len(file_lists) == 2, "Should save 2 model when save_top_k=2"
+
+    clear_save_dir()
+
+
 
 def test_early_stopping_cpu_model():
     """
