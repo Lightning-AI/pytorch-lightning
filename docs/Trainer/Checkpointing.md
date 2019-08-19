@@ -1,4 +1,4 @@
-i Lightning can automate saving and loading checkpoints.
+Lightning can automate saving and loading checkpoints.
 
 ---
 ### Model saving
@@ -38,6 +38,7 @@ trainer.fit(model)
 ```
 
 The trainer restores:  
+
 - global_step    
 - current_epoch    
 - All optimizers    

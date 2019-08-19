@@ -12,6 +12,7 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
+from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
@@ -71,7 +72,7 @@ class Trainer(TrainerIO):
                  train_percent_check=1.0,
                  val_percent_check=1.0,
                  test_percent_check=1.0,
-                 val_check_interval=0.95,
+                 val_check_interval=1.0,
                  log_save_interval=100,
                  add_log_row_interval=10,
                  distributed_backend='dp',
@@ -324,7 +325,7 @@ class Trainer(TrainerIO):
     @property
     def __tng_tqdm_dic(self):
         tqdm_dic = {
-            'tng_loss': '{0:.3f}'.format(self.avg_loss),
+            'loss': '{0:.3f}'.format(self.avg_loss),
             'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
@@ -361,7 +362,6 @@ class Trainer(TrainerIO):
 
         self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
         self.nb_val_batches = max(1, self.nb_val_batches)
-        self.nb_val_batches = self.nb_val_batches
 
         # determine number of test batches
         self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
@@ -369,6 +369,7 @@ class Trainer(TrainerIO):
 
         # determine when to check validation
         self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
+        self.val_check_batch = max(1, self.val_check_batch)
 
     def __add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
@@ -390,9 +391,8 @@ class Trainer(TrainerIO):
         elif self.single_gpu:
             # put inputs on gpu manually
             gpu_id = self.data_parallel_device_ids[0]
-            for i, x in enumerate(data_batch):
-                if isinstance(x, torch.Tensor):
-                    data_batch[i] = x.cuda(gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
+            args[0] = data_batch
 
             # do non dp, ddp step
             output = model.validation_step(*args)
@@ -533,12 +533,15 @@ If you want each process to load the full dataset, ignore this warning.
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                msg = """
-You requested %(nb_gpus)s GPUs but launched %(nb_tasks)s slurm tasks.
-We will launch %(nb_gpus)s processes for you.
-We recommend you let slurm manage the processes by setting: --ntasks-per-node=%(nb_gpus)s
-If you're not using SLURM, ignore this message!
-""" % {'nb_gpus': self.nb_requested_gpus, 'nb_tasks': self.nb_slurm_tasks}
+                nb_gpus = self.nb_requested_gpus
+                nb_tasks = self.nb_slurm_tasks
+                msg = f"""
+                You requested {nb_gpus}s GPUs but launched {nb_tasks}s slurm tasks.
+                We will launch {nb_gpus}s processes for you.
+                We recommend you let slurm manage the processes by setting:
+                --ntasks-per-node={nb_gpus}s
+                If you're not using SLURM, ignore this message!
+                """
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
@@ -559,9 +562,7 @@ If you're not using SLURM, ignore this message!
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers = model.configure_optimizers()
-            if len(self.optimizers) == 2:
-                self.optimizers, self.lr_schedulers = self.optimizers
+            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.__run_pretrain_routine(model)
 
@@ -569,12 +570,25 @@ If you're not using SLURM, ignore this message!
         # used for testing or when we need to know that training succeeded
         return 1
 
+    def init_optimizers(self, optimizers):
+
+        # single optimizer
+        if isinstance(optimizers, Optimizer):
+            return [optimizers], []
+
+        # two lists
+        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
+            optimizers, lr_schedulers = optimizers
+            return optimizers, lr_schedulers
+
+        # single list or tuple
+        elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
+            return optimizers, []
+
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -591,20 +605,18 @@ If you're not using SLURM, ignore this message!
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.data_parallel_device_ids[0])
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            m = """
-Amp level %r with DataParallel is not supported.
-See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-We recommend you switch to ddp if you want to use amp
-""" % self.amp_level
+            m = f"""
+            Amp level {self.amp_level} with DataParallel is not supported.
+            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
+            We recommend you switch to ddp if you want to use amp
+            """
             raise MisconfigurationException(m)
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
@@ -651,9 +663,7 @@ We recommend you switch to ddp if you want to use amp
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers = model.configure_optimizers()
-        if len(self.optimizers) == 2:
-            self.optimizers, self.lr_schedulers = self.optimizers
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         # MODEL
         # copy model to each gpu
@@ -905,6 +915,24 @@ We recommend you switch to ddp if you want to use amp
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
+    def transfer_batch_to_gpu(self, batch, gpu_id):
+        # base case
+        if isinstance(batch, torch.Tensor):
+            return batch.cuda(gpu_id)
+
+        # when list
+        elif isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+            return batch
+
+        # when dict
+        elif isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
+
+            return batch
+
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
@@ -926,9 +954,8 @@ We recommend you switch to ddp if you want to use amp
             output = self.model(*args)
         elif self.single_gpu:
             gpu_id = self.data_parallel_device_ids[0]
-            for i, x in enumerate(data_batch):
-                if isinstance(x, torch.Tensor):
-                    data_batch[i] = x.cuda(gpu_id)
+            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
+            args[0] = data_batch
             output = self.model.training_step(*args)
 
         else:
@@ -1067,9 +1094,9 @@ We recommend you switch to ddp if you want to use amp
                 model = self.__get_model()
                 model.on_pre_performance_check()
 
-            # use full val set on end of epoch
+            # use val_percent_check set on end of epoch
             # use a small portion otherwise
-            max_batches = None if not self.fast_dev_run else 1
+            max_batches = self.nb_val_batches if not self.fast_dev_run else 1
             for ds_i, dataloader in enumerate(self.val_dataloader):
                 val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
                 self.__add_tqdm_metrics(val_out_metrics)

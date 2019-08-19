@@ -10,17 +10,17 @@
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
-<!-- 
-removed until windows install issues resolved.
-[![Build status](https://ci.appveyor.com/api/projects/status/rum89d7hq8l1kfye?svg=true)](https://ci.appveyor.com/project/Borda/pytorch-lightning) -->
+[![Build status](https://ci.appveyor.com/api/projects/status/rum89d7hq8l1kfye?svg=true)](https://ci.appveyor.com/project/Borda/pytorch-lightning)
+[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
+
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
+[![Gitter](https://badges.gitter.im/PyTorch-Lightning/community.svg)](https://gitter.im/PyTorch-Lightning/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
 <!-- 
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
 [![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
 -->
-[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
-[![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
 
 </div>
 
@@ -39,7 +39,7 @@ Lightning is a very lightweight wrapper on PyTorch. This means you don't have to
 ## Why do I want to use lightning?
 When starting a new project the last thing you want to do is recode a training loop, multi-cluster training, 16-bit precision, early-stopping, model loading/saving, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
 
-With lightning, you guarantee those parts of your code work so you can focus on what the meat of the research: The data and the training/validation loop logic. 
+With lightning, you guarantee those parts of your code work so you can focus on the meat of the research: The data and the training/validation loop logic. 
 
 Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
 
@@ -53,7 +53,8 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
 - [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/CONTRIBUTING.md)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
-- [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)
+- [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)   
+- [Asking for help](https://github.com/williamFalcon/pytorch-lightning#asking-for-help)
 - [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
 
 ---   
@@ -103,7 +104,8 @@ class CoolSystem(pl.LightningModule):
 
     def configure_optimizers(self):
         # REQUIRED
-        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+        # can return multiple optimizers and learning_rate schedulers
+        return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
     def tng_dataloader(self):
@@ -358,8 +360,24 @@ python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 - [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
 - [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)     
 
+---    
+## Asking for help    
+Welcome to the Lightning community!   
+
+If you have any questions, feel free to:   
+1. [read the docs](https://williamfalcon.github.io/pytorch-lightning/).     
+2. [Search through the issues](https://github.com/williamFalcon/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
+3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
+
+If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
+
+To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)!     
+
 ---   
 ## FAQ    
+**How do I use Lightning for rapid research?**   
+[Here's a walk-through](https://williamfalcon.github.io/pytorch-lightning/)  
+
 **Why was Lightning created?**     
 Lightning has 3 goals in mind:
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.   
@@ -379,8 +397,19 @@ Nope.
 Nope. Please use anaconda or miniconda.    
 
 **Which PyTorch versions do you support?**    
-Lightning 0.4.2+ supports PyTorch 1.2.0.    
-For PyTorch 1.1.0 install Lightning 0.4.0 with test-tube=0.6.7.6.    
+##### PyTorch 1.1.0       
+```bash    
+# install pytorch 1.1.0 using the official instructions   
+
+# install test-tube 0.6.7.6 which supports 1.1.0   
+pip install test-tube==0.6.7.6   
+
+# install latest Lightning version without upgrading deps    
+pip install -U --no-deps pytorch-lightning
+```     
+
+##### PyTorch 1.2.0   
+Install via pip as normal   
 
 ## Bleeding edge
 If you can't wait for the next release, install the most up to date code with:  

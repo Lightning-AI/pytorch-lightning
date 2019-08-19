@@ -109,5 +109,5 @@ if __name__ == '__main__':
     # RUN TRAINING
     # ---------------------
     # run on HPC cluster
-    print('RUNNING INTERACTIVE MODE ON GPUS. gpu ids: %i' % hyperparams.gpus)
+    print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {hyperparams.gpus}')
     main(hyperparams)

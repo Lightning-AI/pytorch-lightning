@@ -45,9 +45,7 @@ install:
   # directly to master instead of just PR builds (or the converse).
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%path%
   - pip install -U --user pip
-  - pip install "https://download.pytorch.org/whl/cu90/torch-1.1.0-cp%PIP_PYVER%-cp%PIP_PYVER%m-win_amd%PYTHON_ARCH%.whl"
-    pip install "https://download.pytorch.org/whl/cu90/torchvision-0.3.0-cp%PIP_PYVER%-cp%PIP_PYVER%m-win_amd%PYTHON_ARCH%.whl"
-  - pip install -r requirements.txt
+  - pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
   - pip install -r ./tests/requirements.txt
 
 # scripts to run before tests (working directory and environment changes are persisted from the previous steps such as "before_build")

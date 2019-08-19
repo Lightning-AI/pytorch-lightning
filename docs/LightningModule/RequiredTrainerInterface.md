@@ -50,13 +50,13 @@ class CoolModel(pl.LightningModule):
         # REQUIRED
         x, y = batch
         y_hat = self.forward(x)
-        return {'loss': F.cross_entropy(y_hat, y)(y_hat, y)}
+        return {'loss': F.cross_entropy(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
         # OPTIONAL
         x, y = batch
         y_hat = self.forward(x)
-        return {'val_loss': F.cross_entropy(y_hat, y)(y_hat, y)}
+        return {'val_loss': F.cross_entropy(y_hat, y)}
 
     def validation_end(self, outputs):
         # OPTIONAL
@@ -189,8 +189,11 @@ Lightning will call .backward() and .step() on each one in every epoch.  If you 
 
 
 
-##### Return
-List or Tuple - List of optimizers with an optional second list of learning-rate schedulers
+##### Return    
+Return any of these 3 options:   
+Single optimizer   
+List or Tuple - List of optimizers    
+Two lists - The first list has multiple optimizers, the second a list of learning-rate schedulers
 
 **Example**
 
@@ -198,9 +201,15 @@ List or Tuple - List of optimizers with an optional second list of learning-rate
 # most cases
 def configure_optimizers(self):
     opt = Adam(self.parameters(), lr=0.01)
-    return [opt]
+    return opt
+
+# multiple optimizer case (eg: GAN)
+def configure_optimizers(self):
+    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+    return generator_opt, disriminator_opt
     
-# gan example, with scheduler for discriminator
+# example with learning_rate schedulers  
 def configure_optimizers(self):
     generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
     disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
@@ -224,9 +233,9 @@ def validation_step(self, data_batch, batch_nb, dataloader_idx)
 **OPTIONAL**    
 If you don't need to validate you don't need to implement this method.    
 
-In this step you'd normally do the forward pass and calculate the loss for a batch. You can also do fancier things like multiple forward passes, calculate accuracy, or save example outputs (using self.experiment or whatever you want). Really, anything you want.       
+In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
 
-This is most likely the same as your training_step. But unlike training step, the outputs from here will go to validation_end for collation.
+The dict you return here will be available in the validation_end method. 
 
 **Params**   
 
@@ -240,7 +249,7 @@ This is most likely the same as your training_step. But unlike training step, th
 
 | Return  | description  | optional |
 |---|---|---|   
-|  dict | Dict of OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
+|  dict | Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
 
 **Example**
 
@@ -252,6 +261,12 @@ def validation_step(self, data_batch, batch_nb):
     # implement your own
     out = self.forward(x)
     loss = self.loss(out, x)
+    
+    # log 6 example images
+    # or generated text... or whatever
+    sample_imgs = x[:6]
+    grid = torchvision.utils.make_grid(sample_imgs)
+    self.experiment.add_image('example_images', grid, 0) 
     
     # calculate acc
     labels_hat = torch.argmax(out, dim=1)
@@ -370,7 +385,7 @@ def on_load_checkpoint(self, checkpoint):
 
 ``` {.python}
 @pl.data_loader
-def tng_dataloader(self)
+def val_dataloader(self)
 ```
 **OPTIONAL**    
 If you don't need a validation dataset and a validation_step, you don't need to implement this method.    
@@ -442,7 +457,7 @@ def test_dataloader(self):
 def update_tng_log_metrics(self, logs)
 ```
 Called by lightning right before it logs metrics for this batch.
-This is a chance to ammend or add to the metrics about to be logged.
+This is a chance to amend or add to the metrics about to be logged.
 
 ##### Return
 Dict 

@@ -195,7 +195,7 @@ class LightningTestModel(LightningModule):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
         # test returning only 1 list instead of 2
-        return [optimizer]
+        return optimizer
 
     def __dataloader(self, train):
         # init data generators
