@@ -1,4 +1,7 @@
-#see https://github.com/codecov/support/wiki/Codecov-Yaml
+# see https://docs.codecov.io/docs/codecov-yaml
+# Validation check:
+# $ curl --data-binary @.codecov.yml https://codecov.io/validate
+
 codecov:
   notify:
     require_ci_to_pass: yes
@@ -40,5 +43,4 @@ comment:
   require_changes: false
   behavior: default  # update if exists else create new
   # branches: *
-
 
