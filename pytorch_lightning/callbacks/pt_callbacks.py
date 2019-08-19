@@ -254,6 +254,19 @@ class ModelCheckpoint(Callback):
                 self.save_model(filepath, overwrite=False)
 
 
+class GradientAccumulationScheduler(Callback):
+    """Change gradient accumulation factor according to scheduling.
+    # Arguments
+        scheduling: dict, scheduling in format {epoch: accumulation_factor}
+
+    """
+    def __init__(self, scheduling:dict):
+        self.scheduling = scheduling
+
+    def on_epoch_begin(self, epoch, trainer):
+        if self.scheduling.get(epoch) is not None:
+            trainer.accumulate_grad_batches = self.scheduling.get(epoch)
+
 if __name__ == '__main__':
     c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]

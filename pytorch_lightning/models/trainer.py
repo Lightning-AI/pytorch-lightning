@@ -55,6 +55,7 @@ class Trainer(TrainerIO):
                  experiment=None,
                  early_stop_callback=None,
                  checkpoint_callback=None,
+                 gradient_accumulation_scheduler_callback=None,
                  gradient_clip=0,
                  cluster=None,
                  process_position=0,
@@ -86,6 +87,7 @@ class Trainer(TrainerIO):
         :param experiment: Test-tube experiment
         :param early_stop_callback: from pytorch_lightning import EarlyStopping
         :param checkpoint_callback: from pytorch_lightning import Checkpoint
+        :param gradient_accumulation_scheduler_callback: from pytorch_lightning import GradientAccumulationScheduler
         :param gradient_clip:
         :param cluster:
         :param process_position:
@@ -137,6 +139,7 @@ class Trainer(TrainerIO):
             self.checkpoint_callback.save_function = self.save_checkpoint
 
         self.early_stop = early_stop_callback
+        self.gradient_accumulation_scheduler_callback = gradient_accumulation_scheduler_callback
         self.model = None
         self.max_nb_epochs = max_nb_epochs
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -799,6 +802,10 @@ If you want each process to load the full dataset, ignore this warning.
             if self.progress_bar:
                 self.prog_bar = tqdm.tqdm(range(self.total_batches),
                                           position=self.process_position)
+            
+            # changing gradient according gradient_accumulation_scheduler
+            if self.gradient_accumulation_scheduler_callback is not None:
+                self.gradient_accumulation_scheduler_callback.on_epoch_start(epoch_nb, self)
 
             # -----------------
             # RUN TNG EPOCH
