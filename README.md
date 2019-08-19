@@ -362,7 +362,16 @@ python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
 
 ---    
 ## Asking for help    
-Welcome to the Lightning community! To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)!
+Welcome to the Lightning community!   
+
+If you have any questions, feel free to:   
+1. read the docs.   
+2. Search through the issues.   
+3. Ask on stackoverflow with the tag pytorch-lightning.   
+
+If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
+
+To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)!     
 
 ---   
 ## FAQ    
