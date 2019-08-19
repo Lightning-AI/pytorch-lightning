@@ -72,7 +72,7 @@ class Trainer(TrainerIO):
                  train_percent_check=1.0,
                  val_percent_check=1.0,
                  test_percent_check=1.0,
-                 val_check_interval=0.95,
+                 val_check_interval=1.0,
                  log_save_interval=100,
                  add_log_row_interval=10,
                  distributed_backend='dp',
