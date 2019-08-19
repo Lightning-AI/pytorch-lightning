@@ -185,7 +185,7 @@ class ModelCheckpoint(Callback):
         self.period = period
         self.epochs_since_last_check = 0
         self.prefix = prefix
-        self.bestk = {}
+        self.best_k_models = {}
         # {epoch: monitor}
         self.best = 0
 
@@ -196,24 +196,24 @@ class ModelCheckpoint(Callback):
 
         if mode == 'min':
             self.monitor_op = np.less
-            self.kth = np.Inf
+            self.kth_value = np.Inf
             self.mode = 'min'
         elif mode == 'max':
             self.monitor_op = np.greater
-            self.kth = -np.Inf
+            self.kth_value = -np.Inf
             self.mode = 'max'
         else:
             if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
                 self.monitor_op = np.greater
-                self.kth = -np.Inf
+                self.kth_value = -np.Inf
                 self.mode = 'max'
             else:
                 self.monitor_op = np.less
-                self.kth = np.Inf
+                self.kth_value = np.Inf
                 self.mode = 'min'
 
     def del_model(self, filepath):
-        dirpath = '/'.join(filepath.split('/')[:-1])
+        dirpath = os.path.dirname(filepath)
 
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -227,7 +227,7 @@ class ModelCheckpoint(Callback):
                     os.remove(path_to_delete)
 
     def save_model(self, filepath, overwrite):
-        dirpath = '/'.join(filepath.split('/')[:-1])
+        dirpath = os.path.dirname(filepath)
 
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -244,6 +244,10 @@ class ModelCheckpoint(Callback):
         # delegate the saving to the model
         self.save_function(filepath)
 
+    def check_monitor_top_k(self, current):
+        return ((len(self.best_k_models.keys()) < self.save_top_k) or
+                (self.monitor_op(current, self.best_k_models[self.kth_value])))
+
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         self.epochs_since_last_check += 1
@@ -256,25 +260,24 @@ class ModelCheckpoint(Callback):
                     print('Can save best model only with %s available,'
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
-                    if ((len(self.bestk.keys()) < self.save_top_k) or
-                            (self.monitor_op(current, self.bestk[self.kth]))):
-                        if len(self.bestk.keys()) == self.save_top_k:
+                    if (self.check_monitor_top_k(current)):
+                        if len(self.best_k_models.keys()) == self.save_top_k:
                             # need to pop the kth
                             delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
-                                self.filepath, self.prefix, self.kth + 1)
-                            self.bestk.pop(self.kth)
+                                self.filepath, self.prefix, self.kth_value + 1)
+                            self.best_k_models.pop(self.kth_value)
                             self.del_model(delpath)
-                        self.bestk[epoch] = current
-                        if len(self.bestk.keys()) == self.save_top_k:
+                        self.best_k_models[epoch] = current
+                        if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
                             if self.mode == 'min':
-                                self.kth = max(self.bestk, key=self.bestk.get)
+                                self.kth_value = max(self.best_k_models, key=self.best_k_models.get)
                             else:
-                                self.kth = min(self.bestk, key=self.bestk.get)
+                                self.kth_value = min(self.best_k_models, key=self.best_k_models.get)
                         if self.mode == 'min':
-                            self.best = min(self.bestk.values())
+                            self.best = min(self.best_k_models.values())
                         else:
-                            self.best = max(self.bestk.values())
+                            self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
                             print('\nEpoch %05d: %s reached %s (best %s),'
                                   ' saving model to %s as top %d'
