@@ -11,7 +11,7 @@ from test_tube import Experiment, SlurmCluster
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, GradientAccumulationScheduler
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
@@ -856,6 +856,31 @@ def test_multiple_val_dataloader():
 
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+
+def test_gradient_accumulation_scheduling():
+    """
+    Check gradient accumulation scheduler
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    schedule = {1:3, 3:6}  # according this schedule, first 2 epoches will be factor == 3, and next epoches is 6
+    accumulator = GradientAccumulationScheduler(schedule)
+
+    trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=1)
+    result = trainer.fit(model)
+
+    assert trainer.accumulate_grad_batches == 3
+
+    trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=2)
+    result = trainer.fit(model)
+
+    assert trainer.accumulate_grad_batches == 3
+
+    trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=3)
+    result = trainer.fit(model)
+
+    assert trainer.accumulate_grad_batches == 6
 
 
 # ------------------------------------------------------------------------
