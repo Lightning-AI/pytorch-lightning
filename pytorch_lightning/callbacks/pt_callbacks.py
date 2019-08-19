@@ -212,7 +212,7 @@ class ModelCheckpoint(Callback):
                 self.kth_value = np.Inf
                 self.mode = 'min'
 
-    def del_model(self, filepath):
+    def _del_model(self, filepath):
         dirpath = os.path.dirname(filepath)
 
         # make paths
@@ -223,7 +223,7 @@ class ModelCheckpoint(Callback):
         except OSError:
             os.remove(filepath)
 
-    def save_model(self, filepath, overwrite):
+    def _save_model(self, filepath, overwrite):
         dirpath = os.path.dirname(filepath)
 
         # make paths
@@ -254,7 +254,7 @@ class ModelCheckpoint(Callback):
                             delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
                                 self.filepath, self.prefix, self.kth_value + 1)
                             self.best_k_models.pop(self.kth_value)
-                            self.del_model(delpath)
+                            self._del_model(delpath)
                         self.best_k_models[epoch] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
@@ -271,7 +271,7 @@ class ModelCheckpoint(Callback):
                                   ' saving model to %s as top %d'
                                   % (epoch + 1, self.monitor, current, self.best,
                                      filepath, self.save_top_k))
-                        self.save_model(filepath, overwrite=False)
+                        self._save_model(filepath, overwrite=False)
 
                     else:
                         if self.verbose > 0:
@@ -280,7 +280,7 @@ class ModelCheckpoint(Callback):
             else:
                 if self.verbose > 0:
                     print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
-                self.save_model(filepath, overwrite=False)
+                self._save_model(filepath, overwrite=False)
 
 
 if __name__ == '__main__':
