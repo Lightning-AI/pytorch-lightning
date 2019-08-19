@@ -158,7 +158,7 @@ class ModelCheckpoint(Callback):
         verbose: verbosity mode, 0 or 1.
         save_top_k: if `save_top_k == k`,
             the best k models according to
-            the quantity monitored will be saved.
+            the quantity monitored will be saved. if `save_top_k == 0`, the models are saved every `period` epochs.
         mode: one of {auto, min, max}.
             If `save_top_k > 0`, the decision
             to overwrite the current save file is made
