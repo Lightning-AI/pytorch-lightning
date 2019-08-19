@@ -495,7 +495,7 @@ If you want each process to load the full dataset, ignore this warning.
 """
             warnings.warn(msg)
 
-        if self.use_ddp and\
+        if self.use_ddp and self.val_dataloader is not None and\
                 not all(isinstance(dataloader, DistributedSampler)
                         for dataloader in self.val_dataloader):
             msg = """
