@@ -805,7 +805,7 @@ If you want each process to load the full dataset, ignore this warning.
             
             # changing gradient according gradient_accumulation_scheduler
             if self.gradient_accumulation_scheduler_callback is not None:
-                self.gradient_accumulation_scheduler_callback.on_epoch_start(epoch_nb, self)
+                self.gradient_accumulation_scheduler_callback.on_epoch_begin(epoch_nb, self)
 
             # -----------------
             # RUN TNG EPOCH
