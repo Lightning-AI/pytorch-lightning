@@ -921,8 +921,8 @@ If you want each process to load the full dataset, ignore this warning.
         if isinstance(batch, torch.Tensor):
             return batch.cuda(gpu_id)
 
-        # when list
-        elif isinstance(batch, list):
+        # when list/tuple
+        elif isinstance(batch, list) or isinstance(batch, tuple):
             for i, x in enumerate(batch):
                 batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
             return batch
@@ -933,6 +933,9 @@ If you want each process to load the full dataset, ignore this warning.
                 batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
 
             return batch
+
+        # nothing matches, return the value as is without transform
+        return batch
 
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
