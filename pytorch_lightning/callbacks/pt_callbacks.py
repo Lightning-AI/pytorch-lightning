@@ -260,13 +260,14 @@ class GradientAccumulationScheduler(Callback):
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
 
     """
-    def __init__(self, scheduling:dict):
+    def __init__(self, scheduling: dict):
         self.scheduling = scheduling
 
     def on_epoch_begin(self, epoch, trainer):
         epoch += 1  # indexing epochs from 1
         if self.scheduling.get(epoch) is not None:
             trainer.accumulate_grad_batches = self.scheduling.get(epoch)
+
 
 if __name__ == '__main__':
     c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)

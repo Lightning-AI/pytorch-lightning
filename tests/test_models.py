@@ -11,7 +11,11 @@ from test_tube import Experiment, SlurmCluster
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, GradientAccumulationScheduler
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    GradientAccumulationScheduler,
+)
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
@@ -863,8 +867,8 @@ def test_gradient_accumulation_scheduling():
     """
     hparams = get_hparams()
     model = LightningTestModel(hparams)
-
-    schedule = {1:3, 3:6}  # according to this schedule, first 2 epochs will be factor == 3, and next epochs is 6
+    # according to this schedule, first 2 epochs will be factor == 3, and next epochs is 6
+    schedule = {1: 3, 3: 6}
     accumulator = GradientAccumulationScheduler(schedule)
 
     trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=1)

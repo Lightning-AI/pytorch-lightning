@@ -87,7 +87,8 @@ class Trainer(TrainerIO):
         :param experiment: Test-tube experiment
         :param early_stop_callback: from pytorch_lightning import EarlyStopping
         :param checkpoint_callback: from pytorch_lightning import Checkpoint
-        :param gradient_accumulation_scheduler_callback: from pytorch_lightning import GradientAccumulationScheduler
+        :param gradient_accumulation_scheduler_callback:
+            from pytorch_lightning import GradientAccumulationScheduler
         :param gradient_clip:
         :param cluster:
         :param process_position:
@@ -802,7 +803,7 @@ If you want each process to load the full dataset, ignore this warning.
             if self.progress_bar:
                 self.prog_bar = tqdm.tqdm(range(self.total_batches),
                                           position=self.process_position)
-            
+
             # changing gradient according gradient_accumulation_scheduler
             if self.gradient_accumulation_scheduler_callback is not None:
                 self.gradient_accumulation_scheduler_callback.on_epoch_begin(epoch_nb, self)
