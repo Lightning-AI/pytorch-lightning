@@ -861,6 +861,7 @@ def test_multiple_val_dataloader():
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
 
+
 def test_gradient_accumulation_scheduling():
     """
     Check gradient accumulation scheduler
