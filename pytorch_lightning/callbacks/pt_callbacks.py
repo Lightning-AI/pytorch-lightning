@@ -158,7 +158,8 @@ class ModelCheckpoint(Callback):
         verbose: verbosity mode, 0 or 1.
         save_top_k: if `save_top_k == k`,
             the best k models according to
-            the quantity monitored will be saved. if `save_top_k == 0`, the models are saved every `period` epochs.
+            the quantity monitored will be saved.
+            if `save_top_k == 0`, the models are saved every `period` epochs.
         mode: one of {auto, min, max}.
             If `save_top_k > 0`, the decision
             to overwrite the current save file is made
@@ -305,7 +306,7 @@ if __name__ == '__main__':
         os.makedirs(save_dir, exist_ok=True)
 
         return save_dir
-    
+
     def clear_save_dir():
         root_dir = os.path.dirname(os.path.realpath(__file__))
         save_dir = os.path.join(root_dir, 'save_dir')
@@ -321,7 +322,7 @@ if __name__ == '__main__':
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 10, "Should save 10 models when save_top_k=0"
 
     clear_save_dir()
@@ -332,7 +333,7 @@ if __name__ == '__main__':
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
 
     clear_save_dir()
@@ -343,7 +344,7 @@ if __name__ == '__main__':
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 2, "Should save 2 model when save_top_k=2"
 
     clear_save_dir()

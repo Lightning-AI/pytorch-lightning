@@ -11,7 +11,7 @@ from test_tube import Experiment, SlurmCluster
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
@@ -48,7 +48,7 @@ def test_model_checkpoint_options():
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 10, "Should save 10 models when save_top_k=0"
 
     clear_save_dir()
@@ -59,7 +59,7 @@ def test_model_checkpoint_options():
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
 
     clear_save_dir()
@@ -70,7 +70,7 @@ def test_model_checkpoint_options():
         w.on_epoch_end(i, logs={'val_loss': loss})
 
     file_lists = os.listdir(save_dir)
-    
+
     assert len(file_lists) == 2, "Should save 2 model when save_top_k=2"
 
     clear_save_dir()
@@ -141,12 +141,12 @@ def test_single_gpu_batch_parse():
     assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
+
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
     :return:
     """
-
     stopping = EarlyStopping(monitor='val_loss')
     trainer_options = dict(
         early_stop_callback=stopping,
