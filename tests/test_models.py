@@ -92,6 +92,13 @@ def test_single_gpu_batch_parse():
     assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
+    # tuple of tensor list and list of tensor dict
+    batch = ([torch.rand(2, 3) for _ in range(2)], 
+             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
+    assert batch[1][0]['a'].device.index == 0 and batch[1][0]['a'].type() == 'torch.cuda.FloatTensor'
+    assert batch[1][0]['b'].device.index == 0 and batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
 
 def test_early_stopping_cpu_model():
     """
