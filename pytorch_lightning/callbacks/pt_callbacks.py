@@ -1,5 +1,6 @@
 import os
 import shutil
+import warnings
 
 import numpy as np
 
@@ -262,11 +263,16 @@ class GradientAccumulationScheduler(Callback):
     """
     def __init__(self, scheduling: dict):
         self.scheduling = scheduling
+        self.epochs = sorted(scheduling.keys())
+        if self.epochs[-1] < 1:
+            msg = f"Epochs indexing from 1, epoch {self.epochs[0]} cannot be interpreted correct"
+            raise IndexError(msg)
 
     def on_epoch_begin(self, epoch, trainer):
         epoch += 1  # indexing epochs from 1
-        if self.scheduling.get(epoch) is not None:
-            trainer.accumulate_grad_batches = self.scheduling.get(epoch)
+        for i in reversed(range(len(self.epochs))):
+            if epoch >= self.epochs[i]:
+                trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
 
 
 if __name__ == '__main__':
