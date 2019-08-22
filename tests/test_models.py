@@ -868,7 +868,7 @@ def test_gradient_accumulation_scheduling():
     """
     hparams = get_hparams()
     model = LightningTestModel(hparams)
-    # according to this schedule, first 2 epochs will be factor == 3, and next epochs is 6
+    # according to this schedule, first epoch will be factor 1, next two epochs is 3, and others 6
     schedule = {4: 6, 2: 3}  # shedule must works in any order
 
     trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=1)
