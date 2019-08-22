@@ -261,17 +261,23 @@ class GradientAccumulationScheduler(Callback):
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
     """
     def __init__(self, scheduling: dict):
-        self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
-        if self.epochs[-1] < 1:
+        if self.epochs[0] < 1:
             msg = f"Epochs indexing from 1, epoch {self.epochs[0]} cannot be interpreted correct"
             raise IndexError(msg)
+        if self.epochs[0] != 1:  # if user didnt define first epoch accumulation factor
+            scheduling.update({1: 1})
+
+        self.scheduling = scheduling
+
 
     def on_epoch_begin(self, epoch, trainer):
         epoch += 1  # indexing epochs from 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
+                break
+        
 
 
 if __name__ == '__main__':
