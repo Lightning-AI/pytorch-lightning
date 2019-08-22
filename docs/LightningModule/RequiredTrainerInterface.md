@@ -80,7 +80,7 @@ class CoolModel(pl.LightningModule):
     @pl.data_loader
     def test_dataloader(self):
         # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 ---   
 ### How do these methods fit into the broader training?     
