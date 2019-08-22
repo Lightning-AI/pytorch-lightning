@@ -807,8 +807,7 @@ If you want each process to load the full dataset, ignore this warning.
                                           position=self.process_position)
 
             # changing gradient according accumulation_scheduler
-            if self.accumulation_scheduler is not None:
-                self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
+            self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
 
             # -----------------
             # RUN TNG EPOCH

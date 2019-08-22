@@ -261,15 +261,15 @@ class GradientAccumulationScheduler(Callback):
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
     """
     def __init__(self, scheduling: dict):
-        self.epochs = sorted(scheduling.keys())
-        if self.epochs[0] < 1:
-            msg = f"Epochs indexing from 1, epoch {self.epochs[0]} cannot be interpreted correct"
+        minimal_epoch = min(scheduling.keys())
+        if minimal_epoch < 1:
+            msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
-        if self.epochs[0] != 1:  # if user didnt define first epoch accumulation factor
+        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 
         self.scheduling = scheduling
-
+        self.epochs = sorted(scheduling.keys())
 
     def on_epoch_begin(self, epoch, trainer):
         epoch += 1  # indexing epochs from 1
