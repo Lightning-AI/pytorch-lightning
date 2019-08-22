@@ -871,17 +871,17 @@ def test_gradient_accumulation_scheduling():
     # according to this schedule, first 2 epochs will be factor == 3, and next epochs is 6
     schedule = {1: 3, 3: 6}
 
-    trainer = Trainer(gradient_accumulation_scheduler_callback=schedule, max_nb_epochs=1)
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=1)
     result = trainer.fit(model)
 
     assert trainer.accumulate_grad_batches == 3
 
-    trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=2)
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
     result = trainer.fit(model)
 
     assert trainer.accumulate_grad_batches == 3
 
-    trainer = Trainer(gradient_accumulation_scheduler_callback=accumulator, max_nb_epochs=3)
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=3)
     result = trainer.fit(model)
 
     assert trainer.accumulate_grad_batches == 6
