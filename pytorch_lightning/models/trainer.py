@@ -140,11 +140,11 @@ class Trainer(TrainerIO):
         self.early_stop = early_stop_callback
         self.model = None
         self.max_nb_epochs = max_nb_epochs
+        self.accumulate_grad_batches = accumulate_grad_batches
         if isinstance(accumulate_grad_batches, dict):
-            self.accumulation_scheduler = GradientAccumulationScheduler(accumulated_gradients)
+            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         else:
             self.accumulation_scheduler = None
-        self.accumulate_grad_batches = accumulate_grad_batches
         self.early_stop_callback = early_stop_callback
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
