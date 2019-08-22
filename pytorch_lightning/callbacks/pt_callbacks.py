@@ -259,7 +259,6 @@ class GradientAccumulationScheduler(Callback):
     """Change gradient accumulation factor according to scheduling.
     # Arguments
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
-
     """
     def __init__(self, scheduling: dict):
         self.scheduling = scheduling
