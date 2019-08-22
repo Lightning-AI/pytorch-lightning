@@ -270,19 +270,19 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s reached %s (best %s),'
-                                  ' saving model to %s as top %d'
-                                  % (epoch + 1, self.monitor, current, self.best,
-                                     filepath, self.save_top_k))
+                            print(f"\nEpoch {epoch + 1:05d}: {self.monitor} reached",
+                                  f" {current} (best {self.best}), saving model to",
+                                  f" {filepath} as top {self.save_top_k}")
                         self._save_model(filepath, overwrite=False)
 
                     else:
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s was not in top %d' %
-                                  (epoch + 1, self.monitor, self.save_top_k))
+                            print(f"\nEpoch {epoch + 1:05d}: {self.monitor}",
+                                  f" was not in top {self.save_top_k}")
+
             else:
                 if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                    print(f"\nEpoch {epoch + 1:05d}: saving model to {filepath}")
                 self._save_model(filepath, overwrite=False)
 
 
