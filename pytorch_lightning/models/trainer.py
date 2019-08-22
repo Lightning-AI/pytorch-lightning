@@ -145,7 +145,7 @@ class Trainer(TrainerIO):
         elif isinstance(accumulate_grad_batches, int):
             self.accumulation_scheduler = GradientAccumulationScheduler({1: accumulate_grad_batches})
         else:
-            raise TypeError("Gradient accumulation supports only int and dict type")
+            raise TypeError("Gradient accumulation supports only int and dict types")
         self.early_stop_callback = early_stop_callback
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
