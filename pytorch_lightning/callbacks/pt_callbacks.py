@@ -234,8 +234,10 @@ class ModelCheckpoint(Callback):
         self.save_function(filepath)
 
     def check_monitor_top_k(self, current):
-        return ((len(self.best_k_models.keys()) < self.save_top_k) or
-                (self.monitor_op(current, self.best_k_models[self.kth_value])))
+        less_than_k_models = len(self.best_k_models.keys()) < self.save_top_k
+        if less_than_k_models:
+            return True
+        return self.monitor_op(current, self.best_k_models[self.kth_value])
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -249,7 +251,7 @@ class ModelCheckpoint(Callback):
                     print('Can save best model only with %s available,'
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
-                    if (self.check_monitor_top_k(current)):
+                    if self.check_monitor_top_k(current):
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # need to pop the kth
                             delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
@@ -292,59 +294,3 @@ if __name__ == '__main__':
         print(loss)
         if should_stop:
             break
-
-    def my_own_save_function(filepath):
-        open(filepath, 'a').close()
-
-    def init_save_dir():
-        root_dir = os.path.dirname(os.path.realpath(__file__))
-        save_dir = os.path.join(root_dir, 'save_dir')
-
-        if os.path.exists(save_dir):
-            shutil.rmtree(save_dir)
-
-        os.makedirs(save_dir, exist_ok=True)
-
-        return save_dir
-
-    def clear_save_dir():
-        root_dir = os.path.dirname(os.path.realpath(__file__))
-        save_dir = os.path.join(root_dir, 'save_dir')
-        if os.path.exists(save_dir):
-            shutil.rmtree(save_dir)
-
-    save_dir = init_save_dir()
-    print(save_dir)
-
-    w = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
-    w.save_function = my_own_save_function
-    for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
-
-    file_lists = os.listdir(save_dir)
-
-    assert len(file_lists) == 10, "Should save 10 models when save_top_k=0"
-
-    clear_save_dir()
-
-    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1)
-    w.save_function = my_own_save_function
-    for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
-
-    file_lists = os.listdir(save_dir)
-
-    assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-
-    clear_save_dir()
-
-    w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
-    w.save_function = my_own_save_function
-    for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
-
-    file_lists = os.listdir(save_dir)
-
-    assert len(file_lists) == 2, "Should save 2 model when save_top_k=2"
-
-    clear_save_dir()
