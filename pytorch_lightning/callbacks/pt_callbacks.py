@@ -277,7 +277,6 @@ class GradientAccumulationScheduler(Callback):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
                 break
-        
 
 
 if __name__ == '__main__':

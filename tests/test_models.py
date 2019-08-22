@@ -888,8 +888,9 @@ def test_gradient_accumulation_scheduling():
     assert trainer.accumulate_grad_batches == 6
 
     with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0:3, 1:4, 4:6})
-        assert Trainer(accumulate_grad_batches={-2:3})
+        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-2: 3})
+
 
 # ------------------------------------------------------------------------
 # UTILS
