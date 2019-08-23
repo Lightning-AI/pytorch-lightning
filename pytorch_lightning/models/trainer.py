@@ -1029,7 +1029,7 @@ If you want each process to load the full dataset, ignore this warning.
                 return -1
 
         if self.show_progress_bar:
-            self.prog_bar.update(1)
+            self.progress_bar.update(1)
 
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
