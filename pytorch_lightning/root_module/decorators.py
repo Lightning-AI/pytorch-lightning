@@ -1,3 +1,5 @@
+import traceback
+
 
 def data_loader(fn):
     """
@@ -17,6 +19,7 @@ def data_loader(fn):
                 value = fn(self)  # Lazy evaluation, done only once.
             except AttributeError as e:
                 # Guard against AttributeError suppression. (Issue #142)
+                traceback.print_exc()
                 raise RuntimeError(f'{fn.__name__}: An AttributeError was encountered: ' + str(e)) from e
             setattr(self, attr_name, value)  # Memoize evaluation.
         return value
