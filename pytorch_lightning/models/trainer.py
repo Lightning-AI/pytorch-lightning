@@ -225,11 +225,9 @@ class Trainer(TrainerIO):
         self.current_epoch = 0
         self.total_batches = 0
 
-        # progress bar init
+        # can't init progress bar here because starting a new process
+        # means the prog_bar won't survive pickling
         self.show_progress_bar = show_progress_bar
-        if self.show_progress_bar:
-            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
-
 
         # logging
         self.log_save_interval = log_save_interval
@@ -772,6 +770,10 @@ If you want each process to load the full dataset, ignore this warning.
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
+
+        # progress bar init
+        if self.show_progress_bar:
+            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
         # run tiny validation (if validation defined) to make sure program won't crash during val
         ref_model.on_sanity_check_start()
