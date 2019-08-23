@@ -161,11 +161,6 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = 0
         self.nb_test_batches = 0
 
-        # progress bar init
-        self.show_progress_bar = show_progress_bar
-        if self.show_progress_bar:
-            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
-
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
@@ -229,6 +224,12 @@ class Trainer(TrainerIO):
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
+
+        # progress bar init
+        self.show_progress_bar = show_progress_bar
+        if self.show_progress_bar:
+            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
+
 
         # logging
         self.log_save_interval = log_save_interval
