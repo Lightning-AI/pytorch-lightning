@@ -159,9 +159,9 @@ class Trainer(TrainerIO):
         self.avg_loss = 0
         self.batch_nb = 0
         self.tqdm_metrics = {}
-        self.nb_val_batches = None
-        self.nb_tng_batches = None
-        self.nb_test_batches = None
+        self.nb_val_batches = 0
+        self.nb_tng_batches = 0
+        self.nb_test_batches = 0
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -356,12 +356,10 @@ class Trainer(TrainerIO):
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
-        self.nb_val_batches = 0
         if self.val_dataloader is not None:
             self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
-
-        self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
-        self.nb_val_batches = max(1, self.nb_val_batches)
+            self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
+            self.nb_val_batches = max(1, self.nb_val_batches)
 
         # determine number of test batches
         self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
@@ -428,8 +426,8 @@ class Trainer(TrainerIO):
             if data_batch is None:  # pragma: no cover
                 continue
 
-            # stop short when on fast dev run
-            if max_batches is not None and batch_i >= max_batches:
+            # stop short when on fast_dev_run (sets max_batch=1)
+            if batch_i >= max_batches:
                 break
 
             # -----------------
