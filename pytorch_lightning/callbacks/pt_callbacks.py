@@ -159,9 +159,11 @@ class ModelCheckpoint(Callback):
         save_top_k: if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
-            if `save_top_k == 0`, the models are saved every `period` epochs.
+            if `save_top_k == 0`, no models are saved.
+            if `save_top_k == -1`, all models are saved.
+            Please note that the monitors are checked every `period` epochs.
         mode: one of {auto, min, max}.
-            If `save_top_k > 0`, the decision
+            If `save_top_k != 0`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,
@@ -242,12 +244,15 @@ class ModelCheckpoint(Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         self.epochs_since_last_check += 1
-        
+
+        if self.save_top_k == 0:
+            # no models are saved
+            return
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
             filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch + 1}.ckpt'
 
-            if self.save_top_k:
+            if self.save_top_k != -1:
                 current = logs.get(self.monitor)
 
                 if current is None:
@@ -261,7 +266,7 @@ class ModelCheckpoint(Callback):
                             delpath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{self.kth_value + 1}.ckpt'
                             self.best_k_models.pop(self.kth_value)
                             self._del_model(delpath)
-                            
+
                         self.best_k_models[epoch] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
@@ -276,14 +281,14 @@ class ModelCheckpoint(Callback):
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
                             print(f'\nEpoch {epoch + 1:05d}: {self.monitor} reached',
-                                  f' {current} (best {self.best}), saving model to',
-                                  f' {filepath} as top {self.save_top_k}')
+                                  f'{current} (best {self.best}), saving model to',
+                                  f'{filepath} as top {self.save_top_k}')
                         self._save_model(filepath, overwrite=False)
 
                     else:
                         if self.verbose > 0:
                             print(f'\nEpoch {epoch + 1:05d}: {self.monitor}',
-                                  f' was not in top {self.save_top_k}')
+                                  f'was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
