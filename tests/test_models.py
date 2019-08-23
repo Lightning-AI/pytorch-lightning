@@ -38,10 +38,29 @@ def test_model_checkpoint_options():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
+    # simulated losses
     save_dir = init_save_dir()
+    losses = [10, 9, 2.8, 5, 2.5]
 
-    losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
-    # period=1 by default
+    # -----------------
+    # CASE K=-1  (all)
+    w = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
+    w.save_function = my_own_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
+
+    # verify correct naming
+    for i in range(0, len(losses)):
+        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
+
+    clear_save_dir()
+
+    # -----------------
+    # CASE K=0 (none)
     w = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
     w.save_function = my_own_save_function
     for i, loss in enumerate(losses):
@@ -49,29 +68,40 @@ def test_model_checkpoint_options():
 
     file_lists = os.listdir(save_dir)
 
-    assert len(file_lists) == 10, "Should save 10 models when save_top_k=0"
+    assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
     clear_save_dir()
 
-    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1)
+    # -----------------
+    # CASE K=1 (2.5, epoch 4)
+    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
     w.save_function = my_own_save_function
     for i, loss in enumerate(losses):
         w.on_epoch_end(i, logs={'val_loss': loss})
 
-    file_lists = os.listdir(save_dir)
+    file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
+    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
 
     clear_save_dir()
+
+    # -----------------
+    # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
+    # make sure other files don't get deleted
+    open(f'{save_dir}/other_file.ckpt', 'a').close()
 
     w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
     w.save_function = my_own_save_function
     for i, loss in enumerate(losses):
         w.on_epoch_end(i, logs={'val_loss': loss})
 
-    file_lists = os.listdir(save_dir)
+    file_lists = set(os.listdir(save_dir))
 
-    assert len(file_lists) == 2, "Should save 2 model when save_top_k=2"
+    assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
+    assert '_ckpt_epoch_4.ckpt' in file_lists
+    assert '_ckpt_epoch_2.ckpt' in file_lists
+    assert 'other_file.ckpt' in file_lists
 
     clear_save_dir()
 
