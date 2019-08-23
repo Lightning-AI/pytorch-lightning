@@ -6,7 +6,10 @@ def data_loader(fn):
     :return:
     """
 
-    attr_name = '_lazy_' + fn.__name__
+    try:
+        attr_name = '_lazy_' + fn.__name__
+    except Exception as e:
+        print(e)
 
     @property
     def _data_loader(self):
