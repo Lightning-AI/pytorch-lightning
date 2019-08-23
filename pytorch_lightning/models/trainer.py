@@ -466,23 +466,9 @@ class Trainer(TrainerIO):
         :return:
         """
 
-        try:
-            self.tng_dataloader = model.tng_dataloader
-        except Exception as e:
-            print(e)
-            raise e
-
-        try:
-            self.test_dataloader = model.test_dataloader
-        except Exception as e:
-            print(e)
-            raise e
-
-        try:
-            self.val_dataloader = model.val_dataloader
-        except Exception as e:
-            print(e)
-            raise e
+        self.tng_dataloader = model.tng_dataloader
+        self.test_dataloader = model.test_dataloader
+        self.val_dataloader = model.val_dataloader
 
         # handle returning an actual dataloader instead of a list of loaders
         have_val_loaders = self.val_dataloader is not None

@@ -1,3 +1,5 @@
+import functools
+
 
 def data_loader(fn):
     """
@@ -6,17 +8,13 @@ def data_loader(fn):
     :return:
     """
 
-    try:
-        attr_name = '_lazy_' + fn.__name__
-    except Exception as e:
-        print(e)
+    attr_name = '_lazy_' + fn.__name__
 
     @property
+    @functools.wraps(fn)
     def _data_loader(self):
-        # lazy init
         if not hasattr(self, attr_name):
             setattr(self, attr_name, fn(self))
-
-        # real attr
         return getattr(self, attr_name)
+
     return _data_loader
