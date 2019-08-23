@@ -14,14 +14,15 @@ def data_loader(fn):
         try:
             if not hasattr(self, attr_name):
                 setattr(self, attr_name, fn(self))
-        except Exception as e:
+        except AttributeError as e:
+            print(e)
             raise e
 
         # return already init value
         try:
             attr = getattr(self, attr_name)
             return attr
-        except Exception as e:
+        except AttributeError as e:
             raise e
 
     return _data_loader
