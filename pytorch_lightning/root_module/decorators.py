@@ -10,15 +10,19 @@ def data_loader(fn):
 
     @property
     def _data_loader(self):
+
+        # lazy init
         try:
-            value = getattr(self, attr_name)
-        except AttributeError:
-            try:
-                value = fn(self)  # Lazy evaluation, done only once.
-            except AttributeError as e:
-                # Guard against AttributeError suppression. (Issue #142)
-                raise RuntimeError('An AttributeError was encountered: ' + str(e)) from e
-            setattr(self, attr_name, value)  # Memoize evaluation.
-        return value
+            if not hasattr(self, attr_name):
+                setattr(self, attr_name, fn(self))
+        except Exception as e:
+            raise e
+
+        # return already init value
+        try:
+            attr = getattr(self, attr_name)
+            return attr
+        except Exception as e:
+            raise e
 
     return _data_loader
