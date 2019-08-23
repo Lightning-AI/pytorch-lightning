@@ -14,18 +14,9 @@ def data_loader(fn):
     @property
     def _data_loader(self):
         # lazy init
-        try:
-            if not hasattr(self, attr_name):
-                setattr(self, attr_name, fn(self))
-        except AttributeError as e:
-            print(e)
-            raise e
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
 
-        # return already init value
-        try:
-            attr = getattr(self, attr_name)
-            return attr
-        except AttributeError as e:
-            raise e
-
+        # real attr
+        return getattr(self, attr_name)
     return _data_loader
