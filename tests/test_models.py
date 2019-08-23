@@ -118,7 +118,7 @@ def test_early_stopping_cpu_model():
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         train_percent_check=0.1,
         val_percent_check=0.1
@@ -265,7 +265,7 @@ def test_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0],
         distributed_backend='dp',
@@ -361,7 +361,7 @@ def test_amp_gpu_ddp():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
@@ -581,7 +581,7 @@ def test_amp_gpu_ddp_slurm_managed():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
@@ -646,7 +646,7 @@ def test_cpu_model_with_amp():
     """
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -667,7 +667,7 @@ def test_cpu_model():
     """
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -690,7 +690,7 @@ def test_all_features_cpu_model():
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         accumulate_grad_batches=2,
         max_nb_epochs=1,
@@ -714,7 +714,7 @@ def test_single_gpu_model():
     model, hparams = get_model()
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -739,7 +739,7 @@ def test_multi_gpu_model_dp():
         return
     model, hparams = get_model()
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -793,7 +793,7 @@ def test_multi_gpu_model_ddp():
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     model, hparams = get_model()
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -826,7 +826,7 @@ def test_ddp_sampler_error():
 
     trainer = Trainer(
         experiment=exp,
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',

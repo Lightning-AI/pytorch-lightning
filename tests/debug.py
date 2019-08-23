@@ -150,7 +150,7 @@ def main():
     trainer = Trainer(
         experiment=exp,
         checkpoint_callback=checkpoint,
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='dp',
