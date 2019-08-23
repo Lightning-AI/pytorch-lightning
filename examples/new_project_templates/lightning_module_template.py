@@ -183,27 +183,30 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def __dataloader(self, train):
-        # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+        try:
+            # init data generators
+            transform = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize((0.5,), (1.0,))])
+            dataset = MNIST(root=self.hparams.data_root, train=train,
+                            transform=transform, download=True)
 
-        # when using multi-node (ddp) we need to add the datasampler
-        train_sampler = None
-        batch_size = self.hparams.batch_size
+            # when using multi-node (ddp) we need to add the datasampler
+            train_sampler = None
+            batch_size = self.hparams.batch_size
 
-        if self.trainer.use_ddp:
-            train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-            batch_size = batch_size // self.trainer.world_size  # scale batch size
+            if self.trainer.use_ddp:
+                train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
+                batch_size = batch_size // self.trainer.world_size  # scale batch size
 
-        should_shuffle = train_sampler is None
-        loader = DataLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler
-        )
+            should_shuffle = train_sampler is None
+            loader = DataLoader(
+                dataset=dataset,
+                batch_size=batch_size,
+                shuffle=should_shuffle,
+                sampler=train_sampler
+            )
+        except Exception as e:
+            print(e)
 
         return loader
 
