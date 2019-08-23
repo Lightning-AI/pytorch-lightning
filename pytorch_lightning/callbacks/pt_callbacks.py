@@ -162,6 +162,7 @@ class ModelCheckpoint(Callback):
             if `save_top_k == 0`, no models are saved.
             if `save_top_k == -1`, all models are saved.
             Please note that the monitors are checked every `period` epochs.
+            if `save_top_k >= 2` and the callback is called multiple times inside an epoch, the name of the saved file will be appended with a version count starting with `v0`.
         mode: one of {auto, min, max}.
             If `save_top_k != 0`, the decision
             to overwrite the current save file is made
@@ -191,7 +192,8 @@ class ModelCheckpoint(Callback):
         self.epochs_since_last_check = 0
         self.prefix = prefix
         self.best_k_models = {}
-        # {epoch: monitor}
+        # {filename: monitor}
+        self.kth_model = ''
         self.best = 0
 
         if mode not in ['auto', 'min', 'max']:
@@ -228,7 +230,7 @@ class ModelCheckpoint(Callback):
         except OSError:
             os.remove(filepath)
 
-    def _save_model(self, filepath, overwrite):
+    def _save_model(self, filepath):
         dirpath = os.path.dirname(filepath)
 
         # make paths
@@ -241,7 +243,7 @@ class ModelCheckpoint(Callback):
         less_than_k_models = len(self.best_k_models.keys()) < self.save_top_k
         if less_than_k_models:
             return True
-        return self.monitor_op(current, self.best_k_models[self.kth_value])
+        return self.monitor_op(current, self.best_k_models[self.kth_model])
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -253,6 +255,13 @@ class ModelCheckpoint(Callback):
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
             filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch}.ckpt'
+            version_cnt = 0
+            while os.path.isfile(filepath):
+                # this epoch called before
+                filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch}_v{version_cnt}.ckpt'
+                version_cnt += 1
+
+            print(filepath)
 
             if self.save_top_k != -1:
                 current = logs.get(self.monitor)
@@ -263,19 +272,20 @@ class ModelCheckpoint(Callback):
                 else:
                     if self.check_monitor_top_k(current):
 
-                        # nremove kth
+                        # remove kth
                         if len(self.best_k_models.keys()) == self.save_top_k:
-                            delpath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{self.kth_value}.ckpt'
-                            self.best_k_models.pop(self.kth_value)
+                            delpath = self.kth_model
+                            self.best_k_models.pop(self.kth_model)
                             self._del_model(delpath)
 
-                        self.best_k_models[epoch] = current
+                        self.best_k_models[filepath] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
                             if self.mode == 'min':
-                                self.kth_value = max(self.best_k_models, key=self.best_k_models.get)
+                                self.kth_model = max(self.best_k_models, key=self.best_k_models.get)
                             else:
-                                self.kth_value = min(self.best_k_models, key=self.best_k_models.get)
+                                self.kth_model = min(self.best_k_models, key=self.best_k_models.get)
+                            self.kth_value = self.best_k_models[self.kth_model]
 
                         if self.mode == 'min':
                             self.best = min(self.best_k_models.values())
@@ -285,7 +295,7 @@ class ModelCheckpoint(Callback):
                             print(f'\nEpoch {epoch:05d}: {self.monitor} reached',
                                   f'{current} (best {self.best}), saving model to',
                                   f'{filepath} as top {self.save_top_k}')
-                        self._save_model(filepath, overwrite=False)
+                        self._save_model(filepath)
 
                     else:
                         if self.verbose > 0:
@@ -295,4 +305,4 @@ class ModelCheckpoint(Callback):
             else:
                 if self.verbose > 0:
                     print(f'\nEpoch {epoch:05d}: saving model to {filepath}')
-                self._save_model(filepath, overwrite=False)
+                self._save_model(filepath)

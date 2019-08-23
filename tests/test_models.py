@@ -105,6 +105,43 @@ def test_model_checkpoint_options():
 
     clear_save_dir()
 
+    # -----------------
+    # CASE K=4 (save all 4 models)
+    # multiple checkpoints within same epoch
+
+    w = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
+    w.save_function = my_own_save_function
+    for loss in losses:
+        print(loss)
+        w.on_epoch_end(0, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
+
+    clear_save_dir()
+
+    # -----------------
+    # CASE K=3 (save the 2nd, 3rd, 4th model)
+    # multiple checkpoints within same epoch
+
+    w = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
+    w.save_function = my_own_save_function
+    for loss in losses:
+        print(loss)
+        w.on_epoch_end(0, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
+    assert '_ckpt_epoch_0_v2.ckpt' in file_lists
+    assert '_ckpt_epoch_0_v1.ckpt' in file_lists
+    assert '_ckpt_epoch_0.ckpt' in file_lists
+
+    print(file_lists)
+
+    clear_save_dir()
+
 
 def test_optimizer_return_options():
 
