@@ -55,7 +55,7 @@ def test_model_checkpoint_options():
 
     # verify correct naming
     for i in range(0, len(losses)):
-        assert f'_ckpt_epoch_{i + 1}.ckpt' in file_lists
+        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
 
     clear_save_dir()
 
@@ -73,7 +73,7 @@ def test_model_checkpoint_options():
     clear_save_dir()
 
     # -----------------
-    # CASE K=1 (2.5, epoch 5)
+    # CASE K=1 (2.5, epoch 4)
     w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
     w.save_function = my_own_save_function
     for i, loss in enumerate(losses):
@@ -82,12 +82,12 @@ def test_model_checkpoint_options():
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_ckpt_epoch_5.ckpt' in file_lists
+    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
 
     clear_save_dir()
 
     # -----------------
-    # CASE K=2 (2.5 epoch 5, 2.8 epoch 3)
+    # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
     # make sure other files don't get deleted
 
     w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
@@ -99,8 +99,8 @@ def test_model_checkpoint_options():
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    assert '_ckpt_epoch_5.ckpt' in file_lists
-    assert '_ckpt_epoch_3.ckpt' in file_lists
+    assert '_ckpt_epoch_4.ckpt' in file_lists
+    assert '_ckpt_epoch_2.ckpt' in file_lists
     assert 'other_file.ckpt' in file_lists
 
     clear_save_dir()
