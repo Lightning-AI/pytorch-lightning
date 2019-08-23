@@ -141,7 +141,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
+            print('Epoch %05d: early stopping' % (self.stopped_epoch))
 
 
 class ModelCheckpoint(Callback):
@@ -252,7 +252,7 @@ class ModelCheckpoint(Callback):
             return
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
-            filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch + 1}.ckpt'
+            filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch}.ckpt'
 
             if self.save_top_k != -1:
                 current = logs.get(self.monitor)
@@ -265,7 +265,7 @@ class ModelCheckpoint(Callback):
 
                         # nremove kth
                         if len(self.best_k_models.keys()) == self.save_top_k:
-                            delpath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{self.kth_value + 1}.ckpt'
+                            delpath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{self.kth_value}.ckpt'
                             self.best_k_models.pop(self.kth_value)
                             self._del_model(delpath)
 
@@ -282,17 +282,17 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            print(f'\nEpoch {epoch + 1:05d}: {self.monitor} reached',
+                            print(f'\nEpoch {epoch:05d}: {self.monitor} reached',
                                   f'{current} (best {self.best}), saving model to',
                                   f'{filepath} as top {self.save_top_k}')
                         self._save_model(filepath, overwrite=False)
 
                     else:
                         if self.verbose > 0:
-                            print(f'\nEpoch {epoch + 1:05d}: {self.monitor}',
+                            print(f'\nEpoch {epoch:05d}: {self.monitor}',
                                   f'was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    print(f'\nEpoch {epoch + 1:05d}: saving model to {filepath}')
+                    print(f'\nEpoch {epoch:05d}: saving model to {filepath}')
                 self._save_model(filepath, overwrite=False)
