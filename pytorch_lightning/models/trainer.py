@@ -226,7 +226,6 @@ class Trainer(TrainerIO):
 
         # training state
         self.optimizers = None
-        self.progress_bar = None
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
