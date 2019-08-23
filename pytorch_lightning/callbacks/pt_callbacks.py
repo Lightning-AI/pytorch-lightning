@@ -242,22 +242,26 @@ class ModelCheckpoint(Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         self.epochs_since_last_check += 1
+        
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
-            filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, epoch + 1)
+            filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch + 1}.ckpt'
+
             if self.save_top_k:
                 current = logs.get(self.monitor)
+
                 if current is None:
-                    print('Can save best model only with %s available,'
-                          ' skipping.' % (self.monitor), RuntimeWarning)
+                    print(f'Can save best model only with {self.monitor} available,'
+                          f' skipping.', RuntimeWarning)
                 else:
                     if self.check_monitor_top_k(current):
+
+                        # nremove kth
                         if len(self.best_k_models.keys()) == self.save_top_k:
-                            # need to pop the kth
-                            delpath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
-                                self.filepath, self.prefix, self.kth_value + 1)
+                            delpath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{self.kth_value + 1}.ckpt'
                             self.best_k_models.pop(self.kth_value)
                             self._del_model(delpath)
+                            
                         self.best_k_models[epoch] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
@@ -265,32 +269,23 @@ class ModelCheckpoint(Callback):
                                 self.kth_value = max(self.best_k_models, key=self.best_k_models.get)
                             else:
                                 self.kth_value = min(self.best_k_models, key=self.best_k_models.get)
+
                         if self.mode == 'min':
                             self.best = min(self.best_k_models.values())
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            print(f"\nEpoch {epoch + 1:05d}: {self.monitor} reached",
-                                  f" {current} (best {self.best}), saving model to",
-                                  f" {filepath} as top {self.save_top_k}")
+                            print(f'\nEpoch {epoch + 1:05d}: {self.monitor} reached',
+                                  f' {current} (best {self.best}), saving model to',
+                                  f' {filepath} as top {self.save_top_k}')
                         self._save_model(filepath, overwrite=False)
 
                     else:
                         if self.verbose > 0:
-                            print(f"\nEpoch {epoch + 1:05d}: {self.monitor}",
-                                  f" was not in top {self.save_top_k}")
+                            print(f'\nEpoch {epoch + 1:05d}: {self.monitor}',
+                                  f' was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    print(f"\nEpoch {epoch + 1:05d}: saving model to {filepath}")
+                    print(f'\nEpoch {epoch + 1:05d}: saving model to {filepath}')
                 self._save_model(filepath, overwrite=False)
-
-
-if __name__ == '__main__':
-    c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
-    losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
-    for i, loss in enumerate(losses):
-        should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-        print(loss)
-        if should_stop:
-            break
