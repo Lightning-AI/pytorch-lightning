@@ -121,7 +121,6 @@ class Trainer(TrainerIO):
         self.track_grad_norm = track_grad_norm
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
-        self.show_progress_bar = show_progress_bar
         self.experiment = experiment
         self.exp_save_path = None
         if self.experiment is not None:
@@ -161,6 +160,11 @@ class Trainer(TrainerIO):
         self.nb_val_batches = 0
         self.nb_tng_batches = 0
         self.nb_test_batches = 0
+
+        # progress bar init
+        self.show_progress_bar = show_progress_bar
+        if self.show_progress_bar:
+            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -774,9 +778,9 @@ If you want each process to load the full dataset, ignore this warning.
         if self.val_dataloader is not None:
             for ds_i, dataloader in enumerate(self.val_dataloader):
 
-                # init progress_bar for sanity check
+                # reset progress_bar limit for sanity check
                 if self.show_progress_bar:
-                    self.progress_bar = tqdm.tqdm(range(self.nb_sanity_val_steps), position=self.process_position)
+                    self.progress_bar.reset(self.nb_sanity_val_steps)
 
                 self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
@@ -799,7 +803,7 @@ If you want each process to load the full dataset, ignore this warning.
 
             # init progress_bar when requested
             if self.show_progress_bar:
-                self.progress_bar = tqdm.tqdm(range(self.total_batches), position=self.process_position)
+                self.progress_bar.reset(self.total_batches)
 
             # -----------------
             # RUN TNG EPOCH
