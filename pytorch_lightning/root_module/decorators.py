@@ -10,6 +10,8 @@ def data_loader(fn):
 
     @property
     def _data_loader(self):
+        import pdb
+        pdb.set_trace()
 
         # lazy init
         try:
