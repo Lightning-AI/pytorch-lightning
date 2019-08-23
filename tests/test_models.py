@@ -89,9 +89,9 @@ def test_model_checkpoint_options():
     # -----------------
     # CASE K=2 (2.5 epoch 5, 2.8 epoch 3)
     # make sure other files don't get deleted
-    open(f'{save_dir}/other_file.ckpt', 'a').close()
 
     w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
+    open(f'{save_dir}/other_file.ckpt', 'a').close()
     w.save_function = my_own_save_function
     for i, loss in enumerate(losses):
         w.on_epoch_end(i, logs={'val_loss': loss})

@@ -183,6 +183,8 @@ class ModelCheckpoint(Callback):
         self.monitor = monitor
         self.verbose = verbose
         self.filepath = filepath
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
