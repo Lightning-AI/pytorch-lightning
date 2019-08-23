@@ -1,5 +1,3 @@
-import functools
-
 
 def data_loader(fn):
     """
@@ -11,10 +9,16 @@ def data_loader(fn):
     attr_name = '_lazy_' + fn.__name__
 
     @property
-    @functools.wraps(fn)
     def _data_loader(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
+        try:
+            value = getattr(self, attr_name)
+        except AttributeError:
+            try:
+                value = fn(self)  # Lazy evaluation, done only once.
+            except AttributeError as e:
+                # Guard against AttributeError suppression. (Issue #142)
+                raise RuntimeError('An AttributeError was encountered: ' + str(e)) from e
+            setattr(self, attr_name, value)  # Memoize evaluation.
+        return value
 
     return _data_loader
