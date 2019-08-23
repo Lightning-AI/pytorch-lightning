@@ -57,7 +57,7 @@ def main(hparams):
 
     checkpoint = ModelCheckpoint(
         filepath=model_save_path,
-        save_top_k=1,
+        save_top_k=-1,
         verbose=True,
         monitor='val_loss',
         mode='min'
