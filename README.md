@@ -33,15 +33,13 @@ pip install pytorch-lightning
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. It defers core training and validation logic to you and automates the rest. It guarantees tested, correct, modern best practices for the automated parts.
+Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
 
 
 ## Why do I want to use lightning?
-When starting a new project the last thing you want to do is recode a training loop, multi-cluster training, 16-bit precision, early-stopping, model loading/saving, when to validate, etc... You're likely to spend a long time ironing out all the bugs without even getting to the core of your research.
+Every research project starts the same, a model, a training loop, validation loop, etc. As your research advances, you're likely to need distributed training, 16-bit precision, checkpointing, gradient accumulation, etc.   
 
-With lightning, you guarantee those parts of your code work so you can focus on the meat of the research: The data and the training/validation loop logic. 
-
-Don't worry about training on multiple gpus or speeding up your code, lightning will do that for you!
+Lightning sets up all the boilerplate state-of-the-art training for you so you can focus on the research.   
 
 ---   
 ## README Table of Contents        
@@ -59,9 +57,9 @@ Don't worry about training on multiple gpus or speeding up your code, lightning 
 
 ---   
 ## How do I do use it?   
-The research code goes into a [LightningModule]((https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)) which you fit using a Trainer.    
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule]((https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)) which you fit using a Trainer.    
 
-Think of the LightningModule as a *system* such as seq-2-seq, GAN, etc... However, the LightningModule can ALSO just be a simple classifier such as the example below.     
+The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
 1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         

@@ -159,9 +159,9 @@ class Trainer(TrainerIO):
         self.avg_loss = 0
         self.batch_nb = 0
         self.tqdm_metrics = {}
-        self.nb_val_batches = None
-        self.nb_tng_batches = None
-        self.nb_test_batches = None
+        self.nb_val_batches = 0
+        self.nb_tng_batches = 0
+        self.nb_test_batches = 0
 
         # gpus come in as a string.
         # if gpus = -1 then use all available devices
@@ -356,12 +356,10 @@ class Trainer(TrainerIO):
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
-        self.nb_val_batches = 0
         if self.val_dataloader is not None:
             self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
-
-        self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
-        self.nb_val_batches = max(1, self.nb_val_batches)
+            self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
+            self.nb_val_batches = max(1, self.nb_val_batches)
 
         # determine number of test batches
         self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
@@ -428,8 +426,8 @@ class Trainer(TrainerIO):
             if data_batch is None:  # pragma: no cover
                 continue
 
-            # stop short when on fast dev run
-            if max_batches is not None and batch_i >= max_batches:
+            # stop short when on fast_dev_run (sets max_batch=1)
+            if batch_i >= max_batches:
                 break
 
             # -----------------
@@ -495,27 +493,28 @@ If you want each process to load the full dataset, ignore this warning.
 """
             warnings.warn(msg)
 
-        if self.use_ddp and\
-                not all(isinstance(dataloader, DistributedSampler)
-                        for dataloader in self.val_dataloader):
-            msg = """
-You're val_dataloader(s) are not all DistributedSamplers.
-You're using multiple gpus and multiple nodes without using a DistributedSampler
-to assign a subset of your data to each process. To silence this warning, pass a
-DistributedSampler to your DataLoader.
+        if self.use_ddp and self.val_dataloader is not None:
+            for dataloader in self.val_dataloader:
+                if not isinstance(dataloader, DistributedSampler):
+                    msg = """
+                    Your val_dataloader(s) are not all DistributedSamplers.
+                    You're using multiple gpus and multiple nodes without using a DistributedSampler
+                    to assign a subset of your data to each process. To silence this warning, pass a
+                    DistributedSampler to your DataLoader.
 
-ie: this:
-dataset = myDataset()
-dataloader = Dataloader(dataset)
+                    ie: this:
+                    dataset = myDataset()
+                    dataloader = Dataloader(dataset)
 
-becomes:
-dataset = myDataset()
-dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-dataloader = Dataloader(dataset, sampler=dist_sampler)
+                    becomes:
+                    dataset = myDataset()
+                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+                    dataloader = Dataloader(dataset, sampler=dist_sampler)
 
-If you want each process to load the full dataset, ignore this warning.
-"""
-            warnings.warn(msg)
+                    If you want each process to load the full dataset, ignore this warning.
+                    """
+                    warnings.warn(msg)
+                    break
 
     # -----------------------------
     # MODEL TRAINING
@@ -926,12 +925,22 @@ If you want each process to load the full dataset, ignore this warning.
                 batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
             return batch
 
+        # when tuple
+        elif isinstance(batch, tuple):
+            batch = list(batch)
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+            return tuple(batch)
+
         # when dict
         elif isinstance(batch, dict):
             for k, v in batch.items():
                 batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
 
             return batch
+
+        # nothing matches, return the value as is without transform
+        return batch
 
     def __tng_forward(self, data_batch, batch_nb, opt_idx):
         """
