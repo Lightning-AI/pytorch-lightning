@@ -26,6 +26,33 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp():
+    """
+    Make sure DDP works
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
 
 def test_optimizer_return_options():
 
@@ -774,34 +801,6 @@ def test_amp_gpu_dp():
     )
     with pytest.raises(MisconfigurationException):
         run_gpu_model_test(trainer_options, model, hparams)
-
-
-def test_multi_gpu_model_ddp():
-    """
-    Make sure DDP works
-    :return:
-    """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=[0, 1],
-        distributed_backend='ddp'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_ddp_sampler_error():
