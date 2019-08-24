@@ -166,7 +166,7 @@ You define the blue parts using the LightningModule interface:
 
 ![Ouverview](./docs/source/_static/overview_flat.jpg)
 
-```{.python}
+```python
 # what to do in the training loop
 def training_step(self, data_batch, batch_nb):
 
@@ -253,7 +253,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 ![tensorboard-support](./docs/source/_static/tf_tags.png)
 
 Simply note the path you set for the Experiment    
-``` {.python}   
+```python
 from test_tube import Experiment
 from pytorch-lightning import  Trainer
 
