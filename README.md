@@ -35,6 +35,8 @@ pip install pytorch-lightning
 ## What is it?  
 Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
 
+## Starting a new project?   
+[Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
 
 ## Why do I want to use lightning?
 Every research project starts the same, a model, a training loop, validation loop, etc. As your research advances, you're likely to need distributed training, 16-bit precision, checkpointing, gradient accumulation, etc.   
@@ -164,7 +166,7 @@ You define the blue parts using the LightningModule interface:
 
 ![Ouverview](./docs/source/_static/overview_flat.jpg)
 
-```{.python}
+```python
 # what to do in the training loop
 def training_step(self, data_batch, batch_nb):
 
@@ -251,7 +253,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 ![tensorboard-support](./docs/source/_static/tf_tags.png)
 
 Simply note the path you set for the Experiment    
-``` {.python}   
+```python
 from test_tube import Experiment
 from pytorch-lightning import  Trainer
 

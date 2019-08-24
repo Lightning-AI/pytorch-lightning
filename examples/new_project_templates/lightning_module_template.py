@@ -193,7 +193,7 @@ class LightningTemplateModel(LightningModule):
         train_sampler = None
         batch_size = self.hparams.batch_size
 
-        if self.trainer.use_ddp:
+        if self.use_ddp:
             train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
             batch_size = batch_size // self.trainer.world_size  # scale batch size
 
