@@ -898,6 +898,8 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # test model preds
+    import pdb
+    pdb.set_trace()
     run_prediction(model.test_dataloader, pretrained_model)
 
     if trainer.use_ddp:
