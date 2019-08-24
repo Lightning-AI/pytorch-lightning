@@ -891,6 +891,10 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
         assert Trainer(accumulate_grad_batches={-2: 3})
 
+    with pytest.raises(TypeError):
+        assert Trainer(accumulate_grad_batches={})
+        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+
 
 # ------------------------------------------------------------------------
 # UTILS
