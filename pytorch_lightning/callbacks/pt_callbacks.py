@@ -141,7 +141,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            print('Epoch %05d: early stopping' % (self.stopped_epoch))
+            print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
 
 
 class ModelCheckpoint(Callback):
