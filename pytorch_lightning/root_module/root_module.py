@@ -23,6 +23,9 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
+        self.use_dp = False
+        self.use_ddp = False
+        self.use_amp = False
 
     def forward(self, *args, **kwargs):
         """

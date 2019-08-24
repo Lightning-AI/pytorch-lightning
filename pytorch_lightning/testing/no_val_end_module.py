@@ -181,7 +181,7 @@ class NoValEndTestModel(LightningModule):
         batch_size = self.hparams.batch_size
 
         try:
-            if self.on_gpu and not self.force_remove_distributed_sampler:
+            if self.use_ddp and not self.force_remove_distributed_sampler:
                 train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
                 batch_size = batch_size // self.trainer.world_size  # scale batch size
         except Exception:

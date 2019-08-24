@@ -737,6 +737,9 @@ class Trainer(TrainerIO):
 
         # set local properties on the model
         ref_model.on_gpu = self.on_gpu
+        ref_model.use_dp = self.use_dp
+        ref_model.use_ddp = self.use_ddp
+        ref_model.use_amp = self.use_amp
 
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
