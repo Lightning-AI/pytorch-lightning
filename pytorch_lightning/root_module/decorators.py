@@ -20,7 +20,8 @@ def data_loader(fn):
             except AttributeError as e:
                 # Guard against AttributeError suppression. (Issue #142)
                 traceback.print_exc()
-                raise RuntimeError(f'{fn.__name__}: An AttributeError was encountered: ' + str(e)) from e
+                error = f'{fn.__name__}: An AttributeError was encountered: ' + str(e)
+                raise RuntimeError(error) from e
             setattr(self, attr_name, value)  # Memoize evaluation.
         return value
 
