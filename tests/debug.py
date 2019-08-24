@@ -136,6 +136,7 @@ def run_prediction(dataloader, trained_model):
 
     assert val_acc > 0.70, 'this model is expected to get > 0.7 in test set (it got %f)' % val_acc
 
+
 def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
