@@ -731,6 +731,7 @@ class Trainer(TrainerIO):
         """
         ref_model = model
         if self.data_parallel:
+            model.trainer = self
             ref_model = model.module
 
         ref_model.trainer = self
