@@ -14,7 +14,6 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
@@ -61,7 +60,7 @@ class Trainer(TrainerIO):
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
                  gpus=None,
-                 progress_bar=True,
+                 show_progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
                  check_val_every_n_epoch=1,
@@ -92,7 +91,7 @@ class Trainer(TrainerIO):
         :param current_gpu_name:
         :param nb_gpu_nodes:
         :param gpus:
-        :param progress_bar:
+        :param show_progress_bar:
         :param overfit_pct:
         :param track_grad_norm:
         :param check_val_every_n_epoch:
@@ -122,7 +121,6 @@ class Trainer(TrainerIO):
         self.track_grad_norm = track_grad_norm
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
-        self.progress_bar = progress_bar
         self.experiment = experiment
         self.exp_save_path = None
         if self.experiment is not None:
@@ -223,10 +221,13 @@ class Trainer(TrainerIO):
 
         # training state
         self.optimizers = None
-        self.prog_bar = None
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
+
+        # can't init progress bar here because starting a new process
+        # means the prog_bar won't survive pickling
+        self.show_progress_bar = show_progress_bar
 
         # logging
         self.log_save_interval = log_save_interval
@@ -439,8 +440,8 @@ class Trainer(TrainerIO):
             outputs.append(output)
 
             # batch done
-            if self.progress_bar and self.prog_bar is not None:
-                self.prog_bar.update(1)
+            if self.show_progress_bar:
+                self.progress_bar.update(1)
 
         # give model a chance to do something with the outputs (and method defined)
         val_results = {}
@@ -464,8 +465,8 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
-        self.tng_dataloader = model.tng_dataloader
 
+        self.tng_dataloader = model.tng_dataloader
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
@@ -476,21 +477,21 @@ class Trainer(TrainerIO):
 
         if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
             msg = """
-You're using multiple gpus and multiple nodes without using a DistributedSampler
-to assign a subset of your data to each process. To silence this warning, pass a
-DistributedSampler to your DataLoader.
+            You're using multiple gpus and multiple nodes without using a DistributedSampler
+            to assign a subset of your data to each process. To silence this warning, pass a
+            DistributedSampler to your DataLoader.
 
-ie: this:
-dataset = myDataset()
-dataloader = Dataloader(dataset)
+            ie: this:
+            dataset = myDataset()
+            dataloader = Dataloader(dataset)
 
-becomes:
-dataset = myDataset()
-dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-dataloader = Dataloader(dataset, sampler=dist_sampler)
+            becomes:
+            dataset = myDataset()
+            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+            dataloader = Dataloader(dataset, sampler=dist_sampler)
 
-If you want each process to load the full dataset, ignore this warning.
-"""
+            If you want each process to load the full dataset, ignore this warning.
+            """
             warnings.warn(msg)
 
         if self.use_ddp and self.val_dataloader is not None:
@@ -645,7 +646,7 @@ If you want each process to load the full dataset, ignore this warning.
             self.experiment = self.experiment.get_non_ddp_exp()
 
         # show progbar only on prog_rank 0
-        self.prog_bar = self.prog_bar and self.node_rank == 0 and gpu_nb == 0
+        self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
         # determine which process we are and world size
         self.proc_rank = self.node_rank * len(self.data_parallel_device_ids) + gpu_nb
@@ -736,6 +737,9 @@ If you want each process to load the full dataset, ignore this warning.
 
         # set local properties on the model
         ref_model.on_gpu = self.on_gpu
+        ref_model.use_dp = self.use_dp
+        ref_model.use_ddp = self.use_ddp
+        ref_model.use_amp = self.use_amp
 
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
@@ -770,10 +774,19 @@ If you want each process to load the full dataset, ignore this warning.
         if self.cluster is not None:  # pragma: no cover
             self.enable_auto_hpc_walltime_manager()
 
+        # progress bar init
+        if self.show_progress_bar:
+            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
+
         # run tiny validation (if validation defined) to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if self.val_dataloader is not None:
             for ds_i, dataloader in enumerate(self.val_dataloader):
+
+                # reset progress_bar limit for sanity check
+                if self.show_progress_bar:
+                    self.progress_bar.reset(self.nb_sanity_val_steps)
+
                 self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
         # ---------------------------
@@ -793,10 +806,9 @@ If you want each process to load the full dataset, ignore this warning.
             self.total_batches = self.nb_tng_batches + self.nb_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
-            # init progbar when requested
-            if self.progress_bar:
-                self.prog_bar = tqdm.tqdm(range(self.total_batches),
-                                          position=self.process_position)
+            # init progress_bar when requested
+            if self.show_progress_bar:
+                self.progress_bar.reset(self.total_batches)
 
             # -----------------
             # RUN TNG EPOCH
@@ -1025,8 +1037,8 @@ If you want each process to load the full dataset, ignore this warning.
             if response == -1:
                 return -1
 
-        if self.progress_bar:
-            self.prog_bar.update(1)
+        if self.show_progress_bar:
+            self.progress_bar.update(1)
 
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
@@ -1075,10 +1087,10 @@ If you want each process to load the full dataset, ignore this warning.
                 self.avg_loss = np.mean(self.running_loss[-100:])
 
                 # update progbar
-                if self.progress_bar:
+                if self.show_progress_bar:
                     # add model specific metrics
                     tqdm_metrics = self.__tng_tqdm_dic
-                    self.prog_bar.set_postfix(**tqdm_metrics)
+                    self.progress_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
         if self.__is_function_implemented('on_batch_end'):
@@ -1115,10 +1127,10 @@ If you want each process to load the full dataset, ignore this warning.
                 model = self.__get_model()
                 model.on_post_performance_check()
 
-            if self.progress_bar:
+            if self.show_progress_bar:
                 # add model specific metrics
                 tqdm_metrics = self.__tng_tqdm_dic
-                self.prog_bar.set_postfix(**tqdm_metrics)
+                self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None:

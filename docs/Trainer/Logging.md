@@ -5,7 +5,7 @@ Lighting offers a few options for logging information about model, gpu usage, et
 #### Display metrics in progress bar 
 ``` {.python}
 # DEFAULT
-trainer = Trainer(progress_bar=True)
+trainer = Trainer(show_progress_bar=True)
 ```
 
 ---
