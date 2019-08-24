@@ -139,7 +139,6 @@ def test_model_checkpoint_options():
     w = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
     w.save_function = my_own_save_function
     for loss in losses:
-        print(loss)
         w.on_epoch_end(0, logs={'val_loss': loss})
 
     file_lists = set(os.listdir(save_dir))
@@ -155,7 +154,6 @@ def test_model_checkpoint_options():
     w = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
     w.save_function = my_own_save_function
     for loss in losses:
-        print(loss)
         w.on_epoch_end(0, logs={'val_loss': loss})
 
     file_lists = set(os.listdir(save_dir))
@@ -164,8 +162,6 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_0_v2.ckpt' in file_lists
     assert '_ckpt_epoch_0_v1.ckpt' in file_lists
     assert '_ckpt_epoch_0.ckpt' in file_lists
-
-    print(file_lists)
 
     clear_save_dir()
 
