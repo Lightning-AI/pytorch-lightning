@@ -2,6 +2,7 @@ site_name: PyTorch lightning Documentation
 theme:
   name: 'material'
 docs_dir: docs
+repo_name: 'williamFalcon/pytorch-lightning'
 repo_url: https://github.com/williamFalcon/pytorch-lightning
 site_dir: 'site'
 site_description: 'Documentation for PyTorch LightningModule, the researcher version of keras.'
