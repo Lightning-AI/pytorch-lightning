@@ -30,7 +30,7 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'torch==1.2.0',
-        'tqdm',
+        'tqdm>=4.35.0',
         'test-tube>=0.6.9',
         'pandas>=0.20.3',
     ],
