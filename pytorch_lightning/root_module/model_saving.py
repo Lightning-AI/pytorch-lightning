@@ -210,6 +210,9 @@ class TrainerIO(object):
         # load model state
         model = self.__get_model()
 
+        # clear memory to avoid OOM issues pytorch has loading checkpoints
+        torch.cuda.empty_cache()
+
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
 
