@@ -40,7 +40,7 @@ The main function should have 3 arguments:
 - slurm_manager: Slurm cluster manager object (can be None)
 - dict: for you to return any values you want (useful in meta-learning, otherwise set to _)    
 
-```{}
+```python
 def main(hparams, cluster, results_dict):
     """
     Main training routine specific for this project
