@@ -5,8 +5,6 @@ Below are all the things lightning automates for you in the validation loop.
 Lightning will run 5 steps of validation in the beginning of training as a sanity check so you don't have to wait until a full epoch to catch possible validation issues.
 
 
-
-
 ---
 #### Check validation every n epochs
 If you have a small dataset you might want to check validation every n epochs
@@ -61,3 +59,5 @@ Lightning runs a few steps of validation in the beginning of training. This avoi
 # DEFAULT
 trainer = Trainer(nb_sanity_val_steps=5)
 ```
+
+You can use `Trainer(nb_sanity_val_steps=0)` to skip the sanity check.
