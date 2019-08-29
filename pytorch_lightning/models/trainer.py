@@ -380,7 +380,8 @@ class Trainer(TrainerIO):
     def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, in_test_mode=False):
         # make dataloader_i arg in validation_step optional
         args = [data_batch, batch_i]
-        if (in_test_mode and len(self.test_dataloader) > 1) or (not in_test_mode and len(self.val_dataloader) > 1):
+        if (in_test_mode and len(self.test_dataloader) > 1) \
+                or (not in_test_mode and len(self.val_dataloader) > 1):
             args.append(dataloader_i)
 
         if self.use_ddp:
@@ -439,7 +440,8 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i, in_test_mode)
+            output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
+                                               in_test_mode)
 
             # track outputs for collation
             outputs.append(output)
@@ -456,11 +458,10 @@ class Trainer(TrainerIO):
             else:
                 eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
-                if self.data_parallel:
-                    eval_results = model.module.validation_end(outputs)
-                else:
-                    eval_results = model.validation_end(outputs)
-
+            if self.data_parallel:
+                eval_results = model.module.validation_end(outputs)
+            else:
+                eval_results = model.validation_end(outputs)
 
         # enable train mode again
         model.train()
@@ -558,7 +559,8 @@ class Trainer(TrainerIO):
                 If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
-                mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, in_test_mode))
+                mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids),
+                         args=(model, in_test_mode))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -794,7 +796,8 @@ class Trainer(TrainerIO):
             self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
         if not in_test_mode:
-            # run tiny validation (if validation defined) to make sure program won't crash during val
+            # run tiny validation (if validation defined)
+            # to make sure program won't crash during val
             ref_model.on_sanity_check_start()
             if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
                 for ds_i, dataloader in enumerate(self.val_dataloader):
@@ -803,7 +806,7 @@ class Trainer(TrainerIO):
                     if self.show_progress_bar:
                         self.progress_bar.reset(self.nb_sanity_val_steps)
 
-                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i)
+                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, in_test_mode)
 
             # ---------------------------
             # CORE TRAINING LOOP
@@ -924,7 +927,7 @@ class Trainer(TrainerIO):
             model.on_epoch_end()
 
     def test(self, model=None):
-        if not model is None:
+        if model is not None:
             self.fit(model, in_test_mode=True)
         self.__run_evaluation(in_test_mode=True)
 
@@ -1130,7 +1133,8 @@ class Trainer(TrainerIO):
 
         # validate only if model has validation_step defined
         # test only if test_step or validation_step is defined
-        if self.__is_overriden('validation_step') or (in_test_mode and self.__is_overriden('test_step')):
+        if self.__is_overriden('validation_step') or \
+                (in_test_mode and self.__is_overriden('test_step')):
 
             # hook
             if self.__is_function_implemented('on_pre_performance_check'):
@@ -1144,7 +1148,8 @@ class Trainer(TrainerIO):
                 max_batches = self.nb_test_batches if not self.fast_dev_run else 1
 
             for ds_i, dataloader in enumerate(used_dataloaders):
-                eval_out_metrics = self.evaluate(self.model, dataloader, max_batches, ds_i, in_test_mode)
+                eval_out_metrics = self.evaluate(self.model, dataloader, max_batches, ds_i,
+                                                 in_test_mode)
                 self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
