@@ -261,8 +261,13 @@ class GradientAccumulationScheduler(Callback):
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
     """
     def __init__(self, scheduling: dict):
-        if scheduling == {}:
+        if scheduling == {}:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
+
+        for key in scheduling.keys():
+            if not isinstance(key, int):
+                raise TypeError("All epoches must be integers")
+
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
