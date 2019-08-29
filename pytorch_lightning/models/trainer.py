@@ -377,10 +377,12 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def __validation_forward(self, model, data_batch, batch_i, dataloader_i):
+    def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, in_test_mode=False):
         # make dataloader_i arg in validation_step optional
+        print("call __evaluation_forward with in_test_mode", in_test_mode)
         args = [data_batch, batch_i]
-        if len(self.val_dataloader) > 1:
+        if (in_test_mode and len(self.test_dataloader) > 1) or (not in_test_mode and len(self.val_dataloader) > 1):
+            print("appending dataloader_i ...")
             args.append(dataloader_i)
 
         if self.use_ddp:
@@ -393,24 +395,30 @@ class Trainer(TrainerIO):
             data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
             args[0] = data_batch
 
-            # do non dp, ddp step
-            output = model.validation_step(*args)
-
+        # seems to do the same? can probably be removed?
+        #     # do non dp, ddp step
+        #     output = model.validation_step(*args)
+        #
+        # else:
+        #     # CPU
+        if in_test_mode and self.__is_overriden("test_step"):
+            output = model.test_step(*args)
         else:
-            # CPU
             output = model.validation_step(*args)
 
         return output
 
-    def validate(self, model, dataloader, max_batches, dataloader_i):
+    def evaluate(self, model, dataloader, max_batches, dataloader_i, in_test_mode=False):
         """
-        Run validation code
+        Run evaluation code
         :param model: PT model
         :param dataloader: PT dataloader
         :param max_batches: Scalar
+        :param dataloader_i:
+        :param in_test_mode: boolean
         :return:
         """
-
+        print("call evaluate with in_test_mode", in_test_mode)
         # enable eval mode
         model.zero_grad()
         model.eval()
@@ -434,7 +442,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN VALIDATION STEP
             # -----------------
-            output = self.__validation_forward(model, data_batch, batch_i, dataloader_i)
+            output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i, in_test_mode)
 
             # track outputs for collation
             outputs.append(output)
@@ -443,13 +451,19 @@ class Trainer(TrainerIO):
             if self.show_progress_bar:
                 self.progress_bar.update(1)
 
+        eval_results = {}
         # give model a chance to do something with the outputs (and method defined)
-        val_results = {}
-        if self.__is_overriden('validation_end'):
+        if in_test_mode and self.__is_overriden('test_end'):
             if self.data_parallel:
-                val_results = model.module.validation_end(outputs)
+                eval_results = model.module.test_end(outputs)
             else:
-                val_results = model.validation_end(outputs)
+                eval_results = model.test_end(outputs)
+        elif self.__is_overriden('validation_end'):
+                if self.data_parallel:
+                    eval_results = model.module.validation_end(outputs)
+                else:
+                    eval_results = model.validation_end(outputs)
+
 
         # enable train mode again
         model.train()
@@ -457,7 +471,7 @@ class Trainer(TrainerIO):
         # enable gradients to save memory
         torch.set_grad_enabled(True)
 
-        return val_results
+        return eval_results
 
     def get_dataloaders(self, model):
         """
@@ -471,6 +485,10 @@ class Trainer(TrainerIO):
         self.val_dataloader = model.val_dataloader
 
         # handle returning an actual dataloader instead of a list of loaders
+        have_test_loaders = self.test_dataloader is not None
+        if have_test_loaders and not isinstance(self.test_dataloader, list):
+            self.test_dataloader = [self.test_dataloader]
+
         have_val_loaders = self.val_dataloader is not None
         if have_val_loaders and not isinstance(self.val_dataloader, list):
             self.val_dataloader = [self.val_dataloader]
@@ -787,7 +805,7 @@ class Trainer(TrainerIO):
                 if self.show_progress_bar:
                     self.progress_bar.reset(self.nb_sanity_val_steps)
 
-                self.validate(model, dataloader, self.nb_sanity_val_steps, ds_i)
+                self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i)
 
         # ---------------------------
         # CORE TRAINING LOOP
@@ -862,7 +880,7 @@ class Trainer(TrainerIO):
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
-                self.__run_validation()
+                self.__run_evaluation(in_test_mode=False)
 
             # when batch should be saved
             if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
@@ -906,6 +924,9 @@ class Trainer(TrainerIO):
         if self.__is_function_implemented('on_epoch_end'):
             model = self.__get_model()
             model.on_epoch_end()
+
+    def test(self):
+        self.__run_evaluation(in_test_mode=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
@@ -1099,28 +1120,33 @@ class Trainer(TrainerIO):
 
         return 0
 
-    def __run_validation(self):
+    def __run_evaluation(self, in_test_mode=False):
+        print("call __run_evaluation with in_test_mode", in_test_mode)
         # decide if can check epochs
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
         if self.fast_dev_run:
             print('skipping to check performance bc of --fast_dev_run')
-        elif not can_check_epoch:
+        elif not can_check_epoch and not in_test_mode:
             return
 
         # validate only if model has validation_step defined
-        if self.__is_overriden('validation_step'):
+        # test only if test_step or validation_step is defined
+        if self.__is_overriden('validation_step') or (in_test_mode and self.__is_overriden('test_step')):
 
             # hook
             if self.__is_function_implemented('on_pre_performance_check'):
                 model = self.__get_model()
                 model.on_pre_performance_check()
 
-            # use val_percent_check set on end of epoch
-            # use a small portion otherwise
+            used_dataloaders = self.val_dataloader
             max_batches = self.nb_val_batches if not self.fast_dev_run else 1
-            for ds_i, dataloader in enumerate(self.val_dataloader):
-                val_out_metrics = self.validate(self.model, dataloader, max_batches, ds_i)
-                self.__add_tqdm_metrics(val_out_metrics)
+            if in_test_mode:
+                used_dataloaders = self.test_dataloader
+                max_batches = self.nb_test_batches if not self.fast_dev_run else 1
+
+            for ds_i, dataloader in enumerate(used_dataloaders):
+                eval_out_metrics = self.evaluate(self.model, dataloader, max_batches, ds_i, in_test_mode)
+                self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
             if self.__is_function_implemented('on_post_performance_check'):
