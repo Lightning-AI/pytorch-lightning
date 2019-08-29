@@ -55,9 +55,28 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         pass
 
+    def test_step(self, *args, **kwargs):
+        """
+        return whatever outputs will need to be aggregated in test_end
+        OPTIONAL
+        :param called with batch, batch_nb
+        additional: dataset_i if multiple val datasets used
+        :return:
+        """
+        pass
+
     def validation_end(self, outputs):
         """
         Outputs has the appended output after each validation step
+        OPTIONAL
+        :param outputs:
+        :return: dic_with_metrics for tqdm
+        """
+        pass
+
+    def test_end(self, outputs):
+        """
+        Outputs has the appended output after each test step
         OPTIONAL
         :param outputs:
         :return: dic_with_metrics for tqdm
