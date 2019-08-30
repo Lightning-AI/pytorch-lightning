@@ -107,6 +107,7 @@ def load_model(exp, save_dir, on_gpu, map_location=None):
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
+    pdb.set_trace()
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
@@ -164,7 +165,6 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pdb.set_trace()
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # make sure test acc is decent
