@@ -905,13 +905,13 @@ def grad_counter(self, batch_data):
         grad_abs_sum += torch.abs(param.grad.sum())
 
     if grad_abs_sum == 0:
-        assert self.counter+1 == self.accumulate_grad_batches
+        assert self.counter + 1 == self.accumulate_grad_batches
         self.counter = 0
     else:
         self.counter += 1
         assert grad_abs_sum > self.previous_grad_abs_sum
         self.previous_grad_abs_sum = grad_abs_sum
-    
+
 
 def test_gradient_accumulation_scheduling_2():
     """
