@@ -289,7 +289,7 @@ class LightningTestModel(LightningModule):
         # test returning only 1 list instead of 2
         return optimizer
 
-    def __dataloader(self, train):
+    def _dataloader(self, train):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
@@ -319,17 +319,17 @@ class LightningTestModel(LightningModule):
 
     @data_loader
     def tng_dataloader(self):
-        return self.__dataloader(train=True)
+        return self._dataloader(train=True)
 
     @data_loader
     def val_dataloader(self):
-        return [self.__dataloader(train=False), self.__dataloader(train=False)]
+        return self._dataloader(train=False)
 
     @data_loader
     def test_dataloader(self):
         if self.use_two_test_sets:
-            return [self.__dataloader(train=False), self.__dataloader(train=False)]
-        return self.__dataloader(train=False)
+            return [self._dataloader(train=False), self._dataloader(train=False)]
+        return self._dataloader(train=False)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
