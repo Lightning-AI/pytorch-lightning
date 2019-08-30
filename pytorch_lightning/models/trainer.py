@@ -1162,6 +1162,7 @@ class Trainer(TrainerIO):
         if run_val_step or run_test_step:
 
             # hook
+            model = self.__get_model()
             model.on_pre_performance_check()
             
             # select dataloaders
@@ -1186,9 +1187,8 @@ class Trainer(TrainerIO):
 
                 self.__add_tqdm_metrics(eval_out_metrics)
 
-            # hook
-            model = self.__get_model()
-            model.on_post_performance_check()
+                # hook
+                model.on_post_performance_check()
 
             if self.show_progress_bar:
                 # add model specific metrics
