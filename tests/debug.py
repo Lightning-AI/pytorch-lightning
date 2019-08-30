@@ -102,20 +102,19 @@ def clear_save_dir():
         shutil.rmtree(save_dir)
 
 
-def load_model(exp, save_dir, on_gpu, map_location=None):
+def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
-    pdb.set_trace()
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
-                                                             tags_csv=tags_path,
-                                                             on_gpu=on_gpu,
-                                                             map_location=map_location)
+    trained_model = module_class.load_from_metrics(weights_path=weights_dir,
+                                                   tags_csv=tags_path,
+                                                   on_gpu=on_gpu,
+                                                   map_location=map_location)
 
     assert trained_model is not None, 'loading model failed'
 
@@ -231,21 +230,26 @@ def main():
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        test_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='dp'
     )
 
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
 
-    trainer.test()
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(trainer)
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
 
 
 if __name__ == '__main__':
