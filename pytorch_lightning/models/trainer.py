@@ -372,8 +372,10 @@ class Trainer(TrainerIO):
             self.nb_val_batches = max(1, self.nb_val_batches)
 
         # determine number of test batches
-        self.nb_test_batches = len(self.test_dataloader) if self.test_dataloader is not None else 0
-        self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
+        if self.test_dataloader is not None:
+            self.nb_test_batches = sum(len(dataloader) for dataloader in self.test_dataloader)
+            self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
+            self.nb_test_batches = max(1, self.nb_test_batches)
 
         # determine when to check validation
         self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
