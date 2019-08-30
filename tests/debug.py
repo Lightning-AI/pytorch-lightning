@@ -199,7 +199,7 @@ def main():
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        gpus=[0],
+        gpus=[0, 1],
         distributed_backend='ddp'
     )
 
