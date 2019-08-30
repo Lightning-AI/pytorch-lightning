@@ -392,9 +392,8 @@ class Trainer(TrainerIO):
         # make dataloader_i arg in validation_step optional
         args = [data_batch, batch_i]
 
-        pdb.set_trace()
-
         if test and len(self.test_dataloader) > 1:
+            pdb.set_trace()
             args.append(dataloader_i)
 
         elif len(self.val_dataloader) > 1:
