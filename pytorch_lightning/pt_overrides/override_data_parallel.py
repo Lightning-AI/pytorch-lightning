@@ -191,5 +191,3 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             raise output
         outputs.append(output)
     return outputs
-
-
