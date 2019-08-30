@@ -897,6 +897,36 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
 
 
+def grad_counter(self, batch_data):
+    grad_abs_sum = 0
+    for param in self.parameters():
+        if param.grad is None:
+            return 0
+        grad_abs_sum += torch.abs(param.grad.sum())
+
+    if grad_abs_sum == 0:
+        assert self.counter+1 == self.accumulate_grad_batches
+        self.counter = 0
+    else:
+        self.counter += 1
+        assert grad_abs_sum > self.previous_grad_abs_sum
+        self.previous_grad_abs_sum = grad_abs_sum
+    
+
+def test_gradient_accumulation_scheduling_2():
+    """
+    Check gradient accumulation scheduler v2
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    schedule = {1: 6}
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
+    trainer.on_batch_start = grad_counter
+    model.counter, model.previous_grad_abs_sum = 0, 0
+    trainer.fit(model)
+
+
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
