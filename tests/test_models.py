@@ -1224,7 +1224,8 @@ def init_save_dir():
     save_dir = os.path.join(root_dir, 'save_dir')
 
     if os.path.exists(save_dir):
-        shutil.move(save_dir, save_dir + '_old')
+        n = np.random.randint(0, 10000000, 1)[0]
+        shutil.move(save_dir, save_dir + f'_{n}')
 
     os.makedirs(save_dir, exist_ok=True)
 
@@ -1235,7 +1236,8 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        shutil.move(save_dir, save_dir + '_old')
+        n = np.random.randint(0, 10000000, 1)[0]
+        shutil.move(save_dir, save_dir + f'_{n}')
 
 
 def load_model(exp, save_dir, on_gpu, map_location=None):
