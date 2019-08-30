@@ -1224,7 +1224,7 @@ def init_save_dir():
     save_dir = os.path.join(root_dir, 'save_dir')
 
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        shutil.move(save_dir, save_dir + '_old')
 
     os.makedirs(save_dir, exist_ok=True)
 
