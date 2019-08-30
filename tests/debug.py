@@ -12,6 +12,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import numpy as np
+import pdb
 
 
 class CoolModel(pl.LightningModule):
@@ -156,11 +157,20 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    pdb.set_trace()
+
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
     pretrained_model = load_model(exp, save_dir, on_gpu)
+
+    # make sure test acc is decent
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+    assert_ok_val_acc(trainer)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
@@ -176,12 +186,22 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     clear_save_dir()
 
+def assert_ok_val_acc(trainer):
+    # this model should get 0.80+ acc
+    acc = trainer.tng_tqdm_dic['val_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+def assert_ok_test_acc(trainer):
+    # this model should get 0.80+ acc
+    acc = trainer.tng_tqdm_dic['test_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 def main():
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     model, hparams = get_model()
     trainer_options = dict(
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
