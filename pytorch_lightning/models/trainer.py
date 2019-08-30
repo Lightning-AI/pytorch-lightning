@@ -1167,6 +1167,7 @@ class Trainer(TrainerIO):
         # when testing make sure user defined a test step
         can_run_test_step = False
         if test:
+            ForkedPdb().set_trace()
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
                 m = 'You called .test() without defining a test step or test_end. Please define and try again'
@@ -1217,3 +1218,18 @@ class Trainer(TrainerIO):
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__tng_tqdm_dic)
+
+
+import sys
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin

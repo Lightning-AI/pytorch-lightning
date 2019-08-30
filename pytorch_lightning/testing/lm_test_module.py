@@ -251,8 +251,6 @@ class LightningTestModel(LightningModule):
         # return torch.stack(outputs).mean()
         test_loss_mean = 0
         test_acc_mean = 0
-        import pdb
-        pdb.set_trace()
         for output in outputs:
             test_loss = output['test_loss']
 
