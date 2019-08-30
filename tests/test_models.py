@@ -90,7 +90,10 @@ def test_gradient_accumulation_scheduling():
     model = LightningTestModel(hparams)
     schedule = {1:2, 3: 4}
 
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=5)
+    trainer = Trainer(accumulate_grad_batches=schedule,
+                      train_percent_check=0.1,
+                      val_percent_check=0.1,
+                      max_nb_epochs=4)
 
     # for the test
     trainer.optimizer_step = optimizer_step
