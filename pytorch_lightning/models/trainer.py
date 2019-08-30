@@ -393,7 +393,6 @@ class Trainer(TrainerIO):
         args = [data_batch, batch_i]
 
         if test and len(self.test_dataloader) > 1:
-            pdb.set_trace()
             args.append(dataloader_i)
 
         elif len(self.val_dataloader) > 1:
