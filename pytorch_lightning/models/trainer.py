@@ -1178,7 +1178,7 @@ class Trainer(TrainerIO):
             if self.fast_dev_run:
                 max_batches = 1
 
-            for ds_i, dataloader in enumerate(used_dataloaders):
+            for ds_i, dataloader in enumerate(dataloaders):
                 eval_out_metrics = self.evaluate(self.model, 
                                                  dataloader, 
                                                  max_batches, 
