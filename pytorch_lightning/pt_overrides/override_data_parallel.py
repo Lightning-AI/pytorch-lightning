@@ -89,6 +89,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # output = self.module(*inputs[0], **kwargs[0])
 
                 # lightning
+                ForkedPdb().set_trace()
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
                 elif self.module.testing:
@@ -187,3 +188,18 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             raise output
         outputs.append(output)
     return outputs
+
+
+import sys, pdb
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin

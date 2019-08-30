@@ -411,7 +411,6 @@ class Trainer(TrainerIO):
             args[0] = data_batch
 
         if test:
-            ForkedPdb().set_trace()
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
