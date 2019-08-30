@@ -28,7 +28,7 @@ class LightningTestModel(LightningModule):
         # init superclass
         super(LightningTestModel, self).__init__()
         self.hparams = hparams
-        self.use_two_test_sets = use_two_test_sets # for some tests regarding testing
+        self.use_two_test_sets = use_two_test_sets  # for some tests regarding testing
 
         self.batch_size = hparams.batch_size
 
