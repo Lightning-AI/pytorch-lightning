@@ -18,6 +18,7 @@ from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
+from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -137,7 +138,13 @@ class Trainer(TrainerIO):
         self.early_stop = early_stop_callback
         self.model = None
         self.max_nb_epochs = max_nb_epochs
-        self.accumulate_grad_batches = accumulate_grad_batches
+        if isinstance(accumulate_grad_batches, dict):
+            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
+        elif isinstance(accumulate_grad_batches, int):
+            schedule = {1: accumulate_grad_batches}
+            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
+        else:
+            raise TypeError("Gradient accumulation supports only int and dict types")
         self.early_stop_callback = early_stop_callback
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
@@ -809,6 +816,9 @@ class Trainer(TrainerIO):
             # init progress_bar when requested
             if self.show_progress_bar:
                 self.progress_bar.reset(self.total_batches)
+
+            # changing gradient according accumulation_scheduler
+            self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
 
             # -----------------
             # RUN TNG EPOCH

@@ -11,7 +11,11 @@ from test_tube import Experiment, SlurmCluster
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    GradientAccumulationScheduler,
+)
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
@@ -26,6 +30,78 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_gradient_accumulation_scheduling():
+    """
+    Test grad accumulation by the freq of optimizer updates
+    """
+    # test incorrect configs
+    with pytest.raises(IndexError):
+        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-2: 3})
+
+    with pytest.raises(TypeError):
+        assert Trainer(accumulate_grad_batches={})
+        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+        assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
+
+    # test optimizer call freq matches scheduler
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):
+        # only test the first 12 batches in epoch
+        if batch_nb < 12:
+            if epoch_nb == 0:
+                # reset counter when starting epoch
+                if batch_nb == 0:
+                    self.prev_called_batch_nb = 0
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 1
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 1
+
+            elif 1 <= epoch_nb <= 2:
+                # reset counter when starting epoch
+                if batch_nb == 1:
+                    self.prev_called_batch_nb = 1
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 2
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 2
+
+            else:
+                if batch_nb == 3:
+                    self.prev_called_batch_nb = 3
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 4
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 3
+
+        optimizer.step()
+
+        # clear gradients
+        optimizer.zero_grad()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    schedule = {1: 2, 3: 4}
+
+    trainer = Trainer(accumulate_grad_batches=schedule,
+                      train_percent_check=0.1,
+                      val_percent_check=0.1,
+                      max_nb_epochs=4)
+
+    # for the test
+    trainer.optimizer_step = optimizer_step
+    model.prev_called_batch_nb = 0
+
+    trainer.fit(model)
+
+
 def test_multi_gpu_model_ddp():
     """
     Make sure DDP works

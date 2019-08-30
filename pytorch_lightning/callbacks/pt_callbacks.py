@@ -1,5 +1,6 @@
 import os
 import shutil
+import warnings
 
 import numpy as np
 
@@ -252,6 +253,37 @@ class ModelCheckpoint(Callback):
                 if self.verbose > 0:
                     print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
                 self.save_model(filepath, overwrite=False)
+
+
+class GradientAccumulationScheduler(Callback):
+    """Change gradient accumulation factor according to scheduling.
+    # Arguments
+        scheduling: dict, scheduling in format {epoch: accumulation_factor}
+    """
+    def __init__(self, scheduling: dict):
+        if scheduling == {}:  # empty dict error
+            raise TypeError("Empty dict cannot be interpreted correct")
+
+        for key in scheduling.keys():
+            if not isinstance(key, int) or not isinstance(scheduling[key], int):
+                raise TypeError("All epoches and accumulation factor must be integers")
+
+        minimal_epoch = min(scheduling.keys())
+        if minimal_epoch < 1:
+            msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
+            raise IndexError(msg)
+        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
+            scheduling.update({1: 1})
+
+        self.scheduling = scheduling
+        self.epochs = sorted(scheduling.keys())
+
+    def on_epoch_begin(self, epoch, trainer):
+        epoch += 1  # indexing epochs from 1
+        for i in reversed(range(len(self.epochs))):
+            if epoch >= self.epochs[i]:
+                trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
+                break
 
 
 if __name__ == '__main__':
