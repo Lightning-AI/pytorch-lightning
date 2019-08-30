@@ -57,7 +57,7 @@ def test_gradient_accumulation_scheduling():
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 1
 
-                asset batch_nb == self.prev_called_batch_nb
+                assert batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 1
 
             elif 1 <= epoch_nb <= 2:
@@ -68,7 +68,7 @@ def test_gradient_accumulation_scheduling():
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 2
                     
-                asset batch_nb == self.prev_called_batch_nb
+                assert batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 2
 
             else:
@@ -78,7 +78,7 @@ def test_gradient_accumulation_scheduling():
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 4
 
-                asset batch_nb == self.prev_called_batch_nb
+                assert batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 3
 
         optimizer.step()
