@@ -1156,6 +1156,7 @@ class Trainer(TrainerIO):
 
     def __run_evaluation(self, test=False):
         # when testing make sure user defined a test step
+        can_run_test_step = False
         if test:
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
