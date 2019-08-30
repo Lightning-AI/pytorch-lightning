@@ -20,6 +20,7 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+import pdb
 
 try:
     from apex import amp
@@ -1195,6 +1196,7 @@ class Trainer(TrainerIO):
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
+        pdb.set_trace()
         if self.proc_rank == 0 and self.checkpoint_callback is not None:
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
