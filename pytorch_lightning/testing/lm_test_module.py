@@ -168,13 +168,22 @@ class LightningTestModel(LightningModule):
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         # return torch.stack(outputs).mean()
-        import pdb
-
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
-            val_loss_mean += output['val_loss']
-            val_acc_mean += output['val_acc']
+            val_loss = output['val_loss']
+
+            # reduce manually when using dp
+            if self.trainer.use_dp:
+                val_loss = torch.mean(val_loss)
+            val_loss_mean += val_loss
+
+            # reduce manually when using dp
+            val_acc = output['val_acc']
+            if self.trainer.use_dp:
+                val_acc = torch.mean(val_acc)
+
+            val_acc_mean += val_acc
 
         pdb.set_trace()
         val_loss_mean /= len(outputs)
@@ -244,8 +253,19 @@ class LightningTestModel(LightningModule):
         test_loss_mean = 0
         test_acc_mean = 0
         for output in outputs:
-            test_loss_mean += output['test_loss']
-            test_acc_mean += output['test_acc']
+            test_loss = output['test_loss']
+
+            # reduce manually when using dp
+            if self.trainer.use_dp:
+                test_loss = torch.mean(test_loss)
+            test_loss_mean += test_loss
+
+            # reduce manually when using dp
+            test_acc = output['test_acc']
+            if self.trainer.use_dp:
+                test_acc = torch.mean(test_acc)
+
+            test_acc_mean += test_acc
 
         test_loss_mean /= len(outputs)
         test_acc_mean /= len(outputs)
