@@ -1089,6 +1089,7 @@ def load_model(exp, save_dir, on_gpu, map_location=None):
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
+    print(os.listdir(save_dir))
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
     trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
