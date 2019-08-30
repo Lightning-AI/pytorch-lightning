@@ -823,23 +823,27 @@ class Trainer(TrainerIO):
         if self.show_progress_bar:
             self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
-        if not self.testing:
-            # run tiny validation (if validation defined)
-            # to make sure program won't crash during val
-            ref_model.on_sanity_check_start()
-            if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
-                for ds_i, dataloader in enumerate(self.val_dataloader):
+        # when testing requested only run test and return
+        if self.testing:
+            self.__run_evaluation(test=True)
+            return
 
-                    # reset progress_bar limit for sanity check
-                    if self.show_progress_bar:
-                        self.progress_bar.reset(self.nb_sanity_val_steps)
+        # run tiny validation (if validation defined)
+        # to make sure program won't crash during val
+        ref_model.on_sanity_check_start()
+        if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
+            for ds_i, dataloader in enumerate(self.val_dataloader):
 
-                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.testing)
+                # reset progress_bar limit for sanity check
+                if self.show_progress_bar:
+                    self.progress_bar.reset(self.nb_sanity_val_steps)
 
-            # ---------------------------
-            # CORE TRAINING LOOP
-            # ---------------------------
-            self.__train()
+                self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.testing)
+
+        # ---------------------------
+        # CORE TRAINING LOOP
+        # ---------------------------
+        self.__train()
 
     def __train(self):
         # run all epochs
@@ -961,6 +965,7 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         if model is not None:
+
             self.testing = True
             self.fit(model)
 
