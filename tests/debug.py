@@ -169,7 +169,6 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # make sure test acc is decent
-    pdb.set_trace()
     trainer.test()
 
     # test we have good test accuracy
