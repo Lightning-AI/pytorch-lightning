@@ -1002,12 +1002,11 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     pretrained_model = load_model(exp, save_dir, on_gpu)
     
     # make sure test acc is decent
-    import pdb
-    pdb.set_trace()
     trainer.test()
     
     # test we have good test accuracy
     assert_ok_test_acc(trainer)
+    assert_ok_val_acc(trainer)
     
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
@@ -1121,7 +1120,7 @@ def run_prediction(dataloader, trained_model):
     assert acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {acc})'
 
 
-def assert_ok_acc(trainer):
+def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
