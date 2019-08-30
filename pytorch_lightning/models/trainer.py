@@ -1156,10 +1156,11 @@ class Trainer(TrainerIO):
 
     def __run_evaluation(self, test=False):
         # when testing make sure user defined a test step
-        can_run_test_step = test and self.__is_overriden('test_step') and self.__is_overriden('test_end')
-        if not can_run_test_step:
-            m = 'You called .test() without defining a test step or test_end. Please define and try again'
-            raise MisconfigurationException(m)
+        if test:
+            can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
+            if not can_run_test_step:
+                m = 'You called .test() without defining a test step or test_end. Please define and try again'
+                raise MisconfigurationException(m)
 
         # validate only if model has validation_step defined
         # test only if test_step or validation_step are defined
