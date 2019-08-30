@@ -1,5 +1,5 @@
 from pytorch_lightning import Trainer
-from .examples import LightningTemplateModel
+from examples import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
