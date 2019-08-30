@@ -272,6 +272,7 @@ def test_gradient_accumulation_scheduling():
 
     trainer.fit(model)
 
+
 def test_multi_gpu_model_ddp():
     """
     Make sure DDP works
