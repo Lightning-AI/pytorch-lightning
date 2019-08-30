@@ -239,9 +239,6 @@ class LightningTestModel(LightningModule):
         # if returned a scalar from test_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         # return torch.stack(outputs).mean()
-        import pdb
-        pdb.set_trace()
-
         test_loss_mean = 0
         test_acc_mean = 0
         for output in outputs:
