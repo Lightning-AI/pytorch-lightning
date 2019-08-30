@@ -116,7 +116,7 @@ class Trainer(TrainerIO):
         :param nb_sanity_val_steps:
         """
         # Transfer params
-        print('-------------------------------')
+        print('---------------****----------------')
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
