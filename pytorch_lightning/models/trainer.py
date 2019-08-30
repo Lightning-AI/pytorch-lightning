@@ -461,9 +461,9 @@ class Trainer(TrainerIO):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.__get_model()
-        if test:
+        if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
-        else:
+        elif self.__is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
    
         # enable train mode again
