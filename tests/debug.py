@@ -6,7 +6,7 @@ import sys
 sys.path.append(".")
 
 from pytorch_lightning import Trainer
-from  .. import examples
+import examples
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
