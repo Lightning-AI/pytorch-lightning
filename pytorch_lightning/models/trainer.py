@@ -457,7 +457,6 @@ class Trainer(TrainerIO):
             if self.show_progress_bar:
                 self.progress_bar.update(1)
 
-        pdb.set_trace()
         eval_results = {}
 
         # give model a chance to do something with the outputs (and method defined)
