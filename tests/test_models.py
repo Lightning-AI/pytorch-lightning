@@ -141,7 +141,7 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+    pretrained_model = load_model(exp, save_dir, on_gpu=True)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -183,7 +183,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+    pretrained_model = load_model(exp, save_dir, on_gpu=True)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
