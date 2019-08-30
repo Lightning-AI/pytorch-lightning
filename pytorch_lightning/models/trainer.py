@@ -1200,8 +1200,6 @@ class Trainer(TrainerIO):
                                                  ds_i,
                                                  test)
 
-                if test:
-                    ForkedPdb().set_trace()
                 self.__add_tqdm_metrics(eval_out_metrics)
 
                 # hook
