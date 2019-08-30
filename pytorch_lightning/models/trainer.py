@@ -572,7 +572,7 @@ class Trainer(TrainerIO):
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, (model,))
+                self.ddp_train(task, model)
             else:
                 nb_gpus = self.nb_requested_gpus
                 nb_tasks = self.nb_slurm_tasks
@@ -585,7 +585,7 @@ class Trainer(TrainerIO):
                 """
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids),
-                         args=(model))
+                         args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
