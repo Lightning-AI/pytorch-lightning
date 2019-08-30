@@ -185,7 +185,6 @@ class LightningTestModel(LightningModule):
 
             val_acc_mean += val_acc
 
-        pdb.set_trace()
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
 
