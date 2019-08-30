@@ -317,7 +317,11 @@ class Trainer(TrainerIO):
             self.test_percent_check = overfit_pct
 
     def __get_model(self):
-        return self.model.module if self.data_parallel else self.model
+        try:
+
+            return self.model.module if self.data_parallel else self.model
+        except Exception as e:
+            ForkedPdb().set_trace()
 
     def __is_function_implemented(self, f_name):
         model = self.__get_model()
@@ -777,6 +781,7 @@ class Trainer(TrainerIO):
         if self.data_parallel:
             ref_model = model.module
 
+        # give model convenience properties
         ref_model.trainer = self
 
         # set local properties on the model
@@ -796,15 +801,13 @@ class Trainer(TrainerIO):
         if self.proc_rank == 0 and self.print_weights_summary:
             ref_model.summarize()
 
-        # give model convenience properties
-        ref_model.trainer = self
-
+        # link up experiment object
         if self.experiment is not None:
             ref_model.experiment = self.experiment
 
-        # save exp to get started
-        if self.proc_rank == 0 and self.experiment is not None:
-            self.experiment.save()
+            # save exp to get started
+            if self.proc_rank == 0:
+                self.experiment.save()
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -1217,3 +1220,17 @@ class Trainer(TrainerIO):
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__tng_tqdm_dic)
+
+import sys
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
