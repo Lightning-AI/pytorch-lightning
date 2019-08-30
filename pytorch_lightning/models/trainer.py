@@ -563,8 +563,6 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
-        pdb.set_trace()
-
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
             # must copy only the meta of the exp so it survives pickle/unpickle
@@ -772,6 +770,7 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        pdb.set_trace()
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
