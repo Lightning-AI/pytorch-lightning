@@ -187,8 +187,6 @@ class LightningTestModel(LightningModule):
         :param data_batch:
         :return:
         """
-        import pdb
-        pdb.set_trace()
         x, y = data_batch
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)

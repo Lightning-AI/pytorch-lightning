@@ -392,11 +392,12 @@ class Trainer(TrainerIO):
         # make dataloader_i arg in validation_step optional
         args = [data_batch, batch_i]
 
-        have_multiple_test_loaders = test and len(self.test_dataloader) > 1
-        have_multiple_val_loaders = not test and len(self.val_dataloader) > 1
-        if have_multiple_test_loaders or have_multiple_val_loaders:
+        if test and len(self.test_dataloader) > 1:
             args.append(dataloader_i)
-        
+
+        elif len(self.val_dataloader) > 1:
+            args.append(dataloader_i)
+
         # handle DP, DDP forward
         if self.use_ddp or self.use_dp:
             output = model(*args)
@@ -1161,7 +1162,6 @@ class Trainer(TrainerIO):
         # when testing make sure user defined a test step
         can_run_test_step = False
         if test:
-            pdb.set_trace()
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
                 m = 'You called .test() without defining a test step or test_end. Please define and try again'
