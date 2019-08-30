@@ -55,7 +55,7 @@ def test_gradient_accumulation_scheduling():
                     self.prev_called_batch_nb = 0
 
                     # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == 1
+                    assert self.trainer.accumulate_grad_batches == 1
 
                 asset batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 1
@@ -66,7 +66,7 @@ def test_gradient_accumulation_scheduling():
                     self.prev_called_batch_nb = 1
 
                     # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == 2
+                    assert self.trainer.accumulate_grad_batches == 2
                     
                 asset batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 2
@@ -76,7 +76,7 @@ def test_gradient_accumulation_scheduling():
                     self.prev_called_batch_nb = 3
 
                     # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == 4
+                    assert self.trainer.accumulate_grad_batches == 4
 
                 asset batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 3
