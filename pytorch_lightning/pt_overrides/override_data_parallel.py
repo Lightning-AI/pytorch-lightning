@@ -89,7 +89,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # output = self.module(*inputs[0], **kwargs[0])
 
                 # lightning
-                print(self.module.__dict__)
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
                 elif self.module.testing:
