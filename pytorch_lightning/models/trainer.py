@@ -150,6 +150,7 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
         self.single_gpu = False
+        self.test = False
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -377,12 +378,12 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, in_test_mode=False):
+    def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, test=False):
         # make dataloader_i arg in validation_step optional
         args = [data_batch, batch_i]
 
-        have_multiple_test_loaders = in_test_mode and len(self.test_dataloader) > 1
-        have_multiple_val_loaders = not in_test_mode and len(self.val_dataloader) > 1
+        have_multiple_test_loaders = test and len(self.test_dataloader) > 1
+        have_multiple_val_loaders = not test and len(self.val_dataloader) > 1
         if have_multiple_test_loaders or have_multiple_val_loaders:
             args.append(dataloader_i)
         
@@ -398,21 +399,21 @@ class Trainer(TrainerIO):
             data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
             args[0] = data_batch
 
-        if in_test_mode:
+        if test:
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
 
         return output
 
-    def evaluate(self, model, dataloader, max_batches, dataloader_i, in_test_mode=False):
+    def evaluate(self, model, dataloader, max_batches, dataloader_i, test=False):
         """
         Run evaluation code
         :param model: PT model
         :param dataloader: PT dataloader
         :param max_batches: Scalar
         :param dataloader_i:
-        :param in_test_mode: boolean
+        :param test: boolean
         :return:
         """
         # enable eval mode
@@ -439,7 +440,7 @@ class Trainer(TrainerIO):
             # RUN EVALUATION STEP
             # -----------------
             output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
-                                               in_test_mode)
+                                               test)
 
             # track outputs for collation
             outputs.append(output)
@@ -452,7 +453,7 @@ class Trainer(TrainerIO):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.__get_model()
-        if in_test_mode:
+        if test:
             eval_results = model.test_end(outputs)
         else:
             eval_results = model.validation_end(outputs)
@@ -553,7 +554,7 @@ class Trainer(TrainerIO):
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    def fit(self, model, in_test_mode=False):
+    def fit(self, model):
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
@@ -564,7 +565,7 @@ class Trainer(TrainerIO):
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, model, in_test_mode)
+                self.ddp_train(task, model)
             else:
                 nb_gpus = self.nb_requested_gpus
                 nb_tasks = self.nb_slurm_tasks
@@ -577,15 +578,15 @@ class Trainer(TrainerIO):
                 """
                 warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids),
-                         args=(model, in_test_mode))
+                         args=(model))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.__dp_train(model, in_test_mode)
+            self.__dp_train(model)
 
         elif self.single_gpu:
-            self.__single_gpu_train(model, in_test_mode)
+            self.__single_gpu_train(model)
 
         # ON CPU
         else:
@@ -598,7 +599,7 @@ class Trainer(TrainerIO):
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-            self.__run_pretrain_routine(model, in_test_mode)
+            self.__run_pretrain_routine(model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -619,7 +620,7 @@ class Trainer(TrainerIO):
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
 
-    def __single_gpu_train(self, model, in_test_mode):
+    def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
@@ -633,9 +634,9 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        self.__run_pretrain_routine(model, in_test_mode)
+        self.__run_pretrain_routine(model)
 
-    def __dp_train(self, model, in_test_mode):
+    def __dp_train(self, model):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -655,9 +656,9 @@ class Trainer(TrainerIO):
 
         model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
-        self.__run_pretrain_routine(model, in_test_mode)
+        self.__run_pretrain_routine(model)
 
-    def ddp_train(self, gpu_nb, model, in_test_mode):
+    def ddp_train(self, gpu_nb, model):
         """
         Entry point into a DP thread
         :param gpu_nb:
@@ -717,7 +718,7 @@ class Trainer(TrainerIO):
                                                  find_unused_parameters=True)
 
         # continue training routine
-        self.__run_pretrain_routine(model, in_test_mode)
+        self.__run_pretrain_routine(model)
 
     def __init_tcp_connection(self):
         """
@@ -757,7 +758,7 @@ class Trainer(TrainerIO):
 
         return root_node
 
-    def __run_pretrain_routine(self, model, in_test_mode=False):
+    def __run_pretrain_routine(self, model):
         """
         Sanity check a few things before starting actual training
         :param model:
@@ -812,7 +813,7 @@ class Trainer(TrainerIO):
         if self.show_progress_bar:
             self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
-        if not in_test_mode:
+        if not self.test:
             # run tiny validation (if validation defined)
             # to make sure program won't crash during val
             ref_model.on_sanity_check_start()
@@ -823,7 +824,7 @@ class Trainer(TrainerIO):
                     if self.show_progress_bar:
                         self.progress_bar.reset(self.nb_sanity_val_steps)
 
-                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, in_test_mode)
+                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.test)
 
             # ---------------------------
             # CORE TRAINING LOOP
@@ -900,7 +901,7 @@ class Trainer(TrainerIO):
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
                 if can_check_epoch:
-                    self.__run_evaluation(in_test_mode=False)
+                    self.__run_evaluation(test=self.test)
 
             # when batch should be saved
             if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
@@ -947,8 +948,9 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         if model is not None:
-            self.fit(model, in_test_mode=True)
-        self.__run_evaluation(in_test_mode=True)
+            self.test = True
+            self.fit(model)
+        self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
@@ -1142,11 +1144,11 @@ class Trainer(TrainerIO):
 
         return 0
 
-    def __run_evaluation(self, in_test_mode=False):
+    def __run_evaluation(self, test=False):
         # validate only if model has validation_step defined
         # test only if test_step or validation_step are defined
         run_val_step = self.__is_overriden('validation_step')
-        run_test_step = in_test_mode and self.__is_overriden('test_step')
+        run_test_step = test and self.__is_overriden('test_step')
         if run_val_step or run_test_step:
 
             # hook
@@ -1157,7 +1159,7 @@ class Trainer(TrainerIO):
             max_batches = self.nb_val_batches
 
             # calculate max batches to use
-            if in_test_mode:
+            if test:
                 dataloaders = self.test_dataloader
                 max_batches = self.nb_test_batches
 
@@ -1170,7 +1172,7 @@ class Trainer(TrainerIO):
                                                  dataloader, 
                                                  max_batches, 
                                                  ds_i,
-                                                 in_test_mode)
+                                                 test)
 
                 self.__add_tqdm_metrics(eval_out_metrics)
 
