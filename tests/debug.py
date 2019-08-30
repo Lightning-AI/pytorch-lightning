@@ -99,7 +99,7 @@ def clear_save_dir():
         shutil.rmtree(save_dir)
 
 
-def load_model(exp, save_dir):
+def load_model(exp, save_dir, on_gpu, map_location=None):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
@@ -109,7 +109,9 @@ def load_model(exp, save_dir):
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
     trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
-                                                             tags_csv=tags_path, on_gpu=True)
+                                                             tags_csv=tags_path,
+                                                             on_gpu=on_gpu,
+                                                             map_location=map_location)
 
     assert trained_model is not None, 'loading model failed'
 
