@@ -116,7 +116,6 @@ class Trainer(TrainerIO):
         :param nb_sanity_val_steps:
         """
         # Transfer params
-        print('---------------****----------------')
         self.nb_gpu_nodes = nb_gpu_nodes
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -564,6 +563,7 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
+        pdb.set_trace()
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
