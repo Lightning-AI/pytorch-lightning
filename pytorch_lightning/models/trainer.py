@@ -436,7 +436,7 @@ class Trainer(TrainerIO):
                 break
 
             # -----------------
-            # RUN VALIDATION STEP
+            # RUN EVALUATION STEP
             # -----------------
             output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
                                                in_test_mode)
@@ -449,18 +449,14 @@ class Trainer(TrainerIO):
                 self.progress_bar.update(1)
 
         eval_results = {}
-        # give model a chance to do something with the outputs (and method defined)
-        if in_test_mode and self.__is_overriden('test_end'):
-            if self.data_parallel:
-                eval_results = model.module.test_end(outputs)
-            else:
-                eval_results = model.test_end(outputs)
-        elif self.__is_overriden('validation_end'):
-            if self.data_parallel:
-                eval_results = model.module.validation_end(outputs)
-            else:
-                eval_results = model.validation_end(outputs)
 
+        # give model a chance to do something with the outputs (and method defined)
+        model = self.__get_model()
+        if in_test_mode:
+            eval_results = model.test_end(outputs)
+        else:
+            eval_results = model.validation_end(outputs)
+   
         # enable train mode again
         model.train()
 
