@@ -12,6 +12,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import numpy as np
+import pdb
 
 
 class CoolModel(pl.LightningModule):
@@ -166,6 +167,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # make sure test acc is decent
+    pdb.set_trace()
     trainer.test()
 
     # test we have good test accuracy
