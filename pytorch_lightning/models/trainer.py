@@ -157,7 +157,7 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
         self.single_gpu = False
-        self.test = False
+        self.testing = False
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -958,7 +958,7 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         if model is not None:
-            self.test = True
+            self.testing = True
             self.fit(model)
         self.__run_evaluation(test=True)
 
