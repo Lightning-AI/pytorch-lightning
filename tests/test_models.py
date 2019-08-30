@@ -107,6 +107,90 @@ def test_running_test_pretrained_model():
     clear_save_dir()
 
 
+def test_running_test_pretrained_model_dp():
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='dp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model_ddp():
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
 def test_gradient_accumulation_scheduling():
     """
     Test grad accumulation by the freq of optimizer updates
