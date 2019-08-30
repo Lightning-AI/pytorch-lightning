@@ -1208,7 +1208,7 @@ class Trainer(TrainerIO):
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
-        if self.proc_rank == 0 and self.checkpoint_callback is not None:
+        if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__tng_tqdm_dic)
