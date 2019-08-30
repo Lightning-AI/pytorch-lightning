@@ -6,7 +6,7 @@ import sys
 sys.path.append(".")
 
 from pytorch_lightning import Trainer
-import examples
+from examples.new_project_templates.lightning_module_template import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -76,7 +76,7 @@ def get_model():
                            'data_root': os.path.join(root_dir, 'mnist'),
                            'out_features': 10,
                            'hidden_dim': 1000})
-    model = examples.LightningTemplateModel(hparams)
+    model = LightningTemplateModel(hparams)
 
     return model, hparams
 
