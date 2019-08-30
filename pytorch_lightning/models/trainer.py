@@ -387,10 +387,7 @@ class Trainer(TrainerIO):
             args.append(dataloader_i)
         
         # handle DP, DDP forward
-        if self.use_ddp:
-            output = model(*args)
-            return output
-        elif self.use_dp:
+        if self.use_ddp or self.use_dp:
             output = model(*args)
             return output
         
