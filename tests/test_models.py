@@ -895,6 +895,7 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={})
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
 
 def grad_counter(self, batch_data):

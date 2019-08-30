@@ -265,8 +265,8 @@ class GradientAccumulationScheduler(Callback):
             raise TypeError("Empty dict cannot be interpreted correct")
 
         for key in scheduling.keys():
-            if not isinstance(key, int):
-                raise TypeError("All epoches must be integers")
+            if not isinstance(key, int) or not isinstance(scheduling[key], int):
+                raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 1:
