@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 from pytorch_lightning import Trainer
 from examples import LightningTemplateModel
 from argparse import Namespace
