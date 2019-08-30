@@ -907,11 +907,12 @@ class Trainer(TrainerIO):
             # ---------------
             # RUN VAL STEP
             # ---------------
+            pdb.set_trace()
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
                 if can_check_epoch:
-                    self.__run_evaluation(test=self.test)
+                    self.__run_evaluation(test=self.testing)
 
             # when batch should be saved
             if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
