@@ -846,8 +846,6 @@ def test_multiple_val_dataloader():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
-
     # exp file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
@@ -877,8 +875,6 @@ def test_multiple_test_dataloader():
     hparams = get_hparams()
     model = LightningTestModel(hparams, use_two_test_sets=True)
 
-    save_dir = init_save_dir()
-
     # exp file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
@@ -898,6 +894,74 @@ def test_multiple_test_dataloader():
 
     # make sure predictions are good for each test set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.test_dataloader]
+
+
+def test_running_test_after_fitting():
+    """Verify test() on fitted model"""
+    model, hparams = get_model()
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+
+def test_running_test_pretrained_model():
+    """Verify test() on pretrained model"""
+    model, hparams = get_model()
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    clear_save_dir()
 
 
 # ------------------------------------------------------------------------
