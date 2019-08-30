@@ -970,6 +970,7 @@ class Trainer(TrainerIO):
         if model is not None:
 
             self.testing = True
+            ForkedPdb().set_trace()
             self.fit(model)
 
         self.__run_evaluation(test=True)
