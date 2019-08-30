@@ -6,7 +6,7 @@ import sys
 sys.path.append(".")
 
 from pytorch_lightning import Trainer
-from examples.new_project_templates.lightning_module_template import LightningTemplateModel
+from examples import LightningTemplateModel
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
