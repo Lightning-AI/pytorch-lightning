@@ -411,6 +411,7 @@ class Trainer(TrainerIO):
             args[0] = data_batch
 
         if test:
+            ForkedPdb().set_trace()
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
@@ -1167,7 +1168,6 @@ class Trainer(TrainerIO):
         # when testing make sure user defined a test step
         can_run_test_step = False
         if test:
-            ForkedPdb().set_trace()
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
                 m = 'You called .test() without defining a test step or test_end. Please define and try again'
