@@ -46,7 +46,7 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):       
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):
         # only test the first 12 batches in epoch
         if batch_nb < 12:
             if epoch_nb == 0:
@@ -67,7 +67,7 @@ def test_gradient_accumulation_scheduling():
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 2
-                    
+
                 assert batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 2
 
@@ -88,7 +88,7 @@ def test_gradient_accumulation_scheduling():
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
-    schedule = {1:2, 3: 4}
+    schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
@@ -943,7 +943,7 @@ def test_multiple_val_dataloader():
 
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
-    
+
 
 # ------------------------------------------------------------------------
 # UTILS
