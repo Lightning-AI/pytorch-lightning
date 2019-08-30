@@ -5,7 +5,7 @@ class ModelHooks(torch.nn.Module):
 
     def on_sanity_check_start(self):
         """
-        Called before starting validate
+        Called before starting evaluate
         :return:
         """
         pass
