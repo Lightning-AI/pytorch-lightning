@@ -67,11 +67,13 @@ def test_running_test_pretrained_model_ddp():
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
 
+    # run test set
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
+    run_prediction(model.test_dataloader, pretrained_model)
+
     # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
     clear_save_dir()
 
 
