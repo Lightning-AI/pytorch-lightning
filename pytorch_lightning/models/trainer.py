@@ -883,7 +883,6 @@ class Trainer(TrainerIO):
             model.on_epoch_start()
 
         # run epoch
-        pdb.set_trace()
         for batch_nb, data_batch in enumerate(self.tng_dataloader):
             self.batch_nb = batch_nb
             self.global_step += 1
@@ -907,7 +906,6 @@ class Trainer(TrainerIO):
             # ---------------
             # RUN VAL STEP
             # ---------------
-            pdb.set_trace()
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
@@ -1197,7 +1195,6 @@ class Trainer(TrainerIO):
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
-        pdb.set_trace()
         if self.proc_rank == 0 and self.checkpoint_callback is not None:
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
