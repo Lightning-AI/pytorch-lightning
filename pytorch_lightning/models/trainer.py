@@ -380,27 +380,28 @@ class Trainer(TrainerIO):
     def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, in_test_mode=False):
         # make dataloader_i arg in validation_step optional
         args = [data_batch, batch_i]
-        if (in_test_mode and len(self.test_dataloader) > 1) \
-                or (not in_test_mode and len(self.val_dataloader) > 1):
-            args.append(dataloader_i)
 
+        have_multiple_test_loaders = in_test_mode and len(self.test_dataloader) > 1
+        have_multiple_val_loaders = not in_test_mode and len(self.val_dataloader) > 1
+        if have_multiple_test_loaders or have_multiple_val_loaders:
+            args.append(dataloader_i)
+        
+        # handle DP, DDP forward
         if self.use_ddp:
             output = model(*args)
+            return output
         elif self.use_dp:
             output = model(*args)
-        elif self.single_gpu:
-            # put inputs on gpu manually
+            return output
+        
+        # CPU, single GPU
+        if self.single_gpu:
+            # for single GPU put inputs on gpu manually
             gpu_id = self.data_parallel_device_ids[0]
             data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
             args[0] = data_batch
 
-        # seems to do the same? can probably be removed?
-        #     # do non dp, ddp step
-        #     output = model.validation_step(*args)
-        #
-        # else:
-        #     # CPU
-        if in_test_mode and self.__is_overriden("test_step"):
+        if in_test_mode:
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
