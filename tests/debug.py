@@ -164,6 +164,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
+    pdb.set_trace()
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # make sure test acc is decent
