@@ -884,6 +884,7 @@ class Trainer(TrainerIO):
             model.on_epoch_start()
 
         # run epoch
+        pdb.set_trace()
         for batch_nb, data_batch in enumerate(self.tng_dataloader):
             self.batch_nb = batch_nb
             self.global_step += 1
