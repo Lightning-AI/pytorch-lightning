@@ -770,7 +770,6 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
-        pdb.set_trace()
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
@@ -820,7 +819,7 @@ class Trainer(TrainerIO):
         if self.show_progress_bar:
             self.progress_bar = tqdm.tqdm(0, position=self.process_position)
 
-        if not self.test:
+        if not self.testing:
             # run tiny validation (if validation defined)
             # to make sure program won't crash during val
             ref_model.on_sanity_check_start()
@@ -831,7 +830,7 @@ class Trainer(TrainerIO):
                     if self.show_progress_bar:
                         self.progress_bar.reset(self.nb_sanity_val_steps)
 
-                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.test)
+                    self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.testing)
 
             # ---------------------------
             # CORE TRAINING LOOP
