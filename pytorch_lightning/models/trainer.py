@@ -960,6 +960,7 @@ class Trainer(TrainerIO):
         if model is not None:
             self.testing = True
             self.fit(model)
+
         self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
@@ -1155,11 +1156,17 @@ class Trainer(TrainerIO):
         return 0
 
     def __run_evaluation(self, test=False):
+        # when testing make sure user defined a test step
+        can_run_test_step = test and self.__is_overriden('test_step') and self.__is_overriden('test_end')
+        if not can_run_test_step:
+            m = 'You called .test() without defining a test step or test_end. Please define and try again'
+            raise MisconfigurationException(m)
+
         # validate only if model has validation_step defined
         # test only if test_step or validation_step are defined
         run_val_step = self.__is_overriden('validation_step')
-        run_test_step = test and self.__is_overriden('test_step')
-        if run_val_step or run_test_step:
+
+        if run_val_step or can_run_test_step:
 
             # hook
             model = self.__get_model()
