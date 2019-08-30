@@ -151,6 +151,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     exp.save()
 
     # exp file to get weights
+    pdb.set_trace()
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
