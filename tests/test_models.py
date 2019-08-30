@@ -30,7 +30,7 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_gradient_accumulation_scheduling_2():
+def test_gradient_accumulation_scheduling():
     """
     Test grad accumulation by the freq of optimizer updates
     """
