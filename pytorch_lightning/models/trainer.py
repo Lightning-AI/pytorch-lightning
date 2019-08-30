@@ -1176,7 +1176,7 @@ class Trainer(TrainerIO):
             model.on_pre_performance_check()
             
             # select dataloaders
-            dataloaders = self.test_dataloader
+            dataloaders = self.val_dataloader
             max_batches = self.nb_val_batches
 
             # calculate max batches to use
