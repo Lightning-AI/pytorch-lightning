@@ -926,7 +926,7 @@ def test_multiple_val_dataloader():
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
-        train_percent_check=0.1,
+        train_percent_check=1.0,
     )
 
     # fit model
