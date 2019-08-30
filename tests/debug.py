@@ -233,7 +233,7 @@ def main():
         checkpoint_callback=checkpoint,
         experiment=exp,
         gpus=[0, 1],
-        distributed_backend='dp'
+        distributed_backend='ddp'
     )
 
     # fit model
@@ -249,7 +249,7 @@ def main():
 
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
-    clear_save_dir()
+    # clear_save_dir()
 
 
 if __name__ == '__main__':
