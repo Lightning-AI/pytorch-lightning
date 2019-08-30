@@ -66,6 +66,8 @@ def test_running_test_after_fitting():
     # test we have good test accuracy
     assert_ok_test_acc(trainer)
 
+    clear_save_dir()
+
 
 def test_running_test_pretrained_model():
     """Verify test() on pretrained model"""
