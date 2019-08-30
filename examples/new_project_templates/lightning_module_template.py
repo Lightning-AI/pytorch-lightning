@@ -189,16 +189,13 @@ class LightningTemplateModel(LightningModule):
         dataset = MNIST(root=self.hparams.data_root, train=train,
                         transform=transform, download=True)
 
-        # when using multi-node we need to add the datasampler
+        # when using multi-node (ddp) we need to add the datasampler
         train_sampler = None
         batch_size = self.hparams.batch_size
 
-        try:
-            if self.on_gpu:
-                train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-                batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception:
-            pass
+        if self.use_ddp:
+            train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
+            batch_size = batch_size // self.trainer.world_size  # scale batch size
 
         should_shuffle = train_sampler is None
         loader = DataLoader(

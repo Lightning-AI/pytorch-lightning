@@ -102,6 +102,34 @@ def test_gradient_accumulation_scheduling():
     trainer.fit(model)
 
 
+def test_multi_gpu_model_ddp():
+    """
+    Make sure DDP works
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_optimizer_return_options():
 
     trainer = Trainer()
@@ -167,6 +195,18 @@ def test_single_gpu_batch_parse():
     assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
+    # tuple of tensor list and list of tensor dict
+    batch = ([torch.rand(2, 3) for _ in range(2)],
+             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
+
+    assert batch[1][0]['a'].device.index == 0
+    assert batch[1][0]['a'].type() == 'torch.cuda.FloatTensor'
+
+    assert batch[1][0]['b'].device.index == 0
+    assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
+
 
 def test_early_stopping_cpu_model():
     """
@@ -181,7 +221,7 @@ def test_early_stopping_cpu_model():
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         train_percent_check=0.1,
         val_percent_check=0.1
@@ -328,7 +368,7 @@ def test_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0],
         distributed_backend='dp',
@@ -424,7 +464,7 @@ def test_amp_gpu_ddp():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
@@ -644,7 +684,7 @@ def test_amp_gpu_ddp_slurm_managed():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        progress_bar=True,
+        show_progress_bar=True,
         max_nb_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
@@ -709,7 +749,7 @@ def test_cpu_model_with_amp():
     """
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -730,7 +770,7 @@ def test_cpu_model():
     """
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -753,7 +793,7 @@ def test_all_features_cpu_model():
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
-        progress_bar=False,
+        show_progress_bar=False,
         experiment=get_exp(),
         accumulate_grad_batches=2,
         max_nb_epochs=1,
@@ -777,7 +817,7 @@ def test_single_gpu_model():
     model, hparams = get_model()
 
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -802,7 +842,7 @@ def test_multi_gpu_model_dp():
         return
     model, hparams = get_model()
     trainer_options = dict(
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -839,34 +879,6 @@ def test_amp_gpu_dp():
         run_gpu_model_test(trainer_options, model, hparams)
 
 
-def test_multi_gpu_model_ddp():
-    """
-    Make sure DDP works
-    :return:
-    """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    model, hparams = get_model()
-    trainer_options = dict(
-        progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=[0, 1],
-        distributed_backend='ddp'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
-
-
 def test_ddp_sampler_error():
     """
     Make sure DDP + AMP work
@@ -889,7 +901,7 @@ def test_ddp_sampler_error():
 
     trainer = Trainer(
         experiment=exp,
-        progress_bar=False,
+        show_progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',

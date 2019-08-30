@@ -11,6 +11,7 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
+import numpy as np
 
 
 class CoolModel(pl.LightningModule):
@@ -136,40 +137,59 @@ def run_prediction(dataloader, trained_model):
     assert val_acc > 0.70, 'this model is expected to get > 0.7 in test set (it got %f)' % val_acc
 
 
-def main():
-
+def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
     # exp file to get meta
     exp = get_exp(False)
+    exp.argparse(hparams)
     exp.save()
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
-    trainer = Trainer(
-        experiment=exp,
-        checkpoint_callback=checkpoint,
-        progress_bar=True,
-        max_nb_epochs=1,
-        gpus=[0, 1],
-        distributed_backend='dp',
-    )
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
 
-    model = CoolModel()
-
+    # fit model
+    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(exp, save_dir)
+    pretrained_model = load_model(exp, save_dir, on_gpu)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
 
+    if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+
+    # test HPC loading / saving
+    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_load(save_dir, on_gpu=on_gpu)
+
     clear_save_dir()
+
+
+def main():
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
 
 
 if __name__ == '__main__':

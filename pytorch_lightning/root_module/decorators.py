@@ -1,3 +1,5 @@
+import traceback
+
 
 def data_loader(fn):
     """
@@ -10,8 +12,17 @@ def data_loader(fn):
 
     @property
     def _data_loader(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
+        try:
+            value = getattr(self, attr_name)
+        except AttributeError:
+            try:
+                value = fn(self)  # Lazy evaluation, done only once.
+            except AttributeError as e:
+                # Guard against AttributeError suppression. (Issue #142)
+                traceback.print_exc()
+                error = f'{fn.__name__}: An AttributeError was encountered: ' + str(e)
+                raise RuntimeError(error) from e
+            setattr(self, attr_name, value)  # Memoize evaluation.
+        return value
 
     return _data_loader
