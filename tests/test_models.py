@@ -898,7 +898,9 @@ def test_multiple_test_dataloader():
 
 def test_running_test_after_fitting():
     """Verify test() on fitted model"""
-    model, hparams = get_model()
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    
     save_dir = init_save_dir()
 
     # exp file to get meta
@@ -914,6 +916,7 @@ def test_running_test_after_fitting():
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        test_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp
     )
@@ -925,11 +928,16 @@ def test_running_test_after_fitting():
     assert result == 1, 'training failed to complete'
 
     trainer.test()
+    
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
 
 
 def test_running_test_pretrained_model():
     """Verify test() on pretrained model"""
-    model, hparams = get_model()
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    
     save_dir = init_save_dir()
 
     # exp file to get meta
@@ -949,7 +957,6 @@ def test_running_test_pretrained_model():
         experiment=exp
     )
 
-
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
@@ -960,7 +967,9 @@ def test_running_test_pretrained_model():
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
-
+    
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
     clear_save_dir()
 
 
@@ -991,7 +1000,13 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     # test model loading
     pretrained_model = load_model(exp, save_dir, on_gpu)
-
+    
+    # make sure test acc is decent
+    trainer.test()
+    
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+    
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
 
@@ -1097,20 +1112,22 @@ def run_prediction(dataloader, trained_model):
 
     # acc
     labels_hat = torch.argmax(y_hat, dim=1)
-    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-    val_acc = torch.tensor(val_acc)
-    val_acc = val_acc.item()
+    acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+    acc = torch.tensor(acc)
+    acc = acc.item()
 
-    print(val_acc)
-
-    assert val_acc > 0.50, 'this model is expected to get > 0.50 in test set (it got %f)' % val_acc
+    assert acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {acc})'
 
 
 def assert_ok_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
-    assert acc > 0.50, 'model failed to get expected 0.50 validation accuracy. Got: %f' % acc
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
+def assert_ok_test_acc(trainer):
+    # this model should get 0.80+ acc
+    acc = trainer.tng_tqdm_dic['test_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 if __name__ == '__main__':
     pytest.main([__file__])
