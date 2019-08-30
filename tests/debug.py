@@ -185,8 +185,23 @@ def assert_ok_val_acc(trainer):
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
+import sys
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
+
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
+    ForkedPdb().set_trace()
     acc = trainer.tng_tqdm_dic['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
