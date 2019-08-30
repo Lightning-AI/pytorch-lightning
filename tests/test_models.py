@@ -32,6 +32,9 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -153,6 +156,9 @@ def test_running_test_pretrained_model():
 
 def test_running_test_pretrained_model_dp():
     """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -264,19 +270,12 @@ def test_gradient_accumulation_scheduling():
 
     trainer.fit(model)
 
-
 def test_multi_gpu_model_ddp():
     """
     Make sure DDP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -324,13 +323,7 @@ def test_optimizer_return_options():
 
 
 def test_single_gpu_batch_parse():
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     trainer = Trainer()
@@ -612,13 +605,7 @@ def test_amp_gpu_ddp():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -830,13 +817,7 @@ def test_amp_gpu_ddp_slurm_managed():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     # simulate setting slurm flags
@@ -995,14 +976,9 @@ def test_multi_gpu_model_dp():
     Make sure DP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
@@ -1023,14 +999,9 @@ def test_amp_gpu_dp():
     Make sure DP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         max_nb_epochs=1,
@@ -1047,11 +1018,7 @@ def test_ddp_sampler_error():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -1283,10 +1250,24 @@ def assert_ok_val_acc(trainer):
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
+
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def can_run_gpu_test():
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
+        return False
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
+        return False
+    return True
+
 
 if __name__ == '__main__':
     pytest.main([__file__])
