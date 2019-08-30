@@ -897,8 +897,10 @@ class Trainer(TrainerIO):
             # RUN VAL STEP
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
+            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
-                self.__run_evaluation(in_test_mode=False)
+                if can_check_epoch:
+                    self.__run_evaluation(in_test_mode=False)
 
             # when batch should be saved
             if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
@@ -1141,38 +1143,40 @@ class Trainer(TrainerIO):
         return 0
 
     def __run_evaluation(self, in_test_mode=False):
-        # decide if can check epochs
-        can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-        if self.fast_dev_run:
-            print('skipping to check performance bc of --fast_dev_run')
-        elif not can_check_epoch and not in_test_mode:
-            return
-
         # validate only if model has validation_step defined
-        # test only if test_step or validation_step is defined
-        if self.__is_overriden('validation_step') or \
-                (in_test_mode and self.__is_overriden('test_step')):
+        # test only if test_step or validation_step are defined
+        run_val_step = self.__is_overriden('validation_step')
+        run_test_step = in_test_mode and self.__is_overriden('test_step')
+        if run_val_step or run_test_step:
 
             # hook
-            if self.__is_function_implemented('on_pre_performance_check'):
-                model = self.__get_model()
-                model.on_pre_performance_check()
+            model.on_pre_performance_check()
+            
+            # select dataloaders
+            dataloaders = self.test_dataloader
+            max_batches = self.nb_val_batches
 
-            used_dataloaders = self.val_dataloader
-            max_batches = self.nb_val_batches if not self.fast_dev_run else 1
+            # calculate max batches to use
             if in_test_mode:
-                used_dataloaders = self.test_dataloader
-                max_batches = self.nb_test_batches if not self.fast_dev_run else 1
+                dataloaders = self.test_dataloader
+                max_batches = self.nb_test_batches
+
+            # cap max batches to 1 when using fast_dev_run
+            if self.fast_dev_run:
+                max_batches = 1
 
             for ds_i, dataloader in enumerate(used_dataloaders):
-                eval_out_metrics = self.evaluate(self.model, dataloader, max_batches, ds_i,
+                eval_out_metrics = self.evaluate(self.model, 
+                                                 dataloader, 
+                                                 max_batches, 
+                                                 ds_i,
                                                  in_test_mode)
+
                 self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
-            if self.__is_function_implemented('on_post_performance_check'):
-                model = self.__get_model()
-                model.on_post_performance_check()
+            model = self.__get_model()
+            model.on_post_performance_check()
 
             if self.show_progress_bar:
                 # add model specific metrics
