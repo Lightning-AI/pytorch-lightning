@@ -99,7 +99,7 @@ def test_running_test_pretrained_model():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=False)
+    pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -141,7 +141,7 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True)
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -183,7 +183,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True)
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -1240,7 +1240,7 @@ def clear_save_dir():
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, on_gpu, map_location=None):
+def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
@@ -1249,10 +1249,10 @@ def load_model(exp, save_dir, on_gpu, map_location=None):
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
-                                                             tags_csv=tags_path,
-                                                             on_gpu=on_gpu,
-                                                             map_location=map_location)
+    trained_model = module_class.load_from_metrics(weights_path=weights_dir,
+                                                   tags_csv=tags_path,
+                                                   on_gpu=on_gpu,
+                                                   map_location=map_location)
 
     assert trained_model is not None, 'loading model failed'
 
