@@ -201,7 +201,6 @@ class ForkedPdb(pdb.Pdb):
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
-    ForkedPdb().set_trace()
     acc = trainer.tng_tqdm_dic['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
