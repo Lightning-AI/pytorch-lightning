@@ -402,7 +402,7 @@ class Trainer(TrainerIO):
         if self.use_ddp or self.use_dp:
             output = model(*args)
             return output
-        
+
         # CPU, single GPU
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
@@ -468,7 +468,7 @@ class Trainer(TrainerIO):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
-   
+
         # enable train mode again
         model.train()
 
@@ -1167,7 +1167,8 @@ class Trainer(TrainerIO):
         if test:
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
-                m = 'You called .test() without defining a test step or test_end. Please define and try again'
+                m = '''You called .test() without defining a test step or test_end.
+                Please define and try again'''
                 raise MisconfigurationException(m)
 
         # validate only if model has validation_step defined
@@ -1179,7 +1180,7 @@ class Trainer(TrainerIO):
             # hook
             model = self.__get_model()
             model.on_pre_performance_check()
-            
+
             # select dataloaders
             dataloaders = self.val_dataloader
             max_batches = self.nb_val_batches
@@ -1194,9 +1195,9 @@ class Trainer(TrainerIO):
                 max_batches = 1
 
             for ds_i, dataloader in enumerate(dataloaders):
-                eval_out_metrics = self.evaluate(self.model, 
-                                                 dataloader, 
-                                                 max_batches, 
+                eval_out_metrics = self.evaluate(self.model,
+                                                 dataloader,
+                                                 max_batches,
                                                  ds_i,
                                                  test)
 
