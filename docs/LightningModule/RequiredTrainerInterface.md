@@ -16,7 +16,9 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 **Optional**:   
 
 - [validation_step](RequiredTrainerInterface.md#validation_step)    
-- [validation_end](RequiredTrainerInterface.md#validation_end)    
+- [validation_end](RequiredTrainerInterface.md#validation_end) 
+- [test_step](RequiredTrainerInterface.md#test_step)    
+- [test_end](RequiredTrainerInterface.md#test_end) 
 - [val_dataloader](RequiredTrainerInterface.md#val_dataloader)    
 - [test_dataloader](RequiredTrainerInterface.md#test_dataloader)    
 - [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)    
@@ -63,6 +65,17 @@ class CoolModel(pl.LightningModule):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         return {'avg_val_loss': avg_loss}
 
+    def test_step(self, batch, batch_nb):
+        # OPTIONAL
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'test_loss': F.cross_entropy(y_hat, y)}
+
+    def test_end(self, outputs):
+        # OPTIONAL
+        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+        return {'avg_test_loss': avg_loss}
+
     def configure_optimizers(self):
         # REQUIRED
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
@@ -80,6 +93,7 @@ class CoolModel(pl.LightningModule):
     @pl.data_loader
     def test_dataloader(self):
         # OPTIONAL
+        # can also return a list of test dataloaders
         return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 ---   
@@ -225,9 +239,10 @@ the [optimizer_step](https://williamfalcon.github.io/pytorch-lightning/Trainer/h
 ### validation_step
 
 ``` {.python}
+# if you have one val dataloader:
 def validation_step(self, data_batch, batch_nb)   
 
-# if have multiple val dataloaders:  
+# if you have multiple val dataloaders:  
 def validation_step(self, data_batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
@@ -235,7 +250,7 @@ If you don't need to validate you don't need to implement this method.
 
 In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
 
-The dict you return here will be available in the validation_end method. 
+The dict you return here will be available in the `validation_end` method. 
 
 **Params**   
 
@@ -256,11 +271,11 @@ The dict you return here will be available in the validation_end method.
 ``` {.python}
 # CASE 1: A single validation dataset
 def validation_step(self, data_batch, batch_nb):
-    x, y, z = data_batch
+    x, y = data_batch
     
     # implement your own
     out = self.forward(x)
-    loss = self.loss(out, x)
+    loss = self.loss(out, y)
     
     # log 6 example images
     # or generated text... or whatever
@@ -335,6 +350,119 @@ def validation_end(self, outputs):
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
     tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dic
+```
+
+### test_step
+
+``` {.python}
+# if you have one test dataloader:
+def test_step(self, data_batch, batch_nb)   
+
+# if you have multiple test dataloaders:  
+def test_step(self, data_batch, batch_nb, dataloader_idx)
+```
+**OPTIONAL**    
+If you don't need to test you don't need to implement this method.    
+
+In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
+
+The dict you return here will be available in the `test_end` method. 
+
+This function is used when you execute `trainer.test()`.
+
+**Params**   
+
+| Param  | description  |
+|---|---|
+|  data_batch | The output of your dataloader. A tensor, tuple or list  |
+|  batch_nb | Integer displaying which batch this is  |
+|  dataloader_i | Integer displaying which dataloader this is (only if multiple test datasets used)  |
+
+**Return**   
+
+| Return  | description  | optional |
+|---|---|---|   
+|  dict | Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
+
+**Example**
+
+``` {.python}
+# CASE 1: A single test dataset
+def test_step(self, data_batch, batch_nb):
+    x, y = data_batch
+    
+    # implement your own
+    out = self.forward(x)
+    loss = self.loss(out, y)
+    
+    # calculate acc
+    labels_hat = torch.argmax(out, dim=1)
+    test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+    
+    # all optional...
+    # return whatever you need for the collation function test_end
+    output = OrderedDict({
+        'test_loss': loss_test,
+        'test_acc': torch.tensor(test_acc), # everything must be a tensor
+    })
+    
+    # return an optional dict
+    return output
+```   
+
+If you pass in multiple test datasets, test_step will have an additional argument.
+
+```python
+# CASE 2: multiple test datasets
+def test_step(self, data_batch, batch_nb, dataset_idx):
+    # dataset_idx tells you which dataset this is.   
+```   
+
+The ```dataset_idx``` corresponds to the order of datasets returned in ```test_dataloader```.    
+
+--- 
+### test_end
+
+``` {.python}
+def test_end(self, outputs)
+```   
+If you didn't define a test_step, this won't be called.       
+
+Called at the end of the test step with the output of each test_step.  Called once per test dataset.   
+
+The outputs here are strictly for the progress bar. If you don't need to display anything, don't return anything.    
+
+**Params**    
+
+| Param  | description  |
+|---|---|
+|  outputs | List of outputs you defined test_step |
+
+**Return**   
+
+| Return  | description  | optional |
+|---|---|---|   
+|  dict | Dict of OrderedDict with metrics to display in progress bar | Y |
+
+**Example**
+
+``` {.python}
+def test_end(self, outputs):
+    """
+    Called at the end of test to aggregate outputs
+    :param outputs: list of individual outputs of each test step
+    :return:
+    """
+    test_loss_mean = 0
+    test_acc_mean = 0
+    for output in outputs:
+        test_loss_mean += output['test_loss']
+        test_acc_mean += output['test_acc']
+
+    test_loss_mean /= len(outputs)
+    test_acc_mean /= len(outputs)
+    tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
     return tqdm_dic
 ```
 

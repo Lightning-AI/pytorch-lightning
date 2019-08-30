@@ -30,6 +30,177 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_running_test_pretrained_model_ddp():
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    # test we have good test accuracy
+    clear_save_dir()
+
+
+def test_running_test_after_fitting():
+    """Verify test() on fitted model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model():
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model_dp():
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='dp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
 def test_gradient_accumulation_scheduling():
     """
     Test grad accumulation by the freq of optimizer updates
@@ -107,13 +278,7 @@ def test_multi_gpu_model_ddp():
     Make sure DDP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -161,13 +326,7 @@ def test_optimizer_return_options():
 
 
 def test_single_gpu_batch_parse():
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     trainer = Trainer()
@@ -261,7 +420,7 @@ def test_no_val_module():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # traning complete
+    # training complete
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
@@ -449,13 +608,7 @@ def test_amp_gpu_ddp():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -667,13 +820,7 @@ def test_amp_gpu_ddp_slurm_managed():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     # simulate setting slurm flags
@@ -832,14 +979,9 @@ def test_multi_gpu_model_dp():
     Make sure DP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
@@ -860,14 +1002,9 @@ def test_amp_gpu_dp():
     Make sure DP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         max_nb_epochs=1,
@@ -884,11 +1021,7 @@ def test_ddp_sampler_error():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -922,7 +1055,34 @@ def test_multiple_val_dataloader():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    # exp file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=1.0,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify tng completed
+    assert result == 1
+
+    # verify there are 2 val loaders
+    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+
+    # make sure predictions are good for each val set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+
+
+def test_multiple_test_dataloader():
+    """
+    Verify multiple test_dataloader
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams, use_two_test_sets=True)
 
     # exp file to get meta
     trainer_options = dict(
@@ -939,10 +1099,10 @@ def test_multiple_val_dataloader():
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.test_dataloader) == 2, 'Multiple test_dataloaders not initiated properly'
 
-    # make sure predictions are good for each val set
-    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+    # make sure predictions are good for each test set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.test_dataloader]
 
 
 # ------------------------------------------------------------------------
@@ -973,7 +1133,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     # test model loading
     pretrained_model = load_model(exp, save_dir, on_gpu)
 
-    # test model preds
+    # test new model accuracy
     run_prediction(model.test_dataloader, pretrained_model)
 
     if trainer.use_ddp:
@@ -1024,7 +1184,8 @@ def get_model(use_test_model=False):
 def get_exp(debug=True, version=None):
     # set up exp object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir', version=version)
+    save_dir = os.path.join(root_dir, 'save_dir')
+    exp = Experiment(debug=debug, save_dir=save_dir, name='tests_tt_dir', version=version)
     return exp
 
 
@@ -1033,7 +1194,8 @@ def init_save_dir():
     save_dir = os.path.join(root_dir, 'save_dir')
 
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        n = np.random.randint(0, 10000000, 1)[0]
+        shutil.move(save_dir, save_dir + f'_{n}')
 
     os.makedirs(save_dir, exist_ok=True)
 
@@ -1044,10 +1206,11 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        n = np.random.randint(0, 10000000, 1)[0]
+        shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, on_gpu, map_location=None):
+def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
@@ -1056,10 +1219,10 @@ def load_model(exp, save_dir, on_gpu, map_location=None):
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
-                                                             tags_csv=tags_path,
-                                                             on_gpu=on_gpu,
-                                                             map_location=map_location)
+    trained_model = module_class.load_from_metrics(weights_path=weights_dir,
+                                                   tags_csv=tags_path,
+                                                   on_gpu=on_gpu,
+                                                   map_location=map_location)
 
     assert trained_model is not None, 'loading model failed'
 
@@ -1078,19 +1241,35 @@ def run_prediction(dataloader, trained_model):
 
     # acc
     labels_hat = torch.argmax(y_hat, dim=1)
-    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-    val_acc = torch.tensor(val_acc)
-    val_acc = val_acc.item()
+    acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+    acc = torch.tensor(acc)
+    acc = acc.item()
 
-    print(val_acc)
-
-    assert val_acc > 0.50, 'this model is expected to get > 0.50 in test set (it got %f)' % val_acc
+    assert acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {acc})'
 
 
-def assert_ok_acc(trainer):
+def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
-    assert acc > 0.50, 'model failed to get expected 0.50 validation accuracy. Got: %f' % acc
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def assert_ok_test_acc(trainer):
+    # this model should get 0.80+ acc
+    acc = trainer.tng_tqdm_dic['test_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def can_run_gpu_test():
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
+        return False
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
+        return False
+    return True
 
 
 if __name__ == '__main__':

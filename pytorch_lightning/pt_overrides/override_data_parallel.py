@@ -56,6 +56,8 @@ class LightningDataParallel(DataParallel):
             # lightning
             if self.module.training:
                 return self.module.training_step(*inputs[0], **kwargs[0])
+            elif self.module.testing:
+                return self.module.test_step(*inputs[0], **kwargs[0])
             else:
                 return self.module.validation_step(*inputs[0], **kwargs[0])
 
@@ -89,6 +91,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # lightning
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
+                elif self.module.testing:
+                    output = self.module.test_step(*inputs[0], **kwargs[0])
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
@@ -153,6 +157,10 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # CHANGE
                 if module.training:
                     output = module.training_step(*input, **kwargs)
+
+                elif module.testing:
+                    output = module.test_step(*input, **kwargs)
+
                 else:
                     output = module.validation_step(*input, **kwargs)
                 # ---------------
