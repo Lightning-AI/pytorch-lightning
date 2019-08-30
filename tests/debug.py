@@ -4,7 +4,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
 from pytorch_lightning import Trainer
-from examples import LightningTemplateModel
+from  .. import examples
 from argparse import Namespace
 from test_tube import Experiment
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -74,7 +74,7 @@ def get_model():
                            'data_root': os.path.join(root_dir, 'mnist'),
                            'out_features': 10,
                            'hidden_dim': 1000})
-    model = LightningTemplateModel(hparams)
+    model = examples.LightningTemplateModel(hparams)
 
     return model, hparams
 
