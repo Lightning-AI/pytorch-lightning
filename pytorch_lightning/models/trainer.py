@@ -317,11 +317,7 @@ class Trainer(TrainerIO):
             self.test_percent_check = overfit_pct
 
     def __get_model(self):
-        try:
-
-            return self.model.module if self.data_parallel else self.model
-        except Exception as e:
-            ForkedPdb().set_trace()
+        return self.model.module if self.data_parallel else self.model
 
     def __is_function_implemented(self, f_name):
         model = self.__get_model()
@@ -968,12 +964,10 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         if model is not None:
-
             self.testing = True
-            ForkedPdb().set_trace()
             self.fit(model)
-
-        self.__run_evaluation(test=True)
+        else:
+            self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
@@ -1222,16 +1216,3 @@ class Trainer(TrainerIO):
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__tng_tqdm_dic)
 
-import sys
-class ForkedPdb(pdb.Pdb):
-    """A Pdb subclass that may be used
-    from a forked multiprocessing child
-
-    """
-    def interaction(self, *args, **kwargs):
-        _stdin = sys.stdin
-        try:
-            sys.stdin = open('/dev/stdin')
-            pdb.Pdb.interaction(self, *args, **kwargs)
-        finally:
-            sys.stdin = _stdin
