@@ -169,7 +169,6 @@ class LightningTestModel(LightningModule):
         # we return just the average in this case (if we want)
         # return torch.stack(outputs).mean()
         import pdb
-        pdb.set_trace()
 
         val_loss_mean = 0
         val_acc_mean = 0
@@ -177,6 +176,7 @@ class LightningTestModel(LightningModule):
             val_loss_mean += output['val_loss']
             val_acc_mean += output['val_acc']
 
+        pdb.set_trace()
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
 
