@@ -191,19 +191,61 @@ def assert_ok_test_acc(trainer):
     acc = trainer.tng_tqdm_dic['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
-def main():
+def get_hparams(continue_training=False, hpc_exp_number=0):
+    root_dir = os.path.dirname(os.path.realpath(__file__))
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    model, hparams = get_model()
+    args = {
+        'drop_prob': 0.2,
+        'batch_size': 32,
+        'in_features': 28 * 28,
+        'learning_rate': 0.001 * 8,
+        'optimizer_name': 'adam',
+        'data_root': os.path.join(root_dir, 'mnist'),
+        'out_features': 10,
+        'hidden_dim': 1000}
+
+    if continue_training:
+        args['test_tube_do_checkpoint_load'] = True
+        args['hpc_exp_number'] = hpc_exp_number
+
+    hparams = Namespace(**args)
+    return hparams
+
+def main():
+    """Verify test() on fitted model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
     trainer_options = dict(
+        show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        gpus=[0, 1],
-        distributed_backend='ddp'
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
     )
 
-    run_gpu_model_test(trainer_options, model, hparams)
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
 
 
 if __name__ == '__main__':
