@@ -30,6 +30,94 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_gradient_accumulation_scheduling():
+    """
+    Test that grad scheduling constant changes during training
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    # epoch 1, no accumulation
+    # epoch 2-3 accumulate every 3 batches 
+    # epoch 4+ accumulate every 6 batches
+    schedule = {4: 6, 2: 3}  # shedule must work in any order
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=1)
+    trainer.fit(model)
+    assert trainer.accumulate_grad_batches == 1
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
+    trainer.fit(model)
+    assert trainer.accumulate_grad_batches == 3
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=3)
+    trainer.fit(model)
+    assert trainer.accumulate_grad_batches == 3
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=4)
+    trainer.fit(model)
+    assert trainer.accumulate_grad_batches == 6
+
+    # incorrect configs
+    with pytest.raises(IndexError):
+        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-2: 3})
+
+    # incorrect input types
+    with pytest.raises(TypeError):
+        assert Trainer(accumulate_grad_batches={})
+        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+        assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
+
+def test_gradient_accumulation_scheduling_2():
+    """
+    Test grad accumulation by the freq of optimizer updates
+    """
+
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):       
+        # only test the first 12 batches in epoch
+        if batch_nb < 12:
+            if epoch_nb == 0:
+                # reset counter when starting epoch
+                if batch_nb == 0:
+                    self.prev_called_batch_nb = 0
+
+                asset batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 1
+
+            elif 1 <= epoch_nb <= 2:
+                # reset counter when starting epoch
+                if batch_nb == 1:
+                    self.prev_called_batch_nb = 1
+
+                asset batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 2
+
+            else:
+                if batch_nb == 5:
+                    self.prev_called_batch_nb = 5
+
+                asset batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 5
+
+        optimizer.step()
+
+        # clear gradients
+        optimizer.zero_grad()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    schedule = {1:2, 3: 4}
+
+    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=5)
+
+    # for the test
+    trainer.optimizer_step = optimizer_step
+    model.prev_called_batch_nb = 0
+
+    trainer.fit(model)
+
 
 def test_optimizer_return_options():
 
@@ -860,73 +948,7 @@ def test_multiple_val_dataloader():
 
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
-
-
-def test_gradient_accumulation_scheduling():
-    """
-    Check gradient accumulation scheduler
-    """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-    # according to this schedule, first epoch will be factor 1, next two epochs is 3, and others 6
-    schedule = {4: 6, 2: 3}  # shedule must works in any order
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=1)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 1
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 3
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=3)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 3
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=4)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 6
-
-    with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
-        assert Trainer(accumulate_grad_batches={-2: 3})
-
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={})
-        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
-        assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
-        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
-
-
-def grad_counter(self, batch_data):
-    grad_abs_sum = 0
-    for param in self.parameters():
-        if param.grad is None:
-            return 0
-        grad_abs_sum += torch.abs(param.grad.sum())
-
-    if grad_abs_sum == 0:
-        assert self.counter + 1 == self.accumulate_grad_batches
-        self.counter = 0
-    else:
-        self.counter += 1
-        assert grad_abs_sum > self.previous_grad_abs_sum
-        self.previous_grad_abs_sum = grad_abs_sum
-
-
-def test_gradient_accumulation_scheduling_2():
-    """
-    Check gradient accumulation scheduler v2
-    """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-    schedule = {1: 6}
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
-    trainer.on_batch_start = grad_counter
-    model.counter, model.previous_grad_abs_sum = 0, 0
-    trainer.fit(model)
-
+    
 
 # ------------------------------------------------------------------------
 # UTILS
