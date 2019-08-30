@@ -584,8 +584,7 @@ class Trainer(TrainerIO):
                 If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
-                mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids),
-                         args=(model, ))
+                mp.spawn(self.ddp_train, nprocs=len(self.data_parallel_device_ids), args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
