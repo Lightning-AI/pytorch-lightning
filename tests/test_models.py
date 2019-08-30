@@ -1235,7 +1235,7 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        shutil.move(save_dir, save_dir + '_old')
 
 
 def load_model(exp, save_dir, on_gpu, map_location=None):
