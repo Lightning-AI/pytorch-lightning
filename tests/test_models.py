@@ -30,51 +30,22 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_gradient_accumulation_scheduling():
+def test_gradient_accumulation_scheduling_2():
     """
-    Test that grad scheduling constant changes during training
+    Test grad accumulation by the freq of optimizer updates
     """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    # epoch 1, no accumulation
-    # epoch 2-3 accumulate every 3 batches 
-    # epoch 4+ accumulate every 6 batches
-    schedule = {4: 6, 2: 3}  # shedule must work in any order
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=1)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 1
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=2)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 3
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=3)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 3
-
-    trainer = Trainer(accumulate_grad_batches=schedule, max_nb_epochs=4)
-    trainer.fit(model)
-    assert trainer.accumulate_grad_batches == 6
-
-    # incorrect configs
+    # test incorrect configs
     with pytest.raises(IndexError):
         assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
         assert Trainer(accumulate_grad_batches={-2: 3})
 
-    # incorrect input types
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={})
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
-def test_gradient_accumulation_scheduling_2():
-    """
-    Test grad accumulation by the freq of optimizer updates
-    """
-
+    # test optimizer call freq matches scheduler
     def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):       
         # only test the first 12 batches in epoch
         if batch_nb < 12:
@@ -82,6 +53,9 @@ def test_gradient_accumulation_scheduling_2():
                 # reset counter when starting epoch
                 if batch_nb == 0:
                     self.prev_called_batch_nb = 0
+
+                    # use this opportunity to test once
+                    assert trainer.accumulate_grad_batches == 1
 
                 asset batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 1
@@ -91,15 +65,21 @@ def test_gradient_accumulation_scheduling_2():
                 if batch_nb == 1:
                     self.prev_called_batch_nb = 1
 
+                    # use this opportunity to test once
+                    assert trainer.accumulate_grad_batches == 2
+                    
                 asset batch_nb == self.prev_called_batch_nb
                 self.prev_called_batch_nb += 2
 
             else:
-                if batch_nb == 5:
-                    self.prev_called_batch_nb = 5
+                if batch_nb == 3:
+                    self.prev_called_batch_nb = 3
+
+                    # use this opportunity to test once
+                    assert trainer.accumulate_grad_batches == 4
 
                 asset batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 5
+                self.prev_called_batch_nb += 3
 
         optimizer.step()
 
