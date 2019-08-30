@@ -261,7 +261,7 @@ def test_no_val_module():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # traning complete
+    # training complete
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
@@ -943,6 +943,37 @@ def test_multiple_val_dataloader():
 
     # make sure predictions are good for each val set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+
+
+def test_multiple_test_dataloader():
+    """
+    Verify multiple test_dataloader
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams, use_two_test_sets=True)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify tng completed
+    assert result == 1
+
+    # verify there are 2 val loaders
+    assert len(trainer.test_dataloader) == 2, 'Multiple test_dataloaders not initiated properly'
+
+    # make sure predictions are good for each test set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.test_dataloader]
 
 
 # ------------------------------------------------------------------------
