@@ -16,6 +16,7 @@ from pytorch_lightning.testing import (
     LightningValidationMixin,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
+    LightningTestMixin,
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.callbacks import (
@@ -88,6 +89,47 @@ def test_running_test_after_fitting():
     """Verify test() on fitted model"""
     hparams = get_hparams()
     model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+
+    clear_save_dir()
+
+
+def test_running_test_without_val():
+    """Verify test() works on a model with no val_loader"""
+    class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
+        pass
+    hparams = get_hparams()
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 

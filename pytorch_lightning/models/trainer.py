@@ -396,7 +396,7 @@ class Trainer(TrainerIO):
         if test and len(self.test_dataloader) > 1:
             args.append(dataloader_i)
 
-        elif len(self.val_dataloader) > 1:
+        elif not test and len(self.val_dataloader) > 1:
             args.append(dataloader_i)
 
         # handle DP, DDP forward
