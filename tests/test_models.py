@@ -10,7 +10,14 @@ from test_tube import Experiment, SlurmCluster
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
+from pytorch_lightning.testing import (
+    LightningTestModel,
+    LightningTestModelBase,
+    LightningValidationMixin,
+    LightningValidationStepMixin,
+    LightningValidationMultipleDataloadersMixin,
+    LightningTestMultipleDataloadersMixin,
+)
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     EarlyStopping,
@@ -146,7 +153,9 @@ def test_running_test_pretrained_model():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
+    pretrained_model = load_model(
+        exp, save_dir, on_gpu=False, module_class=LightningTestModel
+    )
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -400,7 +409,10 @@ def test_no_val_module():
     :return:
     """
     hparams = get_hparams()
-    model = NoValModel(hparams)
+
+    class CurrentTestModel(LightningTestModelBase):
+        pass
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -443,8 +455,11 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+
+    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+        pass
     hparams = get_hparams()
-    model = NoValEndTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -1052,8 +1067,13 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
+    class CurrentTestModel(
+        LightningValidationMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
     hparams = get_hparams()
-    model = LightningTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
     # exp file to get meta
     trainer_options = dict(
@@ -1081,8 +1101,13 @@ def test_multiple_test_dataloader():
     Verify multiple test_dataloader
     :return:
     """
+    class CurrentTestModel(
+        LightningTestMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
     hparams = get_hparams()
-    model = LightningTestModel(hparams, use_two_test_sets=True)
+    model = CurrentTestModel(hparams)
 
     # exp file to get meta
     trainer_options = dict(
