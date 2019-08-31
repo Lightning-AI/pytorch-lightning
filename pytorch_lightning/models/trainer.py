@@ -14,6 +14,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.root_module.model_saving import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
@@ -326,7 +327,7 @@ class Trainer(TrainerIO):
 
     def __is_overriden(self, f_name):
         model = self.__get_model()
-        super_object = super(model.__class__, model)
+        super_object = LightningModule
 
         # when code pointers are different, it was overriden
         is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
