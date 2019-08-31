@@ -137,3 +137,5 @@ Notice a few things about this flow:
 - [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
+###### Testing loop  
+- [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
