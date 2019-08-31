@@ -159,6 +159,11 @@ print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
 print('and going to http://localhost:6006 on your browser')
 ```    
 
+When you're all done you can even run the test set separately.   
+```python
+trainer.test()
+```
+
 ## What does lightning control for me?   
 
 Everything in gray!    
