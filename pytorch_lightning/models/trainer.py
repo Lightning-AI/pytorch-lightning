@@ -396,6 +396,7 @@ class Trainer(TrainerIO):
         if test and len(self.test_dataloader) > 1:
             args.append(dataloader_i)
 
+
         elif not test and len(self.val_dataloader) > 1:
             args.append(dataloader_i)
 
