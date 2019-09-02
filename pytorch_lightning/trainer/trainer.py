@@ -583,7 +583,7 @@ class Trainer(TrainerIO):
             """
             warnings.warn(msg)
 
-         if self.use_ddp and self.val_dataloader is not None:
+        if self.use_ddp and self.val_dataloader is not None:
             for dataloader in self.val_dataloader:
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
