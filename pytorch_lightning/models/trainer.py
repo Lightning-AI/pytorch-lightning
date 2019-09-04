@@ -63,6 +63,7 @@ class Trainer(TrainerIO):
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
                  gpus=None,
+                 log_gpu_memory=False,
                  show_progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
@@ -94,6 +95,9 @@ class Trainer(TrainerIO):
         :param current_gpu_name:
         :param nb_gpu_nodes:
         :param gpus:
+        :param \: Log GPU memory utilization as metric
+            during training. This can lead to lower performance on some
+            servers, in particular when `nvidia-smi` is slow.
         :param show_progress_bar:
         :param overfit_pct:
         :param track_grad_norm:
@@ -118,6 +122,7 @@ class Trainer(TrainerIO):
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
+        self.log_gpu_memory = log_gpu_memory
         self.gradient_clip = gradient_clip
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = early_stop_callback is not None
@@ -934,7 +939,7 @@ class Trainer(TrainerIO):
                 metrics = self.__tng_tqdm_dic
 
                 # add gpu memory
-                if self.on_gpu:
+                if self.on_gpu and self.log_gpu_memory:
                     mem_map = get_gpu_memory_map()
                     metrics.update(mem_map)
 
