@@ -14,6 +14,14 @@ Every k batches lightning will make an entry in the metrics log
 ``` {.python}
 # DEFAULT (ie: save a .csv log file every 10 batches)
 trainer = Trainer(add_log_row_interval=10)
+```   
+
+---
+#### Log metric row every k batches 
+Logs GPU memory when metrics are logged.   
+``` {.python}
+# DEFAULT
+trainer = Trainer(log_gpu_memory=False)
 ```
 
 ---
