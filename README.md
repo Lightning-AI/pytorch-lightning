@@ -434,7 +434,7 @@ If you can't wait for the next release, install the most up to date code with:
 
 ### Any release installation
 
-User can also install any past release from this repository:
+You can also install any past release from this repository:
 ```bash
 pip install https://github.com/williamFalcon/pytorch-lightning/archive/0.4.4.zip --upgrade
 ```
