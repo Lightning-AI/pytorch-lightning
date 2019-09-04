@@ -43,7 +43,8 @@ Every research project starts the same, a model, a training loop, validation loo
 
 Lightning sets up all the boilerplate state-of-the-art training for you so you can focus on the research.   
 
----   
+---
+ 
 ## README Table of Contents        
 - [How do I use it](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it)     
 - [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
@@ -57,7 +58,8 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [Asking for help](https://github.com/williamFalcon/pytorch-lightning#asking-for-help)
 - [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
 
----   
+---
+
 ## How do I do use it?   
 Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule]((https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)) which you fit using a Trainer.    
 
@@ -65,76 +67,75 @@ The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALS
 
 To use lightning do 2 things:  
 1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
-```python
-import os
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
-
-import pytorch_lightning as pl
-
-class CoolSystem(pl.LightningModule):
-
-    def __init__(self):
-        super(CoolSystem, self).__init__()
-        # not the best model...
-        self.l1 = torch.nn.Linear(28 * 28, 10)
-
-    def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-    def training_step(self, batch, batch_nb):
-        # REQUIRED
-        x, y = batch
-        y_hat = self.forward(x)
-        return {'loss': F.cross_entropy(y_hat, y)}
-
-    def validation_step(self, batch, batch_nb):
-        # OPTIONAL
-        x, y = batch
-        y_hat = self.forward(x)
-        return {'val_loss': F.cross_entropy(y_hat, y)}
-
-    def validation_end(self, outputs):
-        # OPTIONAL
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        return {'avg_val_loss': avg_loss}
-
-    def configure_optimizers(self):
-        # REQUIRED
-        # can return multiple optimizers and learning_rate schedulers
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-    @pl.data_loader
-    def tng_dataloader(self):
-        # REQUIRED
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
-
-    @pl.data_loader
-    def val_dataloader(self):
-        # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
-
-    @pl.data_loader
-    def test_dataloader(self):
-        # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
-```
-
+    ```python
+    import os
+    import torch
+    from torch.nn import functional as F
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    import torchvision.transforms as transforms
+    
+    import pytorch_lightning as pl
+    
+    class CoolSystem(pl.LightningModule):
+    
+        def __init__(self):
+            super(CoolSystem, self).__init__()
+            # not the best model...
+            self.l1 = torch.nn.Linear(28 * 28, 10)
+    
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+    
+        def training_step(self, batch, batch_nb):
+            # REQUIRED
+            x, y = batch
+            y_hat = self.forward(x)
+            return {'loss': F.cross_entropy(y_hat, y)}
+    
+        def validation_step(self, batch, batch_nb):
+            # OPTIONAL
+            x, y = batch
+            y_hat = self.forward(x)
+            return {'val_loss': F.cross_entropy(y_hat, y)}
+    
+        def validation_end(self, outputs):
+            # OPTIONAL
+            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+            return {'avg_val_loss': avg_loss}
+    
+        def configure_optimizers(self):
+            # REQUIRED
+            # can return multiple optimizers and learning_rate schedulers
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+    
+        @pl.data_loader
+        def tng_dataloader(self):
+            # REQUIRED
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+    
+        @pl.data_loader
+        def val_dataloader(self):
+            # OPTIONAL
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+    
+        @pl.data_loader
+        def test_dataloader(self):
+            # OPTIONAL
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+    ```
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
-```python
-from pytorch_lightning import Trainer
+    ```python
+    from pytorch_lightning import Trainer
+    
+    model = CoolSystem()
+    
+    # most basic trainer, uses good defaults
+    trainer = Trainer()    
+    trainer.fit(model)   
+    ```     
 
-model = CoolSystem()
-
-# most basic trainer, uses good defaults
-trainer = Trainer()    
-trainer.fit(model)   
-```     
-
-Or with tensorboard logger and some options turned on such as multi-gpu, etc...    
+Or with tensorboard logger and some options turned on such as multi-gpu, etc...
 ```python   
 from test_tube import Experiment    
 
@@ -275,18 +276,18 @@ tensorboard --logdir /some/path
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
 
-###### Checkpointing    
+#### Checkpointing    
 
 - [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
 - [Model loading](https://williamfalcon.github.io/pytorch-lightning/LightningModule/methods/#load-from-metrics) 
 - [Restoring training session](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#restoring-training-session)
 
-###### Computing cluster (SLURM)    
+#### Computing cluster (SLURM)    
 
 - [Running grid search on a cluster](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#running-grid-search-on-a-cluster) 
 - [Walltime auto-resubmit](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#walltime-auto-resubmit)   
 
-###### Debugging  
+#### Debugging  
 
 - [Fast dev run](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#fast-dev-run)
 - [Inspect gradient norms](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#inspect-gradient-norms)
@@ -297,7 +298,7 @@ tensorboard --logdir /some/path
 - [Print input and output size of every module in system](https://williamfalcon.github.io/pytorch-lightning/LightningModule/properties/#example_input_array)
 
 
-###### Distributed training    
+#### Distributed training    
 
 - [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
 - [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
@@ -306,7 +307,7 @@ tensorboard --logdir /some/path
 - [Self-balancing architecture](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#self-balancing-architecture)
 
 
-###### Experiment Logging   
+#### Experiment Logging   
 
 - [Display metrics in progress bar](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#display-metrics-in-progress-bar)
 - [Log metric row every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#log-metric-row-every-k-batches)
@@ -316,7 +317,7 @@ tensorboard --logdir /some/path
 - [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
 - [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
 
-###### Training loop    
+#### Training loop    
 
 - [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
 - [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
@@ -328,7 +329,7 @@ tensorboard --logdir /some/path
 - [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 - [Step optimizers at arbitrary intervals](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#optimizer_step)
 
-###### Validation loop    
+#### Validation loop    
 
 - [Check validation every n epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#check-validation-every-n-epochs)
 - [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
@@ -337,7 +338,7 @@ tensorboard --logdir /some/path
 - [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
-###### Testing loop  
+#### Testing loop  
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
 ## Demo
@@ -378,7 +379,7 @@ If you have any questions, feel free to:
 
 If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
 
-To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)!     
+To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community)!     
 
 ---   
 ## FAQ    
@@ -404,22 +405,36 @@ Nope.
 Nope. Please use anaconda or miniconda.    
 
 **Which PyTorch versions do you support?**    
-##### PyTorch 1.1.0       
-```bash    
-# install pytorch 1.1.0 using the official instructions   
+- **PyTorch 1.1.0**       
+    ```bash    
+    # install pytorch 1.1.0 using the official instructions   
+    
+    # install test-tube 0.6.7.6 which supports 1.1.0   
+    pip install test-tube==0.6.7.6   
+    
+    # install latest Lightning version without upgrading deps    
+    pip install -U --no-deps pytorch-lightning
+    ```     
+- **PyTorch 1.2.0**
+    Install via pip as normal   
 
-# install test-tube 0.6.7.6 which supports 1.1.0   
-pip install test-tube==0.6.7.6   
+## Custom installation
 
-# install latest Lightning version without upgrading deps    
-pip install -U --no-deps pytorch-lightning
-```     
+### Bleeding edge
 
-##### PyTorch 1.2.0   
-Install via pip as normal   
+If you can't wait for the next release, install the most up to date code with:
+* using GIT (locally clone whole repo with full history)
+    ```bash
+    pip install git+https://github.com/williamFalcon/pytorch-lightning.git@master --upgrade
+    ```
+* using instant zip (last state of the repo without git history)
+    ```bash
+    pip install https://github.com/williamFalcon/pytorch-lightning/archive/master.zip --upgrade
+    ```
 
-## Bleeding edge
-If you can't wait for the next release, install the most up to date code with:  
+### Any release installation
+
+User can also install any past release from this repository:
 ```bash
-pip install git+https://github.com/williamFalcon/pytorch-lightning.git@master --upgrade
+pip install https://github.com/williamFalcon/pytorch-lightning/archive/0.4.4.zip --upgrade
 ```
