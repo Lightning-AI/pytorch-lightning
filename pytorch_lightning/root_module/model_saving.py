@@ -134,8 +134,7 @@ class TrainerIO(object):
         self.cluster.set_checkpoint_load_function(
             self.hpc_load,
             kwargs={
-                'folderpath': self.checkpoint_callback.filepath,
-                'on_gpu': self.on_gpu
+                'folderpath': self.checkpoint_callback.filepath
             }
         )
 
@@ -196,13 +195,18 @@ class TrainerIO(object):
 
         return filepath
 
-    def hpc_load(self, folderpath, on_gpu):
+    def hpc_load(self, folderpath):
+        """
+        HPC load puts all weights on the CPU initially (even if weights saved from GPUs).
+        We do this to not blow the GPU memory when loading huge models
+        This function should be called before any GPU model code happens
+        :param folderpath:
+        :return:
+        """
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
-        if on_gpu:
-            checkpoint = torch.load(filepath)
-        else:
-            checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        # load on CPU first otherwise model will run out of memory
+        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
