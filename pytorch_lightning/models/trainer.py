@@ -614,6 +614,12 @@ class Trainer(TrainerIO):
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
+            # enable cluster checkpointing
+            # restores the model if loading from a checkpoint
+            # hpc checkpoint overrides any other checkpoints loaded before
+            if self.cluster is not None:  # pragma: no cover
+                self.enable_auto_hpc_walltime_manager()
+
             self.__run_pretrain_routine(model)
 
         # return 1 when finished
@@ -640,6 +646,12 @@ class Trainer(TrainerIO):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
+        # enable cluster checkpointing
+        # restores the model if loading from a checkpoint
+        # hpc checkpoint overrides any other checkpoints loaded before
+        if self.cluster is not None:  # pragma: no cover
+            self.enable_auto_hpc_walltime_manager()
+
         model.cuda(self.data_parallel_device_ids[0])
 
         if self.use_amp:
@@ -656,6 +668,12 @@ class Trainer(TrainerIO):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
+        # enable cluster checkpointing
+        # restores the model if loading from a checkpoint
+        # hpc checkpoint overrides any other checkpoints loaded before
+        if self.cluster is not None:  # pragma: no cover
+            self.enable_auto_hpc_walltime_manager()
 
         model.cuda(self.data_parallel_device_ids[0])
 
@@ -714,6 +732,12 @@ class Trainer(TrainerIO):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
+        # enable cluster checkpointing
+        # restores the model if loading from a checkpoint
+        # hpc checkpoint overrides any other checkpoints loaded before
+        if self.cluster is not None:  # pragma: no cover
+            self.enable_auto_hpc_walltime_manager()
 
         # MODEL
         # copy model to each gpu
@@ -817,12 +841,6 @@ class Trainer(TrainerIO):
 
         # restore training and model before hpc call
         self.restore_state_if_existing_checkpoint()
-
-        # enable cluster checkpointing
-        # also restores training state
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
 
         # progress bar init
         if self.show_progress_bar:
