@@ -260,7 +260,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 Simply note the path you set for the Experiment    
 ```python
 from test_tube import Experiment
-from pytorch-lightning import  Trainer
+from pytorch_lightning import Trainer
 
 exp = Experiment(save_dir='/some/path')
 trainer = Trainer(experiment=exp)
