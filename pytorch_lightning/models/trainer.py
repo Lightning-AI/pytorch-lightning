@@ -63,7 +63,7 @@ class Trainer(TrainerIO):
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
                  gpus=None,
-                 log_gpu_memory=True,
+                 log_gpu_memory=False,
                  show_progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
@@ -95,7 +95,7 @@ class Trainer(TrainerIO):
         :param current_gpu_name:
         :param nb_gpu_nodes:
         :param gpus:
-        :param log_gpu_memory: Log GPU memory utilization as metric
+        :param \: Log GPU memory utilization as metric
             during training. This can lead to lower performance on some
             servers, in particular when `nvidia-smi` is slow.
         :param show_progress_bar:
