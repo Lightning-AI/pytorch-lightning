@@ -8,10 +8,6 @@
 # this file is *not* meant to cover or endorse the use of travis, but rather to
 # help confirm pull requests to this project.
 
-os:
-  - linux
-  - osx
-
 env:
   global:
     - DISPLAY=""
@@ -34,14 +30,16 @@ matrix:
       env: TOXENV=py37
     - os: osx
       osx_image: xcode9.4
-      language: minimal
-      env: TOXENV=py36
-      require: sudo
+      language: generic
+      env:
+        - PYTHON=36
+        - TOXENV=py36
     - os: osx
       osx_image: xcode9.4
-      language: minimal
-      env: TOXENV=py37
-      require: sudo
+      language: generic
+      env:
+        - PYTHON=37
+        - TOXENV=py37
     - os: windows
       language: minimal
       before_install:
@@ -52,9 +50,23 @@ matrix:
 # See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      yes | sudo port install python$PYTHON;
+      yes | sudo port install py$PYTHON-pip;
+      sudo port select --set python3 python$PYTHON;
+      sudo port select --set pip pip$PYTHON;
+      export PATH=/Users/travis/Library/Python/$PYTHON/bin:$PATH;
+    fi
+
 install:
-  - pip install -r requirements.txt
-  - pip install -r ./tests/requirements.txt
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      pip install -r requirements.txt --user;
+      pip install -r ./tests/requirements.txt --user;
+    else
+      pip install -r requirements.txt;
+      pip install -r ./tests/requirements.txt;
+    fi
   - pip --version ; pip list
 
 script:
