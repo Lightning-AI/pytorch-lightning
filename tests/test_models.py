@@ -937,7 +937,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=True)
+    trainer.hpc_load(save_dir)
 
     # test freeze on gpu
     model.freeze()
@@ -1210,7 +1210,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=on_gpu)
+    trainer.hpc_load(save_dir)
 
     clear_save_dir()
 
