@@ -213,6 +213,9 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     hparams = Namespace(**args)
     return hparams
 
+def assert_same_weights(model_a, model_b):
+    for (_, param), (_, param_b) in zip(model_a.named_parameters(), model_b.named_parameters()):
+        assert torch.all(torch.eq(param, param_b))
 
 def main():
     """Verify test() on fitted model"""
@@ -251,6 +254,8 @@ def main():
     pretrained_model = load_model(
         exp, save_dir, on_gpu=False, module_class=LightningTestModel
     )
+
+    assert_same_weights(model, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)

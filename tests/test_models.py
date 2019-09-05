@@ -1317,6 +1317,9 @@ def assert_ok_val_acc(trainer):
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
+def assert_same_weights(model_a, model_b):
+    for (_, param), (_, param_b) in zip(model_a.named_parameters(), model_b.named_parameters()):
+        assert torch.all(torch.eq(param, param_b))
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
