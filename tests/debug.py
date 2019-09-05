@@ -257,10 +257,10 @@ def main():
     assert_same_weights(model, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
-    trainer.test(model)
+    new_trainer.test(model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(trainer)
+    assert_ok_test_acc(new_trainer)
     clear_save_dir()
 
 
