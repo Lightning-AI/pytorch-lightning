@@ -10,7 +10,15 @@ from test_tube import Experiment, SlurmCluster
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
+from pytorch_lightning.testing import (
+    LightningTestModel,
+    LightningTestModelBase,
+    LightningValidationMixin,
+    LightningValidationStepMixin,
+    LightningValidationMultipleDataloadersMixin,
+    LightningTestMixin,
+    LightningTestMultipleDataloadersMixin,
+)
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     EarlyStopping,
@@ -21,7 +29,6 @@ from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from examples import LightningTemplateModel
-import pdb
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -31,115 +38,6 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_cpu_restore_training():
-    """
-    Verify continue training session on CPU
-    :return:
-    """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    test_exp_version = exp.version
-
-    trainer_options = dict(
-        max_nb_epochs=2,
-        val_check_interval=0.95,
-        val_percent_check=0.2,
-        train_percent_check=1.0,
-        experiment=exp,
-        checkpoint_callback=ModelCheckpoint(save_dir)
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    real_global_epoch = trainer.current_epoch
-
-    old_model = model
-
-    # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    new_exp = get_exp(False, version=test_exp_version)
-    trainer_options = dict(
-        max_nb_epochs=2,
-        val_check_interval=0.95,
-        val_percent_check=0.2,
-        train_percent_check=1.0,
-        experiment=new_exp,
-        checkpoint_callback=ModelCheckpoint(save_dir),
-    )
-    trainer = Trainer(**trainer_options)
-    model = LightningTestModel(hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        trainer.model.eval()
-        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
-
-    model.on_sanity_check_start = assert_good_acc
-
-    # by calling fit again, we trigger training, loading weights from the cluster
-    # and our hook to predict using current model before any more weight updates
-    trainer.fit(model)
-
-    clear_save_dir()
-
-
-def test_running_test_pretrained_model():
-    """Verify test() on pretrained model"""
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        experiment=exp
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
-
-    new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
-
-    # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
-    clear_save_dir()
-
-
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -223,6 +121,89 @@ def test_running_test_after_fitting():
     # test we have good test accuracy
     assert_ok_test_acc(trainer)
 
+    clear_save_dir()
+
+
+def test_running_test_without_val():
+    """Verify test() works on a model with no val_loader"""
+    class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
+        pass
+    hparams = get_hparams()
+    model = CurrentTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model():
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(
+        exp, save_dir, on_gpu=False, module_class=LightningTestModel
+    )
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
     clear_save_dir()
 
 
@@ -470,7 +451,10 @@ def test_no_val_module():
     :return:
     """
     hparams = get_hparams()
-    model = NoValModel(hparams)
+
+    class CurrentTestModel(LightningTestModelBase):
+        pass
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -513,8 +497,11 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+
+    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+        pass
     hparams = get_hparams()
-    model = NoValEndTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -605,6 +592,72 @@ def test_amp_single_gpu():
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_cpu_restore_training():
+    """
+    Verify continue training session on CPU
+    :return:
+    """
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    test_exp_version = 10
+    exp = get_exp(False, version=test_exp_version)
+    exp.argparse(hparams)
+    exp.save()
+
+    trainer_options = dict(
+        max_nb_epochs=2,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
+        experiment=exp,
+        checkpoint_callback=ModelCheckpoint(save_dir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    real_global_epoch = trainer.current_epoch
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # wipe-out trainer and model
+    # retrain with not much data... this simulates picking training back up after slurm
+    # we want to see if the weights come back correctly
+    new_exp = get_exp(False, version=test_exp_version)
+    trainer_options = dict(
+        max_nb_epochs=2,
+        val_check_interval=0.50,
+        val_percent_check=0.2,
+        train_percent_check=0.2,
+        experiment=new_exp,
+        checkpoint_callback=ModelCheckpoint(save_dir),
+    )
+    trainer = Trainer(**trainer_options)
+    model = LightningTestModel(hparams)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_good_acc():
+        assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
+
+        # if model and state loaded correctly, predictions will be good even though we
+        # haven't trained with the new loaded model
+        trainer.model.eval()
+        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+
+    model.on_sanity_check_start = assert_good_acc
+
+    # by calling fit again, we trigger training, loading weights from the cluster
+    # and our hook to predict using current model before any more weight updates
+    trainer.fit(model)
+
+    clear_save_dir()
 
 
 def test_amp_gpu_ddp():
@@ -1053,8 +1106,13 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
+    class CurrentTestModel(
+        LightningValidationMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
     hparams = get_hparams()
-    model = LightningTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
     # exp file to get meta
     trainer_options = dict(
@@ -1082,8 +1140,13 @@ def test_multiple_test_dataloader():
     Verify multiple test_dataloader
     :return:
     """
+    class CurrentTestModel(
+        LightningTestMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
     hparams = get_hparams()
-    model = LightningTestModel(hparams, use_two_test_sets=True)
+    model = CurrentTestModel(hparams)
 
     # exp file to get meta
     trainer_options = dict(
@@ -1231,8 +1294,6 @@ def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningT
 
 
 def run_prediction(dataloader, trained_model):
-    trained_model.eval()
-
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -1255,6 +1316,11 @@ def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def assert_same_weights(model_a, model_b):
+    for (_, param), (_, param_b) in zip(model_a.named_parameters(), model_b.named_parameters()):
+        assert torch.all(torch.eq(param, param_b))
 
 
 def assert_ok_test_acc(trainer):
