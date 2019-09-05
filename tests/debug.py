@@ -253,15 +253,8 @@ def main():
         exp, save_dir, on_gpu=False, module_class=LightningTestModel
     )
 
-    def check(m):
-        m == pretrained_model
-        pdb.set_trace()
-
-    pretrained_model.on_pre_performance_check = check
-
     assert_same_weights(model, pretrained_model)
 
-    pdb.set_trace()
     run_prediction(pretrained_model.test_dataloader, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
