@@ -191,7 +191,7 @@ class LightningTestModel(LightningModule):
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
 
-    def test_step(self, data_batch, batch_i, dataloader_i):
+    def test_step(self, data_batch, batch_i):
         """
         Lightning calls this inside the validation loop
         :param data_batch:
@@ -233,12 +233,12 @@ class LightningTestModel(LightningModule):
                 'test_dic': {'test_loss_a': loss_test}
             })
             return output
-        if batch_i % 5 == 0:
-            output = OrderedDict({
-                f'test_loss_{dataloader_i}': loss_test,
-                f'test_acc_{dataloader_i}': test_acc,
-            })
-            return output
+        # if batch_i % 5 == 0:
+        #     output = OrderedDict({
+        #         f'test_loss_{dataloader_i}': loss_test,
+        #         f'test_acc_{dataloader_i}': test_acc,
+        #     })
+        #     return output
 
     def test_end(self, outputs):
         """
