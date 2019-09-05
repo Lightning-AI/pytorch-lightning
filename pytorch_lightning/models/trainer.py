@@ -274,6 +274,9 @@ class Trainer(TrainerIO):
             """
             raise ModuleNotFoundError(msg)
 
+        # handle hpc terminate signal (auto-resubmit)
+        self.register_slurm_signal_handlers()
+
     def restore_state_if_existing_checkpoint(self, model):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
@@ -572,10 +575,6 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
-        # handle hpc terminate signal
-        if self.cluster is not None and not self.testing:
-            self.register_hpc_resubmit()
-
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
             # must copy only the meta of the exp so it survives pickle/unpickle

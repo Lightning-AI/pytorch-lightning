@@ -3,6 +3,7 @@ import re
 
 import torch
 import shutil
+import signal
 
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
@@ -45,12 +46,36 @@ class ModelIO(object):
 
 
 class TrainerIO(object):
-
     def __get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
                                                LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
+
+    # --------------------
+    # HPC SIGNAL HANDLING
+    # --------------------
+    def register_slurm_signal_handlers(self):
+        # see if we're using slurm
+        on_slurm = False
+        try:
+            node_id = os.environ['SLURM_NODEID']
+            on_slurm = True
+        except Exception as e:
+            pass
+
+        if on_slurm and self.proc_rank == 0:
+            signal.signal(signal.SIGUSR1, self.sig_handler)
+            signal.signal(signal.SIGTERM, self.term_handler)
+
+    def sig_handler(self):
+        if self.proc_rank == 0:
+            print('handling SIGUSR1')
+            self.hpc_save(self.checkpoint_callback.filepath, self.experiment)
+
+    def term_handler(self, signum, frame):
+        # save
+        print("bypassing sigterm")
 
     # --------------------
     # MODEL SAVE CHECKPOINT
@@ -114,18 +139,6 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def register_hpc_resubmit(self):
-        # allow test tube to handle model check pointing automatically
-        # only if proc 0 so we don't trigger world_size resubmits
-        if self.proc_rank == 0:
-            self.cluster.set_checkpoint_save_function(
-                self.hpc_save,
-                kwargs={
-                    'folderpath': self.checkpoint_callback.filepath,
-                    'experiment': self.experiment
-                }
-            )
-
     def restore_hpc_weights_if_needed(self, model):
         """
         If there is a set of hpc weights, use as signal to restore model
