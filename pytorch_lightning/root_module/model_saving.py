@@ -8,6 +8,12 @@ from subprocess import call
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
+import warnings
+
+try:
+    from apex import amp
+except ImportError:
+    pass
 
 class ModelIO(object):
 
@@ -119,6 +125,17 @@ class TrainerIO(object):
             'global_step': self.global_step
         }
 
+        # save amp state
+        if self.use_amp:
+            try:
+                checkpoint['amp'] = amp.state_dict()
+            except Exception as e:
+                m = '''
+                your amp version does not support saving amp state.
+                update to the latest version to avoid nan outputs
+                '''
+                warnings.warn(m)
+
         if self.checkpoint_callback is not None:
             checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
@@ -194,6 +211,17 @@ class TrainerIO(object):
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
             scheduler.load_state_dict(lrs_state)
+
+        # save amp state
+        if self.use_amp:
+            try:
+                amp.load_state_dict(checkpoint['amp'])
+            except Exception as e:
+                m = '''
+                your amp version does not support loading amp state.
+                update to the latest version to avoid nan outputs
+                '''
+                warnings.warn(m)
 
     # ----------------------------------
     # PRIVATE OPS
