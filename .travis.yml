@@ -34,7 +34,7 @@ matrix:
       env: TOXENV=py37
       addons:
         homebrew:
-          update: true
+          # update: true
           packages: python3
       before_install:
         - pip3 install virtualenv
