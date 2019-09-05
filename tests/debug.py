@@ -261,6 +261,9 @@ def main():
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
+    pdb.set_trace()
+    run_prediction(pretrained_model.test_dataloader, pretrained_model)
+
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
     clear_save_dir()
