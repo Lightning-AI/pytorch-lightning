@@ -254,6 +254,7 @@ def main():
     )
 
     def check(m):
+        m == pretrained_model
         pdb.set_trace()
 
     pretrained_model.on_pre_performance_check = check
