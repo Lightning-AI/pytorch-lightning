@@ -234,9 +234,7 @@ def main():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
-        gpus=[0, 1],
-        distributed_backend='ddp'
+        experiment=exp
     )
 
     # fit model
@@ -245,14 +243,17 @@ def main():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pdb.set_trace()
+    pretrained_model = load_model(
+        exp, save_dir, on_gpu=False, module_class=LightningTestModel
+    )
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
-    # clear_save_dir()
+    clear_save_dir()
 
 
 if __name__ == '__main__':
