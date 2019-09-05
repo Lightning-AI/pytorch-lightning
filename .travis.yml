@@ -31,7 +31,7 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       language: generic
-      env: TOXENV=py37
+      env: TOXENV=py36
       addons:
         homebrew:
           # update: true
