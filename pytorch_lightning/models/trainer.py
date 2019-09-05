@@ -740,6 +740,11 @@ class Trainer(TrainerIO):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
+        # put model on appropriate GPUs now
+        # copy model to each gpu
+        torch.cuda.set_device(gpu_nb)
+        model.cuda(gpu_nb)
+
         # AMP
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
@@ -751,10 +756,6 @@ class Trainer(TrainerIO):
 
         # restore weights when needed
         self.__restore_weights(model)
-
-        # put model on appropriate GPUs now
-        # copy model to each gpu
-        torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
