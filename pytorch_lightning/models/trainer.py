@@ -605,6 +605,8 @@ class Trainer(TrainerIO):
 
         # ON CPU
         else:
+            self.model = model
+
             # run through amp wrapper
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.'
@@ -612,16 +614,15 @@ class Trainer(TrainerIO):
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
 
             # enable cluster checkpointing
             # restores the model if loading from a checkpoint
             # hpc checkpoint overrides any other checkpoints loaded before
             if self.cluster is not None:  # pragma: no cover
-                self.model = model
                 self.enable_auto_hpc_walltime_manager()
 
-            self.__run_pretrain_routine(model)
+            self.__run_pretrain_routine(self.model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -643,42 +644,43 @@ class Trainer(TrainerIO):
             return optimizers, []
 
     def __single_gpu_train(self, model):
+        self.model = model
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
 
         # enable cluster checkpointing
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
-            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
-        model.cuda(self.data_parallel_device_ids[0])
+        self.model.cuda(self.data_parallel_device_ids[0])
 
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
+            self.model, optimizers = amp.initialize(
+                self.model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
 
-        self.__run_pretrain_routine(model)
+        self.__run_pretrain_routine(self.model)
 
     def __dp_train(self, model):
+        self.model = model
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
 
         # enable cluster checkpointing
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
-            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
-        model.cuda(self.data_parallel_device_ids[0])
+        self.model.cuda(self.data_parallel_device_ids[0])
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
@@ -690,9 +692,9 @@ class Trainer(TrainerIO):
             """
             raise MisconfigurationException(m)
 
-        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
+        self.model = LightningDataParallel(self.model, device_ids=self.data_parallel_device_ids)
 
-        self.__run_pretrain_routine(model)
+        self.__run_pretrain_routine(self.model)
 
     def ddp_train(self, gpu_nb, model):
         """
@@ -732,36 +734,38 @@ class Trainer(TrainerIO):
         # where to store ip_table
         self.__init_tcp_connection()
 
+        # track model
+        self.model = model
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
 
         # enable cluster checkpointing
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
-            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
         # MODEL
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
-        model.cuda(gpu_nb)
+        self.model.cuda(gpu_nb)
 
         # AMP
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
+            self.model, optimizers = amp.initialize(
+                self.model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
 
-        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
-                                                 find_unused_parameters=True)
+        self.model = LightningDistributedDataParallel(self.model, device_ids=[gpu_nb],
+                                                      find_unused_parameters=True)
 
         # continue training routine
-        self.__run_pretrain_routine(model)
+        self.__run_pretrain_routine(self.model)
 
     def __init_tcp_connection(self):
         """
