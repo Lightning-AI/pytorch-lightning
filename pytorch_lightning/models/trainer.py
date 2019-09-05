@@ -854,8 +854,9 @@ class Trainer(TrainerIO):
 
         # when testing requested only run test and return
         if self.testing:
+            print('-'*100)
             for n, p in model.named_parameters():
-                print(p)
+                print(p[0:10, 0:10])
             pdb.set_trace()
             self.__run_evaluation(test=True)
             return
