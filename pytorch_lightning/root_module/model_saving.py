@@ -56,15 +56,17 @@ class TrainerIO(object):
     # HPC SIGNAL HANDLING
     # --------------------
     def register_slurm_signal_handlers(self):
-        # see if we're using slurm
+        # see if we're using slurm (not interactive)
         on_slurm = False
         try:
-            node_id = os.environ['SLURM_NODEID']
-            on_slurm = True
+            job_name = os.environ['SLURM_JOB_NAME']
+            if job_name != 'bash':
+                on_slurm = True
         except Exception as e:
             pass
 
         if on_slurm and self.proc_rank == 0:
+            print('set slurm handle signals')
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
