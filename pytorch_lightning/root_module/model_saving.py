@@ -2,6 +2,7 @@ import os
 import re
 
 import torch
+import shutil
 
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
@@ -60,7 +61,7 @@ class TrainerIO(object):
         # do the actual save
         torch.save(checkpoint, filepath)
 
-    def restore(self, checkpoint_path, on_gpu):
+    def restore(self, checkpoint_path, on_gpu, model):
 
         if on_gpu:
             checkpoint = torch.load(checkpoint_path)
@@ -69,9 +70,6 @@ class TrainerIO(object):
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
-
-        # load model state
-        model = self.__get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
@@ -116,7 +114,7 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def enable_auto_hpc_walltime_manager(self):
+    def register_hpc_resubmit(self):
         # allow test tube to handle model check pointing automatically
         # only if proc 0 so we don't trigger world_size resubmits
         if self.proc_rank == 0:
@@ -128,12 +126,25 @@ class TrainerIO(object):
                 }
             )
 
-        self.cluster.set_checkpoint_load_function(
-            self.hpc_load,
-            kwargs={
-                'folderpath': self.checkpoint_callback.filepath
-            }
-        )
+    def restore_hpc_weights_if_needed(self, model):
+        """
+        If there is a set of hpc weights, use as signal to restore model
+        :param model:
+        :return:
+        """
+        # look for hpc weights
+        folderpath = self.checkpoint_callback.filepath
+        files = os.listdir(folderpath)
+        hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
+
+        # if hpc weights exist restore model
+        if len(hpc_weight_paths) > 0:
+            self.hpc_load(folderpath, model)
+
+            # delete the hpc weights
+            for file in hpc_weight_paths:
+                path = os.path.join(folderpath, file)
+                shutil.rmtree(path)
 
     def restore_training_state(self, checkpoint):
         """
@@ -196,7 +207,7 @@ class TrainerIO(object):
 
         return filepath
 
-    def hpc_load(self, folderpath):
+    def hpc_load(self, folderpath, model):
         """
         HPC load puts all weights on the CPU initially (even if weights saved from GPUs).
         We do this to not blow the GPU memory when loading huge models
@@ -211,9 +222,6 @@ class TrainerIO(object):
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
-
-        # load model state
-        model = self.__get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])

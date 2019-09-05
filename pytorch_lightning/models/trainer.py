@@ -274,7 +274,7 @@ class Trainer(TrainerIO):
             """
             raise ModuleNotFoundError(msg)
 
-    def restore_state_if_existing_checkpoint(self):
+    def restore_state_if_existing_checkpoint(self, model):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
         last_ckpt_name = None
@@ -302,7 +302,7 @@ class Trainer(TrainerIO):
         # restore last checkpoint
         if last_ckpt_name is not None:
             last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
-            self.restore(last_ckpt_path, self.on_gpu)
+            self.restore(last_ckpt_path, self.on_gpu, model)
             print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
 
     @property
@@ -572,6 +572,10 @@ class Trainer(TrainerIO):
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
+        # handle hpc terminate signal
+        if self.cluster is not None:
+            self.register_hpc_resubmit()
+
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
             # must copy only the meta of the exp so it survives pickle/unpickle
@@ -605,8 +609,6 @@ class Trainer(TrainerIO):
 
         # ON CPU
         else:
-            self.model = model
-
             # run through amp wrapper
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.'
@@ -614,15 +616,12 @@ class Trainer(TrainerIO):
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
+            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-            # enable cluster checkpointing
-            # restores the model if loading from a checkpoint
-            # hpc checkpoint overrides any other checkpoints loaded before
-            if self.cluster is not None:  # pragma: no cover
-                self.enable_auto_hpc_walltime_manager()
+            # restore weights when needed
+            self.__restore_weights(model)
 
-            self.__run_pretrain_routine(self.model)
+            self.__run_pretrain_routine(model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -644,41 +643,31 @@ class Trainer(TrainerIO):
             return optimizers, []
 
     def __single_gpu_train(self, model):
-        self.model = model
-
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        # enable cluster checkpointing
-        # restores the model if loading from a checkpoint
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
+        # restore weights when needed
+        self.__restore_weights(model)
 
         self.model.cuda(self.data_parallel_device_ids[0])
 
         if self.use_amp:
             # An example
-            self.model, optimizers = amp.initialize(
-                self.model, self.optimizers, opt_level=self.amp_level,
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
 
-        self.__run_pretrain_routine(self.model)
+        self.__run_pretrain_routine(model)
 
     def __dp_train(self, model):
-        self.model = model
-
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        # enable cluster checkpointing
-        # restores the model if loading from a checkpoint
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
+        # restore weights when needed
+        self.__restore_weights(model)
 
         self.model.cuda(self.data_parallel_device_ids[0])
 
@@ -692,9 +681,9 @@ class Trainer(TrainerIO):
             """
             raise MisconfigurationException(m)
 
-        self.model = LightningDataParallel(self.model, device_ids=self.data_parallel_device_ids)
+        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
 
-        self.__run_pretrain_routine(self.model)
+        self.__run_pretrain_routine(model)
 
     def ddp_train(self, gpu_nb, model):
         """
@@ -734,38 +723,48 @@ class Trainer(TrainerIO):
         # where to store ip_table
         self.__init_tcp_connection()
 
-        # track model
-        self.model = model
-
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(self.model.configure_optimizers())
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        # enable cluster checkpointing
-        # restores the model if loading from a checkpoint
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
+        # restore weights when needed
+        self.__restore_weights(model)
 
         # MODEL
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
-        self.model.cuda(gpu_nb)
+        model.cuda(gpu_nb)
 
         # AMP
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
             # An example
-            self.model, optimizers = amp.initialize(
-                self.model, self.optimizers, opt_level=self.amp_level,
+            model, optimizers = amp.initialize(
+                model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
 
-        self.model = LightningDistributedDataParallel(self.model, device_ids=[gpu_nb],
+        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
                                                       find_unused_parameters=True)
 
         # continue training routine
-        self.__run_pretrain_routine(self.model)
+        self.__run_pretrain_routine(model)
+
+    def __restore_weights(self, model):
+        """
+        To restore weights we have two cases.
+        First, if we use the same experiment version, then restore the latest ckpt.
+        AFTER that, if we find weights from hpc checkpoint, then restore that.
+
+        :param model:
+        :return:
+        """
+        # restore weights if same exp version
+        self.restore_state_if_existing_checkpoint(model)
+
+        # if script called from hpc resubmit, load weights
+        if self.cluster is not None:  # pragma: no cover
+            self.restore_hpc_weights_if_needed(model)
 
     def __init_tcp_connection(self):
         """
@@ -843,12 +842,8 @@ class Trainer(TrainerIO):
             if self.proc_rank == 0:
                 self.experiment.save()
 
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
+        # track model now
         self.model = model
-
-        # restore training and model before hpc call
-        self.restore_state_if_existing_checkpoint()
 
         # progress bar init
         if self.show_progress_bar:
