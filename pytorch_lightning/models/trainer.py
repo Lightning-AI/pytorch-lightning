@@ -995,9 +995,12 @@ class Trainer(TrainerIO):
         return blacklist
 
     def transfer_batch_to_gpu(self, batch, gpu_id):
-        # base case
-        if isinstance(batch, torch.Tensor):
+        # base case: object can be directly moved using `cuda` or `to`
+        if callable(getattr(batch, 'cuda', None)):
             return batch.cuda(gpu_id)
+
+        elif callable(getattr(batch, 'to', None)):
+            return batch.to(torch.device('cuda', gpu_id))
 
         # when list
         elif isinstance(batch, list):
