@@ -66,6 +66,7 @@ def test_running_test_pretrained_model():
     new_trainer = Trainer(**trainer_options)
     pdb.set_trace()
     new_trainer.test(pretrained_model)
+    pdb.set_trace()
 
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
