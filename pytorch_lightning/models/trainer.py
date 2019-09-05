@@ -573,7 +573,7 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
         # handle hpc terminate signal
-        if self.cluster is not None:
+        if self.cluster is not None and not self.testing:
             self.register_hpc_resubmit()
 
         # when using multi-node or DDP within a node start each module in a separate process
