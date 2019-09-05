@@ -248,7 +248,7 @@ def main():
     assert_ok_test_acc(trainer)
 
     for n, p in model.named_parameters():
-        print(p[0:10, 0:10])
+        print(p[0:10])
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
