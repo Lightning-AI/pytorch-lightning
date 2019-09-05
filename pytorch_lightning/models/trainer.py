@@ -621,7 +621,7 @@ class Trainer(TrainerIO):
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             # restore weights when needed
-            self.__restore_weights(model)
+            # self.__restore_weights(model)
 
             self.__run_pretrain_routine(model)
 
@@ -997,14 +997,13 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         # case when model is passed in (ie: from restore event)
-        self.__run_evaluation(test=True)
-        # if model is not None:
-        #     pdb.set_trace()
-        #     self.testing = True
-        #     self.fit(model)
-        # else:
-        #     case when we test after fitting
-            # self.__run_evaluation(test=True)
+        if model is not None:
+            pdb.set_trace()
+            self.testing = True
+            self.fit(model)
+        else:
+            # case when we test after fitting
+            self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
