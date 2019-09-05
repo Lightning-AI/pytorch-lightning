@@ -166,6 +166,8 @@ class TrainerIO(object):
     # PRIVATE OPS
     # ----------------------------------
     def hpc_save(self, folderpath, experiment):
+        print('starting hpc checkpoint')
+
         # make sure the checkpoint folder exists
         os.makedirs(folderpath, exist_ok=True)
 
@@ -189,6 +191,8 @@ class TrainerIO(object):
 
         # do the actual save
         torch.save(checkpoint, filepath)
+
+        print('saved model weights for hpc checkpoint')
 
         return filepath
 
