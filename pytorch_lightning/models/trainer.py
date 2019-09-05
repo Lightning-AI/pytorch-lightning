@@ -249,6 +249,7 @@ class Trainer(TrainerIO):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
             print('using 16bit precision')
+            self.amp_lib = amp
 
         if use_amp and not APEX_AVAILABLE:  # pragma: no cover
             msg = """
@@ -667,7 +668,7 @@ class Trainer(TrainerIO):
 
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
+            model, optimizers = self.amp_lib.initialize(
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
@@ -749,7 +750,7 @@ class Trainer(TrainerIO):
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
+            model, optimizers = self.amp_lib.initialize(
                 model, self.optimizers, opt_level=self.amp_level,
             )
             self.optimizers = optimizers
@@ -1167,7 +1168,7 @@ class Trainer(TrainerIO):
 
             # backward pass
             if self.use_amp:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                with self.amp_lib.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
