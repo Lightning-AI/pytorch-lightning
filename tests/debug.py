@@ -241,6 +241,9 @@ def main():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    trainer.test()
+    assert_ok_test_acc(trainer)
+
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pdb.set_trace()
