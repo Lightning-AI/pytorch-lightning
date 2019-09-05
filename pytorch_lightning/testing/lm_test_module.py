@@ -1,27 +1,31 @@
-import os
-from collections import OrderedDict
-
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch import optim
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from torchvision.datasets import MNIST
-from torchvision import transforms
-from test_tube import HyperOptArgumentParser
-
-from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning import data_loader
 
 from .lm_test_module_base import LightningTestModelBase
-from .lm_test_module_mixins import LightningValidationMixin, LightningTestMixin
+from . import lm_test_modules_callbacks as callbacks
 
 
-class LightningTestModel(LightningValidationMixin, LightningTestMixin, LightningTestModelBase):
-    """
-    Most common test case. Validation and test dataloaders
-    """
+class LightningTestModel(LightningTestModelBase):
+
+    def validation_step(self, data_batch, batch_i):
+        return callbacks.validation_step(self, data_batch, batch_i)
+
+    def validation_end(self, outputs):
+        return callbacks.validation_end(self, outputs)
+
+    def test_step(self, data_batch, batch_i):
+        return callbacks.test_step(self, data_batch,  batch_i)
+
+    def test_end(self, outputs):
+        return callbacks.test_end(self, outputs)
+
+    @data_loader
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+    @data_loader
+    def test_dataloader(self):
+        return [self._dataloader(train=False), self._dataloader(train=False)]
 
     def on_tng_metrics(self, logs):
         logs['some_tensor_to_test'] = torch.rand(1)
