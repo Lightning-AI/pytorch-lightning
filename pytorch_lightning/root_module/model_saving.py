@@ -57,13 +57,9 @@ class TrainerIO(object):
     # --------------------
     def register_slurm_signal_handlers(self):
         # see if we're using slurm (not interactive)
-        print('-'*100)
-        print('in slurm handler')
         on_slurm = False
         try:
             job_name = os.environ['SLURM_JOB_NAME']
-            print('-'*100)
-            print(job_name)
             if job_name != 'bash':
                 on_slurm = True
         except Exception as e:
