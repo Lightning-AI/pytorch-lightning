@@ -436,6 +436,9 @@ class Trainer(TrainerIO):
         :param test: boolean
         :return:
         """
+        if test:
+            pdb.set_trace()
+
         # enable eval mode
         model.zero_grad()
         model.eval()
@@ -1211,7 +1214,7 @@ class Trainer(TrainerIO):
 
             # hook
             model = self.__get_model()
-            model.on_pre_performance_check(model)
+            model.on_pre_performance_check()
 
             # select dataloaders
             dataloaders = self.val_dataloader
