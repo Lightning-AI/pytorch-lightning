@@ -423,11 +423,11 @@ class Trainer(TrainerIO):
 
         return output
 
-    def evaluate(self, model, dataloader, max_batches, dataloader_i, test=False):
+    def evaluate(self, model, dataloaders, max_batches, test=False):
         """
         Run evaluation code
         :param model: PT model
-        :param dataloader: PT dataloader
+        :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
         :param dataloader_i:
         :param test: boolean
@@ -442,34 +442,39 @@ class Trainer(TrainerIO):
 
         # bookkeeping
         outputs = []
-
+        
         # run training
-        for batch_i, data_batch in enumerate(dataloader):
+        for dataloader_i, dl in enumerate(dataloaders):
+            dl_outputs = []
+            for batch_i, data_batch in enumerate(dl):
 
-            if data_batch is None:  # pragma: no cover
-                continue
+                if data_batch is None:  # pragma: no cover
+                    continue
 
-            # stop short when on fast_dev_run (sets max_batch=1)
-            if batch_i >= max_batches:
-                break
+                # stop short when on fast_dev_run (sets max_batch=1)
+                if batch_i >= max_batches:
+                    break
 
-            # -----------------
-            # RUN EVALUATION STEP
-            # -----------------
-            output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
-                                               test)
+                # -----------------
+                # RUN EVALUATION STEP
+                # -----------------
+                output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
+                                                   test)
 
-            # track outputs for collation
-            outputs.append(output)
+                # track outputs for collation
+                dl_outputs.append(output)
 
-            # batch done
-            if self.show_progress_bar:
-                self.progress_bar.update(1)
+                # batch done
+                if self.show_progress_bar:
+                    self.progress_bar.update(1)
+            outputs.append(dl_outputs)
 
         eval_results = {}
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.__get_model()
+        if len(dataloaders) == 1:
+            outputs = outputs[0]
         if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
@@ -837,13 +842,11 @@ class Trainer(TrainerIO):
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
-            for ds_i, dataloader in enumerate(self.val_dataloader):
+            # reset progress_bar limit for sanity check
+            if self.show_progress_bar:
+                self.progress_bar.reset(self.nb_sanity_val_steps)
 
-                # reset progress_bar limit for sanity check
-                if self.show_progress_bar:
-                    self.progress_bar.reset(self.nb_sanity_val_steps)
-
-                self.evaluate(model, dataloader, self.nb_sanity_val_steps, ds_i, self.testing)
+            self.evaluate(model, self.val_dataloader, self.nb_sanity_val_steps, self.testing)
 
         # ---------------------------
         # CORE TRAINING LOOP
@@ -1203,17 +1206,15 @@ class Trainer(TrainerIO):
             if self.fast_dev_run:
                 max_batches = 1
 
-            for ds_i, dataloader in enumerate(dataloaders):
-                eval_out_metrics = self.evaluate(self.model,
-                                                 dataloader,
-                                                 max_batches,
-                                                 ds_i,
-                                                 test)
+            eval_out_metrics = self.evaluate(self.model,
+                                             dataloaders,
+                                             max_batches,
+                                             test)
 
-                self.__add_tqdm_metrics(eval_out_metrics)
+            self.__add_tqdm_metrics(eval_out_metrics)
 
-                # hook
-                model.on_post_performance_check()
+            # hook
+            model.on_post_performance_check()
 
             if self.show_progress_bar:
                 # add model specific metrics
