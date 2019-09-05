@@ -253,10 +253,10 @@ def main():
         exp, save_dir, on_gpu=False, module_class=LightningTestModel
     )
 
-    def check(self):
+    def check(m):
         pdb.set_trace()
 
-    setattr(pretrained_model, 'on_pre_performance_check', check)
+    pretrained_model.on_pre_performance_check = check
 
     assert_same_weights(model, pretrained_model)
 

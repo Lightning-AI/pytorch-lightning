@@ -1211,7 +1211,7 @@ class Trainer(TrainerIO):
 
             # hook
             model = self.__get_model()
-            model.on_pre_performance_check()
+            model.on_pre_performance_check(model)
 
             # select dataloaders
             dataloaders = self.val_dataloader
