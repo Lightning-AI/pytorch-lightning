@@ -1007,15 +1007,15 @@ class Trainer(TrainerIO):
             model.on_epoch_end()
 
     def test(self, model=None):
-        # make sure we generate predictions only
-        model.eval()
-
         # case when model is passed in (ie: from restore event)
         if model is not None:
+            # make sure we generate predictions only
+            model.eval()
             self.testing = True
             self.fit(model)
         else:
             # case when we test after fitting
+            self.model.eval()
             self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
