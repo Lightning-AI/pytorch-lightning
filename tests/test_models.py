@@ -726,9 +726,6 @@ def test_cpu_slurm_save_load():
     model.eval()
     pred_before_saving = model(x)
 
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
-
     # test HPC saving
     # simulate snapshot on slurm
     saved_filepath = trainer.hpc_save(save_dir, exp)
@@ -937,7 +934,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir)
+    trainer.hpc_load(save_dir, pretrained_model)
 
     # test freeze on gpu
     model.freeze()
@@ -1210,7 +1207,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir)
+    trainer.hpc_load(save_dir, pretrained_model)
 
     clear_save_dir()
 
