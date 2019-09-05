@@ -31,42 +31,28 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       language: generic
-      env:
-        - PYTHON=36
-        - TOXENV=py36
-    - os: osx
-      osx_image: xcode9.4
-      language: generic
-      env:
-        - PYTHON=37
-        - TOXENV=py37
-    - os: windows
-      language: minimal
-      before_install:
-        - choco install python3
-        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
       env: TOXENV=py37
+      addons:
+        homebrew:
+          update: true
+          packages: python3
+      before_install:
+        - pip3 install virtualenv
+        - virtualenv -p python3 ~/venv
+        - source ~/venv/bin/activate
+#    - os: windows
+#      language: minimal
+#      before_install:
+#        - choco install python3
+#        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+#      env: TOXENV=py37
 
 # See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
 
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      yes | sudo port install python$PYTHON;
-      yes | sudo port install py$PYTHON-pip;
-      sudo port select --set python3 python$PYTHON;
-      sudo port select --set pip pip$PYTHON;
-      export PATH=/Users/travis/Library/Python/$PYTHON/bin:$PATH;
-    fi
-
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      pip install -r requirements.txt --user;
-      pip install -r ./tests/requirements.txt --user;
-    else
-      pip install -r requirements.txt;
-      pip install -r ./tests/requirements.txt;
-    fi
+  - pip install -r requirements.txt
+  - pip install -r ./tests/requirements.txt
   - pip --version ; pip list
 
 script:
