@@ -258,9 +258,9 @@ def main():
     run_prediction(pretrained_model.test_dataloader, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
+    pdb.set_trace()
     new_trainer.test(pretrained_model)
 
-    pdb.set_trace()
     run_prediction(pretrained_model.test_dataloader, pretrained_model)
 
     # test we have good test accuracy
