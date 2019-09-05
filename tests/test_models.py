@@ -42,13 +42,14 @@ def test_cpu_restore_training():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    test_exp_version = 10
-    exp = get_exp(False, version=test_exp_version)
+    exp = get_exp(False)
     exp.argparse(hparams)
     exp.save()
 
+    test_exp_version = exp.version
+
     trainer_options = dict(
-        max_nb_epochs=10,
+        max_nb_epochs=1,
         val_check_interval=0.95,
         val_percent_check=0.2,
         train_percent_check=1.0,
@@ -69,7 +70,7 @@ def test_cpu_restore_training():
     # we want to see if the weights come back correctly
     new_exp = get_exp(False, version=test_exp_version)
     trainer_options = dict(
-        max_nb_epochs=2,
+        max_nb_epochs=1,
         val_check_interval=0.95,
         val_percent_check=0.2,
         train_percent_check=1.0,
