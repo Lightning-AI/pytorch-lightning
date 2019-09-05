@@ -759,6 +759,10 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        # when testing don't restore weights because trained model is passed in
+        if self.testing:
+            return
+
         # restore weights if same exp version
         self.restore_state_if_existing_checkpoint(model)
 
