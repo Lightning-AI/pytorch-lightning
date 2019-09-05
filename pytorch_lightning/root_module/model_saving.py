@@ -141,11 +141,6 @@ class TrainerIO(object):
         if len(hpc_weight_paths) > 0:
             self.hpc_load(folderpath, model)
 
-            # delete the hpc weights
-            for file in hpc_weight_paths:
-                path = os.path.join(folderpath, file)
-                shutil.rmtree(path)
-
     def restore_training_state(self, checkpoint):
         """
         Restore trainer state.
