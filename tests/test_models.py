@@ -10,15 +10,7 @@ from test_tube import Experiment, SlurmCluster
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import (
-    LightningTestModel,
-    LightningTestModelBase,
-    LightningValidationMixin,
-    LightningValidationStepMixin,
-    LightningValidationMultipleDataloadersMixin,
-    LightningTestMixin,
-    LightningTestMultipleDataloadersMixin,
-)
+from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     EarlyStopping,
@@ -124,47 +116,6 @@ def test_running_test_after_fitting():
     clear_save_dir()
 
 
-def test_running_test_without_val():
-    """Verify test() works on a model with no val_loader"""
-    class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
-        pass
-    hparams = get_hparams()
-    model = CurrentTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        test_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        experiment=exp
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    assert result == 1, 'training failed to complete'
-
-    trainer.test()
-
-    # test we have good test accuracy
-    assert_ok_test_acc(trainer)
-
-    clear_save_dir()
-
-
 def test_running_test_pretrained_model():
     """Verify test() on pretrained model"""
     hparams = get_hparams()
@@ -195,9 +146,7 @@ def test_running_test_pretrained_model():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(
-        exp, save_dir, on_gpu=False, module_class=LightningTestModel
-    )
+    pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -451,10 +400,7 @@ def test_no_val_module():
     :return:
     """
     hparams = get_hparams()
-
-    class CurrentTestModel(LightningTestModelBase):
-        pass
-    model = CurrentTestModel(hparams)
+    model = NoValModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -497,11 +443,8 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-
-    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
-        pass
     hparams = get_hparams()
-    model = CurrentTestModel(hparams)
+    model = NoValEndTestModel(hparams)
 
     save_dir = init_save_dir()
 
@@ -726,6 +669,9 @@ def test_cpu_slurm_save_load():
     model.eval()
     pred_before_saving = model(x)
 
+    # test registering a save function
+    trainer.enable_auto_hpc_walltime_manager()
+
     # test HPC saving
     # simulate snapshot on slurm
     saved_filepath = trainer.hpc_save(save_dir, exp)
@@ -934,7 +880,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, pretrained_model)
+    trainer.hpc_load(save_dir, on_gpu=True)
 
     # test freeze on gpu
     model.freeze()
@@ -1106,13 +1052,8 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
-    class CurrentTestModel(
-        LightningValidationMultipleDataloadersMixin,
-        LightningTestModelBase
-    ):
-        pass
     hparams = get_hparams()
-    model = CurrentTestModel(hparams)
+    model = LightningTestModel(hparams)
 
     # exp file to get meta
     trainer_options = dict(
@@ -1140,13 +1081,8 @@ def test_multiple_test_dataloader():
     Verify multiple test_dataloader
     :return:
     """
-    class CurrentTestModel(
-        LightningTestMultipleDataloadersMixin,
-        LightningTestModelBase
-    ):
-        pass
     hparams = get_hparams()
-    model = CurrentTestModel(hparams)
+    model = LightningTestModel(hparams, use_two_test_sets=True)
 
     # exp file to get meta
     trainer_options = dict(
@@ -1207,7 +1143,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, pretrained_model)
+    trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
     clear_save_dir()
 
@@ -1316,11 +1252,6 @@ def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
     acc = trainer.tng_tqdm_dic['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
-
-
-def assert_same_weights(model_a, model_b):
-    for (_, param), (_, param_b) in zip(model_a.named_parameters(), model_b.named_parameters()):
-        assert torch.all(torch.eq(param, param_b))
 
 
 def assert_ok_test_acc(trainer):
