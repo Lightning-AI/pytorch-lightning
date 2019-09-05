@@ -556,9 +556,9 @@ def test_cpu_restore_training():
 
     trainer_options = dict(
         max_nb_epochs=2,
-        val_check_interval=0.50,
+        val_check_interval=0.95,
         val_percent_check=0.2,
-        train_percent_check=0.2,
+        train_percent_check=1.0,
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -577,9 +577,9 @@ def test_cpu_restore_training():
     new_exp = get_exp(False, version=test_exp_version)
     trainer_options = dict(
         max_nb_epochs=2,
-        val_check_interval=0.50,
+        val_check_interval=0.95,
         val_percent_check=0.2,
-        train_percent_check=0.2,
+        train_percent_check=1.0,
         experiment=new_exp,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
@@ -881,7 +881,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=True)
+    trainer.hpc_load(save_dir)
 
     # test freeze on gpu
     model.freeze()
@@ -1144,7 +1144,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=on_gpu)
+    trainer.hpc_load(save_dir)
 
     clear_save_dir()
 
