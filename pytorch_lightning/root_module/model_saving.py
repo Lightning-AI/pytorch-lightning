@@ -2,8 +2,8 @@ import os
 import re
 
 import torch
-import shutil
 import signal
+from subprocess import call
 
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
@@ -72,8 +72,23 @@ class TrainerIO(object):
 
     def sig_handler(self):
         if self.proc_rank == 0:
+            # save weights
             print('handling SIGUSR1')
             self.hpc_save(self.checkpoint_callback.filepath, self.experiment)
+
+            # find job id
+            job_id = os.environ['SLURM_JOB_ID']
+            cmd = 'scontrol requeue {}'.format(job_id)
+
+            # requeue job
+            print('\nrequeing job {}...'.format(job_id))
+            result = call(cmd, shell=True)
+
+            # print result text
+            if result == 0:
+                print('requeued exp ', job_id)
+            else:
+                print('requeue failed...')
 
     def term_handler(self, signum, frame):
         # save
