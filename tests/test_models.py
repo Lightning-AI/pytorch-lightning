@@ -670,9 +670,6 @@ def test_cpu_slurm_save_load():
     model.eval()
     pred_before_saving = model(x)
 
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
-
     # test HPC saving
     # simulate snapshot on slurm
     saved_filepath = trainer.hpc_save(save_dir, exp)
