@@ -997,13 +997,14 @@ class Trainer(TrainerIO):
 
     def test(self, model=None):
         # case when model is passed in (ie: from restore event)
-        if model is not None:
-            pdb.set_trace()
-            self.testing = True
-            self.fit(model)
-        else:
-            # case when we test after fitting
-            self.__run_evaluation(test=True)
+        self.__run_evaluation(test=True)
+        # if model is not None:
+        #     pdb.set_trace()
+        #     self.testing = True
+        #     self.fit(model)
+        # else:
+        #     case when we test after fitting
+            # self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
