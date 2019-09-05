@@ -104,11 +104,7 @@ class TrainerIO(object):
         torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu, model):
-
-        if on_gpu:
-            checkpoint = torch.load(checkpoint_path)
-        else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
@@ -244,7 +240,7 @@ class TrainerIO(object):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first otherwise model will run out of memory
-        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
