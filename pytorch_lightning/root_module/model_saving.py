@@ -117,9 +117,6 @@ class TrainerIO(object):
     # HPC IO
     # --------------------
     def enable_auto_hpc_walltime_manager(self):
-        if self.cluster is None:
-            return
-
         # allow test tube to handle model check pointing automatically
         # only if proc 0 so we don't trigger world_size resubmits
         if self.proc_rank == 0:
