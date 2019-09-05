@@ -1007,6 +1007,9 @@ class Trainer(TrainerIO):
             model.on_epoch_end()
 
     def test(self, model=None):
+        # make sure we generate predictions only
+        model.eval()
+
         # case when model is passed in (ie: from restore event)
         if model is not None:
             self.testing = True

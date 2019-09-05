@@ -64,7 +64,6 @@ def test_running_test_pretrained_model():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
-    pretrained_model.eval()
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
