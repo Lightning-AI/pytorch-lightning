@@ -1228,6 +1228,8 @@ def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningT
 
 
 def run_prediction(dataloader, trained_model):
+    trained_model.eval()
+
     # run prediction on 1 batch
     for batch in dataloader:
         break
