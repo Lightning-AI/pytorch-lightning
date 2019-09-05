@@ -176,25 +176,8 @@ class Trainer(TrainerIO):
         self.nb_tng_batches = 0
         self.nb_test_batches = 0
 
-        # gpus come in as a string.
-        # if gpus = -1 then use all available devices
-        # otherwise, split the string using commas
-        if gpus is not None:
-            if type(gpus) is list:
-                self.data_parallel_device_ids = gpus
-            elif type(gpus) is str:
-                if gpus == '-1':
-                    self.data_parallel_device_ids = list(range(0, torch.cuda.device_count()))
-                else:
-                    self.data_parallel_device_ids = [int(x.strip()) for x in gpus.split(',')]
-            else:
-                raise Exception('gpus has to be a string or list of ids')
-
-            # set the correct cuda visible devices (using pci order)
-            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in
-                                                           self.data_parallel_device_ids])
-            print('VISIBLE GPUS: %r' % os.environ["CUDA_VISIBLE_DEVICES"])
+        # parse gpu id string
+        self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
 
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
@@ -276,6 +259,30 @@ class Trainer(TrainerIO):
 
         # handle hpc terminate signal (auto-resubmit)
         self.register_slurm_signal_handlers()
+
+    def __parse_gpu_ids(self, gpus):
+        # gpus come in as a string.
+        # if gpus = -1 then use all available devices
+        # otherwise, split the string using commas
+        if gpus is not None:
+            if type(gpus) is list:
+                gpus = gpus
+            elif type(gpus) is str:
+                if gpus == '-1':
+                    gpus = list(range(0, torch.cuda.device_count()))
+                else:
+                    gpus = [int(x.strip()) for x in gpus.split(',')]
+            else:
+                raise Exception('gpus has to be a string or list of ids')
+
+            # set the correct cuda visible devices (using pci order)
+            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in
+                                                           self.data_parallel_device_ids])
+            print('VISIBLE GPUS: %r' % os.environ["CUDA_VISIBLE_DEVICES"])
+
+        return gpus
+
 
     def restore_state_if_existing_checkpoint(self, model):
         # restore trainer state and model if there is a weight for this experiment
