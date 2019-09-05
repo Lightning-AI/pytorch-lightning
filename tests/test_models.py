@@ -62,6 +62,8 @@ def test_cpu_restore_training():
     result = trainer.fit(model)
     real_global_epoch = trainer.current_epoch
 
+    old_model = model
+
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
@@ -84,6 +86,9 @@ def test_cpu_restore_training():
     def assert_good_acc():
         assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
 
+        pdb.set_trace()
+        print(old_model)
+
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
@@ -93,7 +98,6 @@ def test_cpu_restore_training():
 
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
-    pdb.set_trace()
     trainer.fit(model)
 
     clear_save_dir()
