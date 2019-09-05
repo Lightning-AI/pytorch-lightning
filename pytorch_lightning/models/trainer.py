@@ -748,6 +748,9 @@ class Trainer(TrainerIO):
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
+        # wait for all models to load weights
+        dist.barrier()
+
         # AMP
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
