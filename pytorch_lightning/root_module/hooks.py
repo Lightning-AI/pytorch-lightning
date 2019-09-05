@@ -22,7 +22,7 @@ class ModelHooks(torch.nn.Module):
     def on_epoch_end(self):
         pass
 
-    def on_pre_performance_check(self):
+    def on_pre_performance_check(self, *args, **kwargs):
         pass
 
     def on_post_performance_check(self):
