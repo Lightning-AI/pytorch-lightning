@@ -750,6 +750,12 @@ class Trainer(TrainerIO):
 
         # wait for all models to load weights
         dist.barrier()
+        print('-'*100)
+        print(self.proc_rank, ' Weights')
+        for _, w in model.named_parameters():
+            print(w[0:10])
+            break
+        print('-'*100)
 
         # AMP
         # run through amp wrapper before going to distributed DP
