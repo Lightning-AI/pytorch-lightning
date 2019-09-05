@@ -141,10 +141,7 @@ class TrainerIO(object):
         checkpoint['lr_schedulers'] = lr_schedulers
 
         # add the state_dict from the model
-        # in ddp we save the wrapped model as it was
         model = self.__get_model()
-        if self.use_ddp:
-            model = self.model
         checkpoint['state_dict'] = model.state_dict()
 
         # give the model a chance to add a few things
