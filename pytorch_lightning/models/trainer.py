@@ -1228,8 +1228,11 @@ class Trainer(TrainerIO):
 
             for ds_i, dataloader in enumerate(dataloaders):
                 if test:
+                    print('-'*100)
+                    print('-'*100)
                     for n, p in model.named_parameters():
                         print(p[0:10])
+                    pdb.set_trace()
 
                 eval_out_metrics = self.evaluate(self.model,
                                                  dataloader,
