@@ -253,7 +253,7 @@ def main():
         exp, save_dir, on_gpu=False, module_class=LightningTestModel
     )
 
-    def check():
+    def check(m):
         pdb.set_trace()
 
     pretrained_model.on_pre_performance_check = check
