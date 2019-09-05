@@ -854,10 +854,6 @@ class Trainer(TrainerIO):
 
         # when testing requested only run test and return
         if self.testing:
-            print('-'*100)
-            for n, p in model.named_parameters():
-                print(p[0:10])
-            pdb.set_trace()
             self.__run_evaluation(test=True)
             return
 
@@ -1231,6 +1227,10 @@ class Trainer(TrainerIO):
                 max_batches = 1
 
             for ds_i, dataloader in enumerate(dataloaders):
+                if test:
+                    for n, p in model.named_parameters():
+                        print(p[0:10])
+
                 eval_out_metrics = self.evaluate(self.model,
                                                  dataloader,
                                                  max_batches,
