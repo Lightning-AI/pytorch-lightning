@@ -103,13 +103,22 @@ def clear_save_dir():
 
 
 def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningTemplateModel):
+    import re
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
     checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
-    weights_dir = os.path.join(save_dir, checkpoints[0])
+    ckpt = checkpoints[0]
+    m = 0
+    for c in checkpoints:
+        val = int(re.sub('[^0-9]', '', c))
+        if val > m:
+            ckpt = c
+            m = val
+
+    weights_dir = os.path.join(save_dir, ckpt)
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path,
