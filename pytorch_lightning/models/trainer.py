@@ -669,7 +669,7 @@ class Trainer(TrainerIO):
         # restore weights when needed
         self.__restore_weights(model)
 
-        self.model.cuda(self.data_parallel_device_ids[0])
+        model.cuda(self.data_parallel_device_ids[0])
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
