@@ -25,7 +25,7 @@ class LightningTestModel(LightningTestModelBase):
 
     @data_loader
     def test_dataloader(self):
-        return [self._dataloader(train=False), self._dataloader(train=False)]
+        return self._dataloader(train=False)
 
     def on_tng_metrics(self, logs):
         logs['some_tensor_to_test'] = torch.rand(1)
