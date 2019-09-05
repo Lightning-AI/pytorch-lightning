@@ -185,23 +185,26 @@ class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipl
         # return torch.stack(outputs).mean()
         val_loss_mean = 0
         val_acc_mean = 0
-        for output in outputs:
-            val_loss = output['val_loss']
+        i = 0
+        for dl_output in outputs:
+            for output in dl_output:
+                val_loss = output['val_loss']
 
-            # reduce manually when using dp
-            if self.trainer.use_dp:
-                val_loss = torch.mean(val_loss)
-            val_loss_mean += val_loss
+                # reduce manually when using dp
+                if self.trainer.use_dp:
+                    val_loss = torch.mean(val_loss)
+                val_loss_mean += val_loss
 
-            # reduce manually when using dp
-            val_acc = output['val_acc']
-            if self.trainer.use_dp:
-                val_acc = torch.mean(val_acc)
+                # reduce manually when using dp
+                val_acc = output['val_acc']
+                if self.trainer.use_dp:
+                    val_acc = torch.mean(val_acc)
 
-            val_acc_mean += val_acc
+                val_acc_mean += val_acc
+                i += 1
 
-        val_loss_mean /= len(outputs)
-        val_acc_mean /= len(outputs)
+        val_loss_mean /= i
+        val_acc_mean /= i
 
         tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         return tqdm_dic
@@ -359,23 +362,26 @@ class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloaders
         # return torch.stack(outputs).mean()
         test_loss_mean = 0
         test_acc_mean = 0
-        for output in outputs:
-            test_loss = output['test_loss']
+        i = 0
+        for dl_output in outputs:
+            for output in dl_output:
+                test_loss = output['test_loss']
 
-            # reduce manually when using dp
-            if self.trainer.use_dp:
-                test_loss = torch.mean(test_loss)
-            test_loss_mean += test_loss
+                # reduce manually when using dp
+                if self.trainer.use_dp:
+                    test_loss = torch.mean(test_loss)
+                test_loss_mean += test_loss
 
-            # reduce manually when using dp
-            test_acc = output['test_acc']
-            if self.trainer.use_dp:
-                test_acc = torch.mean(test_acc)
+                # reduce manually when using dp
+                test_acc = output['test_acc']
+                if self.trainer.use_dp:
+                    test_acc = torch.mean(test_acc)
 
-            test_acc_mean += test_acc
+                test_acc_mean += test_acc
+                i += 1
 
-        test_loss_mean /= len(outputs)
-        test_acc_mean /= len(outputs)
+        test_loss_mean /= i
+        test_acc_mean /= i
 
         tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
         return tqdm_dic
