@@ -994,10 +994,12 @@ class Trainer(TrainerIO):
             model.on_epoch_end()
 
     def test(self, model=None):
+        # case when model is passed in (ie: from restore event)
         if model is not None:
             self.testing = True
             self.fit(model)
         else:
+            # case when we test after fitting
             self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics, blacklist=set()):
