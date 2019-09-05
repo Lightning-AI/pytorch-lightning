@@ -618,6 +618,7 @@ class Trainer(TrainerIO):
             # restores the model if loading from a checkpoint
             # hpc checkpoint overrides any other checkpoints loaded before
             if self.cluster is not None:  # pragma: no cover
+                self.model = model
                 self.enable_auto_hpc_walltime_manager()
 
             self.__run_pretrain_routine(model)
@@ -650,6 +651,7 @@ class Trainer(TrainerIO):
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
+            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
         model.cuda(self.data_parallel_device_ids[0])
@@ -673,6 +675,7 @@ class Trainer(TrainerIO):
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
+            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
         model.cuda(self.data_parallel_device_ids[0])
@@ -737,6 +740,7 @@ class Trainer(TrainerIO):
         # restores the model if loading from a checkpoint
         # hpc checkpoint overrides any other checkpoints loaded before
         if self.cluster is not None:  # pragma: no cover
+            self.model = model
             self.enable_auto_hpc_walltime_manager()
 
         # MODEL
