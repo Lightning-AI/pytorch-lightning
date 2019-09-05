@@ -231,7 +231,7 @@ def main():
     trainer_options = dict(
         show_progress_bar=False,
         max_nb_epochs=1,
-        train_percent_check=0.4,
+        train_percent_check=1.0,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp
