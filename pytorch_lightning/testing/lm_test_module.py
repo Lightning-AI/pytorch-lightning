@@ -18,7 +18,7 @@ from .lm_test_module_base import LightningTestModelBase
 from .lm_test_module_mixins import LightningValidationMixin, LightningTestMixin
 
 
-class LightningTestModel(LightningValidationMixin, LightningTestMixin, LightningTestModelBase):
+class LightningTestModel(LightningTestModelBase, LightningValidationMixin, LightningTestMixin):
     """
     Most common test case. Validation and test dataloaders
     """

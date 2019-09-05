@@ -244,12 +244,6 @@ def main():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    print('-'*100)
-    print('FIT END')
-    print('-'*100)
-    for n, p in model.named_parameters():
-        print(p[0:10])
-
     trainer.test()
     assert_ok_test_acc(trainer)
 
@@ -262,7 +256,7 @@ def main():
     assert_same_weights(model, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(model)
+    new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
