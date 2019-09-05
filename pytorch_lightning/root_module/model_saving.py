@@ -222,6 +222,13 @@ class TrainerIO(object):
         model = self.__get_model()
         model.on_hpc_save(checkpoint)
 
+        print('-'*100)
+        print(self.proc_rank, ' SAVED Weights FOR HPC')
+        for _, w in model.named_parameters():
+            print(w[0:10])
+            break
+        print('-'*100)
+
         # do the actual save
         torch.save(checkpoint, filepath)
 
