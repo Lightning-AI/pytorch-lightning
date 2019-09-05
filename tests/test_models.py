@@ -21,6 +21,7 @@ from pytorch_lightning.root_module import memory
 from pytorch_lightning.models.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from examples import LightningTemplateModel
+import pdb
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -63,6 +64,7 @@ def test_running_test_pretrained_model():
     pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
+    pdb.set_trace()
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
