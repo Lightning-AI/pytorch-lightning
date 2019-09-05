@@ -59,8 +59,6 @@ def test_running_test_pretrained_model():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # x = torch.rand(7, 28*28)
-
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(exp, save_dir, on_gpu=False, module_class=LightningTestModel)
