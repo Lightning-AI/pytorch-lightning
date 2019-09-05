@@ -255,6 +255,9 @@ def main():
 
     assert_same_weights(model, pretrained_model)
 
+    pdb.set_trace()
+    run_prediction(pretrained_model.test_dataloader, pretrained_model)
+
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
