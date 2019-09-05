@@ -134,12 +134,13 @@ class TrainerIO(object):
         """
         # look for hpc weights
         folderpath = self.checkpoint_callback.filepath
-        files = os.listdir(folderpath)
-        hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
+        if os.path.exists(folderpath):
+            files = os.listdir(folderpath)
+            hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
-        # if hpc weights exist restore model
-        if len(hpc_weight_paths) > 0:
-            self.hpc_load(folderpath, model)
+            # if hpc weights exist restore model
+            if len(hpc_weight_paths) > 0:
+                self.hpc_load(folderpath, model)
 
     def restore_training_state(self, checkpoint):
         """
