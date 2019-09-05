@@ -649,7 +649,7 @@ class Trainer(TrainerIO):
         # restore weights when needed
         self.__restore_weights(model)
 
-        self.model.cuda(self.data_parallel_device_ids[0])
+        model.cuda(self.data_parallel_device_ids[0])
 
         if self.use_amp:
             # An example
