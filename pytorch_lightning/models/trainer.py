@@ -240,6 +240,12 @@ class Trainer(TrainerIO):
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
         # 16 bit mixed precision training using apex
+        self.__init_amp(use_amp)
+
+        # handle hpc terminate signal (auto-resubmit)
+        self.register_slurm_signal_handlers()
+
+    def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
             print('using 16bit precision')
@@ -253,9 +259,6 @@ class Trainer(TrainerIO):
             this run will NOT use 16 bit precision
             """
             raise ModuleNotFoundError(msg)
-
-        # handle hpc terminate signal (auto-resubmit)
-        self.register_slurm_signal_handlers()
 
     def __parse_gpu_ids(self, gpus):
         # gpus come in as a string.
