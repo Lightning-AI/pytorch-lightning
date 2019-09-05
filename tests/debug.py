@@ -245,12 +245,12 @@ def main():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    pdb.set_trace()
     trainer.test()
     assert_ok_test_acc(trainer)
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pdb.set_trace()
     pretrained_model = load_model(
         exp, save_dir, on_gpu=False, module_class=LightningTestModel
     )
@@ -258,7 +258,7 @@ def main():
     assert_same_weights(model, pretrained_model)
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(model)
 
     # test we have good test accuracy
     assert_ok_test_acc(new_trainer)
