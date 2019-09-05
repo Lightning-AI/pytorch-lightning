@@ -145,13 +145,10 @@ class Trainer(TrainerIO):
         self.early_stop = early_stop_callback
         self.model = None
         self.max_nb_epochs = max_nb_epochs
-        if isinstance(accumulate_grad_batches, dict):
-            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {1: accumulate_grad_batches}
-            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")
+
+        # determine grad accumulation schedule
+        self.__set_gradient_accumulation(accumulate_grad_batches)
+
         self.early_stop_callback = early_stop_callback
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
@@ -283,6 +280,14 @@ class Trainer(TrainerIO):
 
         return gpus
 
+    def __set_gradient_accumulation(self, accumulate_grad_batches):
+        if isinstance(accumulate_grad_batches, dict):
+            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
+        elif isinstance(accumulate_grad_batches, int):
+            schedule = {1: accumulate_grad_batches}
+            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
+        else:
+            raise TypeError("Gradient accumulation supports only int and dict types")
 
     def restore_state_if_existing_checkpoint(self, model):
         # restore trainer state and model if there is a weight for this experiment
