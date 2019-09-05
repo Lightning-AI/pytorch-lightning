@@ -58,7 +58,7 @@ class Trainer(TrainerIO):
                  early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip=0,
-                 cluster=None,
+                 cluster=None, # TODO: remove cluster obj
                  process_position=0,
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
