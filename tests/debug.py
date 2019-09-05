@@ -242,7 +242,7 @@ def main():
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_nb_epochs=5,
+        max_nb_epochs=1,
         train_percent_check=1.0,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -263,8 +263,16 @@ def main():
     )
 
     assert_same_weights(model, pretrained_model)
-
     run_prediction(pretrained_model.test_dataloader, pretrained_model)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=1.0,
+        val_percent_check=0.2,
+        checkpoint_callback=ModelCheckpoint(save_dir),
+        experiment=get_exp(False)
+    )
 
     new_trainer = Trainer(**trainer_options)
     pdb.set_trace()
