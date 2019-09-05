@@ -8,8 +8,6 @@
 # this file is *not* meant to cover or endorse the use of travis, but rather to
 # help confirm pull requests to this project.
 
-dist: xenial  # Ubuntu 16.04
-
 env:
   global:
     - DISPLAY=""
@@ -18,10 +16,18 @@ language: python
 
 matrix:
   include:
-    - python: 3.6
+    - os: linux
+      dist: xenial  # Ubuntu 16.04
+      python: 3.6
       env: TOXENV=py36
-    - python: 3.7
+    - os: linux
+      dist: xenial  # Ubuntu 16.04
+      python: 3.7
       env: TOXENV=py37
+    - os: osx
+      osx_image: xcode7.2
+      language: generic
+      env: TOXENV=py36
 
 # See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
