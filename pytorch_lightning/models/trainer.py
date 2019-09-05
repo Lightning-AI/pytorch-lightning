@@ -650,7 +650,6 @@ class Trainer(TrainerIO):
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         # restore weights when needed
-        pdb.set_trace()
         self.__restore_weights(model)
 
         model.cuda(self.data_parallel_device_ids[0])
@@ -999,6 +998,7 @@ class Trainer(TrainerIO):
     def test(self, model=None):
         # case when model is passed in (ie: from restore event)
         if model is not None:
+            pdb.set_trace()
             self.testing = True
             self.fit(model)
         else:
