@@ -70,7 +70,7 @@ class TrainerIO(object):
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
-    def sig_handler(self):
+    def sig_handler(self, signum, frame):
         if self.proc_rank == 0:
             # save weights
             print('handling SIGUSR1')
