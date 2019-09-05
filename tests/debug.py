@@ -260,7 +260,7 @@ def main():
     trainer.test(model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
+    assert_ok_test_acc(trainer)
     clear_save_dir()
 
 
