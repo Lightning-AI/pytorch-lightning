@@ -459,8 +459,6 @@ class Trainer(TrainerIO):
 
         # bookkeeping
         outputs = []
-        if test:
-            pdb.set_trace()
 
         # run training
         for batch_i, data_batch in enumerate(dataloader):
