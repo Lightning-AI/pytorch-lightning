@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     # TODO: make 1 param
     parent_parser.add_argument('--per_experiment_nb_gpus', type=int,
-                               help='how many gpus to use in a node')
+                               default=2, help='how many gpus to use in a node')
     parent_parser.add_argument('--gpus', type=str, default='-1',
                                help='how many gpus to use in the node')
 
