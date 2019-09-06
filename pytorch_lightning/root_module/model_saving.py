@@ -270,7 +270,8 @@ class TrainerIO(object):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first otherwise model will run out of memory
-        checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        # checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
+        checkpoint = torch.load(filepath, map_location=f'cuda:{torch.cuda.current_device()}')
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
