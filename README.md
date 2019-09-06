@@ -257,7 +257,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 ![tensorboard-support](./docs/source/_static/tf_tags.png)
 
-Simply note the path you set for the Experiment    
+Simply note the path you set for the [Experiment](https://williamfalcon.github.io/test-tube/experiment_tracking/experiment/) from [test_tube](https://github.com/williamFalcon/test-tube)
 ```python
 from test_tube import Experiment
 from pytorch_lightning import Trainer
