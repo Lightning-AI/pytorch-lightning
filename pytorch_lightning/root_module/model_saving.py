@@ -72,8 +72,7 @@ class TrainerIO(object):
         self.restore_state_if_checkpoint_exists(model)
 
         # if script called from hpc resubmit, load weights
-        if self.cluster is not None:  # pragma: no cover
-            self.restore_hpc_weights_if_needed(model)
+        self.restore_hpc_weights_if_needed(model)
 
     def restore_state_if_checkpoint_exists(self):
         # restore trainer state and model if there is a weight for this experiment

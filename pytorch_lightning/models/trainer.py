@@ -58,7 +58,6 @@ class Trainer(TrainerIO):
                  early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip=0,
-                 cluster=None,
                  process_position=0,
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
@@ -90,7 +89,6 @@ class Trainer(TrainerIO):
         :param early_stop_callback: from pytorch_lightning import EarlyStopping
         :param checkpoint_callback: from pytorch_lightning import Checkpoint
         :param gradient_clip:
-        :param cluster:
         :param process_position:
         :param current_gpu_name:
         :param nb_gpu_nodes:
@@ -133,7 +131,6 @@ class Trainer(TrainerIO):
         self.exp_save_path = None
         if self.experiment is not None:
             self.exp_save_path = experiment.get_data_path(experiment.name, experiment.version)
-        self.cluster = cluster
         self.process_position = process_position
         self.current_gpu_name = current_gpu_name
         self.print_weights_summary = print_weights_summary

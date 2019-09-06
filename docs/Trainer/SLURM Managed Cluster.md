@@ -55,8 +55,8 @@ cluster.memory_mb_per_node = 10000
 cluster.job_time = '10:00'
 ```
 
-(3). Give trainer the cluster_manager in your main function:    
-
+(3). Make a main function with your model and trainer. Each job will call this function with a particular
+hparams configuration.    
 ```{.python}
 from pytorch_lightning import Trainer
 
@@ -66,12 +66,12 @@ def train_fx(trial_hparams, cluster_manager, _):
     my_model = MyLightningModel()
     
     # give the trainer the cluster object
-    trainer = Trainer(cluster=cluster_manager)
+    trainer = Trainer()
     trainer.fit(my_model)
 
 ```
 
-(4). Start the grid search     
+(3). Start the grid/random search     
 ```{.python}
 # run the models on the cluster
 cluster.optimize_parallel_cluster_gpu(
@@ -81,24 +81,22 @@ cluster.optimize_parallel_cluster_gpu(
     job_display_name='my_exp')
 ```
 
-That's it! The SlurmCluster object will automatically checkpoint the lightning model and resubmit if it runs into the walltime!
-
-
 ---
 #### Walltime auto-resubmit
-Lightning automatically resubmits jobs when they reach the walltime. You get this behavior for free if you give lightning
-a slurm cluster object.
+Lightning automatically resubmits jobs when they reach the walltime. Make sure to set the SIGUSR1 signal in 
+your SLURM script.   
 
-```{.python}
-def my_main_fx(hparams, slurm_manager, _):
-    trainer = Trainer(cluster=slurm_manager)
+```bash
+# 90 seconds before training ends
+#SBATCH --signal=SIGUSR1@90
 ``` 
 
-(See the grid search example above for cluster configuration).
-With this feature lightning will:    
+When lightning receives the SIGUSR1 signal it will:
+1. save a checkpoint with 'hpc_ckpt' in the name.
+2. resubmit the job using the SLURM_JOB_ID  
 
-1. automatically checkpoint the model
-2. checkpoint the trainer session
-3. resubmit a continuation job.
-4. load the checkpoint and trainer session in the new model
+When the script starts again, Lightning will:
+1. search for a 'hpc_ckpt' checkpoint. 
+2. restore the model, optimizers, schedulers, epoch, etc...   
+
 
