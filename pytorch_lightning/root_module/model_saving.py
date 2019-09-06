@@ -271,7 +271,7 @@ class TrainerIO(object):
 
         # load on CPU first otherwise model will run out of memory
         # checkpoint = torch.load(filepath, map_location=torch.device('cpu'))
-        checkpoint = torch.load(filepath, map_location=f'cuda:{torch.cuda.current_device()}')
+        checkpoint = torch.load(filepath)
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
