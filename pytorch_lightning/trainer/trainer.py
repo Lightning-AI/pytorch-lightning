@@ -59,7 +59,6 @@ class Trainer(TrainerIO):
                  checkpoint_callback=None,
                  gradient_clip=0,
                  process_position=0,
-                 current_gpu_name=0,
                  nb_gpu_nodes=1,
                  gpus=None,
                  log_gpu_memory=False,
@@ -81,42 +80,40 @@ class Trainer(TrainerIO):
                  use_amp=False,
                  print_nan_grads=False,
                  print_weights_summary=True,
+                 weights_save_path=None,
                  amp_level='O2',
                  nb_sanity_val_steps=5):
         """
 
         :param experiment: Test-tube experiment
-        :param early_stop_callback: from pytorch_lightning import EarlyStopping
-        :param checkpoint_callback: from pytorch_lightning import Checkpoint
-        :param gradient_clip:
-        :param process_position:
-        :param current_gpu_name:
-        :param nb_gpu_nodes:
-        :param gpus:
-        :param log_gpu_memory: Log GPU memory utilization as metric
-            during training. This can lead to lower performance on some
-            servers, in particular when `nvidia-smi` is slow.
-        :param show_progress_bar:
-        :param overfit_pct:
-        :param track_grad_norm:
-        :param check_val_every_n_epoch:
-        :param fast_dev_run:
-        :param accumulate_grad_batches:
-        :param max_nb_epochs:
-        :param min_nb_epochs:
-        :param train_percent_check:
-        :param val_percent_check:
-        :param test_percent_check:
-        :param val_check_interval:
-        :param log_save_interval:
-        :param add_log_row_interval:
-        :param distributed_backend:
-            'do' to use DistributedParallel, 'dp' to use DistributedDataParallel, 'n' to use none
-        :param use_amp:
-        :param print_nan_grads:
-        :param print_weights_summary:
-        :param amp_level:
-        :param nb_sanity_val_steps:
+        :param early_stop_callback: Callback for early stopping
+        :param checkpoint_callback: Callback for checkpointing
+        :param gradient_clip: int. 0 means don't clip.
+        :param process_position: shown in the tqdm bar
+        :param nb_gpu_nodes: number of GPU nodes
+        :param gpus: list or string of gpu ids [0, 1] or '0,1'
+        :param log_gpu_memory: Bool. If true, adds memory logs
+        :param show_progress_bar: Bool. If true shows tqdm bar
+        :param overfit_pct: float. uses this much of all datasets
+        :param track_grad_norm: int. -1 no tracking. Otherwise tracks that norm
+        :param check_val_every_n_epoch: int. check val every n train epochs
+        :param fast_dev_run: Bool. runs full iteration over everything to find bugs
+        :param accumulate_grad_batches: int. Accumulates grads every k batches
+        :param max_nb_epochs: int.
+        :param min_nb_epochs: int.
+        :param train_percent_check: int. How much of train set to check
+        :param val_percent_check: int. How much of val set to check
+        :param test_percent_check: int. How much of test set to check
+        :param val_check_interval: int. Check val this frequently within a train epoch
+        :param log_save_interval: int. Writes logs to disk this often
+        :param add_log_row_interval: int. How often to add logging rows
+        :param distributed_backend: str. dp, or ddp.
+        :param use_amp: Bool. If true uses apex for 16bit precision
+        :param print_nan_grads: Bool. Prints nan gradients
+        :param print_weights_summary: Bool. Prints summary of weights
+        :param weights_save_path: Bool. Where to save weights if on cluster (if not using checkpoint_callback)
+        :param amp_level: str. Check nvidia docs for level
+        :param nb_sanity_val_steps: int. How many val steps to do before a full train loop. good to find bugs.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
@@ -128,12 +125,12 @@ class Trainer(TrainerIO):
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
-        self.current_gpu_name = current_gpu_name
         self.print_weights_summary = print_weights_summary
         self.max_nb_epochs = max_nb_epochs
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.weights_save_path = weights_save_path
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -367,7 +364,7 @@ class Trainer(TrainerIO):
         tqdm_dic.update(self.tqdm_metrics)
 
         if self.on_gpu:
-            tqdm_dic['gpu'] = '{}'.format(self.current_gpu_name)
+            tqdm_dic['gpu'] = '{}'.format(torch.cuda.current_device())
 
         return tqdm_dic
 
