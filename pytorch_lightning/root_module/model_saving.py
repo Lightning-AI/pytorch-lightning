@@ -218,9 +218,6 @@ class TrainerIO(object):
         if self.use_amp:
             try:
                 amp.load_state_dict(checkpoint['amp'])
-                print('-'*100)
-                print('RELOADED AMP STATE')
-                print('-'*100)
             except Exception as e:
                 m = '''
                 your amp version does not support loading amp state.
