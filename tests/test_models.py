@@ -683,7 +683,6 @@ def test_amp_gpu_ddp():
 
 
 def test_cpu_slurm_save_load():
-    # TODO: fix cluster test
     """
     Verify model save/load/checkpoint on CPU
     :return:
@@ -698,7 +697,7 @@ def test_cpu_slurm_save_load():
     exp.argparse(hparams)
     exp.save()
 
-    version  = exp.version
+    version = exp.version
 
     trainer_options = dict(
         max_nb_epochs=1,
