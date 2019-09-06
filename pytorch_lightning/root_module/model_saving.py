@@ -74,7 +74,7 @@ class TrainerIO(object):
         # if script called from hpc resubmit, load weights
         self.restore_hpc_weights_if_needed(model)
 
-    def restore_state_if_checkpoint_exists(self):
+    def restore_state_if_checkpoint_exists(self, model):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
         last_ckpt_name = None
