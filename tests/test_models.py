@@ -6,7 +6,7 @@ from argparse import Namespace
 import pytest
 import numpy as np
 import torch
-from test_tube import Experiment, SlurmCluster
+from test_tube import Experiment
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
@@ -465,7 +465,6 @@ def test_no_val_module():
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -512,7 +511,6 @@ def test_no_val_end_module():
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -699,10 +697,10 @@ def test_cpu_slurm_save_load():
     exp.argparse(hparams)
     exp.save()
 
-    cluster_a = SlurmCluster()
+    version = exp.version
+
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=cluster_a,
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -726,22 +724,18 @@ def test_cpu_slurm_save_load():
     model.eval()
     pred_before_saving = model(x)
 
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
-
     # test HPC saving
     # simulate snapshot on slurm
     saved_filepath = trainer.hpc_save(save_dir, exp)
     assert os.path.exists(saved_filepath)
 
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    continue_tng_hparams = get_hparams(continue_training=True,
-                                       hpc_exp_number=cluster_a.hpc_exp_number)
+    # new exp file to get meta
+    exp = get_exp(False, version=version)
+    exp.argparse(hparams)
+    exp.save()
+
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(continue_tng_hparams),
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
@@ -822,7 +816,6 @@ def test_model_saving_loading():
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
         experiment=exp,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )

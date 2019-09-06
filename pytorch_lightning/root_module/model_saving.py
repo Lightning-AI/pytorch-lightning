@@ -1,5 +1,7 @@
 import os
 import re
+import signal
+from subprocess import call
 
 import torch
 
@@ -50,6 +52,96 @@ class TrainerIO(object):
                                                LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
+
+    # --------------------
+    # CHECK-POINTING
+    # --------------------
+    def restore_weights(self, model):
+        """
+        To restore weights we have two cases.
+        First, if we use the same experiment version, then restore the latest ckpt.
+        AFTER that, if we find weights from hpc checkpoint, then restore that.
+        :param model:
+        :return:
+        """
+        # do nothing if there's not dir or callback
+        no_ckpt_callback = self.checkpoint_callback is None
+        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
+            return
+
+        # restore weights if same exp version
+        self.restore_state_if_checkpoint_exists(model)
+
+        # if script called from hpc resubmit, load weights
+        self.restore_hpc_weights_if_needed(model)
+
+    def restore_state_if_checkpoint_exists(self, model):
+        # restore trainer state and model if there is a weight for this experiment
+        last_epoch = -1
+        last_ckpt_name = None
+
+        # find last epoch
+        checkpoints = os.listdir(self.checkpoint_callback.filepath)
+        for name in checkpoints:
+            # ignore hpc ckpts
+            if 'hpc_' in name:
+                continue
+
+            if '.ckpt' in name:
+                epoch = name.split('epoch_')[1]
+                epoch = int(re.sub('[^0-9]', '', epoch))
+
+                if epoch > last_epoch:
+                    last_epoch = epoch
+                    last_ckpt_name = name
+
+        # restore last checkpoint
+        if last_ckpt_name is not None:
+            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
+            self.restore(last_ckpt_path, self.on_gpu)
+            print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+
+    # --------------------
+    # HPC SIGNAL HANDLING
+    # --------------------
+    def register_slurm_signal_handlers(self):
+        # see if we're using slurm (not interactive)
+        on_slurm = False
+        try:
+            job_name = os.environ['SLURM_JOB_NAME']
+            if job_name != 'bash':
+                on_slurm = True
+        except Exception as e:
+            pass
+
+        if on_slurm and self.proc_rank == 0:
+            print('set slurm handle signals')
+            signal.signal(signal.SIGUSR1, self.sig_handler)
+            signal.signal(signal.SIGTERM, self.term_handler)
+
+    def sig_handler(self, signum, frame):
+        if self.proc_rank == 0:
+            # save weights
+            print('handling SIGUSR1')
+            self.hpc_save(self.checkpoint_callback.filepath, self.experiment)
+
+            # find job id
+            job_id = os.environ['SLURM_JOB_ID']
+            cmd = 'scontrol requeue {}'.format(job_id)
+
+            # requeue job
+            print('\nrequeing job {}...'.format(job_id))
+            result = call(cmd, shell=True)
+
+            # print result text
+            if result == 0:
+                print('requeued exp ', job_id)
+            else:
+                print('requeue failed...')
+
+    def term_handler(self, signum, frame):
+        # save
+        print("bypassing sigterm")
 
     # --------------------
     # MODEL SAVE CHECKPOINT
@@ -116,28 +208,21 @@ class TrainerIO(object):
     # --------------------
     # HPC IO
     # --------------------
-    def enable_auto_hpc_walltime_manager(self):
-        if self.cluster is None:
-            return
+    def restore_hpc_weights_if_needed(self, model):
+        """
+        If there is a set of hpc weights, use as signal to restore model
+        :param model:
+        :return:
+        """
+        # look for hpc weights
+        folderpath = self.checkpoint_callback.filepath
+        if os.path.exists(folderpath):
+            files = os.listdir(folderpath)
+            hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
-        # allow test tube to handle model check pointing automatically
-        # only if proc 0 so we don't trigger world_size resubmits
-        if self.proc_rank == 0:
-            self.cluster.set_checkpoint_save_function(
-                self.hpc_save,
-                kwargs={
-                    'folderpath': self.checkpoint_callback.filepath,
-                    'experiment': self.experiment
-                }
-            )
-
-        self.cluster.set_checkpoint_load_function(
-            self.hpc_load,
-            kwargs={
-                'folderpath': self.checkpoint_callback.filepath,
-                'on_gpu': self.on_gpu
-            }
-        )
+            # if hpc weights exist restore model
+            if len(hpc_weight_paths) > 0:
+                self.hpc_load(folderpath, self.on_gpu)
 
     def restore_training_state(self, checkpoint):
         """

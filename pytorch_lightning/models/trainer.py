@@ -58,7 +58,6 @@ class Trainer(TrainerIO):
                  early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip=0,
-                 cluster=None,
                  process_position=0,
                  current_gpu_name=0,
                  nb_gpu_nodes=1,
@@ -90,7 +89,6 @@ class Trainer(TrainerIO):
         :param early_stop_callback: from pytorch_lightning import EarlyStopping
         :param checkpoint_callback: from pytorch_lightning import Checkpoint
         :param gradient_clip:
-        :param cluster:
         :param process_position:
         :param current_gpu_name:
         :param nb_gpu_nodes:
@@ -181,7 +179,6 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
         self.single_gpu = False
-        self.cluster = cluster
         self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
 
         # init flags for SLURM+ddp to work
@@ -816,6 +813,9 @@ class Trainer(TrainerIO):
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
+        # register auto-resubmit when on SLURM
+        self.register_slurm_signal_handlers()
+
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
@@ -839,13 +839,7 @@ class Trainer(TrainerIO):
         self.model = model
 
         # restore training and model before hpc call
-        self.restore_state_if_existing_checkpoint()
-
-        # enable cluster checkpointing
-        # also restores training state
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
+        self.restore_weights(model)
 
         # progress bar init
         if self.show_progress_bar:
