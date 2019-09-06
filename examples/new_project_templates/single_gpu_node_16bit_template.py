@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from test_tube import HyperOptArgumentParser, Experiment
-from pytorch_lightning.models.trainer import Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 from examples.new_project_templates.lightning_module_template import LightningTemplateModel
