@@ -274,8 +274,6 @@ class Trainer(TrainerIO):
             """
             raise ModuleNotFoundError(msg)
 
-        self.register_slurm_signal_handlers()
-
     @property
     def data_parallel(self):
         return self.use_dp or self.use_ddp
@@ -764,6 +762,9 @@ class Trainer(TrainerIO):
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
+        # register auto-resubmit when on SLURM
+        self.register_slurm_signal_handlers()
+
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
@@ -787,13 +788,7 @@ class Trainer(TrainerIO):
         self.model = model
 
         # restore training and model before hpc call
-        self.restore_state_if_existing_checkpoint()
-
-        # enable cluster checkpointing
-        # also restores training state
-        # hpc checkpoint overrides any other checkpoints loaded before
-        if self.cluster is not None:  # pragma: no cover
-            self.enable_auto_hpc_walltime_manager()
+        self.restore_weights(model)
 
         # progress bar init
         if self.show_progress_bar:
