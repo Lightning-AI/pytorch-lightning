@@ -316,7 +316,7 @@ def validation_end(self, outputs)
 ```   
 If you didn't define a validation_step, this won't be called.       
 
-Called at the end of the validation loop with the output of each validation_step.  Called once per validation dataset.   
+Called at the end of the validation loop with the outputs of validation_step.
 
 The outputs here are strictly for the progress bar. If you don't need to display anything, don't return anything.    
 
@@ -324,7 +324,7 @@ The outputs here are strictly for the progress bar. If you don't need to display
 
 | Param  | description  |
 |---|---|
-|  outputs | List of outputs you defined in validation_step |
+|  outputs | List of outputs you defined in validation_step, or if there are multiple dataloaders, a list containing a list of outputs for each dataloader |
 
 **Return**   
 
@@ -333,6 +333,8 @@ The outputs here are strictly for the progress bar. If you don't need to display
 |  dict | Dict of OrderedDict with metrics to display in progress bar | Y |
 
 **Example**
+
+With a single dataloader
 
 ``` {.python}
 def validation_end(self, outputs):
@@ -349,6 +351,32 @@ def validation_end(self, outputs):
 
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
+    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dic
+```
+
+With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+one entry per dataloader, while the inner list contains the individual outputs of 
+each validation step for that dataloader.
+
+``` {.python}
+def validation_end(self, outputs):
+    """
+    Called at the end of validation to aggregate outputs
+    :param outputs: list of list of individual outputs of each validation step
+    :return:
+    """
+    val_loss_mean = 0
+    val_acc_mean = 0
+    i = 0
+    for dataloader_outputs in outputs:
+        for output in dataloader_outputs:
+            val_loss_mean += output['val_loss']
+            val_acc_mean += output['val_acc']
+            i += 1
+
+    val_loss_mean /= i
+    val_acc_mean /= i
     tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
     return tqdm_dic
 ```
@@ -429,7 +457,7 @@ def test_end(self, outputs)
 ```   
 If you didn't define a test_step, this won't be called.       
 
-Called at the end of the test step with the output of each test_step.  Called once per test dataset.   
+Called at the end of the test step with the output of each test_step.
 
 The outputs here are strictly for the progress bar. If you don't need to display anything, don't return anything.    
 
@@ -437,7 +465,7 @@ The outputs here are strictly for the progress bar. If you don't need to display
 
 | Param  | description  |
 |---|---|
-|  outputs | List of outputs you defined test_step |
+|  outputs | List of outputs you defined in test_step, or if there are multiple dataloaders, a list containing a list of outputs for each dataloader |
 
 **Return**   
 
@@ -462,6 +490,32 @@ def test_end(self, outputs):
 
     test_loss_mean /= len(outputs)
     test_acc_mean /= len(outputs)
+    tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+    return tqdm_dic
+```
+
+With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+one entry per dataloader, while the inner list contains the individual outputs of 
+each validation step for that dataloader.
+
+``` {.python}
+def test_end(self, outputs):
+    """
+    Called at the end of test to aggregate outputs
+    :param outputs: list of individual outputs of each test step
+    :return:
+    """
+    test_loss_mean = 0
+    test_acc_mean = 0
+    i = 0
+    for dataloader_outputs in outputs:
+        for output in dataloader_outputs:
+            test_loss_mean += output['test_loss']
+            test_acc_mean += output['test_acc']
+            i += 1
+
+    test_loss_mean /= i 
+    test_acc_mean /= i
     tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
     return tqdm_dic
 ```

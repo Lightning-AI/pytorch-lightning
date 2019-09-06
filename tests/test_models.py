@@ -1162,14 +1162,14 @@ def test_multiple_test_dataloader():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # verify tng completed
-    assert result == 1
-
     # verify there are 2 val loaders
     assert len(trainer.test_dataloader) == 2, 'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
     [run_prediction(dataloader, trainer.model) for dataloader in trainer.test_dataloader]
+
+    # run the test method
+    trainer.test()
 
 
 # ------------------------------------------------------------------------
