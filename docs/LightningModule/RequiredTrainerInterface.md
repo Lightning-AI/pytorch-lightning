@@ -246,9 +246,9 @@ def validation_step(self, data_batch, batch_nb)
 def validation_step(self, data_batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
-If you don't need to validate you don't need to implement this method.    
+If you don't need to validate you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
 
-In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
+When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
 
 The dict you return here will be available in the `validation_end` method. 
 
@@ -391,9 +391,9 @@ def test_step(self, data_batch, batch_nb)
 def test_step(self, data_batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
-If you don't need to test you don't need to implement this method.    
+If you don't need to test you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy.   
 
-In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
+When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
 
 The dict you return here will be available in the `test_end` method. 
 
