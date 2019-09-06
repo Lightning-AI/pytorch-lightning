@@ -809,7 +809,7 @@ class Trainer(TrainerIO):
         ref_model.testing = self.testing
 
         # register auto-resubmit when on SLURM
-        self.register_slurm_signal_handlers()
+        # self.register_slurm_signal_handlers()
 
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
