@@ -736,14 +736,14 @@ class Trainer(TrainerIO):
         # where to store ip_table
         self.__init_tcp_connection()
 
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
         # put model on appropriate GPUs now
         # copy model to each gpu
         torch.cuda.device(gpu_nb)
         model.cuda(gpu_nb)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
         # AMP
         # run through amp wrapper before going to distributed DP
