@@ -68,6 +68,11 @@ class TrainerIO(object):
         if self.testing:
             return
 
+        # do nothing if there's not dir or callback
+        no_ckpt_callback = self.checkpoint_callback is None
+        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
+            return
+
         # restore weights if same exp version
         self.restore_state_if_checkpoint_exists(model)
 
@@ -78,11 +83,6 @@ class TrainerIO(object):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
         last_ckpt_name = None
-
-        # do nothing if there's not dir or callback
-        no_ckpt_callback = self.checkpoint_callback is None
-        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return
 
         # find last epoch
         checkpoints = os.listdir(self.checkpoint_callback.filepath)
