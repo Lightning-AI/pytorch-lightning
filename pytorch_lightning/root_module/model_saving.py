@@ -10,6 +10,13 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
 
 import warnings
 
+
+try:
+    from apex import amp
+except ImportError:
+    pass
+
+
 class ModelIO(object):
 
     def on_load_checkpoint(self, checkpoint):
@@ -123,7 +130,7 @@ class TrainerIO(object):
         # save amp state
         if self.use_amp:
             try:
-                checkpoint['amp'] = self.amp_lib.state_dict()
+                checkpoint['amp'] = amp.state_dict()
             except Exception as e:
                 m = '''
                 your amp version does not support saving amp state.
@@ -210,7 +217,7 @@ class TrainerIO(object):
         # save amp state
         if self.use_amp:
             try:
-                self.amp_lib.load_state_dict(checkpoint['amp'])
+                amp.load_state_dict(checkpoint['amp'])
             except Exception as e:
                 m = '''
                 your amp version does not support loading amp state.
