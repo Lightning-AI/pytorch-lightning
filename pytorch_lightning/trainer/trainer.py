@@ -130,7 +130,6 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
-        self.weights_save_path = weights_save_path
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -154,11 +153,11 @@ class Trainer(TrainerIO):
         self.current_epoch = 0
         self.total_batches = 0
 
-        # configure callbacks
+        # configure early stop callback
         self.early_stop_callback = early_stop_callback
-        self.checkpoint_callback = checkpoint_callback
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.save_function = self.save_checkpoint
+
+        # configure weights save path
+        self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
         # configure experiment
         self.experiment = experiment
@@ -200,6 +199,26 @@ class Trainer(TrainerIO):
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.__init_amp(use_amp)
+
+    def __configure_weights_path(self, checkpoint_callback, weights_save_path):
+        """
+        Weight path set in this priority:
+        Checkpoint_callback's path (if passed in).
+        User provided weights_saved_path
+        Otherwise use os.getcwd()
+        """
+        self.weights_save_path = weights_save_path
+
+        # configure checkpoint callback
+        self.checkpoint_callback = checkpoint_callback
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.save_function = self.save_checkpoint
+
+            # if checkpoint callback used, then override the weights path
+            self.weights_save_path = self.checkpoint_callback.filepath
+
+        # if weights_save_path is still none here, set to current workingdir
+        self.weights_save_path = os.getcwd()
 
     def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE

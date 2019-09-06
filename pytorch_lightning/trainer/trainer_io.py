@@ -28,11 +28,6 @@ class TrainerIO(object):
         :param model:
         :return:
         """
-        # do nothing if there's not dir or callback
-        no_ckpt_callback = self.checkpoint_callback is None
-        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return
-
         # restore weights if same exp version
         self.restore_state_if_checkpoint_exists(model)
 
@@ -40,6 +35,11 @@ class TrainerIO(object):
         self.restore_hpc_weights_if_needed(model)
 
     def restore_state_if_checkpoint_exists(self, model):
+        # do nothing if there's not dir or callback
+        no_ckpt_callback = self.checkpoint_callback is None
+        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
+            return
+
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
         last_ckpt_name = None
@@ -179,7 +179,7 @@ class TrainerIO(object):
         :return:
         """
         # look for hpc weights
-        folderpath = self.checkpoint_callback.filepath
+        folderpath = self.weights_save_path
         if os.path.exists(folderpath):
             files = os.listdir(folderpath)
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
