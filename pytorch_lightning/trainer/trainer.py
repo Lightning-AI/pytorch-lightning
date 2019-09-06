@@ -111,9 +111,9 @@ class Trainer(TrainerIO):
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
         :param print_weights_summary: Bool. Prints summary of weights
-        :param weights_save_path: Bool. Where to save weights if on cluster (if not using checkpoint_callback)
+        :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
-        :param nb_sanity_val_steps: int. How many val steps to do before a full train loop. good to find bugs.
+        :param nb_sanity_val_steps: int. How many val steps before a full train loop.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
