@@ -204,6 +204,9 @@ class Trainer(TrainerIO):
         self.amp_level = amp_level
         self.__init_amp(use_amp)
 
+        # register auto-resubmit when on SLURM
+        self.register_slurm_signal_handlers()
+
     def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
@@ -807,9 +810,6 @@ class Trainer(TrainerIO):
         ref_model.use_ddp = self.use_ddp
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
-
-        # register auto-resubmit when on SLURM
-        self.register_slurm_signal_handlers()
 
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
