@@ -274,6 +274,8 @@ class Trainer(TrainerIO):
             """
             raise ModuleNotFoundError(msg)
 
+        self.register_slurm_signal_handlers()
+
     def restore_state_if_existing_checkpoint(self):
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
