@@ -276,37 +276,6 @@ class Trainer(TrainerIO):
 
         self.register_slurm_signal_handlers()
 
-    def restore_state_if_existing_checkpoint(self):
-        # restore trainer state and model if there is a weight for this experiment
-        last_epoch = -1
-        last_ckpt_name = None
-
-        # do nothing if there's not dir or callback
-        no_ckpt_callback = self.checkpoint_callback is None
-        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return
-
-        # find last epoch
-        checkpoints = os.listdir(self.checkpoint_callback.filepath)
-        for name in checkpoints:
-            # ignore hpc ckpts
-            if 'hpc_' in name:
-                continue
-
-            if '.ckpt' in name:
-                epoch = name.split('epoch_')[1]
-                epoch = int(re.sub('[^0-9]', '', epoch))
-
-                if epoch > last_epoch:
-                    last_epoch = epoch
-                    last_ckpt_name = name
-
-        # restore last checkpoint
-        if last_ckpt_name is not None:
-            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
-            self.restore(last_ckpt_path, self.on_gpu)
-            print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
-
     @property
     def data_parallel(self):
         return self.use_dp or self.use_ddp
