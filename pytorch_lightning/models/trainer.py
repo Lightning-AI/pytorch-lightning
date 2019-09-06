@@ -751,7 +751,7 @@ class Trainer(TrainerIO):
         if self.use_amp:
             # An example
             model, optimizers = self.amp_lib.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
+                model, self.optimizers, opt_level=self.amp_level, loss_scale='256.0'
             )
             self.optimizers = optimizers
 
