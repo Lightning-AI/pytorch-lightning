@@ -37,7 +37,7 @@ def main(hparams, cluster, results_dict):
     # ------------------------
     # 2 INIT TEST TUBE EXP
     # ------------------------
-    # when using grid search, it's possible for all models to start at once
+    # when using grid search, it's possible for all trainer to start at once
     # and use the same test tube experiment version
     relative_node_id = int(os.environ['SLURM_NODEID'])
     sleep(relative_node_id + 1)
