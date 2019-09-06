@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.models.trainer import reduce_distributed_output
+from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from examples import LightningTemplateModel
 
