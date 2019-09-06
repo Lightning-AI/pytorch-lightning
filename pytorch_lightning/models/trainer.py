@@ -742,7 +742,6 @@ class Trainer(TrainerIO):
 
         # put model on appropriate GPUs now
         # copy model to each gpu
-        torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
         # AMP
@@ -750,12 +749,13 @@ class Trainer(TrainerIO):
         if self.use_amp:
             # An example
             model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level, loss_scale='256.0'
+                model, self.optimizers, opt_level=self.amp_level
             )
             self.optimizers = optimizers
 
         # restore weights when needed
         self.__restore_weights(model)
+        torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
