@@ -69,7 +69,7 @@ class TrainerIO(object):
             return
 
         # restore weights if same exp version
-        self.restore_state_if_checkpoint_exists(model)
+        # self.restore_state_if_checkpoint_exists(model)
 
         # if script called from hpc resubmit, load weights
         self.restore_hpc_weights_if_needed(model)
