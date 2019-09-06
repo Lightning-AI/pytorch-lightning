@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
+from pytorch_lightning.trainer import trainer_io
 from examples import LightningTemplateModel
 
 SEED = 2334
@@ -771,7 +772,7 @@ def test_loading_meta_tags():
 
     # load tags
     tags_path = exp.get_data_path(exp.name, exp.version) + '/meta_tags.csv'
-    tags = model_saving.load_hparams_from_tags_csv(tags_path)
+    tags = trainer_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
