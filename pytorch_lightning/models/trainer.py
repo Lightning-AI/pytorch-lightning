@@ -756,7 +756,11 @@ class Trainer(TrainerIO):
 
         # restore weights when needed
         self.__restore_weights(model)
-        # model.cuda(gpu_nb)
+        model.cuda(gpu_nb)
+        for opt in self.optimizers:
+            opt.cuda(gpu_nb)
+        for lrs in self.lr_schedulers:
+            lrs.cuda(gpu_nb)
 
         model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
                                                  find_unused_parameters=True)
