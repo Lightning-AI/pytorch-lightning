@@ -87,7 +87,7 @@ class TrainerIO(object):
         if self.proc_rank == 0:
             # save weights
             print('handling SIGUSR1')
-            self.hpc_save(self.checkpoint_callback.filepath, self.experiment)
+            self.hpc_save(self.weights_save_path, self.experiment)
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']
