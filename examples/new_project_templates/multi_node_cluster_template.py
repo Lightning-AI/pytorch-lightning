@@ -7,7 +7,7 @@ from time import sleep
 import torch
 
 from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
-from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 from examples.new_project_templates.lightning_module_template import LightningTemplateModel
@@ -37,7 +37,7 @@ def main(hparams, cluster, results_dict):
     # ------------------------
     # 2 INIT TEST TUBE EXP
     # ------------------------
-    # when using grid search, it's possible for all trainer to start at once
+    # when using grid search, it's possible for all models to start at once
     # and use the same test tube experiment version
     relative_node_id = int(os.environ['SLURM_NODEID'])
     sleep(relative_node_id + 1)
