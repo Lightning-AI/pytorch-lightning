@@ -442,7 +442,7 @@ class Trainer(TrainerIO):
 
         # bookkeeping
         outputs = []
-        
+
         # run training
         for dataloader_i, dl in enumerate(dataloaders):
             dl_outputs = []
