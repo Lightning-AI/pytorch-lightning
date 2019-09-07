@@ -305,6 +305,17 @@ class Trainer(TrainerIO):
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
 
+    def __set_nvidia_flags(self):
+        # set the correct cuda visible devices (using pci order)
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+
+        # when slurm is managing the task it sets the visible devices
+        if not self.is_slurm_managing_tasks:
+            gpu_str = ','.join([str(x) for x in self.data_parallel_device_ids])
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
+
+        print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+
     @property
     def data_parallel(self):
         return self.use_dp or self.use_ddp
