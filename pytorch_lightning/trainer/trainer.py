@@ -259,11 +259,6 @@ class Trainer(TrainerIO):
             else:
                 raise Exception('gpus has to be a string or list of ids')
 
-            # set the correct cuda visible devices (using pci order)
-            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(x) for x in gpus])
-            print('VISIBLE GPUS: %r' % os.environ["CUDA_VISIBLE_DEVICES"])
-
         return gpus
 
     def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
