@@ -76,7 +76,7 @@ class Trainer(TrainerIO):
                  val_check_interval=1.0,
                  log_save_interval=100,
                  add_log_row_interval=10,
-                 distributed_backend='dp',
+                 distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
                  print_weights_summary=True,
@@ -269,6 +269,12 @@ class Trainer(TrainerIO):
         # single GPU will also use DP with devices=[0]
         requested_gpus = self.data_parallel_device_ids is not None
         if requested_gpus and len(self.data_parallel_device_ids) > 0:
+            # single GPU case
+            if distributed_backend is None:
+                self.single_gpu = True
+                return
+
+            # DP, DDP case
             self.use_dp = distributed_backend == 'dp'
             self.use_ddp = distributed_backend == 'ddp'
 
@@ -280,12 +286,6 @@ class Trainer(TrainerIO):
                     'Switching to DistributedDataParallel for you. ' \
                     'To silence this warning set distributed_backend=ddp'
                 warnings.warn(w)
-
-        # remove dp and ddp when requesting single gpu
-        if self.data_parallel_device_ids is not None and len(self.data_parallel_device_ids) == 1:
-            self.use_ddp = False
-            self.use_dp = False
-            self.single_gpu = True
 
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
