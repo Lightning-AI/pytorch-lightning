@@ -183,6 +183,9 @@ class Trainer(TrainerIO):
         self.node_rank = 0
         self.__configure_slurm_ddp()
 
+        # nvidia setup
+        self.__set_nvidia_flags()
+
         # can't init progress bar here because starting a new process
         # means the prog_bar won't survive pickling
         self.show_progress_bar = show_progress_bar
