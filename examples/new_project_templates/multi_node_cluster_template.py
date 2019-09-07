@@ -21,7 +21,7 @@ def main_local(hparams):
     main(hparams, None, None)
 
 
-def main(hparams, cluster, results_dict):
+def main(hparams, cluster):
     """
     Main training routine specific for this project
     :param hparams:
