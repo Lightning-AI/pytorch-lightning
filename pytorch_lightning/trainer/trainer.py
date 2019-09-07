@@ -221,7 +221,8 @@ class Trainer(TrainerIO):
             self.weights_save_path = self.checkpoint_callback.filepath
 
         # if weights_save_path is still none here, set to current workingdir
-        self.weights_save_path = os.getcwd()
+        if self.weights_save_path is None:
+            self.weights_save_path = os.getcwd()
 
     def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
