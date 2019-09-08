@@ -17,24 +17,12 @@ hyperparameters to search over.
 ## Option 2: Use test-tube for SLURM script
 With test tube we can automatically generate slurm scripts for different hyperparameter options.   
 
-Run this demo to see:  
+To run this demo:    
 ```python
 source activate YourCondaEnv
 
-python 
+python multi_node_cluster_auto_slurm.py -email your@email.com -partition your_partition -conda_env YourCondaEnv
 ```
-Now you can submit a SLURM script that has the following flags   
-```bash
-# SLURM SUBMIT SCRIPT
-#SBATCH --gres=gpu:8
-#SBATCH --nodes=10
-#SBATCH --ntasks-per-node=8
-#SBATCH --mem=0
-#SBATCH --time=02:00:00
 
-# activate conda env
-conda activate my_env  
-
-# run script from above
-python my_test_script_above.py
-```
+That will submit 6 jobs. Each job will have a specific combination of hyperparams. Each job will also run on 2 nodes
+where each node has 8 gpus.   
