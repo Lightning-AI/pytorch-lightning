@@ -344,7 +344,7 @@ tensorboard --logdir /some/path
 ## Demo
 ```bash
 # install lightning
-pip install pytorch-lightning
+pip install pytorch_lightning
 
 # clone lightning for the demo
 git clone https://github.com/williamFalcon/pytorch-lightning.git
