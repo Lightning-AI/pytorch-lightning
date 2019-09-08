@@ -10,10 +10,13 @@ For multi-node training you must use DistributedDataParallel.
 
 You can toggle between each mode by setting this flag.
 ``` {.python}
-# DEFAULT uses DataParallel
+# DEFAULT (when using single GPU or no GPUs)
+trainer = Trainer(distributed_backend=None)
+
+# Change to DataParallel (gpus > 1)
 trainer = Trainer(distributed_backend='dp')
 
-# change to distributed data parallel
+# change to distributed data parallel (gpus > 1)
 trainer = Trainer(distributed_backend='ddp')
 ```
 
@@ -32,12 +35,24 @@ Below are the possible configurations we support.
 
 | 1 GPU  | 1+ GPUs  | DP  | DDP  | 16-bit  | command |
 |---|---|---|---|---|---|
-| Y  |   |   |   |  | ```Trainer(gpus=[0])``` |
-| Y  |   |   |   | Y | ```Trainer(gpus=[0], use_amp=True)``` |
-|   | Y | Y |   |   | ```Trainer(gpus=[0, ...])``` |
-|   | Y |  | Y  |  | ```Trainer(gpus=[0, ...], distributed_backend='ddp')``` |
-|   | Y |  | Y  | Y | ```Trainer(gpus=[0, ...], distributed_backend='ddp', use_amp=True)``` |
+| Y  |   |   |   |  | ```Trainer(gpus=1)``` |
+| Y  |   |   |   | Y | ```Trainer(gpus=1, use_amp=True)``` |
+|   | Y | Y |   |   | ```Trainer(gpus=k)``` |
+|   | Y |  | Y  |  | ```Trainer(gpus=k, distributed_backend='ddp')``` |
+|   | Y |  | Y  | Y | ```Trainer(gpus=k, distributed_backend='ddp', use_amp=True)``` |
 
+You also have the option of specifying which GPUs to use by passing a list:   
+
+```python
+# DEFAULT (int)
+Trainer(gpus=k)  
+
+# You specify which GPUs (don't use if running on cluster)  
+Trainer(gpus=[0, 1])  
+
+# can also be a string
+Trainer(gpus='0, 1')
+```
 
 ---
 #### CUDA flags   
@@ -48,6 +63,9 @@ Lightning sets these for you automatically, there's NO NEED to do this yourself.
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ```
+
+However, when using a cluster, Lightning will NOT set these flags (and you should not either). 
+SLURM will set these for you.   
 
 ---
 #### 16-bit mixed precision
@@ -70,7 +88,7 @@ trainer = Trainer(amp_level='O2', use_amp=False)
 Make sure you're on a GPU machine. 
 ```python
 # DEFAULT
-trainer = Trainer(gpus=[0])
+trainer = Trainer(gpus=1)
 ```
 
 ---
@@ -78,11 +96,11 @@ trainer = Trainer(gpus=[0])
 Make sure you're on a GPU machine. You can set as many GPUs as you want.
 In this setting, the model will run on all 8 GPUs at once using DataParallel under the hood.
 ```python
-# to use DataParallel (default)
-trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='dp')
+# to use DataParallel
+trainer = Trainer(gpus=8, distributed_backend='dp')
 
 # RECOMMENDED use DistributedDataParallel
-trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='ddp')
+trainer = Trainer(gpus=8, distributed_backend='ddp')
 ```
 
 ---
@@ -90,7 +108,7 @@ trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], distributed_backend='ddp')
 Multi-node training is easily done by specifying these flags.
 ```python
 # train on 12*8 GPUs
-trainer = Trainer(gpus=[0,1,2,3,4,5,6,7], nb_gpu_nodes=12)
+trainer = Trainer(gpus=8, nb_gpu_nodes=12)
 ```
 
 In addition, make sure to set up your SLURM job correctly via the [SlurmClusterObject](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/). In particular, specify the number of tasks per node correctly.

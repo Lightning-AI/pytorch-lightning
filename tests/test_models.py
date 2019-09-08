@@ -585,7 +585,7 @@ def test_amp_single_gpu():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0],
+        gpus=1,
         distributed_backend='dp',
         use_amp=True
     )
@@ -675,7 +675,7 @@ def test_amp_gpu_ddp():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
@@ -1019,10 +1019,32 @@ def test_single_gpu_model():
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        gpus=[0]
+        gpus=1
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_multi_gpu_none_backend():
+    """
+    Make sure when using multiple GPUs the user can't use
+    distributed_backend = None
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus='-1'
+    )
+
+    with pytest.raises(MisconfigurationException):
+        run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_dp():
@@ -1036,6 +1058,7 @@ def test_multi_gpu_model_dp():
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
+        distributed_backend='dp',
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
