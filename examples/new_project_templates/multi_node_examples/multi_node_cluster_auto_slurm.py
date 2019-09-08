@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     parent_parser.add_argument('--per_experiment_nb_gpus', type=int,
                                default=8, help='how many gpus to use in a node')
-    parent_parser.add_argument('--nb_gpu_nodes', type=int, default=1,
+    parent_parser.add_argument('--nb_gpu_nodes', type=int, default=2,
                                help='how many nodes to use in a cluster')
     parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir,
                                help='where to save logs')
