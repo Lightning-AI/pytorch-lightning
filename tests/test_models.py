@@ -585,7 +585,7 @@ def test_amp_single_gpu():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0],
+        gpus=1,
         distributed_backend='dp',
         use_amp=True
     )
@@ -675,7 +675,7 @@ def test_amp_gpu_ddp():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
@@ -1019,7 +1019,7 @@ def test_single_gpu_model():
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        gpus=[0]
+        gpus=1
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
