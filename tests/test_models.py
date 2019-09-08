@@ -1024,6 +1024,7 @@ def test_single_gpu_model():
 
     run_gpu_model_test(trainer_options, model, hparams)
 
+
 def test_multi_gpu_none_backend():
     """
     Make sure when using multiple GPUs the user can't use
