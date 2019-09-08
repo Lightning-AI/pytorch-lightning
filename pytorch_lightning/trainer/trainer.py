@@ -249,7 +249,10 @@ class Trainer(TrainerIO):
             raise TypeError("Gradient accumulation supports only int and dict types")
 
     def __parse_gpu_ids(self, gpus):
-        # gpus come in as a string.
+        """
+        :param gpus: Int, string or list of ids
+        :return:
+        """
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
         if gpus is not None:
@@ -260,44 +263,66 @@ class Trainer(TrainerIO):
                     gpus = list(range(0, torch.cuda.device_count()))
                 else:
                     gpus = [int(x.strip()) for x in gpus.split(',')]
+            elif type(gpus) is int:
+                gpus = gpus
             else:
-                raise Exception('gpus has to be a string or list of ids')
+                raise Exception('gpus has to be a string, int or list of ints')
 
         return gpus
+
+    def __nb_gpus(self, gpus):
+        if gpus is None:
+            return 0
+        if type(gpus) is list:
+            return len(gpus)
+        if type(gpus) is int:
+            return gpus
+
+        m = 'gpus must be int, none or list of ints'
+        raise MisconfigurationException(m)
 
     def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
         # make DP and DDP mutually exclusive
         # single GPU will also use DP with devices=[0]
         requested_gpus = self.data_parallel_device_ids is not None
-        if requested_gpus and len(self.data_parallel_device_ids) > 0:
+
+        num_gpus = self.__nb_gpus(self.data_parallel_device_ids)
+        if num_gpus > 0:
             # single GPU case
-            if distributed_backend is None:
+            if num_gpus == 1:
                 self.single_gpu = True
-                return
 
-            # DP, DDP case
-            self.use_dp = distributed_backend == 'dp'
-            self.use_ddp = distributed_backend == 'ddp'
+            elif num_gpus > 1 and distributed_backend is not None:
+                # DP, DDP case
+                self.use_dp = distributed_backend == 'dp'
+                self.use_ddp = distributed_backend == 'ddp'
 
-            # use ddp automatically if nb_gpu_nodes > 1
-            if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-                self.use_ddp = True
-                self.use_dp = False
-                w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
-                    'Switching to DistributedDataParallel for you. ' \
-                    'To silence this warning set distributed_backend=ddp'
-                warnings.warn(w)
+                # use ddp automatically if nb_gpu_nodes > 1
+                if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
+                    self.use_ddp = True
+                    self.use_dp = False
+                    w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
+                        'Switching to DistributedDataParallel for you. ' \
+                        'To silence this warning set distributed_backend=ddp'
+                    warnings.warn(w)
+
+            elif distributed_backend is None:
+                m = 'When using multiple GPUs set ' \
+                    'Trainer(distributed_backend=dp) (or ddp)'
+                raise MisconfigurationException(m)
 
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
     def __configure_slurm_ddp(self, gpu_ids, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
+        nb_gpus = len(gpu_ids) if type(gpu_ids) is list else gpu_ids
+
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
         if self.use_ddp:
-            self.nb_requested_gpus = len(gpu_ids) * nb_gpu_nodes
+            self.nb_requested_gpus = nb_gpus * nb_gpu_nodes
             self.nb_slurm_tasks = 0
             try:
                 self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
