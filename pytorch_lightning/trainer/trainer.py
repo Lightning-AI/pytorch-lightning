@@ -270,7 +270,9 @@ class Trainer(TrainerIO):
 
         return gpus
 
-    def __nb_gpus(self, gpus):
+    @property
+    def num_gpus(self):
+        gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
         if type(gpus) is list:
@@ -286,7 +288,7 @@ class Trainer(TrainerIO):
         # single GPU will also use DP with devices=[0]
         requested_gpus = self.data_parallel_device_ids is not None
 
-        num_gpus = self.__nb_gpus(self.data_parallel_device_ids)
+        num_gpus = self.num_gpus
         if num_gpus > 0:
             # single GPU case
             if num_gpus == 1:
@@ -642,8 +644,7 @@ class Trainer(TrainerIO):
                 If you're not using SLURM, ignore this message!
                 """
                 warnings.warn(msg)
-                nb_gpus = self.__nb_gpus(self.data_parallel_device_ids)
-                mp.spawn(self.ddp_train, nprocs=nb_gpus, args=(model, ))
+                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -749,8 +750,8 @@ class Trainer(TrainerIO):
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
         # determine which process we are and world size
-        self.proc_rank = self.node_rank * len(self.data_parallel_device_ids) + gpu_nb
-        self.world_size = self.nb_gpu_nodes * len(self.data_parallel_device_ids)
+        self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
+        self.world_size = self.nb_gpu_nodes * self.num_gpus
 
         # let the exp know the rank to avoid overwriting logs
         if self.experiment is not None:
@@ -1106,7 +1107,7 @@ class Trainer(TrainerIO):
 
             # reduce prog metrics for tqdm when using dp
             if self.use_dp:
-                nb_gpus = len(self.data_parallel_device_ids)
+                nb_gpus = self.num_gpus
                 prog_output = reduce_distributed_output(prog_output, nb_gpus)
 
             model_specific_tqdm_metrics_dic = prog_output
@@ -1126,7 +1127,7 @@ class Trainer(TrainerIO):
 
         # when using dp need to reduce the loss
         if self.use_dp:
-            loss = reduce_distributed_output(loss, len(self.data_parallel_device_ids))
+            loss = reduce_distributed_output(loss, self.num_gpus)
 
         return loss, model_specific_tqdm_metrics_dic
 
