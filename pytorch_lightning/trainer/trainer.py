@@ -91,7 +91,7 @@ class Trainer(TrainerIO):
         :param gradient_clip: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
-        :param gpus: list or string of gpu ids [0, 1] or '0,1'
+        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
         :param log_gpu_memory: Bool. If true, adds memory logs
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
@@ -168,7 +168,7 @@ class Trainer(TrainerIO):
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
 
-        # allow string and gpu list
+        # allow int, string and gpu list
         self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
 
         # distributed backend choice
