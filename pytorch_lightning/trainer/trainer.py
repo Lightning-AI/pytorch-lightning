@@ -1091,7 +1091,9 @@ class Trainer(TrainerIO):
         elif self.use_dp:
             output = self.model(*args)
         elif self.single_gpu:
-            gpu_id = self.data_parallel_device_ids[0]
+            gpu_id = 0
+            if type(self.data_parallel_device_ids) is list:
+                gpu_id = self.data_parallel_device_ids[0]
             data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
             args[0] = data_batch
             output = self.model.training_step(*args)
