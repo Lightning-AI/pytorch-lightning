@@ -75,12 +75,12 @@ def main(hparams, cluster):
     # ------------------------
     # 4 INIT TRAINER
     # ------------------------
+    gpus = list(range(0, hparams.per_experiment_nb_gpus))
     trainer = Trainer(
         experiment=exp,
-        cluster=cluster,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
-        gpus=hparams.gpus,
+        gpus=gpus,
         nb_gpu_nodes=hyperparams.nb_gpu_nodes
     )
 
@@ -99,7 +99,7 @@ def optimize_on_cluster(hyperparams):
     )
 
     # email for cluster coms
-    cluster.notify_job_status(email='add_email_here', on_done=True, on_fail=True)
+    cluster.notify_job_status(email=hyperparams.email, on_done=True, on_fail=True)
 
     # configure cluster
     cluster.per_experiment_nb_gpus = hyperparams.per_experiment_nb_gpus
@@ -109,7 +109,7 @@ def optimize_on_cluster(hyperparams):
     cluster.memory_mb_per_node = 0
 
     # any modules for code to run in env
-    cluster.add_command('source activate lightning')
+    cluster.add_command(f'source activate {hyperparams.conda_env}')
 
     # run only on 32GB voltas
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
@@ -121,7 +121,7 @@ def optimize_on_cluster(hyperparams):
     # creates and submits jobs to slurm
     cluster.optimize_parallel_cluster_gpu(
         main,
-        nb_trials=hyperparams.nb_hopt_trials,
+        nb_trials=hyperparams.num_hyperparam_trials,
         job_name=hyperparams.experiment_name
     )
 
@@ -139,15 +139,10 @@ if __name__ == '__main__':
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
 
     # cluster args not defined inside the model
-    parent_parser.add_argument('--gpu_partition', type=str, help='consult your cluster manual')
 
-    # TODO: make 1 param
     parent_parser.add_argument('--per_experiment_nb_gpus', type=int,
-                               default=2, help='how many gpus to use in a node')
-    parent_parser.add_argument('--gpus', type=str, default='-1',
-                               help='how many gpus to use in the node')
-
-    parent_parser.add_argument('--nb_gpu_nodes', type=int, default=1,
+                               default=8, help='how many gpus to use in a node')
+    parent_parser.add_argument('--nb_gpu_nodes', type=int, default=2,
                                help='how many nodes to use in a cluster')
     parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir,
                                help='where to save logs')
@@ -157,8 +152,14 @@ if __name__ == '__main__':
                                help='where to save model')
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a',
                                help='test tube exp name')
-    parent_parser.add_argument('--nb_hopt_trials', type=int, default=1,
+    parent_parser.add_argument('--num_hyperparam_trials', type=int, default=6,
                                help='how many grid search trials to run')
+
+    parent_parser.add_argument('--email', type=str, default='add@email.com',
+                               help='email for jobs')
+    parent_parser.add_argument('--conda_env', type=str, default='base',
+                               help='email for jobs')
+    parent_parser.add_argument('--gpu_partition', type=str, help='consult your cluster manual')
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
