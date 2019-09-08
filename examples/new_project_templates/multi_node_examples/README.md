@@ -21,7 +21,7 @@ To run this demo:
 ```python
 source activate YourCondaEnv
 
-python multi_node_cluster_auto_slurm.py -email your@email.com -gpu_partition your_partition -conda_env YourCondaEnv
+python multi_node_cluster_auto_slurm.py --email your@email.com --gpu_partition your_partition --conda_env YourCondaEnv
 ```
 
 That will submit 6 jobs. Each job will have a specific combination of hyperparams. Each job will also run on 2 nodes
