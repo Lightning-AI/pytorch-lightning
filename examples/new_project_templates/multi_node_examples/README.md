@@ -3,7 +3,7 @@ Use these templates for multi-node training
 
 ## Simplest example.   
 1. Modify this script with your CoolModel file.   
-2. Update and submit [this bash script]()   
+2. Update and submit [this bash script](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/multi_node_examples/minimal_multi_node_demo_script.sh)   
 ```bash
 squeue minimal_multi_node_demo_script.sh
 ```
