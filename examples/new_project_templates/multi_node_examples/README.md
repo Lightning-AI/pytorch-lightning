@@ -1,7 +1,16 @@
-# Multi-node grid search gpu template  
-Use this template to run a grid search on a cluster.  
+# Multi-node examples
+Use these templates for multi-node training
 
-## Option 1: Run on cluster using your own SLURM script    
+## Simplest example.   
+1. Modify this script with your CoolModel file.   
+2. Update and submit [this bash script]()   
+```bash
+squeue minimal_multi_node_demo_script.sh
+```
+
+## Grid search on a cluster   
+
+#### Option 1: Run on cluster using your own SLURM script    
 The trainer and model will work on a cluster if you configure your SLURM script correctly.   
 
 1. Update [this demo slurm script]().  
@@ -14,7 +23,7 @@ Most people have some way they automatically generate their own scripts.
 To run a grid search this way, you'd need a way to automatically generate scripts using all the combinations of 
 hyperparameters to search over.   
 
-## Option 2: Use test-tube for SLURM script
+#### Option 2: Use test-tube for SLURM script
 With test tube we can automatically generate slurm scripts for different hyperparameter options.   
 
 To run this demo:    
