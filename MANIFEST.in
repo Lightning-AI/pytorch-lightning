@@ -17,9 +17,12 @@ recursive-include pytorch_lightning *.py
 
 # include examples
 recursive-include examples *.py
+recursive-include examples *.md
+recursive-include examples *.sh
 
 # exclude tests from package
 recursive-exclude tests *
+recursive-exclude site *
 exclude tests
 
 # Exclude the documentation files
