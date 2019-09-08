@@ -1,19 +1,28 @@
 # Multi-node grid search gpu template  
 Use this template to run a grid search on a cluster.  
 
-## Run on cluster using your own SLURM script    
+## Option 1: Run on cluster using your own SLURM script    
 The trainer and model will work on a cluster if you configure your SLURM script correctly.   
 
-Let's set up the trainer to run on 16 GPUs   
+1. Update [this demo slurm script]().  
+2. Submit the script   
+```bash
+$ squeue demo_script.sh
+```
+
+Most people have some way they automatically generate their own scripts.  
+To run a grid search this way, you'd need a way to automatically generate scripts using all the combinations of 
+hyperparameters to search over.   
+
+## Option 2: Use test-tube for SLURM script
+With test tube we can automatically generate slurm scripts for different hyperparameter options.   
+
+Run this demo to see:  
 ```python
-def main():
-    model = LightningModel()   
-    trainer = Trainer(nb_gpu_nodes=2, gpus=[0, 1, 2, 3, 4, 5, 6, 7])   
+source activate YourCondaEnv
 
-if __name__ == '__main__':
-    main()
-```   
-
+python 
+```
 Now you can submit a SLURM script that has the following flags   
 ```bash
 # SLURM SUBMIT SCRIPT
