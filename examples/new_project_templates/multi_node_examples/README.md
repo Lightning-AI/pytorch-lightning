@@ -13,7 +13,7 @@ squeue minimal_multi_node_demo_script.sh
 #### Option 1: Run on cluster using your own SLURM script    
 The trainer and model will work on a cluster if you configure your SLURM script correctly.   
 
-1. Update [this demo slurm script]().  
+1. Update [this demo slurm script](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/multi_node_examples/demo_script.sh).  
 2. Submit the script   
 ```bash
 $ squeue demo_script.sh
