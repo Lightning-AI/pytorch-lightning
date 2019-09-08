@@ -708,7 +708,10 @@ class Trainer(TrainerIO):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        model.cuda(self.data_parallel_device_ids[0])
+        root_gpu = 0
+        if type(self.data_parallel_device_ids) is list:
+            root_gpu = self.data_parallel_device_ids[0]
+        model.cuda(root_gpu)
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
