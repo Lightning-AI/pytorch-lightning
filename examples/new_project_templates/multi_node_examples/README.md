@@ -18,7 +18,7 @@ hyperparameters to search over.
 With test tube we can automatically generate slurm scripts for different hyperparameter options.   
 
 To run this demo:    
-```python
+```bash
 source activate YourCondaEnv
 
 python multi_node_cluster_auto_slurm.py --email your@email.com --gpu_partition your_partition --conda_env YourCondaEnv
