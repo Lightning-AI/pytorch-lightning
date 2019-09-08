@@ -458,8 +458,10 @@ class Trainer(TrainerIO):
         # CPU, single GPU
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
-            gpu_id = self.data_parallel_device_ids[0]
-            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
+            root_gpu = 0
+            if type(self.data_parallel_device_ids) is list:
+                root_gpu = self.data_parallel_device_ids[0]
+            data_batch = self.transfer_batch_to_gpu(data_batch, root_gpu)
             args[0] = data_batch
 
         if test:
