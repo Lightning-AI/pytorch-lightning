@@ -291,6 +291,8 @@ class Trainer(TrainerIO):
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
     def __configure_slurm_ddp(self, gpu_ids, nb_gpu_nodes):
+        self.is_slurm_managing_tasks = False
+
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
