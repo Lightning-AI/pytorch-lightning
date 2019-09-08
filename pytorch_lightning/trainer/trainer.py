@@ -341,9 +341,8 @@ class Trainer(TrainerIO):
         # when slurm is managing the task it sets the visible devices
         if not is_slurm_managing_tasks:
             if type(data_parallel_device_ids) is int:
-                if data_parallel_device_ids > 0:
-                    id_str = ','.join(list(range(data_parallel_device_ids)))
-                    os.environ["CUDA_VISIBLE_DEVICES"] = id_str
+                id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
+                os.environ["CUDA_VISIBLE_DEVICES"] = id_str
             else:
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
