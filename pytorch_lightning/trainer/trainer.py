@@ -181,7 +181,7 @@ class Trainer(TrainerIO):
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.__configure_slurm_ddp(self.data_parallel_device_ids, nb_gpu_nodes)
+        self.__configure_slurm_ddp(nb_gpu_nodes)
 
         # nvidia setup
         self.__set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -284,51 +284,59 @@ class Trainer(TrainerIO):
         raise MisconfigurationException(m)
 
     def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
-        # make DP and DDP mutually exclusive
-        # single GPU will also use DP with devices=[0]
-        requested_gpus = self.data_parallel_device_ids is not None
+        # skip for CPU
+        if self.num_gpus == 0:
+            return
 
-        num_gpus = self.num_gpus
-        if num_gpus > 0:
-            # single GPU case
-            if num_gpus == 1:
-                self.single_gpu = True
+        # single GPU case
+        if self.num_gpus == 1:
+            self.single_gpu = True
 
-            elif num_gpus > 1 and distributed_backend is not None:
-                # DP, DDP case
+            if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
                 self.use_ddp = distributed_backend == 'ddp'
 
-                # use ddp automatically if nb_gpu_nodes > 1
-                if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-                    self.use_ddp = True
-                    self.use_dp = False
-                    w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
-                        'Switching to DistributedDataParallel for you. ' \
-                        'To silence this warning set distributed_backend=ddp'
-                    warnings.warn(w)
+        # multiple GPU case
+        elif self.num_gpus > 1:
+            if distributed_backend is not None:
+                # DP, DDP case
+                self.use_dp = distributed_backend == 'dp'
+                self.use_ddp = distributed_backend == 'ddp'
 
             elif distributed_backend is None:
                 m = 'When using multiple GPUs set ' \
                     'Trainer(distributed_backend=dp) (or ddp)'
                 raise MisconfigurationException(m)
 
+        # use ddp automatically if nb_gpu_nodes > 1
+        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
+            self.use_ddp = True
+            self.use_dp = False
+            w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
+                'Switching to DistributedDataParallel for you. ' \
+                'To silence this warning set distributed_backend=ddp'
+            warnings.warn(w)
+
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
-    def __configure_slurm_ddp(self, gpu_ids, nb_gpu_nodes):
+    def __configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
-
-        nb_gpus = len(gpu_ids) if type(gpu_ids) is list else gpu_ids
 
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
         if self.use_ddp:
-            self.nb_requested_gpus = nb_gpus * nb_gpu_nodes
+            self.nb_requested_gpus = self.num_gpus * nb_gpu_nodes
             self.nb_slurm_tasks = 0
             try:
                 self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
                 self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+
+                # in interactive mode we don't manage tasks
+                job_name = os.environ['SLURM_JOB_NAME']
+                if job_name == 'bash':
+                    self.is_slurm_managing_tasks = False
+
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
