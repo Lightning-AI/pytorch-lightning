@@ -284,34 +284,38 @@ class Trainer(TrainerIO):
         raise MisconfigurationException(m)
 
     def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
-        # make DP and DDP mutually exclusive
-        # single GPU will also use DP with devices=[0]
-        requested_gpus = self.data_parallel_device_ids is not None
+        # skip for CPU
+        if self.num_gpus == 0:
+            return
 
-        num_gpus = self.num_gpus
-        if num_gpus > 0:
-            # single GPU case
-            if num_gpus == 1:
-                self.single_gpu = True
+        # single GPU case
+        if self.num_gpus == 1:
+            self.single_gpu = True
 
-            elif num_gpus > 1 and distributed_backend is not None:
-                # DP, DDP case
+            if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
                 self.use_ddp = distributed_backend == 'ddp'
 
-                # use ddp automatically if nb_gpu_nodes > 1
-                if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-                    self.use_ddp = True
-                    self.use_dp = False
-                    w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
-                        'Switching to DistributedDataParallel for you. ' \
-                        'To silence this warning set distributed_backend=ddp'
-                    warnings.warn(w)
+        # multiple GPU case
+        elif self.num_gpus > 1:
+            if distributed_backend is not None:
+                # DP, DDP case
+                self.use_dp = distributed_backend == 'dp'
+                self.use_ddp = distributed_backend == 'ddp'
 
             elif distributed_backend is None:
                 m = 'When using multiple GPUs set ' \
                     'Trainer(distributed_backend=dp) (or ddp)'
                 raise MisconfigurationException(m)
+
+        # use ddp automatically if nb_gpu_nodes > 1
+        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
+            self.use_ddp = True
+            self.use_dp = False
+            w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
+                'Switching to DistributedDataParallel for you. ' \
+                'To silence this warning set distributed_backend=ddp'
+            warnings.warn(w)
 
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
