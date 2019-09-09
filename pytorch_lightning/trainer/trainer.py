@@ -585,9 +585,9 @@ class Trainer(TrainerIO):
 
         if self.use_ddp and self.val_dataloader is not None:
             for dataloader in self.val_dataloader:
-                if not isinstance(dataloader, DistributedSampler):
+                if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
-                    Your val_dataloader(s) are not all DistributedSamplers.
+                    Your val_dataloader(s) don't use DistributedSampler.
                     You're using multiple gpus and multiple nodes without using a DistributedSampler
                     to assign a subset of your data to each process. To silence this warning, pass a
                     DistributedSampler to your DataLoader.
@@ -608,9 +608,9 @@ class Trainer(TrainerIO):
 
         if self.use_ddp and self.test_dataloader is not None:
             for dataloader in self.test_dataloader:
-                if not isinstance(dataloader, DistributedSampler):
+                if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
-                    Your test_dataloader(s) are not all DistributedSamplers.
+                    Your test_dataloader(s) don't use DistributedSampler.
                     You're using multiple gpus and multiple nodes without using a DistributedSampler
                     to assign a subset of your data to each process. To silence this warning, pass a
                     DistributedSampler to your DataLoader.
