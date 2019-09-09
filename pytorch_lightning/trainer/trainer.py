@@ -623,7 +623,7 @@ class Trainer(TrainerIO):
                     dataset = myDataset()
                     dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
                     dataloader = Dataloader(dataset, sampler=dist_sampler)
-                    
+
                     If you want each process to load the full dataset, ignore this warning.
                     """
                     warnings.warn(msg)
