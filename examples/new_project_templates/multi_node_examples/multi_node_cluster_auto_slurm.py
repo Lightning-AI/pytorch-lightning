@@ -76,12 +76,11 @@ def main(hparams, cluster):
     # ------------------------
     # 4 INIT TRAINER
     # ------------------------
-    gpus = list(range(0, hparams.per_experiment_nb_gpus))
     trainer = Trainer(
         experiment=exp,
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
-        gpus=gpus,
+        gpus=hparams.per_experiment_nb_gpus,
         nb_gpu_nodes=hyperparams.nb_gpu_nodes
     )
 
