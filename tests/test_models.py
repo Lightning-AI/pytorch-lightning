@@ -618,7 +618,8 @@ def test_no_amp_single_gpu():
         use_amp=True
     )
 
-    run_gpu_model_test(trainer_options, model, hparams)
+    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+        run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_cpu_restore_training():

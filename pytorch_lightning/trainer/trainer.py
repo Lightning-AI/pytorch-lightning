@@ -322,17 +322,21 @@ class Trainer(TrainerIO):
     def __configure_slurm_ddp(self, gpu_ids, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
-        nb_gpus = len(gpu_ids) if type(gpu_ids) is list else gpu_ids
-
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
         if self.use_ddp:
-            self.nb_requested_gpus = nb_gpus * nb_gpu_nodes
+            self.nb_requested_gpus = self.nb_gpus * nb_gpu_nodes
             self.nb_slurm_tasks = 0
             try:
                 self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
                 self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+
+                # in interactive mode we don't manage tasks
+                job_name = os.environ['SLURM_JOB_NAME']
+                if job_name == 'bash':
+                    self.is_slurm_managing_tasks = False
+
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
