@@ -181,7 +181,7 @@ class Trainer(TrainerIO):
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.__configure_slurm_ddp(self.data_parallel_device_ids, nb_gpu_nodes)
+        self.__configure_slurm_ddp(nb_gpu_nodes)
 
         # nvidia setup
         self.__set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -319,14 +319,14 @@ class Trainer(TrainerIO):
 
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
-    def __configure_slurm_ddp(self, gpu_ids, nb_gpu_nodes):
+    def __configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
         if self.use_ddp:
-            self.nb_requested_gpus = self.nb_gpus * nb_gpu_nodes
+            self.nb_requested_gpus = self.num_gpus * nb_gpu_nodes
             self.nb_slurm_tasks = 0
             try:
                 self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
