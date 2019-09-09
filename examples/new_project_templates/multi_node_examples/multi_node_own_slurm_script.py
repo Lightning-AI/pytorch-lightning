@@ -41,7 +41,7 @@ def main(hparams):
     # ------------------------
     trainer = Trainer(
         experiment=exp,
-        gpus=[0, 1, 2, 3, 4, 5, 6, 7],
+        gpus=8,
         nb_gpu_nodes=2
     )
 
