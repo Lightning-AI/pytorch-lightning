@@ -47,6 +47,7 @@ def main(hparams, cluster):
         name=hyperparams.experiment_name,
         save_dir=hyperparams.test_tube_save_path,
         autosave=False,
+        version=hparams.hpc_exp_number,  # match the slurm job version number
         description='test demo'
     )
 
