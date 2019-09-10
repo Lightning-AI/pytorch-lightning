@@ -101,8 +101,9 @@ def test_amp_dp_resume():
 
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
-        new_trainer.model.eval()
-        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+        dp_model = new_trainer.model.module
+        dp_model.eval()
+        _ = [run_prediction(dataloader, dp_model) for dataloader in trainer.val_dataloader]
 
     # new model
     model = LightningTestModel(hparams)
