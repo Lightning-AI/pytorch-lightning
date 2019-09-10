@@ -104,6 +104,9 @@ class TrainerIO(object):
             else:
                 print('requeue failed...')
 
+            # close experiment to avoid issues
+            self.experiment.close()
+
     def term_handler(self, signum, frame):
         # save
         print("bypassing sigterm")
@@ -236,9 +239,6 @@ class TrainerIO(object):
 
         # save exp to make sure we get all the metrics
         experiment.save()
-
-        # close experiment to avoid issues
-        experiment.close()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
