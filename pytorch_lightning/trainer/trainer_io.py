@@ -259,7 +259,7 @@ class TrainerIO(object):
     def hpc_load(self, folderpath, on_gpu):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
-        # load on GPU first
+        # load on CPU first
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
