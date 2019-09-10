@@ -39,17 +39,13 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_amp_ddp_resume():
+def test_amp_dp_resume():
     """
     Make sure DDP + AMP continue training correctly
     :return:
     """
     if not can_run_gpu_test():
         return
-
-    # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    os.environ['SLURM_LOCALID'] = str(0)
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -58,7 +54,7 @@ def test_amp_ddp_resume():
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=2,
-        distributed_backend='ddp',
+        distributed_backend='dp',
         use_amp=True
     )
 
@@ -84,16 +80,13 @@ def test_amp_ddp_resume():
     real_global_epoch = trainer.current_epoch
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'amp + dp model failed to complete'
 
     # ---------------------------
     # HPC LOAD/SAVE
     # ---------------------------
     # save
     trainer.hpc_save(save_dir, exp)
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    os.environ['SLURM_LOCALID'] = str(0)
 
     # init new trainer
     new_exp = get_exp(False, version=exp.version)
