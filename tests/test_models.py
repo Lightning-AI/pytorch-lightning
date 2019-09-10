@@ -1434,6 +1434,7 @@ def run_prediction(dataloader, trained_model, dp=False):
     if dp:
         output = trained_model(batch, 0)
         acc = output['val_acc']
+        acc = torch.mean(acc).item()
 
     else:
         y_hat = trained_model(x)
