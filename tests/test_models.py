@@ -101,9 +101,10 @@ def test_amp_dp_resume():
 
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
-        dp_model = new_trainer.model.module
+        dp_model = new_trainer.model
         dp_model.eval()
-        _ = [run_prediction(dataloader, dp_model) for dataloader in trainer.val_dataloader]
+
+        _ = [run_prediction(dataloader, dp_model, dp=True) for dataloader in trainer.val_dataloader]
 
     # new model
     model = LightningTestModel(hparams)
@@ -1422,7 +1423,7 @@ def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningT
     return trained_model
 
 
-def run_prediction(dataloader, trained_model):
+def run_prediction(dataloader, trained_model, dp=False):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -1430,7 +1431,10 @@ def run_prediction(dataloader, trained_model):
     x, y = batch
     x = x.view(x.size(0), -1)
 
-    y_hat = trained_model(x)
+    if dp:
+        y_hat = trained_model(x, 0)
+    else:
+        y_hat = trained_model(x)
 
     # acc
     labels_hat = torch.argmax(y_hat, dim=1)
