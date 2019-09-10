@@ -262,6 +262,7 @@ class TrainerIO(object):
 
         # load on CPU first
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        print(f'restored hpc model from: {filepath}')
 
         # load model state
         model = self.__get_model()
