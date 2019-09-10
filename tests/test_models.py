@@ -41,7 +41,7 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 def test_dp_resume():
     """
-    Make sure DDP + AMP continue training correctly
+    Make sure DP continues training correctly
     :return:
     """
     if not can_run_gpu_test():
