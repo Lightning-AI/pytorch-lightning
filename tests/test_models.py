@@ -92,6 +92,9 @@ def test_amp_ddp_resume():
     # save
     trainer.hpc_save(save_dir, exp)
 
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    os.environ['SLURM_LOCALID'] = str(0)
+
     # init new trainer
     new_exp = get_exp(False, version=exp.version)
     trainer_options['experiment'] = new_exp
