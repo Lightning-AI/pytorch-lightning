@@ -39,89 +39,6 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_dp_resume():
-    """
-    Make sure DDP + AMP continue training correctly
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=2,
-        gpus=2,
-        distributed_backend='dp',
-    )
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['experiment'] = exp
-    trainer_options['checkpoint_callback'] = checkpoint
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
-
-    # track epoch before saving
-    real_global_epoch = trainer.current_epoch
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + dp model failed to complete'
-
-    # ---------------------------
-    # HPC LOAD/SAVE
-    # ---------------------------
-    # save
-    trainer.hpc_save(save_dir, exp)
-
-    # init new trainer
-    new_exp = get_exp(False, version=exp.version)
-    trainer_options['experiment'] = new_exp
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
-    trainer_options['train_percent_check'] = 0.2
-    trainer_options['val_percent_check'] = 0.2
-    trainer_options['max_nb_epochs'] = 1
-    new_trainer = Trainer(**trainer_options)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert new_trainer.current_epoch == real_global_epoch and new_trainer.current_epoch > 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        dp_model = new_trainer.model
-        dp_model.eval()
-
-        _ = [run_prediction(dataloader, dp_model, dp=True) for dataloader in trainer.val_dataloader]
-
-    # new model
-    model = LightningTestModel(hparams)
-    model.on_sanity_check_start = assert_good_acc
-
-    # fit new model which should load hpc weights
-    new_trainer.fit(model)
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
-
-    clear_save_dir()
-
-
 def test_amp_ddp_resume():
     """
     Make sure DDP + AMP continue training correctly
@@ -175,6 +92,89 @@ def test_amp_ddp_resume():
     trainer.hpc_save(save_dir, exp)
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    # init new trainer
+    new_exp = get_exp(False, version=exp.version)
+    trainer_options['experiment'] = new_exp
+    trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
+    trainer_options['train_percent_check'] = 0.2
+    trainer_options['val_percent_check'] = 0.2
+    trainer_options['max_nb_epochs'] = 1
+    new_trainer = Trainer(**trainer_options)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_good_acc():
+        assert new_trainer.current_epoch == real_global_epoch and new_trainer.current_epoch > 0
+
+        # if model and state loaded correctly, predictions will be good even though we
+        # haven't trained with the new loaded model
+        dp_model = new_trainer.model
+        dp_model.eval()
+
+        _ = [run_prediction(dataloader, dp_model, dp=True) for dataloader in trainer.val_dataloader]
+
+    # new model
+    model = LightningTestModel(hparams)
+    model.on_sanity_check_start = assert_good_acc
+
+    # fit new model which should load hpc weights
+    new_trainer.fit(model)
+
+    # test freeze on gpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
+def test_dp_resume():
+    """
+    Make sure DDP + AMP continue training correctly
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=2,
+        gpus=2,
+        distributed_backend='dp',
+    )
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    # add these to the trainer options
+    trainer_options['experiment'] = exp
+    trainer_options['checkpoint_callback'] = checkpoint
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.is_slurm_managing_tasks = True
+    result = trainer.fit(model)
+
+    # track epoch before saving
+    real_global_epoch = trainer.current_epoch
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + dp model failed to complete'
+
+    # ---------------------------
+    # HPC LOAD/SAVE
+    # ---------------------------
+    # save
+    trainer.hpc_save(save_dir, exp)
 
     # init new trainer
     new_exp = get_exp(False, version=exp.version)
