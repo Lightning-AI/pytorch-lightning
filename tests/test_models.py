@@ -101,6 +101,7 @@ def test_amp_ddp_resume():
     trainer_options['val_percent_check'] = 0.2
     trainer_options['max_nb_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
+    new_trainer.is_slurm_managing_tasks = True
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_good_acc():
