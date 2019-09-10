@@ -240,6 +240,7 @@ def main():
 
     # add these to the trainer options
     trainer_options['experiment'] = exp
+    trainer_options['checkpoint_callback'] = checkpoint
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -258,9 +259,11 @@ def main():
     # save
     trainer.hpc_save(save_dir, exp)
 
+
     # init new trainer
     new_exp = get_exp(False, version=exp.version)
     trainer_options['experiment'] = new_exp
+    trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
     trainer_options['val_percent_check'] = 0.2
     trainer_options['max_nb_epochs'] = 1
@@ -282,7 +285,6 @@ def main():
     model.on_sanity_check_start = assert_good_acc
 
     # fit new model which should load hpc weights
-    pdb.set_trace()
     new_trainer.fit(model)
 
     # test freeze on gpu
