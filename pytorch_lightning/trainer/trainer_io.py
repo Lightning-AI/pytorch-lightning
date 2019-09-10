@@ -226,14 +226,6 @@ class TrainerIO(object):
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
             scheduler.load_state_dict(lrs_state)
 
-            # move lr scheduler to GPU 1 weight at a time
-            # avoids OOM
-            if self.root_gpu is not None:
-                for state in scheduler.state.values():
-                    for k, v in state.items():
-                        if isinstance(v, torch.Tensor):
-                            state[k] = v.cuda(self.root_gpu)
-
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
