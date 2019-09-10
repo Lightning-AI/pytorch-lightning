@@ -118,19 +118,22 @@ class TrainerIO(object):
 
     def restore(self, checkpoint_path, on_gpu):
 
-        if on_gpu:
-            checkpoint = torch.load(checkpoint_path)
-        else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
+        # if on_gpu:
+        #     checkpoint = torch.load(checkpoint_path)
+        # else:
+        # load on CPU first
+        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.__get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+        if on_gpu:
+            model.cuda(self.root_gpu)
+
+        # load training state (affects trainer only)
+        self.restore_training_state(checkpoint)
 
     def dump_checkpoint(self):
 
@@ -210,10 +213,26 @@ class TrainerIO(object):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
+            # move optimizer to GPU 1 weight at a time
+            # avoids OOM
+            if self.root_gpu is not None:
+                for state in optimizer.state.values():
+                    for k, v in state.items():
+                        if isinstance(v, torch.Tensor):
+                            state[k] = v.cuda(self.root_gpu)
+
         # restore the lr schedulers
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
             scheduler.load_state_dict(lrs_state)
+
+            # move lr scheduler to GPU 1 weight at a time
+            # avoids OOM
+            if self.root_gpu is not None:
+                for state in scheduler.state.values():
+                    for k, v in state.items():
+                        if isinstance(v, torch.Tensor):
+                            state[k] = v.cuda(self.root_gpu)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -248,19 +267,20 @@ class TrainerIO(object):
     def hpc_load(self, folderpath, on_gpu):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
-        if on_gpu:
-            checkpoint = torch.load(filepath)
-        else:
-            checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
+        # load on GPU first
+        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.__get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        if self.root_gpu is not None:
+            model.cuda(self.root_gpu)
+
+        # load training state (affects trainer only)
+        self.restore_training_state(checkpoint)
 
         # call model hook
         model.on_hpc_load(checkpoint)
