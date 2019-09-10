@@ -55,7 +55,6 @@ def test_amp_dp_resume():
         max_nb_epochs=1,
         gpus=2,
         distributed_backend='dp',
-        use_amp=True
     )
 
     save_dir = init_save_dir()
