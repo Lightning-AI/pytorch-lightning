@@ -52,7 +52,7 @@ def test_amp_dp_resume():
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_nb_epochs=2,
         gpus=2,
         distributed_backend='dp',
     )
