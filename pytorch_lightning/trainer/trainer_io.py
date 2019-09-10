@@ -188,7 +188,6 @@ class TrainerIO(object):
             files = os.listdir(folderpath)
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
-
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
                 self.hpc_load(folderpath, self.on_gpu)

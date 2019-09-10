@@ -259,7 +259,6 @@ def main():
     # save
     trainer.hpc_save(save_dir, exp)
 
-
     # init new trainer
     new_exp = get_exp(False, version=exp.version)
     trainer_options['experiment'] = new_exp

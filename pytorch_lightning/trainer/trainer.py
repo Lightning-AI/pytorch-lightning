@@ -269,7 +269,6 @@ class Trainer(TrainerIO):
             else:
                 raise Exception('gpus has to be a string, int or list of ints')
 
-
         return gpus
 
     def __set_root_gpu(self, gpus):
