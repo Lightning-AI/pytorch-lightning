@@ -262,7 +262,6 @@ class TrainerIO(object):
 
         # load on CPU first
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
-        print(f'restored hpc model from: {filepath}')
 
         # load model state
         model = self.__get_model()
@@ -278,6 +277,8 @@ class TrainerIO(object):
 
         # call model hook
         model.on_hpc_load(checkpoint)
+
+        print(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         files = os.listdir(path)
