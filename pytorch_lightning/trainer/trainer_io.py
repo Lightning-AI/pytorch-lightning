@@ -186,7 +186,6 @@ class TrainerIO(object):
         folderpath = self.weights_save_path
         if os.path.exists(folderpath):
             files = os.listdir(folderpath)
-            pdb.set_trace()
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
 
