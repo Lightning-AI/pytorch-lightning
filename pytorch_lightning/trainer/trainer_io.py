@@ -79,7 +79,7 @@ class TrainerIO(object):
         except Exception as e:
             pass
 
-        if on_slurm and self.proc_rank == 0:
+        if on_slurm:
             print('set slurm handle signals')
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
