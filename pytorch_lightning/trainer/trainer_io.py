@@ -1,6 +1,7 @@
 import os
 import re
 import signal
+import pdb
 from subprocess import call
 
 import torch
@@ -185,7 +186,9 @@ class TrainerIO(object):
         folderpath = self.weights_save_path
         if os.path.exists(folderpath):
             files = os.listdir(folderpath)
+            pdb.set_trace()
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
+
 
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
