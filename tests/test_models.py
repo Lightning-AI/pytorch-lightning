@@ -100,7 +100,7 @@ def test_amp_dp_resume():
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
+        assert new_trainer.current_epoch == real_global_epoch and new_trainer.current_epoch > 0
 
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
