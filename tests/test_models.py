@@ -1432,15 +1432,17 @@ def run_prediction(dataloader, trained_model, dp=False):
     x = x.view(x.size(0), -1)
 
     if dp:
-        y_hat = trained_model(x, 0)
+        output = trained_model(batch, 0)
+        acc = output['val_acc']
+
     else:
         y_hat = trained_model(x)
 
-    # acc
-    labels_hat = torch.argmax(y_hat, dim=1)
-    acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-    acc = torch.tensor(acc)
-    acc = acc.item()
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        acc = torch.tensor(acc)
+        acc = acc.item()
 
     assert acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {acc})'
 
