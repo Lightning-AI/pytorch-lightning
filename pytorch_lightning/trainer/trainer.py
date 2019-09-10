@@ -743,7 +743,12 @@ class Trainer(TrainerIO):
             """
             raise MisconfigurationException(m)
 
-        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
+        # create list of device ids
+        device_ids = self.data_parallel_device_ids
+        if type(device_ids) is int:
+            device_ids = list(range(device_ids))
+
+        model = LightningDataParallel(model, device_ids=device_ids)
 
         self.__run_pretrain_routine(model)
 
