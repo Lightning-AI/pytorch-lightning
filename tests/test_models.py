@@ -52,7 +52,7 @@ def test_amp_dp_resume():
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_nb_epochs=2,
         gpus=2,
         distributed_backend='dp',
     )
@@ -92,6 +92,7 @@ def test_amp_dp_resume():
     trainer_options['experiment'] = new_exp
     trainer_options['train_percent_check'] = 0.2
     trainer_options['val_percent_check'] = 0.2
+    trainer_options['max_nb_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
     # set the epoch start hook so we can predict before the model does the full training
