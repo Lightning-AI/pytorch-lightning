@@ -218,9 +218,6 @@ def main():
     Make sure DDP + AMP continue training correctly
     :return:
     """
-    if not can_run_gpu_test():
-        return
-
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
