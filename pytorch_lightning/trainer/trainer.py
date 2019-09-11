@@ -170,6 +170,7 @@ class Trainer(TrainerIO):
 
         # allow int, string and gpu list
         self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
+        self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
 
         # distributed backend choice
         self.use_ddp = False
@@ -269,6 +270,17 @@ class Trainer(TrainerIO):
                 raise Exception('gpus has to be a string, int or list of ints')
 
         return gpus
+
+    def __set_root_gpu(self, gpus):
+        if gpus is None:
+            return None
+
+        # set root gpu
+        root_gpu = 0
+        if type(gpus) is list:
+            root_gpu = gpus[0]
+
+        return root_gpu
 
     @property
     def num_gpus(self):
@@ -701,10 +713,7 @@ class Trainer(TrainerIO):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        root_gpu = 0
-        if type(self.data_parallel_device_ids) is list:
-            root_gpu = self.data_parallel_device_ids[0]
-        model.cuda(root_gpu)
+        model.cuda(self.root_gpu)
 
         if self.use_amp:
             # An example
@@ -721,10 +730,7 @@ class Trainer(TrainerIO):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        root_gpu = 0
-        if type(self.data_parallel_device_ids) is list:
-            root_gpu = self.data_parallel_device_ids[0]
-        model.cuda(root_gpu)
+        model.cuda(self.root_gpu)
 
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
@@ -736,7 +742,12 @@ class Trainer(TrainerIO):
             """
             raise MisconfigurationException(m)
 
-        model = LightningDataParallel(model, device_ids=self.data_parallel_device_ids)
+        # create list of device ids
+        device_ids = self.data_parallel_device_ids
+        if type(device_ids) is int:
+            device_ids = list(range(device_ids))
+
+        model = LightningDataParallel(model, device_ids=device_ids)
 
         self.__run_pretrain_routine(model)
 
@@ -786,6 +797,9 @@ class Trainer(TrainerIO):
         # copy model to each gpu
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
+
+        # override root GPU
+        self.root_gpu = gpu_nb
 
         # AMP
         # run through amp wrapper before going to distributed DP
