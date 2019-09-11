@@ -1,6 +1,7 @@
 import os
 import re
 import signal
+import pdb
 from subprocess import call
 
 import torch
@@ -78,7 +79,7 @@ class TrainerIO(object):
         except Exception as e:
             pass
 
-        if on_slurm and self.proc_rank == 0:
+        if on_slurm:
             print('set slurm handle signals')
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
@@ -103,6 +104,9 @@ class TrainerIO(object):
             else:
                 print('requeue failed...')
 
+            # close experiment to avoid issues
+            self.experiment.close()
+
     def term_handler(self, signum, frame):
         # save
         print("bypassing sigterm")
@@ -118,19 +122,22 @@ class TrainerIO(object):
 
     def restore(self, checkpoint_path, on_gpu):
 
-        if on_gpu:
-            checkpoint = torch.load(checkpoint_path)
-        else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
+        # if on_gpu:
+        #     checkpoint = torch.load(checkpoint_path)
+        # else:
+        # load on CPU first
+        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.__get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+        if on_gpu:
+            model.cuda(self.root_gpu)
+
+        # load training state (affects trainer only)
+        self.restore_training_state(checkpoint)
 
     def dump_checkpoint(self):
 
@@ -210,6 +217,14 @@ class TrainerIO(object):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
+            # move optimizer to GPU 1 weight at a time
+            # avoids OOM
+            if self.root_gpu is not None:
+                for state in optimizer.state.values():
+                    for k, v in state.items():
+                        if isinstance(v, torch.Tensor):
+                            state[k] = v.cuda(self.root_gpu)
+
         # restore the lr schedulers
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
@@ -224,9 +239,6 @@ class TrainerIO(object):
 
         # save exp to make sure we get all the metrics
         experiment.save()
-
-        # close experiment to avoid issues
-        experiment.close()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
@@ -248,13 +260,8 @@ class TrainerIO(object):
     def hpc_load(self, folderpath, on_gpu):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
-        if on_gpu:
-            checkpoint = torch.load(filepath)
-        else:
-            checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
+        # load on CPU first
+        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.__get_model()
@@ -262,8 +269,16 @@ class TrainerIO(object):
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
 
+        if self.root_gpu is not None:
+            model.cuda(self.root_gpu)
+
+        # load training state (affects trainer only)
+        self.restore_training_state(checkpoint)
+
         # call model hook
         model.on_hpc_load(checkpoint)
+
+        print(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         files = os.listdir(path)
