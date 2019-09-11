@@ -53,6 +53,13 @@ source activate YourEnv
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
+# on your cluster you might need these:
+# set the network interface
+export NCCL_SOCKET_IFNAME=^docker0,lo
+
+# might need the latest cuda
+module load NCCL/2.4.7-1-cuda.10.0
+
 # random port between 12k and 20k
 export MASTER_PORT=$((12000 + RANDOM % 20000))$
 
