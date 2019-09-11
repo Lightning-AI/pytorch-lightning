@@ -24,7 +24,7 @@ conda activate my_env
 # -------------------------
 
 # random port between 12k and 20k
-export MASTER_PORT=$((12000 + RANDOM % 20000))$
+export MASTER_PORT=$((12000 + RANDOM % 20000))
 
 # run script from above
 python minimal_multi_node_demo.py
