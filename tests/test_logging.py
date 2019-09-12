@@ -54,6 +54,7 @@ def test_testtube_pickle():
     trainer = Trainer(**trainer_options) 
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
 
 
 def test_mlflow_logger():
@@ -112,3 +113,4 @@ def test_mlflow_pickle():
     trainer = Trainer(**trainer_options)
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
