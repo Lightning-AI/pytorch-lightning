@@ -1014,7 +1014,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
 
     # fit model
     trainer = Trainer(**trainer_options)
