@@ -19,7 +19,8 @@ class MLFlowLogger(LightningLoggerBase):
             logger.warning(
                 f"Experiment with name f{experiment_name} not found. Creating it."
             )
-            experiment = self.client.create_experiment(experiment_name)
+            self.client.create_experiment(experiment_name)
+            experiment = self.client.get_experiment_by_name(experiment_name)
 
         run = self.client.create_run(experiment.experiment_id)
         self.run_id = run.info.run_id

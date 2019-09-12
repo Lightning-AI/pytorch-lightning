@@ -27,6 +27,9 @@ class LightningLoggerBase:
     def finalize(self, status):
         pass
 
+    def close(self):
+        pass
+
     @property
     def rank(self):
         return self._rank
