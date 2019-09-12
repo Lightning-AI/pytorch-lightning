@@ -35,14 +35,14 @@ class TestTubeLogger(LightningLoggerBase):
     def finalize(self, status):
         self.save()
         self.close()
-    
+
     def close(self):
         self.experiment.close()
-    
+
     @property
     def rank(self):
         return self.experiment.rank
-    
+
     @rank.setter
     def rank(self, value):
         self.experiment.rank = value
@@ -51,18 +51,14 @@ class TestTubeLogger(LightningLoggerBase):
     def version(self):
         return self.experiment.version
 
-    def _convert(self, val):
-        constructors = [int, float, str]
+    # Test tube experiments are not pickleable, so we need to override a few
+    # methods to get DDP working. See
+    # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
+    # for more info.
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["experiment"] = self.experiment.get_meta_copy()
 
-        if type(val) is str:
-            if val.lower() == 'true':
-                return True
-            if val.lower() == 'false':
-                return False
-
-        for c in constructors:
-            try:
-                return c(val)
-            except ValueError:
-                pass
-        return va
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.experiment = self.experiment.get_non_ddp_exp()
