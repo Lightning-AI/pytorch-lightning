@@ -644,10 +644,6 @@ class Trainer(TrainerIO):
     def fit(self, model):
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
-            # must copy only the meta of the exp so it survives pickle/unpickle
-            #  when going to new process
-            # if self.experiment is not None:
-            #     self.experiment = self.experiment.get_meta_copy()
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
@@ -763,11 +759,6 @@ class Trainer(TrainerIO):
             self.node_rank = int(node_id)
         except Exception:
             self.node_rank = 0
-
-        # recover original exp before went into process
-        # init in write mode only on proc 0
-        # if self.logger is not None and hasattr(self.logger, "pickleable"):
-        #     self.logger = self.logger.pickleable()
 
         # show progbar only on prog_rank 0
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
