@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 from examples.new_project_templates.lightning_module_template import LightningTemplateModel
 
+PORT = np.random.randint(12000, 20000, 1)[0]
 SEED = 2334
 torch.manual_seed(SEED)
 np.random.seed(SEED)
@@ -110,6 +111,15 @@ def optimize_on_cluster(hyperparams):
 
     # any modules for code to run in env
     cluster.add_command(f'source activate {hyperparams.conda_env}')
+
+    # set DDP master port
+    cluster.add_command(f'export MASTER_PORT={PORT}')
+
+    # YOU MIGHT NEED THESE
+#     cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+#     cluster.add_command('export NCCL_DEBUG=INFO')
+#     cluster.add_command('export PYTHONFAULTHANDLER=1')
+#     cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
 
     # run only on 32GB voltas
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
