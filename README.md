@@ -4,7 +4,7 @@
 
 # PyTorch Lightning
 
-**The PyTorch Keras for ML researchers. More control. Less boilerplate.**
+**The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.**
 
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
