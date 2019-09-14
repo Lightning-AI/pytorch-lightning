@@ -115,11 +115,19 @@ def optimize_on_cluster(hyperparams):
     # set DDP master port
     cluster.add_command(f'export MASTER_PORT={PORT}')
 
-    # YOU MIGHT NEED THESE
-#     cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
-#     cluster.add_command('export NCCL_DEBUG=INFO')
-#     cluster.add_command('export PYTHONFAULTHANDLER=1')
-#     cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
+    # OPTIONAL for debugging
+    # without these flags errors in your code will 
+    # appear to be nccl errors
+    cluster.add_command('export NCCL_DEBUG=INFO')
+    cluster.add_command('export PYTHONFAULTHANDLER=1')
+
+    # depending on your cluster config, you probably want
+    # to limit the wired connection device
+    # cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+
+    # depending on your cluster, you might need to load
+    # the latest NCCL version
+    # cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
 
     # run only on 32GB voltas
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
