@@ -86,6 +86,11 @@ cluster.optimize_parallel_cluster_gpu(
     job_display_name='my_exp')
 ```
 
+**NOTE** nb_trials specifies how many of the possible permutations to use. If using ```grid_search``` it will use
+the depth first ordering. If using ```random_search``` it will use the first k shuffled options. FYI, random search
+has been shown to be just as good as any Bayesian optimization method when using a reasonable number of samples (60),
+[see this paper for more information](http://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf).
+
 ---
 #### Walltime auto-resubmit
 Lightning automatically resubmits jobs when they reach the walltime. Make sure to set the SIGUSR1 signal in 
