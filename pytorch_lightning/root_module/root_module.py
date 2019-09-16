@@ -130,7 +130,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return None
 
     @classmethod
-    def load_from_metrics(cls, weights_path, tags_csv, on_gpu, map_location=None):
+    def load_from_metrics(cls, weights_path, tags_csv, on_gpu):
         """
         Primary way of loading model from csv weights path
         :param weights_path:
