@@ -37,7 +37,7 @@ Below are the possible configurations we support.
 |---|---|---|---|---|---|
 | Y  |   |   |   |  | ```Trainer(gpus=1)``` |
 | Y  |   |   |   | Y | ```Trainer(gpus=1, use_amp=True)``` |
-|   | Y | Y |   |   | ```Trainer(gpus=k)``` |
+|   | Y | Y |   |   | ```Trainer(gpus=k, distributed_backend='dp')``` |
 |   | Y |  | Y  |  | ```Trainer(gpus=k, distributed_backend='ddp')``` |
 |   | Y |  | Y  | Y | ```Trainer(gpus=k, distributed_backend='ddp', use_amp=True)``` |
 
