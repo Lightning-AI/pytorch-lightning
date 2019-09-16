@@ -142,13 +142,9 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         hparams = load_hparams_from_tags_csv(tags_csv)
         hparams.__setattr__('on_gpu', on_gpu)
 
-        if on_gpu:
-            if map_location is not None:
-                checkpoint = torch.load(weights_path, map_location=map_location)
-            else:
-                checkpoint = torch.load(weights_path)
-        else:
-            checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
+        # load on CPU only to avoid OOM issues
+        # then its up to user to put back on GPUs
+        checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
 
         # load the state_dict on the model automatically
         model = cls(hparams)
