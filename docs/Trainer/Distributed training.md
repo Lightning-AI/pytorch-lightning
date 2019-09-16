@@ -108,7 +108,7 @@ trainer = Trainer(gpus=8, distributed_backend='ddp')
 Multi-node training is easily done by specifying these flags.
 ```python
 # train on 12*8 GPUs
-trainer = Trainer(gpus=8, nb_gpu_nodes=12)
+trainer = Trainer(gpus=8, nb_gpu_nodes=12, distributed_backend='ddp')
 ```
 
 In addition, make sure to set up your SLURM job correctly via the [SlurmClusterObject](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/). In particular, specify the number of tasks per node correctly.
@@ -139,6 +139,9 @@ cluster.per_experiment_nb_gpus = 8
 
 cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
 ```
+
+**NOTE:** When running in DDP mode, any errors in your code will show up as an NCCL issue.
+Set the ```NCCL_DEBUG=INFO``` flag to see the ACTUAL error.
 
 Finally, make sure to add a distributed sampler to your dataset. The distributed sampler copies a 
 portion of your dataset onto each GPU. (World_size = gpus_per_node * nb_nodes).   
