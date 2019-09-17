@@ -8,7 +8,7 @@ To enable checkpointing, define the checkpoint callback and give it to the train
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 checkpoint_callback = ModelCheckpoint(
-    filepath='/path/to/store/weights.ckpt',
+    filepath='/path/to/store/weights/',
     save_best_only=True,
     verbose=True,
     monitor='val_loss',
