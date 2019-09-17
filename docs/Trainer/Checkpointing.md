@@ -12,7 +12,8 @@ checkpoint_callback = ModelCheckpoint(
     save_best_only=True,
     verbose=True,
     monitor='val_loss',
-    mode='min'
+    mode='min',
+    prefix=''
 )
 
 trainer = Trainer(checkpoint_callback=checkpoint_callback)
