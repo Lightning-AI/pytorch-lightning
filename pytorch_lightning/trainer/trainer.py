@@ -767,12 +767,6 @@ class Trainer(TrainerIO):
         except Exception:
             self.node_rank = 0
 
-        # recover original exp before went into process
-        # init in write mode only on proc 0
-        if self.experiment is not None:
-            self.experiment.debug = self.proc_rank > 0
-            self.experiment = self.experiment.get_non_ddp_exp()
-
         # show progbar only on prog_rank 0
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
@@ -781,7 +775,11 @@ class Trainer(TrainerIO):
         self.world_size = self.nb_gpu_nodes * self.num_gpus
 
         # let the exp know the rank to avoid overwriting logs
+        # recover original exp before went into process
+        # init in write mode only on proc 0
         if self.experiment is not None:
+            self.experiment = self.experiment.get_non_ddp_exp()
+            self.experiment.debug = self.proc_rank > 0
             self.experiment.rank = self.proc_rank
 
         # set up server using proc 0's ip address
