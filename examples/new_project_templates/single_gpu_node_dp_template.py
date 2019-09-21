@@ -71,7 +71,7 @@ def main(hparams):
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
         gpus=hparams.gpus,
-        distributed_backend=hparams.dist_bak_end,
+        distributed_backend=hparams.dist_backend,
     )
 
     # ------------------------
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--gpus', type=str, default='-1',
                                help='how many gpus to use in the node.'
                                     ' value -1 uses all the gpus on the node')
-    parent_parser.add_argument('--dist_bak_end', type=str, default='dp',
+    parent_parser.add_argument('--dist_backend', type=str, default='dp',
                                help='When using multiple GPUs set Trainer(distributed_backend=dp) (or ddp)')
     parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir,
                                help='where to save logs')
