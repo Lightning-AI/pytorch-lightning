@@ -140,7 +140,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :return:
         """
         hparams = load_hparams_from_tags_csv(tags_csv)
-        hparams.__setattr__('on_gpu', on_gpu)
 
         # load on CPU only to avoid OOM issues
         # then its up to user to put back on GPUs
