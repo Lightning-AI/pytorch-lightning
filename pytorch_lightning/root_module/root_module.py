@@ -130,17 +130,16 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return None
 
     @classmethod
-    def load_from_metrics(cls, weights_path, tags_csv, on_gpu):
+    def load_from_metrics(cls, weights_path, tags_csv):
         """
         Primary way of loading model from csv weights path
         :param weights_path:
         :param tags_csv:
-        :param on_gpu:
         :param map_location: dic for mapping storage {'cuda:1':'cuda:0'}
         :return:
         """
         hparams = load_hparams_from_tags_csv(tags_csv)
-        hparams.__setattr__('on_gpu', False)	
+        hparams.__setattr__('on_gpu', False)
 
         # load on CPU only to avoid OOM issues
         # then its up to user to put back on GPUs
