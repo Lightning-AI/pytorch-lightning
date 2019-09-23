@@ -4,7 +4,7 @@
 
 # PyTorch Lightning
 
-**The PyTorch Keras for ML researchers. More control. Less boilerplate.**
+**The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.**
 
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
@@ -146,11 +146,14 @@ exp = Experiment(save_dir=os.getcwd())
 # pass in experiment for automatic tensorboard logging.    
 trainer = Trainer(experiment=exp, max_nb_epochs=1, train_percent_check=0.1)
 
-# train on 4 gpus
-# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3])
+# train on 4 gpus (lightning chooses GPUs for you)
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=4)  
+
+# train on 4 gpus (you choose GPUs)
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 3, 7])   
 
 # train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
-# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=[0, 1, 2, 3, 4, 5, 6, 7], nb_gpu_nodes=4)
+# trainer = Trainer(experiment=exp, max_nb_epochs=1, gpus=8, nb_gpu_nodes=4)
 
 # train (1 epoch only here for demo)
 trainer.fit(model)

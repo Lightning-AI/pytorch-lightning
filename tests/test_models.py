@@ -1034,8 +1034,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    map_location = 'cuda:1'
-    pretrained_model = load_model(logger.experiment, save_dir, True, map_location)
+    pretrained_model = load_model(logger.experiment, save_dir, True)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
@@ -1410,7 +1409,7 @@ def clear_save_dir():
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningTemplateModel):
+def load_model(exp, save_dir, on_gpu, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
@@ -1421,8 +1420,7 @@ def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningT
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path,
-                                                   on_gpu=on_gpu,
-                                                   map_location=map_location)
+                                                   on_gpu=on_gpu)
 
     assert trained_model is not None, 'loading model failed'
 

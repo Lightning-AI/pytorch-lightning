@@ -25,14 +25,11 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    print('loading model...')
     model = LightningTemplateModel(hparams)
-    print('model built')
 
     # ------------------------
-    # 2 INIT TEST TUBE EXP
+    # 2 INIT EXP
     # ------------------------
-
     # init experiment
     exp = Experiment(
         name=hyperparams.experiment_name,
