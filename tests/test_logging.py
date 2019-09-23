@@ -51,7 +51,7 @@ def test_testtube_pickle():
         logger=logger
     )
 
-    trainer = Trainer(**trainer_options) 
+    trainer = Trainer(**trainer_options)
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})

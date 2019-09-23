@@ -59,16 +59,15 @@ def test_dp_resume():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # get logger
+    logger = get_test_tube_logger(debug=False)
+    logger.log_hyperparams(hparams)
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
     trainer_options['checkpoint_callback'] = checkpoint
 
     # fit model
@@ -86,11 +85,11 @@ def test_dp_resume():
     # HPC LOAD/SAVE
     # ---------------------------
     # save
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
 
     # init new trainer
-    new_exp = get_exp(False, version=exp.version)
-    trainer_options['experiment'] = new_exp
+    new_logger = get_test_tube_logger(version=logger.version)
+    trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
     trainer_options['val_percent_check'] = 0.2
@@ -157,7 +156,8 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+                                  module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -326,7 +326,8 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+                                  module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -884,7 +885,9 @@ def test_loading_meta_tags():
     logger.save()
 
     # load tags
-    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version) + '/meta_tags.csv'
+    tags_path = logger.experiment.get_data_path(
+        logger.experiment.name, logger.experiment.version
+    ) + '/meta_tags.csv'
     tags = trainer_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000

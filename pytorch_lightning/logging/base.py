@@ -3,7 +3,7 @@ from functools import wraps
 
 def rank_zero_only(fn):
     """Decorate a logger method to run it only on the process with rank 0
-    
+
     :param fn: Function to decorate
     """
 
@@ -43,7 +43,7 @@ class LightningLoggerBase:
 
     def finalize(self, status):
         """Do any processing that is necessary to finalize an experiment
-        
+
         :param status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
         pass
