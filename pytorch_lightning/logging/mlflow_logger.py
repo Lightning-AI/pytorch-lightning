@@ -1,4 +1,4 @@
-from datetime import datetime
+from time import time
 from logging import getLogger
 
 import mlflow
@@ -32,7 +32,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics, step_num=None):
-        timestamp_ms = datetime.utcnow().microsecond // 1000
+        timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             self.client.log_metric(self.run_id, k, v, timestamp_ms, step_num)
 
