@@ -25,15 +25,16 @@ To enable ealry-stopping, define the callback and give it to the trainer.
 ``` {.python}
 from pytorch_lightning.callbacks import EarlyStopping
 
-earlystop_cb = EarlyStopping(
-    monitor='val_loss',   # DEFAULT
-    min_delta=0.01,       # DEFAULT : 0.0
-    patience=3,           # DEFAULT : 0
-    verbose=True,         # DEFAULT : False
-    mode='min'            # DEFAULT : 'auto'
+# DEFAULTS
+early_stop_callback = EarlyStopping(
+    monitor='val_loss',
+    min_delta=0.00,
+    patience=0,
+    verbose=False,
+    mode='auto'
 )
 
-trainer = Trainer(early_stop_callback=earlystop_cb)
+trainer = Trainer(early_stop_callback=early_stop_callback)
 ```
 
 ---
