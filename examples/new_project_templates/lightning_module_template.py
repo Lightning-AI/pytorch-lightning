@@ -79,14 +79,14 @@ class LightningTemplateModel(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, data_batch, batch_i):
+    def training_step(self, batch, batch_idx):
         """
         Lightning calls this inside the training loop
-        :param data_batch:
+        :param batch:
         :return:
         """
         # forward pass
-        x, y = data_batch
+        x, y = batch
         x = x.view(x.size(0), -1)
 
         y_hat = self.forward(x)
@@ -105,13 +105,13 @@ class LightningTemplateModel(LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_step(self, data_batch, batch_i):
+    def validation_step(self, batch, batch_idx):
         """
         Lightning calls this inside the validation loop
-        :param data_batch:
+        :param batch:
         :return:
         """
-        x, y = data_batch
+        x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
 
@@ -167,8 +167,8 @@ class LightningTemplateModel(LightningModule):
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        return tqdm_dic
+        tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
+        return tqdm_dict
 
     # ---------------------
     # TRAINING SETUP
@@ -208,8 +208,8 @@ class LightningTemplateModel(LightningModule):
         return loader
 
     @pl.data_loader
-    def tng_dataloader(self):
-        print('tng data loader called')
+    def train_dataloader(self):
+        print('training data loader called')
         return self.__dataloader(train=True)
 
     @pl.data_loader
@@ -233,7 +233,7 @@ class LightningTemplateModel(LightningModule):
         parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
 
         # param overwrites
-        # parser.set_defaults(gradient_clip=5.0)
+        # parser.set_defaults(gradient_clip_val=5.0)
 
         # network params
         parser.add_argument('--in_features', default=28 * 28, type=int)

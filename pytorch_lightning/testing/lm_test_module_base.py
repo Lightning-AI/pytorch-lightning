@@ -81,14 +81,14 @@ class LightningTestModelBase(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, data_batch, batch_i):
+    def training_step(self, batch, batch_idx):
         """
         Lightning calls this inside the training loop
-        :param data_batch:
+        :param batch:
         :return:
         """
         # forward pass
-        x, y = data_batch
+        x, y = batch
         x = x.view(x.size(0), -1)
 
         y_hat = self.forward(x)
@@ -104,7 +104,7 @@ class LightningTestModelBase(LightningModule):
         if self.trainer.batch_nb % 1 == 0:
             output = OrderedDict({
                 'loss': loss_val,
-                'prog': {'some_val': loss_val * loss_val}
+                'progress': {'some_val': loss_val * loss_val}
             })
             return output
         if self.trainer.batch_nb % 2 == 0:
@@ -153,7 +153,7 @@ class LightningTestModelBase(LightningModule):
         return loader
 
     @data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         return self._dataloader(train=True)
 
     @staticmethod
@@ -167,7 +167,7 @@ class LightningTestModelBase(LightningModule):
         parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
 
         # param overwrites
-        # parser.set_defaults(gradient_clip=5.0)
+        # parser.set_defaults(gradient_clip_val=5.0)
 
         # network params
         parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
