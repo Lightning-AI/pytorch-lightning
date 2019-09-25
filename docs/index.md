@@ -120,6 +120,7 @@ Notice a few things about this flow:
 
 - [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
 - [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Early stopping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#early-stopping)
 - [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
 - [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
 - [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
