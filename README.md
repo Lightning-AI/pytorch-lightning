@@ -110,7 +110,7 @@ class CoolSystem(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         # REQUIRED
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
@@ -177,16 +177,16 @@ You define the blue parts using the LightningModule interface:
 
 ```python
 # what to do in the training loop
-def training_step(self, data_batch, batch_nb):
+def training_step(self, batch, batch_nb):
 
 # what to do in the validation loop
-def validation_step(self, data_batch, batch_nb):
+def validation_step(self, batch, batch_nb):
 
 # how to aggregate validation_step outputs
 def validation_end(self, outputs):
 
 # and your dataloaders
-def tng_dataloader():
+def train_dataloader():
 def val_dataloader():
 def test_dataloader():
 ```
@@ -195,8 +195,8 @@ def test_dataloader():
 
 ```python
 # define what happens for training here
-def training_step(self, data_batch, batch_nb):
-    x, y = data_batch
+def training_step(self, batch, batch_nb):
+    x, y = batch
     
     # define your own forward and loss calculation
     hidden_states = self.encoder(x)
@@ -222,8 +222,8 @@ def training_step(self, data_batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, data_batch, batch_nb):    
-    x, y = data_batch
+def validation_step(self, batch, batch_nb):    
+    x, y = batch
     
     # or as basic as a CNN classification
     out = self.forward(x)
@@ -248,8 +248,8 @@ def validation_end(self, outputs):
 
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
-    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dict
 ```
    
 ## Tensorboard    

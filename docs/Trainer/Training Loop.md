@@ -52,10 +52,10 @@ Specifically, this will [clip the gradient norm computed over all model paramete
 
 ``` {.python}
 # DEFAULT (ie: don't clip)
-trainer = Trainer(gradient_clip=0)
+trainer = Trainer(gradient_clip_val=0)
 
 # clip gradients with norm above 0.5
-trainer = Trainer(gradient_clip=0.5)
+trainer = Trainer(gradient_clip_val=0.5)
 ```
 
 ---

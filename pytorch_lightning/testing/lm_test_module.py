@@ -23,5 +23,5 @@ class LightningTestModel(LightningValidationMixin, LightningTestMixin, Lightning
     Most common test case. Validation and test dataloaders
     """
 
-    def on_tng_metrics(self, logs):
+    def on_training_metrics(self, logs):
         logs['some_tensor_to_test'] = torch.rand(1)
