@@ -22,7 +22,7 @@ self.experiment.add_scalars(...)
 Total training batches seen across all epochs   
 
 --- 
-#### gradient_clip   
+#### gradient_clip_val   
 The current gradient clip value    
 
 ---

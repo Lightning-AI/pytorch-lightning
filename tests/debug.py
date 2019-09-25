@@ -32,7 +32,7 @@ class CoolModel(pl.LightningModule):
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self.forward(x)
-        return {'tng_loss': self.my_loss(y_hat, y)}
+        return {'training_loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_nb):
         x, y = batch
@@ -47,7 +47,7 @@ class CoolModel(pl.LightningModule):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @pl.data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
     @pl.data_loader
@@ -182,13 +182,13 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
 
 def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['val_acc']
+    acc = trainer.training_tqdm_dict['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['test_acc']
+    acc = trainer.training_tqdm_dict['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 

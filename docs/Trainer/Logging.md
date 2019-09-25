@@ -13,7 +13,7 @@ trainer = Trainer(show_progress_bar=True)
 Every k batches lightning will make an entry in the metrics log
 ``` {.python}
 # DEFAULT (ie: save a .csv log file every 10 batches)
-trainer = Trainer(add_log_row_interval=10)
+trainer = Trainer(row_log_interval=10)
 ```   
 
 ---

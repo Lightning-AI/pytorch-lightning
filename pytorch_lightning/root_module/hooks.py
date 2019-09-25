@@ -10,7 +10,7 @@ class ModelHooks(torch.nn.Module):
         """
         pass
 
-    def on_batch_start(self, data_batch):
+    def on_batch_start(self, batch):
         pass
 
     def on_batch_end(self):
@@ -28,7 +28,7 @@ class ModelHooks(torch.nn.Module):
     def on_post_performance_check(self):
         pass
 
-    def on_tng_metrics(self, metrics):
+    def on_training_metrics(self, metrics):
         pass
 
     def on_before_zero_grad(self, optimizer):
