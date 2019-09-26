@@ -80,7 +80,6 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
     result = trainer.fit(model)
 
     # correct result and ok accuracy
