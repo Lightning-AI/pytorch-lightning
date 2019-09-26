@@ -24,7 +24,6 @@ tt_logger = TestTubeLogger(
     save_dir=".",
     name="default",
     debug=False,
-    version=1,
     create_git_tag=False
 )
 trainer = Trainer(logger=tt_logger)
