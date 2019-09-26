@@ -16,7 +16,7 @@ Trains a copy of the model on each GPU and only syncs gradients. If used with Di
 on a subset of the full dataset.  
 
 ##### DistributedDataParallel-2 (ddp2)   
-Works like DDP, except each node has a single copy of the model using ALL GPUs on that node. 
+Works like DDP, except each node trains a single copy of the model using ALL GPUs on that node. 
 Very useful when dealing with negative samples, etc...
 
 You can toggle between each mode by setting this flag.
