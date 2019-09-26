@@ -127,6 +127,8 @@ def test_running_test_pretrained_model_ddp():
     if not can_run_gpu_test():
         return
 
+    from time import sleep
+    sleep(10)
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
