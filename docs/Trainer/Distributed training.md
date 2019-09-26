@@ -74,6 +74,18 @@ First, install apex (if install fails, look [here](https://github.com/NVIDIA/ape
 ```bash
 $ git clone https://github.com/NVIDIA/apex
 $ cd apex
+
+# ------------------------
+# OPTIONAL: on your cluster you might need to load cuda 10 or 9
+# depending on how you installed PyTorch
+
+# see available modules
+module avail
+
+# load correct cuda before install
+module load cuda-10.0
+# ------------------------
+
 $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
 
