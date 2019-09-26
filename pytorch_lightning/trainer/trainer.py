@@ -966,7 +966,7 @@ class Trainer(TrainerIO):
             # update LR schedulers
             if self.lr_schedulers is not None:
                 for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step()
+                    lr_scheduler.step(self.current_epoch)
 
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
