@@ -42,7 +42,7 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
-    if not can_run_gpu_test(is_ddp=True):
+    if not can_run_gpu_test():
         return
 
     hparams = get_hparams()
@@ -250,6 +250,28 @@ def test_running_test_without_val():
     clear_save_dir()
 
 
+def test_multi_gpu_model_ddp():
+    """
+    Make sure DDP works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_running_test_pretrained_model():
     """Verify test() on pretrained model"""
     hparams = get_hparams()
@@ -407,28 +429,6 @@ def test_gradient_accumulation_scheduling():
     model.prev_called_batch_nb = 0
 
     trainer.fit(model)
-
-
-def test_multi_gpu_model_ddp():
-    """
-    Make sure DDP works
-    :return:
-    """
-    if not can_run_gpu_test(is_ddp=True):
-        return
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        distributed_backend='ddp'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_optimizer_return_options():
@@ -777,7 +777,7 @@ def test_amp_gpu_ddp():
     Make sure DDP + AMP work
     :return:
     """
-    if not can_run_gpu_test(is_ddp=True):
+    if not can_run_gpu_test():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
@@ -984,7 +984,7 @@ def test_amp_gpu_ddp_slurm_managed():
     Make sure DDP + AMP work
     :return:
     """
-    if not can_run_gpu_test(is_ddp=True):
+    if not can_run_gpu_test():
         return
 
     # simulate setting slurm flags
@@ -1461,7 +1461,7 @@ def assert_ok_test_acc(trainer):
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
-def can_run_gpu_test(is_ddp=False):
+def can_run_gpu_test():
     if not torch.cuda.is_available():
         warnings.warn('GPU test cannot run.'
                       ' Rerun on a GPU node to run this test')
@@ -1471,9 +1471,6 @@ def can_run_gpu_test(is_ddp=False):
                       ' Rerun on a node with 2+ GPUs to run this test')
         return False
 
-    # give the GPU time to free up from the previous process
-    if is_ddp:
-        time.sleep(60)
     return True
 
 
