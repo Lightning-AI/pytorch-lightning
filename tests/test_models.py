@@ -55,6 +55,8 @@ def test_amp_gpu_ddp_slurm_managed():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
+    import pdb
+    pdb.set_trace()
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
