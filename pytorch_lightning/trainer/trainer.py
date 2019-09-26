@@ -928,7 +928,7 @@ class Trainer(TrainerIO):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp:
+            if self.use_ddp and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                 self.train_dataloader.sampler.set_epoch(epoch_nb)
 
             # get model
