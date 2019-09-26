@@ -132,9 +132,9 @@ def test_running_test_pretrained_model_ddp():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
@@ -145,7 +145,7 @@ def test_running_test_pretrained_model_ddp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
+        experiment=logger,
         gpus=[0, 1],
         distributed_backend='ddp'
     )
@@ -314,7 +314,7 @@ def test_running_test_pretrained_model_dp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend='dp'
     )
@@ -1007,7 +1007,7 @@ def test_amp_gpu_ddp_slurm_managed():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    exp = get_exp(False)
+    logger = get_test_tube_logger(False)
     exp.argparse(hparams)
     exp.save()
 
