@@ -88,6 +88,9 @@ module avail
 module load cuda-10.0
 # ------------------------
 
+# make sure you've loaded a cuda version > 4.0 and < 7.0
+module load gcc-6.1.0
+
 $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
 

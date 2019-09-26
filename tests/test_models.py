@@ -39,53 +39,6 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_running_test_pretrained_model_ddp():
-    """Verify test() on pretrained model"""
-    if not can_run_gpu_test():
-        return
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        experiment=exp,
-        gpus=2,
-        distributed_backend='ddp'
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
-
-    # run test set
-    new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
-
-    run_prediction(model.test_dataloader, pretrained_model)
-
-    # test we have good test accuracy
-    clear_save_dir()
-
-
 def test_dp_resume():
     """
     Make sure DP continues training correctly
@@ -165,6 +118,53 @@ def test_dp_resume():
     model.freeze()
     model.unfreeze()
 
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model_ddp():
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        experiment=exp,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    # test we have good test accuracy
     clear_save_dir()
 
 
@@ -248,28 +248,6 @@ def test_running_test_without_val():
     clear_save_dir()
 
 
-def test_multi_gpu_model_ddp():
-    """
-    Make sure DDP works
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        distributed_backend='ddp'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
-
-
 def test_running_test_pretrained_model():
     """Verify test() on pretrained model"""
     hparams = get_hparams()
@@ -337,7 +315,7 @@ def test_running_test_pretrained_model_dp():
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp,
-        gpus=2,
+        gpus=[0, 1],
         distributed_backend='dp'
     )
 
@@ -428,6 +406,28 @@ def test_gradient_accumulation_scheduling():
     model.prev_called_batch_nb = 0
 
     trainer.fit(model)
+
+
+def test_multi_gpu_model_ddp():
+    """
+    Make sure DDP works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_optimizer_return_options():
@@ -669,7 +669,7 @@ def test_amp_single_gpu():
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=1,
-        distributed_backend='dp',
+        distributed_backend='ddp',
         use_amp=True
     )
 
@@ -981,6 +981,79 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+def test_amp_gpu_ddp_slurm_managed():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    # simulate setting slurm flags
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    os.environ['SLURM_LOCALID'] = str(0)
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        gpus=[0],
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.is_slurm_managing_tasks = True
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # test root model address
+    assert trainer.resolve_root_node_address('abc') == 'abc'
+    assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
+    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
+    assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+
+    # test model loading with a map_location
+    pretrained_model = load_model(exp, save_dir, True)
+
+    # test model preds
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+
+    # test HPC loading / saving
+    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_load(save_dir, on_gpu=True)
+
+    # test freeze on gpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
 def test_cpu_model_with_amp():
     """
     Make sure model trains on CPU
@@ -1151,7 +1224,7 @@ def test_ddp_sampler_error():
         logger=logger,
         show_progress_bar=False,
         max_nb_epochs=1,
-        gpus=2,
+        gpus=[0, 1],
         distributed_backend='ddp',
         use_amp=True
     )
@@ -1228,79 +1301,6 @@ def test_multiple_test_dataloader():
 
     # run the test method
     trainer.test()
-
-
-def test_amp_gpu_ddp_slurm_managed():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    os.environ['SLURM_LOCALID'] = str(0)
-    os.environ['FAKE_SLURM_MANAGING_TASKS'] = str(1)
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        gpus=2,
-        distributed_backend='ddp',
-        use_amp=True
-    )
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # test root model address
-    assert trainer.resolve_root_node_address('abc') == 'abc'
-    assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
-
-    # test model loading with a map_location
-    pretrained_model = load_model(exp, save_dir, True)
-
-    # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
-
-    if trainer.use_ddp:
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
-    # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=True)
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
-
-    clear_save_dir()
 
 
 # ------------------------------------------------------------------------
@@ -1465,14 +1465,13 @@ def assert_ok_test_acc(trainer):
 
 def can_run_gpu_test():
     if not torch.cuda.is_available():
-        warnings.warn('GPU test cannot run.'
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
                       ' Rerun on a GPU node to run this test')
         return False
     if not torch.cuda.device_count() > 1:
-        warnings.warn('GPU test cannot run.'
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
                       ' Rerun on a node with 2+ GPUs to run this test')
         return False
-
     return True
 
 
