@@ -339,7 +339,7 @@ def test_running_test_pretrained_model_dp():
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='dp'
     )
 
@@ -1247,7 +1247,7 @@ def test_amp_gpu_ddp_slurm_managed():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=1,
+        gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
