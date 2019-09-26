@@ -39,34 +39,6 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_amp_single_gpu():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
-        return
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        gpus=1,
-        distributed_backend=None,
-        use_amp=True
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
-
-
 def test_dp_resume():
     """
     Make sure DP continues training correctly
@@ -674,6 +646,34 @@ def test_simple_cpu():
     assert result == 1, 'amp + ddp model failed to complete'
 
     clear_save_dir()
+
+
+def test_amp_single_gpu():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        gpus=1,
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_no_amp_single_gpu():
