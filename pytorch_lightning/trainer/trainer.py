@@ -108,7 +108,7 @@ class Trainer(TrainerIO):
         :param val_check_interval: int. Check val this frequently within a train epoch
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
-        :param distributed_backend: str. dp, or ddp.
+        :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
         :param print_weights_summary: Bool. Prints summary of weights
@@ -177,6 +177,7 @@ class Trainer(TrainerIO):
         self.use_ddp = False
         self.use_dp = False
         self.single_gpu = False
+        self.distributed_backend = distributed_backend
         self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
 
         # init flags for SLURM+ddp to work
@@ -309,14 +310,14 @@ class Trainer(TrainerIO):
 
             if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp = distributed_backend in ['ddp', 'ddp2']
 
         # multiple GPU case
         elif self.num_gpus > 1:
             if distributed_backend is not None:
                 # DP, DDP case
                 self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp = distributed_backend in ['ddp', 'ddp2']
 
             elif distributed_backend is None:
                 m = 'When using multiple GPUs set ' \
@@ -819,8 +820,17 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
-                                                 find_unused_parameters=True)
+        # DDP2 uses all GPUs on the machine
+        if self.distributed_backend == 'ddp':
+            device_ids = [gpu_nb]
+        elif self.distributed_backend == 'ddp2':
+            device_ids = None
+
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
 
         # continue training routine
         self.__run_pretrain_routine(model)
