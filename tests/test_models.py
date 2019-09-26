@@ -669,7 +669,7 @@ def test_amp_single_gpu():
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=1,
-        distributed_backend='ddp',
+        distributed_backend=None,
         use_amp=True
     )
 
