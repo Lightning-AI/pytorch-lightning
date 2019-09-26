@@ -147,7 +147,7 @@ def test_running_test_pretrained_model_ddp():
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp'
     )
 
@@ -316,7 +316,7 @@ def test_running_test_pretrained_model_dp():
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         experiment=exp,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='dp'
     )
 
@@ -423,7 +423,7 @@ def test_multi_gpu_model_ddp():
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp'
     )
 
@@ -996,7 +996,7 @@ def test_amp_gpu_ddp_slurm_managed():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0],
+        gpus=1,
         distributed_backend='ddp',
         use_amp=True
     )
@@ -1221,7 +1221,7 @@ def test_ddp_sampler_error():
         experiment=exp,
         show_progress_bar=False,
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
