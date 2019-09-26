@@ -40,6 +40,79 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_amp_gpu_ddp_slurm_managed():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    # simulate setting slurm flags
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    os.environ['SLURM_LOCALID'] = str(0)
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        gpus=1,
+        distributed_backend='ddp',
+        use_amp=True
+    )
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    exp = get_exp(False)
+    exp.argparse(hparams)
+    exp.save()
+
+    # exp file to get weights
+    checkpoint = ModelCheckpoint(save_dir)
+
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['experiment'] = exp
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.is_slurm_managing_tasks = True
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # test root model address
+    assert trainer.resolve_root_node_address('abc') == 'abc'
+    assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
+    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
+    assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+
+    # test model loading with a map_location
+    pretrained_model = load_model(exp, save_dir, True)
+
+    # test model preds
+    run_prediction(model.test_dataloader, pretrained_model)
+
+    if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+
+    # test HPC loading / saving
+    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_load(save_dir, on_gpu=True)
+
+    # test freeze on gpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -977,79 +1050,6 @@ def test_model_freeze_unfreeze():
 
     model.freeze()
     model.unfreeze()
-
-
-def test_amp_gpu_ddp_slurm_managed():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    os.environ['SLURM_LOCALID'] = str(0)
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        gpus=1,
-        distributed_backend='ddp',
-        use_amp=True
-    )
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # test root model address
-    assert trainer.resolve_root_node_address('abc') == 'abc'
-    assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
-
-    # test model loading with a map_location
-    pretrained_model = load_model(exp, save_dir, True)
-
-    # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
-
-    if trainer.use_ddp:
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
-    # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
-    trainer.hpc_load(save_dir, on_gpu=True)
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
-
-    clear_save_dir()
 
 
 def test_cpu_model_with_amp():
