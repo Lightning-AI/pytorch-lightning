@@ -55,8 +55,6 @@ def test_amp_gpu_ddp_slurm_managed():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    import pdb
-    pdb.set_trace()
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
@@ -81,7 +79,7 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
+    # trainer.is_slurm_managing_tasks = True
     result = trainer.fit(model)
 
     # correct result and ok accuracy
