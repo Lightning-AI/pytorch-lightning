@@ -79,9 +79,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no cover
         self._sync_params()
-        print('-'*100)
-        print(self.device_ids)
-        print('-'*100)
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
@@ -160,12 +157,15 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # ---------------
                 # CHANGE
                 if module.training:
+                    print('running training')
                     output = module.training_step(*input, **kwargs)
 
                 elif module.testing:
+                    print('running testing')
                     output = module.test_step(*input, **kwargs)
 
                 else:
+                    print('running other')
                     output = module.validation_step(*input, **kwargs)
                 # ---------------
 
