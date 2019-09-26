@@ -23,7 +23,6 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [test_dataloader](RequiredTrainerInterface.md#test_dataloader)    
 - [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)    
 - [on_load_checkpoint](RequiredTrainerInterface.md#on_load_checkpoint)    
-- [update_training_log_metrics](RequiredTrainerInterface.md#update_training_log_metrics)    
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)    
 
 ---
@@ -630,26 +629,6 @@ def test_dataloader(self):
     )
     
     return loader
-```
-
---- 
-### update_training_log_metrics 
-
-``` {.python}
-def update_training_log_metrics(self, logs)
-```
-Called by lightning right before it logs metrics for this batch.
-This is a chance to amend or add to the metrics about to be logged.
-
-##### Return
-Dict 
-
-**Example**
-
-``` {.python}
-def update_training_log_metrics(self, logs):
-    # modify or add to logs
-    return logs
 ```
 
 --- 
