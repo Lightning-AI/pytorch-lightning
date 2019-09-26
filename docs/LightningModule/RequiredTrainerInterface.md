@@ -145,7 +145,7 @@ def training_step(self, batch, batch_nb):
     
     output = {
         'loss': loss, # required
-        'progress': {'training_loss': loss, 'batch_nb': batch_nb} # optional
+        'progress': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
     }
     
     # return a dict
