@@ -302,6 +302,8 @@ class Trainer(TrainerIO):
             return
 
         # single GPU case
+        # in single gpu case we allow ddp so we can train on multiple
+        # nodes, 1 gpu per node
         if self.num_gpus == 1:
             self.single_gpu = True
 
@@ -353,6 +355,14 @@ class Trainer(TrainerIO):
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
+
+        # used for tests only, set this flag to simulate slurm managing a task
+        try:
+            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
+            if should_fake:
+                self.is_slurm_managing_tasks = True
+        except Exception as e:
+            pass
 
     def __set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
@@ -929,7 +939,7 @@ class Trainer(TrainerIO):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp:
+            if self.use_ddp and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                 self.train_dataloader.sampler.set_epoch(epoch_nb)
 
             # get model
