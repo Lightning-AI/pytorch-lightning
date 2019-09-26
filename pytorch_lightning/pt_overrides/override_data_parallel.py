@@ -79,6 +79,9 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no cover
         self._sync_params()
+        print('-'*100)
+        print(self.device_ids)
+        print('-'*100)
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
