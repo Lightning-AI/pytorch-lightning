@@ -12,4 +12,3 @@ def ignore_scalar_return_in_dp():
 
 
 ignore_scalar_return_in_dp()
-
