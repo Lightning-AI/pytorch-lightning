@@ -301,6 +301,8 @@ class Trainer(TrainerIO):
             return
 
         # single GPU case
+        # in single gpu case we allow ddp so we can train on multiple
+        # nodes, 1 gpu per node
         if self.num_gpus == 1:
             self.single_gpu = True
 
