@@ -156,7 +156,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger, save_dir, on_gpu=True, module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -314,7 +314,7 @@ def test_running_test_pretrained_model_dp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend='dp'
     )
