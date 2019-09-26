@@ -812,6 +812,8 @@ class Trainer(TrainerIO):
         torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
+        model.testing = True
+
         # override root GPU
         self.root_gpu = gpu_nb
 
