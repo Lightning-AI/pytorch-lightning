@@ -8,7 +8,16 @@ None of the flags below require changing anything about your lightningModel defi
 Lightning supports two backends. DataParallel and DistributedDataParallel. Both can be used for single-node multi-GPU training.
 For multi-node training you must use DistributedDataParallel.   
 
-**Warning: Your cluster must have NCCL installed and you must load it when submitting your SLURM script**
+##### DataParallel (dp)   
+Splits a batch across multiple GPUs on the same node. Cannot be used for multi-node training.   
+
+##### DistributedDataParallel (ddp)   
+Trains a copy of the model on each GPU and only syncs gradients. If used with DistributedSampler, each GPU trains
+on a subset of the full dataset.  
+
+##### DistributedDataParallel-2 (ddp2)   
+Works like DDP, except each node has a single copy of the model using ALL GPUs on that node. 
+Very useful when dealing with negative samples, etc...
 
 You can toggle between each mode by setting this flag.
 ``` {.python}
@@ -20,6 +29,9 @@ trainer = Trainer(distributed_backend='dp')
 
 # change to distributed data parallel (gpus > 1)
 trainer = Trainer(distributed_backend='ddp')
+
+# change to distributed data parallel (gpus > 1)
+trainer = Trainer(distributed_backend='ddp2')
 ```
 
 If you request multiple nodes, the back-end will auto-switch to ddp.
@@ -144,17 +156,16 @@ script for the above trainer configuration.
 # activate conda env
 conda activate my_env
 
-# REQUIRED: Load the latest NCCL version
-# the nccl version must match the cuda used to build your PyTorch distribution 
-# (ie: which instructions did you follow when installing PyTorch)
-# module load NCCL/2.4.7-1-cuda.10.0
-
 # -------------------------
 # OPTIONAL
 # -------------------------
 # debugging flags (optional)
 # export NCCL_DEBUG=INFO
 # export PYTHONFAULTHANDLER=1
+
+# PyTorch comes with prebuilt NCCL support... but if you have issues with it
+# you might need to load the latest version from your  modules
+# module load NCCL/2.4.7-1-cuda.10.0
 
 # on your cluster you might need these:
 # set the network interface
