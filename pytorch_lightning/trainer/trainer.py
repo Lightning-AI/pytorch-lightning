@@ -289,6 +289,10 @@ class Trainer(TrainerIO):
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
+
+        if self.distributed_backend == 'ddp2':
+            return 1
+
         if type(gpus) is list:
             return len(gpus)
         if type(gpus) is int:
