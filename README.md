@@ -66,7 +66,9 @@ Think about Lightning as refactoring your research code instead of using a new f
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
+1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)     
+
+**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.    
 ```python
 import os
 import torch
