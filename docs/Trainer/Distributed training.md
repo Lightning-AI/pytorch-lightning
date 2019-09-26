@@ -8,6 +8,8 @@ None of the flags below require changing anything about your lightningModel defi
 Lightning supports two backends. DataParallel and DistributedDataParallel. Both can be used for single-node multi-GPU training.
 For multi-node training you must use DistributedDataParallel.   
 
+**Warning: Your cluster must have NCCL installed and you must load it when submitting your SLURM script**
+
 You can toggle between each mode by setting this flag.
 ``` {.python}
 # DEFAULT (when using single GPU or no GPUs)
@@ -74,6 +76,18 @@ First, install apex (if install fails, look [here](https://github.com/NVIDIA/ape
 ```bash
 $ git clone https://github.com/NVIDIA/apex
 $ cd apex
+
+# ------------------------
+# OPTIONAL: on your cluster you might need to load cuda 10 or 9
+# depending on how you installed PyTorch
+
+# see available modules
+module avail
+
+# load correct cuda before install
+module load cuda-10.0
+# ------------------------
+
 $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
 
@@ -105,39 +119,50 @@ trainer = Trainer(gpus=8, distributed_backend='ddp')
 
 ---
 #### Multi-node
-Multi-node training is easily done by specifying these flags.
+Multi-node training is easily done by specifying these flags. 
 ```python
 # train on 12*8 GPUs
 trainer = Trainer(gpus=8, nb_gpu_nodes=12, distributed_backend='ddp')
 ```
 
-In addition, make sure to set up your SLURM job correctly via the [SlurmClusterObject](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/). In particular, specify the number of tasks per node correctly.
+You must configure your job submission script correctly for the trainer to work. Here is an example
+script for the above trainer configuration.   
 
-```python
-cluster = SlurmCluster(
-    hyperparam_optimizer=test_tube.HyperOptArgumentParser(),
-    log_path='/some/path/to/save',
-)
+```sh
+#!/bin/bash -l
 
-# OPTIONAL FLAGS WHICH MAY BE CLUSTER DEPENDENT
-# which interface your nodes use for communication
-cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+# SLURM SUBMIT SCRIPT
+#SBATCH --nodes=12
+#SBATCH --gres=gpu:8
+#SBATCH --ntasks-per-node=8
+#SBATCH --mem=0
+#SBATCH --time=0-02:00:00
 
-# see output of the NCCL connection process
-# NCCL is how the nodes talk to each other
-cluster.add_command('export NCCL_DEBUG=INFO')
+# activate conda env
+conda activate my_env
 
-# setting a master port here is a good idea.
-cluster.add_command('export MASTER_PORT=%r' % PORT)
+# REQUIRED: Load the latest NCCL version
+# the nccl version must match the cuda used to build your PyTorch distribution 
+# (ie: which instructions did you follow when installing PyTorch)
+# module load NCCL/2.4.7-1-cuda.10.0
 
-# good to load the latest NCCL version
-cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
+# -------------------------
+# OPTIONAL
+# -------------------------
+# debugging flags (optional)
+# export NCCL_DEBUG=INFO
+# export PYTHONFAULTHANDLER=1
 
-# configure cluster
-cluster.per_experiment_nb_nodes = 12 
-cluster.per_experiment_nb_gpus = 8
+# on your cluster you might need these:
+# set the network interface
+# export NCCL_SOCKET_IFNAME=^docker0,lo
+# -------------------------
 
-cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
+# random port between 12k and 20k
+export MASTER_PORT=$((12000 + RANDOM % 20000))
+
+# run script from above
+python my_main_file.py
 ```
 
 **NOTE:** When running in DDP mode, any errors in your code will show up as an NCCL issue.
@@ -156,6 +181,58 @@ dataset = myDataset()
 dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
 dataloader = Dataloader(dataset, sampler=dist_sampler)
 ```
+
+#### Auto-slurm-job-submission
+Instead of manually building SLURM scripts, you can use the [SlurmCluster object](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/) to
+do this for you. The SlurmCluster can also run a grid search if you pass in a [HyperOptArgumentParser](https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser/).
+
+Here is an example where you run a grid search of 9 combinations of hyperparams.
+[The full examples are here](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/new_project_templates/multi_node_examples).
+```python
+# grid search 3 values of learning rate and 3 values of number of layers for your net
+# this generates 9 experiments (lr=1e-3, layers=16), (lr=1e-3, layers=32), (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
+parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
+parser.opt_list('--learning_rate', default=0.001, type=float, options=[1e-3, 1e-2, 1e-1], tunable=True)
+parser.opt_list('--layers', default=1, type=float, options=[16, 32, 64], tunable=True)
+hyperparams = parser.parse_args()
+
+# Slurm cluster submits 9 jobs, each with a set of hyperparams
+cluster = SlurmCluster(
+    hyperparam_optimizer=hyperparams,
+    log_path='/some/path/to/save',
+)
+
+# OPTIONAL FLAGS WHICH MAY BE CLUSTER DEPENDENT
+# which interface your nodes use for communication
+cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+
+# see output of the NCCL connection process
+# NCCL is how the nodes talk to each other
+cluster.add_command('export NCCL_DEBUG=INFO')
+
+# setting a master port here is a good idea.
+cluster.add_command('export MASTER_PORT=%r' % PORT)
+
+# ************** DON'T FORGET THIS ***************
+# MUST load the latest NCCL version
+cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
+
+# configure cluster
+cluster.per_experiment_nb_nodes = 12 
+cluster.per_experiment_nb_gpus = 8
+
+cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')  
+
+# submit a script with 9 combinations of hyper params
+# (lr=1e-3, layers=16), (lr=1e-3, layers=32), (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
+cluster.optimize_parallel_cluster_gpu(
+    main,
+    nb_trials=9, # how many permutations of the grid search to run
+    job_name='name_for_squeue'
+)
+```
+
+The other option is that you generate scripts on your own via a bash command or use another library...
 
 ---
 #### Self-balancing architecture

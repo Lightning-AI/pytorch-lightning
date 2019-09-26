@@ -8,7 +8,7 @@ import os
 
 def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
 
-    # tng, test, val check intervals
+    # training, test, val check intervals
     parser.add_argument('--eval_test_set', dest='eval_test_set', action='store_true',
                         help='true = run test set also')
     parser.add_argument('--check_val_every_n_epoch', default=1, type=int,
@@ -19,7 +19,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--max_nb_epochs', default=200, type=int, help='cap epochs')
     parser.add_argument('--min_nb_epochs', default=2, type=int, help='min epochs')
     parser.add_argument('--train_percent_check', default=1.0, type=float,
-                        help='how much of tng set to check')
+                        help='how much of training set to check')
     parser.add_argument('--val_percent_check', default=1.0, type=float,
                         help='how much of val set to check')
     parser.add_argument('--test_percent_check', default=1.0, type=float,
@@ -29,7 +29,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
                         help='how much within 1 epoch to check val')
     parser.add_argument('--log_save_interval', default=100, type=int,
                         help='how many batches between log saves')
-    parser.add_argument('--add_log_row_interval', default=100, type=int,
+    parser.add_argument('--row_log_interval', default=100, type=int,
                         help='add log every k batches')
 
     # early stopping
@@ -40,7 +40,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
                         help='number of epochs until stop')
 
     # gradient handling
-    parser.add_argument('--gradient_clip', default=-1, type=int)
+    parser.add_argument('--gradient_clip_val', default=-1, type=int)
     parser.add_argument('--track_grad_norm', default=-1, type=int,
                         help='if > 0, will track this grad norm')
 
@@ -78,9 +78,9 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     # FAST training
     # use these settings to make sure network has no bugs without running a full dataset
     parser.add_argument('--fast_dev_run', dest='fast_dev_run', default=False, action='store_true',
-                        help='runs validation after 1 tng step')
+                        help='runs validation after 1 training step')
     parser.add_argument('--enable_tqdm', dest='enable_tqdm', default=False, action='store_true',
-                        help='false removes the prog bar')
+                        help='false removes the progress bar')
     parser.add_argument('--overfit', default=-1, type=float,
                         help='% of dataset to use with this option. float, or -1 for none')
 
@@ -93,7 +93,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--debug', dest='debug', action='store_true',
                         help='enables/disables test tube')
     parser.add_argument('--local', dest='local', action='store_true',
-                        help='enables local tng')
+                        help='enables local training')
 
     # optimizer
     parser.add_argument('--lr_scheduler_milestones', default=None, type=str)

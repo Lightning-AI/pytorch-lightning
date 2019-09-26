@@ -106,7 +106,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         optimizer.zero_grad()
 
     @data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         """
         Implement a PyTorch DataLoader
         :return:

@@ -57,7 +57,7 @@ class Trainer(TrainerIO):
                  logger=None,
                  early_stop_callback=None,
                  checkpoint_callback=None,
-                 gradient_clip=0,
+                 gradient_clip_val=0,
                  process_position=0,
                  nb_gpu_nodes=1,
                  gpus=None,
@@ -75,7 +75,7 @@ class Trainer(TrainerIO):
                  test_percent_check=1.0,
                  val_check_interval=1.0,
                  log_save_interval=100,
-                 add_log_row_interval=10,
+                 row_log_interval=10,
                  distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
@@ -88,7 +88,7 @@ class Trainer(TrainerIO):
         :param logger: Logger for experiment tracking
         :param early_stop_callback: Callback for early stopping
         :param checkpoint_callback: Callback for checkpointing
-        :param gradient_clip: int. 0 means don't clip.
+        :param gradient_clip_val: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
         :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
@@ -106,7 +106,7 @@ class Trainer(TrainerIO):
         :param test_percent_check: int. How much of test set to check
         :param val_check_interval: int. Check val this frequently within a train epoch
         :param log_save_interval: int. Writes logs to disk this often
-        :param add_log_row_interval: int. How often to add logging rows
+        :param row_log_interval: int. How often to add logging rows
         :param distributed_backend: str. dp, or ddp.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
@@ -118,7 +118,7 @@ class Trainer(TrainerIO):
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
-        self.gradient_clip = gradient_clip
+        self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = early_stop_callback is not None
         self.track_grad_norm = track_grad_norm
@@ -138,9 +138,9 @@ class Trainer(TrainerIO):
         self.batch_nb = 0
         self.tqdm_metrics = {}
         self.nb_val_batches = 0
-        self.nb_tng_batches = 0
+        self.nb_training_batches = 0
         self.nb_test_batches = 0
-        self.tng_dataloader = None
+        self.train_dataloader = None
         self.test_dataloader = None
         self.val_dataloader = None
 
@@ -185,13 +185,13 @@ class Trainer(TrainerIO):
         self.__set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # can't init progress bar here because starting a new process
-        # means the prog_bar won't survive pickling
+        # means the progress_bar won't survive pickling
         self.show_progress_bar = show_progress_bar
 
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-        self.add_log_row_interval = add_log_row_interval
+        self.row_log_interval = row_log_interval
 
         # how much of the data to use
         self.__determine_data_use_amount(train_percent_check, val_percent_check,
@@ -402,36 +402,36 @@ class Trainer(TrainerIO):
         return is_overriden
 
     @property
-    def __tng_tqdm_dic(self):
-        tqdm_dic = {
+    def __training_tqdm_dict(self):
+        tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
             'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
 
         if self.logger is not None and self.logger.version is not None:
-            tqdm_dic['v_nb'] = self.logger.version
+            tqdm_dict['v_nb'] = self.logger.version
 
-        tqdm_dic.update(self.tqdm_metrics)
+        tqdm_dict.update(self.tqdm_metrics)
 
         if self.on_gpu:
-            tqdm_dic['gpu'] = '{}'.format(torch.cuda.current_device())
+            tqdm_dict['gpu'] = '{}'.format(torch.cuda.current_device())
 
-        return tqdm_dic
+        return tqdm_dict
 
     @property
-    def tng_tqdm_dic(self):
+    def training_tqdm_dict(self):
         """
         Read-only for tqdm metrics
         :return:
         """
-        return self.__tng_tqdm_dic
+        return self.__training_tqdm_dict
 
     def __layout_bookeeping(self):
 
         # determine number of training batches
-        self.nb_tng_batches = len(self.tng_dataloader)
-        self.nb_tng_batches = int(self.nb_tng_batches * self.train_percent_check)
+        self.nb_training_batches = len(self.train_dataloader)
+        self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
@@ -447,7 +447,7 @@ class Trainer(TrainerIO):
             self.nb_test_batches = max(1, self.nb_test_batches)
 
         # determine when to check validation
-        self.val_check_batch = int(self.nb_tng_batches * self.val_check_interval)
+        self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
         self.val_check_batch = max(1, self.val_check_batch)
 
     def __add_tqdm_metrics(self, metrics):
@@ -457,15 +457,15 @@ class Trainer(TrainerIO):
 
             self.tqdm_metrics[k] = v
 
-    def __evaluation_forward(self, model, data_batch, batch_i, dataloader_i, test=False):
-        # make dataloader_i arg in validation_step optional
-        args = [data_batch, batch_i]
+    def __evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
+        # make dataloader_idx arg in validation_step optional
+        args = [batch, batch_idx]
 
         if test and len(self.test_dataloader) > 1:
-            args.append(dataloader_i)
+            args.append(dataloader_idx)
 
         elif not test and len(self.val_dataloader) > 1:
-            args.append(dataloader_i)
+            args.append(dataloader_idx)
 
         # handle DP, DDP forward
         if self.use_ddp or self.use_dp:
@@ -478,8 +478,8 @@ class Trainer(TrainerIO):
             root_gpu = 0
             if type(self.data_parallel_device_ids) is list:
                 root_gpu = self.data_parallel_device_ids[0]
-            data_batch = self.transfer_batch_to_gpu(data_batch, root_gpu)
-            args[0] = data_batch
+            batch = self.transfer_batch_to_gpu(batch, root_gpu)
+            args[0] = batch
 
         if test:
             output = model.test_step(*args)
@@ -494,7 +494,7 @@ class Trainer(TrainerIO):
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
-        :param dataloader_i:
+        :param dataloader_idx:
         :param test: boolean
         :return:
         """
@@ -509,21 +509,21 @@ class Trainer(TrainerIO):
         outputs = []
 
         # run training
-        for dataloader_i, dl in enumerate(dataloaders):
+        for dataloader_idx, dl in enumerate(dataloaders):
             dl_outputs = []
-            for batch_i, data_batch in enumerate(dl):
+            for batch_idx, batch in enumerate(dl):
 
-                if data_batch is None:  # pragma: no cover
+                if batch is None:  # pragma: no cover
                     continue
 
                 # stop short when on fast_dev_run (sets max_batch=1)
-                if batch_i >= max_batches:
+                if batch_idx >= max_batches:
                     break
 
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.__evaluation_forward(model, data_batch, batch_i, dataloader_i,
+                output = self.__evaluation_forward(model, batch, batch_idx, dataloader_idx,
                                                    test)
 
                 # track outputs for collation
@@ -560,7 +560,7 @@ class Trainer(TrainerIO):
         :return:
         """
 
-        self.tng_dataloader = model.tng_dataloader
+        self.train_dataloader = model.train_dataloader
         self.test_dataloader = model.test_dataloader
         self.val_dataloader = model.val_dataloader
 
@@ -573,7 +573,7 @@ class Trainer(TrainerIO):
         if have_val_loaders and not isinstance(self.val_dataloader, list):
             self.val_dataloader = [self.val_dataloader]
 
-        if self.use_ddp and not isinstance(self.tng_dataloader.sampler, DistributedSampler):
+        if self.use_ddp and not isinstance(self.train_dataloader.sampler, DistributedSampler):
             msg = """
             You're using multiple gpus and multiple nodes without using a DistributedSampler
             to assign a subset of your data to each process. To silence this warning, pass a
@@ -760,7 +760,7 @@ class Trainer(TrainerIO):
         except Exception:
             self.node_rank = 0
 
-        # show progbar only on prog_rank 0
+        # show progressbar only on progress_rank 0
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
         # determine which process we are and world size
@@ -918,7 +918,7 @@ class Trainer(TrainerIO):
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
             if self.use_ddp:
-                self.tng_dataloader.sampler.set_epoch(epoch_nb)
+                self.train_dataloader.sampler.set_epoch(epoch_nb)
 
             # get model
             model = self.__get_model()
@@ -926,7 +926,7 @@ class Trainer(TrainerIO):
             # update training progress in trainer and model
             model.current_epoch = epoch_nb
             self.current_epoch = epoch_nb
-            self.total_batches = self.nb_tng_batches + self.nb_val_batches
+            self.total_batches = self.nb_training_batches + self.nb_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
             # init progress_bar when requested
@@ -939,7 +939,7 @@ class Trainer(TrainerIO):
             # -----------------
             # RUN TNG EPOCH
             # -----------------
-            self.run_tng_epoch()
+            self.run_training_epoch()
 
             # update LR schedulers
             if self.lr_schedulers is not None:
@@ -950,20 +950,20 @@ class Trainer(TrainerIO):
             met_min_epochs = epoch_nb > self.min_nb_epochs
             if self.enable_early_stop and met_min_epochs:
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
-                                                                    logs=self.__tng_tqdm_dic)
+                                                                    logs=self.__training_tqdm_dict)
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
                     return
 
-    def run_tng_epoch(self):
+    def run_training_epoch(self):
         # before epoch hook
         if self.__is_function_implemented('on_epoch_start'):
             model = self.__get_model()
             model.on_epoch_start()
 
         # run epoch
-        for batch_nb, data_batch in enumerate(self.tng_dataloader):
+        for batch_nb, batch in enumerate(self.train_dataloader):
             self.batch_nb = batch_nb
             self.global_step += 1
 
@@ -973,14 +973,14 @@ class Trainer(TrainerIO):
             # stop when the flag is changed or we've gone past the amount
             #  requested in the batches
             self.total_batch_nb += 1
-            met_batch_limit = batch_nb > self.nb_tng_batches
+            met_batch_limit = batch_nb > self.nb_training_batches
             if met_batch_limit:
                 break
 
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            batch_result = self.__run_tng_batch(data_batch, batch_nb)
+            batch_result = self.__run_training_batch(batch, batch_nb)
             early_stop_epoch = batch_result == -1
 
             # ---------------
@@ -998,12 +998,12 @@ class Trainer(TrainerIO):
                     self.logger.save()
 
             # when metrics should be logged
-            if batch_nb % self.add_log_row_interval == 0 or early_stop_epoch:
+            if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
                 # count items in memory
                 # nb_params, nb_tensors = count_mem_items()
 
                 model = self.__get_model()
-                metrics = self.__tng_tqdm_dic
+                metrics = self.__training_tqdm_dict
 
                 # add gpu memory
                 if self.on_gpu and self.log_gpu_memory:
@@ -1016,8 +1016,8 @@ class Trainer(TrainerIO):
                     grad_norm_dic = model.grad_norm(self.track_grad_norm)
                     metrics.update(grad_norm_dic)
 
-                if self.__is_function_implemented('on_tng_metrics'):
-                    model.on_tng_metrics(metrics)
+                if self.__is_function_implemented('on_training_metrics'):
+                    model.on_training_metrics(metrics)
 
                 # log metrics
                 scalar_metrics = self.__metrics_to_scalars(
@@ -1092,10 +1092,10 @@ class Trainer(TrainerIO):
         # nothing matches, return the value as is without transform
         return batch
 
-    def __tng_forward(self, data_batch, batch_nb, opt_idx):
+    def __training_forward(self, batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
-        :param data_batch:
+        :param batch:
         :param batch_nb:
         :return:
         """
@@ -1103,7 +1103,7 @@ class Trainer(TrainerIO):
         # FORWARD
         # ---------------
         # enable not needing to add opt_idx to training_step
-        args = [data_batch, batch_nb]
+        args = [batch, batch_nb]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
@@ -1115,8 +1115,8 @@ class Trainer(TrainerIO):
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
                 gpu_id = self.data_parallel_device_ids[0]
-            data_batch = self.transfer_batch_to_gpu(data_batch, gpu_id)
-            args[0] = data_batch
+            batch = self.transfer_batch_to_gpu(batch, gpu_id)
+            args[0] = batch
             output = self.model.training_step(*args)
 
         else:
@@ -1126,14 +1126,14 @@ class Trainer(TrainerIO):
         # TQDM metrics
         # ---------------
         try:
-            prog_output = output['prog']
+            progress_output = output['progress']
 
-            # reduce prog metrics for tqdm when using dp
+            # reduce progress metrics for tqdm when using dp
             if self.use_dp:
                 nb_gpus = self.num_gpus
-                prog_output = reduce_distributed_output(prog_output, nb_gpus)
+                progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
-            model_specific_tqdm_metrics_dic = prog_output
+            model_specific_tqdm_metrics_dic = progress_output
         except Exception:
             model_specific_tqdm_metrics_dic = {}
 
@@ -1155,9 +1155,9 @@ class Trainer(TrainerIO):
         return loss, model_specific_tqdm_metrics_dic
 
     def __clip_gradients(self):
-        if self.gradient_clip > 0:
+        if self.gradient_clip_val > 0:
             model = self.__get_model()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
 
     def __print_nan_grads(self):
         model = self.__get_model()
@@ -1165,14 +1165,14 @@ class Trainer(TrainerIO):
             if torch.isnan(param.grad.float()).any():
                 print(param, param.grad)
 
-    def __run_tng_batch(self, data_batch, batch_nb):
-        if data_batch is None:
+    def __run_training_batch(self, batch, batch_nb):
+        if batch is None:
             return 0
 
         # hook
         if self.__is_function_implemented('on_batch_start'):
             model_ref = self.__get_model()
-            response = model_ref.on_batch_start(data_batch)
+            response = model_ref.on_batch_start(batch)
 
             if response == -1:
                 return -1
@@ -1184,7 +1184,7 @@ class Trainer(TrainerIO):
         for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
-            loss, model_specific_tqdm_metrics = self.__tng_forward(data_batch, batch_nb, opt_idx)
+            loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
 
             # track metrics
             self.__add_tqdm_metrics(model_specific_tqdm_metrics)
@@ -1227,10 +1227,10 @@ class Trainer(TrainerIO):
                 self.batch_loss_value = 0
                 self.avg_loss = np.mean(self.running_loss[-100:])
 
-                # update progbar
+                # update progressbar
                 if self.show_progress_bar:
                     # add model specific metrics
-                    tqdm_metrics = self.__tng_tqdm_dic
+                    tqdm_metrics = self.__training_tqdm_dict
                     self.progress_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
@@ -1285,11 +1285,11 @@ class Trainer(TrainerIO):
 
             if self.show_progress_bar:
                 # add model specific metrics
-                tqdm_metrics = self.__tng_tqdm_dic
+                tqdm_metrics = self.__training_tqdm_dict
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
-                                                  logs=self.__tng_tqdm_dic)
+                                                  logs=self.__training_tqdm_dict)

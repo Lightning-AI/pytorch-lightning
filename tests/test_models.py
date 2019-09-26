@@ -512,7 +512,7 @@ def test_early_stopping_cpu_model():
     stopping = EarlyStopping(monitor='val_loss')
     trainer_options = dict(
         early_stop_callback=stopping,
-        gradient_clip=1.0,
+        gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
@@ -1102,7 +1102,7 @@ def test_all_features_cpu_model():
     """
 
     trainer_options = dict(
-        gradient_clip=1.0,
+        gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
@@ -1260,7 +1260,7 @@ def test_multiple_val_dataloader():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # verify tng completed
+    # verify training completed
     assert result == 1
 
     # verify there are 2 val loaders
@@ -1454,13 +1454,13 @@ def run_prediction(dataloader, trained_model, dp=False):
 
 def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['val_acc']
+    acc = trainer.training_tqdm_dict['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['test_acc']
+    acc = trainer.training_tqdm_dict['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 

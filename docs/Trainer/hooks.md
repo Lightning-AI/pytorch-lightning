@@ -58,12 +58,12 @@ def on_post_performance_check(self):
 ```
 
 ---
-#### on_tng_metrics
+#### on_training_metrics
 Called in the training loop, right before metrics are logged.
 Although you can log at any time by using self.experiment, you can use
 this callback to modify what will be logged.
 ```python
-def on_tng_metrics(self, metrics):
+def on_training_metrics(self, metrics):
     # do something before validation end
 ```
 

@@ -66,7 +66,9 @@ Think about Lightning as refactoring your research code instead of using a new f
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)         
+1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)     
+
+**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.    
 ```python
 import os
 import torch
@@ -110,7 +112,7 @@ class CoolSystem(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         # REQUIRED
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
@@ -177,16 +179,16 @@ You define the blue parts using the LightningModule interface:
 
 ```python
 # what to do in the training loop
-def training_step(self, data_batch, batch_nb):
+def training_step(self, batch, batch_nb):
 
 # what to do in the validation loop
-def validation_step(self, data_batch, batch_nb):
+def validation_step(self, batch, batch_nb):
 
 # how to aggregate validation_step outputs
 def validation_end(self, outputs):
 
 # and your dataloaders
-def tng_dataloader():
+def train_dataloader():
 def val_dataloader():
 def test_dataloader():
 ```
@@ -195,8 +197,8 @@ def test_dataloader():
 
 ```python
 # define what happens for training here
-def training_step(self, data_batch, batch_nb):
-    x, y = data_batch
+def training_step(self, batch, batch_nb):
+    x, y = batch
     
     # define your own forward and loss calculation
     hidden_states = self.encoder(x)
@@ -222,8 +224,8 @@ def training_step(self, data_batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, data_batch, batch_nb):    
-    x, y = data_batch
+def validation_step(self, batch, batch_nb):    
+    x, y = batch
     
     # or as basic as a CNN classification
     out = self.forward(x)
@@ -248,8 +250,8 @@ def validation_end(self, outputs):
 
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
-    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dict
 ```
    
 ## Tensorboard    
@@ -324,6 +326,7 @@ tensorboard --logdir /some/path
 
 - [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
 - [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Early stopping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#early-stopping)
 - [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
 - [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
 - [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)

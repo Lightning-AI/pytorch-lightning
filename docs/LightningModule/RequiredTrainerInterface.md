@@ -10,7 +10,7 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 **Required**:  
 
 - [training_step](RequiredTrainerInterface.md#training_step)      
-- [tng_dataloader](RequiredTrainerInterface.md#tng_dataloader)    
+- [train_dataloader](RequiredTrainerInterface.md#train_dataloader)    
 - [configure_optimizers](RequiredTrainerInterface.md#configure_optimizers)    
 
 **Optional**:   
@@ -23,7 +23,7 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 - [test_dataloader](RequiredTrainerInterface.md#test_dataloader)    
 - [on_save_checkpoint](RequiredTrainerInterface.md#on_save_checkpoint)    
 - [on_load_checkpoint](RequiredTrainerInterface.md#on_load_checkpoint)    
-- [update_tng_log_metrics](RequiredTrainerInterface.md#update_tng_log_metrics)    
+- [update_training_log_metrics](RequiredTrainerInterface.md#update_training_log_metrics)    
 - [add_model_specific_args](RequiredTrainerInterface.md#add_model_specific_args)    
 
 ---
@@ -81,7 +81,7 @@ class CoolModel(pl.LightningModule):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     @pl.data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
     @pl.data_loader
@@ -111,7 +111,7 @@ The LightningModule interface is on the right. Each method corresponds to a part
 ### training_step
 
 ``` {.python}
-def training_step(self, data_batch, batch_nb)
+def training_step(self, batch, batch_nb)
 ```
 
 In this step you'd normally do the forward pass and calculate the loss for a batch. You can also do fancier things like multiple forward passes or something specific to your model.
@@ -120,7 +120,7 @@ In this step you'd normally do the forward pass and calculate the loss for a bat
 
 | Param  | description  |
 |---|---|
-|  data_batch | The output of your dataloader. A tensor, tuple or list  |
+|  batch | The output of your dataloader. A tensor, tuple or list  |
 |  batch_nb | Integer displaying which batch this is  |
 
 **Return**   
@@ -130,14 +130,14 @@ Dictionary or OrderedDict
 | key  | value  | is required |
 |---|---|---|
 |  loss | tensor scalar  | Y |
-|  prog | Dict for progress bar display. Must have only tensors  | N |
+|  progress | Dict for progress bar display. Must have only tensors  | N |
 
 
 **Example**
 
 ``` {.python}
-def training_step(self, data_batch, batch_nb):
-    x, y, z = data_batch
+def training_step(self, batch, batch_nb):
+    x, y, z = batch
     
     # implement your own
     out = self.forward(x)
@@ -145,7 +145,7 @@ def training_step(self, data_batch, batch_nb):
     
     output = {
         'loss': loss, # required
-        'prog': {'tng_loss': loss, 'batch_nb': batch_nb} # optional
+        'progress': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
     }
     
     # return a dict
@@ -155,7 +155,7 @@ def training_step(self, data_batch, batch_nb):
 If you define multiple optimizers, this step will also be called with an additional ```optimizer_idx``` param.    
 ``` {.python}
 # Multiple optimizers (ie: GANs)     
-def training_step(self, data_batch, batch_nb, optimizer_idx):
+def training_step(self, batch, batch_nb, optimizer_idx):
     if optimizer_idx == 0:
         # do training_step with encoder
     if optimizer_idx == 1:
@@ -163,11 +163,11 @@ def training_step(self, data_batch, batch_nb, optimizer_idx):
 ```    
 
 --- 
-### tng_dataloader 
+### train_dataloader 
 
 ``` {.python}
 @pl.data_loader
-def tng_dataloader(self)
+def train_dataloader(self)
 ```
 Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
 
@@ -178,7 +178,7 @@ PyTorch DataLoader
 
 ``` {.python}
 @pl.data_loader
-def tng_dataloader(self):
+def train_dataloader(self):
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
     dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
     loader = torch.utils.data.DataLoader(
@@ -240,10 +240,10 @@ the [optimizer_step](https://williamfalcon.github.io/pytorch-lightning/Trainer/h
 
 ``` {.python}
 # if you have one val dataloader:
-def validation_step(self, data_batch, batch_nb)   
+def validation_step(self, batch, batch_nb)   
 
 # if you have multiple val dataloaders:  
-def validation_step(self, data_batch, batch_nb, dataloader_idx)
+def validation_step(self, batch, batch_nb, dataloader_idxdx)
 ```
 **OPTIONAL**    
 If you don't need to validate you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
@@ -256,9 +256,9 @@ The dict you return here will be available in the `validation_end` method.
 
 | Param  | description  |
 |---|---|
-|  data_batch | The output of your dataloader. A tensor, tuple or list  |
+|  batch | The output of your dataloader. A tensor, tuple or list  |
 |  batch_nb | Integer displaying which batch this is  |
-|  dataloader_i | Integer displaying which dataloader this is (only if multiple val datasets used)  |
+|  dataloader_idx | Integer displaying which dataloader this is (only if multiple val datasets used)  |
 
 **Return**   
 
@@ -270,8 +270,8 @@ The dict you return here will be available in the `validation_end` method.
 
 ``` {.python}
 # CASE 1: A single validation dataset
-def validation_step(self, data_batch, batch_nb):
-    x, y = data_batch
+def validation_step(self, batch, batch_nb):
+    x, y = batch
     
     # implement your own
     out = self.forward(x)
@@ -302,7 +302,7 @@ If you pass in multiple validation datasets, validation_step will have an additi
 
 ```python
 # CASE 2: multiple validation datasets
-def validation_step(self, data_batch, batch_nb, dataset_idx):
+def validation_step(self, batch, batch_nb, dataset_idx):
     # dataset_idx tells you which dataset this is.   
 ```   
 
@@ -351,8 +351,8 @@ def validation_end(self, outputs):
 
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
-    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dict
 ```
 
 With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
@@ -377,18 +377,18 @@ def validation_end(self, outputs):
 
     val_loss_mean /= i
     val_acc_mean /= i
-    tqdm_dic = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+    return tqdm_dict
 ```
 
 ### test_step
 
 ``` {.python}
 # if you have one test dataloader:
-def test_step(self, data_batch, batch_nb)   
+def test_step(self, batch, batch_nb)   
 
 # if you have multiple test dataloaders:  
-def test_step(self, data_batch, batch_nb, dataloader_idx)
+def test_step(self, batch, batch_nb, dataloader_idxdx)
 ```
 **OPTIONAL**    
 If you don't need to test you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy.   
@@ -403,9 +403,9 @@ This function is used when you execute `trainer.test()`.
 
 | Param  | description  |
 |---|---|
-|  data_batch | The output of your dataloader. A tensor, tuple or list  |
+|  batch | The output of your dataloader. A tensor, tuple or list  |
 |  batch_nb | Integer displaying which batch this is  |
-|  dataloader_i | Integer displaying which dataloader this is (only if multiple test datasets used)  |
+|  dataloader_idx | Integer displaying which dataloader this is (only if multiple test datasets used)  |
 
 **Return**   
 
@@ -417,8 +417,8 @@ This function is used when you execute `trainer.test()`.
 
 ``` {.python}
 # CASE 1: A single test dataset
-def test_step(self, data_batch, batch_nb):
-    x, y = data_batch
+def test_step(self, batch, batch_nb):
+    x, y = batch
     
     # implement your own
     out = self.forward(x)
@@ -443,7 +443,7 @@ If you pass in multiple test datasets, test_step will have an additional argumen
 
 ```python
 # CASE 2: multiple test datasets
-def test_step(self, data_batch, batch_nb, dataset_idx):
+def test_step(self, batch, batch_nb, dataset_idx):
     # dataset_idx tells you which dataset this is.   
 ```   
 
@@ -490,8 +490,8 @@ def test_end(self, outputs):
 
     test_loss_mean /= len(outputs)
     test_acc_mean /= len(outputs)
-    tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+    return tqdm_dict
 ```
 
 With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
@@ -516,8 +516,8 @@ def test_end(self, outputs):
 
     test_loss_mean /= i 
     test_acc_mean /= i
-    tqdm_dic = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-    return tqdm_dic
+    tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+    return tqdm_dict
 ```
 
 --- 
@@ -633,10 +633,10 @@ def test_dataloader(self):
 ```
 
 --- 
-### update_tng_log_metrics 
+### update_training_log_metrics 
 
 ``` {.python}
-def update_tng_log_metrics(self, logs)
+def update_training_log_metrics(self, logs)
 ```
 Called by lightning right before it logs metrics for this batch.
 This is a chance to amend or add to the metrics about to be logged.
@@ -647,7 +647,7 @@ Dict
 **Example**
 
 ``` {.python}
-def update_tng_log_metrics(self, logs):
+def update_training_log_metrics(self, logs):
     # modify or add to logs
     return logs
 ```
@@ -674,7 +674,7 @@ def add_model_specific_args(parent_parser, root_dir):
     parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
 
     # param overwrites
-    # parser.set_defaults(gradient_clip=5.0)
+    # parser.set_defaults(gradient_clip_val=5.0)
 
     # network params
     parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
