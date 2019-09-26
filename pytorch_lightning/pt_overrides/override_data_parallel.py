@@ -97,6 +97,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+                print(outputs)
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
