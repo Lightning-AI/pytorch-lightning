@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 import torch
 from test_tube import Experiment
+import time
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
@@ -1469,6 +1470,9 @@ def can_run_gpu_test():
         warnings.warn('GPU test cannot run.'
                       ' Rerun on a node with 2+ GPUs to run this test')
         return False
+
+    # give the GPU time to free up from the previous process
+    time.sleep(60)
     return True
 
 
