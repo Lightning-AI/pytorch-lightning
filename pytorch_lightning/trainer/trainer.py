@@ -355,6 +355,13 @@ class Trainer(TrainerIO):
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
 
+        # used for tests only, set this flag to simulate slurm managing a task
+        try:
+            os.environ['FAKE_SLURM_MANAGING_TASKS']
+            self.is_slurm_managing_tasks = True
+        except Exception as e:
+            pass
+
     def __set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
             return

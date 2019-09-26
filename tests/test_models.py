@@ -51,6 +51,7 @@ def test_amp_gpu_ddp_slurm_managed():
     # simulate setting slurm flags
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     os.environ['SLURM_LOCALID'] = str(0)
+    os.environ['FAKE_SLURM_MANAGING_TASKS'] = str(1)
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
