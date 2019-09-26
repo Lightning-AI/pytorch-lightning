@@ -145,7 +145,7 @@ def test_running_test_pretrained_model_ddp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=logger,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend='ddp'
     )
@@ -314,7 +314,7 @@ def test_running_test_pretrained_model_dp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger,
+        experiment=exp,
         gpus=[0, 1],
         distributed_backend='dp'
     )
@@ -1008,15 +1008,15 @@ def test_amp_gpu_ddp_slurm_managed():
 
     # exp file to get meta
     logger = get_test_tube_logger(False)
-    exp.argparse(hparams)
-    exp.save()
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -1033,7 +1033,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(exp, save_dir, True)
+    pretrained_model = load_model(logger, save_dir, True)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
@@ -1044,7 +1044,7 @@ def test_amp_gpu_ddp_slurm_managed():
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
     trainer.hpc_load(save_dir, on_gpu=True)
 
     # test freeze on gpu
