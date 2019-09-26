@@ -884,6 +884,7 @@ class Trainer(TrainerIO):
         :return:
         """
         ref_model = model
+        print(ref_model)
         if self.data_parallel:
             ref_model = model.module
 
