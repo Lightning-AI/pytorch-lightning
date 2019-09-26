@@ -7,6 +7,21 @@ import threading
 import torch
 from torch.cuda._utils import _get_device_index
 
+import sys
+import pdb
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
+
 
 def _find_tensors(obj):  # pragma: no cover
     r"""
@@ -100,15 +115,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
-            # output = self.module(*inputs, **kwargs)
-
-            # lightning
-            if self.module.training:
-                output = self.module.training_step(*inputs, **kwargs)
-            elif self.module.testing:
-                output = self.module.test_step(*inputs, **kwargs)
-            else:
-                output = self.module.validation_step(*inputs, **kwargs)
+            output = self.module(*inputs, **kwargs)
 
         if torch.is_grad_enabled():
             # We'll return the output object verbatim since it is a freeform
@@ -164,6 +171,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
                 # ---------------
                 # CHANGE
+                ForkedPdb().set_trace()
                 if module.training:
                     output = module.training_step(*input, **kwargs)
 
