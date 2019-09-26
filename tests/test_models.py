@@ -669,7 +669,7 @@ def test_amp_single_gpu():
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=1,
-        distributed_backend='ddp',
+        distributed_backend='dp',
         use_amp=True
     )
 
@@ -1462,11 +1462,11 @@ def assert_ok_test_acc(trainer):
 
 def can_run_gpu_test():
     if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+        warnings.warn('GPU test cannot run.'
                       ' Rerun on a GPU node to run this test')
         return False
     if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+        warnings.warn('GPU test cannot run.'
                       ' Rerun on a node with 2+ GPUs to run this test')
         return False
     return True
