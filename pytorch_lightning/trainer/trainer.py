@@ -22,6 +22,7 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
+from pytorch_lightning.trainer import ignored_warnings
 
 try:
     from apex import amp
