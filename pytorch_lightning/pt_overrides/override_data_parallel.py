@@ -171,7 +171,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
                 # ---------------
                 # CHANGE
-                ForkedPdb().set_trace()
+                print(module.__dict__)
                 if module.training:
                     output = module.training_step(*input, **kwargs)
 
