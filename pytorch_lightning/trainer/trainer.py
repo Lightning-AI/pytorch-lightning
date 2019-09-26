@@ -357,8 +357,9 @@ class Trainer(TrainerIO):
 
         # used for tests only, set this flag to simulate slurm managing a task
         try:
-            os.environ['FAKE_SLURM_MANAGING_TASKS']
-            self.is_slurm_managing_tasks = True
+            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
+            if should_fake:
+                self.is_slurm_managing_tasks = True
         except Exception as e:
             pass
 
