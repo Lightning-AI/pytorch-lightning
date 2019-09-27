@@ -50,7 +50,7 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
 - [Tensorboard integration](https://github.com/williamFalcon/pytorch-lightning#tensorboard)    
 - [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
-- [Demos](https://github.com/williamFalcon/pytorch-lightning#demo)    
+- [Examples](https://github.com/williamFalcon/pytorch-lightning#examples)    
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
 - [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/CONTRIBUTING.md)    
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
