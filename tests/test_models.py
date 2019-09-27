@@ -156,7 +156,8 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+                                  module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
