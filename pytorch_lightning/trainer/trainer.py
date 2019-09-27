@@ -666,6 +666,7 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
         # when using multi-node or DDP within a node start each module in a separate process
+        pdb.set_trace()
         if self.use_ddp:
             # must copy only the meta of the exp so it survives pickle/unpickle
             #  when going to new process
