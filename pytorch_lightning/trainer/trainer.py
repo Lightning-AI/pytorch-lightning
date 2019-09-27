@@ -314,7 +314,7 @@ class Trainer(TrainerIO):
 
             if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp = distributed_backend in ['ddp', 'ddp2']
 
                 # disable single gpu when using ddp2
                 if distributed_backend == 'ddp2':
