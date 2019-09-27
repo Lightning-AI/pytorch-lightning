@@ -233,12 +233,12 @@ class TrainerIO(object):
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
-    def hpc_save(self, folderpath, experiment):
+    def hpc_save(self, folderpath, logger):
         # make sure the checkpoint folder exists
         os.makedirs(folderpath, exist_ok=True)
 
-        # save exp to make sure we get all the metrics
-        experiment.save()
+        # save logger to make sure we get all the metrics
+        logger.save()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
