@@ -347,27 +347,11 @@ tensorboard --logdir /some/path
 #### Testing loop  
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
-## Demo
-```bash
-# install lightning
-pip install pytorch_lightning
-
-# clone lightning for the demo
-git clone https://github.com/williamFalcon/pytorch-lightning.git
-cd pytorch-lightning
-cd examples/new_project_templates/
-
-# all of the following demos use the SAME model to show no modification needs to be made to your code
-
-# train on cpu 
-python single_cpu_template.py
-
-# train on multiple-gpus 
-python single_gpu_node_template.py --gpus "0,1"
-
-# train on 32 gpus on a cluster (run on a SLURM managed cluster)
-python multi_node_cluster_template.py --nb_gpu_nodes 4 --gpus '0,1,2,3,4,5,6,7'
-```
+## Examples   
+- [GAN](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/templates/gan.py)    
+- [MNIST](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example)      
+- [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
+- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/new_project_templates/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
