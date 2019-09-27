@@ -8,6 +8,21 @@ import torch
 from torch.cuda._utils import _get_device_index
 
 
+import sys
+import pdb
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
+
 def _find_tensors(obj):  # pragma: no cover
     r"""
     Recursively find all tensors contained in the specified object.
@@ -95,8 +110,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
-                # TODO: figure out   why sometimes val  and train get called separately... in ddp2 mode
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+                ForkedPdb().set_trace()
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
