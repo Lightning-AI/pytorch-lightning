@@ -94,6 +94,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no cover
         self._sync_params()
+        ForkedPdb().set_trace()
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
@@ -111,7 +112,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
-                pdb.set_trace()
+                ForkedPdb().set_trace()
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
