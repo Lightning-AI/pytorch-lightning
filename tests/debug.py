@@ -156,7 +156,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'amp + ddp model failed sto complete'
 
     # test model loading
     pretrained_model = load_model(exp, save_dir, on_gpu)
