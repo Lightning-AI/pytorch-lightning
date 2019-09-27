@@ -156,7 +156,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True, module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -1033,7 +1033,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(logger, save_dir, True)
+    pretrained_model = load_model(logger.experiment, save_dir, True)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
