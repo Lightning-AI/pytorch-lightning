@@ -55,7 +55,7 @@ def reduce_distributed_output(output, nb_gpus):
 class Trainer(TrainerIO):
 
     def __init__(self,
-                 experiment=None,
+                 logger=None,
                  early_stop_callback=None,
                  checkpoint_callback=None,
                  gradient_clip_val=0,
@@ -86,7 +86,7 @@ class Trainer(TrainerIO):
                  nb_sanity_val_steps=5):
         """
 
-        :param experiment: Test-tube experiment
+        :param logger: Logger for experiment tracking
         :param early_stop_callback: Callback for early stopping
         :param checkpoint_callback: Callback for checkpointing
         :param gradient_clip_val: int. 0 means don't clip.
@@ -160,11 +160,8 @@ class Trainer(TrainerIO):
         # configure weights save path
         self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
-        # configure experiment
-        self.experiment = experiment
-        self.exp_save_path = None
-        if self.experiment is not None:
-            self.exp_save_path = experiment.get_data_path(experiment.name, experiment.version)
+        # configure logger
+        self.logger = logger
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
@@ -423,8 +420,8 @@ class Trainer(TrainerIO):
             'batch_nb': '{}'.format(self.batch_nb),
         }
 
-        if self.experiment is not None:
-            tqdm_dict['v_nb'] = self.experiment.version
+        if self.logger is not None and self.logger.version is not None:
+            tqdm_dict['v_nb'] = self.logger.version
 
         tqdm_dict.update(self.tqdm_metrics)
 
@@ -658,10 +655,6 @@ class Trainer(TrainerIO):
     def fit(self, model):
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
-            # must copy only the meta of the exp so it survives pickle/unpickle
-            #  when going to new process
-            if self.experiment is not None:
-                self.experiment = self.experiment.get_meta_copy()
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
@@ -786,12 +779,8 @@ class Trainer(TrainerIO):
         self.world_size = self.nb_gpu_nodes * self.num_gpus
 
         # let the exp know the rank to avoid overwriting logs
-        # recover original exp before went into process
-        # init in write mode only on proc 0
-        if self.experiment is not None:
-            self.experiment = self.experiment.get_non_ddp_exp()
-            self.experiment.debug = self.proc_rank > 0
-            self.experiment.rank = self.proc_rank
+        if self.logger is not None:
+            self.logger.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -897,12 +886,12 @@ class Trainer(TrainerIO):
             ref_model.summarize()
 
         # link up experiment object
-        if self.experiment is not None:
-            ref_model.experiment = self.experiment
+        if self.logger is not None:
+            ref_model.logger = self.logger
 
             # save exp to get started
             if self.proc_rank == 0:
-                self.experiment.save()
+                self.logger.save()
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -1016,8 +1005,8 @@ class Trainer(TrainerIO):
 
             # when batch should be saved
             if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
-                if self.proc_rank == 0 and self.experiment is not None:
-                    self.experiment.save()
+                if self.proc_rank == 0 and self.logger is not None:
+                    self.logger.save()
 
             # when metrics should be logged
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
@@ -1044,9 +1033,9 @@ class Trainer(TrainerIO):
                 # log metrics
                 scalar_metrics = self.__metrics_to_scalars(
                     metrics, blacklist=self.__log_vals_blacklist())
-                if self.proc_rank == 0 and self.experiment is not None:
-                    self.experiment.log(scalar_metrics, global_step=self.global_step)
-                    self.experiment.save()
+                if self.proc_rank == 0 and self.logger is not None:
+                    self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
+                    self.logger.save()
 
             # end epoch early
             if early_stop_epoch:
