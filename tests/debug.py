@@ -226,6 +226,7 @@ def main():
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=[0, 1],
+        print_weights_summary=False,
         distributed_backend='ddp2'
     )
 
