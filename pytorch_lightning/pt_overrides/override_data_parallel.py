@@ -87,7 +87,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # --------------
                 # normal
                 # output = self.module(*inputs[0], **kwargs[0])
-
                 # lightning
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
@@ -96,8 +95,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
+                # TODO: figure out   why sometimes val  and train get called separately... in ddp2 mode
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
-                print(outputs)
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
