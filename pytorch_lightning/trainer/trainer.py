@@ -1179,7 +1179,8 @@ class Trainer(TrainerIO):
             progress_output = output['progress']
 
             # reduce progress metrics for tqdm when using dp
-            if self.use_dp:
+            # TODO: verify
+            if self.use_dp or self.distributed_backend == 'ddp2':
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
