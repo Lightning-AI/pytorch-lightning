@@ -12,8 +12,8 @@ class TestTubeLogger(LightningLoggerBase):
     ):
         super().__init__()
         self.save_dir = save_dir
-        self.name = (name,)
-        self.debug = (debug,)
+        self.name = name
+        self.debug = debug
         self._version = version
         self.create_git_tag = create_git_tag
         self._experiment = None
