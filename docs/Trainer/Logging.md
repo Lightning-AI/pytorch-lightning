@@ -119,12 +119,21 @@ trainer = Trainer(process_position=1)
 
 ---
 #### Save a snapshot of all hyperparameters 
-Log hyperparameters using the logger
+Automatically log hyperparameters stored in the `hparams` attribute as an `argparse.Namespace` 
 ``` {.python}
-logger = TestTubeLogger(...)
-logger.log_hyperparams(args)
 
-Trainer(logger=logger)
+class MyModel(pl.Lightning):
+    def __init__(self, hparams):
+        self.hparams = hparams
+
+    ...
+
+args = parser.parse_args()
+model = MyModel(args)
+
+logger = TestTubeLogger(...)
+t = Trainer(logger=logger)
+trainer.fit(model)
 ```
 
 ---
