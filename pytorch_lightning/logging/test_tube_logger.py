@@ -79,10 +79,10 @@ class TestTubeLogger(LightningLoggerBase):
     # for more info.
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["experiment"] = self.experiment.get_meta_copy()
+        state["_experiment"] = self.experiment.get_meta_copy()
         return state
 
     def __setstate__(self, state):
-        self._experiment = state["experiment"].get_non_ddp_exp()
-        del state["experiment"]
+        self._experiment = state["_experiment"].get_non_ddp_exp()
+        del state["_experiment"]
         self.__dict__.update(state)
