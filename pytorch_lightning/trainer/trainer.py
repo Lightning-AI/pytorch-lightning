@@ -565,7 +565,7 @@ class Trainer(TrainerIO):
 
         return eval_results
 
-    def init_train_dataloader(self, model, verbose=True):
+    def init_train_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
@@ -602,7 +602,7 @@ class Trainer(TrainerIO):
                 self.shown_warnings.add(msg)
                 warnings.warn(msg)
 
-    def init_val_dataloader(self, model, verbose=True):
+    def init_val_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
@@ -647,7 +647,7 @@ class Trainer(TrainerIO):
                         warnings.warn(msg)
                     break
 
-    def init_test_dataloader(self, model, verbose=True):
+    def init_test_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
