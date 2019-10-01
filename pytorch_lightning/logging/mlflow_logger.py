@@ -34,8 +34,12 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics, step_num=None):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
-            if not isinstance(v, str):
-                self.client.log_metric(self.run_id, k, v, timestamp_ms, step_num)
+            if isinstance(v, str):
+                logger.warning(
+                    f"Discarding metric with string value {k}={v}"
+                )
+                continue
+            self.client.log_metric(self.run_id, k, v, timestamp_ms, step_num)
 
     def save(self):
         pass
