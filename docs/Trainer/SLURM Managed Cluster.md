@@ -25,6 +25,9 @@ parser.opt_list('--nb_layers', default=2, type=int, tunable=True, options=[2, 4,
 hparams = parser.parse_args()    
 ```    
     
+**NOTE** You must set ```Tunable=True``` for that argument to be considered in the permutation set. Otherwise
+test-tube will use the default value. This flag is useful when you don't want to search over an argument and
+want to use the default instead.   
      
 (2). Define the cluster options in the [SlurmCluster object](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/) (over 5 nodes and 8 gpus)    
 
@@ -82,6 +85,11 @@ cluster.optimize_parallel_cluster_gpu(
     job_name='my_grid_search_exp_name', 
     job_display_name='my_exp')
 ```
+
+**NOTE** nb_trials specifies how many of the possible permutations to use. If using ```grid_search``` it will use
+the depth first ordering. If using ```random_search``` it will use the first k shuffled options. FYI, random search
+has been shown to be just as good as any Bayesian optimization method when using a reasonable number of samples (60),
+[see this paper for more information](http://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf).
 
 ---
 #### Walltime auto-resubmit

@@ -1,7 +1,88 @@
-Lighting offers a few options for logging information about model, gpu usage, etc (via test-tube). It also offers printing options for training monitoring.
+Lighting offers options for logging information about model, gpu usage, etc, via several different logging frameworks. It also offers printing options for training monitoring.
 
 
 ---
+### Setting up logging
+
+Initialize your logger, which should inherit from `LightningBaseLogger`, and pass
+it to `Trainer`.
+```{.python}
+my_logger = MyLightningLogger(...)
+trainer = Trainer(logger=my_logger)
+```
+
+Lightning supports several common experiment tracking frameworks out of the box
+
+---
+#### Test tube
+
+Log using [test tube](https://williamfalcon.github.io/test-tube/).
+
+```{.python}
+from pytorch_lightning.logging import TestTubeLogger
+tt_logger = TestTubeLogger(
+    save_dir=".",
+    name="default",
+    debug=False,
+    create_git_tag=False
+)
+trainer = Trainer(logger=tt_logger)
+```
+
+---
+#### MLFlow
+
+Log using [mlflow](https://mlflow.org)
+
+```{.python}
+from pytorch_lightning.logging import MLFlowLogger
+mlf_logger = MLFlowLogger(
+    experiment_name="default",
+    tracking_uri="file:/."
+)
+trainer = Trainer(logger=mlf_logger)
+```
+
+---
+#### Custom logger
+
+You can implement your own logger by writing a class that inherits from
+`LightningLoggerBase`. Use the `rank_zero_only` decorator to make sure that
+only the first process in DDP training logs data.
+
+```{.python}
+from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
+
+class MyLogger(LightningLoggerBase):
+
+    @rank_zero_only
+    def log_hyperparams(self, params):
+        # params is an argparse.Namespace
+        # your code to record hyperparameters goes here
+        pass
+    
+    @rank_zero_only
+    def log_metrics(self, metrics, step_num):
+        # metrics is a dictionary of metric names and values
+        # your code to record metrics goes here
+        pass
+    
+    def save(self):
+        # Optional. Any code necessary to save logger data goes here
+        pass
+    
+    @rank_zero_only
+    def finalize(self, status):
+        # Optional. Any code that needs to be run after training
+        # finishes goes here
+```
+
+If you write a logger than may be useful to others, please send
+a pull request to add it to Lighting!
+
+---
+### Using loggers
+
 #### Display metrics in progress bar 
 ``` {.python}
 # DEFAULT
@@ -13,11 +94,11 @@ trainer = Trainer(show_progress_bar=True)
 Every k batches lightning will make an entry in the metrics log
 ``` {.python}
 # DEFAULT (ie: save a .csv log file every 10 batches)
-trainer = Trainer(add_log_row_interval=10)
+trainer = Trainer(row_log_interval=10)
 ```   
 
 ---
-#### Log metric row every k batches 
+#### Log GPU memory
 Logs GPU memory when metrics are logged.   
 ``` {.python}
 # DEFAULT
@@ -38,61 +119,12 @@ trainer = Trainer(process_position=1)
 
 ---
 #### Save a snapshot of all hyperparameters 
-Whenever you call .save() on the test-tube experiment it logs all the hyperparameters in current use.
-Give lightning a test-tube Experiment object to automate this for you.
+Log hyperparameters using the logger
 ``` {.python}
-from test_tube import Experiment
+logger = TestTubeLogger(...)
+logger.log_hyperparams(args)
 
-exp = Experiment(...)
-Trainer(experiment=exp)
-```
-
----
-#### Snapshot code for a training run
-Whenever you call .save() on the test-tube experiment it snapshows all code and pushes to a git tag.
-Give lightning a test-tube Experiment object to automate this for you.
-``` {.python}
-from test_tube import Experiment
-
-exp = Experiment(create_git_tag=True)
-Trainer(experiment=exp)
-```
-
----
-### Tensorboard support   
-In the LightningModule you can access the experiment logger by doing:
-```python
-self.experiment
-
-# add image
-# Look at PyTorch SummaryWriter docs for what you can do.   
-self.experiment.add_image(...)
-```
-
-The experiment object is a strict subclass of PyTorch SummaryWriter. However, this class
-also snapshots every detail about the experiment (data folder paths, code, hyperparams),
-and allows you to visualize it using tensorboard.
-``` {.python}
-from test_tube import Experiment, HyperOptArgumentParser
-
-# exp hyperparams
-args = HyperOptArgumentParser()
-hparams = args.parse_args()
-
-# this is a summaryWriter with nicer logging structure
-exp = Experiment(save_dir='/some/path', create_git_tag=True)
-
-# track experiment details (must be ArgumentParser or HyperOptArgumentParser).
-# each option in the parser is tracked
-exp.argparse(hparams)
-exp.tag({'description': 'running demo'})
-
-# trainer uses the exp object to log exp data
-trainer = Trainer(experiment=exp)
-trainer.fit(model)
-
-# view logs at:
-# tensorboard --logdir /some/path   
+Trainer(logger=logger)
 ```
 
 ---

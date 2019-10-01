@@ -6,7 +6,6 @@ from argparse import Namespace
 import pytest
 import numpy as np
 import torch
-from test_tube import Experiment
 
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
@@ -29,6 +28,7 @@ from pytorch_lightning.root_module import memory
 from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
+from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
 SEED = 2334
@@ -59,16 +59,15 @@ def test_dp_resume():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # get logger
+    logger = get_test_tube_logger(debug=False)
+    logger.log_hyperparams(hparams)
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
     trainer_options['checkpoint_callback'] = checkpoint
 
     # fit model
@@ -86,11 +85,11 @@ def test_dp_resume():
     # HPC LOAD/SAVE
     # ---------------------------
     # save
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
 
     # init new trainer
-    new_exp = get_exp(False, version=exp.version)
-    trainer_options['experiment'] = new_exp
+    new_logger = get_test_tube_logger(version=logger.version)
+    trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
     trainer_options['val_percent_check'] = 0.2
@@ -133,9 +132,9 @@ def test_running_test_pretrained_model_ddp():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
@@ -146,7 +145,7 @@ def test_running_test_pretrained_model_ddp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend='ddp'
     )
@@ -157,7 +156,8 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+                                  module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -176,12 +176,12 @@ def test_running_test_after_fitting():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    # exp file to get weights
+    # logger file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer_options = dict(
@@ -191,7 +191,7 @@ def test_running_test_after_fitting():
         val_percent_check=0.2,
         test_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp
+        logger=logger
     )
 
     # fit model
@@ -217,12 +217,12 @@ def test_running_test_without_val():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    # exp file to get weights
+    # logger file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer_options = dict(
@@ -232,7 +232,7 @@ def test_running_test_without_val():
         val_percent_check=0.2,
         test_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp
+        logger=logger
     )
 
     # fit model
@@ -256,12 +256,12 @@ def test_running_test_pretrained_model():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    # exp file to get weights
+    # logger file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer_options = dict(
@@ -270,7 +270,7 @@ def test_running_test_pretrained_model():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp
+        logger=logger
     )
 
     # fit model
@@ -280,7 +280,7 @@ def test_running_test_pretrained_model():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(
-        exp, save_dir, on_gpu=False, module_class=LightningTestModel
+        logger.experiment, save_dir, on_gpu=False, module_class=LightningTestModel
     )
 
     new_trainer = Trainer(**trainer_options)
@@ -301,12 +301,12 @@ def test_running_test_pretrained_model_dp():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    # exp file to get weights
+    # logger file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer_options = dict(
@@ -315,7 +315,7 @@ def test_running_test_pretrained_model_dp():
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        experiment=exp,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend='dp'
     )
@@ -326,7 +326,8 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(exp, save_dir, on_gpu=True, module_class=LightningTestModel)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+                                  module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -511,12 +512,12 @@ def test_early_stopping_cpu_model():
     stopping = EarlyStopping(monitor='val_loss')
     trainer_options = dict(
         early_stop_callback=stopping,
-        gradient_clip=1.0,
+        gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         train_percent_check=0.1,
         val_percent_check=0.1
     )
@@ -542,14 +543,14 @@ def test_no_val_module():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=1,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -565,7 +566,7 @@ def test_no_val_module():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path, on_gpu=False)
@@ -588,14 +589,14 @@ def test_no_val_end_module():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=1,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -611,7 +612,7 @@ def test_no_val_end_module():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path, on_gpu=False)
@@ -631,7 +632,7 @@ def test_simple_cpu():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
+    # logger file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
@@ -715,18 +716,18 @@ def test_cpu_restore_training():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    test_exp_version = 10
-    exp = get_exp(False, version=test_exp_version)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    test_logger_version = 10
+    logger = get_test_tube_logger(False, version=test_logger_version)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -741,13 +742,13 @@ def test_cpu_restore_training():
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    new_exp = get_exp(False, version=test_exp_version)
+    new_logger = get_test_tube_logger(False, version=test_logger_version)
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
-        experiment=new_exp,
+        logger=new_logger,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
     trainer = Trainer(**trainer_options)
@@ -805,16 +806,16 @@ def test_cpu_slurm_save_load():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    version = exp.version
+    version = logger.version
 
     trainer_options = dict(
         max_nb_epochs=1,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -839,17 +840,17 @@ def test_cpu_slurm_save_load():
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(save_dir, exp)
+    saved_filepath = trainer.hpc_save(save_dir, logger)
     assert os.path.exists(saved_filepath)
 
-    # new exp file to get meta
-    exp = get_exp(False, version=version)
-    exp.argparse(hparams)
-    exp.save()
+    # new logger file to get meta
+    logger = get_test_tube_logger(False, version=version)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=1,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
     trainer = Trainer(**trainer_options)
@@ -874,16 +875,19 @@ def test_cpu_slurm_save_load():
 
 
 def test_loading_meta_tags():
+    from argparse import Namespace
     hparams = get_hparams()
 
     # save tags
-    exp = get_exp(False)
-    exp.tag({'some_str': 'a_str', 'an_int': 1, 'a_float': 2.0})
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # load tags
-    tags_path = exp.get_data_path(exp.name, exp.version) + '/meta_tags.csv'
+    tags_path = logger.experiment.get_data_path(
+        logger.experiment.name, logger.experiment.version
+    ) + '/meta_tags.csv'
     tags = trainer_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
@@ -922,14 +926,14 @@ def test_model_saving_loading():
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=1,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -956,7 +960,7 @@ def test_model_saving_loading():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path, on_gpu=False)
@@ -1004,16 +1008,16 @@ def test_amp_gpu_ddp_slurm_managed():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # exp file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -1030,7 +1034,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(exp, save_dir, True)
+    pretrained_model = load_model(logger.experiment, save_dir, True)
 
     # test model preds
     run_prediction(model.test_dataloader, pretrained_model)
@@ -1041,7 +1045,7 @@ def test_amp_gpu_ddp_slurm_managed():
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
     trainer.hpc_load(save_dir, on_gpu=True)
 
     # test freeze on gpu
@@ -1059,7 +1063,7 @@ def test_cpu_model_with_amp():
 
     trainer_options = dict(
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
@@ -1080,7 +1084,7 @@ def test_cpu_model():
 
     trainer_options = dict(
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -1098,12 +1102,12 @@ def test_all_features_cpu_model():
     """
 
     trainer_options = dict(
-        gradient_clip=1.0,
+        gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         accumulate_grad_batches=2,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -1214,11 +1218,11 @@ def test_ddp_sampler_error():
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
-    exp = get_exp(True)
-    exp.save()
+    logger = get_test_tube_logger(True)
+    logger.save()
 
     trainer = Trainer(
-        experiment=exp,
+        logger=logger,
         show_progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
@@ -1245,7 +1249,7 @@ def test_multiple_val_dataloader():
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 
-    # exp file to get meta
+    # logger file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
@@ -1256,7 +1260,7 @@ def test_multiple_val_dataloader():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # verify tng completed
+    # verify training completed
     assert result == 1
 
     # verify there are 2 val loaders
@@ -1279,7 +1283,7 @@ def test_multiple_test_dataloader():
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 
-    # exp file to get meta
+    # logger file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
@@ -1306,17 +1310,17 @@ def test_multiple_test_dataloader():
 def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(hparams)
+    logger.save()
 
-    # exp file to get weights
+    # logger file to get weights
     checkpoint = ModelCheckpoint(save_dir)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -1326,7 +1330,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(exp, save_dir, on_gpu)
+    pretrained_model = load_model(logger.experiment, save_dir, on_gpu)
 
     # test new model accuracy
     run_prediction(model.test_dataloader, pretrained_model)
@@ -1337,7 +1341,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
     trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
     clear_save_dir()
@@ -1376,12 +1380,12 @@ def get_model(use_test_model=False):
     return model, hparams
 
 
-def get_exp(debug=True, version=None):
-    # set up exp object without actually saving logs
+def get_test_tube_logger(debug=True, version=None):
+    # set up logger object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
-    exp = Experiment(debug=debug, save_dir=save_dir, name='tests_tt_dir', version=version)
-    return exp
+    logger = TestTubeLogger(save_dir, name='test_tt_dir', debug=debug, version=version)
+    return logger
 
 
 def init_save_dir():
@@ -1450,13 +1454,13 @@ def run_prediction(dataloader, trained_model, dp=False):
 
 def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['val_acc']
+    acc = trainer.training_tqdm_dict['val_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['test_acc']
+    acc = trainer.training_tqdm_dict['test_acc']
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
