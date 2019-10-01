@@ -1294,11 +1294,10 @@ class Trainer(TrainerIO):
         # load dataloaders
         # if decorated will happen only once
         # transfer data loaders from model
-        model = self.__get_model()
         if test:
-            self.init_test_dataloader(model)
+            self.init_test_dataloader(self.__get_model())
         else:
-            self.init_val_dataloader(model)
+            self.init_val_dataloader(self.__get_model())
 
         # when testing make sure user defined a test step
         can_run_test_step = False
