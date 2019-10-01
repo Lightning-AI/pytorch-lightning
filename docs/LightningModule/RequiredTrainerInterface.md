@@ -168,7 +168,8 @@ def training_step(self, batch, batch_nb, optimizer_idx):
 @pl.data_loader
 def train_dataloader(self)
 ```
-Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
+Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
+If you want to change the data during every epoch DON'T use the data_loader decorator.   
 
 ##### Return
 PyTorch DataLoader
@@ -572,6 +573,7 @@ def val_dataloader(self)
 If you don't need a validation dataset and a validation_step, you don't need to implement this method.    
 
 Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
+If you want to change the data during every epoch DON'T use the data_loader decorator.   
 
 ##### Return
 PyTorch DataLoader or list of PyTorch Dataloaders.    
@@ -611,6 +613,7 @@ def test_dataloader(self)
 If you don't need a test dataset and a test_step, you don't need to implement this method.    
 
 Called by lightning during test loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.
+If you want to change the data during every epoch DON'T use the data_loader decorator.   
 
 ##### Return
 PyTorch DataLoader
