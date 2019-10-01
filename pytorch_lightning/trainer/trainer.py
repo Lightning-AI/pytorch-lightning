@@ -1023,12 +1023,6 @@ class Trainer(TrainerIO):
                     mem_map = get_gpu_memory_map()
                     metrics.update(mem_map)
 
-                # add norms
-                if self.track_grad_norm > 0:
-                    model = self.__get_model()
-                    grad_norm_dic = model.grad_norm(self.track_grad_norm)
-                    metrics.update(grad_norm_dic)
-
                 if self.__is_function_implemented('on_tng_metrics'):
                     model.on_tng_metrics(metrics)
 
@@ -1229,7 +1223,11 @@ class Trainer(TrainerIO):
             if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
                 # clip gradients
                 self.__clip_gradients()
-
+                # add norms
+                if self.track_grad_norm > 0:
+                    model = self.__get_model()
+                    grad_norm_dic = model.grad_norm(self.track_grad_norm)
+                    self.__add_tqdm_metrics(grad_norm_dic)
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
