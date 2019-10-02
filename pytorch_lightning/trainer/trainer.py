@@ -1227,7 +1227,7 @@ class Trainer(TrainerIO):
             if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
 
                 # track gradient norms when requested
-                if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
+                if batch_nb % self.row_log_interval == 0:
                     if self.track_grad_norm > 0:
                         model = self.__get_model()
                         grad_norm_dic = model.grad_norm(self.track_grad_norm)
