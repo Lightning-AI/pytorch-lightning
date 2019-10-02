@@ -105,7 +105,8 @@ def test_dp_resume():
         dp_model = new_trainer.model
         dp_model.eval()
 
-        _ = [run_prediction(dataloader, dp_model, dp=True) for dataloader in trainer.val_dataloader]
+        for dataloader in trainer.get_train_dataloader():
+            run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = LightningTestModel(hparams)
@@ -163,7 +164,7 @@ def test_running_test_pretrained_model_ddp():
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
-    run_prediction(model.test_dataloader, pretrained_model)
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
     # test we have good test accuracy
     clear_save_dir()
@@ -761,7 +762,8 @@ def test_cpu_restore_training():
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+        for dataloader in trainer.get_val_dataloaders():
+            run_prediction(dataloader, trainer.model)
 
     model.on_sanity_check_start = assert_good_acc
 
@@ -829,8 +831,9 @@ def test_cpu_slurm_save_load():
 
     # predict with trained model before saving
     # make a prediction
-    for batch in model.test_dataloader:
-        break
+    for dataloader in model.test_dataloader():
+        for batch in dataloader:
+            break
 
     x, y = batch
     x = x.view(x.size(0), -1)
@@ -945,8 +948,9 @@ def test_model_saving_loading():
     assert result == 1, 'amp + ddp model failed to complete'
 
     # make a prediction
-    for batch in model.test_dataloader:
-        break
+    for dataloader in model.test_dataloader():
+        for batch in dataloader:
+            break
 
     x, y = batch
     x = x.view(x.size(0), -1)
@@ -1037,7 +1041,7 @@ def test_amp_gpu_ddp_slurm_managed():
     pretrained_model = load_model(logger.experiment, save_dir, True)
 
     # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
+    [run_prediction(dataloader, pretrained_model) for dataloader in trainer.get_test_dataloaders()]
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
@@ -1264,10 +1268,10 @@ def test_multiple_val_dataloader():
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.get_val_dataloaders()) == 2, 'Multiple val_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
-    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.get_val_dataloaders()]
 
 
 def test_multiple_test_dataloader():
@@ -1295,10 +1299,11 @@ def test_multiple_test_dataloader():
     result = trainer.fit(model)
 
     # verify there are 2 val loaders
-    assert len(trainer.test_dataloader) == 2, 'Multiple test_dataloaders not initiated properly'
+    assert len(trainer.get_test_dataloaders()) == 2, \
+        'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
-    [run_prediction(dataloader, trainer.model) for dataloader in trainer.test_dataloader]
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.get_test_dataloaders()]
 
     # run the test method
     trainer.test()
@@ -1333,7 +1338,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     pretrained_model = load_model(logger.experiment, save_dir, on_gpu)
 
     # test new model accuracy
-    run_prediction(model.test_dataloader, pretrained_model)
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test

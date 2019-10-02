@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
 from pytorch_lightning.trainer import ignored_warnings
 
+
 try:
     from apex import amp
     APEX_AVAILABLE = True
@@ -141,9 +142,9 @@ class Trainer(TrainerIO):
         self.nb_val_batches = 0
         self.nb_training_batches = 0
         self.nb_test_batches = 0
-        self.train_dataloader = None
-        self.test_dataloader = None
-        self.val_dataloader = None
+        self.get_train_dataloader = None
+        self.get_test_dataloaders = None
+        self.get_val_dataloaders = None
 
         # training state
         self.model = None
@@ -441,19 +442,21 @@ class Trainer(TrainerIO):
     def __layout_bookeeping(self):
 
         # determine number of training batches
-        self.nb_training_batches = len(self.train_dataloader)
+        self.nb_training_batches = len(self.get_train_dataloader())
         self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
-        if self.val_dataloader is not None:
-            self.nb_val_batches = sum(len(dataloader) for dataloader in self.val_dataloader)
+        if self.get_val_dataloaders() is not None:
+            self.nb_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
             self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
             self.nb_val_batches = max(1, self.nb_val_batches)
 
         # determine number of test batches
-        if self.test_dataloader is not None:
-            self.nb_test_batches = sum(len(dataloader) for dataloader in self.test_dataloader)
+        if self.get_test_dataloaders() is not None:
+            self.nb_test_batches = sum(
+                len(dataloader) for dataloader in self.get_test_dataloaders()
+            )
             self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
             self.nb_test_batches = max(1, self.nb_test_batches)
 
@@ -472,10 +475,10 @@ class Trainer(TrainerIO):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test and len(self.test_dataloader) > 1:
+        if test and len(self.get_test_dataloaders()) > 1:
             args.append(dataloader_idx)
 
-        elif not test and len(self.val_dataloader) > 1:
+        elif not test and len(self.get_val_dataloaders()) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
@@ -520,9 +523,9 @@ class Trainer(TrainerIO):
         outputs = []
 
         # run training
-        for dataloader_idx, dl in enumerate(dataloaders):
+        for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
-            for batch_idx, batch in enumerate(dl):
+            for batch_idx, batch in enumerate(dataloader):
 
                 if batch is None:  # pragma: no cover
                     continue
@@ -570,21 +573,11 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        self.get_train_dataloader = model.train_dataloader
+        self.get_test_dataloaders = model.test_dataloader
+        self.get_val_dataloaders = model.val_dataloader
 
-        self.train_dataloader = model.train_dataloader
-        self.test_dataloader = model.test_dataloader
-        self.val_dataloader = model.val_dataloader
-
-        # handle returning an actual dataloader instead of a list of loaders
-        have_test_loaders = self.test_dataloader is not None
-        if have_test_loaders and not isinstance(self.test_dataloader, list):
-            self.test_dataloader = [self.test_dataloader]
-
-        have_val_loaders = self.val_dataloader is not None
-        if have_val_loaders and not isinstance(self.val_dataloader, list):
-            self.val_dataloader = [self.val_dataloader]
-
-        if self.use_ddp and not isinstance(self.train_dataloader.sampler, DistributedSampler):
+        if self.use_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
             msg = """
             You're using multiple gpus and multiple nodes without using a DistributedSampler
             to assign a subset of your data to each process. To silence this warning, pass a
@@ -603,8 +596,8 @@ class Trainer(TrainerIO):
             """
             warnings.warn(msg)
 
-        if self.use_ddp and self.val_dataloader is not None:
-            for dataloader in self.val_dataloader:
+        if self.use_ddp and self.get_val_dataloaders is not None:
+            for dataloader in self.get_val_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your val_dataloader(s) don't use DistributedSampler.
@@ -626,8 +619,8 @@ class Trainer(TrainerIO):
                     warnings.warn(msg)
                     break
 
-        if self.use_ddp and self.test_dataloader is not None:
-            for dataloader in self.test_dataloader:
+        if self.use_ddp and self.get_test_dataloaders is not None:
+            for dataloader in self.get_test_dataloaders:
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your test_dataloader(s) don't use DistributedSampler.
@@ -912,12 +905,12 @@ class Trainer(TrainerIO):
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
+        if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
             # reset progress_bar limit for sanity check
             if self.show_progress_bar:
                 self.progress_bar.reset(self.nb_sanity_val_steps)
 
-            self.evaluate(model, self.val_dataloader, self.nb_sanity_val_steps, self.testing)
+            self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
         # ---------------------------
         # CORE TRAINING LOOP
@@ -928,8 +921,8 @@ class Trainer(TrainerIO):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp and hasattr(self.train_dataloader.sampler, 'set_epoch'):
-                self.train_dataloader.sampler.set_epoch(epoch_nb)
+            if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
+                self.get_train_dataloader().sampler.set_epoch(epoch_nb)
 
             # get model
             model = self.__get_model()
@@ -974,7 +967,7 @@ class Trainer(TrainerIO):
             model.on_epoch_start()
 
         # run epoch
-        for batch_nb, batch in enumerate(self.train_dataloader):
+        for batch_nb, batch in enumerate(self.get_train_dataloader()):
             self.batch_nb = batch_nb
             self.global_step += 1
 
@@ -1272,12 +1265,12 @@ class Trainer(TrainerIO):
             model.on_pre_performance_check()
 
             # select dataloaders
-            dataloaders = self.val_dataloader
+            dataloaders = self.get_val_dataloaders()
             max_batches = self.nb_val_batches
 
             # calculate max batches to use
             if test:
-                dataloaders = self.test_dataloader
+                dataloaders = self.get_test_dataloaders()
                 max_batches = self.nb_test_batches
 
             # cap max batches to 1 when using fast_dev_run
