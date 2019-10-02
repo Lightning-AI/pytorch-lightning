@@ -19,8 +19,6 @@ def test_testtube_logger():
     save_dir = init_save_dir()
 
     logger = get_test_tube_logger(False)
-    logger.log_hyperparams(hparams)
-    logger.save()
 
     trainer_options = dict(
         max_nb_epochs=1,

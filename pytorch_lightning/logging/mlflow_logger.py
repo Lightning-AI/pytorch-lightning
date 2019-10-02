@@ -9,21 +9,28 @@ logger = getLogger(__name__)
 
 
 class MLFlowLogger(LightningLoggerBase):
-
     def __init__(self, experiment_name, tracking_uri=None):
         super().__init__()
         self.client = mlflow.tracking.MlflowClient(tracking_uri)
+        self.experiment_name = experiment_name
+        self._run_id = None
 
-        experiment = self.client.get_experiment_by_name(experiment_name)
+    @property
+    def run_id(self):
+        if self._run_id is not None:
+            return self._run_id
+
+        experiment = self.client.get_experiment_by_name(self.experiment_name)
         if experiment is None:
             logger.warning(
-                f"Experiment with name f{experiment_name} not found. Creating it."
+                f"Experiment with name f{self.experiment_name} not found. Creating it."
             )
-            self.client.create_experiment(experiment_name)
-            experiment = self.client.get_experiment_by_name(experiment_name)
+            self.client.create_experiment(self.experiment_name)
+            experiment = self.client.get_experiment_by_name(self.experiment_name)
 
         run = self.client.create_run(experiment.experiment_id)
-        self.run_id = run.info.run_id
+        self._run_id = run.info.run_id
+        return self._run_id
 
     @rank_zero_only
     def log_hyperparams(self, params):

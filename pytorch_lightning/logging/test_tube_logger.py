@@ -11,13 +11,26 @@ class TestTubeLogger(LightningLoggerBase):
         self, save_dir, name="default", debug=False, version=None, create_git_tag=False
     ):
         super().__init__()
-        self.experiment = Experiment(
-            save_dir=save_dir,
-            name=name,
-            debug=debug,
-            version=version,
-            create_git_tag=create_git_tag,
+        self.save_dir = save_dir
+        self.name = name
+        self.debug = debug
+        self._version = version
+        self.create_git_tag = create_git_tag
+        self._experiment = None
+
+    @property
+    def experiment(self):
+        if self._experiment is not None:
+            return self._experiment
+        self._experiment = Experiment(
+            save_dir=self.save_dir,
+            name=self.name,
+            debug=self.debug,
+            version=self.version,
+            create_git_tag=self.create_git_tag,
+            rank=self.rank,
         )
+        return self._experiment
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -41,15 +54,24 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def rank(self):
-        return self.experiment.rank
+        if self._experiment is None:
+            return self._rank
+        else:
+            return self.experiment.rank
 
     @rank.setter
     def rank(self, value):
-        self.experiment.rank = value
+        if self._experiment is None:
+            self._rank = value
+        else:
+            return self.experiment.rank
 
     @property
     def version(self):
-        return self.experiment.version
+        if self._experiment is None:
+            return self._version
+        else:
+            return self.experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See
@@ -57,10 +79,10 @@ class TestTubeLogger(LightningLoggerBase):
     # for more info.
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["experiment"] = self.experiment.get_meta_copy()
+        state["_experiment"] = self.experiment.get_meta_copy()
         return state
 
     def __setstate__(self, state):
-        self.experiment = state["experiment"].get_non_ddp_exp()
-        del state['experiment']
+        self._experiment = state["_experiment"].get_non_ddp_exp()
+        del state["_experiment"]
         self.__dict__.update(state)

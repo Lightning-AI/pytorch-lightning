@@ -890,8 +890,9 @@ class Trainer(TrainerIO):
             ref_model.logger = self.logger
 
             # save exp to get started
-            if self.proc_rank == 0:
-                self.logger.save()
+            if hasattr(ref_model, "hparams"):
+                self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.save()
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
