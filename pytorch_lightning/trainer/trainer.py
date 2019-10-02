@@ -1175,7 +1175,7 @@ class Trainer(TrainerIO):
 
     def __run_training_batch(self, batch, batch_nb):
         # track grad norms
-        grad_norm_dic = None
+        grad_norm_dic = {}
 
         if batch is None:
             return 0, grad_norm_dic
