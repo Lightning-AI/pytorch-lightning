@@ -1225,13 +1225,15 @@ class Trainer(TrainerIO):
 
             # gradient update with accumulated gradients
             if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
-                # clip gradients
-                self.__clip_gradients()
-                # add norms
+                # track gradient norms when requested
                 if self.track_grad_norm > 0:
                     model = self.__get_model()
                     grad_norm_dic = model.grad_norm(self.track_grad_norm)
                     self.__add_tqdm_metrics(grad_norm_dic)
+
+                # clip gradients
+                self.__clip_gradients()
+
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
