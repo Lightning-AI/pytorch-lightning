@@ -783,6 +783,7 @@ class Trainer(TrainerIO):
         """
         # node rank using relative slurm id
         # otherwise default to node rank 0
+        print('in ddp_train')
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)
