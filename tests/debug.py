@@ -152,7 +152,6 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     trainer_options['experiment'] = exp
 
     # fit model
-    pdb.set_trace()
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
