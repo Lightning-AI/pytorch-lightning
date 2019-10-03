@@ -110,8 +110,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
-                ForkedPdb().set_trace()
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+                ForkedPdb().set_trace()
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
@@ -159,6 +159,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
     results = {}
     grad_enabled = torch.is_grad_enabled()
 
+    ForkedPdb().set_trace()
     def _worker(i, module, input, kwargs, device=None):
         torch.set_grad_enabled(grad_enabled)
         if device is None:
