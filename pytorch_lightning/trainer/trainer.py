@@ -1171,7 +1171,7 @@ class Trainer(TrainerIO):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        ForkedPdb().set_trace()
+        pdb().set_trace()
 
         if self.use_ddp:
             output = self.model(*args)
