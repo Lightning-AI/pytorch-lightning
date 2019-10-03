@@ -305,9 +305,6 @@ class Trainer(TrainerIO):
         if gpus is None:
             return 0
 
-        if self.distributed_backend == 'ddp2':
-            return 1
-
         if type(gpus) is list:
             return len(gpus)
         if type(gpus) is int:
@@ -1195,7 +1192,6 @@ class Trainer(TrainerIO):
             progress_output = output['progress']
 
             # reduce progress metrics for tqdm when using dp
-            # TODO: verify
             if self.use_dp or self.distributed_backend == 'ddp2':
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
