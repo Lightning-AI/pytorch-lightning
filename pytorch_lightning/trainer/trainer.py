@@ -1155,7 +1155,7 @@ class Trainer(TrainerIO):
         args = [batch, batch_nb]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
-
+        pdb.set_trace()
         if self.use_ddp:
             output = self.model(*args)
             pdb.set_trace()
