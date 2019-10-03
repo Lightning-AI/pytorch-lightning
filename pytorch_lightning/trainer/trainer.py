@@ -687,7 +687,7 @@ class Trainer(TrainerIO):
             if self.experiment is not None:
                 self.experiment = self.experiment.get_meta_copy()
 
-            if self.is_slurm_managing_tasks:
+            if self.is_slurm_managing_tasks or self.distributed_backend == 'ddp2':
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
