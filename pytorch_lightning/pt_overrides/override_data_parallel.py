@@ -191,6 +191,13 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             with lock:
                 results[i] = e
 
+    # make sure each module knows what training state it's in...
+    # fixes weird bug where copies are out of sync
+    root_m = modules[0]
+    for m in modules[1:]:
+        m.training = root_m.training
+        m.testing = root_m.testing
+
     if len(modules) > 1:
         threads = [threading.Thread(target=_worker,
                                     args=(i, module, input, kwargs, device))
