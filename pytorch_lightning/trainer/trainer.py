@@ -815,8 +815,9 @@ class Trainer(TrainerIO):
 
         # MODEL
         # copy model to each gpu
-        torch.cuda.set_device(gpu_nb)
-        model.cuda(gpu_nb)
+        if self.distributed_backend == 'ddp':
+            torch.cuda.set_device(gpu_nb)
+            model.cuda(gpu_nb)
 
         # set model properties before going into wrapper
         model.trainer = self
@@ -1158,10 +1159,13 @@ class Trainer(TrainerIO):
             args.append(opt_idx)
 
         if self.use_ddp:
+            print('ddp train fwd')
             output = self.model(*args)
         elif self.use_dp:
+            print('dp train fwd')
             output = self.model(*args)
         elif self.single_gpu:
+            print('single GPU fwd')
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
                 gpu_id = self.data_parallel_device_ids[0]
@@ -1200,7 +1204,7 @@ class Trainer(TrainerIO):
                 loss = output
 
         # when using dp need to reduce the loss
-        if self.use_dp:
+        if self.use_dp or self.distributed_backend == 'ddp2':
             loss = reduce_distributed_output(loss, self.num_gpus)
 
         return loss, model_specific_tqdm_metrics_dic
