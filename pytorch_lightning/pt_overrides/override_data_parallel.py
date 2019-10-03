@@ -111,7 +111,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
-                ForkedPdb().set_trace()
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
@@ -161,7 +160,6 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
     def _worker(i, module, input, kwargs, device=None):
         torch.set_grad_enabled(grad_enabled)
-        print(device)
         if device is None:
             device = get_a_var(input).get_device()
         try:
@@ -173,15 +171,12 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # ---------------
                 # CHANGE
                 if module.training:
-                    print('training fwd', module.training, module.testing)
                     output = module.training_step(*input, **kwargs)
 
                 elif module.testing:
-                    print('testing fwd', module.training, module.testing)
                     output = module.test_step(*input, **kwargs)
 
                 else:
-                    print('validation fwd', module.training, module.testing)
                     output = module.validation_step(*input, **kwargs)
                 # ---------------
 
@@ -191,6 +186,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             with lock:
                 results[i] = e
 
+    # TODO: fix hack (maybe not a hack)
     # make sure each module knows what training state it's in...
     # fixes weird bug where copies are out of sync
     root_m = modules[0]
