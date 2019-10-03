@@ -173,15 +173,15 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # ---------------
                 # CHANGE
                 if module.training:
-                    print('training fwd')
+                    print('training fwd', module.training, module.testing)
                     output = module.training_step(*input, **kwargs)
 
                 elif module.testing:
-                    print('testing fwd')
+                    print('testing fwd', module.training, module.testing)
                     output = module.test_step(*input, **kwargs)
 
                 else:
-                    print('validation fwd')
+                    print('validation fwd', module.training, module.testing)
                     output = module.validation_step(*input, **kwargs)
                 # ---------------
 
