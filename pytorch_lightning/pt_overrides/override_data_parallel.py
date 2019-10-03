@@ -159,8 +159,8 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
     results = {}
     grad_enabled = torch.is_grad_enabled()
 
-    ForkedPdb().set_trace()
     def _worker(i, module, input, kwargs, device=None):
+        ForkedPdb().set_trace()
         torch.set_grad_enabled(grad_enabled)
         if device is None:
             device = get_a_var(input).get_device()
