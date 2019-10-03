@@ -1158,13 +1158,11 @@ class Trainer(TrainerIO):
             args.append(opt_idx)
 
         if self.use_ddp:
-            print('ddp train fwd')
             output = self.model(*args)
+            pdb.set_trace()
         elif self.use_dp:
-            print('dp train fwd')
             output = self.model(*args)
         elif self.single_gpu:
-            print('single GPU fwd')
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
                 gpu_id = self.data_parallel_device_ids[0]
