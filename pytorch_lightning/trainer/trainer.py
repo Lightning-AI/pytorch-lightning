@@ -16,10 +16,12 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
+from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
+    ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
 from pytorch_lightning.trainer import ignored_warnings
@@ -57,8 +59,9 @@ class Trainer(TrainerIO):
 
     def __init__(self,
                  logger=None,
-                 early_stop_callback=None,
                  checkpoint_callback=None,
+                 early_stop_callback=None,
+                 default_save_path=None,
                  gradient_clip_val=0,
                  process_position=0,
                  nb_gpu_nodes=1,
@@ -88,8 +91,9 @@ class Trainer(TrainerIO):
         """
 
         :param logger: Logger for experiment tracking
-        :param early_stop_callback: Callback for early stopping
         :param checkpoint_callback: Callback for checkpointing
+        :param early_stop_callback: Callback for early stopping
+        :param default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
         :param gradient_clip_val: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
@@ -133,6 +137,11 @@ class Trainer(TrainerIO):
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
 
+        # set default save path if user didn't provide one
+        self.default_save_path = default_save_path
+        if self.default_save_path is None:
+            self.default_save_path = os.getcwd()
+
         # training bookeeping
         self.total_batch_nb = 0
         self.running_loss = []
@@ -156,13 +165,39 @@ class Trainer(TrainerIO):
         self.total_batches = 0
 
         # configure early stop callback
+        # creates a default one if none passed in
         self.early_stop_callback = early_stop_callback
-
-        # configure weights save path
-        self.__configure_weights_path(checkpoint_callback, weights_save_path)
+        if self.early_stop_callback is None:
+            self.early_stop = EarlyStopping(
+                monitor='val_loss',
+                patience=3,
+                verbose=True,
+                mode='min'
+            )
 
         # configure logger
         self.logger = logger
+        if self.logger is None:
+            self.logger = TestTubeLogger(
+                save_dir=self.default_save_path,
+                name='lightning_logs'
+            )
+
+        # configure checkpoint callback
+        self.checkpoint_callback = checkpoint_callback
+        if self.checkpoint_callback is None:
+            if isinstance(logger, TestTubeLogger):
+                ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name,
+                                              self.logger.version)
+            else:
+                ckpt_path = self.default_save_path
+
+            self.checkpoint_callback = ModelCheckpoint(
+                filepath=ckpt_path
+            )
+
+        # configure weights save path
+        self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
@@ -214,8 +249,6 @@ class Trainer(TrainerIO):
         """
         self.weights_save_path = weights_save_path
 
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.save_function = self.save_checkpoint
 
@@ -224,7 +257,7 @@ class Trainer(TrainerIO):
 
         # if weights_save_path is still none here, set to current workingdir
         if self.weights_save_path is None:
-            self.weights_save_path = os.getcwd()
+            self.weights_save_path = self.default_save_path
 
     def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
@@ -900,6 +933,7 @@ class Trainer(TrainerIO):
 
         # set local properties on the model
         ref_model.on_gpu = self.on_gpu
+        ref_model.single_gpu = self.single_gpu
         ref_model.use_dp = self.use_dp
         ref_model.use_ddp = self.use_ddp
         ref_model.use_ddp2 = self.use_ddp2

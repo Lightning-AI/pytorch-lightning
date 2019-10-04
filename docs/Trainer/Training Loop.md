@@ -21,17 +21,18 @@ trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
 
 ---
 #### Early stopping
-To enable early-stopping, define the callback and give it to the trainer.
+The trainer already sets up default early stopping for you. 
+To modify this behavior, pass in your own EarlyStopping callback.
 ``` {.python}
 from pytorch_lightning.callbacks import EarlyStopping
 
-# DEFAULTS
+# DEFAULTS used by Trainer
 early_stop_callback = EarlyStopping(
     monitor='val_loss',
     min_delta=0.00,
-    patience=0,
+    patience=3,
     verbose=False,
-    mode='auto'
+    mode='min'
 )
 
 trainer = Trainer(early_stop_callback=early_stop_callback)

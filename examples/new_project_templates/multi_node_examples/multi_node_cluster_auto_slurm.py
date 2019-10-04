@@ -56,31 +56,10 @@ def main(hparams, cluster):
     exp.save()
 
     # ------------------------
-    # 3 DEFINE CALLBACKS
-    # ------------------------
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
-    early_stop = EarlyStopping(
-        monitor='val_acc',
-        patience=3,
-        verbose=True,
-        mode='max'
-    )
-
-    checkpoint = ModelCheckpoint(
-        filepath=model_save_path,
-        save_best_only=True,
-        verbose=True,
-        monitor='val_loss',
-        mode='min'
-    )
-
-    # ------------------------
     # 4 INIT TRAINER
     # ------------------------
     trainer = Trainer(
         experiment=exp,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
         gpus=hparams.per_experiment_nb_gpus,
         nb_gpu_nodes=hyperparams.nb_gpu_nodes,
         distributed_backend=hyperparams.distributed_backend
