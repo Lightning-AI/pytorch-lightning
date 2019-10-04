@@ -1158,6 +1158,10 @@ class Trainer(TrainerIO):
         except Exception:
             if type(output) is torch.Tensor:
                 loss = output
+            else:
+                raise RuntimeError(
+                    'No `loss` value in the dictionary returned from `model.training_step()`.'
+                )
 
         # when using dp need to reduce the loss
         if self.use_dp:
