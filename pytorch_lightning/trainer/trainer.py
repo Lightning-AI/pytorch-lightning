@@ -108,7 +108,7 @@ class Trainer(TrainerIO):
         :param val_check_interval: int. Check val this frequently within a train epoch
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
-        :param distributed_backend: str. dp, or ddp.
+        :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
         :param print_weights_summary: Bool. Prints summary of weights
@@ -172,8 +172,10 @@ class Trainer(TrainerIO):
 
         # distributed backend choice
         self.use_ddp = False
+        self.use_ddp2 = False
         self.use_dp = False
         self.single_gpu = False
+        self.distributed_backend = distributed_backend
         self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
 
         # init flags for SLURM+ddp to work
@@ -285,6 +287,7 @@ class Trainer(TrainerIO):
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
+
         if type(gpus) is list:
             return len(gpus)
         if type(gpus) is int:
@@ -307,6 +310,11 @@ class Trainer(TrainerIO):
             if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
                 self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp2 = distributed_backend == 'ddp2'
+
+                # disable single gpu when using ddp2
+                if self.use_ddp2:
+                    self.single_gpu = False
 
         # multiple GPU case
         elif self.num_gpus > 1:
@@ -314,6 +322,7 @@ class Trainer(TrainerIO):
                 # DP, DDP case
                 self.use_dp = distributed_backend == 'dp'
                 self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
                 m = 'When using multiple GPUs set ' \
@@ -483,7 +492,7 @@ class Trainer(TrainerIO):
             output = model(*args)
             return output
 
-        # CPU, single GPU
+        # single GPU
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
@@ -492,6 +501,7 @@ class Trainer(TrainerIO):
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch
 
+        # CPU
         if test:
             output = model.test_step(*args)
         else:
@@ -547,10 +557,12 @@ class Trainer(TrainerIO):
 
         eval_results = {}
 
-        # give model a chance to do something with the outputs (and method defined)
-        model = self.__get_model()
+        # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
             outputs = outputs[0]
+
+        # give model a chance to do something with the outputs (and method defined)
+        model = self.__get_model()
         if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
@@ -656,7 +668,11 @@ class Trainer(TrainerIO):
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp:
 
-            if self.is_slurm_managing_tasks:
+            if self.use_ddp2:
+                task = int(os.environ['SLURM_LOCALID'])
+                self.ddp_train(task, model)
+
+            elif self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
@@ -775,8 +791,13 @@ class Trainer(TrainerIO):
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
         # determine which process we are and world size
-        self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
-        self.world_size = self.nb_gpu_nodes * self.num_gpus
+        if self.use_ddp:
+            self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
+            self.world_size = self.nb_gpu_nodes * self.num_gpus
+
+        elif self.use_ddp2:
+            self.proc_rank = self.node_rank
+            self.world_size = self.nb_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
         if self.logger is not None:
@@ -793,8 +814,18 @@ class Trainer(TrainerIO):
 
         # MODEL
         # copy model to each gpu
-        torch.cuda.set_device(gpu_nb)
+        if self.distributed_backend == 'ddp':
+            torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
+
+        # set model properties before going into wrapper
+        model.trainer = self
+        model.on_gpu = self.on_gpu
+        model.use_dp = self.use_dp
+        model.use_ddp2 = self.use_ddp2
+        model.use_ddp = self.use_ddp
+        model.use_amp = self.use_amp
+        model.testing = self.testing
 
         # override root GPU
         self.root_gpu = gpu_nb
@@ -808,8 +839,17 @@ class Trainer(TrainerIO):
             )
             self.optimizers = optimizers
 
-        model = LightningDistributedDataParallel(model, device_ids=[gpu_nb],
-                                                 find_unused_parameters=True)
+        # DDP2 uses all GPUs on the machine
+        if self.distributed_backend == 'ddp':
+            device_ids = [gpu_nb]
+        elif self.use_ddp2:
+            device_ids = None
+
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
 
         # continue training routine
         self.__run_pretrain_routine(model)
@@ -869,6 +909,7 @@ class Trainer(TrainerIO):
         ref_model.on_gpu = self.on_gpu
         ref_model.use_dp = self.use_dp
         ref_model.use_ddp = self.use_ddp
+        ref_model.use_ddp2 = self.use_ddp2
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
@@ -1138,7 +1179,7 @@ class Trainer(TrainerIO):
             progress_output = output['progress']
 
             # reduce progress metrics for tqdm when using dp
-            if self.use_dp:
+            if self.use_dp or self.use_ddp2:
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
@@ -1162,7 +1203,7 @@ class Trainer(TrainerIO):
                 )
 
         # when using dp need to reduce the loss
-        if self.use_dp:
+        if self.use_dp or self.use_ddp2:
             loss = reduce_distributed_output(loss, self.num_gpus)
 
         return loss, model_specific_tqdm_metrics_dic
@@ -1300,7 +1341,6 @@ class Trainer(TrainerIO):
                                              dataloaders,
                                              max_batches,
                                              test)
-
             self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook

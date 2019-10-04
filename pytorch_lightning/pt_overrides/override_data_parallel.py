@@ -87,7 +87,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # --------------
                 # normal
                 # output = self.module(*inputs[0], **kwargs[0])
-
                 # lightning
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
@@ -99,6 +98,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
                 output = self.gather(outputs, self.output_device)
         else:
+            # normal
             output = self.module(*inputs, **kwargs)
 
         if torch.is_grad_enabled():
@@ -170,6 +170,14 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
         except Exception as e:
             with lock:
                 results[i] = e
+
+    # TODO: fix hack (maybe not a hack)
+    # make sure each module knows what training state it's in...
+    # fixes weird bug where copies are out of sync
+    root_m = modules[0]
+    for m in modules[1:]:
+        m.training = root_m.training
+        m.testing = root_m.testing
 
     if len(modules) > 1:
         threads = [threading.Thread(target=_worker,
