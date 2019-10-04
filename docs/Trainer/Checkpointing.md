@@ -2,13 +2,20 @@ Lightning can automate saving and loading checkpoints.
 
 ---
 ### Model saving
-To enable checkpointing, define the checkpoint callback and give it to the trainer.
+Checkpointing is enabled by default to the current working directory.
+To change the checkpoint path pass in :
+```python
+Trainer(default_save_path='/your/path/to/save/checkpoints')
+```
+
+To modify the behavior of checkpointing pass in your own callback.
 
 ``` {.python}
 from pytorch_lightning.callbacks import ModelCheckpoint
 
+# DEFAULTS used by the Trainer
 checkpoint_callback = ModelCheckpoint(
-    filepath='/path/to/store/weights/',
+    filepath=os.getcwd(),
     save_best_only=True,
     verbose=True,
     monitor='val_loss',

@@ -15,7 +15,7 @@ def rank_zero_only(fn):
     return wrapped_fn
 
 
-class LightningLoggerBase:
+class LightningLoggerBase(object):
     """Base class for experiment loggers"""
 
     def __init__(self):

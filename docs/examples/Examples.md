@@ -47,55 +47,15 @@ def main(hparams, cluster, results_dict):
     :param hparams:
     :return:
     """
-    # init experiment
-    log_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(
-        name='test_tube_exp',
-        debug=True,
-        save_dir=log_dir,
-        version=0,
-        autosave=False,
-        description='test demo'
-    )
-    
-    # set the hparams for the experiment
-    exp.argparse(hparams)
-    exp.save()
-
     # build model
     model = MyLightningModule(hparams)
 
-    # callbacks
-    early_stop = EarlyStopping(
-        monitor=hparams.early_stop_metric,
-        patience=hparams.early_stop_patience,
-        verbose=True,
-        mode=hparams.early_stop_mode
-    )
-
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
-    checkpoint = ModelCheckpoint(
-        filepath=model_save_path,
-        save_function=None,
-        save_best_only=True,
-        verbose=True,
-        monitor=hparams.model_save_monitor_value,
-        mode=hparams.model_save_monitor_mode
-    )
-
     # configure trainer
-    trainer = Trainer(
-        experiment=exp,
-        cluster=cluster,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
-    )
+    trainer = Trainer()
 
     # train model
     trainer.fit(model)
 ```
-
-
 
 
 The __main__ function will start training on your **main** function. If you use the HyperParameterOptimizer

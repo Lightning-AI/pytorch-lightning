@@ -1,15 +1,32 @@
 Lighting offers options for logging information about model, gpu usage, etc, via several different logging frameworks. It also offers printing options for training monitoring.
 
+---   
+### default_save_path   
+Lightning sets a default TestTubeLogger and CheckpointCallback for you which log to
+```os.getcwd()``` by default. To modify the logging path you can set:
+```python
+Trainer(default_save_path='/your/path/to/save/checkpoints')
+```
+ 
+If you need more custom behavior (different paths for both, different metrics, etc...)
+from the logger and the checkpointCallback, pass in your own instances as explained below.
+
 
 ---
 ### Setting up logging
 
-Initialize your logger, which should inherit from `LightningBaseLogger`, and pass
-it to `Trainer`.
+The trainer inits a default logger for you (TestTubeLogger). All logs will
+go to the current working directory under a folder named ```os.getcwd()/lightning_logs``. 
+
+If you want to modify the default logging behavior even more, pass in a logger
+(which should inherit from `LightningBaseLogger`).   
+
 ```{.python}
 my_logger = MyLightningLogger(...)
 trainer = Trainer(logger=my_logger)
 ```
+
+The path in this logger will overwrite default_save_path.
 
 Lightning supports several common experiment tracking frameworks out of the box
 

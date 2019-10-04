@@ -22,6 +22,7 @@ def test_testtube_logger():
 
     trainer_options = dict(
         max_nb_epochs=1,
+        train_percent_check=0.01,
         logger=logger
     )
 
@@ -46,6 +47,7 @@ def test_testtube_pickle():
 
     trainer_options = dict(
         max_nb_epochs=1,
+        train_percent_check=0.01,
         logger=logger
     )
 
@@ -74,6 +76,7 @@ def test_mlflow_logger():
 
     trainer_options = dict(
         max_nb_epochs=1,
+        train_percent_check=0.01,
         logger=logger
     )
 

@@ -42,35 +42,12 @@ def main(hparams):
     exp.save()
 
     # ------------------------
-    # 3 DEFINE CALLBACKS
+    # 3 INIT TRAINER
     # ------------------------
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
-    early_stop = EarlyStopping(
-        monitor='val_acc',
-        patience=3,
-        verbose=True,
-        mode='max'
-    )
-
-    checkpoint = ModelCheckpoint(
-        filepath=model_save_path,
-        save_best_only=True,
-        verbose=True,
-        monitor='val_loss',
-        mode='min'
-    )
+    trainer = Trainer(experiment=exp)
 
     # ------------------------
-    # 4 INIT TRAINER
-    # ------------------------
-    trainer = Trainer(
-        experiment=exp,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
-    )
-
-    # ------------------------
-    # 5 START TRAINING
+    # 4 START TRAINING
     # ------------------------
     trainer.fit(model)
 
