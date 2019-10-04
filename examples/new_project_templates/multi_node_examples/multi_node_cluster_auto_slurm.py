@@ -134,7 +134,7 @@ def optimize_on_cluster(hyperparams):
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
                           comment='use 32gb gpus')
     cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition,
-                          comment='use 32gb gpus')
+                          comment='your cluster might need this argument')
 
     # run hopt
     # creates and submits jobs to slurm
