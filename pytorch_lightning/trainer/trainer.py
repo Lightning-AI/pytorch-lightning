@@ -174,6 +174,13 @@ class Trainer(TrainerIO):
                 mode='min'
             )
 
+        # configure checkpoint callback
+        self.checkpoint_callback = checkpoint_callback
+        if self.checkpoint_callback is None:
+            self.checkpoint_callback = ModelCheckpoint(
+                filepath=self.default_save_path
+            )
+
         # configure weights save path
         self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
@@ -235,8 +242,6 @@ class Trainer(TrainerIO):
         """
         self.weights_save_path = weights_save_path
 
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.save_function = self.save_checkpoint
 
@@ -245,7 +250,7 @@ class Trainer(TrainerIO):
 
         # if weights_save_path is still none here, set to current workingdir
         if self.weights_save_path is None:
-            self.weights_save_path = os.getcwd()
+            self.weights_save_path = self.default_save_path
 
     def __init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
