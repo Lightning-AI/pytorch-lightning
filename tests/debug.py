@@ -227,7 +227,7 @@ def main():
         val_percent_check=0.2,
         gpus=2,
         print_weights_summary=True,
-        distributed_backend='ddp'
+        distributed_backend='ddp2'
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
