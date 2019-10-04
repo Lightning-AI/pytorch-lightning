@@ -82,7 +82,8 @@ def main(hparams, cluster):
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
         gpus=hparams.per_experiment_nb_gpus,
-        nb_gpu_nodes=hyperparams.nb_gpu_nodes
+        nb_gpu_nodes=hyperparams.nb_gpu_nodes,
+        distributed_backend=hyperparams.distributed_backend
     )
 
     # ------------------------
@@ -168,6 +169,8 @@ if __name__ == '__main__':
                                help='where to save slurm meta')
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir,
                                help='where to save model')
+    parent_parser.add_argument('--distributed_backend', type=str, default='ddp',
+                               help='ddp or ddp2')
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a',
                                help='test tube exp name')
     parent_parser.add_argument('--num_hyperparam_trials', type=int, default=6,
