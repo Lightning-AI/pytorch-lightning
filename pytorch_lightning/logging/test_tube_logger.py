@@ -7,6 +7,8 @@ from test_tube import Experiment
 
 
 class TestTubeLogger(LightningLoggerBase):
+    __test__ = False
+
     def __init__(
         self, save_dir, name="default", debug=False, version=None, create_git_tag=False
     ):
