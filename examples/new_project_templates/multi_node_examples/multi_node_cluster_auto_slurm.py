@@ -107,7 +107,7 @@ def optimize_on_cluster(hyperparams):
     cluster.per_experiment_nb_gpus = hyperparams.per_experiment_nb_gpus
     cluster.per_experiment_nb_nodes = hyperparams.nb_gpu_nodes
     cluster.job_time = '2:00:00'
-    cluster.gpu_type = 'volta'
+    cluster.gpu_type = hyperparams.gpu_type
     cluster.memory_mb_per_node = 0
 
     # any modules for code to run in env
@@ -117,7 +117,7 @@ def optimize_on_cluster(hyperparams):
     cluster.add_command(f'export MASTER_PORT={PORT}')
 
     # OPTIONAL for debugging
-    # without these flags errors in your code will 
+    # without these flags errors in your code will
     # appear to be nccl errors
     cluster.add_command('export NCCL_DEBUG=INFO')
     cluster.add_command('export PYTHONFAULTHANDLER=1')
@@ -131,8 +131,6 @@ def optimize_on_cluster(hyperparams):
     # cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
 
     # run only on 32GB voltas
-    cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
-                          comment='use 32gb gpus')
     cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition,
                           comment='your cluster might need this argument')
 
@@ -181,6 +179,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--conda_env', type=str, default='base',
                                help='email for jobs')
     parent_parser.add_argument('--gpu_partition', type=str, help='consult your cluster manual')
+    parent_parser.add_argument('--gpu_type', type=str, default='2080ti', help='consult your cluster manual')
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)

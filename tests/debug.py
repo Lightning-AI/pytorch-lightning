@@ -59,18 +59,14 @@ class CoolModel(pl.LightningModule):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
 
-def get_model():
+def get_model(use_test_model=False):
     # set up model with these hyperparams
-    root_dir = os.path.dirname(os.path.realpath(__file__))
-    hparams = Namespace(**{'drop_prob': 0.2,
-                           'batch_size': 32,
-                           'in_features': 28 * 28,
-                           'learning_rate': 0.001 * 8,
-                           'optimizer_name': 'adam',
-                           'data_root': os.path.join(root_dir, 'mnist'),
-                           'out_features': 10,
-                           'hidden_dim': 1000})
-    model = LightningTemplateModel(hparams)
+    hparams = get_hparams()
+
+    if use_test_model:
+        model = LightningTestModel(hparams)
+    else:
+        model = LightningTemplateModel(hparams)
 
     return model, hparams
 
@@ -114,7 +110,7 @@ def load_model(exp, save_dir, on_gpu, map_location=None, module_class=LightningT
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path,
                                                    on_gpu=on_gpu,
-                                                   map_location=map_location)
+                                                   )
 
     assert trained_model is not None, 'loading model failed'
 
@@ -160,7 +156,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'amp + ddp model failed sto complete'
 
     # test model loading
     pretrained_model = load_model(exp, save_dir, on_gpu)
@@ -218,79 +214,23 @@ def main():
     Make sure DDP + AMP continue training correctly
     :return:
     """
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=True,
-        max_nb_epochs=4,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
         gpus=2,
-        distributed_backend='dp',
+        print_weights_summary=True,
+        distributed_backend='ddp2'
     )
 
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['experiment'] = exp
-    trainer_options['checkpoint_callback'] = checkpoint
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
-
-    # track epoch before saving
-    real_global_epoch = trainer.current_epoch
-
-    # correct result and ok accuracy
-    assert result == 1, 'amp + dp model failed to complete'
-
-    # ---------------------------
-    # HPC LOAD/SAVE
-    # ---------------------------
-    # save
-    trainer.hpc_save(save_dir, exp)
-
-    # init new trainer
-    new_exp = get_exp(False, version=exp.version)
-    trainer_options['experiment'] = new_exp
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
-    trainer_options['train_percent_check'] = 0.2
-    trainer_options['val_percent_check'] = 0.2
-    trainer_options['max_nb_epochs'] = 1
-    new_trainer = Trainer(**trainer_options)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch and trainer.current_epoch > 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        dp_model = new_trainer.model
-        dp_model.eval()
-
-        _ = [run_prediction(dataloader, dp_model, dp=True) for dataloader in trainer.val_dataloader]
-
-    # new model
-    model = LightningTestModel(hparams)
-    model.on_sanity_check_start = assert_good_acc
-
-    # fit new model which should load hpc weights
-    new_trainer.fit(model)
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
-
-    clear_save_dir()
+    run_gpu_model_test(trainer_options, model, hparams)
 
 
 if __name__ == '__main__':

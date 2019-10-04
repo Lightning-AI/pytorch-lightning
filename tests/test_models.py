@@ -39,6 +39,29 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp2():
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        print_weights_summary=False,
+        distributed_backend='ddp2'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_dp_resume():
     """
     Make sure DP continues training correctly
