@@ -571,10 +571,12 @@ class Trainer(TrainerIO):
 
         eval_results = {}
 
-        # give model a chance to do something with the outputs (and method defined)
-        model = self.__get_model()
+        # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
             outputs = outputs[0]
+
+        # give model a chance to do something with the outputs (and method defined)
+        model = self.__get_model()
         if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
@@ -1345,7 +1347,6 @@ class Trainer(TrainerIO):
                                              dataloaders,
                                              max_batches,
                                              test)
-            pdb.set_trace()
             self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
