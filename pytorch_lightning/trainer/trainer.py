@@ -19,7 +19,7 @@ from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.callbacks import GradientAccumulationScheduler, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
 from pytorch_lightning.trainer import ignored_warnings
@@ -57,8 +57,9 @@ class Trainer(TrainerIO):
 
     def __init__(self,
                  logger=None,
-                 early_stop_callback=None,
                  checkpoint_callback=None,
+                 early_stop_callback=None,
+                 default_save_path=None,
                  gradient_clip_val=0,
                  process_position=0,
                  nb_gpu_nodes=1,
@@ -88,8 +89,9 @@ class Trainer(TrainerIO):
         """
 
         :param logger: Logger for experiment tracking
-        :param early_stop_callback: Callback for early stopping
         :param checkpoint_callback: Callback for checkpointing
+        :param early_stop_callback: Callback for early stopping
+        :param default_save_path: Default path for logs and weights if no logger/ckpt_callback passed in
         :param gradient_clip_val: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
@@ -132,6 +134,7 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.default_save_path = default_save_path
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -156,7 +159,16 @@ class Trainer(TrainerIO):
         self.total_batches = 0
 
         # configure early stop callback
+        # creates a default one if none passed in
         self.early_stop_callback = early_stop_callback
+        if self.early_stop_callback is None:
+            early_stop = EarlyStopping(
+                monitor='val_loss',
+                patience=5,
+                verbose=True,
+                mode='min'
+            )
+            self.early_stop_callback = early_stop
 
         # configure weights save path
         self.__configure_weights_path(checkpoint_callback, weights_save_path)
