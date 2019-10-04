@@ -128,8 +128,8 @@ def test_dp_resume():
         dp_model = new_trainer.model
         dp_model.eval()
 
-        for dataloader in trainer.get_train_dataloader():
-            run_prediction(dataloader, dp_model, dp=True)
+        dataloader = trainer.get_train_dataloader()
+        run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = LightningTestModel(hparams)
