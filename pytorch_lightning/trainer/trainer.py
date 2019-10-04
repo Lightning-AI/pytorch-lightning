@@ -558,6 +558,7 @@ class Trainer(TrainerIO):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
+                pdb.set_trace()
                 output = self.__evaluation_forward(model, batch, batch_idx, dataloader_idx,
                                                    test)
 
@@ -969,7 +970,6 @@ class Trainer(TrainerIO):
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        pdb.set_trace()
         if self.val_dataloader is not None and self.nb_sanity_val_steps > 0:
             # reset progress_bar limit for sanity check
             if self.show_progress_bar:
