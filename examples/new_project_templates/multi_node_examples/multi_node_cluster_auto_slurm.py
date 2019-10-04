@@ -107,7 +107,7 @@ def optimize_on_cluster(hyperparams):
     cluster.per_experiment_nb_gpus = hyperparams.per_experiment_nb_gpus
     cluster.per_experiment_nb_nodes = hyperparams.nb_gpu_nodes
     cluster.job_time = '2:00:00'
-    cluster.gpu_type = 'volta'
+    cluster.gpu_type = hyperparams.gpu_type
     cluster.memory_mb_per_node = 0
 
     # any modules for code to run in env
@@ -179,6 +179,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--conda_env', type=str, default='base',
                                help='email for jobs')
     parent_parser.add_argument('--gpu_partition', type=str, help='consult your cluster manual')
+    parent_parser.add_argument('--gpu_type', type=str, default='2080ti', help='consult your cluster manual')
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
