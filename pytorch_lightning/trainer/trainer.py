@@ -577,6 +577,7 @@ class Trainer(TrainerIO):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.__get_model()
+        pdb.set_trace()
         if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
