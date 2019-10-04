@@ -48,7 +48,6 @@ def test_default_logger_callbacks_cpu_model():
     trainer_options = dict(
         gradient_clip_val=1.0,
         overfit_pct=0.20,
-        track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
         train_percent_check=0.1,
@@ -1380,10 +1379,6 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
-    # test HPC loading / saving
-    trainer.hpc_save(save_dir, trainer.logger)
-    trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
     clear_save_dir()
 
