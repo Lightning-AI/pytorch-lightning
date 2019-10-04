@@ -170,7 +170,7 @@ class Trainer(TrainerIO):
         if self.early_stop_callback is None:
             self.early_stop = EarlyStopping(
                 monitor='val_loss',
-                patience=5,
+                patience=3,
                 verbose=True,
                 mode='min'
             )
