@@ -558,7 +558,6 @@ class Trainer(TrainerIO):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                pdb.set_trace()
                 output = self.__evaluation_forward(model, batch, batch_idx, dataloader_idx,
                                                    test)
 
@@ -1346,7 +1345,7 @@ class Trainer(TrainerIO):
                                              dataloaders,
                                              max_batches,
                                              test)
-
+            pdb.set_trace()
             self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
