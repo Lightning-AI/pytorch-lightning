@@ -798,6 +798,7 @@ class Trainer(TrainerIO):
         """
         # node rank using relative slurm id
         # otherwise default to node rank 0
+        print('a')
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)
@@ -822,11 +823,14 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
+        print('b')
         self.__init_tcp_connection()
+        print('c')
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        print('d')
 
         # MODEL
         # copy model to each gpu
