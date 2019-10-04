@@ -812,6 +812,9 @@ class Trainer(TrainerIO):
         self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
         self.world_size = self.nb_gpu_nodes * self.num_gpus
 
+        if self.distributed_backend == 'ddp2':
+            self.world_size = self.nb_gpu_nodes
+
         # let the exp know the rank to avoid overwriting logs
         # recover original exp before went into process
         # init in write mode only on proc 0
