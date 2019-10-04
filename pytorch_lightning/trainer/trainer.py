@@ -620,7 +620,7 @@ class Trainer(TrainerIO):
                     break
 
         if self.use_ddp and self.get_test_dataloaders is not None:
-            for dataloader in self.get_test_dataloaders:
+            for dataloader in self.get_test_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your test_dataloader(s) don't use DistributedSampler.
