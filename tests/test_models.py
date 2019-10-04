@@ -46,6 +46,7 @@ def test_default_logger_callbacks_cpu_model():
     """
 
     trainer_options = dict(
+        max_nb_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         print_nan_grads=True,
