@@ -866,6 +866,7 @@ class Trainer(TrainerIO):
         )
 
         # continue training routine
+        print('running pretrain')
         self.__run_pretrain_routine(model)
 
     def __init_tcp_connection(self):
