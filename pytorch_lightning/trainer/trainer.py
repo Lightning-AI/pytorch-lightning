@@ -20,7 +20,8 @@ from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
-from pytorch_lightning.callbacks import GradientAccumulationScheduler, ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
+    ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
 from pytorch_lightning.trainer import ignored_warnings
@@ -92,7 +93,7 @@ class Trainer(TrainerIO):
         :param logger: Logger for experiment tracking
         :param checkpoint_callback: Callback for checkpointing
         :param early_stop_callback: Callback for early stopping
-        :param default_save_path: Default path for logs and weights if no logger/ckpt_callback passed in
+        :param default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
         :param gradient_clip_val: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
