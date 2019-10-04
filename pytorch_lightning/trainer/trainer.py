@@ -826,14 +826,11 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        print('b')
         self.__init_tcp_connection()
-        print('c')
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-        print('d')
 
         # MODEL
         # copy model to each gpu
@@ -873,7 +870,6 @@ class Trainer(TrainerIO):
         )
 
         # continue training routine
-        print('running pretrain')
         self.__run_pretrain_routine(model)
 
     def __init_tcp_connection(self):
@@ -890,7 +886,6 @@ class Trainer(TrainerIO):
         except Exception:
             port = 12910
             os.environ['MASTER_PORT'] = str(port)
-        print(port)
 
         # figure out the root node addr
         try:
@@ -900,11 +895,8 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        print(root_node)
 
-        print('nccl init', self.proc_rank, self.world_size)
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
-        print('nccl done')
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
@@ -1184,7 +1176,6 @@ class Trainer(TrainerIO):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        print('tng fwd')
         if self.use_ddp:
             output = self.model(*args)
         elif self.use_dp:
