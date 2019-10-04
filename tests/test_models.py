@@ -639,7 +639,7 @@ def test_no_val_end_module():
     tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
