@@ -180,7 +180,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+    pretrained_model = load_model(logger.experiment, save_dir,
                                   module_class=LightningTestModel)
 
     # run test set
@@ -304,7 +304,7 @@ def test_running_test_pretrained_model():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(
-        logger.experiment, save_dir, on_gpu=False, module_class=LightningTestModel
+        logger.experiment, save_dir, module_class=LightningTestModel
     )
 
     new_trainer = Trainer(**trainer_options)
@@ -350,7 +350,7 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu=True,
+    pretrained_model = load_model(logger.experiment, save_dir,
                                   module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
@@ -990,7 +990,7 @@ def test_model_saving_loading():
     tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
@@ -1061,7 +1061,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(logger.experiment, save_dir, True)
+    pretrained_model = load_model(logger.experiment, save_dir)
 
     # test model preds
     [run_prediction(dataloader, pretrained_model) for dataloader in trainer.get_test_dataloaders()]
@@ -1359,7 +1359,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger.experiment, save_dir, on_gpu)
+    pretrained_model = load_model(logger.experiment, save_dir)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
@@ -1438,7 +1438,7 @@ def clear_save_dir():
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, on_gpu, module_class=LightningTemplateModel):
+def load_model(exp, save_dir, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
@@ -1448,8 +1448,7 @@ def load_model(exp, save_dir, on_gpu, module_class=LightningTemplateModel):
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
-                                                   tags_csv=tags_path
-                                                   )
+                                                   tags_csv=tags_path)
 
     assert trained_model is not None, 'loading model failed'
 
