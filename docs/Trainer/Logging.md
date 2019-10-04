@@ -4,7 +4,12 @@ Lighting offers options for logging information about model, gpu usage, etc, via
 ---
 ### Setting up logging
 
-Initialize your logger, which should inherit from `LightningBaseLogger`, and pass
+The trainer inits a default logger for you (Pytorch summarywriter). All logs will
+go to the current working directory under a folder named ```os.getcwd()/lightning_logs``. 
+If you want to modify the default logging behavior pass in one of the loggers below.   
+
+To modify logging behavior, initialize a logger, 
+which should inherit from `LightningBaseLogger`, and pass
 it to `Trainer`.
 ```{.python}
 my_logger = MyLightningLogger(...)

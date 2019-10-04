@@ -190,7 +190,7 @@ class Trainer(TrainerIO):
         if self.logger is None:
             self.logger = TestTubeLogger(
                 save_dir=self.default_save_path,
-                name='lightning_experiment'
+                name='lightning_logs'
             )
 
         # accumulated grads
