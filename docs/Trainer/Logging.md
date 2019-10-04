@@ -81,7 +81,15 @@ If you write a logger than may be useful to others, please send
 a pull request to add it to Lighting!
 
 ---
-### Using loggers
+#### Using loggers
+You can call the logger anywhere from your LightningModule by doing:
+```python
+self.logger
+
+# add an image if using TestTubeLogger
+self.logger.experiment.add_image(...)
+```
+
 
 #### Display metrics in progress bar 
 ``` {.python}

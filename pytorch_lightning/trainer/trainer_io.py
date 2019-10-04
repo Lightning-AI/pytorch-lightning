@@ -88,7 +88,7 @@ class TrainerIO(object):
         if self.proc_rank == 0:
             # save weights
             print('handling SIGUSR1')
-            self.hpc_save(self.weights_save_path, self.experiment)
+            self.hpc_save(self.weights_save_path, self.logger)
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']
@@ -105,7 +105,7 @@ class TrainerIO(object):
                 print('requeue failed...')
 
             # close experiment to avoid issues
-            self.experiment.close()
+            self.logger.close()
 
     def term_handler(self, signum, frame):
         # save
