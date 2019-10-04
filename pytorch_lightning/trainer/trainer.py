@@ -813,10 +813,12 @@ class Trainer(TrainerIO):
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
         # determine which process we are and world size
-        self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
-        self.world_size = self.nb_gpu_nodes * self.num_gpus
+        if self.use_ddp:
+            self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
+            self.world_size = self.nb_gpu_nodes * self.num_gpus
 
-        if self.use_ddp2:
+        elif self.use_ddp2:
+            self.proc_rank = self.node_rank
             self.world_size = self.nb_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
