@@ -932,7 +932,7 @@ class Trainer(TrainerIO):
 
         # set local properties on the model
         ref_model.on_gpu = self.on_gpu
-        ref_model.on_single_gpu = self.on_single_gpu
+        ref_model.single_gpu = self.single_gpu
         ref_model.use_dp = self.use_dp
         ref_model.use_ddp = self.use_ddp
         ref_model.use_ddp2 = self.use_ddp2
