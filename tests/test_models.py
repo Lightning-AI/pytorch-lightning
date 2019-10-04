@@ -51,8 +51,8 @@ def test_default_logger_callbacks_cpu_model():
         overfit_pct=0.20,
         print_nan_grads=True,
         show_progress_bar=False,
-        train_percent_check=0.1,
-        val_percent_check=0.1
+        train_percent_check=0.01,
+        val_percent_check=0.01
     )
 
     model, hparams = get_model()
