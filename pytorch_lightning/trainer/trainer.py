@@ -531,6 +531,11 @@ class Trainer(TrainerIO):
                 if batch_idx >= max_batches:
                     break
 
+                # preprocess batch
+                if self.__is_function_implemented('preprocess_batch'):
+                    model = self.__get_model()
+                    batch = model.preprocess_batch(batch)
+
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
@@ -988,6 +993,11 @@ class Trainer(TrainerIO):
             met_batch_limit = batch_nb > self.nb_training_batches
             if met_batch_limit:
                 break
+
+            # preprocess batch
+            if self.__is_function_implemented('preprocess_batch'):
+                model = self.__get_model()
+                batch = model.preprocess_batch(batch)
 
             # ---------------
             # RUN TRAIN STEP
