@@ -686,7 +686,6 @@ class Trainer(TrainerIO):
 
             if self.distributed_backend == 'ddp2':
                 task = int(os.environ['SLURM_LOCALID'])
-                print(task)
                 self.ddp_train(task, model)
 
             elif self.is_slurm_managing_tasks:
@@ -798,7 +797,6 @@ class Trainer(TrainerIO):
         """
         # node rank using relative slurm id
         # otherwise default to node rank 0
-        print('a')
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)
