@@ -225,7 +225,7 @@ def main():
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        gpus=[0, 1],
+        gpus=2,
         print_weights_summary=False,
         distributed_backend='ddp2'
     )
