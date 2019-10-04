@@ -131,8 +131,6 @@ def optimize_on_cluster(hyperparams):
     # cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
 
     # run only on 32GB voltas
-    cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
-                          comment='use 32gb gpus')
     cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition,
                           comment='your cluster might need this argument')
 
