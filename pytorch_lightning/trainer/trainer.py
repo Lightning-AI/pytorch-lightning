@@ -186,7 +186,11 @@ class Trainer(TrainerIO):
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         if self.checkpoint_callback is None:
-            ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name, self.logger.version)
+            if isinstance(logger, TestTubeLogger):
+                ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name, self.logger.version)
+            else:
+                ckpt_path = self.default_save_path
+
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
             )
