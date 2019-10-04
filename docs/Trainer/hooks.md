@@ -137,5 +137,5 @@ def on_after_backward(self):
         for k, v in params.items():
             grads = v
             name = k
-            self.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
+            self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
 ```

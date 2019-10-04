@@ -19,13 +19,14 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         self.global_step = 0
         self.loaded_optimizer_states_dict = {}
         self.trainer = None
-        self.experiment = None
+        self.logger = None
         self.example_input_array = None
 
         # track if gpu was requested for checkpointing
         self.on_gpu = False
         self.use_dp = False
         self.use_ddp = False
+        self.use_ddp2 = False
         self.use_amp = False
 
     def forward(self, *args, **kwargs):
