@@ -35,7 +35,7 @@ class ModelSummary(object):
         out_sizes = []
         input_ = self.model.example_input_array
 
-        if self.model.use_ddp or self.model.use_dp or self.model.single_gpu:
+        if self.model.use_ddp or self.model.use_dp or self.model.on_single_gpu:
             input_ = input_.cuda(0)
 
         if self.model.trainer.use_amp:
