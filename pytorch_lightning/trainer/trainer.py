@@ -887,6 +887,7 @@ class Trainer(TrainerIO):
         except Exception:
             port = 12910
             os.environ['MASTER_PORT'] = str(port)
+        print(port)
 
         # figure out the root node addr
         try:
@@ -896,8 +897,11 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+        print(root_node)
 
+        print('nccl init', self.proc_rank, self.world_size)
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
+        print('nccl done')
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
