@@ -832,7 +832,8 @@ class Trainer(TrainerIO):
 
         # MODEL
         # copy model to each gpu
-        # torch.cuda.set_device(gpu_nb)
+        if self.distributed_backend == 'ddp':
+            torch.cuda.set_device(gpu_nb)
         model.cuda(gpu_nb)
 
         # set model properties before going into wrapper
