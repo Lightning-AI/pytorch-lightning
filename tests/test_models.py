@@ -568,7 +568,7 @@ def test_no_val_module():
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
