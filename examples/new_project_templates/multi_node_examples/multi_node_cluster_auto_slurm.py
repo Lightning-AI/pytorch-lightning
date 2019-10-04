@@ -82,7 +82,8 @@ def main(hparams, cluster):
         checkpoint_callback=checkpoint,
         early_stop_callback=early_stop,
         gpus=hparams.per_experiment_nb_gpus,
-        nb_gpu_nodes=hyperparams.nb_gpu_nodes
+        nb_gpu_nodes=hyperparams.nb_gpu_nodes,
+        distributed_backend=hyperparams.distributed_backend
     )
 
     # ------------------------
@@ -116,7 +117,7 @@ def optimize_on_cluster(hyperparams):
     cluster.add_command(f'export MASTER_PORT={PORT}')
 
     # OPTIONAL for debugging
-    # without these flags errors in your code will 
+    # without these flags errors in your code will
     # appear to be nccl errors
     cluster.add_command('export NCCL_DEBUG=INFO')
     cluster.add_command('export PYTHONFAULTHANDLER=1')
@@ -133,7 +134,7 @@ def optimize_on_cluster(hyperparams):
     cluster.add_slurm_cmd(cmd='constraint', value='volta32gb',
                           comment='use 32gb gpus')
     cluster.add_slurm_cmd(cmd='partition', value=hyperparams.gpu_partition,
-                          comment='use 32gb gpus')
+                          comment='your cluster might need this argument')
 
     # run hopt
     # creates and submits jobs to slurm
@@ -168,6 +169,8 @@ if __name__ == '__main__':
                                help='where to save slurm meta')
     parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir,
                                help='where to save model')
+    parent_parser.add_argument('--distributed_backend', type=str, default='ddp',
+                               help='ddp or ddp2')
     parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a',
                                help='test tube exp name')
     parent_parser.add_argument('--num_hyperparam_trials', type=int, default=6,
