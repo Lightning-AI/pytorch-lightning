@@ -160,7 +160,7 @@ class LightningTemplateModel(LightningModule):
 
             # reduce manually when using dp
             val_acc = output['val_acc']
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or :
                 val_acc = torch.mean(val_acc)
 
             val_acc_mean += val_acc

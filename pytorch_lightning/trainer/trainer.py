@@ -190,6 +190,7 @@ class Trainer(TrainerIO):
 
         # distributed backend choice
         self.use_ddp = False
+        self.use_ddp2 = False
         self.use_dp = False
         self.single_gpu = False
         self.distributed_backend = distributed_backend
@@ -326,10 +327,11 @@ class Trainer(TrainerIO):
 
             if distributed_backend is not None:
                 self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend in ['ddp', 'ddp2']
+                self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp2 = distributed_backend == 'ddp2'
 
                 # disable single gpu when using ddp2
-                if distributed_backend == 'ddp2':
+                if self.use_ddp2:
                     self.single_gpu = False
 
         # multiple GPU case
@@ -337,7 +339,8 @@ class Trainer(TrainerIO):
             if distributed_backend is not None:
                 # DP, DDP case
                 self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend in ['ddp', 'ddp2']
+                self.use_ddp = distributed_backend == 'ddp'
+                self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
                 m = 'When using multiple GPUs set ' \
@@ -507,7 +510,7 @@ class Trainer(TrainerIO):
             output = model(*args)
             return output
 
-        # CPU, single GPU
+        # single GPU
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
@@ -516,6 +519,7 @@ class Trainer(TrainerIO):
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch
 
+        # CPU
         if test:
             output = model.test_step(*args)
         else:
@@ -577,7 +581,6 @@ class Trainer(TrainerIO):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.__get_model()
-        pdb.set_trace()
         if test and self.__is_overriden('test_end'):
             eval_results = model.test_end(outputs)
         elif self.__is_overriden('validation_end'):
@@ -687,7 +690,7 @@ class Trainer(TrainerIO):
             if self.experiment is not None:
                 self.experiment = self.experiment.get_meta_copy()
 
-            if self.distributed_backend == 'ddp2':
+            if self.use_ddp2:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
 
@@ -813,7 +816,7 @@ class Trainer(TrainerIO):
         self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
         self.world_size = self.nb_gpu_nodes * self.num_gpus
 
-        if self.distributed_backend == 'ddp2':
+        if self.use_ddp2:
             self.world_size = self.nb_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
@@ -862,7 +865,7 @@ class Trainer(TrainerIO):
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
             device_ids = [gpu_nb]
-        elif self.distributed_backend == 'ddp2':
+        elif self.use_ddp2:
             device_ids = None
 
         model = LightningDistributedDataParallel(
@@ -1200,7 +1203,7 @@ class Trainer(TrainerIO):
             progress_output = output['progress']
 
             # reduce progress metrics for tqdm when using dp
-            if self.use_dp or self.distributed_backend == 'ddp2':
+            if self.use_dp or self.use_ddp2:
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
@@ -1220,7 +1223,7 @@ class Trainer(TrainerIO):
                 loss = output
 
         # when using dp need to reduce the loss
-        if self.use_dp or self.distributed_backend == 'ddp2':
+        if self.use_dp or self.use_ddp2:
             loss = reduce_distributed_output(loss, self.num_gpus)
 
         return loss, model_specific_tqdm_metrics_dic
