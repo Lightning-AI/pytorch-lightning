@@ -35,6 +35,9 @@ class ModelSummary(object):
         out_sizes = []
         input_ = self.model.example_input_array
 
+        if self.model.on_ddp:
+            input_ = input_.cuda(0)
+
         if self.model.trainer.use_amp:
             input_ = input_.half()
 
