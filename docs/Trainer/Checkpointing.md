@@ -3,6 +3,11 @@ Lightning can automate saving and loading checkpoints.
 ---
 ### Model saving
 Checkpointing is enabled by default to the current working directory.
+To change the checkpoint path pass in :
+```python
+Trainer(default_save_path='/your/path/to/save/checkpoints')
+```
+
 To modify the behavior of checkpointing pass in your own callback.
 
 ``` {.python}
