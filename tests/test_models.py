@@ -39,6 +39,30 @@ np.random.seed(SEED)
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_default_logger_callbacks_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+
+    trainer_options = dict(
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+
 def test_multi_gpu_model_ddp2():
     """
     Make sure DDP2 works
@@ -1336,6 +1360,34 @@ def test_multiple_test_dataloader():
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
+def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
+    save_dir = init_save_dir()
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # test model loading
+    pretrained_model = load_model(trainer.logger.experiment, save_dir)
+
+    # test new model accuracy
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+
+    if trainer.use_ddp:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+
+    # test HPC loading / saving
+    trainer.hpc_save(save_dir, trainer.logger)
+    trainer.hpc_load(save_dir, on_gpu=on_gpu)
+
+    clear_save_dir()
+
+
 def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
