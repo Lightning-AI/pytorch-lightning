@@ -109,7 +109,7 @@ class GAN(pl.LightningModule):
             # log sampled images
             sample_imgs = self.generated_imgs[:6]
             grid = torchvision.utils.make_grid(sample_imgs)
-            self.experiment.add_image('generated_images', grid, 0)
+            self.logger.experiment.add_image('generated_images', grid, 0)
 
             # ground truth result (ie: all fake)
             valid = torch.ones(imgs.size(0), 1)
