@@ -846,7 +846,7 @@ class Trainer(TrainerIO):
         model.trainer = self
         model.on_gpu = self.on_gpu
         model.use_dp = self.use_dp
-        model.use_dpp2 = self.use_dpp2
+        model.use_ddp2 = self.use_ddp2
         model.use_ddp = self.use_ddp
         model.use_amp = self.use_amp
         model.testing = self.testing
@@ -933,7 +933,7 @@ class Trainer(TrainerIO):
         ref_model.on_gpu = self.on_gpu
         ref_model.use_dp = self.use_dp
         ref_model.use_ddp = self.use_ddp
-        ref_model.use_dpp2 = self.use_dpp2
+        ref_model.use_ddp2 = self.use_ddp2
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
