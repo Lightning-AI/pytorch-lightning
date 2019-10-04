@@ -175,16 +175,6 @@ class Trainer(TrainerIO):
                 mode='min'
             )
 
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
-        if self.checkpoint_callback is None:
-            self.checkpoint_callback = ModelCheckpoint(
-                filepath=self.default_save_path
-            )
-
-        # configure weights save path
-        self.__configure_weights_path(checkpoint_callback, weights_save_path)
-
         # configure logger
         self.logger = logger
         if self.logger is None:
@@ -192,6 +182,17 @@ class Trainer(TrainerIO):
                 save_dir=self.default_save_path,
                 name='lightning_logs'
             )
+
+        # configure checkpoint callback
+        self.checkpoint_callback = checkpoint_callback
+        if self.checkpoint_callback is None:
+            ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name, self.logger.version)
+            self.checkpoint_callback = ModelCheckpoint(
+                filepath=ckpt_path
+            )
+
+        # configure weights save path
+        self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
