@@ -1415,8 +1415,8 @@ def load_model(exp, save_dir, on_gpu, module_class=LightningTemplateModel):
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
-                                                   tags_csv=tags_path,
-                                                   on_gpu=on_gpu)
+                                                   tags_csv=tags_path
+                                                   )
 
     assert trained_model is not None, 'loading model failed'
 
