@@ -686,6 +686,7 @@ class Trainer(TrainerIO):
 
             if self.distributed_backend == 'ddp2':
                 task = int(os.environ['SLURM_LOCALID'])
+                print(task)
                 self.ddp_train(task, model)
 
             elif self.is_slurm_managing_tasks:
