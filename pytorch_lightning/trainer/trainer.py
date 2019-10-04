@@ -16,6 +16,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module.memory import get_gpu_memory_map
+from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
@@ -134,7 +135,11 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+
+        # set default save path if user didn't provide one
         self.default_save_path = default_save_path
+        if self.default_save_path is None:
+            self.default_save_path = os.getcwd()
 
         # training bookeeping
         self.total_batch_nb = 0
@@ -162,19 +167,23 @@ class Trainer(TrainerIO):
         # creates a default one if none passed in
         self.early_stop_callback = early_stop_callback
         if self.early_stop_callback is None:
-            early_stop = EarlyStopping(
+            self.early_stop = EarlyStopping(
                 monitor='val_loss',
                 patience=5,
                 verbose=True,
                 mode='min'
             )
-            self.early_stop_callback = early_stop
 
         # configure weights save path
         self.__configure_weights_path(checkpoint_callback, weights_save_path)
 
         # configure logger
         self.logger = logger
+        if self.logger is None:
+            self.logger = TestTubeLogger(
+                save_dir=self.default_save_path,
+                name='lightning_experiment'
+            )
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
