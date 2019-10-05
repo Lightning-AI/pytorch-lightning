@@ -1264,7 +1264,8 @@ class Trainer(TrainerIO):
             # wrap the forward step in a closure so second order methods work
             def optimizer_closure():
                 # forward pass
-                closure_loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
+                output = self.__training_forward(batch, batch_nb, opt_idx)
+                closure_loss, model_specific_tqdm_metrics = output
 
                 # track metrics
                 self.__add_tqdm_metrics(model_specific_tqdm_metrics)
@@ -1312,7 +1313,8 @@ class Trainer(TrainerIO):
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
-                model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx, optimizer_closure)
+                model.optimizer_step(self.current_epoch, batch_nb,
+                                     optimizer, opt_idx, optimizer_closure)
 
                 # calculate running loss for display
                 self.running_loss.append(self.batch_loss_value)
