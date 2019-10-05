@@ -8,7 +8,7 @@ from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 import torch
 import torch.nn.functional as F
-from test_tube import HyperOptArgumentParser
+from argparse import ArgumentParser
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -231,7 +231,7 @@ class LightningTemplateModel(LightningModule):
         :param root_dir:
         :return:
         """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
+        parser = ArgumentParser(parents=[parent_parser])
 
         # param overwrites
         # parser.set_defaults(gradient_clip_val=5.0)
