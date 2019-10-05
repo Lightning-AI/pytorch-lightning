@@ -58,7 +58,7 @@ if __name__ == '__main__':
     parent_parser.add_argument(
         '--distributed_backend',
         type=str,
-        default=None,
+        default='dp',
         help='supports three options dp, ddp, ddp2'
     )
     parent_parser.add_argument(
