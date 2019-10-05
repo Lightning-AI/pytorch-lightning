@@ -615,7 +615,7 @@ def test_early_stopping_cpu_model():
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
-        show_progress_bar=False,
+        show_progress_bar=True,
         logger=get_test_tube_logger(),
         train_percent_check=0.1,
         val_percent_check=0.1
