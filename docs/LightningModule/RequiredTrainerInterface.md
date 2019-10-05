@@ -163,6 +163,9 @@ def training_step(self, batch, batch_nb, optimizer_idx):
         # do training_step with decoder    
 ```    
 
+You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
+break out of the current training epoch early.
+
 --- 
 ### train_dataloader 
 
