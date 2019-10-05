@@ -42,7 +42,6 @@ def test_default_logger_callbacks_cpu_model():
     Test each of the trainer options
     :return:
     """
-
     reset_seed()
 
     trainer_options = dict(
@@ -68,6 +67,8 @@ def test_lbfgs_cpu_model():
     Test each of the trainer options
     :return:
     """
+    reset_seed()
+
     trainer_options = dict(
         max_nb_epochs=1,
         gradient_clip_val=1.0,
