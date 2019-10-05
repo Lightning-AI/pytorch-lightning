@@ -25,36 +25,18 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    print('loading model...')
     model = LightningTemplateModel(hparams)
-    print('model built')
 
     # ------------------------
-    # 2 INIT TEST TUBE EXP
-    # ------------------------
-
-    # init experiment
-    exp = Experiment(
-        name=hyperparams.experiment_name,
-        save_dir=hyperparams.test_tube_save_path,
-        autosave=False,
-        description='test demo'
-    )
-
-    exp.argparse(hparams)
-    exp.save()
-
-    # ------------------------
-    # 3 INIT TRAINER
+    # 2 INIT TRAINER
     # ------------------------
     trainer = Trainer(
-        experiment=exp,
         gpus=hparams.gpus,
         distributed_backend=hparams.dist_backend
     )
 
     # ------------------------
-    # 4 START TRAINING
+    # 3 START TRAINING
     # ------------------------
     trainer.fit(model)
 
@@ -76,12 +58,6 @@ if __name__ == '__main__':
                                     ' value -1 uses all the gpus on the node')
     parent_parser.add_argument('--dist_backend', type=str, default='ddp',
                                 help='When using multiple GPUs set Trainer(distributed_backend=dp) (or ddp)')     
-    parent_parser.add_argument('--test_tube_save_path', type=str, default=test_tube_dir,
-                               help='where to save logs')
-    parent_parser.add_argument('--model_save_path', type=str, default=checkpoint_dir,
-                               help='where to save model')
-    parent_parser.add_argument('--experiment_name', type=str, default='pt_lightning_exp_a',
-                               help='test tube exp name')
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
@@ -90,6 +66,4 @@ if __name__ == '__main__':
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    # run on HPC cluster
-    print(f'RUNNING INTERACTIVE MODE ON GPUS. gpu ids: {hyperparams.gpus}')
     main(hyperparams)
