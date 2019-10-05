@@ -436,7 +436,7 @@ class Trainer(TrainerIO):
 
     @property
     def data_parallel(self):
-        return self.use_dp or self.use_ddp
+        return self.use_dp or self.use_ddp or self.use_ddp2
 
     def __determine_data_use_amount(self, train_percent_check, val_percent_check,
                                     test_percent_check, overfit_pct):
