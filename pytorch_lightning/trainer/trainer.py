@@ -704,7 +704,7 @@ class Trainer(TrainerIO):
                         warnings.warn(msg)
                         break
 
-        if self.use_ddp or self.use_ddp2:
+        if self.use_ddp:
             # wait for all processes to catch up
             dist.barrier()
 
