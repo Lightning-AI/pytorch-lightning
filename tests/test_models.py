@@ -31,6 +31,10 @@ from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
+# generate a list of random seeds for each test
+ROOT_SEED = 1234
+torch.manual_seed(ROOT_SEED)
+np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
@@ -75,8 +79,8 @@ def test_lbfgs_cpu_model():
         overfit_pct=0.20,
         print_nan_grads=True,
         show_progress_bar=False,
-        train_percent_check=0.1,
-        val_percent_check=0.1
+        train_percent_check=0.2,
+        val_percent_check=0.2
     )
 
     model, hparams = get_model(use_test_model=True, lbfgs=True)

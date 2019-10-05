@@ -127,7 +127,13 @@ trainer = Trainer(row_log_interval=10)
 Logs GPU memory when metrics are logged.   
 ``` {.python}
 # DEFAULT
-trainer = Trainer(log_gpu_memory=False)
+trainer = Trainer(log_gpu_memory=None)
+
+# log only the min/max utilization
+trainer = Trainer(log_gpu_memory='min_max')
+
+# log all the GPU memory (if on DDP, logs only that node)
+trainer = Trainer(log_gpu_memory='all')
 ```
 
 ---
