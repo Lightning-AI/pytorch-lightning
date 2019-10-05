@@ -75,8 +75,8 @@ def test_lbfgs_cpu_model():
         overfit_pct=0.20,
         print_nan_grads=True,
         show_progress_bar=False,
-        train_percent_check=0.01,
-        val_percent_check=0.01
+        train_percent_check=0.1,
+        val_percent_check=0.1
     )
 
     model, hparams = get_model(use_test_model=True, lbfgs=True)
