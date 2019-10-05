@@ -241,21 +241,14 @@ class LightningTemplateModel(LightningModule):
         parser.add_argument('--out_features', default=10, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
         parser.add_argument('--hidden_dim', default=50000, type=int)
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=True)
-        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001],
-                        tunable=True)
+        parser.add_argument('--drop_prob', default=0.2, type=float)
+        parser.add_argument('--learning_rate', default=0.001, type=float)
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
-        parser.opt_list('--optimizer_name', default='adam', type=str,
-                        options=['adam'], tunable=False)
-
-        # if using 2 nodes with 4 gpus each the batch size here
-        #  (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256 * 8, type=int,
-                        options=[32, 64, 128, 256], tunable=False,
+        parser.add_argument('--optimizer_name', default='adam', type=str)
+        parser.add_argument('--batch_size', default=256, type=int,
                         help='batch size will be divided over all gpus being used across all nodes')
         return parser
