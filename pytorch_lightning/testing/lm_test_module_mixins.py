@@ -105,7 +105,8 @@ class LightningValidationMixin(LightningValidationStepMixin):
         val_acc_mean /= len(outputs)
 
         tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        return tqdm_dict
+        results = {'progress_bar': tqdm_dict}
+        return results
 
 
 class LightningValidationStepMultipleDataloadersMixin:
@@ -207,7 +208,8 @@ class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipl
         val_acc_mean /= i
 
         tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        return tqdm_dict
+        result = {'progress_bar': tqdm_dict}
+        return result
 
 
 class LightningTestStepMixin:
@@ -291,7 +293,8 @@ class LightningTestMixin(LightningTestStepMixin):
         test_acc_mean /= len(outputs)
 
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-        return tqdm_dict
+        result = {'progress_bar': tqdm_dict}
+        return result
 
 
 class LightningTestStepMultipleDataloadersMixin:
@@ -384,4 +387,5 @@ class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloaders
         test_acc_mean /= i
 
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-        return tqdm_dict
+        result = {'progress_bar': tqdm_dict}
+        return result
