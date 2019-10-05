@@ -401,7 +401,7 @@ def test_running_test_pretrained_model_dp():
     checkpoint = ModelCheckpoint(save_dir)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        show_progress_bar=True,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
