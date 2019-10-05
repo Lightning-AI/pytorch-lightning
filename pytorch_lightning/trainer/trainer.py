@@ -969,7 +969,6 @@ class Trainer(TrainerIO):
 
         # when testing requested only run test and return
         if self.testing:
-            pdb.set_trace()
             self.__run_evaluation(test=True)
             return
 
@@ -1213,7 +1212,7 @@ class Trainer(TrainerIO):
             progress_output = output['progress_bar']
 
             # reduce progress metrics for tqdm when using dp
-            if self.use_dp or self.use_ddp2:
+            if self.use_dp or self.use_ddp2 and train:
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
@@ -1226,7 +1225,7 @@ class Trainer(TrainerIO):
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
-            if self.use_dp or self.use_ddp2:
+            if self.use_dp or self.use_ddp2 and train:
                 nb_gpus = self.num_gpus
                 log_output = reduce_distributed_output(log_output, nb_gpus)
 
