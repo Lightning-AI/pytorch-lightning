@@ -31,9 +31,7 @@ from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
 # ------------------------------------------------------------------------
@@ -1620,7 +1618,7 @@ def can_run_gpu_test():
 
 
 def reset_seed():
-    SEED = 1234
+    SEED = RANDOM_SEEDS.pop()
     torch.manual_seed(SEED)
     np.random.seed(SEED)
 

@@ -7,8 +7,9 @@ import torch
 from pytorch_lightning import Trainer
 
 from pytorch_lightning.testing import LightningTestModel
-
 from .test_models import get_hparams, get_test_tube_logger, init_save_dir, clear_save_dir
+
+RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
 def test_testtube_logger():
@@ -134,6 +135,6 @@ def test_mlflow_pickle():
 
 
 def reset_seed():
-    SEED = 1234
+    SEED = RANDOM_SEEDS.pop()
     torch.manual_seed(SEED)
     np.random.seed(SEED)
