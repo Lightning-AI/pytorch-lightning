@@ -265,23 +265,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 ![tensorboard-support](./docs/source/_static/tf_tags.png)
 
-Simply note the path you set for the [Experiment](https://williamfalcon.github.io/test-tube/experiment_tracking/experiment/) from [test_tube](https://github.com/williamFalcon/test-tube)
-```python
-from test_tube import Experiment
-from pytorch_lightning import Trainer
-
-exp = Experiment(save_dir='/some/path')
-trainer = Trainer(experiment=exp)
-...
-```   
-
-And run tensorboard from that dir   
-```bash
-tensorboard --logdir /some/path     
-```    
-
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
-
 
 #### Checkpointing    
 
