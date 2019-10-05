@@ -704,13 +704,14 @@ class Trainer(TrainerIO):
                         warnings.warn(msg)
                         break
 
-        # wait for all processes to catch up
-        dist.barrier()
+        if self.use_ddp or self.use_ddp2:
+            # wait for all processes to catch up
+            dist.barrier()
 
-        # load each dataloader
-        self.get_train_dataloader()
-        self.get_test_dataloaders()
-        self.get_val_dataloaders()
+            # load each dataloader
+            self.get_train_dataloader()
+            self.get_test_dataloaders()
+            self.get_val_dataloaders()
 
     # -----------------------------
     # MODEL TRAINING
