@@ -51,9 +51,9 @@ if __name__ == '__main__':
     # gpu args
     parent_parser.add_argument(
         '--gpus',
-        type=str,
-        default='-1',
-        help='any integer (number of GPUs to use) or -1 for all'
+        type=int,
+        default=2,
+        help='how many gpus'
     )
     parent_parser.add_argument(
         '--distributed_backend',
