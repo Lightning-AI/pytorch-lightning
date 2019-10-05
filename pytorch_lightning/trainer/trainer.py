@@ -914,7 +914,7 @@ class Trainer(TrainerIO):
             default_port = default_port[-4:]
 
             # all ports should be in the 10k+ range
-            default_port = int(default_port) + 12000
+            default_port = int(default_port) + 15000
 
         except Exception as e:
             default_port = 12910
