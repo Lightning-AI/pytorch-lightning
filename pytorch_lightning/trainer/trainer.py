@@ -1297,10 +1297,12 @@ class Trainer(TrainerIO):
             def optimizer_closure():
                 # forward pass
                 output = self.__training_forward(batch, batch_nb, opt_idx)
-                closure_loss, model_specific_tqdm_metrics = output
+                closure_loss, progress_bar_metrics, log_metrics = output
 
-                # track metrics
-                self.__add_tqdm_metrics(model_specific_tqdm_metrics)
+                # track progress bar metrics
+                self.__add_tqdm_metrics(progress_bar_metrics)
+
+                all_log_metrics.append(log_metrics)
 
                 # accumulate loss
                 # (if accumulate_grad_batches = 1 no effect)
@@ -1353,7 +1355,7 @@ class Trainer(TrainerIO):
                 self.batch_loss_value = 0
                 self.avg_loss = np.mean(self.running_loss[-100:])
 
-                # update progressbar
+                # update progress bar
                 if self.show_progress_bar:
                     # add model specific metrics
                     tqdm_metrics = self.__training_tqdm_dict
