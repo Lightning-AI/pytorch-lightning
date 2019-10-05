@@ -58,16 +58,6 @@ def on_post_performance_check(self):
 ```
 
 ---
-#### on_training_metrics
-Called in the training loop, right before metrics are logged.
-Although you can log at any time by using self.experiment, you can use
-this callback to modify what will be logged.
-```python
-def on_training_metrics(self, metrics):
-    # do something before validation end
-```
-
----   
 #### optimizer_step 
 Calls .step() and .zero_grad for each optimizer.  
 You can override this method to adjust how you do the optimizer step for each optimizer

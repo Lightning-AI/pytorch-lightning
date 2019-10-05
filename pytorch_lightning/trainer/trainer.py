@@ -551,7 +551,6 @@ class Trainer(TrainerIO):
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
-        :param dataloader_idx:
         :param test: boolean
         :return:
         """
@@ -580,7 +579,10 @@ class Trainer(TrainerIO):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.__evaluation_forward(model, batch, batch_idx, dataloader_idx,
+                output = self.__evaluation_forward(model,
+                                                   batch,
+                                                   batch_idx,
+                                                   dataloader_idx,
                                                    test)
 
                 # track outputs for collation
@@ -1093,6 +1095,12 @@ class Trainer(TrainerIO):
             model.on_epoch_end()
 
     def __log_metrics(self, metrics, grad_norm_dic):
+        """
+        Logs the metric dict passed in
+        :param metrics:
+        :param grad_norm_dic:
+        :return:
+        """
         # added metrics by Lightning for convenience
         metrics['epoch'] = self.current_epoch
 
@@ -1103,11 +1111,6 @@ class Trainer(TrainerIO):
 
         # add norms
         metrics.update(grad_norm_dic)
-
-        # let model do something with metrics
-        if self.__is_function_implemented('on_training_metrics'):
-            model = self.__get_model()
-            model.on_training_metrics(metrics)
 
         # turn all tensors to scalars
         scalar_metrics = self.__metrics_to_scalars(metrics)
@@ -1202,10 +1205,10 @@ class Trainer(TrainerIO):
             output = self.model.training_step(*args)
 
         # format and reduce outputs accordingly
-        loss, progress_bar_metrics, log_metrics = self.__process_output(output)
+        loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
         return loss, progress_bar_metrics, log_metrics
 
-    def __process_output(self, output):
+    def __process_output(self, output, train=False):
         """
         Reduces output according to the training mode.
         Separates loss from logging and tqdm metrics
@@ -1242,19 +1245,21 @@ class Trainer(TrainerIO):
         # ---------------
         # if output dict doesn't have the keyword loss
         # then assume the output=loss if scalar
-        try:
-            loss = output['loss']
-        except Exception:
-            if type(output) is torch.Tensor:
-                loss = output
-            else:
-                raise RuntimeError(
-                    'No `loss` value in the dictionary returned from `model.training_step()`.'
-                )
+        loss = None
+        if train:
+            try:
+                loss = output['loss']
+            except Exception:
+                if type(output) is torch.Tensor:
+                    loss = output
+                else:
+                    raise RuntimeError(
+                        'No `loss` value in the dictionary returned from `model.training_step()`.'
+                    )
 
-        # when using dp need to reduce the loss
-        if self.use_dp or self.use_ddp2:
-            loss = reduce_distributed_output(loss, self.num_gpus)
+            # when using dp need to reduce the loss
+            if self.use_dp or self.use_ddp2:
+                loss = reduce_distributed_output(loss, self.num_gpus)
 
         return loss, progress_bar_metrics, log_metrics
 
@@ -1396,11 +1401,19 @@ class Trainer(TrainerIO):
             if self.fast_dev_run:
                 max_batches = 1
 
-            eval_out_metrics = self.evaluate(self.model,
-                                             dataloaders,
-                                             max_batches,
-                                             test)
-            self.__add_tqdm_metrics(eval_out_metrics)
+            # run evaluation
+            eval_results = self.evaluate(self.model,
+                                         dataloaders,
+                                         max_batches,
+                                         test)
+
+            _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
+
+            # add metrics to prog bar
+            self.__add_tqdm_metrics(progress_bar_metrics)
+
+            # log metrics
+            self.__log_metrics(log_metrics, {})
 
             # hook
             model.on_post_performance_check()
