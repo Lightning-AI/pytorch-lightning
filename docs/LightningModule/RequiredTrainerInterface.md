@@ -129,7 +129,8 @@ Dictionary or OrderedDict
 | key  | value  | is required |
 |---|---|---|
 |  loss | tensor scalar  | Y |
-|  progress | Dict for progress bar display. Must have only tensors  | N |
+|  progress_bar | Dict for progress bar display. Must have only tensors  | N |
+|  log | Dict of metrics to add to logger. Must have only tensors (no images, etc)  | N |
 
 
 **Example**
@@ -144,7 +145,8 @@ def training_step(self, batch, batch_nb):
     
     output = {
         'loss': loss, # required
-        'progress': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+        'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
+        'log': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
     }
     
     # return a dict
@@ -264,7 +266,7 @@ The dict you return here will be available in the `validation_end` method.
 
 | Return  | description  | optional |
 |---|---|---|   
-|  dict | Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors. | Y |
+|  dict | Dict or OrderedDict - passed to the validation_end step | N |
 
 **Example**
 
@@ -328,9 +330,12 @@ The outputs here are strictly for the progress bar. If you don't need to display
 
 **Return**   
 
-| Return  | description  | optional |
-|---|---|---|   
-|  dict | Dict of OrderedDict with metrics to display in progress bar | Y |
+Dictionary or OrderedDict   
+
+| key  | value  | is required |
+|---|---|---|
+|  progress_bar | Dict for progress bar display. Must have only tensors  | N |
+|  log | Dict of metrics to add to logger. Must have only tensors (no images, etc)  | N |
 
 **Example**
 
@@ -352,7 +357,13 @@ def validation_end(self, outputs):
     val_loss_mean /= len(outputs)
     val_acc_mean /= len(outputs)
     tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dict
+       
+    # show val_loss and val_acc in progress bar but only log val_loss
+    results = {
+        'progress_bar': tqdm_dict,
+        'log': {'val_loss': val_loss_mean.item()}
+    }
+    return results
 ```
 
 With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
@@ -378,7 +389,13 @@ def validation_end(self, outputs):
     val_loss_mean /= i
     val_acc_mean /= i
     tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-    return tqdm_dict
+    
+    # show val_loss and val_acc in progress bar but only log val_loss
+    results = {
+        'progress_bar': tqdm_dict,
+        'log': {'val_loss': val_loss_mean.item()}
+    }
+    return results
 ```
 
 ### test_step
@@ -491,7 +508,13 @@ def test_end(self, outputs):
     test_loss_mean /= len(outputs)
     test_acc_mean /= len(outputs)
     tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-    return tqdm_dict
+    
+    # show test_loss and test_acc in progress bar but only log test_loss
+    results = {
+        'progress_bar': tqdm_dict,
+        'log': {'test_loss': val_loss_mean.item()}
+    }
+    return results
 ```
 
 With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
@@ -517,7 +540,13 @@ def test_end(self, outputs):
     test_loss_mean /= i 
     test_acc_mean /= i
     tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-    return tqdm_dict
+    
+    # show test_loss and test_acc in progress bar but only log test_loss
+    results = {
+        'progress_bar': tqdm_dict,
+        'log': {'test_loss': val_loss_mean.item()}
+    }
+    return results
 ```
 
 --- 
