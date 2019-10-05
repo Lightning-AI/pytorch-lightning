@@ -1132,7 +1132,7 @@ class Trainer(TrainerIO):
 
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile()
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
 
         # add norms
