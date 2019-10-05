@@ -8,7 +8,7 @@
 #SBATCH --time=0-02:00:00
 
 # activate conda env
-source activate pl3
+source activate $1
 
 # -------------------------
 # debugging flags (optional)
