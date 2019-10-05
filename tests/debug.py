@@ -103,8 +103,6 @@ def main():
                                   module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
-    import pdb
-    pdb.set_trace()
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
