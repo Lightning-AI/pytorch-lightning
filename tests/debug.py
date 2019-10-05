@@ -100,7 +100,7 @@ def main():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = test_models.load_model(logger.experiment, save_dir,
-                                  module_class=LightningTestModel)
+                                              module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
