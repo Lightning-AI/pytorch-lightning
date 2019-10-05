@@ -178,8 +178,16 @@ class Trainer(TrainerIO):
         # configure logger
         self.logger = logger
         if self.logger is None:
+            # use SLURM job id as the version number
+            try:
+                job_id = os.environ['SLURM_JOB_ID']
+                job_id = int(job_id)
+            except Exception as e:
+                job_id = None
+
             self.logger = TestTubeLogger(
                 save_dir=self.default_save_path,
+                version=job_id,
                 name='lightning_logs'
             )
 
