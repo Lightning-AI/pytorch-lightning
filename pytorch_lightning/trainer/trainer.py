@@ -704,14 +704,6 @@ class Trainer(TrainerIO):
             else:
                 nb_gpus = self.nb_requested_gpus
                 nb_tasks = self.nb_slurm_tasks
-                msg = f"""
-                You requested {nb_gpus}s GPUs but launched {nb_tasks}s slurm tasks.
-                We will launch {nb_gpus}s processes for you.
-                We recommend you let slurm manage the processes by setting:
-                --ntasks-per-node={nb_gpus}s
-                If you're not using SLURM, ignore this message!
-                """
-                warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
