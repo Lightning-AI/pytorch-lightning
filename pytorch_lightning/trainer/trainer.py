@@ -704,7 +704,7 @@ class Trainer(TrainerIO):
                         warnings.warn(msg)
                         break
 
-        if self.use_ddp:
+        if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
             dist.barrier()
 
@@ -718,13 +718,12 @@ class Trainer(TrainerIO):
     # -----------------------------
     def fit(self, model):
         # when using multi-node or DDP within a node start each module in a separate process
-        if self.use_ddp:
+        if self.use_ddp2:
+            task = int(os.environ['SLURM_LOCALID'])
+            self.ddp_train(task, model)
 
-            if self.use_ddp2:
-                task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, model)
-
-            elif self.is_slurm_managing_tasks:
+        elif self.use_ddp:
+            if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
