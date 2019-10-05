@@ -190,7 +190,7 @@ class LightningTemplateModel(LightningModule):
         dataset = MNIST(root=self.hparams.data_root, train=train,
                         transform=transform, download=True)
 
-        # when using multi-node (ddp) we need to add the datasampler
+        # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
         batch_size = self.hparams.batch_size
 
