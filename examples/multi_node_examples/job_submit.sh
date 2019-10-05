@@ -1,9 +1,9 @@
 #!/bin/bash -l
 
 # SLURM SUBMIT SCRIPT
-#SBATCH --nodes=4
-#SBATCH --gres=gpu:4
-#SBATCH --ntasks-per-node=4
+#SBATCH --nodes=2
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2
 #SBATCH --mem=0
 #SBATCH --time=0-02:00:00
 
@@ -23,8 +23,5 @@ conda activate my_env
 # module load NCCL/2.4.7-1-cuda.10.0
 # -------------------------
 
-# random port between 12k and 20k
-export MASTER_PORT=$((12000 + RANDOM % 20000))
-
 # run script from above
-python minimal_multi_node_demo.py
+python multi_node_demo.py
