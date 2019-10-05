@@ -636,6 +636,8 @@ class Trainer(TrainerIO):
         self.get_test_dataloaders = model.test_dataloader
         self.get_val_dataloaders = model.val_dataloader
 
+        # call warnings from proc zero only which triggers dataloaders
+        # if those have to download data it will only happen on proc 0
         if self.proc_rank == 0:
             if self.use_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
                 msg = """
