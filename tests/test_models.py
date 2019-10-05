@@ -31,6 +31,10 @@ from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
+# generate a list of random seeds for each test
+ROOT_SEED = 1234
+torch.manual_seed(ROOT_SEED)
+np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
