@@ -77,7 +77,7 @@ class CoolModel(pl.LightningModule):
 
     def configure_optimizers(self):
         # REQUIRED
-        return [torch.optim.Adam(self.parameters(), lr=0.02)]
+        return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
     def train_dataloader(self):
