@@ -275,6 +275,8 @@ class Trainer(TrainerIO):
             raise ModuleNotFoundError(msg)
 
     def __configure_accumulated_gradients(self, accumulate_grad_batches):
+        self.accumulate_grad_batches = None
+
         if isinstance(accumulate_grad_batches, dict):
             self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):
@@ -1267,27 +1269,34 @@ class Trainer(TrainerIO):
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
 
-            # forward pass
-            loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
+            # wrap the forward step in a closure so second order methods work
+            def optimizer_closure():
+                # forward pass
+                closure_loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
 
-            # track metrics
-            self.__add_tqdm_metrics(model_specific_tqdm_metrics)
+                # track metrics
+                self.__add_tqdm_metrics(model_specific_tqdm_metrics)
 
-            # accumulate loss
-            # (if accumulate_grad_batches = 1 no effect)
-            loss = loss / self.accumulate_grad_batches
+                # accumulate loss
+                # (if accumulate_grad_batches = 1 no effect)
+                closure_loss = closure_loss / self.accumulate_grad_batches
 
-            # backward pass
-            if self.use_amp:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+                # backward pass
+                if self.use_amp:
+                    with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    closure_loss.backward()
 
-            # insert after step hook
-            if self.__is_function_implemented('on_after_backward'):
-                model_ref = self.__get_model()
-                model_ref.on_after_backward()
+                # insert after step hook
+                if self.__is_function_implemented('on_after_backward'):
+                    model_ref = self.__get_model()
+                    model_ref.on_after_backward()
+
+                return closure_loss
+
+            # calculate loss
+            loss = optimizer_closure()
 
             # nan grads
             if self.print_nan_grads:
@@ -1311,7 +1320,7 @@ class Trainer(TrainerIO):
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
-                model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
+                model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx, optimizer_closure)
 
                 # calculate running loss for display
                 self.running_loss.append(self.batch_loss_value)
