@@ -1373,7 +1373,6 @@ class Trainer(TrainerIO):
         # when testing make sure user defined a test step
         can_run_test_step = False
         if test:
-            pdb.set_trace()
             can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
             if not can_run_test_step:
                 m = '''You called .test() without defining a test step or test_end.
