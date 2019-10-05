@@ -386,4 +386,5 @@ class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloaders
         test_acc_mean /= i
 
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-        return tqdm_dict
+        result = {'progress_bar': tqdm_dict}
+        return result

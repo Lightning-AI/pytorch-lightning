@@ -706,8 +706,6 @@ class Trainer(TrainerIO):
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                nb_gpus = self.nb_requested_gpus
-                nb_tasks = self.nb_slurm_tasks
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
