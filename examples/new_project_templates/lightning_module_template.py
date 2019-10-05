@@ -168,7 +168,8 @@ class LightningTemplateModel(LightningModule):
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
         tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        return tqdm_dict
+        result = {'progress_bar': tqdm_dict}
+        return result
 
     # ---------------------
     # TRAINING SETUP

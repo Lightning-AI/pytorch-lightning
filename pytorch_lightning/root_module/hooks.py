@@ -28,9 +28,6 @@ class ModelHooks(torch.nn.Module):
     def on_post_performance_check(self):
         pass
 
-    def on_training_metrics(self, metrics):
-        pass
-
     def on_before_zero_grad(self, optimizer):
         """
         Called after optimizer.step() and before optimizer.zero_grad()
