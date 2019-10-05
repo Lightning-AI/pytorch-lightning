@@ -882,12 +882,25 @@ class Trainer(TrainerIO):
         :param tries:
         :return:
         """
-        # sets the appropriate port
+
+        # use slurm job id for the port number
+        # guarantees unique ports across jobs from same grid search
+        try:
+            # use the last 4 numbers in the job id as the id
+            default_port = os.environ['SLURM_JOB_ID']
+            default_port = default_port[-4:]
+
+            # all ports should be in the 10k+ range
+            default_port = int(default_port) + 10000
+
+        except Exception as e:
+            default_port = 12910
+
+        # if user gave a port number, use that one instead
         try:
             port = os.environ['MASTER_PORT']
         except Exception:
-            port = 12910
-            os.environ['MASTER_PORT'] = str(port)
+            os.environ['MASTER_PORT'] = str(default_port)
 
         # figure out the root node addr
         try:
