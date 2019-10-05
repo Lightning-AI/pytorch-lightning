@@ -115,7 +115,7 @@ class LightningTestModelBase(LightningModule):
     # ---------------------
     def configure_optimizers(self):
         """
-        return whatever optimizers we want here
+        return whatever optimizers we want here.
         :return: list of optimizers
         """
         # try no scheduler for this model (testing purposes)
