@@ -6,5 +6,5 @@ To run this demo which launches a single job that trains on 2 nodes (2 gpus per 
 2. Create a conda environment with Lightning and a GPU PyTorch version.   
 3. Submit this script.   
 ```bash
-sbatch job_submit.sh --env=YourEnv
+sbatch job_submit.sh YourEnv
 ```
