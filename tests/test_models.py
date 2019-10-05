@@ -86,6 +86,7 @@ def test_lbfgs_cpu_model():
     model.freeze()
     model.unfreeze()
 
+
 def test_multi_gpu_model_ddp2():
     """
     Make sure DDP2 works
