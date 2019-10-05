@@ -202,7 +202,8 @@ class LightningTemplateModel(LightningModule):
             dataset=dataset,
             batch_size=batch_size,
             shuffle=should_shuffle,
-            sampler=train_sampler
+            sampler=train_sampler,
+            num_workers=0
         )
 
         return loader
