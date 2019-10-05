@@ -15,7 +15,7 @@ import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
-from pytorch_lightning.root_module.memory import get_gpu_memory_map
+from pytorch_lightning.root_module import memory
 from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
@@ -66,7 +66,7 @@ class Trainer(TrainerIO):
                  process_position=0,
                  nb_gpu_nodes=1,
                  gpus=None,
-                 log_gpu_memory=False,
+                 log_gpu_memory=None,
                  show_progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
@@ -98,7 +98,7 @@ class Trainer(TrainerIO):
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
         :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
-        :param log_gpu_memory: Bool. If true, adds memory logs
+        :param log_gpu_memory: str. None, 'min_max', 'all'
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
         :param track_grad_norm: int. -1 no tracking. Otherwise tracks that norm
@@ -1086,8 +1086,8 @@ class Trainer(TrainerIO):
                 metrics = self.__training_tqdm_dict
 
                 # add gpu memory
-                if self.on_gpu and self.log_gpu_memory:
-                    mem_map = get_gpu_memory_map()
+                if self.on_gpu and self.log_gpu_memory is not None:
+                    mem_map = memory.get_memory_profile(mode=self.log_gpu_memory)
                     metrics.update(mem_map)
 
                 # add norms

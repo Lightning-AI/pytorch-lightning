@@ -178,6 +178,33 @@ def count_mem_items():  # pragma: no cover
     return nb_params, nb_tensors
 
 
+def get_memory_profile(mode):
+    """
+    'all' means return memory for all gpus
+    'min_max' means return memory for max and min
+    :param mode:
+    :return:
+    """
+    memory_map = get_gpu_memory_map()
+
+    if mode == 'min_max':
+        min_mem = 1000000
+        min_k = None
+        max_mem = 0
+        max_k = None
+        for k, v in memory_map:
+            if v > max_mem:
+                max_mem = v
+                max_k = k
+            if v < min_mem:
+                min_mem = v
+                min_k = k
+
+        memory_map = {min_k: min_mem, max_k: max_mem}
+
+    return memory_map
+
+
 def get_gpu_memory_map():
     """Get the current gpu usage.
 
@@ -196,6 +223,6 @@ def get_gpu_memory_map():
     gpu_memory = [int(x) for x in result.strip().split('\n')]
     gpu_memory_map = {}
     for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = 'gpu_%i' % k
+        k = f'gpu_{k}'
         gpu_memory_map[k] = v
     return gpu_memory_map
