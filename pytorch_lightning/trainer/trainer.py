@@ -919,7 +919,7 @@ class Trainer(TrainerIO):
 
         # if user gave a port number, use that one instead
         try:
-            port = os.environ['MASTER_PORT']
+            default_port = os.environ['MASTER_PORT']
         except Exception:
             os.environ['MASTER_PORT'] = str(default_port)
 
@@ -931,6 +931,7 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+        print(default_port)
 
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
