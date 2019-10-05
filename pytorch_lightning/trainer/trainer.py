@@ -178,16 +178,9 @@ class Trainer(TrainerIO):
         # configure logger
         self.logger = logger
         if self.logger is None:
-            # use SLURM job id as the version number
-            try:
-                job_id = os.environ['SLURM_JOB_ID']
-                job_id = int(job_id)
-            except Exception as e:
-                job_id = None
-
             self.logger = TestTubeLogger(
                 save_dir=self.default_save_path,
-                version=job_id,
+                version=self.slurm_job_id,
                 name='lightning_logs'
             )
 
@@ -247,6 +240,15 @@ class Trainer(TrainerIO):
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.__init_amp(use_amp)
+
+    @property
+    def slurm_job_id(self):
+        try:
+            job_id = os.environ['SLURM_JOB_ID']
+            job_id = int(job_id)
+        except Exception as e:
+            job_id = None
+        return job_id
 
     def __configure_weights_path(self, checkpoint_callback, weights_save_path):
         """
