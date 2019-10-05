@@ -104,8 +104,9 @@ class LightningTestModelBase(LightningModule):
         if self.trainer.batch_nb % 1 == 0:
             output = OrderedDict({
                 'loss': loss_val,
-                'progress': {'some_val': loss_val * loss_val}
+                'progress_bar': {'some_val': loss_val * loss_val}
             })
+
             return output
         if self.trainer.batch_nb % 2 == 0:
             return loss_val

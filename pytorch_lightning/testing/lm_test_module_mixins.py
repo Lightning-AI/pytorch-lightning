@@ -105,7 +105,8 @@ class LightningValidationMixin(LightningValidationStepMixin):
         val_acc_mean /= len(outputs)
 
         tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        return tqdm_dict
+        results = {'progress_bar': tqdm_dict}
+        return results
 
 
 class LightningValidationStepMultipleDataloadersMixin:
