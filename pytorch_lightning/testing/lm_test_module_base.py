@@ -119,7 +119,10 @@ class LightningTestModelBase(LightningModule):
         :return: list of optimizers
         """
         # try no scheduler for this model (testing purposes)
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        if self.hparams.optimizer == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
         # test returning only 1 list instead of 2
         return optimizer
