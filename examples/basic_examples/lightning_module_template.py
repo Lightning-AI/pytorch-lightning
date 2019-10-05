@@ -195,8 +195,7 @@ class LightningTemplateModel(LightningModule):
         batch_size = self.hparams.batch_size
 
         if self.use_ddp:
-            train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-            batch_size = batch_size // self.trainer.world_size  # scale batch size
+            train_sampler = DistributedSampler(dataset)
 
         should_shuffle = train_sampler is None
         loader = DataLoader(
@@ -249,6 +248,5 @@ class LightningTemplateModel(LightningModule):
 
         # training params (opt)
         parser.add_argument('--optimizer_name', default='adam', type=str)
-        parser.add_argument('--batch_size', default=256, type=int,
-                        help='batch size will be divided over all gpus being used across all nodes')
+        parser.add_argument('--batch_size', default=64, type=int)
         return parser
