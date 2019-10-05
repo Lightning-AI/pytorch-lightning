@@ -1062,7 +1062,8 @@ class Trainer(TrainerIO):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            batch_result, grad_norm_dic, batch_step_metrics = self.__run_training_batch(batch, batch_nb)
+            output = self.__run_training_batch(batch, batch_nb)
+            batch_result, grad_norm_dic, batch_step_metrics = output
             early_stop_epoch = batch_result == -1
 
             # ---------------
@@ -1299,7 +1300,8 @@ class Trainer(TrainerIO):
         for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
-            loss, progress_bar_metrics, log_metrics = self.__training_forward(batch, batch_nb, opt_idx)
+            output = self.__training_forward(batch, batch_nb, opt_idx)
+            loss, progress_bar_metrics, log_metrics = output
 
             # track metrics to log
             all_log_metrics.append(log_metrics)
