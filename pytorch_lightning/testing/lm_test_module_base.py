@@ -119,7 +119,7 @@ class LightningTestModelBase(LightningModule):
         :return: list of optimizers
         """
         # try no scheduler for this model (testing purposes)
-        if self.hparams.optimizer == 'lbfgs':
+        if self.hparams.optimizer_name == 'lbfgs':
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         else:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
