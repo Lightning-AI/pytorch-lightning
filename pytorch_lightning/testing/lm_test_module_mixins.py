@@ -293,7 +293,7 @@ class LightningTestMixin(LightningTestStepMixin):
 
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
         result = {'progress_bar': tqdm_dict}
-        return tqdm_dict
+        return result
 
 
 class LightningTestStepMultipleDataloadersMixin:
