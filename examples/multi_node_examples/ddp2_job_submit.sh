@@ -24,4 +24,4 @@ source activate $1
 # -------------------------
 
 # run script from above
-srun python3 ddp2_multi_node_demo.py
+srun python3 multi_node_ddp2_demo.py
