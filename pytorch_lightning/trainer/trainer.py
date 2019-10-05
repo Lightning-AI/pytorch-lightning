@@ -536,7 +536,7 @@ class Trainer(TrainerIO):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
-        if self.use_ddp or self.use_dp:
+        if self.use_ddp or self.use_dp or self.use_ddp2:
             output = model(*args)
             return output
 
@@ -1217,7 +1217,7 @@ class Trainer(TrainerIO):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        if self.use_ddp:
+        if self.use_ddp or self.use_ddp2:
             output = self.model(*args)
         elif self.use_dp:
             output = self.model(*args)
