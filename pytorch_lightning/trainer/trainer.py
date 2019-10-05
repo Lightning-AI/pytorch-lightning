@@ -828,8 +828,6 @@ class Trainer(TrainerIO):
         except Exception:
             self.node_rank = 0
 
-        print('node rank:', self.node_rank)
-
         # show progressbar only on progress_rank 0
         self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
 
@@ -933,8 +931,6 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        print(default_port, self.proc_rank, self.world_size)
-
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def resolve_root_node_address(self, root_node):
