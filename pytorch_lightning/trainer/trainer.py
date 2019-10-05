@@ -1060,7 +1060,7 @@ class Trainer(TrainerIO):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            batch_result, grad_norm_dic = self.__run_training_batch(batch, batch_nb)
+            batch_result, grad_norm_dic, batch_step_metrics = self.__run_training_batch(batch, batch_nb)
             early_stop_epoch = batch_result == -1
 
             # ---------------
@@ -1079,29 +1079,9 @@ class Trainer(TrainerIO):
 
             # when metrics should be logged
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
-                # count items in memory
-                # nb_params, nb_tensors = count_mem_items()
 
-                model = self.__get_model()
-                metrics = self.__training_tqdm_dict
-
-                # add gpu memory
-                if self.on_gpu and self.log_gpu_memory:
-                    mem_map = get_gpu_memory_map()
-                    metrics.update(mem_map)
-
-                # add norms
-                metrics.update(grad_norm_dic)
-
-                if self.__is_function_implemented('on_training_metrics'):
-                    model.on_training_metrics(metrics)
-
-                # log metrics
-                scalar_metrics = self.__metrics_to_scalars(
-                    metrics, blacklist=self.__log_vals_blacklist())
-                if self.proc_rank == 0 and self.logger is not None:
-                    self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
-                    self.logger.save()
+                # logs user requested information to logger
+                self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
             if early_stop_epoch:
@@ -1112,6 +1092,31 @@ class Trainer(TrainerIO):
             model = self.__get_model()
             model.on_epoch_end()
 
+    def __log_metrics(self, metrics, grad_norm_dic):
+        # added metrics by Lightning for convenience
+        metrics['epoch'] = self.current_epoch
+
+        # add gpu memory
+        if self.on_gpu and self.log_gpu_memory:
+            mem_map = get_gpu_memory_map()
+            metrics.update(mem_map)
+
+        # add norms
+        metrics.update(grad_norm_dic)
+
+        # let model do something with metrics
+        if self.__is_function_implemented('on_training_metrics'):
+            model = self.__get_model()
+            model.on_training_metrics(metrics)
+
+        # turn all tensors to scalars
+        scalar_metrics = self.__metrics_to_scalars(metrics)
+
+        # log actual metrics
+        if self.proc_rank == 0 and self.logger is not None:
+            self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
+            self.logger.save()
+
     def test(self, model=None):
         if model is not None:
             self.testing = True
@@ -1119,7 +1124,7 @@ class Trainer(TrainerIO):
         else:
             self.__run_evaluation(test=True)
 
-    def __metrics_to_scalars(self, metrics, blacklist=set()):
+    def __metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
             if type(v) is torch.Tensor:
@@ -1127,9 +1132,6 @@ class Trainer(TrainerIO):
 
             if type(v) is dict:
                 v = self.__metrics_to_scalars(v)
-
-            if k not in blacklist:
-                new_metrics[k] = float(v)
 
         return new_metrics
 
@@ -1199,20 +1201,41 @@ class Trainer(TrainerIO):
         else:
             output = self.model.training_step(*args)
 
-        # ---------------
-        # TQDM metrics
-        # ---------------
+        # format and reduce outputs accordingly
+        loss, progress_bar_metrics, log_metrics = self.__process_output(output)
+        return loss, progress_bar_metrics, log_metrics
+
+    def __process_output(self, output):
+        """
+        Reduces output according to the training mode.
+        Separates loss from logging and tqdm metrics
+        :param output:
+        :return:
+        """
         try:
-            progress_output = output['progress']
+            progress_output = output['progress_bar']
 
             # reduce progress metrics for tqdm when using dp
             if self.use_dp or self.use_ddp2:
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
-            model_specific_tqdm_metrics_dic = progress_output
+            progress_bar_metrics = progress_output
         except Exception:
-            model_specific_tqdm_metrics_dic = {}
+            progress_bar_metrics = {}
+
+        # extract metrics to log to experiment
+        try:
+            log_output = output['log']
+
+            # reduce progress metrics for tqdm when using dp
+            if self.use_dp or self.use_ddp2:
+                nb_gpus = self.num_gpus
+                log_output = reduce_distributed_output(log_output, nb_gpus)
+
+            log_metrics = log_output
+        except Exception:
+            log_metrics = {}
 
         # ---------------
         # EXTRACT LOSS
@@ -1233,7 +1256,7 @@ class Trainer(TrainerIO):
         if self.use_dp or self.use_ddp2:
             loss = reduce_distributed_output(loss, self.num_gpus)
 
-        return loss, model_specific_tqdm_metrics_dic
+        return loss, progress_bar_metrics, log_metrics
 
     def __clip_gradients(self):
         if self.gradient_clip_val > 0:
@@ -1249,6 +1272,9 @@ class Trainer(TrainerIO):
     def __run_training_batch(self, batch, batch_nb):
         # track grad norms
         grad_norm_dic = {}
+
+        # track metrics to log
+        all_log_metrics = []
 
         if batch is None:
             return 0, grad_norm_dic
@@ -1268,10 +1294,13 @@ class Trainer(TrainerIO):
         for opt_idx, optimizer in enumerate(self.optimizers):
 
             # forward pass
-            loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
+            loss, progress_bar_metrics, log_metrics = self.__training_forward(batch, batch_nb, opt_idx)
 
-            # track metrics
-            self.__add_tqdm_metrics(model_specific_tqdm_metrics)
+            # track metrics to log
+            all_log_metrics.append(log_metrics)
+
+            # track progress bar
+            self.__add_tqdm_metrics(progress_bar_metrics)
 
             # accumulate loss
             # (if accumulate_grad_batches = 1 no effect)
@@ -1329,7 +1358,10 @@ class Trainer(TrainerIO):
             model = self.__get_model()
             model.on_batch_end()
 
-        return 0, grad_norm_dic
+        # collapse all metrics into one dict
+        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
+
+        return 0, grad_norm_dic, all_log_metrics
 
     def __run_evaluation(self, test=False):
         # when testing make sure user defined a test step
