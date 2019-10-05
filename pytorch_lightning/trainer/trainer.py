@@ -1408,6 +1408,9 @@ class Trainer(TrainerIO):
                                          max_batches,
                                          test)
 
+            if test:
+                pdb.set_trace()
+
             _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
 
             # add metrics to prog bar
