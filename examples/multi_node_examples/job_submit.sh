@@ -8,7 +8,7 @@
 #SBATCH --time=0-02:00:00
 
 # activate conda env
-conda activate $1
+source activate $env
 
 # -------------------------
 # debugging flags (optional)
@@ -24,4 +24,4 @@ conda activate $1
 # -------------------------
 
 # run script from above
-python multi_node_demo.py
+srun python multi_node_demo.py
