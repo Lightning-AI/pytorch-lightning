@@ -42,6 +42,7 @@ def test_default_logger_callbacks_cpu_model():
     Test each of the trainer options
     :return:
     """
+
     reset_seed()
 
     trainer_options = dict(
@@ -61,6 +62,28 @@ def test_default_logger_callbacks_cpu_model():
     model.freeze()
     model.unfreeze()
 
+
+def test_lbfgs_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        train_percent_check=0.01,
+        val_percent_check=0.01
+    )
+
+    model, hparams = get_model(use_test_model=True, lbfgs=True)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
 
 def test_multi_gpu_model_ddp2():
     """
@@ -1510,9 +1533,11 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     return hparams
 
 
-def get_model(use_test_model=False):
+def get_model(use_test_model=False, lbfgs=False):
     # set up model with these hyperparams
     hparams = get_hparams()
+    if lbfgs:
+        hparams.optimizer = 'lbfgs'
 
     if use_test_model:
         model = LightningTestModel(hparams)

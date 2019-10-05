@@ -92,16 +92,20 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
         """
         Do something instead of the standard optimizer behavior
         :param epoch_nb:
         :param batch_nb:
         :param optimizer:
         :param optimizer_i:
+        :param second_order_closure: closure for second order methods
         :return:
         """
-        optimizer.step()
+        if isinstance(optimizer, torch.optim.LBFGS):
+            optimizer.step(second_order_closure)
+        else:
+            optimizer.step()
 
         # clear gradients
         optimizer.zero_grad()
