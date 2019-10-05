@@ -205,8 +205,7 @@ Set up as many optimizers and (optionally) learning rate schedulers as you need.
 Lightning will call .backward() and .step() on each one in every epoch.  If you use 16 bit precision it will also handle that.
 
 **Note:** If you use multiple optimizers, training_step will have an additional ```optimizer_idx``` parameter.    
-
-
+**Note 2:** If you use LBFGS lightning handles the closure function automatically for you.
 
 ##### Return    
 Return any of these 3 options:   

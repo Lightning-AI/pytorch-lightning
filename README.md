@@ -109,6 +109,7 @@ class CoolSystem(pl.LightningModule):
     def configure_optimizers(self):
         # REQUIRED
         # can return multiple optimizers and learning_rate schedulers
+        # (LBFGS it is automatically supported, no need for closure function)
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     @pl.data_loader
