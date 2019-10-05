@@ -95,7 +95,7 @@ class LightningTemplateModel(LightningModule):
         loss_val = self.loss(y, y_hat)
 
         # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp:
+        if self.trainer.use_dp or self.trainer.use_ddp2:
             loss_val = loss_val.unsqueeze(0)
 
         output = OrderedDict({
@@ -126,7 +126,7 @@ class LightningTemplateModel(LightningModule):
             val_acc = val_acc.cuda(loss_val.device.index)
 
         # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp:
+        if self.trainer.use_dp or self.trainer.use_ddp2:
             loss_val = loss_val.unsqueeze(0)
             val_acc = val_acc.unsqueeze(0)
 
@@ -168,7 +168,7 @@ class LightningTemplateModel(LightningModule):
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
         tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        result = {'progress_bar': tqdm_dict}
+        result = {'progress_bar': tqdm_dict, 'logs': tqdm_dict}
         return result
 
     # ---------------------
