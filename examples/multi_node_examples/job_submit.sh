@@ -8,7 +8,7 @@
 #SBATCH --time=0-02:00:00
 
 # activate conda env
-conda activate my_env
+conda activate $1
 
 # -------------------------
 # debugging flags (optional)
