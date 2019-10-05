@@ -1632,8 +1632,11 @@ def assert_ok_val_acc(trainer):
 
 def assert_ok_test_acc(trainer):
     # this model should get 0.80+ acc
-    print(trainer.training_tqdm_dict)
-    acc = trainer.training_tqdm_dict['test_acc']
+    try:
+        acc = trainer.training_tqdm_dict['test_acc']
+    except Exception as e:
+        print('*'*100, '\nno val')
+        print(trainer.training_tqdm_dict)
     assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
 
 
