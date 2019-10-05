@@ -3,6 +3,7 @@ import pickle
 import shutil
 
 import numpy as np
+import torch
 from pytorch_lightning import Trainer
 
 from pytorch_lightning.testing import LightningTestModel
@@ -11,7 +12,10 @@ from .test_models import get_hparams, get_test_tube_logger, init_save_dir, clear
 
 
 def test_testtube_logger():
-    """verify that basic functionality of test tube logger works"""
+    """
+    verify that basic functionality of test tube logger works
+    """
+    reset_seed()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -35,7 +39,11 @@ def test_testtube_logger():
 
 
 def test_testtube_pickle():
-    """Verify that pickling a trainer containing a test tube logger works"""
+    """
+    Verify that pickling a trainer containing a test tube logger works
+    """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -58,7 +66,11 @@ def test_testtube_pickle():
 
 
 def test_mlflow_logger():
-    """verify that basic functionality of mlflow logger works"""
+    """
+    verify that basic functionality of mlflow logger works
+    """
+    reset_seed()
+
     try:
         from pytorch_lightning.logging import MLFlowLogger
     except ModuleNotFoundError:
@@ -90,7 +102,11 @@ def test_mlflow_logger():
 
 
 def test_mlflow_pickle():
-    """verify that pickling trainer with mlflow logger works"""
+    """
+    verify that pickling trainer with mlflow logger works
+    """
+    reset_seed()
+
     try:
         from pytorch_lightning.logging import MLFlowLogger
     except ModuleNotFoundError:
@@ -115,3 +131,9 @@ def test_mlflow_pickle():
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
+
+
+def reset_seed():
+    SEED = 1234
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)

@@ -44,6 +44,7 @@ def test_default_logger_callbacks_cpu_model():
     Test each of the trainer options
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -72,6 +73,9 @@ def test_multi_gpu_model_ddp2():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    reset_seed()
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=True,
@@ -93,6 +97,8 @@ def test_dp_resume():
     """
     if not can_run_gpu_test():
         return
+
+    reset_seed()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -174,6 +180,8 @@ def test_running_test_pretrained_model_ddp():
     if not can_run_gpu_test():
         return
 
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -219,6 +227,8 @@ def test_running_test_pretrained_model_ddp():
 
 def test_running_test_after_fitting():
     """Verify test() on fitted model"""
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -257,6 +267,8 @@ def test_running_test_after_fitting():
 
 
 def test_running_test_without_val():
+    reset_seed()
+
     """Verify test() works on a model with no val_loader"""
     class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
         pass
@@ -298,6 +310,8 @@ def test_running_test_without_val():
 
 
 def test_running_test_pretrained_model():
+    reset_seed()
+
     """Verify test() on pretrained model"""
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -340,6 +354,8 @@ def test_running_test_pretrained_model():
 
 
 def test_running_test_pretrained_model_dp():
+    reset_seed()
+
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
         return
@@ -386,6 +402,8 @@ def test_running_test_pretrained_model_dp():
 
 
 def test_gradient_accumulation_scheduling():
+    reset_seed()
+
     """
     Test grad accumulation by the freq of optimizer updates
     """
@@ -466,6 +484,8 @@ def test_multi_gpu_model_ddp():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    reset_seed()
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
@@ -480,6 +500,7 @@ def test_multi_gpu_model_ddp():
 
 
 def test_optimizer_return_options():
+    reset_seed()
 
     trainer = Trainer()
     model, hparams = get_model()
@@ -510,6 +531,8 @@ def test_optimizer_return_options():
 
 
 def test_single_gpu_batch_parse():
+    reset_seed()
+
     if not can_run_gpu_test():
         return
 
@@ -556,6 +579,7 @@ def test_early_stopping_cpu_model():
     Test each of the trainer options
     :return:
     """
+    reset_seed()
 
     stopping = EarlyStopping(monitor='val_loss')
     trainer_options = dict(
@@ -583,6 +607,8 @@ def test_no_val_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
 
     class CurrentTestModel(LightningTestModelBase):
@@ -629,6 +655,7 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
         pass
@@ -675,6 +702,8 @@ def test_simple_cpu():
     Verify continue training session on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -702,6 +731,8 @@ def test_amp_single_gpu():
     Make sure DDP + AMP work
     :return:
     """
+    reset_seed()
+
     if not torch.cuda.is_available():
         warnings.warn('test_amp_gpu_ddp cannot run.'
                       'Rerun on a GPU node to run this test')
@@ -730,6 +761,8 @@ def test_no_amp_single_gpu():
     Make sure DDP + AMP work
     :return:
     """
+    reset_seed()
+
     if not torch.cuda.is_available():
         warnings.warn('test_amp_gpu_ddp cannot run.'
                       'Rerun on a GPU node to run this test')
@@ -759,6 +792,8 @@ def test_cpu_restore_training():
     Verify continue training session on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -831,6 +866,8 @@ def test_amp_gpu_ddp():
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -850,6 +887,8 @@ def test_cpu_slurm_save_load():
     Verify model save/load/checkpoint on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -925,6 +964,8 @@ def test_cpu_slurm_save_load():
 
 
 def test_loading_meta_tags():
+    reset_seed()
+
     from argparse import Namespace
     hparams = get_hparams()
 
@@ -946,6 +987,7 @@ def test_loading_meta_tags():
 
 
 def test_dp_output_reduce():
+    reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
@@ -971,6 +1013,8 @@ def test_model_saving_loading():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -1026,6 +1070,8 @@ def test_model_saving_loading():
 
 
 def test_model_freeze_unfreeze():
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -1044,6 +1090,8 @@ def test_amp_gpu_ddp_slurm_managed():
     # simulate setting slurm flags
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     os.environ['SLURM_LOCALID'] = str(0)
+
+    reset_seed()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1111,6 +1159,7 @@ def test_cpu_model_with_amp():
     Make sure model trains on CPU
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -1132,6 +1181,7 @@ def test_cpu_model():
     Make sure model trains on CPU
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -1151,6 +1201,7 @@ def test_all_features_cpu_model():
     Test each of the trainer options
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         gradient_clip_val=1.0,
@@ -1174,6 +1225,8 @@ def test_single_gpu_model():
     Make sure single GPU works (DP mode)
     :return:
     """
+    reset_seed()
+
     if not torch.cuda.is_available():
         warnings.warn('test_single_gpu_model cannot run.'
                       ' Rerun on a GPU node to run this test')
@@ -1197,6 +1250,8 @@ def test_multi_gpu_none_backend():
     distributed_backend = None
     :return:
     """
+    reset_seed()
+
     if not can_run_gpu_test():
         return
 
@@ -1218,6 +1273,8 @@ def test_multi_gpu_model_dp():
     Make sure DP works
     :return:
     """
+    reset_seed()
+
     if not can_run_gpu_test():
         return
 
@@ -1242,6 +1299,8 @@ def test_amp_gpu_dp():
     Make sure DP + AMP work
     :return:
     """
+    reset_seed()
+
     if not can_run_gpu_test():
         return
 
@@ -1265,6 +1324,8 @@ def test_ddp_sampler_error():
         return
 
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+
+    reset_seed()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
@@ -1292,6 +1353,8 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
+    reset_seed()
+
     class CurrentTestModel(
         LightningValidationMultipleDataloadersMixin,
         LightningTestModelBase
@@ -1327,6 +1390,8 @@ def test_multiple_test_dataloader():
     Verify multiple test_dataloader
     :return:
     """
+    reset_seed()
+
     class CurrentTestModel(
         LightningTestMultipleDataloadersMixin,
         LightningTestModelBase
@@ -1552,6 +1617,12 @@ def can_run_gpu_test():
                       ' Rerun on a node with 2+ GPUs to run this test')
         return False
     return True
+
+
+def reset_seed():
+    SEED = 1234
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
 
 
 if __name__ == '__main__':
