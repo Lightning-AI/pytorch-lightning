@@ -1472,7 +1472,7 @@ def get_model(use_test_model=False, lbfgs=False):
     # set up model with these hyperparams
     hparams = get_hparams()
     if lbfgs:
-        hparams.optimizer = 'lbfgs'
+        setattr(hparams, 'optimizer', 'lbfgs')
 
     if use_test_model:
         model = LightningTestModel(hparams)
