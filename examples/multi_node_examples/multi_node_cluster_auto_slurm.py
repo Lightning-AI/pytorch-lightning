@@ -10,7 +10,7 @@ from test_tube import HyperOptArgumentParser, Experiment, SlurmCluster
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-from examples.new_project_templates.lightning_module_template import LightningTemplateModel
+from examples.basic_examples.lightning_module_template import LightningTemplateModel
 
 PORT = np.random.randint(12000, 20000, 1)[0]
 SEED = 2334

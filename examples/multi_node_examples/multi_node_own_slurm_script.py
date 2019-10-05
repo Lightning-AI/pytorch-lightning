@@ -1,5 +1,5 @@
 """
-16-bit single node, CPU example
+Multi-node example (GPU)
 """
 import os
 import numpy as np
@@ -7,9 +7,7 @@ import torch
 
 from test_tube import HyperOptArgumentParser, Experiment
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-
-from examples.new_project_templates.lightning_module_template import LightningTemplateModel
+from examples.basic_examples.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -28,32 +26,39 @@ def main(hparams):
     model = LightningTemplateModel(hparams)
 
     # ------------------------
-    # 2 INIT TRAINER
+    # 2 INIT TEST TUBE EXP
     # ------------------------
-    trainer = Trainer(
-        gpus=hparams.gpus,
-        use_amp=True,
-        distributed_backend='dp'
+    # init experiment
+    exp = Experiment(
+        name='test_exp',
+        save_dir=hyperparams.log_dir,
+        autosave=False,
+        description='test demo'
     )
 
     # ------------------------
-    # 3 START TRAINING
+    # 2 INIT TRAINER
+    # ------------------------
+    trainer = Trainer(
+        experiment=exp,
+        gpus=8,
+        nb_gpu_nodes=2
+    )
+
+    # ------------------------
+    # 5 START TRAINING
     # ------------------------
     trainer.fit(model)
 
 
 if __name__ == '__main__':
-
-    # dirs
+    # use current dir for logging
     root_dir = os.path.dirname(os.path.realpath(__file__))
+    log_dir = os.path.join(root_dir, 'pt_lightning_demo_logs')
 
-    # although we user hyperOptParser, we are using it only as argparse right now
     parent_parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
-
-    # gpu args
-    parent_parser.add_argument('--gpus', type=str, default='-1',
-                               help='how many gpus to use in the node.'
-                                    'value -1 uses all the gpus on the node')
+    parent_parser.add_argument('--log_dir', type=str, default=log_dir,
+                               help='where to save logs')
 
     # allow model to overwrite or extend args
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
