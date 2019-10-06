@@ -1238,6 +1238,8 @@ class Trainer(TrainerIO):
         else:
             output = self.model.training_step(*args)
 
+        print(output)
+
         # format and reduce outputs accordingly
         loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
         return loss, progress_bar_metrics, log_metrics
