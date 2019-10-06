@@ -1309,7 +1309,6 @@ class Trainer(TrainerIO):
                 print(param, param.grad)
 
     def __run_training_batch(self, batch, batch_nb):
-        pdb.set_trace()
         # track grad norms
         grad_norm_dic = {}
 
@@ -1409,6 +1408,7 @@ class Trainer(TrainerIO):
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
 
+        pdb.set_trace()
         return 0, grad_norm_dic, all_log_metrics
 
     def __run_evaluation(self, test=False):
