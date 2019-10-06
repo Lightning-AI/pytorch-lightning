@@ -658,7 +658,7 @@ class Trainer(TrainerIO):
                 """
                 warnings.warn(msg)
 
-            if (self.use_ddp or self.use_ddp2) and self.get_val_dataloaders is not None:
+            if (self.use_ddp or self.use_ddp2) and self.get_val_dataloaders() is not None:
                 for dataloader in self.get_val_dataloaders():
                     if not isinstance(dataloader.sampler, DistributedSampler):
                         msg = """
@@ -681,7 +681,7 @@ class Trainer(TrainerIO):
                         warnings.warn(msg)
                         break
 
-            if (self.use_ddp or self.use_ddp2) and self.get_test_dataloaders is not None:
+            if (self.use_ddp or self.use_ddp2) and self.get_test_dataloaders() is not None:
                 for dataloader in self.get_test_dataloaders():
                     if not isinstance(dataloader.sampler, DistributedSampler):
                         msg = """
