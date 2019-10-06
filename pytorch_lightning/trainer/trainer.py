@@ -1025,6 +1025,9 @@ class Trainer(TrainerIO):
         self.__train()
 
     def __train(self):
+        print('*'*100)
+        print('train')
+        print('*'*100)
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
