@@ -1341,6 +1341,7 @@ class Trainer(TrainerIO):
                 # track progress bar metrics
                 self.__add_tqdm_metrics(progress_bar_metrics)
 
+                print(log_metrics)
                 all_log_metrics.append(log_metrics)
 
                 # accumulate loss
