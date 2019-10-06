@@ -183,6 +183,7 @@ class Trainer(TrainerIO):
                 version=self.slurm_job_id,
                 name='lightning_logs'
             )
+        self.logger.rank = 0
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback

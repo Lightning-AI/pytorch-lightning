@@ -61,6 +61,7 @@ class CoolModel(pl.LightningModule):
 
 
 def main():
+
     """
     Make sure DDP + AMP continue training correctly
     :return:
