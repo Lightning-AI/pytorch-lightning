@@ -1146,6 +1146,7 @@ class Trainer(TrainerIO):
         scalar_metrics = self.__metrics_to_scalars(metrics)
 
         # log actual metrics
+        pdb.set_trace()
         if self.proc_rank == 0 and self.logger is not None:
             self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
             self.logger.save()
