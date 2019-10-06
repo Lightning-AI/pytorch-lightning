@@ -1110,6 +1110,7 @@ class Trainer(TrainerIO):
                     self.logger.save()
 
             # when metrics should be logged
+            pdb.set_trace()
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
 
                 # logs user requested information to logger
