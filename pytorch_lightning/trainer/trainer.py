@@ -1143,7 +1143,6 @@ class Trainer(TrainerIO):
         metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
-        pdb.set_trace()
         scalar_metrics = self.__metrics_to_scalars(metrics)
 
         # log actual metrics
