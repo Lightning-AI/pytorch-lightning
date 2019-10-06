@@ -144,6 +144,36 @@ class EarlyStopping(Callback):
             print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
 
 
+class ReduceLROnPlateauScheduler(Callback):
+    """
+    Reduce learning rate when the monitored metric has stopped improving.
+    Wrapper for torch.optim.lr_schuduler.ReduceLROnPlateau learning rate
+    schedulers.
+
+    # Arguments
+        schedulers: list of torch.optim.lr_scheduler.ReduceLROnPlateau
+        monitor: quantity to be monitored.
+    """
+
+    def __init__(self, schedulers, monitor='val_loss'):
+        super(ReduceLROnPlateauScheduler, self).__init__()
+
+        self.monitor = monitor
+        self.schedulers = schedulers
+
+    def on_epoch_end(self, epoch, logs=None):
+        current = logs.get(self.monitor)
+        stop_training = False
+        if current is None:
+            print('ReduceLROnPlateau conditioned on metric `%s` '
+                  'which is not available. Available metrics are: %s' %
+                  (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
+            exit(-1)
+
+        for scheduler in self.schedulers:
+            scheduler.step(current, epoch=epoch)
+
+
 class ModelCheckpoint(Callback):
     """Save the model after every epoch.
     `filepath` can contain named formatting options,
