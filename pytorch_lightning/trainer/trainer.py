@@ -1025,9 +1025,6 @@ class Trainer(TrainerIO):
         self.__train()
 
     def __train(self):
-        print('*'*100)
-        print('train')
-        print('*'*100)
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -1240,7 +1237,6 @@ class Trainer(TrainerIO):
 
         # format and reduce outputs accordingly
         loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
-        pdb.set_trace()
         return loss, progress_bar_metrics, log_metrics
 
     def __process_output(self, output, train=False):
@@ -1341,8 +1337,6 @@ class Trainer(TrainerIO):
 
                 # track progress bar metrics
                 self.__add_tqdm_metrics(progress_bar_metrics)
-
-                print(log_metrics)
                 all_log_metrics.append(log_metrics)
 
                 # accumulate loss
@@ -1409,7 +1403,6 @@ class Trainer(TrainerIO):
 
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
-
         pdb.set_trace()
         return 0, grad_norm_dic, all_log_metrics
 
