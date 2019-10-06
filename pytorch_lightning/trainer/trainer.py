@@ -1113,6 +1113,7 @@ class Trainer(TrainerIO):
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
 
                 # logs user requested information to logger
+                pdb.set_trace()
                 self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
@@ -1444,7 +1445,7 @@ class Trainer(TrainerIO):
                                          dataloaders,
                                          max_batches,
                                          test)
-
+            pdb.set_trace()
             _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
 
             # add metrics to prog bar
