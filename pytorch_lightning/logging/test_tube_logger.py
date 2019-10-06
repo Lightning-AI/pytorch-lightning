@@ -10,11 +10,13 @@ class TestTubeLogger(LightningLoggerBase):
     __test__ = False
 
     def __init__(
-        self, save_dir, name="default", debug=False, version=None, create_git_tag=False
+        self, save_dir, name="default", description=None, debug=False,
+            version=None, create_git_tag=False
     ):
         super().__init__()
         self.save_dir = save_dir
         self.name = name
+        self.description = description
         self.debug = debug
         self._version = version
         self.create_git_tag = create_git_tag
@@ -29,6 +31,7 @@ class TestTubeLogger(LightningLoggerBase):
             name=self.name,
             debug=self.debug,
             version=self.version,
+            description=self.description,
             create_git_tag=self.create_git_tag,
             rank=self.rank,
         )
