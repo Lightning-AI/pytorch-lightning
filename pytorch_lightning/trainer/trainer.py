@@ -1241,6 +1241,7 @@ class Trainer(TrainerIO):
         print(output)
 
         # format and reduce outputs accordingly
+        pdb.set_trace()
         loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
         pdb.set_trace()
         return loss, progress_bar_metrics, log_metrics
