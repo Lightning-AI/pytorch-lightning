@@ -5,7 +5,7 @@ import pdb
 from subprocess import call
 
 import torch
-
+import torch.distributed as dist
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
@@ -34,6 +34,12 @@ class TrainerIO(object):
 
         # if script called from hpc resubmit, load weights
         self.restore_hpc_weights_if_needed(model)
+
+        # wait for all models to restore weights
+        if self.use_ddp or self.use_ddp2:
+            # wait for all processes to catch up
+            dist.barrier()
+
 
     def restore_state_if_checkpoint_exists(self, model):
         # do nothing if there's not dir or callback
