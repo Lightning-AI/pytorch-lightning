@@ -40,7 +40,6 @@ class TrainerIO(object):
             # wait for all processes to catch up
             dist.barrier()
 
-
     def restore_state_if_checkpoint_exists(self, model):
         # do nothing if there's not dir or callback
         no_ckpt_callback = self.checkpoint_callback is None
