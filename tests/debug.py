@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import numpy as np
 import pdb
-from .test_models import assert_ok_test_acc, load_model, clear_save_dir
+from test_models import assert_ok_test_acc, load_model, clear_save_dir
 
 
 class CoolModel(pl.LightningModule):
