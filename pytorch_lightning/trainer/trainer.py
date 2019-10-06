@@ -1242,6 +1242,7 @@ class Trainer(TrainerIO):
 
         # format and reduce outputs accordingly
         loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
+        pdb.set_trace()
         return loss, progress_bar_metrics, log_metrics
 
     def __process_output(self, output, train=False):
