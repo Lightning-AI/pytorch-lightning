@@ -1161,11 +1161,13 @@ class Trainer(TrainerIO):
     def __metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
-            if type(v) is torch.Tensor:
+            if isinstance(v, torch.Tensor):
                 v = v.item()
 
             if type(v) is dict:
                 v = self.__metrics_to_scalars(v)
+
+            new_metrics[k] = v
 
         return new_metrics
 
