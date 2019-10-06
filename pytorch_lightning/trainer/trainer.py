@@ -1113,7 +1113,6 @@ class Trainer(TrainerIO):
                     self.logger.save()
 
             # when metrics should be logged
-            pdb.set_trace()
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
 
                 # logs user requested information to logger
@@ -1310,6 +1309,7 @@ class Trainer(TrainerIO):
                 print(param, param.grad)
 
     def __run_training_batch(self, batch, batch_nb):
+        pdb.set_trace()
         # track grad norms
         grad_norm_dic = {}
 
