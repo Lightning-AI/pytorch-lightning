@@ -15,13 +15,13 @@ import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.root_module.root_module import LightningModule
-from pytorch_lightning.root_module import memory
+from pytorch_lightning.root_module.memory import get_gpu_memory_map
 from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIO
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
-    ModelCheckpoint, EarlyStopping
+    ReduceLROnPlateauScheduler, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
 from pytorch_lightning.trainer import ignored_warnings
@@ -66,7 +66,7 @@ class Trainer(TrainerIO):
                  process_position=0,
                  nb_gpu_nodes=1,
                  gpus=None,
-                 log_gpu_memory=None,
+                 log_gpu_memory=False,
                  show_progress_bar=True,
                  overfit_pct=0.0,
                  track_grad_norm=-1,
@@ -98,7 +98,7 @@ class Trainer(TrainerIO):
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
         :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
-        :param log_gpu_memory: str. None, 'min_max', 'all'
+        :param log_gpu_memory: Bool. If true, adds memory logs
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
         :param track_grad_norm: int. -1 no tracking. Otherwise tracks that norm
@@ -174,13 +174,13 @@ class Trainer(TrainerIO):
                 verbose=True,
                 mode='min'
             )
+        self.lr_scheduler_callback = None
 
         # configure logger
         self.logger = logger
         if self.logger is None:
             self.logger = TestTubeLogger(
                 save_dir=self.default_save_path,
-                version=self.slurm_job_id,
                 name='lightning_logs'
             )
 
@@ -241,15 +241,6 @@ class Trainer(TrainerIO):
         self.amp_level = amp_level
         self.__init_amp(use_amp)
 
-    @property
-    def slurm_job_id(self):
-        try:
-            job_id = os.environ['SLURM_JOB_ID']
-            job_id = int(job_id)
-        except Exception as e:
-            job_id = None
-        return job_id
-
     def __configure_weights_path(self, checkpoint_callback, weights_save_path):
         """
         Weight path set in this priority:
@@ -285,8 +276,6 @@ class Trainer(TrainerIO):
             raise ModuleNotFoundError(msg)
 
     def __configure_accumulated_gradients(self, accumulate_grad_batches):
-        self.accumulate_grad_batches = None
-
         if isinstance(accumulate_grad_batches, dict):
             self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):
@@ -436,7 +425,7 @@ class Trainer(TrainerIO):
 
     @property
     def data_parallel(self):
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self.use_dp or self.use_ddp
 
     def __determine_data_use_amount(self, train_percent_check, val_percent_check,
                                     test_percent_check, overfit_pct):
@@ -536,7 +525,7 @@ class Trainer(TrainerIO):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
-        if self.use_ddp or self.use_dp or self.use_ddp2:
+        if self.use_ddp or self.use_dp:
             output = model(*args)
             return output
 
@@ -563,6 +552,7 @@ class Trainer(TrainerIO):
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
+        :param dataloader_idx:
         :param test: boolean
         :return:
         """
@@ -591,10 +581,7 @@ class Trainer(TrainerIO):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.__evaluation_forward(model,
-                                                   batch,
-                                                   batch_idx,
-                                                   dataloader_idx,
+                output = self.__evaluation_forward(model, batch, batch_idx, dataloader_idx,
                                                    test)
 
                 # track outputs for collation
@@ -636,100 +623,96 @@ class Trainer(TrainerIO):
         self.get_test_dataloaders = model.test_dataloader
         self.get_val_dataloaders = model.val_dataloader
 
-        # call warnings from proc zero only which triggers dataloaders
-        # if those have to download data it will only happen on proc 0
-        if self.proc_rank == 0:
-            on_ddp = self.use_ddp or self.use_ddp2
-            if on_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
-                msg = """
-                You're using multiple gpus and multiple nodes without using a DistributedSampler
-                to assign a subset of your data to each process. To silence this warning, pass a
-                DistributedSampler to your DataLoader.
+        if self.use_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
+            msg = """
+            You're using multiple gpus and multiple nodes without using a DistributedSampler
+            to assign a subset of your data to each process. To silence this warning, pass a
+            DistributedSampler to your DataLoader.
 
-                ie: this:
-                dataset = myDataset()
-                dataloader = Dataloader(dataset)
+            ie: this:
+            dataset = myDataset()
+            dataloader = Dataloader(dataset)
 
-                becomes:
-                dataset = myDataset()
-                dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                dataloader = Dataloader(dataset, sampler=dist_sampler)
+            becomes:
+            dataset = myDataset()
+            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+            dataloader = Dataloader(dataset, sampler=dist_sampler)
 
-                If you want each process to load the full dataset, ignore this warning.
-                """
-                warnings.warn(msg)
+            If you want each process to load the full dataset, ignore this warning.
+            """
+            warnings.warn(msg)
 
-            if on_ddp and self.get_val_dataloaders() is not None:
-                for dataloader in self.get_val_dataloaders():
-                    if not isinstance(dataloader.sampler, DistributedSampler):
-                        msg = """
-                        Your val_dataloader(s) don't use DistributedSampler.
+        if self.use_ddp and self.get_val_dataloaders is not None:
+            for dataloader in self.get_val_dataloaders():
+                if not isinstance(dataloader.sampler, DistributedSampler):
+                    msg = """
+                    Your val_dataloader(s) don't use DistributedSampler.
+                    You're using multiple gpus and multiple nodes without using a DistributedSampler
+                    to assign a subset of your data to each process. To silence this warning, pass a
+                    DistributedSampler to your DataLoader.
 
-                        You're using multiple gpus and multiple nodes without using a
-                        DistributedSampler to assign a subset of your data to each process.
-                        To silence this warning, pass a DistributedSampler to your DataLoader.
+                    ie: this:
+                    dataset = myDataset()
+                    dataloader = Dataloader(dataset)
 
-                        ie: this:
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
+                    becomes:
+                    dataset = myDataset()
+                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+                    dataloader = Dataloader(dataset, sampler=dist_sampler)
 
-                        becomes:
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
+                    If you want each process to load the full dataset, ignore this warning.
+                    """
+                    warnings.warn(msg)
+                    break
 
-                        If you want each process to load the full dataset, ignore this warning.
-                        """
-                        warnings.warn(msg)
-                        break
+        if self.use_ddp and self.get_test_dataloaders is not None:
+            for dataloader in self.get_test_dataloaders():
+                if not isinstance(dataloader.sampler, DistributedSampler):
+                    msg = """
+                    Your test_dataloader(s) don't use DistributedSampler.
+                    You're using multiple gpus and multiple nodes without using a DistributedSampler
+                    to assign a subset of your data to each process. To silence this warning, pass a
+                    DistributedSampler to your DataLoader.
 
-            if on_ddp and self.get_test_dataloaders() is not None:
-                for dataloader in self.get_test_dataloaders():
-                    if not isinstance(dataloader.sampler, DistributedSampler):
-                        msg = """
-                        Your test_dataloader(s) don't use DistributedSampler.
+                    ie: this:
+                    dataset = myDataset()
+                    dataloader = Dataloader(dataset)
 
-                        You're using multiple gpus and multiple nodes without using a
-                        DistributedSampler to assign a subset of your data to each process.
-                        To silence this warning, pass a DistributedSampler to your DataLoader.
+                    becomes:
+                    dataset = myDataset()
+                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+                    dataloader = Dataloader(dataset, sampler=dist_sampler)
 
-                        ie: this:
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
-
-                        becomes:
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                        If you want each process to load the full dataset, ignore this warning.
-                        """
-                        warnings.warn(msg)
-                        break
-
-        if self.use_ddp or self.use_ddp2:
-            # wait for all processes to catch up
-            dist.barrier()
-
-            # load each dataloader
-            self.get_train_dataloader()
-            self.get_test_dataloaders()
-            self.get_val_dataloaders()
+                    If you want each process to load the full dataset, ignore this warning.
+                    """
+                    warnings.warn(msg)
+                    break
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
         # when using multi-node or DDP within a node start each module in a separate process
-        if self.use_ddp2:
-            task = int(os.environ['SLURM_LOCALID'])
-            self.ddp_train(task, model)
+        if self.use_ddp:
 
-        elif self.use_ddp:
-            if self.is_slurm_managing_tasks:
+            if self.use_ddp2:
+                task = int(os.environ['SLURM_LOCALID'])
+                self.ddp_train(task, model)
+
+            elif self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
+                nb_gpus = self.nb_requested_gpus
+                nb_tasks = self.nb_slurm_tasks
+                msg = f"""
+                You requested {nb_gpus}s GPUs but launched {nb_tasks}s slurm tasks.
+                We will launch {nb_gpus}s processes for you.
+                We recommend you let slurm manage the processes by setting:
+                --ntasks-per-node={nb_gpus}s
+                If you're not using SLURM, ignore this message!
+                """
+                warnings.warn(msg)
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
@@ -766,11 +749,24 @@ class Trainer(TrainerIO):
         # two lists
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
+            lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
+
+    def configure_schedulers(self, schedulers):
+        custom_schedulers = []
+        i = 0
+        while i < len(schedulers):
+            if isinstance(schedulers[i], torch.optim.lr_scheduler.ReduceLROnPlateau):
+                custom_schedulers.append(schedulers.pop(i))
+            i += 1
+        if custom_schedulers:
+            self.lr_scheduler_callback = ReduceLROnPlateauScheduler(custom_schedulers,
+                                                                    monitor='val_loss')
+        return schedulers
 
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
@@ -906,25 +902,12 @@ class Trainer(TrainerIO):
         :param tries:
         :return:
         """
-
-        # use slurm job id for the port number
-        # guarantees unique ports across jobs from same grid search
+        # sets the appropriate port
         try:
-            # use the last 4 numbers in the job id as the id
-            default_port = os.environ['SLURM_JOB_ID']
-            default_port = default_port[-4:]
-
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
-
-        except Exception as e:
-            default_port = 12910
-
-        # if user gave a port number, use that one instead
-        try:
-            default_port = os.environ['MASTER_PORT']
+            port = os.environ['MASTER_PORT']
         except Exception:
-            os.environ['MASTER_PORT'] = str(default_port)
+            port = 12910
+            os.environ['MASTER_PORT'] = str(port)
 
         # figure out the root node addr
         try:
@@ -934,6 +917,7 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def resolve_root_node_address(self, root_node):
@@ -1090,8 +1074,7 @@ class Trainer(TrainerIO):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            output = self.__run_training_batch(batch, batch_nb)
-            batch_result, grad_norm_dic, batch_step_metrics = output
+            batch_result, grad_norm_dic = self.__run_training_batch(batch, batch_nb)
             early_stop_epoch = batch_result == -1
 
             # ---------------
@@ -1110,9 +1093,29 @@ class Trainer(TrainerIO):
 
             # when metrics should be logged
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
+                # count items in memory
+                # nb_params, nb_tensors = count_mem_items()
 
-                # logs user requested information to logger
-                self.__log_metrics(batch_step_metrics, grad_norm_dic)
+                model = self.__get_model()
+                metrics = self.__training_tqdm_dict
+
+                # add gpu memory
+                if self.on_gpu and self.log_gpu_memory:
+                    mem_map = get_gpu_memory_map()
+                    metrics.update(mem_map)
+
+                # add norms
+                metrics.update(grad_norm_dic)
+
+                if self.__is_function_implemented('on_training_metrics'):
+                    model.on_training_metrics(metrics)
+
+                # log metrics
+                scalar_metrics = self.__metrics_to_scalars(
+                    metrics, blacklist=self.__log_vals_blacklist())
+                if self.proc_rank == 0 and self.logger is not None:
+                    self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
+                    self.logger.save()
 
             # end epoch early
             if early_stop_epoch:
@@ -1123,32 +1126,6 @@ class Trainer(TrainerIO):
             model = self.__get_model()
             model.on_epoch_end()
 
-    def __log_metrics(self, metrics, grad_norm_dic):
-        """
-        Logs the metric dict passed in
-        :param metrics:
-        :param grad_norm_dic:
-        :return:
-        """
-        # added metrics by Lightning for convenience
-        metrics['epoch'] = self.current_epoch
-
-        # add gpu memory
-        if self.on_gpu and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
-
-        # add norms
-        metrics.update(grad_norm_dic)
-
-        # turn all tensors to scalars
-        scalar_metrics = self.__metrics_to_scalars(metrics)
-
-        # log actual metrics
-        if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
-            self.logger.save()
-
     def test(self, model=None):
         if model is not None:
             self.testing = True
@@ -1156,7 +1133,7 @@ class Trainer(TrainerIO):
         else:
             self.__run_evaluation(test=True)
 
-    def __metrics_to_scalars(self, metrics):
+    def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
         for k, v in metrics.items():
             if type(v) is torch.Tensor:
@@ -1164,6 +1141,9 @@ class Trainer(TrainerIO):
 
             if type(v) is dict:
                 v = self.__metrics_to_scalars(v)
+
+            if k not in blacklist:
+                new_metrics[k] = float(v)
 
         return new_metrics
 
@@ -1218,7 +1198,7 @@ class Trainer(TrainerIO):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        if self.use_ddp or self.use_ddp2:
+        if self.use_ddp:
             output = self.model(*args)
         elif self.use_dp:
             output = self.model(*args)
@@ -1233,64 +1213,41 @@ class Trainer(TrainerIO):
         else:
             output = self.model.training_step(*args)
 
-        # format and reduce outputs accordingly
-        loss, progress_bar_metrics, log_metrics = self.__process_output(output, train=True)
-        return loss, progress_bar_metrics, log_metrics
-
-    def __process_output(self, output, train=False):
-        """
-        Reduces output according to the training mode.
-        Separates loss from logging and tqdm metrics
-        :param output:
-        :return:
-        """
+        # ---------------
+        # TQDM metrics
+        # ---------------
         try:
-            progress_output = output['progress_bar']
+            progress_output = output['progress']
 
             # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
+            if self.use_dp or self.use_ddp2:
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
-            progress_bar_metrics = progress_output
+            model_specific_tqdm_metrics_dic = progress_output
         except Exception:
-            progress_bar_metrics = {}
-
-        # extract metrics to log to experiment
-        try:
-            log_output = output['log']
-
-            # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
-                nb_gpus = self.num_gpus
-                log_output = reduce_distributed_output(log_output, nb_gpus)
-
-            log_metrics = log_output
-        except Exception:
-            log_metrics = {}
+            model_specific_tqdm_metrics_dic = {}
 
         # ---------------
         # EXTRACT LOSS
         # ---------------
         # if output dict doesn't have the keyword loss
         # then assume the output=loss if scalar
-        loss = None
-        if train:
-            try:
-                loss = output['loss']
-            except Exception:
-                if type(output) is torch.Tensor:
-                    loss = output
-                else:
-                    raise RuntimeError(
-                        'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    )
+        try:
+            loss = output['loss']
+        except Exception:
+            if type(output) is torch.Tensor:
+                loss = output
+            else:
+                raise RuntimeError(
+                    'No `loss` value in the dictionary returned from `model.training_step()`.'
+                )
 
-            # when using dp need to reduce the loss
-            if self.use_dp or self.use_ddp2:
-                loss = reduce_distributed_output(loss, self.num_gpus)
+        # when using dp need to reduce the loss
+        if self.use_dp or self.use_ddp2:
+            loss = reduce_distributed_output(loss, self.num_gpus)
 
-        return loss, progress_bar_metrics, log_metrics
+        return loss, model_specific_tqdm_metrics_dic
 
     def __clip_gradients(self):
         if self.gradient_clip_val > 0:
@@ -1306,9 +1263,6 @@ class Trainer(TrainerIO):
     def __run_training_batch(self, batch, batch_nb):
         # track grad norms
         grad_norm_dic = {}
-
-        # track metrics to log
-        all_log_metrics = []
 
         if batch is None:
             return 0, grad_norm_dic
@@ -1327,37 +1281,27 @@ class Trainer(TrainerIO):
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
 
-            # wrap the forward step in a closure so second order methods work
-            def optimizer_closure():
-                # forward pass
-                output = self.__training_forward(batch, batch_nb, opt_idx)
-                closure_loss, progress_bar_metrics, log_metrics = output
+            # forward pass
+            loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
 
-                # track progress bar metrics
-                self.__add_tqdm_metrics(progress_bar_metrics)
+            # track metrics
+            self.__add_tqdm_metrics(model_specific_tqdm_metrics)
 
-                all_log_metrics.append(log_metrics)
+            # accumulate loss
+            # (if accumulate_grad_batches = 1 no effect)
+            loss = loss / self.accumulate_grad_batches
 
-                # accumulate loss
-                # (if accumulate_grad_batches = 1 no effect)
-                closure_loss = closure_loss / self.accumulate_grad_batches
+            # backward pass
+            if self.use_amp:
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
 
-                # backward pass
-                if self.use_amp:
-                    with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    closure_loss.backward()
-
-                # insert after step hook
-                if self.__is_function_implemented('on_after_backward'):
-                    model_ref = self.__get_model()
-                    model_ref.on_after_backward()
-
-                return closure_loss
-
-            # calculate loss
-            loss = optimizer_closure()
+            # insert after step hook
+            if self.__is_function_implemented('on_after_backward'):
+                model_ref = self.__get_model()
+                model_ref.on_after_backward()
 
             # nan grads
             if self.print_nan_grads:
@@ -1381,15 +1325,14 @@ class Trainer(TrainerIO):
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
                 model = self.__get_model()
-                model.optimizer_step(self.current_epoch, batch_nb,
-                                     optimizer, opt_idx, optimizer_closure)
+                model.optimizer_step(self.current_epoch, batch_nb, optimizer, opt_idx)
 
                 # calculate running loss for display
                 self.running_loss.append(self.batch_loss_value)
                 self.batch_loss_value = 0
                 self.avg_loss = np.mean(self.running_loss[-100:])
 
-                # update progress bar
+                # update progressbar
                 if self.show_progress_bar:
                     # add model specific metrics
                     tqdm_metrics = self.__training_tqdm_dict
@@ -1400,10 +1343,7 @@ class Trainer(TrainerIO):
             model = self.__get_model()
             model.on_batch_end()
 
-        # collapse all metrics into one dict
-        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
-
-        return 0, grad_norm_dic, all_log_metrics
+        return 0, grad_norm_dic
 
     def __run_evaluation(self, test=False):
         # when testing make sure user defined a test step
@@ -1438,19 +1378,11 @@ class Trainer(TrainerIO):
             if self.fast_dev_run:
                 max_batches = 1
 
-            # run evaluation
-            eval_results = self.evaluate(self.model,
-                                         dataloaders,
-                                         max_batches,
-                                         test)
-
-            _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
-
-            # add metrics to prog bar
-            self.__add_tqdm_metrics(progress_bar_metrics)
-
-            # log metrics
-            self.__log_metrics(log_metrics, {})
+            eval_out_metrics = self.evaluate(self.model,
+                                             dataloaders,
+                                             max_batches,
+                                             test)
+            self.__add_tqdm_metrics(eval_out_metrics)
 
             # hook
             model.on_post_performance_check()
@@ -1459,6 +1391,11 @@ class Trainer(TrainerIO):
                 # add model specific metrics
                 tqdm_metrics = self.__training_tqdm_dict
                 self.progress_bar.set_postfix(**tqdm_metrics)
+
+            # reduce learning rate based on metrics
+            if self.lr_scheduler_callback is not None and not test:
+                self.lr_scheduler_callback.on_epoch_end(epoch=self.current_epoch,
+                                                        logs=self.__training_tqdm_dict)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
