@@ -65,12 +65,12 @@ You can override this method to adjust how you do the optimizer step for each op
 Called once per optimizer
 ```python
 # DEFAULT
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     optimizer.step()   
     optimizer.zero_grad()   
     
 # Alternating schedule for optimizer steps (ie: GANs)    
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     # update generator opt every 2 steps
     if optimizer_i == 0:
         if batch_nb % 2 == 0 :
@@ -91,7 +91,7 @@ This step allows you to do a lot of non-standard training tricks such as learnin
 
 ```python
 # learning rate warm-up
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     # warm up lr
     if self.trainer.global_step < 500:
         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
