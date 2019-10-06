@@ -183,6 +183,7 @@ class Trainer(TrainerIO):
                 version=self.slurm_job_id,
                 name='lightning_logs'
             )
+        self.logger.rank = 0
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
@@ -1159,11 +1160,13 @@ class Trainer(TrainerIO):
     def __metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
-            if type(v) is torch.Tensor:
+            if isinstance(v, torch.Tensor):
                 v = v.item()
 
             if type(v) is dict:
                 v = self.__metrics_to_scalars(v)
+
+            new_metrics[k] = v
 
         return new_metrics
 
@@ -1335,7 +1338,6 @@ class Trainer(TrainerIO):
 
                 # track progress bar metrics
                 self.__add_tqdm_metrics(progress_bar_metrics)
-
                 all_log_metrics.append(log_metrics)
 
                 # accumulate loss
@@ -1402,7 +1404,6 @@ class Trainer(TrainerIO):
 
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
-
         return 0, grad_norm_dic, all_log_metrics
 
     def __run_evaluation(self, test=False):
@@ -1443,7 +1444,6 @@ class Trainer(TrainerIO):
                                          dataloaders,
                                          max_batches,
                                          test)
-
             _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
 
             # add metrics to prog bar
