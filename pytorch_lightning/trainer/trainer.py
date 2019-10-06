@@ -496,6 +496,7 @@ class Trainer(TrainerIO):
     def __layout_bookeeping(self):
 
         # determine number of training batches
+        pdb.set_trace()
         self.nb_training_batches = len(self.get_train_dataloader())
         self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
