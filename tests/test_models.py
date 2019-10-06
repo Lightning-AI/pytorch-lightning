@@ -446,7 +446,7 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i):
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_nb < 12:
             if epoch_nb == 0:
