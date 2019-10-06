@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 import numpy as np
 import pdb
-from test_models import assert_ok_test_acc, load_model, clear_save_dir
+from test_models import assert_ok_test_acc, load_model, clear_save_dir, get_test_tube_logger, get_hparams, init_save_dir
 
 
 class CoolModel(pl.LightningModule):
@@ -70,13 +70,13 @@ def main():
     Make sure DDP2 works
     :return:
     """
-    hparams = test_models.get_hparams()
+    hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = test_models.init_save_dir()
+    save_dir = init_save_dir()
 
     # logger file to get meta
-    logger = test_models.get_test_tube_logger(False)
+    logger = get_test_tube_logger(False)
     logger.log_hyperparams(hparams)
     logger.save()
 
