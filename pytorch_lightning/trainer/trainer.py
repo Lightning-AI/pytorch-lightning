@@ -1113,7 +1113,6 @@ class Trainer(TrainerIO):
             if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
 
                 # logs user requested information to logger
-                pdb.set_trace()
                 self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
@@ -1144,10 +1143,10 @@ class Trainer(TrainerIO):
         metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
+        pdb.set_trace()
         scalar_metrics = self.__metrics_to_scalars(metrics)
 
         # log actual metrics
-        pdb.set_trace()
         if self.proc_rank == 0 and self.logger is not None:
             self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
             self.logger.save()
