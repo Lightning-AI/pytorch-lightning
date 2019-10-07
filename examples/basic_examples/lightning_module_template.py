@@ -98,8 +98,11 @@ class LightningTemplateModel(LightningModule):
         if self.trainer.use_dp or self.trainer.use_ddp2:
             loss_val = loss_val.unsqueeze(0)
 
+        tqdm_dict = {'train_loss': loss_val}
         output = OrderedDict({
-            'loss': loss_val
+            'loss': loss_val,
+            'progress_bar': tqdm_dict,
+            'loss': tqdm_dict
         })
 
         # can also return just a scalar instead of a dict (return loss_val)
