@@ -1,5 +1,5 @@
 ### Template model definition
-In 99% of cases you want to just copy [this template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py) to start a new lightningModule and change the core of what your model is actually trying to do.
+In 99% of cases you want to just copy [one of the examples](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples) to start a new lightningModule and change the core of what your model is actually trying to do.
 
 ```bash
 # get a copy of the module template
