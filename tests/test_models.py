@@ -99,9 +99,8 @@ def test_multi_gpu_model_ddp2():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -510,8 +509,8 @@ def test_multi_gpu_model_ddp():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     reset_seed()
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -891,9 +890,8 @@ def test_amp_gpu_ddp():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1114,11 +1112,11 @@ def test_amp_gpu_ddp_slurm_managed():
     if not can_run_gpu_test():
         return
 
+    reset_seed()
+
     # simulate setting slurm flags
     os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     os.environ['SLURM_LOCALID'] = str(0)
-
-    reset_seed()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1350,9 +1348,9 @@ def test_ddp_sampler_error():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+
+    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
 
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
