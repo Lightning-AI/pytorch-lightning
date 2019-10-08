@@ -79,6 +79,7 @@ def test_lbfgs_cpu_model():
         overfit_pct=0.20,
         print_nan_grads=True,
         show_progress_bar=False,
+        weights_summary='top',
         train_percent_check=0.2,
         val_percent_check=0.2
     )
