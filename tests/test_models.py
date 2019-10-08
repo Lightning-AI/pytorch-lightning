@@ -209,6 +209,7 @@ def test_running_test_pretrained_model_ddp():
         return
 
     reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
