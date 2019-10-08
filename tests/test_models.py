@@ -36,6 +36,7 @@ ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
+RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 
 # ------------------------------------------------------------------------
@@ -79,6 +80,7 @@ def test_lbfgs_cpu_model():
         overfit_pct=0.20,
         print_nan_grads=True,
         show_progress_bar=False,
+        weights_summary='top',
         train_percent_check=0.2,
         val_percent_check=0.2
     )
@@ -99,9 +101,8 @@ def test_multi_gpu_model_ddp2():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+    set_random_master_port()
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -110,7 +111,7 @@ def test_multi_gpu_model_ddp2():
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=2,
-        print_weights_summary=False,
+        weights_summary=None,
         distributed_backend='ddp2'
     )
 
@@ -208,6 +209,7 @@ def test_running_test_pretrained_model_ddp():
         return
 
     reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -510,8 +512,8 @@ def test_multi_gpu_model_ddp():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
     reset_seed()
+    set_random_master_port()
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -891,9 +893,8 @@ def test_amp_gpu_ddp():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1114,11 +1115,11 @@ def test_amp_gpu_ddp_slurm_managed():
     if not can_run_gpu_test():
         return
 
-    # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-    os.environ['SLURM_LOCALID'] = str(0)
-
     reset_seed()
+
+    # simulate setting slurm flags
+    set_random_master_port()
+    os.environ['SLURM_LOCALID'] = str(0)
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1350,9 +1351,8 @@ def test_ddp_sampler_error():
     if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
-
     reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
@@ -1506,7 +1506,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
-    if trainer.use_ddp:
+    if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
@@ -1652,6 +1652,11 @@ def reset_seed():
     SEED = RANDOM_SEEDS.pop()
     torch.manual_seed(SEED)
     np.random.seed(SEED)
+
+
+def set_random_master_port():
+    port = RANDOM_PORTS.pop()
+    os.environ['MASTER_PORT'] = str(port)
 
 
 if __name__ == '__main__':
