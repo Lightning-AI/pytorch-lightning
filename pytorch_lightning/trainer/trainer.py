@@ -86,7 +86,7 @@ class Trainer(TrainerIO):
                  print_nan_grads=False,
                  print_weights_summary=True,
                  weights_save_path=None,
-                 amp_level='O2',
+                 amp_level='O1',
                  nb_sanity_val_steps=5):
         """
 
@@ -183,6 +183,7 @@ class Trainer(TrainerIO):
                 save_dir=self.default_save_path,
                 name='lightning_logs'
             )
+        self.logger.rank = 0
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
@@ -1136,21 +1137,19 @@ class Trainer(TrainerIO):
     def __metrics_to_scalars(self, metrics, blacklist=set()):
         new_metrics = {}
         for k, v in metrics.items():
-            if type(v) is torch.Tensor:
+            if isinstance(v, torch.Tensor):
                 v = v.item()
 
             if type(v) is dict:
                 v = self.__metrics_to_scalars(v)
 
-            if k not in blacklist:
-                new_metrics[k] = float(v)
+            new_metrics[k] = v
 
         return new_metrics
 
     def __log_vals_blacklist(self):
         """avoid logging some vals lightning uses to maintain state"""
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
-        return blacklist
 
     def transfer_batch_to_gpu(self, batch, gpu_id):
         # base case: object can be directly moved using `cuda` or `to`
@@ -1284,12 +1283,9 @@ class Trainer(TrainerIO):
             # forward pass
             loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
 
-            # track metrics
-            self.__add_tqdm_metrics(model_specific_tqdm_metrics)
-
-            # accumulate loss
-            # (if accumulate_grad_batches = 1 no effect)
-            loss = loss / self.accumulate_grad_batches
+                # track progress bar metrics
+                self.__add_tqdm_metrics(progress_bar_metrics)
+                all_log_metrics.append(log_metrics)
 
             # backward pass
             if self.use_amp:
@@ -1378,11 +1374,18 @@ class Trainer(TrainerIO):
             if self.fast_dev_run:
                 max_batches = 1
 
-            eval_out_metrics = self.evaluate(self.model,
-                                             dataloaders,
-                                             max_batches,
-                                             test)
-            self.__add_tqdm_metrics(eval_out_metrics)
+            # run evaluation
+            eval_results = self.evaluate(self.model,
+                                         dataloaders,
+                                         max_batches,
+                                         test)
+            _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
+
+            # add metrics to prog bar
+            self.__add_tqdm_metrics(progress_bar_metrics)
+
+            # log metrics
+            self.__log_metrics(log_metrics, {})
 
             # hook
             model.on_post_performance_check()
@@ -1399,6 +1402,5 @@ class Trainer(TrainerIO):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__training_tqdm_dict)
