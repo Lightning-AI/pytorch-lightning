@@ -240,13 +240,26 @@ def get_gpu_memory_map():
 
 
 def get_human_readable_count(number):
-    labels = ['', 'K', 'M', 'B', 'T']
+    """
+    Abbreviates an integer number with K, M, B, T for thousands, millions, billions and trillions, respectively.
+    Examples:
+        123     -> 123
+        1234    -> 1 K       (one thousand)
+        2e6     -> 2 M       (two million)
+        3e9     -> 3 B       (three billion)
+        4e12    -> 4 T       (four trillion)
+        5e15    -> 5,000 T
+    :param number: a positive integer number
+    :returns a string formatted according to the pattern described above.
+    """
+    assert number >= 0
+    labels = [' ', 'K', 'M', 'B', 'T']
     num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10 ** shift)
     index = num_groups - 1
+    return f'{int(number):,d} {labels[index]}'
 
-    return f'{int(round(number)):,d}{labels[index]}'
 
