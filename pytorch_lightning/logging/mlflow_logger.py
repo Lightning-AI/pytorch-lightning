@@ -53,4 +53,6 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status="FINISHED"):
+        if status == 'success':
+            status = 'FINISHED'
         self.client.set_terminated(self.run_id, status)
