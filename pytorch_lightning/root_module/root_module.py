@@ -159,8 +159,8 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         return model
 
-    def summarize(self):
-        model_summary = ModelSummary(self)
+    def summarize(self, mode):
+        model_summary = ModelSummary(self, mode=mode)
         print(model_summary)
 
     def freeze(self):

@@ -12,11 +12,12 @@ import pandas as pd
 
 class ModelSummary(object):
 
-    def __init__(self, model):
+    def __init__(self, model, mode='full'):
         '''
         Generates summaries of model layers and dimensions.
         '''
         self.model = model
+        self.mode = mode
         self.in_sizes = []
         self.out_sizes = []
 
@@ -28,9 +29,20 @@ class ModelSummary(object):
     def __repr__(self):
         return self.summary.__str__()
 
+    def named_modules(self):
+        if self.mode == 'full':
+            mods = self.model.named_modules()
+            mods = list(mods)[1:]  # do not include root module (LightningModule)
+        elif self.mode == 'top':
+            # the children are the top-level modules
+            mods = self.model.named_children()
+        else:
+            mods = []
+        return list(mods)
+
     def get_variable_sizes(self):
         '''Run sample input through each layer to get output sizes'''
-        mods = list(self.model.modules())
+        mods = self.named_modules()
         in_sizes = []
         out_sizes = []
         input_ = self.model.example_input_array
@@ -43,8 +55,7 @@ class ModelSummary(object):
 
         with torch.no_grad():
 
-            for i in range(1, len(mods)):
-                m = mods[i]
+            for _, m in mods:
                 if type(input_) is list or type(input_) is tuple:  # pragma: no cover
                     out = m(*input_)
                 else:
@@ -72,16 +83,17 @@ class ModelSummary(object):
 
         self.in_sizes = in_sizes
         self.out_sizes = out_sizes
+        assert len(in_sizes) == len(out_sizes)
         return
 
     def get_layer_names(self):
         '''Collect Layer Names'''
-        mods = list(self.model.named_modules())
+        mods = self.named_modules()
         names = []
         layers = []
-        for m in mods[1:]:
-            names += [m[0]]
-            layers += [str(m[1].__class__)]
+        for name, m in mods:
+            names += [name]
+            layers += [str(m.__class__)]
 
         layer_types = [x.split('.')[-1][:-2] for x in layers]
 
@@ -91,11 +103,9 @@ class ModelSummary(object):
 
     def get_parameter_sizes(self):
         '''Get sizes of all parameters in `model`'''
-        mods = list(self.model.modules())
+        mods = self.named_modules()
         sizes = []
-
-        for i in range(1, len(mods)):
-            m = mods[i]
+        for _, m in mods:
             p = list(m.parameters())
             modsz = []
             for j in range(len(p)):
