@@ -36,6 +36,7 @@ ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
+RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 
 # ------------------------------------------------------------------------
@@ -101,7 +102,7 @@ def test_multi_gpu_model_ddp2():
         return
 
     reset_seed()
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -511,7 +512,7 @@ def test_multi_gpu_model_ddp():
         return
 
     reset_seed()
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
 
     model, hparams = get_model()
     trainer_options = dict(
@@ -892,7 +893,7 @@ def test_amp_gpu_ddp():
         return
 
     reset_seed()
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -1116,7 +1117,7 @@ def test_amp_gpu_ddp_slurm_managed():
     reset_seed()
 
     # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
     hparams = get_hparams()
@@ -1350,8 +1351,7 @@ def test_ddp_sampler_error():
         return
 
     reset_seed()
-
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
@@ -1651,6 +1651,11 @@ def reset_seed():
     SEED = RANDOM_SEEDS.pop()
     torch.manual_seed(SEED)
     np.random.seed(SEED)
+
+
+def set_random_master_port():
+    port = RANDOM_PORTS.pop()
+    os.environ['MASTER_PORT'] = port
 
 
 if __name__ == '__main__':
