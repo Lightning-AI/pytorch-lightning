@@ -981,7 +981,7 @@ class Trainer(TrainerIO):
         self.__layout_bookeeping()
 
         # print model summary
-        if self.proc_rank == 0:
+        if self.proc_rank == 0 and self.weights_summary in ['full', 'top']:
             ref_model.summarize(mode=self.weights_summary)
 
         # link up experiment object
