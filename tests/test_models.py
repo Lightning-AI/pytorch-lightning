@@ -1504,7 +1504,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
-    if trainer.use_ddp:
+    if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
