@@ -1066,7 +1066,7 @@ class Trainer(TrainerIO):
                 stop = should_stop and met_min_epochs
                 if stop:
                     return
-        
+
         if self.logger is not None:
             self.logger.finalize("success")
 
