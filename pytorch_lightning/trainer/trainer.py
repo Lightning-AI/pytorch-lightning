@@ -84,7 +84,7 @@ class Trainer(TrainerIO):
                  distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
-                 print_weights_summary=True,
+                 weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
                  nb_sanity_val_steps=5):
@@ -116,7 +116,7 @@ class Trainer(TrainerIO):
         :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
-        :param print_weights_summary: Bool. Prints summary of weights
+        :param weights_summary: str. Options: 'full', 'top'.
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
@@ -131,7 +131,7 @@ class Trainer(TrainerIO):
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
-        self.print_weights_summary = print_weights_summary
+        self.weights_summary = weights_summary
         self.max_nb_epochs = max_nb_epochs
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
@@ -981,8 +981,8 @@ class Trainer(TrainerIO):
         self.__layout_bookeeping()
 
         # print model summary
-        if self.proc_rank == 0 and self.print_weights_summary:
-            ref_model.summarize()
+        if self.proc_rank == 0 and self.weights_summary in ['full', 'top']:
+            ref_model.summarize(mode=self.weights_summary)
 
         # link up experiment object
         if self.logger is not None:
