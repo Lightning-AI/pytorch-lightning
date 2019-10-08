@@ -1420,8 +1420,7 @@ class Trainer(TrainerIO):
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        all_callback_metrics = {k: v for d in all_callback_metrics for k, v in d.items()}
-        self.callback_metrics = all_callback_metrics
+        self.callback_metrics = {k: v for d in all_callback_metrics for k, v in d.items()}
 
         return 0, grad_norm_dic, all_log_metrics
 
