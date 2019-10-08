@@ -151,7 +151,7 @@ def test_custom_logger():
         @rank_zero_only
         def log_metrics(self, metrics, step_num):
             self.metrics_logged = metrics
-        
+
         @rank_zero_only
         def finalize(self, status):
             self.finalized_status = status
