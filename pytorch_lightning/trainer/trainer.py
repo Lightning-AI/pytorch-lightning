@@ -975,6 +975,13 @@ class Trainer(TrainerIO):
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.model = model
+
+        # restore training and model before hpc call
+        self.restore_weights(model)
+
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
@@ -997,13 +1004,6 @@ class Trainer(TrainerIO):
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
             self.logger.save()
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.model = model
-
-        # restore training and model before hpc call
-        self.restore_weights(model)
 
         # progress bar init
         if self.show_progress_bar:
