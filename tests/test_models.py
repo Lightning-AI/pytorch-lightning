@@ -109,7 +109,7 @@ def test_multi_gpu_model_ddp2():
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=2,
-        print_weights_summary=False,
+        weights_summary=None,
         distributed_backend='ddp2'
     )
 

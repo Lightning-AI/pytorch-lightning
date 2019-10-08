@@ -116,7 +116,7 @@ class Trainer(TrainerIO):
         :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
-        :param weights_summary: str. Options: 'full', 'top'.
+        :param weights_summary: str. Options: 'full', 'top', None to not print.
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
@@ -982,7 +982,7 @@ class Trainer(TrainerIO):
         self.__layout_bookeeping()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary in ['full', 'top']:
+        if self.proc_rank == 0 and (self.weights_summary is not None and self.weights_summary in ['full', 'top']):
             ref_model.summarize(mode=self.weights_summary)
 
         # link up experiment object
