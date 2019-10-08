@@ -133,6 +133,7 @@ class ModelSummary(object):
         df['Name'] = self.layer_names
         df['Type'] = self.layer_types
         df['Params'] = self.param_nums
+        df['Params'] = df['Params'].map(get_human_readable_count)
 
         if self.model.example_input_array is not None:
 
@@ -226,3 +227,16 @@ def get_gpu_memory_map():
         k = f'gpu_{k}'
         gpu_memory_map[k] = v
     return gpu_memory_map
+
+
+def get_human_readable_count(number):
+    labels = ['', 'K', 'M', 'B', 'T']
+    num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
+    num_groups = int(np.ceil(num_digits / 3))
+    num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
+    shift = -3 * (num_groups - 1)
+    number = number * (10 ** shift)
+    index = num_groups - 1
+
+    return f'{int(round(number)):,d}{labels[index]}'
+
