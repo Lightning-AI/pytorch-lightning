@@ -54,7 +54,7 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Examples](https://github.com/williamFalcon/pytorch-lightning#examples)    
 - [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
-- [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/CONTRIBUTING.md)    
+- [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
 - [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
 - [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)   
 - [Asking for help](https://github.com/williamFalcon/pytorch-lightning#asking-for-help)
