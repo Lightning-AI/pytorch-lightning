@@ -1251,7 +1251,7 @@ class Trainer(TrainerIO):
         """
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        for k, v in output:
+        for k, v in output.items():
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
