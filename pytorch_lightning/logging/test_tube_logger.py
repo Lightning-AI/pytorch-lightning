@@ -54,6 +54,7 @@ class TestTubeLogger(LightningLoggerBase):
         self.save()
         self.close()
 
+    @rank_zero_only
     def close(self):
         self.experiment.close()
 
