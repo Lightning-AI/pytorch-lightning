@@ -153,8 +153,8 @@ def test_custom_logger():
             self.metrics_logged = metrics
         
         @rank_zero_only
-        def finalize(self):
-            self.finalized = True
+        def finalize(self, status):
+            self.finalized_status = status
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -172,7 +172,7 @@ def test_custom_logger():
     assert result == 1, "Training failed"
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
-    assert logger.finalized
+    assert logger.finalized_status == "success"
 
 
 def reset_seed():

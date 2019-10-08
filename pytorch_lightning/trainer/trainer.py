@@ -1068,7 +1068,7 @@ class Trainer(TrainerIO):
                     return
         
         if self.logger is not None:
-            self.logger.finalize()
+            self.logger.finalize("success")
 
     def run_training_epoch(self):
         # before epoch hook
