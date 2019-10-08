@@ -1462,6 +1462,5 @@ class Trainer(TrainerIO):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            print('save callback...')
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.__training_tqdm_dict)
