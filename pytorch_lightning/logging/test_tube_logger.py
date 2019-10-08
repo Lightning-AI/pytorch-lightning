@@ -58,6 +58,7 @@ class TestTubeLogger(LightningLoggerBase):
     def close(self):
         import pdb
         try:
+            pdb.set_trace()
             self.experiment.close()
         except Exception as e:
             pdb.set_trace()
