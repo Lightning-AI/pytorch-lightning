@@ -1462,10 +1462,10 @@ class Trainer(TrainerIO):
                                          dataloaders,
                                          max_batches,
                                          test)
-            _, progress_bar_metrics, log_metrics, callback_metrics = self.__process_output(eval_results)
+            _, prog_bar_metrics, log_metrics, callback_metrics = self.__process_output(eval_results)
 
             # add metrics to prog bar
-            self.__add_tqdm_metrics(progress_bar_metrics)
+            self.__add_tqdm_metrics(prog_bar_metrics)
 
             # log metrics
             self.__log_metrics(log_metrics, {})
