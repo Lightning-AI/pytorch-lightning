@@ -86,7 +86,7 @@ class Trainer(TrainerIO):
                  print_nan_grads=False,
                  print_weights_summary=True,
                  weights_save_path=None,
-                 amp_level='O2',
+                 amp_level='O1',
                  nb_sanity_val_steps=5):
         """
 
