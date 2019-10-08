@@ -982,8 +982,13 @@ class Trainer(TrainerIO):
         self.__layout_bookeeping()
 
         # print model summary
-        if self.proc_rank == 0 and (self.weights_summary is not None and self.weights_summary in ['full', 'top']):
-            ref_model.summarize(mode=self.weights_summary)
+
+        if self.proc_rank == 0 and self.weights_summary is not None:
+            if self.weights_summary in ['full', 'top']:
+                ref_model.summarize(mode=self.weights_summary)
+            else:
+                m = "weights_summary can be None, 'full' or 'top'"
+                raise MisconfigurationException(m)
 
         # link up experiment object
         if self.logger is not None:
