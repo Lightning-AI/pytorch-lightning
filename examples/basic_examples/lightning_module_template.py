@@ -102,7 +102,7 @@ class LightningTemplateModel(LightningModule):
         output = OrderedDict({
             'loss': loss_val,
             'progress_bar': tqdm_dict,
-            'loss': tqdm_dict
+            'log': tqdm_dict
         })
 
         # can also return just a scalar instead of a dict (return loss_val)
@@ -171,7 +171,7 @@ class LightningTemplateModel(LightningModule):
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
         tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        result = {'progress_bar': tqdm_dict, 'logs': tqdm_dict}
+        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict}
         return result
 
     # ---------------------
