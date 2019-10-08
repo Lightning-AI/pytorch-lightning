@@ -56,7 +56,11 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def close(self):
-        self.experiment.close()
+        import pdb
+        try:
+            self.experiment.close()
+        except Exception as e:
+            pdb.set_trace()
 
     @property
     def rank(self):
