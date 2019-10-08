@@ -1655,7 +1655,7 @@ def reset_seed():
 
 def set_random_master_port():
     port = RANDOM_PORTS.pop()
-    os.environ['MASTER_PORT'] = port
+    os.environ['MASTER_PORT'] = str(port)
 
 
 if __name__ == '__main__':
