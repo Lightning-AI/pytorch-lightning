@@ -241,7 +241,8 @@ def get_gpu_memory_map():
 
 def get_human_readable_count(number):
     """
-    Abbreviates an integer number with K, M, B, T for thousands, millions, billions and trillions, respectively.
+    Abbreviates an integer number with K, M, B, T for thousands, millions,
+    billions and trillions, respectively.
     Examples:
         123     -> 123
         1234    -> 1 K       (one thousand)
@@ -261,5 +262,3 @@ def get_human_readable_count(number):
     number = number * (10 ** shift)
     index = num_groups - 1
     return f'{int(number):,d} {labels[index]}'
-
-
