@@ -1072,6 +1072,9 @@ class Trainer(TrainerIO):
                 if stop:
                     return
 
+        if self.logger is not None:
+            self.logger.finalize("success")
+
     def run_training_epoch(self):
         # before epoch hook
         if self.__is_function_implemented('on_epoch_start'):
