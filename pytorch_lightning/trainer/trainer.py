@@ -1054,6 +1054,9 @@ class Trainer(TrainerIO):
             self.total_batches = self.nb_training_batches + self.nb_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
+            # limit the number of batches to 1 in fast_dev_run
+            self.total_batches = 1
+
             # init progress_bar when requested
             if self.show_progress_bar:
                 self.progress_bar.reset(self.total_batches)
