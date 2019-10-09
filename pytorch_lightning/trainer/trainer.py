@@ -202,9 +202,10 @@ class Trainer(TrainerIO):
                 ckpt_path = '{}/{}/{}/{}/{}'.format(self.default_save_path,
                                                     self.logger.name,
                                                     self.logger.version, 'checkpoints')
-                print(ckpt_path)
             else:
                 ckpt_path = self.default_save_path
+
+            print(ckpt_path)
 
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
