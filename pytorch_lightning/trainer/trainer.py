@@ -1269,6 +1269,9 @@ class Trainer(TrainerIO):
         :param output:
         :return:
         """
+        # ---------------
+        # EXTRACT CALLBACK KEYS
+        # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
         for k, v in output.items():
@@ -1280,6 +1283,9 @@ class Trainer(TrainerIO):
             nb_gpus = self.num_gpus
             callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
 
+        # ---------------
+        # EXTRACT PROGRESS BAR KEYS
+        # ---------------
         try:
             progress_output = output['progress_bar']
 
@@ -1292,6 +1298,9 @@ class Trainer(TrainerIO):
         except Exception:
             progress_bar_metrics = {}
 
+        # ---------------
+        # EXTRACT LOGGING KEYS
+        # ---------------
         # extract metrics to log to experiment
         try:
             log_output = output['log']
