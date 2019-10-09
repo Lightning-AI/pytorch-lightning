@@ -1281,7 +1281,6 @@ class Trainer(TrainerIO):
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
-        pdb.set_trace()
         if train and self.use_dp or self.use_ddp2:
             nb_gpus = self.num_gpus
             callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
