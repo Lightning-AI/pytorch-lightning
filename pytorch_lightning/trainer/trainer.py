@@ -260,9 +260,11 @@ class Trainer(TrainerIO):
         if self.checkpoint_callback is None:
             # init a default one
             if isinstance(self.logger, TestTubeLogger):
-                ckpt_path = '{}/{}/version_{}/{}'.format(self.default_save_path,
-                                                    self.logger.experiment.name,
-                                                    self.logger.experiment.version, 'checkpoints')
+                ckpt_path = '{}/{}/version_{}/{}'.format(
+                    self.default_save_path,
+                    self.logger.experiment.name,
+                    self.logger.experiment.version,
+                    'checkpoints')
             else:
                 ckpt_path = self.default_save_path
 
