@@ -1271,11 +1271,11 @@ class Trainer(TrainerIO):
         """
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        pdb.set_trace()
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
+        pdb.set_trace()
         if train and self.use_dp or self.use_ddp2:
             nb_gpus = self.num_gpus
             callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
