@@ -128,7 +128,6 @@ class Trainer(TrainerIO):
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = early_stop_callback is not None
         self.track_grad_norm = track_grad_norm
-        self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
         self.weights_summary = weights_summary
@@ -136,6 +135,16 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+
+        self.fast_dev_run = fast_dev_run
+        if self.fast_dev_run:
+            self.nb_sanity_val_steps = 1
+            self.max_nb_epochs = 1
+            m = '''
+            Running in fast_dev_run mode: will run a full train,
+            val loop using a single batch
+            '''
+            print(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
