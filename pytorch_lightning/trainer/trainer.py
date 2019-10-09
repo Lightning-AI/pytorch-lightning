@@ -983,6 +983,15 @@ class Trainer(TrainerIO):
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
+        # link up experiment object
+        if self.logger is not None:
+            ref_model.logger = self.logger
+
+            # save exp to get started
+            if hasattr(ref_model, "hparams"):
+                self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.save()
+
         # set up checkpoint callback
         self.__configure_checkpoint_callback()
 
@@ -1002,15 +1011,6 @@ class Trainer(TrainerIO):
             else:
                 m = "weights_summary can be None, 'full' or 'top'"
                 raise MisconfigurationException(m)
-
-        # link up experiment object
-        if self.logger is not None:
-            ref_model.logger = self.logger
-
-            # save exp to get started
-            if hasattr(ref_model, "hparams"):
-                self.logger.log_hyperparams(ref_model.hparams)
-            self.logger.save()
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
