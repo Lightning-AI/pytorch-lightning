@@ -1561,6 +1561,8 @@ def load_model(exp, save_dir, module_class=LightningTemplateModel):
     tags_path = exp.get_data_path(exp.name, exp.version)
     checkpoint_folder = os.path.join(tags_path, 'checkpoints')
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    import pdb
+    pdb.set_trace()
 
     checkpoints = [x for x in os.listdir(checkpoint_folder) if '.ckpt' in x]
     weights_dir = os.path.join(checkpoint_folder, checkpoints[0])
