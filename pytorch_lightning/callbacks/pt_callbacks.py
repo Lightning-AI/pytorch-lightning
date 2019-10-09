@@ -125,7 +125,8 @@ class EarlyStopping(Callback):
             print('Early stopping conditioned on metric `%s` '
                   'which is not available. Available metrics are: %s' %
                   (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
-            exit(-1)
+            stop_training = True
+            return stop_training
 
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current

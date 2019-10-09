@@ -84,7 +84,7 @@ class Trainer(TrainerIO):
                  distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
-                 print_weights_summary=True,
+                 weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
                  nb_sanity_val_steps=5):
@@ -116,7 +116,7 @@ class Trainer(TrainerIO):
         :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
-        :param print_weights_summary: Bool. Prints summary of weights
+        :param weights_summary: str. Options: 'full', 'top', None to not print.
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
@@ -131,7 +131,7 @@ class Trainer(TrainerIO):
         self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
-        self.print_weights_summary = print_weights_summary
+        self.weights_summary = weights_summary
         self.max_nb_epochs = max_nb_epochs
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
@@ -148,6 +148,7 @@ class Trainer(TrainerIO):
         self.avg_loss = 0
         self.batch_nb = 0
         self.tqdm_metrics = {}
+        self.callback_metrics = {}
         self.nb_val_batches = 0
         self.nb_training_batches = 0
         self.nb_test_batches = 0
@@ -965,8 +966,12 @@ class Trainer(TrainerIO):
         self.__layout_bookeeping()
 
         # print model summary
-        if self.proc_rank == 0 and self.print_weights_summary:
-            ref_model.summarize()
+        if self.proc_rank == 0 and self.weights_summary is not None:
+            if self.weights_summary in ['full', 'top']:
+                ref_model.summarize(mode=self.weights_summary)
+            else:
+                m = "weights_summary can be None, 'full' or 'top'"
+                raise MisconfigurationException(m)
 
         # link up experiment object
         if self.logger is not None:
@@ -1045,11 +1050,14 @@ class Trainer(TrainerIO):
             met_min_epochs = epoch_nb > self.min_nb_epochs
             if self.enable_early_stop and met_min_epochs:
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
-                                                                    logs=self.__training_tqdm_dict)
+                                                                    logs=self.callback_metrics)
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
                     return
+
+        if self.logger is not None:
+            self.logger.finalize("success")
 
     def run_training_epoch(self):
         # before epoch hook
@@ -1212,9 +1220,24 @@ class Trainer(TrainerIO):
         else:
             output = self.model.training_step(*args)
 
-        # ---------------
-        # TQDM metrics
-        # ---------------
+        # format and reduce outputs accordingly
+        output = self.__process_output(output, train=True)
+        loss, progress_bar_metrics, log_metrics, callback_metrics = output
+        return loss, progress_bar_metrics, log_metrics, callback_metrics
+
+    def __process_output(self, output, train=False):
+        """
+        Reduces output according to the training mode.
+        Separates loss from logging and tqdm metrics
+        :param output:
+        :return:
+        """
+        # all keys not progress_bar or log are candidates for callbacks
+        callback_metrics = {}
+        for k, v in output.items():
+            if k not in ['progress_bar', 'log']:
+                callback_metrics[k] = v
+
         try:
             progress_output = output['progress']
 
@@ -1246,7 +1269,7 @@ class Trainer(TrainerIO):
         if self.use_dp or self.use_ddp2:
             loss = reduce_distributed_output(loss, self.num_gpus)
 
-        return loss, model_specific_tqdm_metrics_dic
+        return loss, progress_bar_metrics, log_metrics, callback_metrics
 
     def __clip_gradients(self):
         if self.gradient_clip_val > 0:
@@ -1262,6 +1285,12 @@ class Trainer(TrainerIO):
     def __run_training_batch(self, batch, batch_nb):
         # track grad norms
         grad_norm_dic = {}
+
+        # track all metrics for callbacks
+        all_callback_metrics = []
+
+        # track metrics to log
+        all_log_metrics = []
 
         if batch is None:
             return 0, grad_norm_dic
@@ -1280,8 +1309,14 @@ class Trainer(TrainerIO):
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
 
-            # forward pass
-            loss, model_specific_tqdm_metrics = self.__training_forward(batch, batch_nb, opt_idx)
+            # wrap the forward step in a closure so second order methods work
+            def optimizer_closure():
+                # forward pass
+                output = self.__training_forward(batch, batch_nb, opt_idx)
+                closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
+
+                # track metrics for callbacks
+                all_callback_metrics.append(callback_metrics)
 
                 # track progress bar metrics
                 self.__add_tqdm_metrics(progress_bar_metrics)
@@ -1339,7 +1374,13 @@ class Trainer(TrainerIO):
             model = self.__get_model()
             model.on_batch_end()
 
-        return 0, grad_norm_dic
+        # collapse all metrics into one dict
+        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
+
+        # track all metrics for callbacks
+        self.callback_metrics = {k: v for d in all_callback_metrics for k, v in d.items()}
+
+        return 0, grad_norm_dic, all_log_metrics
 
     def __run_evaluation(self, test=False):
         # when testing make sure user defined a test step
@@ -1379,13 +1420,16 @@ class Trainer(TrainerIO):
                                          dataloaders,
                                          max_batches,
                                          test)
-            _, progress_bar_metrics, log_metrics = self.__process_output(eval_results)
+            _, prog_bar_metrics, log_metrics, callback_metrics = self.__process_output(eval_results)
 
             # add metrics to prog bar
-            self.__add_tqdm_metrics(progress_bar_metrics)
+            self.__add_tqdm_metrics(prog_bar_metrics)
 
             # log metrics
             self.__log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics = callback_metrics
 
             # hook
             model.on_post_performance_check()
@@ -1403,4 +1447,4 @@ class Trainer(TrainerIO):
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
-                                                  logs=self.__training_tqdm_dict)
+                                                  logs=self.callback_metrics)

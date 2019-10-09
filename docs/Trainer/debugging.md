@@ -38,6 +38,14 @@ trainer = Trainer(overfit_pct=0.01)
 #### Print the parameter count by layer
 By default lightning prints a list of parameters *and submodules* when it starts training.
 
+``` {.python}
+# DEFAULT print a full list of all submodules and their parameters.
+trainer = Trainer(weights_summary='full')
+
+# only print the top-level modules (i.e. the children of LightningModule).
+trainer = Trainer(weights_summary='top')
+```
+
 ---
 #### Print which gradients are nan 
 This option prints a list of tensors with nan gradients.
