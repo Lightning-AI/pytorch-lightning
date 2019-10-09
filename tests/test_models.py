@@ -1558,9 +1558,10 @@ def load_model(exp, save_dir, module_class=LightningTemplateModel):
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
+    checkpoint_folder = os.path.join(tags_path, 'checkpoints')
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
-    checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
+    checkpoints = [x for x in os.listdir(checkpoint_folder) if '.ckpt' in x]
     weights_dir = os.path.join(save_dir, checkpoints[0])
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
