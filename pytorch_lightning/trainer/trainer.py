@@ -1285,6 +1285,9 @@ class Trainer(TrainerIO):
             nb_gpus = self.num_gpus
             callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
 
+        for k, v in callback_metrics.items():
+            callback_metrics[k] = v.item()
+
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
         # ---------------
