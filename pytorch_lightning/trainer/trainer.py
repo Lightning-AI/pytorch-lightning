@@ -197,20 +197,8 @@ class Trainer(TrainerIO):
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
-        if self.checkpoint_callback is None:
-            if isinstance(self.logger, TestTubeLogger):
-                ckpt_path = '{}/{}/{}/{}'.format(self.default_save_path,
-                                                    self.logger.name,
-                                                    self.logger.version, 'checkpoints')
-            else:
-                ckpt_path = self.default_save_path
 
-            self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path
-            )
-
-        # configure weights save path
-        self.__configure_weights_path(checkpoint_callback, weights_save_path)
+        self.weights_save_path = weights_save_path
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
@@ -262,22 +250,33 @@ class Trainer(TrainerIO):
             job_id = None
         return job_id
 
-    def __configure_weights_path(self, checkpoint_callback, weights_save_path):
+    def __configure_checkpoint_callback(self):
         """
         Weight path set in this priority:
         Checkpoint_callback's path (if passed in).
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        self.weights_save_path = weights_save_path
+        if self.checkpoint_callback is None:
+            # init a default one
+            if isinstance(self.logger, TestTubeLogger):
+                ckpt_path = '{}/{}/version_{}/{}'.format(self.default_save_path,
+                                                    self.logger.experiment.name,
+                                                    self.logger.experiment.version, 'checkpoints')
+            else:
+                ckpt_path = self.default_save_path
 
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.save_function = self.save_checkpoint
+            self.checkpoint_callback = ModelCheckpoint(
+                filepath=ckpt_path
+            )
 
-            # if checkpoint callback used, then override the weights path
-            self.weights_save_path = self.checkpoint_callback.filepath
+        # set the path for the callbacks
+        self.checkpoint_callback.save_function = self.save_checkpoint
 
-        # if weights_save_path is still none here, set to current workingdir
+        # if checkpoint callback used, then override the weights path
+        self.weights_save_path = self.checkpoint_callback.filepath
+
+        # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
 
@@ -981,6 +980,9 @@ class Trainer(TrainerIO):
         ref_model.use_ddp2 = self.use_ddp2
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
+
+        # set up checkpoint callback
+        self.__configure_checkpoint_callback()
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
