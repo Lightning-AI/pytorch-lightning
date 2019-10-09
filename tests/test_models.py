@@ -1459,7 +1459,10 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    exp = logger.experiment
+    exp_path = exp.get_data_path(exp.name, exp.version)
+    ckpt_dir = os.path.join(exp_path, 'checkpoints')
+    checkpoint = ModelCheckpoint(ckpt_dir)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
