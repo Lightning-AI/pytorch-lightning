@@ -926,6 +926,9 @@ class Trainer(TrainerIO):
 
         root_node = self.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+        print('-'*100)
+        print(self.proc_rank, self.world_size)
+        print('-'*100)
         dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def resolve_root_node_address(self, root_node):
