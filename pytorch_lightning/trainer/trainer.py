@@ -1271,6 +1271,7 @@ class Trainer(TrainerIO):
         """
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
+        pdb.set_trace()
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v.item()
