@@ -990,6 +990,7 @@ class Trainer(TrainerIO):
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
+            pdb.set_trace()
             self.logger.save()
 
         # set up checkpoint callback
