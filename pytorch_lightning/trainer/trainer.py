@@ -1064,7 +1064,7 @@ class Trainer(TrainerIO):
 
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
-            if self.enable_early_stop and met_min_epochs:
+            if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
                                                                     logs=self.callback_metrics)
                 # stop training
@@ -1108,23 +1108,27 @@ class Trainer(TrainerIO):
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
-                if can_check_epoch:
-                    self.__run_evaluation(test=self.testing)
+            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
 
-            # when batch should be saved
-            if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
+            # fast_dev_run always forces val checking after train batch
+            if self.fast_dev_run or should_check_val:
+                self.__run_evaluation(test=self.testing)
+
+            # when logs should be saved
+            should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
+            if should_save_log or self.fast_dev_run:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
-            if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
+            should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
+            if should_log_metrics or self.fast_dev_run:
 
                 # logs user requested information to logger
                 self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
-            if early_stop_epoch:
+            if early_stop_epoch or self.fast_dev_run:
                 break
 
         # epoch end hook
