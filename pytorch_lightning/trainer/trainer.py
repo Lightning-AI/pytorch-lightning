@@ -197,6 +197,7 @@ class Trainer(TrainerIO):
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
+
         self.weights_save_path = weights_save_path
 
         # accumulated grads
