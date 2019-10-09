@@ -1260,7 +1260,7 @@ class Trainer(TrainerIO):
         callback_metrics = {}
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
-                callback_metrics[k] = v
+                callback_metrics[k] = v.item()
 
         try:
             progress_output = output['progress_bar']
