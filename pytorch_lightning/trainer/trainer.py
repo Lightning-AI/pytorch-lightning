@@ -197,6 +197,7 @@ class Trainer(TrainerIO):
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
+        pdb.set_trace()
         if self.checkpoint_callback is None:
             if isinstance(logger, TestTubeLogger):
                 ckpt_path = '{}/{}/{}/{}/{}'.format(self.default_save_path,
