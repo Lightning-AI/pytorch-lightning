@@ -144,7 +144,8 @@ def test_dp_resume():
     logger = get_test_tube_logger(debug=False)
 
     # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['logger'] = logger
@@ -219,7 +220,7 @@ def test_running_test_pretrained_model_ddp():
     logger = get_test_tube_logger(False)
 
     # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -264,7 +265,7 @@ def test_running_test_after_fitting():
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -305,7 +306,7 @@ def test_running_test_without_val():
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -344,7 +345,7 @@ def test_running_test_pretrained_model():
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -389,7 +390,7 @@ def test_running_test_pretrained_model_dp():
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=True,
@@ -1115,7 +1116,7 @@ def test_amp_gpu_ddp_slurm_managed():
     logger = get_test_tube_logger(False)
 
     # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
@@ -1459,10 +1460,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     logger = get_test_tube_logger(False)
 
     # logger file to get weights
-    exp = logger.experiment
-    exp_path = exp.get_data_path(exp.name, exp.version)
-    ckpt_dir = os.path.join(exp_path, 'checkpoints')
-    checkpoint = ModelCheckpoint(ckpt_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
@@ -1633,6 +1631,14 @@ def reset_seed():
 def set_random_master_port():
     port = RANDOM_PORTS.pop()
     os.environ['MASTER_PORT'] = str(port)
+
+
+def init_checkpoint_callback(logger):
+    exp = logger.experiment
+    exp_path = exp.get_data_path(exp.name, exp.version)
+    ckpt_dir = os.path.join(exp_path, 'checkpoints')
+    checkpoint = ModelCheckpoint(ckpt_dir)
+    return checkpoint
 
 
 if __name__ == '__main__':
