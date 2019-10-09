@@ -128,7 +128,6 @@ class Trainer(TrainerIO):
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.enable_early_stop = early_stop_callback is not None
         self.track_grad_norm = track_grad_norm
-        self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
         self.weights_summary = weights_summary
@@ -136,6 +135,16 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+
+        self.fast_dev_run = fast_dev_run
+        if self.fast_dev_run:
+            self.nb_sanity_val_steps = 1
+            self.max_nb_epochs = 1
+            m = '''
+            Running in fast_dev_run mode: will run a full train,
+            val loop using a single batch
+            '''
+            print(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -1045,6 +1054,9 @@ class Trainer(TrainerIO):
             self.total_batches = self.nb_training_batches + self.nb_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
+            # limit the number of batches to 1 in fast_dev_run
+            self.total_batches = 1
+
             # init progress_bar when requested
             if self.show_progress_bar:
                 self.progress_bar.reset(self.total_batches)
@@ -1064,7 +1076,7 @@ class Trainer(TrainerIO):
 
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
-            if self.enable_early_stop and met_min_epochs:
+            if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
                                                                     logs=self.callback_metrics)
                 # stop training
@@ -1108,23 +1120,27 @@ class Trainer(TrainerIO):
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
-                if can_check_epoch:
-                    self.__run_evaluation(test=self.testing)
+            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
 
-            # when batch should be saved
-            if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
+            # fast_dev_run always forces val checking after train batch
+            if self.fast_dev_run or should_check_val:
+                self.__run_evaluation(test=self.testing)
+
+            # when logs should be saved
+            should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
+            if should_save_log or self.fast_dev_run:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
-            if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
+            should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
+            if should_log_metrics or self.fast_dev_run:
 
                 # logs user requested information to logger
                 self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
-            if early_stop_epoch:
+            if early_stop_epoch or self.fast_dev_run:
                 break
 
         # epoch end hook
@@ -1256,12 +1272,23 @@ class Trainer(TrainerIO):
         :param output:
         :return:
         """
+        # ---------------
+        # EXTRACT CALLBACK KEYS
+        # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
+        pdb.set_trace()
+        if train and self.use_dp or self.use_ddp2:
+            nb_gpus = self.num_gpus
+            callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
+
+        # ---------------
+        # EXTRACT PROGRESS BAR KEYS
+        # ---------------
         try:
             progress_output = output['progress_bar']
 
@@ -1274,6 +1301,9 @@ class Trainer(TrainerIO):
         except Exception:
             progress_bar_metrics = {}
 
+        # ---------------
+        # EXTRACT LOGGING KEYS
+        # ---------------
         # extract metrics to log to experiment
         try:
             log_output = output['log']
