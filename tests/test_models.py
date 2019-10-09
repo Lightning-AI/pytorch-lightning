@@ -42,6 +42,55 @@ RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_running_test_pretrained_model_ddp():
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    logger = get_test_tube_logger(False)
+
+    # exp file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(logger.experiment, save_dir,
+                                  module_class=LightningTestModel)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+
+    # test we have good test accuracy
+    clear_save_dir()
+
+
 def test_default_logger_callbacks_cpu_model():
     """
     Test each of the trainer options
@@ -200,55 +249,6 @@ def test_dp_resume():
     model.freeze()
     model.unfreeze()
 
-    clear_save_dir()
-
-
-def test_running_test_pretrained_model_ddp():
-    """Verify test() on pretrained model"""
-    if not can_run_gpu_test():
-        return
-
-    reset_seed()
-    set_random_master_port()
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    save_dir = init_save_dir()
-
-    # exp file to get meta
-    logger = get_test_tube_logger(False)
-
-    # exp file to get weights
-    checkpoint = init_checkpoint_callback(logger)
-
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        logger=logger,
-        gpus=[0, 1],
-        distributed_backend='ddp'
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir,
-                                  module_class=LightningTestModel)
-
-    # run test set
-    new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
-
-    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
-
-    # test we have good test accuracy
     clear_save_dir()
 
 
