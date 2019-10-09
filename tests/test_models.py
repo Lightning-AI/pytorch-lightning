@@ -1564,9 +1564,7 @@ def load_model(exp, save_dir, module_class=LightningTemplateModel):
 
     checkpoints = [x for x in os.listdir(checkpoint_folder) if '.ckpt' in x]
     weights_dir = os.path.join(checkpoint_folder, checkpoints[0])
-    import pdb
-    pdb.set_trace()
-
+    # TODO: figure out why it fails...
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path)
 
