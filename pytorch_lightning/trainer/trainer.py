@@ -1274,7 +1274,11 @@ class Trainer(TrainerIO):
         pdb.set_trace()
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
-                callback_metrics[k] = v.item()
+                callback_metrics[k] = v
+
+        if train and self.use_dp or self.use_ddp2:
+            nb_gpus = self.num_gpus
+            callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
 
         try:
             progress_output = output['progress_bar']
