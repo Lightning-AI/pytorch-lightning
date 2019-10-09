@@ -199,8 +199,9 @@ class Trainer(TrainerIO):
         self.checkpoint_callback = checkpoint_callback
         if self.checkpoint_callback is None:
             if isinstance(logger, TestTubeLogger):
-                ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name,
-                                              self.logger.version)
+                ckpt_path = '{}/{}/{}/{}/{}'.format(self.default_save_path, 'lightning_logs',
+                                                    self.logger.name,
+                                                    self.logger.version, 'checkpoints')
             else:
                 ckpt_path = self.default_save_path
 
