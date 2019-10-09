@@ -979,6 +979,8 @@ def test_loading_meta_tags():
     # save tags
     logger = get_test_tube_logger(False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # load tags
     tags_path = logger.experiment.get_data_path(
