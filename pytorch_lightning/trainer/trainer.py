@@ -743,7 +743,6 @@ class Trainer(TrainerIO):
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                # TODO: logging issue happening in interactive DDP mode
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
@@ -858,6 +857,7 @@ class Trainer(TrainerIO):
             self.world_size = self.nb_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
+        ForkedPdb().set_trace()
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
@@ -1530,3 +1530,19 @@ class Trainer(TrainerIO):
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
+
+
+import sys
+import pdb
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
