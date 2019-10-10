@@ -857,7 +857,6 @@ class Trainer(TrainerIO):
             self.world_size = self.nb_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
-        ForkedPdb().set_trace()
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
@@ -968,6 +967,9 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
+        if self.use_ddp:
+            ForkedPdb().set_trace()
+
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
