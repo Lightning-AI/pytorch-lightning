@@ -993,6 +993,8 @@ class Trainer(TrainerIO):
                 self.logger.log_hyperparams(ref_model.hparams)
             self.logger.save()
 
+            ForkedPdb().set_trace()
+
         # set up checkpoint callback
         self.__configure_checkpoint_callback()
 
