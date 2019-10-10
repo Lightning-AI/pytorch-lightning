@@ -62,17 +62,12 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def rank(self):
-        if self._experiment is None:
-            return self._rank
-        else:
-            return self.experiment.rank
+        return self._rank
 
     @rank.setter
     def rank(self, value):
-        if self._experiment is None:
-            self._rank = value
-        else:
-            self._rank = value
+        self._rank = value
+        if self._experiment is not None:
             self.experiment.rank = value
 
     @property
