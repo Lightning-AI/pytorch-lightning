@@ -73,8 +73,6 @@ def test_running_test_pretrained_model_ddp():
     )
 
     # fit model
-    import pdb
-    pdb.set_trace()
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 

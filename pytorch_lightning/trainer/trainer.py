@@ -743,6 +743,7 @@ class Trainer(TrainerIO):
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
+                # TODO: logging issue happening in interactive DDP mode
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
 
         # 1 gpu or dp option triggers training using DP module
