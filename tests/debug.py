@@ -92,8 +92,6 @@ def main():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    pdb.set_trace()
-
     exp = logger.experiment
     print(os.listdir(exp.get_data_path(exp.name, exp.version)))
 
