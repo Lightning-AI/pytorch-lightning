@@ -26,6 +26,7 @@ class TestTubeLogger(LightningLoggerBase):
     def experiment(self):
         if self._experiment is not None:
             return self._experiment
+
         self._experiment = Experiment(
             save_dir=self.save_dir,
             name=self.name,
@@ -39,39 +40,45 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params):
+        # TODO: HACK figure out where this is being set to true
+        self.experiment.debug = self.debug
         self.experiment.argparse(params)
 
     @rank_zero_only
     def log_metrics(self, metrics, step_num=None):
+        # TODO: HACK figure out where this is being set to true
+        self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step_num)
 
     @rank_zero_only
     def save(self):
+        # TODO: HACK figure out where this is being set to true
+        self.experiment.debug = self.debug
         self.experiment.save()
 
     @rank_zero_only
     def finalize(self, status):
+        # TODO: HACK figure out where this is being set to true
+        self.experiment.debug = self.debug
         self.save()
         self.close()
 
     @rank_zero_only
     def close(self):
+        # TODO: HACK figure out where this is being set to true
+        self.experiment.debug = self.debug
         exp = self.experiment
         exp.close()
 
     @property
     def rank(self):
-        if self._experiment is None:
-            return self._rank
-        else:
-            return self.experiment.rank
+        return self._rank
 
     @rank.setter
     def rank(self, value):
-        if self._experiment is None:
-            self._rank = value
-        else:
-            return self.experiment.rank
+        self._rank = value
+        if self._experiment is not None:
+            self.experiment.rank = value
 
     @property
     def version(self):
