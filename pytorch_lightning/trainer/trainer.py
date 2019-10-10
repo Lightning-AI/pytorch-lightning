@@ -176,7 +176,7 @@ class Trainer(TrainerIO):
         # configure early stop callback
         # creates a default one if none passed in
         if early_stop_callback is True:
-            self.early_stop = EarlyStopping(
+            self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
                 verbose=True,
@@ -184,7 +184,7 @@ class Trainer(TrainerIO):
             )
             self.enable_early_stop = True
         elif not early_stop_callback:
-            self.early_stop = None
+            self.early_stop_callback = None
             self.enable_early_stop = False
         else:
             self.early_stop_callback = early_stop_callback
@@ -281,6 +281,8 @@ class Trainer(TrainerIO):
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
             )
+        elif self.checkpoint_callback is False:
+            self.checkpoint_callback = None
 
         if self.checkpoint_callback:
             # set the path for the callbacks
