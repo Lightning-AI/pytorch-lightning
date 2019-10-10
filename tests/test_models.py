@@ -76,6 +76,8 @@ def test_running_test_pretrained_model_ddp():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    exp = logger.experiment
+    print(os.listdir(exp.get_data_path(exp.name, exp.version)))
     import pdb
     pdb.set_trace()
 
