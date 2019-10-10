@@ -1533,7 +1533,7 @@ def get_test_tube_logger(debug=True, version=None):
     # set up logger object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
-    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=debug, version=version)
+    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=False, version=version)
     return logger
 
 
