@@ -860,6 +860,8 @@ class Trainer(TrainerIO):
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
+        print('proc rank:', self.proc_rank)
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
