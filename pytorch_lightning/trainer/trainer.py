@@ -860,7 +860,7 @@ class Trainer(TrainerIO):
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
-        print('proc rank:', self.proc_rank)
+        print(self.logger.rank, self.proc_rank)
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -986,10 +986,10 @@ class Trainer(TrainerIO):
         ref_model.testing = self.testing
 
         # link up experiment object
+        print(self.logger.rank)
         if self.logger is not None:
             ref_model.logger = self.logger
 
-            print(self.logger.rank)
             if self.use_ddp:
                 ForkedPdb().set_trace()
 
