@@ -129,11 +129,10 @@ def test_lbfgs_cpu_model():
     trainer_options = dict(
         max_nb_epochs=1,
         gradient_clip_val=1.0,
-        overfit_pct=0.30,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
-        train_percent_check=0.3,
+        train_percent_check=1.0,
         val_percent_check=0.2
     )
 
