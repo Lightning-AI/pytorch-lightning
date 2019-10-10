@@ -61,7 +61,6 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def rank(self):
-        ForkedPdb().set_trace()
         if self._experiment is None:
             return self._rank
         else:
@@ -69,7 +68,6 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank.setter
     def rank(self, value):
-        ForkedPdb().set_trace()
         if self._experiment is None:
             self._rank = value
         else:
