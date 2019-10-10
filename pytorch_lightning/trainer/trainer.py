@@ -992,7 +992,6 @@ class Trainer(TrainerIO):
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
             self.logger.save()
-
             ForkedPdb().set_trace()
 
         # set up checkpoint callback
@@ -1093,7 +1092,6 @@ class Trainer(TrainerIO):
                     return
 
         if self.logger is not None:
-            ForkedPdb().set_trace()
             self.logger.finalize("success")
 
     def run_training_epoch(self):
