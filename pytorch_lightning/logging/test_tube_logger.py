@@ -49,7 +49,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self):
-        # TODO: figure out where this is being set to true
+        # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.save()
 
