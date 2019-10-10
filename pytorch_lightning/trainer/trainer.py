@@ -987,6 +987,7 @@ class Trainer(TrainerIO):
         if self.logger is not None:
             ref_model.logger = self.logger
 
+            print(self.logger.rank)
             if self.use_ddp:
                 ForkedPdb().set_trace()
 
