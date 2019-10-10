@@ -39,7 +39,6 @@ class TestTubeLogger(LightningLoggerBase):
         )
         return self._experiment
 
-    @rank_zero_only
     def log_hyperparams(self, params):
         self.experiment.argparse(params)
 
