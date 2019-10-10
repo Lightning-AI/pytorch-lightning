@@ -76,6 +76,9 @@ def test_running_test_pretrained_model_ddp():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    import pdb
+    pdb.set_trace()
+
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(logger.experiment, save_dir,
