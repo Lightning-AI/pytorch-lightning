@@ -991,6 +991,8 @@ class Trainer(TrainerIO):
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
+
+            ForkedPdb().set_trace()
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
