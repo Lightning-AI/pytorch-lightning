@@ -988,6 +988,7 @@ class Trainer(TrainerIO):
             ref_model.logger = self.logger
 
             # save exp to get started
+            ForkedPdb().set_trace()
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
 
@@ -1533,3 +1534,19 @@ class Trainer(TrainerIO):
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
+
+
+import sys
+import pdb
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
