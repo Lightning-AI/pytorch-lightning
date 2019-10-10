@@ -45,7 +45,10 @@ class TestTubeLogger(LightningLoggerBase):
     def log_metrics(self, metrics, step_num=None):
         self.experiment.log(metrics, global_step=step_num)
 
+    @rank_zero_only
     def save(self):
+        print(self.experiment.debug)
+        ForkedPdb().set_trace()
         self.experiment.save()
 
     @rank_zero_only
