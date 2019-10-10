@@ -1093,6 +1093,7 @@ class Trainer(TrainerIO):
                     return
 
         if self.logger is not None:
+            ForkedPdb().set_trace()
             self.logger.finalize("success")
 
     def run_training_epoch(self):
