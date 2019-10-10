@@ -175,7 +175,7 @@ class Trainer(TrainerIO):
 
         # configure early stop callback
         # creates a default one if none passed in
-        if self.early_stop_callback is True:
+        if early_stop_callback is True:
             self.early_stop = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
@@ -183,7 +183,7 @@ class Trainer(TrainerIO):
                 mode='min'
             )
             self.enable_early_stop = True
-        elif not self.early_stop_callback:
+        elif not early_stop_callback:
             self.early_stop = None
             self.enable_early_stop = False
         else:
