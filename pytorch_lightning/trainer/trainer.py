@@ -984,7 +984,6 @@ class Trainer(TrainerIO):
         ref_model.testing = self.testing
 
         # link up experiment object
-        print(self.logger.rank)
         if self.logger is not None:
             ref_model.logger = self.logger
 

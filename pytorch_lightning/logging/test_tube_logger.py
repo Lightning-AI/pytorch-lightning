@@ -49,7 +49,8 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self):
-        print(self.experiment.debug, self.debug)
+        # TODO: figure out where this is being set to true
+        self.experiment.debug = self.debug
         ForkedPdb().set_trace()
         self.experiment.save()
 
