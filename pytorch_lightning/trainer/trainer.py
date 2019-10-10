@@ -988,9 +988,6 @@ class Trainer(TrainerIO):
         if self.logger is not None:
             ref_model.logger = self.logger
 
-            print(self.logger.debug)
-            ForkedPdb().set_trace()
-
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
