@@ -51,7 +51,6 @@ class TestTubeLogger(LightningLoggerBase):
     def save(self):
         # TODO: figure out where this is being set to true
         self.experiment.debug = self.debug
-        ForkedPdb().set_trace()
         self.experiment.save()
 
     @rank_zero_only
@@ -94,19 +93,3 @@ class TestTubeLogger(LightningLoggerBase):
         self._experiment = state["_experiment"].get_non_ddp_exp()
         del state["_experiment"]
         self.__dict__.update(state)
-
-
-import sys
-import pdb
-
-class ForkedPdb(pdb.Pdb):
-    """A Pdb subclass that may be used
-    from a forked multiprocessing child
-    """
-    def interaction(self, *args, **kwargs):
-        _stdin = sys.stdin
-        try:
-            sys.stdin = open('/dev/stdin')
-            pdb.Pdb.interaction(self, *args, **kwargs)
-        finally:
-            sys.stdin = _stdin
