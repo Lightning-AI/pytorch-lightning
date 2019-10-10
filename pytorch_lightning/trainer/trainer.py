@@ -992,7 +992,9 @@ class Trainer(TrainerIO):
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
             self.logger.save()
-            ForkedPdb().set_trace()
+
+        if self.use_ddp or self.use_ddp2:
+            dist.barrier()
 
         # set up checkpoint callback
         self.__configure_checkpoint_callback()
