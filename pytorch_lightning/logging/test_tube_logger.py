@@ -61,6 +61,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def rank(self):
+        ForkedPdb().set_trace()
         if self._experiment is None:
             return self._rank
         else:
@@ -68,10 +69,10 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank.setter
     def rank(self, value):
+        ForkedPdb().set_trace()
         if self._experiment is None:
             self._rank = value
         else:
-            self.experiment.rank = self._rank
             return self.experiment.rank
 
     @property
@@ -94,3 +95,19 @@ class TestTubeLogger(LightningLoggerBase):
         self._experiment = state["_experiment"].get_non_ddp_exp()
         del state["_experiment"]
         self.__dict__.update(state)
+
+
+import sys
+import pdb
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
