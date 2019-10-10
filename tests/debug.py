@@ -74,6 +74,8 @@ def main():
     # exp file to get meta
     logger = get_test_tube_logger(False)
 
+    print(logger.debug)
+
     # exp file to get weights
     checkpoint = init_checkpoint_callback(logger)
 
