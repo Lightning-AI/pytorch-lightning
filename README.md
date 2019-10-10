@@ -152,13 +152,13 @@ Here are more advanced examples
 trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus (lightning chooses GPUs for you)
-# trainer = Trainer(max_nb_epochs=1, gpus=4)  
+# trainer = Trainer(max_nb_epochs=1, gpus=4, distributed_backend='ddp')  
 
 # train on 4 gpus (you choose GPUs)
-# trainer = Trainer(max_nb_epochs=1, gpus=[0, 1, 3, 7])   
+# trainer = Trainer(max_nb_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
 
 # train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
-# trainer = Trainer(max_nb_epochs=1, gpus=8, nb_gpu_nodes=4)
+# trainer = Trainer(max_nb_epochs=1, gpus=8, nb_gpu_nodes=4, distributed_backend='ddp')
 
 # train (1 epoch only here for demo)
 trainer.fit(model)
