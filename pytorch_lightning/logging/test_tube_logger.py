@@ -17,7 +17,6 @@ class TestTubeLogger(LightningLoggerBase):
         self.save_dir = save_dir
         self.name = name
         self.description = description
-        print('init debug:', debug)
         self.debug = debug
         self._version = version
         self.create_git_tag = create_git_tag
@@ -27,6 +26,8 @@ class TestTubeLogger(LightningLoggerBase):
     def experiment(self):
         if self._experiment is not None:
             return self._experiment
+
+        print('exp debug', self.debug)
         self._experiment = Experiment(
             save_dir=self.save_dir,
             name=self.name,
