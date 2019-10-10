@@ -860,8 +860,6 @@ class Trainer(TrainerIO):
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
-        print(self.logger.rank, self.proc_rank)
-
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
@@ -989,9 +987,6 @@ class Trainer(TrainerIO):
         print(self.logger.rank)
         if self.logger is not None:
             ref_model.logger = self.logger
-
-            if self.use_ddp:
-                ForkedPdb().set_trace()
 
             # save exp to get started
             if hasattr(ref_model, "hparams"):
