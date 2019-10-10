@@ -967,9 +967,6 @@ class Trainer(TrainerIO):
         :param model:
         :return:
         """
-        if self.use_ddp:
-            ForkedPdb().set_trace()
-
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
@@ -989,6 +986,9 @@ class Trainer(TrainerIO):
         # link up experiment object
         if self.logger is not None:
             ref_model.logger = self.logger
+
+            if self.use_ddp:
+                ForkedPdb().set_trace()
 
             # save exp to get started
             if hasattr(ref_model, "hparams"):
