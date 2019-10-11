@@ -82,6 +82,7 @@ class Trainer(TrainerIO):
                  log_save_interval=100,
                  row_log_interval=10,
                  distributed_backend=None,
+                 distributed_backend_config=None,
                  use_amp=False,
                  print_nan_grads=False,
                  weights_summary='full',
@@ -114,6 +115,7 @@ class Trainer(TrainerIO):
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
         :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
+        :param distributed_backend_config: tuple(args, kwargs). Args to pass into init_process_group
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
         :param weights_summary: str. Options: 'full', 'top', None to not print.
@@ -214,6 +216,7 @@ class Trainer(TrainerIO):
         self.single_gpu = False
         self.distributed_backend = distributed_backend
         self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
+        self.distributed_backend_config = distributed_backend_config
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -863,7 +866,7 @@ class Trainer(TrainerIO):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.__init_tcp_connection()
+        self.__init_ddp_connection()
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -911,43 +914,54 @@ class Trainer(TrainerIO):
         # continue training routine
         self.__run_pretrain_routine(model)
 
-    def __init_tcp_connection(self):
+    def __init_ddp_connection(self):
         """
-        Connect all procs in the world using the env:// init
-        Use the first node as the root address
-        :param port:
-        :param tries:
+        Connect all procs in the world.
+        Default using the env:// init, first node as the root address
         :return:
         """
 
-        # use slurm job id for the port number
-        # guarantees unique ports across jobs from same grid search
-        try:
-            # use the last 4 numbers in the job id as the id
-            default_port = os.environ['SLURM_JOB_ID']
-            default_port = default_port[-4:]
+        if self.dist_backend_config is None:
+            args = None
+            kwargs = None
+        else:
+            (args, kwargs) = self.dist_backend_config
+        if kwargs is None:
+            # use slurm job id for the port number
+            # guarantees unique ports across jobs from same grid search
+            try:
+                # use the last 4 numbers in the job id as the id
+                default_port = os.environ['SLURM_JOB_ID']
+                default_port = default_port[-4:]
 
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
+                # all ports should be in the 10k+ range
+                default_port = int(default_port) + 15000
 
-        except Exception as e:
-            default_port = 12910
+            except Exception as e:
+                default_port = 12910
 
-        # if user gave a port number, use that one instead
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            os.environ['MASTER_PORT'] = str(default_port)
+            # if user gave a port number, use that one instead
+            try:
+                default_port = os.environ['MASTER_PORT']
+            except Exception:
+                os.environ['MASTER_PORT'] = str(default_port)
 
-        # figure out the root node addr
-        try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-        except Exception:
-            root_node = '127.0.0.2'
+            # figure out the root node addr
+            try:
+                root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+            except Exception:
+                root_node = '127.0.0.2'
 
-        root_node = self.resolve_root_node_address(root_node)
-        os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
+            root_node = self.resolve_root_node_address(root_node)
+            os.environ['MASTER_ADDR'] = root_node
+            kwargs = {}
+        kwargs['rank'] = self.proc_rank
+        kwargs['world_size'] = self.world_size
+        if args is None:
+            args = ['nccl']
+        elif isinstance(args,str):
+            args = [args]
+        dist.init_process_group(*args,**kwargs)
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
