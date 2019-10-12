@@ -200,7 +200,7 @@ class Trainer(TrainerIO):
             )
             self.logger.rank = 0
         elif logger is False:
-            self.logger = NOne
+            self.logger = None
         else:
             self.logger = logger
             self.logger.rank = 0
