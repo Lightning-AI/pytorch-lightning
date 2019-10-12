@@ -10,7 +10,7 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
 
-class TrainerIO(object):
+class TrainerIOMixin(object):
 
     def __get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
