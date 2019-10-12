@@ -207,10 +207,10 @@ class TrainerIOMixin(object):
         :param checkpoint:
         :return:
         """
-        if self.checkpoint_callback is not None:
+        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 
-        if self.early_stop_callback is not None:
+        if self.early_stop_callback is not None or self.early_stop_callback is not False:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
