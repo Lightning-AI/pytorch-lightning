@@ -83,9 +83,10 @@ def test_mlflow_logger():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    mlflow_dir = os.path.join(root_dir, "mlruns")
 
-    logger = MLFlowLogger("test", f"file://{save_dir}")
+    logger = MLFlowLogger("test", f"file://{mlflow_dir}")
     logger.log_hyperparams(hparams)
     logger.save()
 
@@ -99,7 +100,9 @@ def test_mlflow_logger():
     result = trainer.fit(model)
 
     assert result == 1, "Training failed"
-    clear_save_dir()
+
+    n = np.random.randint(0, 10000000, 1)[0]
+    shutil.move(mlflow_dir, mlflow_dir + f'_{n}')
 
 
 def test_mlflow_pickle():
@@ -116,9 +119,10 @@ def test_mlflow_pickle():
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    mlflow_dir = os.path.join(root_dir, "mlruns")
 
-    logger = MLFlowLogger("test", f"file://{save_dir}")
+    logger = MLFlowLogger("test", f"file://{mlflow_dir}")
     logger.log_hyperparams(hparams)
     logger.save()
 
@@ -131,7 +135,6 @@ def test_mlflow_pickle():
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
-    clear_save_dir()
 
 
 def test_custom_logger():
@@ -172,8 +175,6 @@ def test_custom_logger():
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
-
-    clear_save_dir()
 
 
 def reset_seed():
