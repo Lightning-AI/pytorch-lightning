@@ -175,6 +175,7 @@ class Trainer(TrainerIO):
 
         # configure early stop callback
         # creates a default one if none passed in
+        self.early_stop_callback = None
         if early_stop_callback is True:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
