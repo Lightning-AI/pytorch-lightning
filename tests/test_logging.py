@@ -136,6 +136,8 @@ def test_mlflow_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
+    n = np.random.randint(0, 10000000, 1)[0]
+    shutil.move(mlflow_dir, mlflow_dir + f'_{n}')
 
 def test_custom_logger():
 
