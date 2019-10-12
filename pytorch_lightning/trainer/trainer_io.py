@@ -42,7 +42,7 @@ class TrainerIO(object):
 
     def restore_state_if_checkpoint_exists(self, model):
         # do nothing if there's not dir or callback
-        no_ckpt_callback = self.checkpoint_callback is None or self.checkpoint_callback == False
+        no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
         if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
             return
 
