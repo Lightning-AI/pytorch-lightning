@@ -151,10 +151,10 @@ class TrainerIOMixin(object):
             'global_step': self.global_step
         }
 
-        if self.checkpoint_callback is not None:
+        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
             checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-        if self.early_stop_callback is not None:
+        if self.early_stop_callback is not None or self.checkpoint_callback is not False:
             checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
             checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
