@@ -34,6 +34,7 @@ from examples import LightningTemplateModel
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 ROOT_SEED = 1234
+CURRENT_SEED = ROOT_SEED
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
@@ -1554,7 +1555,7 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        n = ROOT_SEED
+        n = CURRENT_SEED
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
@@ -1627,7 +1628,7 @@ def can_run_gpu_test():
 
 def reset_seed():
     SEED = RANDOM_SEEDS.pop()
-    ROOT_SEED = SEED
+    CURRENT_SEED = SEED
     torch.manual_seed(SEED)
     np.random.seed(SEED)
 
