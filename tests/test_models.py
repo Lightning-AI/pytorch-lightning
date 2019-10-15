@@ -1471,11 +1471,11 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
 
 test_parse_gpu_ids_data = [
     pytest.param(None, None, id="None gpus should return None."),
-    pytest.param(0, 0, id="Oth gpu, expect 1 gpu to use."),
-    pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
+    pytest.param(0, [0], id="Oth gpu, expect 1 gpu to use."),
+    pytest.param(1, [1], id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
-    pytest.param(3, 3, id="3rd gpu - 1 gpu to use")]
+    pytest.param(3, [3], id="3rd gpu - 1 gpu to use")]
 
 
 @pytest.fixture
