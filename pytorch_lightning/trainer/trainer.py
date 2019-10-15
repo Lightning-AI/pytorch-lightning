@@ -1127,7 +1127,7 @@ class Trainer(TrainerIO):
             # stop when the flag is changed or we've gone past the amount
             #  requested in the batches
             self.total_batch_nb += 1
-            met_batch_limit = batch_nb > self.nb_training_batches
+            met_batch_limit = batch_nb >= self.nb_training_batches
             if met_batch_limit:
                 break
 
