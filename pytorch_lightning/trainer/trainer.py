@@ -71,7 +71,10 @@ def parse_gpu_ids(gpus):
             else:
                 gpus = [int(x.strip()) for x in gpus.split(',')]
         elif type(gpus) is int:
-            gpus = gpus
+            if gpus == -1:
+                gpus = list(range(0, torch.cuda.device_count()))
+            else:
+                gpus = gpus
         else:
             raise Exception('gpus has to be a string, int or list of ints')
 
