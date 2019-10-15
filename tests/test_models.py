@@ -1428,6 +1428,20 @@ def test_multiple_test_dataloader():
     trainer.test()
 
 
+@pytest.fixture
+def mocked_device_count(monkeypatch):
+    def device_count():
+        return PRETEND_N_OF_GPUS
+    monkeypatch.setattr(torch.cuda, 'device_count', device_count)
+
+
+@pytest.fixture
+def mocked_device_count_0(monkeypatch):
+    def device_count():
+        return 0
+    monkeypatch.setattr(torch.cuda, 'device_count', device_count)
+
+
 test_num_gpus_data = [
     pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
     pytest.param(0, 1, None, id="Oth gpu, expect 1 gpu to use."),
@@ -1527,20 +1541,6 @@ test_parse_gpu_ids_data = [
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, [3], id="3rd gpu - 1 gpu to use")]
-
-
-@pytest.fixture
-def mocked_device_count(monkeypatch):
-    def device_count():
-        return PRETEND_N_OF_GPUS
-    monkeypatch.setattr(torch.cuda, 'device_count', device_count)
-
-
-@pytest.fixture
-def mocked_device_count_0(monkeypatch):
-    def device_count():
-        return 0
-    monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
 @pytest.mark.parametrize(['gpus', 'expected_gpu_ids'], test_parse_gpu_ids_data)
