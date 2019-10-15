@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.trainer.trainer import reduce_distributed_output
+from pytorch_lightning.trainer.trainer import reduce_distributed_output, parse_gpu_ids
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
@@ -1425,17 +1425,27 @@ def test_multiple_test_dataloader():
     # run the test method
     trainer.test()
 
-test_gpu_parse_data = [
+test_num_gpus_data = [
     pytest.param(0, 1, id="Oth gpu, expect 1 gpu to use."),
     pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, torch.cuda.device_count(), id="-1 - use all gpus"),
     pytest.param('-1', torch.cuda.device_count(), id="'-1' - use all gpus"),
     pytest.param(3, 1, id="3rd gpu - 1 gpu to use")]
 
-@pytest.mark.parametrize(['gpus', 'expected_num_gpus'], test_gpu_parse_data)
+@pytest.mark.parametrize(['gpus', 'expected_num_gpus'], test_num_gpus_data)
 def test_trainer_gpu_parse(gpus,expected_num_gpus):
     assert Trainer(gpus=gpus).num_gpus == expected_num_gpus
 
+test_parse_gpu_ids_data = [
+    pytest.param(0, 0, id="Oth gpu, expect 1 gpu to use."),
+    pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
+    pytest.param(-1, [0], id="-1 - use all gpus"),
+    pytest.param('-1', [0], id="'-1' - use all gpus"),
+    pytest.param(3, 3, id="3rd gpu - 1 gpu to use")]
+
+@pytest.mark.parametrize(['gpus','expected_gpu_ids'], test_parse_gpu_ids_data)
+def test_parse_gpu_ids(gpus, expected_gpu_ids):
+    assert parse_gpu_ids(gpus) == expected_gpu_ids
 
 # ------------------------------------------------------------------------
 # UTILS

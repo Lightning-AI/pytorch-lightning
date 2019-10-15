@@ -55,6 +55,29 @@ def reduce_distributed_output(output, nb_gpus):
     return output
 
 
+def parse_gpu_ids(gpus):
+    """
+    :param gpus: Int, string or list of ids
+    :return:
+    """
+    # if gpus = -1 then use all available devices
+    # otherwise, split the string using commas
+    if gpus is not None:
+        if type(gpus) is list:
+            gpus = gpus
+        elif type(gpus) is str:
+            if gpus == '-1':
+                gpus = list(range(0, torch.cuda.device_count()))
+            else:
+                gpus = [int(x.strip()) for x in gpus.split(',')]
+        elif type(gpus) is int:
+            gpus = gpus
+        else:
+            raise Exception('gpus has to be a string, int or list of ints')
+
+    return gpus
+
+
 class Trainer(TrainerIOMixin):
 
     def __init__(self,
@@ -215,7 +238,7 @@ class Trainer(TrainerIOMixin):
         self.__configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
+        self.data_parallel_device_ids = parse_gpu_ids(gpus)
         self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
 
         # distributed backend choice
@@ -322,27 +345,6 @@ class Trainer(TrainerIOMixin):
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
 
-    def __parse_gpu_ids(self, gpus):
-        """
-        :param gpus: Int, string or list of ids
-        :return:
-        """
-        # if gpus = -1 then use all available devices
-        # otherwise, split the string using commas
-        if gpus is not None:
-            if type(gpus) is list:
-                gpus = gpus
-            elif type(gpus) is str:
-                if gpus == '-1':
-                    gpus = list(range(0, torch.cuda.device_count()))
-                else:
-                    gpus = [int(x.strip()) for x in gpus.split(',')]
-            elif type(gpus) is int:
-                gpus = gpus
-            else:
-                raise Exception('gpus has to be a string, int or list of ints')
-
-        return gpus
 
     def __set_root_gpu(self, gpus):
         if gpus is None:
