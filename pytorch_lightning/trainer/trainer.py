@@ -1548,8 +1548,10 @@ def determine_root_gpu_device(gpus):
         return None
 
     # set root gpu
-    root_gpu = 0
     if type(gpus) is list:
         root_gpu = gpus[0]
+    elif isinstance(gpus, int):
+        root_gpu = gpus
 
     return root_gpu
+
