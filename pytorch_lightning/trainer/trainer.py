@@ -1332,7 +1332,8 @@ class Trainer(TrainerIOMixin):
         # ---------------
         # extract metrics to log to experiment
         try:
-            pdb.set_trace()
+            if not train:
+                pdb.set_trace()
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
