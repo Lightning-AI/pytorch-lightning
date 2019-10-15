@@ -76,7 +76,8 @@ class Trainer(TrainerIOMixin):
         :param gradient_clip_val: int. 0 means don't clip.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
-        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
+        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
+            OR '-1' / -1 to use all available gpus
         :param log_gpu_memory: str. None, 'min_max', 'all'
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
