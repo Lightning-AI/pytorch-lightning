@@ -1425,6 +1425,17 @@ def test_multiple_test_dataloader():
     # run the test method
     trainer.test()
 
+test_gpu_parse_data = [
+    pytest.param(0, 1, id="Oth gpu, expect 1 gpu to use."),
+    pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
+    pytest.param(-1, torch.cuda.device_count(), id="-1 - use all gpus"),
+    pytest.param('-1', torch.cuda.device_count(), id="'-1' - use all gpus"),
+    pytest.param(3, 1, id="3rd gpu - 1 gpu to use")]
+
+@pytest.mark.parametrize(['gpus', 'expected_num_gpus'], test_gpu_parse_data)
+def test_trainer_gpu_parse(gpus,expected_num_gpus):
+    assert Trainer(gpus=gpus).num_gpus == expected_num_gpus
+
 
 # ------------------------------------------------------------------------
 # UTILS
