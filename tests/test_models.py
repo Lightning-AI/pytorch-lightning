@@ -38,7 +38,7 @@ ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
-
+PRETEND_N_OF_GPUS = 16
 
 # ------------------------------------------------------------------------
 # TESTS
@@ -1439,12 +1439,18 @@ def test_trainer_gpu_parse(gpus,expected_num_gpus):
 test_parse_gpu_ids_data = [
     pytest.param(0, 0, id="Oth gpu, expect 1 gpu to use."),
     pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
-    pytest.param(-1, [0], id="-1 - use all gpus"),
-    pytest.param('-1', [0], id="'-1' - use all gpus"),
+    pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
+    pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, 3, id="3rd gpu - 1 gpu to use")]
 
+@pytest.fixture
+def mocked_device_count(monkeypatch):
+    def device_count():
+        return PRETEND_N_OF_GPUS
+    monkeypatch.setattr(torch.cuda, 'device_count', device_count)
+
 @pytest.mark.parametrize(['gpus','expected_gpu_ids'], test_parse_gpu_ids_data)
-def test_parse_gpu_ids(gpus, expected_gpu_ids):
+def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert parse_gpu_ids(gpus) == expected_gpu_ids
 
 # ------------------------------------------------------------------------
