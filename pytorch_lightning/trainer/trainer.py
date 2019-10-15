@@ -17,7 +17,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.logging import TestTubeLogger
-from pytorch_lightning.trainer.trainer_io import TrainerIO
+from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
@@ -55,7 +55,7 @@ def reduce_distributed_output(output, nb_gpus):
     return output
 
 
-class Trainer(TrainerIO):
+class Trainer(TrainerIOMixin):
 
     def __init__(self,
                  logger=True,
@@ -175,6 +175,7 @@ class Trainer(TrainerIO):
 
         # configure early stop callback
         # creates a default one if none passed in
+        self.early_stop_callback = None
         if early_stop_callback is True:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
@@ -1334,7 +1335,7 @@ class Trainer(TrainerIO):
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
+            if train and(self.use_dp or self.use_ddp2):
                 nb_gpus = self.num_gpus
                 log_output = reduce_distributed_output(log_output, nb_gpus)
 
