@@ -62,10 +62,6 @@ def test_lbfgs_cpu_model():
     model, hparams = get_model(use_test_model=True, lbfgs=True)
     run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
 
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
-
     clear_save_dir()
 
 
@@ -1438,18 +1434,14 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     trainer_options['default_save_path'] = save_dir
 
     # fit model
-    print('training')
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    print('end training')
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    print('load model')
     pretrained_model = load_model(trainer.logger.experiment, save_dir)
-    print('end load model')
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
