@@ -139,6 +139,7 @@ def test_mlflow_pickle():
     n = np.random.randint(0, 10000000, 1)[0]
     shutil.move(mlflow_dir, mlflow_dir + f'_{n}')
 
+
 def test_custom_logger():
 
     class CustomLogger(LightningLoggerBase):
