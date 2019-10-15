@@ -306,14 +306,8 @@ class Trainer(TrainerIOMixin):
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-
-        if type(gpus) is list:
+        else:
             return len(gpus)
-        if type(gpus) is int:
-            return 1
-
-        m = 'gpus must be int, none or list of ints'
-        raise MisconfigurationException(m)
 
     def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
         # skip for CPU
@@ -1525,33 +1519,38 @@ def parse_gpu_ids(gpus):
     # if gpus = -1 then use all available devices
     # otherwise, split the string using commas
     if gpus is not None:
-        if type(gpus) is list:
-            gpus = gpus
-        elif type(gpus) is str:
+        all_available_gpus = list(range(torch.cuda.device_count()))
+        if type(gpus) is str:
             if gpus == '-1':
-                gpus = list(range(0, torch.cuda.device_count()))
+                gpus = all_available_gpus
             else:
                 gpus = [int(x.strip()) for x in gpus.split(',')]
         elif type(gpus) is int:
             if gpus == -1:
-                gpus = list(range(0, torch.cuda.device_count()))
+                gpus = all_available_gpus
             else:
-                gpus = gpus
+                gpus = [gpus]
+        elif type(gpus) is list:
+            pass
         else:
             raise Exception('gpus has to be a string, int or list of ints')
-
+        for gpu in gpus:
+            if gpu not in all_available_gpus:
+                message = f"""
+                Non-available gpu index {gpu} specified:
+                Available gpu indices are: {all_available_gpus}
+                """
+                raise MisconfigurationException(message)
+        if not gpus:
+            return None
     return gpus
 
 
 def determine_root_gpu_device(gpus):
-    if gpus is None:
+    if gpus is None or not gpus:
         return None
-
     # set root gpu
-    if type(gpus) is list:
-        root_gpu = gpus[0]
-    elif isinstance(gpus, int):
-        root_gpu = gpus
+    root_gpu = gpus[0]
 
     return root_gpu
 
