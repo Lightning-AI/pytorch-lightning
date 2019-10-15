@@ -1553,4 +1553,3 @@ def determine_root_gpu_device(gpus):
     root_gpu = gpus[0]
 
     return root_gpu
-
