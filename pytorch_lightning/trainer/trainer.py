@@ -1337,7 +1337,7 @@ class Trainer(TrainerIOMixin):
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
+            if train and(self.use_dp or self.use_ddp2):
                 nb_gpus = self.num_gpus
                 log_output = reduce_distributed_output(log_output, nb_gpus)
 
