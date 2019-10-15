@@ -34,53 +34,6 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-def reduce_distributed_output(output, nb_gpus):
-    if nb_gpus <= 1:
-        return output
-
-    # when using DP, we get one output per gpu
-    # average outputs and return
-    if type(output) is torch.Tensor:
-        return output.mean()
-
-    for k, v in output.items():
-        # recurse on nested dics
-        if isinstance(output[k], dict):
-            output[k] = reduce_distributed_output(output[k], nb_gpus)
-
-        # reduce only metrics that have the same nb of gpus
-        elif output[k].size(0) == nb_gpus:
-            reduced = torch.mean(output[k])
-            output[k] = reduced
-    return output
-
-
-def parse_gpu_ids(gpus):
-    """
-    :param gpus: Int, string or list of ids
-    :return:
-    """
-    # if gpus = -1 then use all available devices
-    # otherwise, split the string using commas
-    if gpus is not None:
-        if type(gpus) is list:
-            gpus = gpus
-        elif type(gpus) is str:
-            if gpus == '-1':
-                gpus = list(range(0, torch.cuda.device_count()))
-            else:
-                gpus = [int(x.strip()) for x in gpus.split(',')]
-        elif type(gpus) is int:
-            if gpus == -1:
-                gpus = list(range(0, torch.cuda.device_count()))
-            else:
-                gpus = gpus
-        else:
-            raise Exception('gpus has to be a string, int or list of ints')
-
-    return gpus
-
-
 class Trainer(TrainerIOMixin):
 
     def __init__(self,
@@ -242,7 +195,7 @@ class Trainer(TrainerIOMixin):
 
         # allow int, string and gpu list
         self.data_parallel_device_ids = parse_gpu_ids(gpus)
-        self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
+        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # distributed backend choice
         self.use_ddp = False
@@ -347,18 +300,6 @@ class Trainer(TrainerIOMixin):
             self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
-
-
-    def __set_root_gpu(self, gpus):
-        if gpus is None:
-            return None
-
-        # set root gpu
-        root_gpu = 0
-        if type(gpus) is list:
-            root_gpu = gpus[0]
-
-        return root_gpu
 
     @property
     def num_gpus(self):
@@ -1553,3 +1494,62 @@ class Trainer(TrainerIOMixin):
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
+
+
+def reduce_distributed_output(output, nb_gpus):
+    if nb_gpus <= 1:
+        return output
+
+    # when using DP, we get one output per gpu
+    # average outputs and return
+    if type(output) is torch.Tensor:
+        return output.mean()
+
+    for k, v in output.items():
+        # recurse on nested dics
+        if isinstance(output[k], dict):
+            output[k] = reduce_distributed_output(output[k], nb_gpus)
+
+        # reduce only metrics that have the same nb of gpus
+        elif output[k].size(0) == nb_gpus:
+            reduced = torch.mean(output[k])
+            output[k] = reduced
+    return output
+
+
+def parse_gpu_ids(gpus):
+    """
+    :param gpus: Int, string or list of ids
+    :return:
+    """
+    # if gpus = -1 then use all available devices
+    # otherwise, split the string using commas
+    if gpus is not None:
+        if type(gpus) is list:
+            gpus = gpus
+        elif type(gpus) is str:
+            if gpus == '-1':
+                gpus = list(range(0, torch.cuda.device_count()))
+            else:
+                gpus = [int(x.strip()) for x in gpus.split(',')]
+        elif type(gpus) is int:
+            if gpus == -1:
+                gpus = list(range(0, torch.cuda.device_count()))
+            else:
+                gpus = gpus
+        else:
+            raise Exception('gpus has to be a string, int or list of ints')
+
+    return gpus
+
+
+def determine_root_gpu_device(gpus):
+    if gpus is None:
+        return None
+
+    # set root gpu
+    root_gpu = 0
+    if type(gpus) is list:
+        root_gpu = gpus[0]
+
+    return root_gpu

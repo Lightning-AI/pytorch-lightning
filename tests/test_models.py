@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.trainer.trainer import reduce_distributed_output, parse_gpu_ids
+from pytorch_lightning.trainer.trainer import reduce_distributed_output, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
@@ -1440,6 +1440,7 @@ def test_trainer_gpu_parse(gpus,expected_num_gpus, distributed_backend):
 
 
 test_root_gpu_data = [
+    pytest.param(None, None, "ddp", id="None is None"),
     pytest.param(0, 0, "ddp", id="Oth gpu, expect gpu root device to be 0."),
     pytest.param(1, 1, "ddp", id="1st gpu, expect gpu root device to be 1."),
     pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
@@ -1451,6 +1452,20 @@ test_root_gpu_data = [
 @pytest.mark.parametrize(['gpus','expected_root_gpu', "distributed_backend"], test_root_gpu_data)
 def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+
+
+test_determine_root_gpu_device_data = [
+    pytest.param(None, None, id="Oth gpu, expect gpu root device to be 0."),
+    pytest.param(0, 0, id="Oth gpu, expect gpu root device to be 0."),
+    pytest.param(1, 1, id="1st gpu, expect gpu root device to be 1."),
+    pytest.param(3, 3, id="3rd gpu, expect gpu root device to be 3."),
+]
+
+
+@pytest.mark.parametrize(['gpus','expected_root_gpu'], test_determine_root_gpu_device_data)
+def test_determine_root_gpu_device(gpus, expected_root_gpu):
+    assert determine_root_gpu_device(gpus) == expected_root_gpu
+
 
 
 test_parse_gpu_ids_data = [
