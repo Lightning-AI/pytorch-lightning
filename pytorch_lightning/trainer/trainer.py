@@ -310,7 +310,7 @@ class Trainer(TrainerIOMixin):
         if type(gpus) is list:
             return len(gpus)
         if type(gpus) is int:
-            return gpus
+            return 1
 
         m = 'gpus must be int, none or list of ints'
         raise MisconfigurationException(m)

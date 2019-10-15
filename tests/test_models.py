@@ -1426,6 +1426,7 @@ def test_multiple_test_dataloader():
     trainer.test()
 
 test_num_gpus_data = [
+    pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
     pytest.param(0, 1, None, id="Oth gpu, expect 1 gpu to use."),
     pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, torch.cuda.device_count(), None, id="-1 - use all gpus"),
