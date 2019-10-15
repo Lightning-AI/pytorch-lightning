@@ -42,6 +42,33 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_lbfgs_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gradient_clip_val=1.0,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        weights_summary='top',
+        train_percent_check=1.0,
+        val_percent_check=0.2
+    )
+
+    model, hparams = get_model(use_test_model=True, lbfgs=True)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -90,7 +117,6 @@ def test_running_test_pretrained_model_ddp():
 
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
-    # test we have good test accuracy
     clear_save_dir()
 
 
@@ -118,30 +144,7 @@ def test_default_logger_callbacks_cpu_model():
     model.freeze()
     model.unfreeze()
 
-
-def test_lbfgs_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    reset_seed()
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-        gradient_clip_val=1.0,
-        print_nan_grads=True,
-        show_progress_bar=False,
-        weights_summary='top',
-        train_percent_check=1.0,
-        val_percent_check=0.2
-    )
-
-    model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
+    clear_save_dir()
 
 
 def test_multi_gpu_model_ddp2():
