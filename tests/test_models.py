@@ -1426,22 +1426,41 @@ def test_multiple_test_dataloader():
     trainer.test()
 
 test_num_gpus_data = [
-    pytest.param(0, 1, id="Oth gpu, expect 1 gpu to use."),
-    pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
-    pytest.param(-1, torch.cuda.device_count(), id="-1 - use all gpus"),
-    pytest.param('-1', torch.cuda.device_count(), id="'-1' - use all gpus"),
-    pytest.param(3, 1, id="3rd gpu - 1 gpu to use")]
+    pytest.param(0, 1, None, id="Oth gpu, expect 1 gpu to use."),
+    pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
+    pytest.param(-1, torch.cuda.device_count(), None, id="-1 - use all gpus"),
+    pytest.param('-1', torch.cuda.device_count(), None, id="'-1' - use all gpus"),
+    pytest.param(3, 1, None, id="3rd gpu - 1 gpu to use (backend:None)"),
+    pytest.param(3, 1, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)")
+]
 
-@pytest.mark.parametrize(['gpus', 'expected_num_gpus'], test_num_gpus_data)
-def test_trainer_gpu_parse(gpus,expected_num_gpus):
-    assert Trainer(gpus=gpus).num_gpus == expected_num_gpus
+@pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], test_num_gpus_data)
+def test_trainer_gpu_parse(gpus,expected_num_gpus, distributed_backend):
+    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
+
+
+test_root_gpu_data = [
+    pytest.param(0, 0, "ddp", id="Oth gpu, expect gpu root device to be 0."),
+    pytest.param(1, 1, "ddp", id="1st gpu, expect gpu root device to be 1."),
+    pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
+    pytest.param('-1', 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
+    pytest.param(3, 3, None, id="3rd gpu, expect gpu root device to be 3. (backend:ddp)"),
+    pytest.param(3, 3, "ddp", id="3rd gpu, expect gpu root device to be 3.(backend:None)")]
+
+
+@pytest.mark.parametrize(['gpus','expected_root_gpu', "distributed_backend"], test_root_gpu_data)
+def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
+    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+
 
 test_parse_gpu_ids_data = [
+    pytest.param(None, None, id="None gpus should return None."),
     pytest.param(0, 0, id="Oth gpu, expect 1 gpu to use."),
     pytest.param(1, 1, id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, 3, id="3rd gpu - 1 gpu to use")]
+
 
 @pytest.fixture
 def mocked_device_count(monkeypatch):
@@ -1449,13 +1468,17 @@ def mocked_device_count(monkeypatch):
         return PRETEND_N_OF_GPUS
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
+
 @pytest.mark.parametrize(['gpus','expected_gpu_ids'], test_parse_gpu_ids_data)
 def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert parse_gpu_ids(gpus) == expected_gpu_ids
 
+
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
+
+
 def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
     trainer_options['default_save_path'] = save_dir
