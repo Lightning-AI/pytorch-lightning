@@ -1530,14 +1530,14 @@ def get_model(use_test_model=False, lbfgs=False):
 def get_test_tube_logger(debug=True, version=None):
     # set up logger object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
     logger = TestTubeLogger(save_dir, name='lightning_logs', debug=False, version=version)
     return logger
 
 
 def init_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
 
     if os.path.exists(save_dir):
         n = np.random.randint(0, 10000000, 1)[0]
