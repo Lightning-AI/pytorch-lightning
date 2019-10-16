@@ -43,6 +43,34 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    stopping = EarlyStopping(monitor='val_loss')
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        show_progress_bar=True,
+        logger=get_test_tube_logger(),
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -593,34 +621,6 @@ def test_single_gpu_batch_parse():
 
     assert batch[1][0]['b'].device.index == 0
     assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
-
-
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    reset_seed()
-
-    stopping = EarlyStopping(monitor='val_loss')
-    trainer_options = dict(
-        early_stop_callback=stopping,
-        gradient_clip_val=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        print_nan_grads=True,
-        show_progress_bar=True,
-        logger=get_test_tube_logger(),
-        train_percent_check=0.1,
-        val_percent_check=0.1
-    )
-
-    model, hparams = get_model()
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
 
 
 def test_no_val_module():
@@ -1476,7 +1476,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger.experiment, save_dir)
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
