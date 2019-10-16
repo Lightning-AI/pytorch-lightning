@@ -43,29 +43,6 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
-def test_lbfgs_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    reset_seed()
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-        gradient_clip_val=1.0,
-        print_nan_grads=True,
-        show_progress_bar=False,
-        weights_summary='top',
-        train_percent_check=1.0,
-        val_percent_check=0.2
-    )
-
-    model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
-
-    clear_save_dir()
-
-
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -113,6 +90,29 @@ def test_running_test_pretrained_model_ddp():
     new_trainer.test(pretrained_model)
 
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+
+    clear_save_dir()
+
+
+def test_lbfgs_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gradient_clip_val=1.0,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        weights_summary='top',
+        train_percent_check=1.0,
+        val_percent_check=0.2
+    )
+
+    model, hparams = get_model(use_test_model=True, lbfgs=True)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
 
     clear_save_dir()
 
@@ -1554,7 +1554,7 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        n = np.random.randint(0, 10000000, 1)[0]
+        n = RANDOM_FILE_PATHS.pop()
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
