@@ -1431,6 +1431,8 @@ def test_multiple_test_dataloader():
 def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
+    import pdb
+    pdb.set_trace()
     trainer_options['default_save_path'] = save_dir
 
     # fit model
