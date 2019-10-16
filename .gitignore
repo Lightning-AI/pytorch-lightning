@@ -12,6 +12,8 @@ test_tube_exp/
 tests/tests_tt_dir/
 tests/save_dir
 default/
+lightning_logs/
+tests/tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
