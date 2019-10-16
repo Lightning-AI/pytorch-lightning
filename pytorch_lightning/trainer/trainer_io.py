@@ -10,7 +10,7 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
 
-class TrainerIO(object):
+class TrainerIOMixin(object):
 
     def __get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
@@ -42,7 +42,7 @@ class TrainerIO(object):
 
     def restore_state_if_checkpoint_exists(self, model):
         # do nothing if there's not dir or callback
-        no_ckpt_callback = self.checkpoint_callback is None
+        no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
         if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
             return
 
@@ -151,10 +151,10 @@ class TrainerIO(object):
             'global_step': self.global_step
         }
 
-        if self.checkpoint_callback is not None:
+        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
             checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-        if self.early_stop_callback is not None:
+        if self.early_stop_callback is not None or self.checkpoint_callback is not False:
             checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
             checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
@@ -207,10 +207,10 @@ class TrainerIO(object):
         :param checkpoint:
         :return:
         """
-        if self.checkpoint_callback is not None:
+        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 
-        if self.early_stop_callback is not None:
+        if self.early_stop_callback is not None or self.early_stop_callback is not False:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
