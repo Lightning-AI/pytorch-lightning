@@ -60,6 +60,22 @@ mlf_logger = MLFlowLogger(
 trainer = Trainer(logger=mlf_logger)
 ```
 
+
+---
+#### Comet.ml
+
+Log using [comet](https://www.comet.ml)
+
+```{.python}
+from pytorch_lightning.logging import CometLogger
+# arguments made to CometLogger are passed on to the comet_ml.Experiment class
+comet_logger = CometLogger(
+    api_key=os.environ["COMET_KEY"],
+    workspace=os.environ["COMET_KEY"],
+)
+trainer = Trainer(logger=comet_logger)
+```
+
 ---
 #### Custom logger
 
