@@ -27,15 +27,11 @@ class TestTubeLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        exp_version = '{:04d}'.format(self._version)
-        import pdb
-        pdb.set_trace()
-
         self._experiment = Experiment(
             save_dir=self.save_dir,
             name=self.name,
             debug=self.debug,
-            version=exp_version,
+            version=self.version,
             description=self.description,
             create_git_tag=self.create_git_tag,
             rank=self.rank,
