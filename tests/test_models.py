@@ -32,6 +32,7 @@ from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
 # generate a list of random seeds for each test
+RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
@@ -1440,7 +1441,8 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(trainer.logger.experiment, save_dir)
+    pretrained_model = load_model(trainer.logger.experiment,
+                                  trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
@@ -1530,7 +1532,7 @@ def get_model(use_test_model=False, lbfgs=False):
 def get_test_tube_logger(debug=True, version=None):
     # set up logger object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
+    save_dir = os.path.join(root_dir, 'save_dir')
     logger = TestTubeLogger(save_dir, name='lightning_logs', debug=False, version=version)
     return logger
 
@@ -1540,7 +1542,7 @@ def init_save_dir():
     save_dir = os.path.join(root_dir, 'tests', 'save_dir')
 
     if os.path.exists(save_dir):
-        n = np.random.randint(0, 10000000, 1)[0]
+        n = RANDOM_FILE_PATHS.pop()
         shutil.move(save_dir, save_dir + f'_{n}')
 
     os.makedirs(save_dir, exist_ok=True)
@@ -1556,15 +1558,16 @@ def clear_save_dir():
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, module_class=LightningTemplateModel):
+def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
+    import pdb
+    pdb.set_trace()
 
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
-    checkpoint_folder = os.path.join(tags_path, 'checkpoints')
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
-    checkpoints = [x for x in os.listdir(checkpoint_folder) if '.ckpt' in x]
-    weights_dir = os.path.join(checkpoint_folder, checkpoints[0])
+    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path)
