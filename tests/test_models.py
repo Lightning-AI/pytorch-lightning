@@ -32,6 +32,7 @@ from pytorch_lightning.logging import TestTubeLogger
 from examples import LightningTemplateModel
 
 # generate a list of random seeds for each test
+RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
@@ -42,6 +43,34 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    stopping = EarlyStopping(monitor='val_loss')
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        show_progress_bar=True,
+        logger=get_test_tube_logger(),
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
     if not can_run_gpu_test():
@@ -90,7 +119,29 @@ def test_running_test_pretrained_model_ddp():
 
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
 
-    # test we have good test accuracy
+    clear_save_dir()
+
+
+def test_lbfgs_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gradient_clip_val=1.0,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        weights_summary='top',
+        train_percent_check=1.0,
+        val_percent_check=0.2
+    )
+
+    model, hparams = get_model(use_test_model=True, lbfgs=True)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+
     clear_save_dir()
 
 
@@ -118,30 +169,7 @@ def test_default_logger_callbacks_cpu_model():
     model.freeze()
     model.unfreeze()
 
-
-def test_lbfgs_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    reset_seed()
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-        gradient_clip_val=1.0,
-        print_nan_grads=True,
-        show_progress_bar=False,
-        weights_summary='top',
-        train_percent_check=1.0,
-        val_percent_check=0.2
-    )
-
-    model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
+    clear_save_dir()
 
 
 def test_multi_gpu_model_ddp2():
@@ -365,7 +393,7 @@ def test_running_test_pretrained_model():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = load_model(
-        logger.experiment, save_dir, module_class=LightningTestModel
+        logger.experiment, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
     new_trainer = Trainer(**trainer_options)
@@ -593,34 +621,6 @@ def test_single_gpu_batch_parse():
 
     assert batch[1][0]['b'].device.index == 0
     assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
-
-
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    reset_seed()
-
-    stopping = EarlyStopping(monitor='val_loss')
-    trainer_options = dict(
-        early_stop_callback=stopping,
-        gradient_clip_val=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        print_nan_grads=True,
-        show_progress_bar=True,
-        logger=get_test_tube_logger(),
-        train_percent_check=0.1,
-        val_percent_check=0.1
-    )
-
-    model, hparams = get_model()
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
 
 
 def test_no_val_module():
@@ -1431,7 +1431,6 @@ def test_multiple_test_dataloader():
 # ------------------------------------------------------------------------
 def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
-
     trainer_options['default_save_path'] = save_dir
 
     # fit model
@@ -1442,7 +1441,8 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(trainer.logger.experiment, save_dir)
+    pretrained_model = load_model(trainer.logger.experiment,
+                                  trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
@@ -1476,7 +1476,7 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger.experiment, save_dir)
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
@@ -1519,7 +1519,7 @@ def get_model(use_test_model=False, lbfgs=False):
     hparams = get_hparams()
     if lbfgs:
         setattr(hparams, 'optimizer_name', 'lbfgs')
-        setattr(hparams, 'learning_rate', 0.002)
+        setattr(hparams, 'learning_rate', 0.001)
 
     if use_test_model:
         model = LightningTestModel(hparams)
@@ -1539,10 +1539,10 @@ def get_test_tube_logger(debug=True, version=None):
 
 def init_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
 
     if os.path.exists(save_dir):
-        n = np.random.randint(0, 10000000, 1)[0]
+        n = RANDOM_FILE_PATHS.pop()
         shutil.move(save_dir, save_dir + f'_{n}')
 
     os.makedirs(save_dir, exist_ok=True)
@@ -1554,19 +1554,17 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        n = np.random.randint(0, 10000000, 1)[0]
+        n = RANDOM_FILE_PATHS.pop()
         shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, module_class=LightningTemplateModel):
-
+def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
-    checkpoint_folder = os.path.join(tags_path, 'checkpoints')
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
-    checkpoints = [x for x in os.listdir(checkpoint_folder) if '.ckpt' in x]
-    weights_dir = os.path.join(checkpoint_folder, checkpoints[0])
+    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
     trained_model = module_class.load_from_metrics(weights_path=weights_dir,
                                                    tags_csv=tags_path)
