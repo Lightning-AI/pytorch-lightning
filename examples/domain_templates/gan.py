@@ -84,6 +84,7 @@ class GAN(pl.LightningModule):
 
         # cache for generated images
         self.generated_imgs = None
+        self.last_imgs = None
 
     def forward(self, z):
         return self.generator(z)
@@ -93,6 +94,7 @@ class GAN(pl.LightningModule):
 
     def training_step(self, batch, batch_nb, optimizer_i):
         imgs, _ = batch
+        self.last_imgs = imgs
 
         # train generator
         if optimizer_i == 0:
@@ -168,7 +170,7 @@ class GAN(pl.LightningModule):
         z = torch.randn(8, self.hparams.latent_dim)
         # match gpu device (or keep as cpu)
         if self.on_gpu:
-            z = z.cuda(imgs.device.index)
+            z = z.cuda(self.last_imgs.device.index)
 
         # log sampled images
         sample_imgs = self.forward(z)
