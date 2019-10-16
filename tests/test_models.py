@@ -1559,9 +1559,6 @@ def clear_save_dir():
 
 
 def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
-    import pdb
-    pdb.set_trace()
-
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
