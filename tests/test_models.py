@@ -1448,7 +1448,6 @@ test_num_gpus_data = [
     pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
     pytest.param('-1', PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
-    pytest.param(3, 3, None, id="3rd gpu - 1 gpu to use (backend:None)"),
     pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)")
 ]
 
@@ -1462,7 +1461,6 @@ def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distrib
 test_num_gpus_data_0 = [
     pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
     pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-    pytest.param('-1', 0, "ddp", id="'-1' - use all gpus, but non are available, expect 0"),
 ]
 
 @pytest.mark.gpus_param_tests
@@ -1473,12 +1471,11 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distr
 
 test_root_gpu_data = [
     pytest.param(None, None, "ddp", id="None is None"),
-    pytest.param(0, 0, "ddp", id="Oth gpu, expect gpu root device to be 0."),
-    pytest.param(1, 0, "ddp", id="1st gpu, expect gpu root device to be 1."),
+    pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
+    pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
     pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
     pytest.param('-1', 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-    pytest.param(3, 0, None, id="3rd gpu, expect gpu root device to be 3. (backend:ddp)"),
-    pytest.param(3, 0, "ddp", id="3rd gpu, expect gpu root device to be 3.(backend:None)")]
+    pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")]
 
 
 @pytest.mark.gpus_param_tests
@@ -1525,9 +1522,6 @@ def test_root_gpu_property_0_raising(
 
 test_determine_root_gpu_device_data = [
     pytest.param(None, None, id="No gpus, expect gpu root device to be None"),
-    pytest.param(0, None, id="O gpus, expect gpu root device to be None."),
-    pytest.param(1, 0, id="1 gpu, expect gpu root device to be 0."),
-    pytest.param(2, 0, id="2 gpus, expect gpu root device to be 0."),
     pytest.param([0], 0, id="Oth gpu, expect gpu root device to be 0."),
     pytest.param([1], 1, id="1st gpu, expect gpu root device to be 1."),
     pytest.param([3], 3, id="3rd gpu, expect gpu root device to be 3."),
@@ -1543,8 +1537,8 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
 
 test_parse_gpu_ids_data = [
     pytest.param(None, None),
-    pytest.param(0, [0]),
-    pytest.param(1, [1]),
+    pytest.param(0, None),
+    pytest.param(1, [0]),
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, [0, 1, 2])]
@@ -1557,9 +1551,10 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
 
 
 @pytest.mark.gpus_param_tests
-def test_parse_gpu_fail_on_non_existant_id(mocked_device_count_0):
+@pytest.mark.parametrize("gpus", [[1, 2, 19], -1, '-1'])
+def test_parse_gpu_fail_on_non_existant_id(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
-        parse_gpu_ids([1, 2, 19])
+        parse_gpu_ids(gpus)
 
 
 @pytest.mark.gpus_param_tests
@@ -1569,8 +1564,10 @@ def test_parse_gpu_fail_on_non_existant_id_2(mocked_device_count):
 
 
 @pytest.mark.gpus_param_tests
-def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0):
-    assert parse_gpu_ids(-1) is None
+@pytest.mark.parametrize("gpus", [-1, '-1'])
+def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0, gpus):
+    with pytest.raises(MisconfigurationException):
+        parse_gpu_ids(gpus)
 
 
 # ------------------------------------------------------------------------

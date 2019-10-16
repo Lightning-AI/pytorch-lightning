@@ -1514,23 +1514,33 @@ def reduce_distributed_output(output, nb_gpus):
 
 def parse_gpu_ids(gpus):
     """
-    :param gpus: Int, string or list of ids
-    :return:
+    :param gpus: Int, string or list
+        An int -1 or string '-1' indicate that all available GPUs should be used.
+        A list of ints or a list of comma separated numbers indicates specific GPUs to use
+        An int 0 means that no GPUs should be used
+    :return: List of gpus to be used
+
+        If no GPUs are available but the value of gpus variable indicates request for GPUs
+        then a misconfiguration exception is raised.
     """
-    # if gpus = -1 then use all available devices
-    # otherwise, split the string using commas
     if gpus is not None:
         all_available_gpus = list(range(torch.cuda.device_count()))
         if type(gpus) is str:
             if gpus == '-1':
-                gpus = all_available_gpus
+                if all_available_gpus:
+                    gpus = all_available_gpus
+                else:
+                    raise MisconfigurationException("GPUS requested, but non are available.")
             else:
                 gpus = [int(x.strip()) for x in gpus.split(',')]
         elif type(gpus) is int:
             if gpus == -1:
-                gpus = all_available_gpus
+                if all_available_gpus:
+                    gpus = all_available_gpus
+                else:
+                    raise MisconfigurationException("GPUS requested, but non are available.")
             else:
-                gpus = [gpus]
+                gpus = list(range(gpus))
         elif type(gpus) is list:
             pass
         else:
@@ -1548,8 +1558,16 @@ def parse_gpu_ids(gpus):
 
 
 def determine_root_gpu_device(gpus):
-    if gpus is None or not gpus:
+    """
+    :param gpus: non empty list of ints representing which gpus to use
+    :return: designated root GPU device
+    """
+    if gpus is None:
         return None
+
+    assert isinstance(gpus, list), "gpus should be a list"
+    assert len(gpus), "gpus should be a non empty list"
+
     # set root gpu
     root_gpu = gpus[0]
 
