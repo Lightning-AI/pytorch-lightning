@@ -271,7 +271,7 @@ class Trainer(TrainerIOMixin):
         if self.checkpoint_callback is True:
             # init a default one
             if isinstance(self.logger, TestTubeLogger):
-                ckpt_path = '{}/{}/{}/{}'.format(
+                ckpt_path = '{}/{}/version_{}/{}'.format(
                     self.default_save_path,
                     self.logger.experiment.name,
                     self.logger.experiment.version,
