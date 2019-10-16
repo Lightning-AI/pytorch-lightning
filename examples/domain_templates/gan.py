@@ -178,7 +178,6 @@ class GAN(pl.LightningModule):
         self.logger.experiment.add_image(f'generated_images', grid, self.current_epoch)
 
 
-
 def main(hparams):
 
     # ------------------------
