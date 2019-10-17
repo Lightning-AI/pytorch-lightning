@@ -43,6 +43,8 @@ PRETEND_N_OF_GPUS = 16
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+
+
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
@@ -69,8 +71,6 @@ def test_early_stopping_cpu_model():
     # test freeze on cpu
     model.freeze()
     model.unfreeze()
-
-
 
 
 def test_running_test_pretrained_model_ddp():
