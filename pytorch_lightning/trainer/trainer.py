@@ -1523,29 +1523,47 @@ def normalize_parse_gpu_string_input(s):
 
 
 def get_all_available_gpus():
+    """
+    :return: a list of all available gpus
+    """
     return list(range(torch.cuda.device_count()))
 
-def check_gpus_type(gpus):
+
+def check_gpus_data_type(gpus):
+    """
+    :param gpus: gpus parameter as passed to the Trainer
+        Function checks that it is one of: None, Int, String or List
+        Throws otherwise
+    :return: return unmodified gpus variable
+    """
+
     if (gpus is not None and
         type(gpus) is not int and
         type(gpus) is not str and
-        type(gpus) is not list):
+        type(gpus) is not list):    # noqa E129
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
-def normalize_parse_gpu_input(gpus):
+def normalize_parse_gpu_input_to_list(gpus):
     assert gpus is not None
     if isinstance(gpus, list):
         return gpus
-    else: #must be an int
-        if not gpus: #gpus==0
+    else:  # must be an int
+        if not gpus:  # gpus==0
             return None
         elif gpus == -1:
             return get_all_available_gpus()
         else:
             return list(range(gpus))
 
+
 def sanitize_gpu_ids(gpus):
+    """
+    :param gpus: list of ints corresponding to GPU indices
+        Checks that each of the GPUs in the list is actually available.
+        Throws if any of the GPUs is not available.
+    :return: unmodified gpus variable
+    """
     all_available_gpus = get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
@@ -1554,30 +1572,40 @@ def sanitize_gpu_ids(gpus):
             Available gpu indices are: {all_available_gpus}
             """
             raise MisconfigurationException(message)
+    return gpus
+
 
 def parse_gpu_ids(gpus):
     """
     :param gpus: Int, string or list
         An int -1 or string '-1' indicate that all available GPUs should be used.
-        A list of ints or a list of comma separated numbers indicates specific GPUs to use
+        A list of ints or a string containing list of comma separated integers
+        indicates specific GPUs to use
         An int 0 means that no GPUs should be used
+        Any int N > 0 indicates that GPUs [0..N) should be used.
     :return: List of gpus to be used
 
         If no GPUs are available but the value of gpus variable indicates request for GPUs
         then a misconfiguration exception is raised.
     """
-    check_gpus_type(gpus)
 
+    # Check that gpus param is None, Int, String or List
+    check_gpus_data_type(gpus)
+
+    # Handle the case when no gpus are requested
     if gpus is None or type(gpus) is int and gpus == 0:
         return None
 
+    # We know user requested GPUs therefore if some of the
+    # requested GPUs are not available an exception is thrown.
+
     gpus = normalize_parse_gpu_string_input(gpus)
-    gpus = normalize_parse_gpu_input(gpus)
-    sanitize_gpu_ids(gpus)
-    if not len(gpus):
+    gpus = normalize_parse_gpu_input_to_list(gpus)
+    gpus = sanitize_gpu_ids(gpus)
+
+    if not gpus:
         raise MisconfigurationException("GPUs requested but non are available.")
     return gpus
-
 
 
 def determine_root_gpu_device(gpus):

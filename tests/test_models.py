@@ -1463,6 +1463,7 @@ test_num_gpus_data_0 = [
     pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
 ]
 
+
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], test_num_gpus_data_0)
 def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distributed_backend):
