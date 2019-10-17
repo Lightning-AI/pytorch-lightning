@@ -130,8 +130,7 @@ def test_lbfgs_cpu_model():
     reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=1,
-        gradient_clip_val=1.0,
+        max_nb_epochs=2,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
