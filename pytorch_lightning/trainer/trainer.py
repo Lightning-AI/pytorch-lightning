@@ -17,7 +17,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.logging import TestTubeLogger
-from pytorch_lightning.trainer.trainer_io import TrainerIO
+from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
@@ -55,12 +55,12 @@ def reduce_distributed_output(output, nb_gpus):
     return output
 
 
-class Trainer(TrainerIO):
+class Trainer(TrainerIOMixin):
 
     def __init__(self,
-                 logger=None,
-                 checkpoint_callback=None,
-                 early_stop_callback=None,
+                 logger=True,
+                 checkpoint_callback=True,
+                 early_stop_callback=True,
                  default_save_path=None,
                  gradient_clip_val=0,
                  process_position=0,
@@ -126,9 +126,7 @@ class Trainer(TrainerIO):
         self.log_gpu_memory = log_gpu_memory
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
-        self.enable_early_stop = early_stop_callback is not None
         self.track_grad_norm = track_grad_norm
-        self.fast_dev_run = fast_dev_run
         self.on_gpu = gpus is not None and torch.cuda.is_available()
         self.process_position = process_position
         self.weights_summary = weights_summary
@@ -136,6 +134,16 @@ class Trainer(TrainerIO):
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+
+        self.fast_dev_run = fast_dev_run
+        if self.fast_dev_run:
+            self.nb_sanity_val_steps = 1
+            self.max_nb_epochs = 1
+            m = '''
+            Running in fast_dev_run mode: will run a full train,
+            val loop using a single batch
+            '''
+            print(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -167,41 +175,42 @@ class Trainer(TrainerIO):
 
         # configure early stop callback
         # creates a default one if none passed in
-        self.early_stop_callback = early_stop_callback
-        if self.early_stop_callback is None:
-            self.early_stop = EarlyStopping(
+        self.early_stop_callback = None
+        if early_stop_callback is True:
+            self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
                 verbose=True,
                 mode='min'
             )
+            self.enable_early_stop = True
+        elif not early_stop_callback:
+            self.early_stop_callback = None
+            self.enable_early_stop = False
+        else:
+            self.early_stop_callback = early_stop_callback
+            self.enable_early_stop = True
         self.lr_scheduler_callback = None
 
         # configure logger
-        self.logger = logger
-        if self.logger is None:
+        if logger is True:
+            # default logger
             self.logger = TestTubeLogger(
                 save_dir=self.default_save_path,
                 version=self.slurm_job_id,
                 name='lightning_logs'
             )
-        self.logger.rank = 0
+            self.logger.rank = 0
+        elif logger is False:
+            self.logger = None
+        else:
+            self.logger = logger
+            self.logger.rank = 0
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
-        if self.checkpoint_callback is None:
-            if isinstance(logger, TestTubeLogger):
-                ckpt_path = '{}/{}/{}'.format(self.default_save_path, self.logger.name,
-                                              self.logger.version)
-            else:
-                ckpt_path = self.default_save_path
 
-            self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path
-            )
-
-        # configure weights save path
-        self.__configure_weights_path(checkpoint_callback, weights_save_path)
+        self.weights_save_path = weights_save_path
 
         # accumulated grads
         self.__configure_accumulated_gradients(accumulate_grad_batches)
@@ -253,22 +262,38 @@ class Trainer(TrainerIO):
             job_id = None
         return job_id
 
-    def __configure_weights_path(self, checkpoint_callback, weights_save_path):
+    def __configure_checkpoint_callback(self):
         """
         Weight path set in this priority:
         Checkpoint_callback's path (if passed in).
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        self.weights_save_path = weights_save_path
+        if self.checkpoint_callback is True:
+            # init a default one
+            if isinstance(self.logger, TestTubeLogger):
+                ckpt_path = '{}/{}/version_{}/{}'.format(
+                    self.default_save_path,
+                    self.logger.experiment.name,
+                    self.logger.experiment.version,
+                    'checkpoints')
+            else:
+                ckpt_path = self.default_save_path
 
-        if self.checkpoint_callback is not None:
+            self.checkpoint_callback = ModelCheckpoint(
+                filepath=ckpt_path
+            )
+        elif self.checkpoint_callback is False:
+            self.checkpoint_callback = None
+
+        if self.checkpoint_callback:
+            # set the path for the callbacks
             self.checkpoint_callback.save_function = self.save_checkpoint
 
             # if checkpoint callback used, then override the weights path
             self.weights_save_path = self.checkpoint_callback.filepath
 
-        # if weights_save_path is still none here, set to current workingdir
+        # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
 
@@ -986,6 +1011,22 @@ class Trainer(TrainerIO):
         ref_model.use_amp = self.use_amp
         ref_model.testing = self.testing
 
+        # link up experiment object
+        if self.logger is not None:
+            ref_model.logger = self.logger
+
+            # save exp to get started
+            if hasattr(ref_model, "hparams"):
+                self.logger.log_hyperparams(ref_model.hparams)
+
+            self.logger.save()
+
+        if self.use_ddp or self.use_ddp2:
+            dist.barrier()
+
+        # set up checkpoint callback
+        self.__configure_checkpoint_callback()
+
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
@@ -1002,15 +1043,6 @@ class Trainer(TrainerIO):
             else:
                 m = "weights_summary can be None, 'full' or 'top'"
                 raise MisconfigurationException(m)
-
-        # link up experiment object
-        if self.logger is not None:
-            ref_model.logger = self.logger
-
-            # save exp to get started
-            if hasattr(ref_model, "hparams"):
-                self.logger.log_hyperparams(ref_model.hparams)
-            self.logger.save()
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -1059,6 +1091,10 @@ class Trainer(TrainerIO):
             self.total_batches = self.nb_training_batches + self.nb_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
+            # limit the number of batches to 1 in fast_dev_run
+            if self.fast_dev_run:
+                self.total_batches = 1
+
             # init progress_bar when requested
             if self.show_progress_bar:
                 self.progress_bar.reset(self.total_batches)
@@ -1078,7 +1114,7 @@ class Trainer(TrainerIO):
 
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
-            if self.enable_early_stop and met_min_epochs:
+            if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
                                                                     logs=self.callback_metrics)
                 # stop training
@@ -1122,23 +1158,27 @@ class Trainer(TrainerIO):
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            if self.fast_dev_run or is_val_check_batch or early_stop_epoch:
-                if can_check_epoch:
-                    self.__run_evaluation(test=self.testing)
+            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
 
-            # when batch should be saved
-            if (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch:
+            # fast_dev_run always forces val checking after train batch
+            if self.fast_dev_run or should_check_val:
+                self.__run_evaluation(test=self.testing)
+
+            # when logs should be saved
+            should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
+            if should_save_log or self.fast_dev_run:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
-            if batch_nb % self.row_log_interval == 0 or early_stop_epoch:
+            should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
+            if should_log_metrics or self.fast_dev_run:
 
                 # logs user requested information to logger
                 self.__log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
-            if early_stop_epoch:
+            if early_stop_epoch or self.fast_dev_run:
                 break
 
         # epoch end hook
@@ -1270,12 +1310,25 @@ class Trainer(TrainerIO):
         :param output:
         :return:
         """
+        # ---------------
+        # EXTRACT CALLBACK KEYS
+        # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
         for k, v in output.items():
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
+        if train and self.use_dp or self.use_ddp2:
+            nb_gpus = self.num_gpus
+            callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
+
+        for k, v in callback_metrics.items():
+            callback_metrics[k] = v.item()
+
+        # ---------------
+        # EXTRACT PROGRESS BAR KEYS
+        # ---------------
         try:
             progress_output = output['progress_bar']
 
@@ -1288,12 +1341,15 @@ class Trainer(TrainerIO):
         except Exception:
             progress_bar_metrics = {}
 
+        # ---------------
+        # EXTRACT LOGGING KEYS
+        # ---------------
         # extract metrics to log to experiment
         try:
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
+            if train and(self.use_dp or self.use_ddp2):
                 nb_gpus = self.num_gpus
                 log_output = reduce_distributed_output(log_output, nb_gpus)
 
