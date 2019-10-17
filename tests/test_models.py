@@ -110,7 +110,7 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir,
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
                                   module_class=LightningTestModel)
 
     # run test set
@@ -439,7 +439,7 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, save_dir,
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
                                   module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
@@ -1139,7 +1139,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(logger.experiment, save_dir)
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
 
     # test model preds
     [run_prediction(dataloader, pretrained_model) for dataloader in trainer.get_test_dataloaders()]
