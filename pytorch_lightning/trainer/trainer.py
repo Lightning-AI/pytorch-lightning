@@ -1512,6 +1512,49 @@ def reduce_distributed_output(output, nb_gpus):
     return output
 
 
+def normalize_parse_gpu_string_input(s):
+    if type(s) is str:
+        if s == '-1':
+            return -1
+        else:
+            return [int(x.strip()) for x in s.split(',')]
+    else:
+        return s
+
+
+def get_all_available_gpus():
+    return list(range(torch.cuda.device_count()))
+
+def check_gpus_type(gpus):
+    if (gpus is not None and
+        type(gpus) is not int and
+        type(gpus) is not str and
+        type(gpus) is not list):
+        raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
+
+
+def normalize_parse_gpu_input(gpus):
+    assert gpus is not None
+    if isinstance(gpus, list):
+        return gpus
+    else: #must be an int
+        if not gpus: #gpus==0
+            return None
+        elif gpus == -1:
+            return get_all_available_gpus()
+        else:
+            return list(range(gpus))
+
+def sanitize_gpu_ids(gpus):
+    all_available_gpus = get_all_available_gpus()
+    for gpu in gpus:
+        if gpu not in all_available_gpus:
+            message = f"""
+            Non-available gpu index {gpu} specified:
+            Available gpu indices are: {all_available_gpus}
+            """
+            raise MisconfigurationException(message)
+
 def parse_gpu_ids(gpus):
     """
     :param gpus: Int, string or list
@@ -1523,38 +1566,18 @@ def parse_gpu_ids(gpus):
         If no GPUs are available but the value of gpus variable indicates request for GPUs
         then a misconfiguration exception is raised.
     """
-    if gpus is not None:
-        all_available_gpus = list(range(torch.cuda.device_count()))
-        if type(gpus) is str:
-            if gpus == '-1':
-                if all_available_gpus:
-                    gpus = all_available_gpus
-                else:
-                    raise MisconfigurationException("GPUS requested, but non are available.")
-            else:
-                gpus = [int(x.strip()) for x in gpus.split(',')]
-        elif type(gpus) is int:
-            if gpus == -1:
-                if all_available_gpus:
-                    gpus = all_available_gpus
-                else:
-                    raise MisconfigurationException("GPUS requested, but non are available.")
-            else:
-                gpus = list(range(gpus))
-        elif type(gpus) is list:
-            pass
-        else:
-            raise Exception('gpus has to be a string, int or list of ints')
-        for gpu in gpus:
-            if gpu not in all_available_gpus:
-                message = f"""
-                Non-available gpu index {gpu} specified:
-                Available gpu indices are: {all_available_gpus}
-                """
-                raise MisconfigurationException(message)
-        if not gpus:
-            return None
+    check_gpus_type(gpus)
+
+    if gpus is None or type(gpus) is int and gpus == 0:
+        return None
+
+    gpus = normalize_parse_gpu_string_input(gpus)
+    gpus = normalize_parse_gpu_input(gpus)
+    sanitize_gpu_ids(gpus)
+    if not len(gpus):
+        raise MisconfigurationException("GPUs requested but non are available.")
     return gpus
+
 
 
 def determine_root_gpu_device(gpus):
