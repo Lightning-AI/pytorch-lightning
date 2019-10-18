@@ -146,44 +146,44 @@ def test_testtube_pickle():
 #     shutil.move(mlflow_dir, mlflow_dir + f'_{n}')
 
 
-def test_custom_logger():
-
-    class CustomLogger(LightningLoggerBase):
-        def __init__(self):
-            super().__init__()
-            self.hparams_logged = None
-            self.metrics_logged = None
-            self.finalized = False
-
-        @rank_zero_only
-        def log_hyperparams(self, params):
-            self.hparams_logged = params
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step_num):
-            self.metrics_logged = metrics
-
-        @rank_zero_only
-        def finalize(self, status):
-            self.finalized_status = status
-
-    hparams = get_hparams()
-    model = LightningTestModel(hparams)
-
-    logger = CustomLogger()
-
-    trainer_options = dict(
-        max_nb_epochs=1,
-        train_percent_check=0.01,
-        logger=logger
-    )
-
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1, "Training failed"
-    assert logger.hparams_logged == hparams
-    assert logger.metrics_logged != {}
-    assert logger.finalized_status == "success"
+# def test_custom_logger():
+#
+#     class CustomLogger(LightningLoggerBase):
+#         def __init__(self):
+#             super().__init__()
+#             self.hparams_logged = None
+#             self.metrics_logged = None
+#             self.finalized = False
+#
+#         @rank_zero_only
+#         def log_hyperparams(self, params):
+#             self.hparams_logged = params
+#
+#         @rank_zero_only
+#         def log_metrics(self, metrics, step_num):
+#             self.metrics_logged = metrics
+#
+#         @rank_zero_only
+#         def finalize(self, status):
+#             self.finalized_status = status
+#
+#     hparams = get_hparams()
+#     model = LightningTestModel(hparams)
+#
+#     logger = CustomLogger()
+#
+#     trainer_options = dict(
+#         max_nb_epochs=1,
+#         train_percent_check=0.01,
+#         logger=logger
+#     )
+#
+#     trainer = Trainer(**trainer_options)
+#     result = trainer.fit(model)
+#     assert result == 1, "Training failed"
+#     assert logger.hparams_logged == hparams
+#     assert logger.metrics_logged != {}
+#     assert logger.finalized_status == "success"
 
 
 def reset_seed():
