@@ -35,15 +35,22 @@ early_stop_callback = EarlyStopping(
     mode='min'
 )
 
+# without passing anything in, uses the default callback above
+trainer = Trainer()
+
+# pass in your own to override the default callback 
 trainer = Trainer(early_stop_callback=early_stop_callback)
+
+# pass in None to disable it 
+trainer = Trainer(early_stop_callback=None)
 ```
 
 ---
 #### Force disable early stop 
-Use this to turn off early stopping and run training to the [max_epoch](#force-training-for-min-or-max-epochs)
+To disable early stopping pass None to the early_stop_callback
 ``` {.python}
 # DEFAULT
-trainer = Trainer(enable_early_stop=True)
+trainer = Trainer(early_stop_callback=None)
 ```
 
 ---
