@@ -600,6 +600,9 @@ class Trainer(TrainerIOMixin):
         model.zero_grad()
         model.eval()
 
+        # copy properties for forward overrides
+        self.__copy_trainer_model_properties(model)
+
         # disable gradients to save memory
         torch.set_grad_enabled(False)
 
@@ -845,6 +848,16 @@ class Trainer(TrainerIOMixin):
 
         self.__run_pretrain_routine(model)
 
+    def __copy_trainer_model_properties(self, model):
+        model.trainer = self
+        model.on_gpu = self.on_gpu
+        model.use_dp = self.use_dp
+        model.use_ddp2 = self.use_ddp2
+        model.use_ddp = self.use_ddp
+        model.use_amp = self.use_amp
+        model.testing = self.testing
+        model.single_gpu = self.single_gpu
+
     def ddp_train(self, gpu_nb, model):
         """
         Entry point into a DP thread
@@ -893,13 +906,7 @@ class Trainer(TrainerIOMixin):
         model.cuda(gpu_nb)
 
         # set model properties before going into wrapper
-        model.trainer = self
-        model.on_gpu = self.on_gpu
-        model.use_dp = self.use_dp
-        model.use_ddp2 = self.use_ddp2
-        model.use_ddp = self.use_ddp
-        model.use_amp = self.use_amp
-        model.testing = self.testing
+        self.__copy_trainer_model_properties(model)
 
         # override root GPU
         self.root_gpu = gpu_nb
@@ -992,13 +999,7 @@ class Trainer(TrainerIOMixin):
         ref_model.trainer = self
 
         # set local properties on the model
-        ref_model.on_gpu = self.on_gpu
-        ref_model.single_gpu = self.single_gpu
-        ref_model.use_dp = self.use_dp
-        ref_model.use_ddp = self.use_ddp
-        ref_model.use_ddp2 = self.use_ddp2
-        ref_model.use_amp = self.use_amp
-        ref_model.testing = self.testing
+        self.__copy_trainer_model_properties(ref_model)
 
         # link up experiment object
         if self.logger is not None:
