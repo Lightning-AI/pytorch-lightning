@@ -130,7 +130,7 @@ def test_lbfgs_cpu_model():
     reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=2,
+        max_nb_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -139,7 +139,7 @@ def test_lbfgs_cpu_model():
     )
 
     model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.40)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.30)
 
     clear_save_dir()
 
