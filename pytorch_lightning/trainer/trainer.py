@@ -1368,6 +1368,11 @@ class Trainer(TrainerIOMixin):
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
 
+        # convert tensors to numpy
+        for k, v in callback_metrics:
+            if isinstance(v, torch.Tensor):
+                callback_metrics[k] = v.item()
+
         return loss, progress_bar_metrics, log_metrics, callback_metrics
 
     def __clip_gradients(self):
@@ -1550,6 +1555,5 @@ class Trainer(TrainerIOMixin):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            pdb.set_trace()
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
