@@ -1199,6 +1199,7 @@ class Trainer(TrainerIOMixin):
             self.logger.save()
 
     def test(self, model=None):
+        pdb.set_trace()
         if model is not None:
             self.testing = True
             self.fit(model)
