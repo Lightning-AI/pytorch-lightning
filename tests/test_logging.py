@@ -105,6 +105,8 @@ def test_mlflow_logger():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    print('result finished')
+    pdb.set_trace()
     assert result == 1, "Training failed"
 
     n = RANDOM_FILE_PATHS.pop()
