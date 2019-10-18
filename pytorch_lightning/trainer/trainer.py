@@ -779,6 +779,8 @@ class Trainer(TrainerIOMixin):
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.__run_pretrain_routine(model)
+            print('pretrain done')
+            pdb.set_trace()
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
