@@ -564,6 +564,9 @@ class Trainer(TrainerIOMixin):
 
         # handle DP, DDP forward
         if self.use_ddp or self.use_dp or self.use_ddp2:
+            if test:
+                pdb.set_trace()
+
             output = model(*args)
             return output
 
