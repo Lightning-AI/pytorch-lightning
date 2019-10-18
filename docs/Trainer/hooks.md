@@ -129,3 +129,19 @@ def on_after_backward(self):
             name = k
             self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
 ```
+
+---
+#### on_before_backward
+Called in the training loop before model.backward()
+This is the ideal place to set `retain_graph = True` or simply skip current backward step  
+```python
+def on_before_backward(self, loss, optimizer_idx):
+    # example to retrain graph for this optimizer
+    opt = {'loss': loss,
+    'skip_backward': False,
+    'retain_graph': False}
+    if optimizer_idx < 1:
+        opt['retain_graph'] = True
+    return opt
+
+```

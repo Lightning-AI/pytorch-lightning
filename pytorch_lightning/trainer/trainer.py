@@ -1422,20 +1422,20 @@ class Trainer(TrainerIOMixin):
                 closure_loss = closure_loss / self.accumulate_grad_batches
 
                 # loss backward options 
-                skip_bwd, retrain_grh = False, False
+                skip_backward, retrain_graph = False, False
                 if self.__is_overriden('on_before_backward'):
                     bwd_opt = model_ref.on_after_backward(closure_loss, opt_idx)
                     loss = bwd_opt['loss']
-                    skip_bwd = bwd_opt['skip_bwd']
-                    retrain_grh = bwd_opt['retrain_grh']
+                    skip_backward = bwd_opt['skip_backward']
+                    retrain_graph = bwd_opt['retrain_graph']
 
                 # backward pass
-                if not skip_bwd:
+                if not skip_backward:
                     if self.use_amp:
                         with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                            scaled_loss.backward(retain_graph=retain_grh)
+                            scaled_loss.backward(retain_graph=retrain_graph)
                     else:
-                        closure_loss.backward(retain_graph=retain_grh)
+                        closure_loss.backward(retain_graph=retrain_graph)
 
                 # insert after step hook
                 if self.__is_function_implemented('on_after_backward'):
