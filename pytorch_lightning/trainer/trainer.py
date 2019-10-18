@@ -1364,6 +1364,10 @@ class Trainer(TrainerIOMixin):
             if self.use_dp or self.use_ddp2:
                 loss = reduce_distributed_output(loss, self.num_gpus)
 
+        # use every metric passed in as a candidate for callback
+        callback_metrics.update(progress_bar_metrics)
+        callback_metrics.update(log_metrics)
+
         return loss, progress_bar_metrics, log_metrics, callback_metrics
 
     def __clip_gradients(self):
