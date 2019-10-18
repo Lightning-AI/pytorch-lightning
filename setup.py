@@ -7,8 +7,6 @@ from setuptools import setup, find_packages
 
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 
-import pytorch_lightning
-
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -16,13 +14,13 @@ import pytorch_lightning
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version=pytorch_lightning.__version__,
-    description=pytorch_lightning.__doc__,
-    author=pytorch_lightning.__author__,
-    author_email=pytorch_lightning.__author_email__,
-    url=pytorch_lightning.__homepage__,
+    version='0.5.2.1',
+    description='The Keras for ML researchers using PyTorch',
+    author='William Falcon',
+    author_email='waf2107@columbia.edu',
+    url='https://github.com/williamFalcon/pytorch-lightning',
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license=pytorch_lightning.__license__,
+    license='Apache-2',
     packages=find_packages(),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
