@@ -1369,7 +1369,7 @@ class Trainer(TrainerIOMixin):
         callback_metrics.update(log_metrics)
 
         # convert tensors to numpy
-        for k, v in callback_metrics:
+        for k, v in callback_metrics.items():
             if isinstance(v, torch.Tensor):
                 callback_metrics[k] = v.item()
 
