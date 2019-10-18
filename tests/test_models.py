@@ -49,6 +49,8 @@ def test_early_stopping_cpu_model():
     :return:
     """
     reset_seed()
+    import pdb
+    pdb.set_trace()
 
     stopping = EarlyStopping(monitor='val_loss')
     trainer_options = dict(
