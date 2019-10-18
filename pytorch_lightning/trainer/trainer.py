@@ -846,14 +846,22 @@ class Trainer(TrainerIOMixin):
         self.__run_pretrain_routine(model)
 
     def __copy_trainer_model_properties(self, model):
-        model.trainer = self
-        model.on_gpu = self.on_gpu
-        model.use_dp = self.use_dp
-        model.use_ddp2 = self.use_ddp2
-        model.use_ddp = self.use_ddp
-        model.use_amp = self.use_amp
-        model.testing = self.testing
-        model.single_gpu = self.single_gpu
+        if isinstance(model, LightningDataParallel):
+            ref_model = model.module
+        elif isinstance(model, LightningDistributedDataParallel):
+            ref_model = model.module
+        else:
+            ref_model = model
+
+        for m in [model, ref_model]:
+            m.trainer = self
+            m.on_gpu = self.on_gpu
+            m.use_dp = self.use_dp
+            m.use_ddp2 = self.use_ddp2
+            m.use_ddp = self.use_ddp
+            m.use_amp = self.use_amp
+            m.testing = self.testing
+            m.single_gpu = self.single_gpu
 
     def ddp_train(self, gpu_nb, model):
         """
