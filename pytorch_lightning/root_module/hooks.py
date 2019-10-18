@@ -48,3 +48,13 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         pass
+
+    def on_before_backward(self, loss, opt_idx):
+        """
+        Called before loss.backward() 
+        :return: a dictionary of loss backward options
+                e.g. {"loss":loss, "skip_bwd":False, "retrain_grh": False}
+        """
+        pass
+
+        
