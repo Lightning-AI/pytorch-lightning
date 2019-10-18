@@ -1305,7 +1305,7 @@ class Trainer(TrainerIOMixin):
             if k not in ['progress_bar', 'log']:
                 callback_metrics[k] = v
 
-        if train and self.use_dp or self.use_ddp2:
+        if train and (self.use_dp or self.use_ddp2):
             nb_gpus = self.num_gpus
             callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
 
@@ -1319,7 +1319,7 @@ class Trainer(TrainerIOMixin):
             progress_output = output['progress_bar']
 
             # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
+            if train and (self.use_dp or self.use_ddp2):
                 nb_gpus = self.num_gpus
                 progress_output = reduce_distributed_output(progress_output, nb_gpus)
 
