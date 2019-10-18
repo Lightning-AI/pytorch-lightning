@@ -1518,13 +1518,13 @@ class Trainer(TrainerIOMixin):
             model.on_pre_performance_check()
 
             # select dataloaders
-            dataloaders = self.get_val_dataloaders()
-            max_batches = self.nb_val_batches
-
-            # calculate max batches to use
             if test:
                 dataloaders = self.get_test_dataloaders()
                 max_batches = self.nb_test_batches
+            else:
+                # val
+                dataloaders = self.get_val_dataloaders()
+                max_batches = self.nb_val_batches
 
             # cap max batches to 1 when using fast_dev_run
             if self.fast_dev_run:
