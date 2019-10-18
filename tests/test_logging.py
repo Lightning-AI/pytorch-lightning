@@ -17,13 +17,13 @@ torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
-
+import pdb
 def test_testtube_logger():
     """
     verify that basic functionality of test tube logger works
     """
     reset_seed()
-
+    pdb.set_trace()
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -43,6 +43,7 @@ def test_testtube_logger():
     assert result == 1, "Training failed"
 
     clear_save_dir()
+    pdb.set_trace()
 
 
 def test_testtube_pickle():
@@ -72,7 +73,7 @@ def test_testtube_pickle():
     trainer2.logger.log_metrics({"acc": 1.0})
 
     clear_save_dir()
-
+    pdb.set_trace()
 
 def test_mlflow_logger():
     """
