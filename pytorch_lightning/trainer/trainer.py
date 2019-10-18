@@ -556,6 +556,9 @@ class Trainer(TrainerIOMixin):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
+        if test:
+            pdb.set_trace()
+
         if test and len(self.get_test_dataloaders()) > 1:
             args.append(dataloader_idx)
 
@@ -1199,7 +1202,6 @@ class Trainer(TrainerIOMixin):
             self.logger.save()
 
     def test(self, model=None):
-        pdb.set_trace()
         if model is not None:
             self.testing = True
             self.fit(model)
@@ -1527,6 +1529,7 @@ class Trainer(TrainerIOMixin):
                 max_batches = self.nb_val_batches
 
             # cap max batches to 1 when using fast_dev_run
+            pdb.set_trace()
             if self.fast_dev_run:
                 max_batches = 1
 
