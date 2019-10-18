@@ -43,6 +43,31 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp2():
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        weights_summary=None,
+        distributed_backend='ddp2'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
@@ -169,31 +194,6 @@ def test_default_logger_callbacks_cpu_model():
     model.unfreeze()
 
     clear_save_dir()
-
-
-def test_multi_gpu_model_ddp2():
-    """
-    Make sure DDP2 works
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    reset_seed()
-    set_random_master_port()
-
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        weights_summary=None,
-        distributed_backend='ddp2'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_dp_resume():
