@@ -7,7 +7,7 @@ import torch
 
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
-from examples.basic_examples.lightning_module_template import LightningTemplateModel
+from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)
