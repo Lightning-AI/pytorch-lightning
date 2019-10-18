@@ -1,5 +1,8 @@
 from time import time
 from logging import getLogger
+# needed to prevent ImportError and duplicated logs.
+from os import environ
+environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 from comet_ml import Experiment as CometExperiment
 
 from .base import LightningLoggerBase, rank_zero_only
