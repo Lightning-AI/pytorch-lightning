@@ -53,7 +53,7 @@ class ModelHooks(torch.nn.Module):
         """
         Called before loss.backward() 
         :return: a dictionary of loss backward options
-                e.g. {"loss":loss, "skip_bwd":False, "retrain_grh": False}
+                e.g. {"loss":loss, "skip_backward":False, "retrain_graph": False}
         """
         pass
 
