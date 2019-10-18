@@ -1128,7 +1128,7 @@ class Trainer(TrainerIOMixin):
             # stop when the flag is changed or we've gone past the amount
             #  requested in the batches
             self.total_batch_nb += 1
-            met_batch_limit = batch_nb > self.nb_training_batches
+            met_batch_limit = batch_nb >= self.nb_training_batches
             if met_batch_limit:
                 break
 
@@ -1335,7 +1335,7 @@ class Trainer(TrainerIOMixin):
             log_output = output['log']
 
             # reduce progress metrics for tqdm when using dp
-            if train and(self.use_dp or self.use_ddp2):
+            if train and (self.use_dp or self.use_ddp2):
                 nb_gpus = self.num_gpus
                 log_output = reduce_distributed_output(log_output, nb_gpus)
 
