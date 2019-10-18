@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
-from examples import LightningTemplateModel
+from pl_examples import LightningTemplateModel
 
 # generate a list of random seeds for each test
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
