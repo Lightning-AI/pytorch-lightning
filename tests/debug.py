@@ -1,5 +1,5 @@
 from pytorch_lightning import Trainer
-from examples import LightningTemplateModel
+from pl_examples import LightningTemplateModel
 from pytorch_lightning.testing import LightningTestModel
 from argparse import Namespace
 from test_tube import Experiment
