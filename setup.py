@@ -21,7 +21,7 @@ setup(
     url='https://github.com/williamFalcon/pytorch-lightning',
     download_url='https://github.com/williamFalcon/pytorch-lightning',
     license='Apache-2',
-    packages=find_packages(),
+    packages=find_packages(exclude=['examples', 'tests']),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     include_package_data=True,
