@@ -143,10 +143,15 @@ def training_step(self, batch, batch_nb):
     out = self.forward(x)
     loss = self.loss(out, x)
     
+    logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+    
+    # if using TestTubeLogger or TensorboardLogger you can nest scalars
+    logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
+    
     output = {
         'loss': loss, # required
         'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
-        'log': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+        'log': logger_logs
     }
     
     # return a dict
