@@ -1368,6 +1368,11 @@ class Trainer(TrainerIOMixin):
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
 
+        # convert tensors to numpy
+        for k, v in callback_metrics.items():
+            if isinstance(v, torch.Tensor):
+                callback_metrics[k] = v.item()
+
         return loss, progress_bar_metrics, log_metrics, callback_metrics
 
     def __clip_gradients(self):
