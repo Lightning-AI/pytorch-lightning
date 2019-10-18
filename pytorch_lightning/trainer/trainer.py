@@ -1550,5 +1550,6 @@ class Trainer(TrainerIOMixin):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
+            pdb.set_trace()
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
