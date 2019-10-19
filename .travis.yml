@@ -50,15 +50,10 @@ matrix:
 # See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
 
-install:
-  - pip install -r requirements.txt
-  - pip install -r ./tests/requirements.txt
-  - pip --version ; pip list
-
 script:
   # integration
-  - tox --sitepackages
   - python setup.py install --dry-run
+  - tox --sitepackages
 
 after_success:
   - coverage report
