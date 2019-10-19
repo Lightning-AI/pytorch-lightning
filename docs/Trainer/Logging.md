@@ -96,6 +96,15 @@ comet_logger = CometLogger(
 )
 trainer = Trainer(logger=comet_logger)
 ```
+Use the logger anywhere in you LightningModule as follows:
+```python
+def train_step(...):
+    # example
+    self.logger.experiment.whatever_comet_ml_supports(...)
+
+def any_lightning_module_function_or_hook(...):
+    self.logger.experiment.whatever_comet_ml_supports(...)
+```
 
 ---
 #### Custom logger
