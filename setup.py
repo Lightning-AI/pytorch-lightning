@@ -6,8 +6,12 @@ from setuptools import setup, find_packages
 # https://packaging.python.org/guides/single-sourcing-package-version/
 
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
+def get_package_info(name):
+    import pytorch_lightning
+    info = vars(pytorch_lightning)
+    info = {k: info[k] for k in info if k.startswith('__')}
+    return info[name]
 
-import pytorch_lightning
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -16,13 +20,13 @@ import pytorch_lightning
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version=pytorch_lightning.__version__,
-    description=pytorch_lightning.__doc__,
-    author=pytorch_lightning.__author__,
-    author_email=pytorch_lightning.__author_email__,
-    url=pytorch_lightning.__homepage__,
+    version=get_package_info('__version__'),
+    description=get_package_info('pytorch_lightning.__doc__'),
+    author=get_package_info('pytorch_lightning.__author__'),
+    author_email=get_package_info('pytorch_lightning.__author_email__'),
+    url=get_package_info('pytorch_lightning.__homepage__'),
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license=pytorch_lightning.__license__,
+    license=get_package_info('pytorch_lightning.__license__'),
     packages=find_packages(),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -30,6 +34,10 @@ setup(
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
+    setup_requires=[
+        'numpy',
+        'torch>=1.2.0',
+    ],
     install_requires=[
         'torch>=1.2.0',
         'tqdm>=4.35.0',
