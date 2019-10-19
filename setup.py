@@ -1,17 +1,26 @@
 #!/usr/bin/env python
 
+import os
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
-
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
+
+PATH_ROOT = os.path.dirname(__file__)
+
 def get_package_info(name):
     import pytorch_lightning
     info = vars(pytorch_lightning)
     info = {k: info[k] for k in info if k.startswith('__')}
     return info[name]
 
+
+def load_requirements(path_dir=PATH_ROOT):
+    with open(os.path.join(path_dir, 'requirements.txt'), 'r') as file:
+        lines = [ln.strip() for ln in file.readlines()]
+    # TODO: you may filer also comments
+    return lines
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -36,14 +45,11 @@ setup(
     python_requires='>=3.6',
     setup_requires=[
         'numpy',
-        'torch>=1.2.0',
+        'torch',
+        'tqdm',  # used in trainer
+        'pandas',
     ],
-    install_requires=[
-        'torch>=1.2.0',
-        'tqdm>=4.35.0',
-        'test-tube>=0.6.9',
-        'pandas>=0.20.3',
-    ],
+    install_requires=load_requirements(PATH_ROOT),
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

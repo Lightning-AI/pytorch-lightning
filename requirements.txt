@@ -4,4 +4,5 @@ twine==1.13.0
 numpy==1.16.4
 torch>=1.2.0
 torchvision>=0.3.0
-pandas
+test-tube>=0.6.9
+pandas>=0.20.3
