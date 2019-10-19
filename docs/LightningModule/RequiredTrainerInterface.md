@@ -143,10 +143,15 @@ def training_step(self, batch, batch_nb):
     out = self.forward(x)
     loss = self.loss(out, x)
     
+    logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+    
+    # if using TestTubeLogger or TensorboardLogger you can nest scalars
+    logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
+    
     output = {
         'loss': loss, # required
         'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
-        'log': {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+        'log': logger_logs
     }
     
     # return a dict
@@ -318,12 +323,10 @@ The ```dataset_idx``` corresponds to the order of datasets returned in ```val_da
 ``` {.python}
 def validation_end(self, outputs)
 ```   
-If you didn't define a validation_step, this won't be called.       
-
-Called at the end of the validation loop with the outputs of validation_step.
+If you didn't define a validation_step, this won't be called. Called at the end of the validation loop with the outputs of validation_step.
 
 The outputs here are strictly for the progress bar. If you don't need to display anything, don't return anything.    
-
+Any keys present in 'log', 'progress_bar' or the rest of the dictionary are available for callbacks to access.
 **Params**    
 
 | Param  | description  |

@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
-from examples import LightningTemplateModel
+from pl_examples import LightningTemplateModel
 
 # generate a list of random seeds for each test
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
@@ -43,6 +43,31 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp2():
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        weights_summary=None,
+        distributed_backend='ddp2'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
 def test_early_stopping_cpu_model():
     """
     Test each of the trainer options
@@ -130,7 +155,7 @@ def test_lbfgs_cpu_model():
     reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=2,
+        max_nb_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -139,7 +164,7 @@ def test_lbfgs_cpu_model():
     )
 
     model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.30)
 
     clear_save_dir()
 
@@ -169,31 +194,6 @@ def test_default_logger_callbacks_cpu_model():
     model.unfreeze()
 
     clear_save_dir()
-
-
-def test_multi_gpu_model_ddp2():
-    """
-    Make sure DDP2 works
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    reset_seed()
-    set_random_master_port()
-
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        weights_summary=None,
-        distributed_backend='ddp2'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_dp_resume():
@@ -1428,7 +1428,7 @@ def test_multiple_test_dataloader():
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
-def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
+def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_acc=0.50):
     save_dir = init_save_dir()
     trainer_options['default_save_path'] = save_dir
 
@@ -1444,7 +1444,8 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True):
                                   trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
-    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+    for dataloader in model.test_dataloader():
+        run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
@@ -1573,7 +1574,7 @@ def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -1595,7 +1596,7 @@ def run_prediction(dataloader, trained_model, dp=False):
         acc = torch.tensor(acc)
         acc = acc.item()
 
-    assert acc > 0.50, f'this model is expected to get > 0.50 in test set (it got {acc})'
+    assert acc > min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
 
 
 def assert_ok_val_acc(trainer):
