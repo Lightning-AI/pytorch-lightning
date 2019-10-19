@@ -48,10 +48,11 @@ setup(
     python_requires='>=3.6',
     setup_requires=[
         'numpy',
-        'torch>=1.2.0',
         'torch',
-        'tqdm',  # used in trainer
+        'torch',
+        'tqdm',  # used in trained, think about skipping
         'pandas',
+        'test-tube ',  # TODO: this should be dropped
     ],
     install_requires=load_requirements(PATH_ROOT),
     classifiers=[
