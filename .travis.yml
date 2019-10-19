@@ -50,6 +50,9 @@ matrix:
 # See http://docs.travis-ci.com/user/caching/#pip-cache
 cache: pip
 
+install:
+  - sudo pip install tox
+
 script:
   # integration
   - python setup.py install --dry-run
