@@ -4,23 +4,26 @@ import os
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
+from pytorch_lightning.info import (
+    __homepage__, __version__, __author__, __author_email__, __license__, __docs__)
+
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 
 PATH_ROOT = os.path.dirname(__file__)
 
-def get_package_info(name):
-    import pytorch_lightning
-    info = vars(pytorch_lightning)
-    info = {k: info[k] for k in info if k.startswith('__')}
-    return info[name]
 
-
-def load_requirements(path_dir=PATH_ROOT):
+def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
     with open(os.path.join(path_dir, 'requirements.txt'), 'r') as file:
         lines = [ln.strip() for ln in file.readlines()]
-    # TODO: you may filer also comments
-    return lines
+    reqs = []
+    for ln in lines:
+        # filer all comments
+        if comment_char in ln:
+            ln = ln[:ln.index(comment_char)]
+        if ln:  # if requirement is not empty
+            reqs.append(ln)
+    return reqs
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -29,13 +32,13 @@ def load_requirements(path_dir=PATH_ROOT):
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version=get_package_info('__version__'),
-    description=get_package_info('__docs__'),
-    author=get_package_info('__author__'),
-    author_email=get_package_info('__author_email__'),
-    url=get_package_info('__homepage__'),
+    version=__version__,
+    description=__docs__,
+    author=__author__,
+    author_email=__author_email__,
+    url=__homepage__,
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license=get_package_info('__license__'),
+    license=__license__,
     packages=find_packages(exclude=['examples']),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -43,12 +46,7 @@ setup(
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
-    setup_requires=[
-        'numpy',
-        'torch',
-        'tqdm',  # used in trainer
-        'pandas',
-    ],
+    setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
     classifiers=[
         'Environment :: Console',
