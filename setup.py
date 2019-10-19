@@ -46,7 +46,13 @@ setup(
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
-    setup_requires=[],
+    setup_requires=[
+        'numpy',
+        'torch>=1.2.0',
+        'torch',
+        'tqdm',  # used in trainer
+        'pandas',
+    ],
     install_requires=load_requirements(PATH_ROOT),
     classifiers=[
         'Environment :: Console',
