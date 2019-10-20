@@ -4,9 +4,6 @@ import os
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
-from pytorch_lightning.info import (
-    __homepage__, __version__, __author__, __author_email__, __license__, __docs__)
-
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 
@@ -25,6 +22,13 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
             reqs.append(ln)
     return reqs
 
+
+def get_pkg_info(name):
+    from pytorch_lightning import info
+    info = vars(info)
+    return info[name]
+
+
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -32,13 +36,13 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version=__version__,
-    description=__docs__,
-    author=__author__,
-    author_email=__author_email__,
-    url=__homepage__,
+    version=get_pkg_info('__version__'),
+    description=get_pkg_info('__docs__'),
+    author=get_pkg_info('__author__'),
+    author_email=get_pkg_info('__author_email__'),
+    url=get_pkg_info('__homepage__'),
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license=__license__,
+    license=get_pkg_info('__license__'),
     packages=find_packages(exclude=['examples']),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -48,7 +52,6 @@ setup(
     python_requires='>=3.6',
     setup_requires=[
         'numpy',
-        'torch',
         'torch',
         'tqdm',  # used in trained, think about skipping
         'pandas',
