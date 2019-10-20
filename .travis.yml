@@ -51,6 +51,7 @@ matrix:
 cache: pip
 
 install:
+  - pip install future  # needed for `builtins`
   - sudo pip install tox
 
 script:
