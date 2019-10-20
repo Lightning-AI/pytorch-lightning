@@ -35,7 +35,7 @@ matrix:
       addons:
         homebrew:
           # update: true
-          packages: python3
+          packages: python3.6
       before_install:
         - pip3 install virtualenv
         - virtualenv -p python3 ~/venv
