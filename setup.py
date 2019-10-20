@@ -4,10 +4,15 @@ import os
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
+import builtins
+
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 
 PATH_ROOT = os.path.dirname(__file__)
+builtins.__LIGHTNING_SETUP__ = True
+
+import pytorch_lightning
 
 
 def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
@@ -23,12 +28,6 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
     return reqs
 
 
-def get_pkg_info(name):
-    from pytorch_lightning import info
-    info = vars(info)
-    return info[name]
-
-
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -36,13 +35,13 @@ def get_pkg_info(name):
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version=get_pkg_info('__version__'),
-    description=get_pkg_info('__docs__'),
-    author=get_pkg_info('__author__'),
-    author_email=get_pkg_info('__author_email__'),
-    url=get_pkg_info('__homepage__'),
+    version=pytorch_lightning.__version__,
+    description=pytorch_lightning.__docs__,
+    author=pytorch_lightning.__author__,
+    author_email=pytorch_lightning.__author_email__,
+    url=pytorch_lightning.__homepage__,
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license=get_pkg_info('__license__'),
+    license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['examples']),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -50,13 +49,7 @@ setup(
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
-    setup_requires=[
-        'numpy',
-        'torch',
-        'tqdm',  # used in trained, think about skipping
-        'pandas',
-        'test-tube ',  # TODO: this should be dropped
-    ],
+    setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
     classifiers=[
         'Environment :: Console',
