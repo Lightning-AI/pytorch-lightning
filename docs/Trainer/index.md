@@ -1,5 +1,5 @@
 # Trainer
-[[Github Code](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/trainer.py)]
+[[Github Code](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer/trainer.py)]
 
 The lightning trainer abstracts best practices for running a training, val, test routine. It calls parts of your model when it wants to hand over full control and otherwise makes training assumptions which are now standard practice in AI research.
 

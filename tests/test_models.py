@@ -33,7 +33,7 @@ from pytorch_lightning.trainer.trainer import (
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
-from examples import LightningTemplateModel
+from pl_examples import LightningTemplateModel
 
 # generate a list of random seeds for each test
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
@@ -47,6 +47,29 @@ PRETEND_N_OF_GPUS = 16
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp2():
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        weights_summary=None,
+        distributed_backend='ddp2'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_early_stopping_cpu_model():
@@ -136,7 +159,7 @@ def test_lbfgs_cpu_model():
     reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=2,
+        max_nb_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -145,7 +168,7 @@ def test_lbfgs_cpu_model():
     )
 
     model, hparams = get_model(use_test_model=True, lbfgs=True)
-    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.40)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.30)
 
     clear_save_dir()
 
@@ -175,31 +198,6 @@ def test_default_logger_callbacks_cpu_model():
     model.unfreeze()
 
     clear_save_dir()
-
-
-def test_multi_gpu_model_ddp2():
-    """
-    Make sure DDP2 works
-    :return:
-    """
-    if not can_run_gpu_test():
-        return
-
-    reset_seed()
-    set_random_master_port()
-
-    model, hparams = get_model()
-    trainer_options = dict(
-        show_progress_bar=True,
-        max_nb_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        weights_summary=None,
-        distributed_backend='ddp2'
-    )
-
-    run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_dp_resume():
