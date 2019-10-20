@@ -156,11 +156,11 @@ class ReduceLROnPlateauScheduler(Callback):
         monitor: quantity to be monitored.
     """
 
-    def __init__(self, schedulers, monitor='val_loss'):
+    def __init__(self, scheduler, monitor='val_loss'):
         super(ReduceLROnPlateauScheduler, self).__init__()
 
         self.monitor = monitor
-        self.schedulers = schedulers
+        self.scheduler = scheduler
 
     def on_epoch_end(self, epoch, logs=None):
         current = logs.get(self.monitor)
@@ -171,8 +171,7 @@ class ReduceLROnPlateauScheduler(Callback):
                   (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
             exit(-1)
 
-        for scheduler in self.schedulers:
-            scheduler.step(current, epoch=epoch)
+        self.scheduler.step(current, epoch=epoch)
 
 
 class ModelCheckpoint(Callback):
