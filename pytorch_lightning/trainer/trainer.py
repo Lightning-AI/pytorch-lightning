@@ -190,7 +190,7 @@ class Trainer(TrainerIOMixin):
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
-        self.lr_scheduler_callback = None
+        self.val_loss_drop_lr_callback = None
 
         # configure logger
         if logger is True:
@@ -794,7 +794,7 @@ class Trainer(TrainerIOMixin):
         # two lists
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers = self.configure_schedulers(lr_schedulers)
+            lr_schedulers, self.val_loss_drop_lr_callback = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
@@ -802,16 +802,12 @@ class Trainer(TrainerIOMixin):
             return optimizers, []
 
     def configure_schedulers(self, schedulers):
-        custom_schedulers = []
-        i = 0
-        while i < len(schedulers):
+        for i in range(len(schedulers)):
             if isinstance(schedulers[i], torch.optim.lr_scheduler.ReduceLROnPlateau):
-                custom_schedulers.append(schedulers.pop(i))
-            i += 1
-        if custom_schedulers:
-            self.lr_scheduler_callback = ReduceLROnPlateauScheduler(custom_schedulers,
-                                                                    monitor='val_loss')
-        return schedulers
+                val_loss_drop_lr_callback = ReduceLROnPlateauScheduler(schedulers.pop(i),
+                                                                       monitor='val_loss')
+                return schedulers, val_loss_drop_lr_callback
+        return schedulers, None
 
     def __single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
@@ -1559,9 +1555,9 @@ class Trainer(TrainerIOMixin):
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
             # reduce learning rate based on metrics
-            if self.lr_scheduler_callback is not None and not test:
-                self.lr_scheduler_callback.on_epoch_end(epoch=self.current_epoch,
-                                                        logs=self.__training_tqdm_dict)
+            if self.val_loss_drop_lr_callback is not None and not test:
+                self.val_loss_drop_lr_callback.on_epoch_end(epoch=self.current_epoch,
+                                                            logs=callback_metrics)
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
