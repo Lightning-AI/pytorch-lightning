@@ -3,20 +3,14 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 """
 
 import os
-import re
 import warnings
-
 
 import tqdm
 import torch
-from torch.utils.data.distributed import DistributedSampler
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.root_module.root_module import LightningModule
-from pytorch_lightning.root_module import memory
-from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
 from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
 from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
@@ -28,12 +22,8 @@ from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfigMixin
 
-from pytorch_lightning.pt_overrides.override_data_parallel import (
-    LightningDistributedDataParallel, LightningDataParallel)
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
-from pytorch_lightning.trainer import ignored_warnings
 
 try:
     from apex import amp
@@ -296,19 +286,6 @@ class Trainer(TrainerIOMixin,
     def __get_model(self):
         return self.model.module if self.data_parallel else self.model
 
-    def __is_function_implemented(self, f_name):
-        model = self.__get_model()
-        f_op = getattr(model, f_name, None)
-        return callable(f_op)
-
-    def __is_overriden(self, f_name):
-        model = self.__get_model()
-        super_object = LightningModule
-
-        # when code pointers are different, it was overriden
-        is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
-        return is_overriden
-
     @property
     def __training_tqdm_dict(self):
         tqdm_dict = {
@@ -476,9 +453,7 @@ class Trainer(TrainerIOMixin,
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
-        # ---------------------------
         # CORE TRAINING LOOP
-        # ---------------------------
         self.__train()
 
     def test(self, model=None):

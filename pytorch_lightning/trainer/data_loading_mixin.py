@@ -1,5 +1,3 @@
-import os
-import re
 import warnings
 
 from torch.utils.data.distributed import DistributedSampler
