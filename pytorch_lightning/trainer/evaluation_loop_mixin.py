@@ -18,7 +18,7 @@ class TrainerEvaluationLoopMixin(object):
         model.eval()
 
         # copy properties for forward overrides
-        self.__copy_trainer_model_properties(model)
+        self.copy_trainer_model_properties(model)
 
         # disable gradients to save memory
         torch.set_grad_enabled(False)

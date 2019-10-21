@@ -156,7 +156,7 @@ class TrainerDDPMixin(object):
         model.cuda(gpu_nb)
 
         # set model properties before going into wrapper
-        self.__copy_trainer_model_properties(model)
+        self.copy_trainer_model_properties(model)
 
         # override root GPU
         self.root_gpu = gpu_nb
