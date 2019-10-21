@@ -116,7 +116,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
     def tng_dataloader(self):
         """
         Implement a PyTorch DataLoader
-        * Deprecated in v0.5.0. use training_tqdm_dict instead. *
+        * Deprecated in v0.5.0. use train_dataloader instead. *
         :return:
         """
         raise NotImplementedError
