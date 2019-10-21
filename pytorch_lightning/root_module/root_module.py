@@ -7,6 +7,8 @@ from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.decorators import data_loader
 
+import warnings
+
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
 
@@ -111,12 +113,28 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         optimizer.zero_grad()
 
     @data_loader
+    def tng_dataloader(self):
+        """
+        Implement a PyTorch DataLoader
+        * Deprecated in v0.5.0. use train_dataloader instead. *
+        :return:
+        """
+        raise NotImplementedError
+
+    @data_loader
     def train_dataloader(self):
         """
         Implement a PyTorch DataLoader
         :return:
         """
-        raise NotImplementedError
+        #
+        try:
+            output = self.tng_dataloader()
+            warnings.warn("tng_dataloader has been renamed to train_dataloader since v0.5.0",
+                          DeprecationWarning)
+            return output
+        except NotImplementedError:
+            raise NotImplementedError
 
     @data_loader
     def test_dataloader(self):
