@@ -1,13 +1,13 @@
+import warnings
+
 import torch
 
-from pytorch_lightning.root_module.memory import ModelSummary
-from pytorch_lightning.root_module.grads import GradInformation
-from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
-from pytorch_lightning.root_module.model_saving import ModelIO
-from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.decorators import data_loader
-
-import warnings
+from pytorch_lightning.root_module.grads import GradInformation
+from pytorch_lightning.root_module.hooks import ModelHooks
+from pytorch_lightning.root_module.memory import ModelSummary
+from pytorch_lightning.root_module.model_saving import ModelIO
+from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):

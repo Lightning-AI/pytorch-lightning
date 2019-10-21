@@ -1,11 +1,11 @@
-from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 import itertools
+import threading
 from itertools import chain
 
-import threading
 import torch
 from torch.cuda._utils import _get_device_index
+from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 
 def _find_tensors(obj):  # pragma: no cover

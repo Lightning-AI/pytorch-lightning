@@ -1,15 +1,11 @@
-import os.path
 import pickle
-import shutil
 
 import numpy as np
 import torch
+
 from pytorch_lightning import Trainer
-
 from pytorch_lightning.testing import LightningTestModel
-from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
 from .test_models import get_hparams, get_test_tube_logger, init_save_dir, clear_save_dir
-
 
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
 ROOT_SEED = 1234
