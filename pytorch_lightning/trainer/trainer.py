@@ -113,7 +113,7 @@ class Trainer(TrainerIOMixin):
         :param train_percent_check: int. How much of train set to check
         :param val_percent_check: int. How much of val set to check
         :param test_percent_check: int. How much of test set to check
-        :param val_check_interval: int. Check val this frequently within a train epoch
+        :param val_check_interval: float, int. If float, % within a train epoch. If int n, check every n batches
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
         :param add_row_log_interval: int. How often to add logging rows. Deprecated.
@@ -566,8 +566,13 @@ class Trainer(TrainerIOMixin):
             self.nb_test_batches = max(1, self.nb_test_batches)
 
         # determine when to check validation
-        self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
-        self.val_check_batch = max(1, self.val_check_batch)
+        # if int passed in, val checks that often
+        # otherwise, it checks in [0, 1.0] % range of a training epoch
+        if isinstance(self.val_check_interval, int):
+            self.val_check_batch = self.val_check_interval
+        else:
+            self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
+            self.val_check_batch = max(1, self.val_check_batch)
 
     def __add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
