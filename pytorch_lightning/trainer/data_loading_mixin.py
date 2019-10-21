@@ -37,7 +37,6 @@ class TrainerDataLoadingMixin(object):
         self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
         self.val_check_batch = max(1, self.val_check_batch)
 
-
     def get_dataloaders(self, model):
         """
         Dataloaders are provided by the model

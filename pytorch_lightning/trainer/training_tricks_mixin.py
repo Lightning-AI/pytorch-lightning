@@ -1,6 +1,7 @@
 import torch
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+
 
 class TrainerTrainingTricksMixin(object):
 

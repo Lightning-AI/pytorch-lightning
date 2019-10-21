@@ -1,6 +1,3 @@
-import torch
-from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging import TestTubeLogger
 
@@ -40,7 +37,6 @@ class TrainerCallbackConfigMixin(object):
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
-
 
     def __configure_early_stopping(self, early_stop_callback, logger):
         if early_stop_callback is True:
