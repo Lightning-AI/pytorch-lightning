@@ -128,7 +128,7 @@ class TrainerDataLoadingMixin(object):
             self.get_val_dataloaders()
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
-                                    test_percent_check, overfit_pct):
+                                  test_percent_check, overfit_pct):
         """
         Use less data for debugging purposes
         """
