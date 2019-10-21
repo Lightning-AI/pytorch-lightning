@@ -14,6 +14,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.optim.optimizer import Optimizer
 
+from torch.utils.data import IterableDataset
 from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning.root_module import memory
 from pytorch_lightning.logging import TestTubeLogger
@@ -172,6 +173,7 @@ class Trainer(TrainerIOMixin):
         self.get_train_dataloader = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
+        self.is_iterable_train_dataloader = False
 
         # training state
         self.model = None
@@ -545,10 +547,12 @@ class Trainer(TrainerIOMixin):
         return self.training_tqdm_dict
 
     def __layout_bookeeping(self):
-
         # determine number of training batches
-        self.nb_training_batches = len(self.get_train_dataloader())
-        self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
+        if isinstance(self.get_train_dataloader(), IterableDataset):
+            self.nb_training_batches = float('inf')
+        else:
+            self.nb_training_batches = len(self.get_train_dataloader())
+            self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
@@ -774,6 +778,16 @@ class Trainer(TrainerIOMixin):
             self.get_train_dataloader()
             self.get_test_dataloaders()
             self.get_val_dataloaders()
+
+        # support IterableDataset for train data
+        self.is_iterable_train_dataloader = isinstance(self.get_train_dataloader(), IterableDataset)
+        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+            m = '''
+            When using an iterableDataset for train_dataloader,
+            Trainer(val_check_interval) must be an int.
+            An int k specifies checking validation every k training batches
+            '''
+            raise MisconfigurationException('when using ')
 
     # -----------------------------
     # MODEL TRAINING
@@ -1121,7 +1135,12 @@ class Trainer(TrainerIOMixin):
 
             # init progress_bar when requested
             if self.show_progress_bar:
-                self.progress_bar.reset(self.total_batches)
+                nb_iterations = self.total_batches
+
+                #  for iterable train loader, the progress bar never ends
+                if self.is_iterable_train_dataloader:
+                    nb_iterations = float('inf')
+                self.progress_bar.reset(nb_iterations)
 
             # changing gradient according accumulation_scheduler
             self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
