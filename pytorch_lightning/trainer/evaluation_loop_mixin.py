@@ -62,10 +62,10 @@ class TrainerEvaluationLoopMixin(object):
             outputs = outputs[0]
 
         # give model a chance to do something with the outputs (and method defined)
-        model = self.__get_model()
-        if test and self.__is_overriden('test_end'):
+        model = self.get_model()
+        if test and self.is_overriden('test_end'):
             eval_results = model.test_end(outputs)
-        elif self.__is_overriden('validation_end'):
+        elif self.is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
 
         # enable train mode again
@@ -76,11 +76,11 @@ class TrainerEvaluationLoopMixin(object):
 
         return eval_results
 
-    def __run_evaluation(self, test=False):
+    def run_evaluation(self, test=False):
         # when testing make sure user defined a test step
         can_run_test_step = False
         if test:
-            can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
+            can_run_test_step = self.is_overriden('test_step') and self.is_overriden('test_end')
             if not can_run_test_step:
                 m = '''You called .test() without defining a test step or test_end.
                 Please define and try again'''
@@ -88,12 +88,12 @@ class TrainerEvaluationLoopMixin(object):
 
         # validate only if model has validation_step defined
         # test only if test_step or validation_step are defined
-        run_val_step = self.__is_overriden('validation_step')
+        run_val_step = self.is_overriden('validation_step')
 
         if run_val_step or can_run_test_step:
 
             # hook
-            model = self.__get_model()
+            model = self.get_model()
             model.on_pre_performance_check()
 
             # select dataloaders
@@ -114,13 +114,13 @@ class TrainerEvaluationLoopMixin(object):
                                          dataloaders,
                                          max_batches,
                                          test)
-            _, prog_bar_metrics, log_metrics, callback_metrics = self.__process_output(eval_results)
+            _, prog_bar_metrics, log_metrics, callback_metrics = self.process_output(eval_results)
 
             # add metrics to prog bar
-            self.__add_tqdm_metrics(prog_bar_metrics)
+            self.add_tqdm_metrics(prog_bar_metrics)
 
             # log metrics
-            self.__log_metrics(log_metrics, {})
+            self.log_metrics(log_metrics, {})
 
             # track metrics for callbacks
             self.callback_metrics = callback_metrics

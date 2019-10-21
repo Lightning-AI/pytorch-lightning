@@ -3,7 +3,7 @@ from pytorch_lightning.logging import TestTubeLogger
 
 
 class TrainerCallbackConfigMixin(object):
-    def __configure_checkpoint_callback(self):
+    def configure_checkpoint_callback(self):
         """
         Weight path set in this priority:
         Checkpoint_callback's path (if passed in).
@@ -38,7 +38,7 @@ class TrainerCallbackConfigMixin(object):
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
 
-    def __configure_early_stopping(self, early_stop_callback, logger):
+    def configure_early_stopping(self, early_stop_callback, logger):
         if early_stop_callback is True:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',

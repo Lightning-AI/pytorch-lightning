@@ -7,7 +7,7 @@ except ImportError:
 
 class TrainerAMPMixin(object):
 
-    def __init_amp(self, use_amp):
+    def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
             print('using 16bit precision')

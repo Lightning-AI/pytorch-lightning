@@ -4,7 +4,7 @@ from pytorch_lightning.root_module import memory
 
 class TrainerLoggingMixin(object):
 
-    def __log_metrics(self, metrics, grad_norm_dic):
+    def log_metrics(self, metrics, grad_norm_dic):
         """
         Logs the metric dict passed in
         :param metrics:
@@ -30,7 +30,7 @@ class TrainerLoggingMixin(object):
             self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
             self.logger.save()
 
-    def __add_tqdm_metrics(self, metrics):
+    def add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
             if type(v) is torch.Tensor:
                 v = v.item()
@@ -55,7 +55,7 @@ class TrainerLoggingMixin(object):
         blacklist = {'batch_nb', 'v_nb', 'gpu'}
         return blacklist
 
-    def __process_output(self, output, train=False):
+    def process_output(self, output, train=False):
         """
         Reduces output according to the training mode.
         Separates loss from logging and tqdm metrics

@@ -16,7 +16,7 @@ except ImportError:
 
 
 class TrainerDDPMixin(object):
-    def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
+    def set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
         # skip for CPU
         if self.num_gpus == 0:
             return
@@ -60,7 +60,7 @@ class TrainerDDPMixin(object):
 
         print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
 
-    def __configure_slurm_ddp(self, nb_gpu_nodes):
+    def configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
         # extract SLURM flag vars
@@ -90,7 +90,7 @@ class TrainerDDPMixin(object):
         except Exception as e:
             pass
 
-    def __set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
+    def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
             return
 

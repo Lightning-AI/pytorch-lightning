@@ -171,14 +171,14 @@ class Trainer(TrainerIOMixin,
         # configure early stop callback
         # creates a default one if none passed in
         self.early_stop_callback = None
-        self.__configure_early_stopping(early_stop_callback, logger)
+        self.configure_early_stopping(early_stop_callback, logger)
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
 
         # accumulated grads
-        self.__configure_accumulated_gradients(accumulate_grad_batches)
+        self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
         self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
@@ -190,16 +190,16 @@ class Trainer(TrainerIOMixin,
         self.use_dp = False
         self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
+        self.set_distributed_mode(distributed_backend, nb_gpu_nodes)
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.__configure_slurm_ddp(nb_gpu_nodes)
+        self.configure_slurm_ddp(nb_gpu_nodes)
 
         # nvidia setup
-        self.__set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
+        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
@@ -216,12 +216,12 @@ class Trainer(TrainerIOMixin,
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        self.__determine_data_use_amount(train_percent_check, val_percent_check,
-                                         test_percent_check, overfit_pct)
+        self.determine_data_use_amount(train_percent_check, val_percent_check,
+                                       test_percent_check, overfit_pct)
 
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
-        self.__init_amp(use_amp)
+        self.init_amp(use_amp)
 
     @property
     def slurm_job_id(self):
@@ -283,9 +283,6 @@ class Trainer(TrainerIOMixin,
     def data_parallel(self):
         return self.use_dp or self.use_ddp or self.use_ddp2
 
-    def __get_model(self):
-        return self.model.module if self.data_parallel else self.model
-
     @property
     def __training_tqdm_dict(self):
         tqdm_dict = {
@@ -341,10 +338,10 @@ class Trainer(TrainerIOMixin,
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.__dp_train(model)
+            self.dp_train(model)
 
         elif self.single_gpu:
-            self.__single_gpu_train(model)
+            self.single_gpu_train(model)
 
         # ON CPU
         else:
@@ -357,7 +354,7 @@ class Trainer(TrainerIOMixin,
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-            self.__run_pretrain_routine(model)
+            self.run_pretrain_routine(model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -378,7 +375,7 @@ class Trainer(TrainerIOMixin,
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
 
-    def __run_pretrain_routine(self, model):
+    def run_pretrain_routine(self, model):
         """
         Sanity check a few things before starting actual training
         :param model:
@@ -392,7 +389,7 @@ class Trainer(TrainerIOMixin,
         ref_model.trainer = self
 
         # set local properties on the model
-        self.__copy_trainer_model_properties(ref_model)
+        self.copy_trainer_model_properties(ref_model)
 
         # link up experiment object
         if self.logger is not None:
@@ -408,7 +405,7 @@ class Trainer(TrainerIOMixin,
             dist.barrier()
 
         # set up checkpoint callback
-        self.__configure_checkpoint_callback()
+        self.configure_checkpoint_callback()
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
@@ -417,7 +414,7 @@ class Trainer(TrainerIOMixin,
         self.get_dataloaders(ref_model)
 
         # init training constants
-        self.__layout_bookeeping()
+        self.layout_bookeeping()
 
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
@@ -440,7 +437,7 @@ class Trainer(TrainerIOMixin,
 
         # when testing requested only run test and return
         if self.testing:
-            self.__run_evaluation(test=True)
+            self.run_evaluation(test=True)
             return
 
         # run tiny validation (if validation defined)
@@ -454,11 +451,11 @@ class Trainer(TrainerIOMixin,
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
         # CORE TRAINING LOOP
-        self.__train()
+        self.train()
 
     def test(self, model=None):
         self.testing = True
         if model is not None:
             self.fit(model)
         else:
-            self.__run_evaluation(test=True)
+            self.run_evaluation(test=True)

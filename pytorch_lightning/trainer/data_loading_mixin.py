@@ -12,7 +12,7 @@ except ImportError:
 
 class TrainerDataLoadingMixin(object):
 
-    def __layout_bookeeping(self):
+    def layout_bookeeping(self):
 
         # determine number of training batches
         self.nb_training_batches = len(self.get_train_dataloader())
@@ -127,7 +127,7 @@ class TrainerDataLoadingMixin(object):
             self.get_test_dataloaders()
             self.get_val_dataloaders()
 
-    def __determine_data_use_amount(self, train_percent_check, val_percent_check,
+    def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                     test_percent_check, overfit_pct):
         """
         Use less data for debugging purposes

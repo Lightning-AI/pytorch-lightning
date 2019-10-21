@@ -18,7 +18,7 @@ except ImportError:
 
 
 class TrainerDPMixin(object):
-    def __copy_trainer_model_properties(self, model):
+    def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module
         elif isinstance(model, LightningDistributedDataParallel):
@@ -67,7 +67,7 @@ class TrainerDPMixin(object):
         # nothing matches, return the value as is without transform
         return batch
 
-    def __single_gpu_train(self, model):
+    def single_gpu_train(self, model):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
@@ -83,7 +83,7 @@ class TrainerDPMixin(object):
 
         self.__run_pretrain_routine(model)
 
-    def __dp_train(self, model):
+    def dp_train(self, model):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well

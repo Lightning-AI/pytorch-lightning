@@ -7,16 +7,16 @@ class TrainerTrainingTricksMixin(object):
 
     def __clip_gradients(self):
         if self.gradient_clip_val > 0:
-            model = self.__get_model()
+            model = self.get_model()
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
 
     def __print_nan_grads(self):
-        model = self.__get_model()
+        model = self.get_model()
         for param in model.parameters():
             if torch.isnan(param.grad.float()).any():
                 print(param, param.grad)
 
-    def __configure_accumulated_gradients(self, accumulate_grad_batches):
+    def configure_accumulated_gradients(self, accumulate_grad_batches):
         self.accumulate_grad_batches = None
 
         if isinstance(accumulate_grad_batches, dict):

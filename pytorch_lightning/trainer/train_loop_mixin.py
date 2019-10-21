@@ -9,7 +9,7 @@ except ImportError:
 
 class TrainerTrainLoopMixin(object):
 
-    def __train(self):
+    def train(self):
         # run all epochs
         for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -17,7 +17,7 @@ class TrainerTrainLoopMixin(object):
                 self.get_train_dataloader().sampler.set_epoch(epoch_nb)
 
             # get model
-            model = self.__get_model()
+            model = self.get_model()
 
             # update training progress in trainer and model
             model.current_epoch = epoch_nb
@@ -61,8 +61,8 @@ class TrainerTrainLoopMixin(object):
 
     def run_training_epoch(self):
         # before epoch hook
-        if self.__is_function_implemented('on_epoch_start'):
-            model = self.__get_model()
+        if self.is_function_implemented('on_epoch_start'):
+            model = self.get_model()
             model.on_epoch_start()
 
         # run epoch
@@ -70,7 +70,7 @@ class TrainerTrainLoopMixin(object):
             self.batch_nb = batch_nb
             self.global_step += 1
 
-            model = self.__get_model()
+            model = self.get_model()
             model.global_step = self.global_step
 
             # stop when the flag is changed or we've gone past the amount
@@ -109,15 +109,15 @@ class TrainerTrainLoopMixin(object):
             if should_log_metrics or self.fast_dev_run:
 
                 # logs user requested information to logger
-                self.__log_metrics(batch_step_metrics, grad_norm_dic)
+                self.log_metrics(batch_step_metrics, grad_norm_dic)
 
             # end epoch early
             if early_stop_epoch or self.fast_dev_run:
                 break
 
         # epoch end hook
-        if self.__is_function_implemented('on_epoch_end'):
-            model = self.__get_model()
+        if self.is_function_implemented('on_epoch_end'):
+            model = self.get_model()
             model.on_epoch_end()
 
     def __run_training_batch(self, batch, batch_nb):
@@ -134,8 +134,8 @@ class TrainerTrainLoopMixin(object):
             return 0, grad_norm_dic
 
         # hook
-        if self.__is_function_implemented('on_batch_start'):
-            model_ref = self.__get_model()
+        if self.is_function_implemented('on_batch_start'):
+            model_ref = self.get_model()
             response = model_ref.on_batch_start(batch)
 
             if response == -1:
@@ -157,7 +157,7 @@ class TrainerTrainLoopMixin(object):
                 all_callback_metrics.append(callback_metrics)
 
                 # track progress bar metrics
-                self.__add_tqdm_metrics(progress_bar_metrics)
+                self.add_tqdm_metrics(progress_bar_metrics)
                 all_log_metrics.append(log_metrics)
 
                 # accumulate loss
@@ -172,8 +172,8 @@ class TrainerTrainLoopMixin(object):
                     closure_loss.backward()
 
                 # insert after step hook
-                if self.__is_function_implemented('on_after_backward'):
-                    model_ref = self.__get_model()
+                if self.is_function_implemented('on_after_backward'):
+                    model_ref = self.get_model()
                     model_ref.on_after_backward()
 
                 return closure_loss
@@ -194,7 +194,7 @@ class TrainerTrainLoopMixin(object):
                 # track gradient norms when requested
                 if batch_nb % self.row_log_interval == 0:
                     if self.track_grad_norm > 0:
-                        model = self.__get_model()
+                        model = self.get_model()
                         grad_norm_dic = model.grad_norm(self.track_grad_norm)
 
                 # clip gradients
@@ -202,7 +202,7 @@ class TrainerTrainLoopMixin(object):
 
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
-                model = self.__get_model()
+                model = self.get_model()
                 model.optimizer_step(self.current_epoch, batch_nb,
                                      optimizer, opt_idx, optimizer_closure)
 
@@ -218,8 +218,8 @@ class TrainerTrainLoopMixin(object):
                     self.progress_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
-        if self.__is_function_implemented('on_batch_end'):
-            model = self.__get_model()
+        if self.is_function_implemented('on_batch_end'):
+            model = self.get_model()
             model.on_batch_end()
 
         # collapse all metrics into one dict
@@ -261,6 +261,6 @@ class TrainerTrainLoopMixin(object):
             output = self.model.training_step(*args)
 
         # format and reduce outputs accordingly
-        output = self.__process_output(output, train=True)
+        output = self.process_output(output, train=True)
         loss, progress_bar_metrics, log_metrics, callback_metrics = output
         return loss, progress_bar_metrics, log_metrics, callback_metrics
