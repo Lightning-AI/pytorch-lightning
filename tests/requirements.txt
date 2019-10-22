@@ -7,3 +7,4 @@ flake8
 check-manifest
 test_tube
 mlflow
+cometml
