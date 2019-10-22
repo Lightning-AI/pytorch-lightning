@@ -24,20 +24,11 @@ from pytorch_lightning.testing import (
     LightningTestMixin,
     LightningTestMultipleDataloadersMixin,
 )
-from pytorch_lightning.callbacks import (
-    ModelCheckpoint,
-    EarlyStopping,
-    GradientAccumulationScheduler,
-)
-from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.root_module import memory
+from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.dp_mixin import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
-
-from pytorch_lightning.root_module import model_saving
-from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -49,6 +40,7 @@ torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 PRETEND_N_OF_GPUS = 16
+
 
 # ------------------------------------------------------------------------
 # TESTS
@@ -1448,6 +1440,7 @@ def test_multiple_test_dataloader():
 def mocked_device_count(monkeypatch):
     def device_count():
         return PRETEND_N_OF_GPUS
+
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
@@ -1455,6 +1448,7 @@ def mocked_device_count(monkeypatch):
 def mocked_device_count_0(monkeypatch):
     def device_count():
         return 0
+
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
