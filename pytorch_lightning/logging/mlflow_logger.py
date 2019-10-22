@@ -1,5 +1,5 @@
-from time import time
 from logging import getLogger
+from time import time
 
 import mlflow
 

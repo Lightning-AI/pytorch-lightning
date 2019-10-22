@@ -5,29 +5,28 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 import os
 import warnings
 
-import tqdm
 import torch
-import torch.multiprocessing as mp
 import torch.distributed as dist
+import torch.multiprocessing as mp
+import tqdm
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
+from pytorch_lightning.trainer.amp_mixin import TrainerAMPMixin
+from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfigMixin
+from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
 from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
-from pytorch_lightning.trainer.amp_mixin import TrainerAMPMixin
-from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.evaluation_loop_mixin import TrainerEvaluationLoopMixin
-from pytorch_lightning.trainer.train_loop_mixin import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
-from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
-
+from pytorch_lightning.trainer.train_loop_mixin import TrainerTrainLoopMixin
+from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
+from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-import pdb
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
@@ -332,7 +331,7 @@ class Trainer(TrainerIOMixin,
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
+                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues

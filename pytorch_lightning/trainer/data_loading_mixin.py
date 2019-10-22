@@ -1,13 +1,14 @@
 import warnings
 
-from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
 from torch.utils.data import IterableDataset
+from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False

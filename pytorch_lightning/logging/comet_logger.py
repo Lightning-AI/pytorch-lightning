@@ -1,7 +1,7 @@
-from time import time
-from logging import getLogger
 from os import environ
+
 from comet_ml import Experiment as CometExperiment
+
 from .base import LightningLoggerBase, rank_zero_only
 
 # needed to prevent ImportError and duplicated logs.
