@@ -402,6 +402,47 @@ def test_running_test_pretrained_model():
     clear_save_dir()
 
 
+def test_load_model_from_checkpoint():
+    reset_seed()
+
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=True,
+        logger=False,
+        default_save_path=save_dir
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = LightningTestModel.load_from_checkpoint(
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
+    )
+
+    # test that hparams loaded correctly
+    for k, v in vars(hparams).items():
+        assert getattr(pretrained_model.hparams, k) == v
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
 def test_running_test_pretrained_model_dp():
     reset_seed()
 

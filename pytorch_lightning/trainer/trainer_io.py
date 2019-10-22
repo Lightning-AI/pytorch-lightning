@@ -172,9 +172,10 @@ class TrainerIOMixin(object):
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
-        # add the state_dict from the model
+        # add the hparams and state_dict from the model
         model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
+        checkpoint['hparams'] = vars(model.hparams)
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
