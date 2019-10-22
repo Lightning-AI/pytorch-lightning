@@ -78,13 +78,6 @@ class TrainerTrainLoopMixin(object):
             model = self.get_model()
             model.global_step = self.global_step
 
-            # stop when the flag is changed or we've gone past the amount
-            #  requested in the batches
-            self.total_batch_nb += 1
-            met_batch_limit = batch_nb >= self.nb_training_batches
-            if met_batch_limit:
-                break
-
             # ---------------
             # RUN TRAIN STEP
             # ---------------
@@ -120,6 +113,13 @@ class TrainerTrainLoopMixin(object):
                 break
 
             self.global_step += 1
+            
+            # stop when the flag is changed or we've gone past the amount
+            #  requested in the batches
+            self.total_batch_nb += 1
+            met_batch_limit = batch_nb >= self.nb_training_batches
+            if met_batch_limit:
+                break
 
         # epoch end hook
         if self.is_function_implemented('on_epoch_end'):
