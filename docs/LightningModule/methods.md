@@ -10,8 +10,25 @@ model.freeze()
 
 ---    
 ### load_from_metrics
-This is the easiest/fastest way which uses the meta_tags.csv file from test-tube to rebuild the model.
-The meta_tags.csv file can be found in the test-tube experiment save_dir.       
+This is the easiest/fastest way which loads hyperparameters and weights from a checkpoint,
+such as the one saved by the `ModelCheckpoint` callback
+
+```{.python}
+pretrained_model = MyLightningModule.load_from_checkpoint(
+    checkpoint_path='/path/to/pytorch_checkpoint.ckpt'
+)
+    
+# predict
+pretrained_model.eval()
+pretrained_model.freeze()
+y_hat = pretrained_model(x)
+```
+
+---    
+### load_from_metrics
+If you're using test tube, there is an alternate method which uses the meta_tags.csv
+file from test-tube to rebuild the model. The meta_tags.csv file can be found in the
+test-tube experiment save_dir.       
 
 ```{.python}
 pretrained_model = MyLightningModule.load_from_metrics(
