@@ -25,11 +25,12 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.trainer.trainer import reduce_distributed_output
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.logging import TestTubeLogger
 from pl_examples import LightningTemplateModel
+from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
+
 
 # generate a list of random seeds for each test
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
@@ -996,14 +997,15 @@ def test_loading_meta_tags():
 
 
 def test_dp_output_reduce():
+    mixin = TrainerLoggingMixin()
     reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
-    assert reduce_distributed_output(out, nb_gpus=1) is out
+    assert mixin.reduce_distributed_output(out, nb_gpus=1) is out
 
     # average when we have multiples
-    assert reduce_distributed_output(out, nb_gpus=2) == out.mean()
+    assert mixin.reduce_distributed_output(out, nb_gpus=2) == out.mean()
 
     # when we have a dict of vals
     out = {
@@ -1012,7 +1014,7 @@ def test_dp_output_reduce():
             'c': out
         }
     }
-    reduced = reduce_distributed_output(out, nb_gpus=3)
+    reduced = mixin.reduce_distributed_output(out, nb_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
