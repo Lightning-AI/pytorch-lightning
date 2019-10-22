@@ -183,7 +183,7 @@ class TrainerTrainLoopMixin(object):
 
             # nan grads
             if self.print_nan_grads:
-                self.print_nan_grads()
+                self.print_nan_gradients()
 
             # track total loss for logging (avoid mem leaks)
             self.batch_loss_value += loss.item()

@@ -10,7 +10,7 @@ class TrainerTrainingTricksMixin(object):
             model = self.get_model()
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
 
-    def print_nan_grads(self):
+    def print_nan_gradients(self):
         model = self.get_model()
         for param in model.parameters():
             if torch.isnan(param.grad.float()).any():
