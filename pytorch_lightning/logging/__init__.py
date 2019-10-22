@@ -8,3 +8,7 @@ try:
     from .mlflow_logger import MLFlowLogger
 except ModuleNotFoundError:
     pass
+try:
+    from .comet_logger import CometLogger
+except ModuleNotFoundError:
+    pass
