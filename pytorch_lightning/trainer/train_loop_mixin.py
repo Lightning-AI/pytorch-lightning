@@ -113,7 +113,7 @@ class TrainerTrainLoopMixin(object):
                 break
 
             self.global_step += 1
-            
+
             # stop when the flag is changed or we've gone past the amount
             #  requested in the batches
             self.total_batch_nb += 1
