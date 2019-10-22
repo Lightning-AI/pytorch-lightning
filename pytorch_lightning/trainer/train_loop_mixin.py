@@ -83,7 +83,7 @@ class TrainerTrainLoopMixin(object):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            output = self.__run_training_batch(batch, batch_nb)
+            output = self.run_training_batch(batch, batch_nb)
             batch_result, grad_norm_dic, batch_step_metrics = output
             early_stop_epoch = batch_result == -1
 
@@ -96,7 +96,7 @@ class TrainerTrainLoopMixin(object):
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
-                self.__run_evaluation(test=self.testing)
+                self.run_evaluation(test=self.testing)
 
             # when logs should be saved
             should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
@@ -120,7 +120,7 @@ class TrainerTrainLoopMixin(object):
             model = self.get_model()
             model.on_epoch_end()
 
-    def __run_training_batch(self, batch, batch_nb):
+    def run_training_batch(self, batch, batch_nb):
         # track grad norms
         grad_norm_dic = {}
 
@@ -150,7 +150,7 @@ class TrainerTrainLoopMixin(object):
             # wrap the forward step in a closure so second order methods work
             def optimizer_closure():
                 # forward pass
-                output = self.__training_forward(batch, batch_nb, opt_idx)
+                output = self.training_forward(batch, batch_nb, opt_idx)
                 closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
 
                 # track metrics for callbacks
@@ -183,7 +183,7 @@ class TrainerTrainLoopMixin(object):
 
             # nan grads
             if self.print_nan_grads:
-                self.__print_nan_grads()
+                self.print_nan_grads()
 
             # track total loss for logging (avoid mem leaks)
             self.batch_loss_value += loss.item()
@@ -198,7 +198,7 @@ class TrainerTrainLoopMixin(object):
                         grad_norm_dic = model.grad_norm(self.track_grad_norm)
 
                 # clip gradients
-                self.__clip_gradients()
+                self.clip_gradients()
 
                 # calls .step(), .zero_grad()
                 # override function to modify this behavior
@@ -230,7 +230,7 @@ class TrainerTrainLoopMixin(object):
 
         return 0, grad_norm_dic, all_log_metrics
 
-    def __training_forward(self, batch, batch_nb, opt_idx):
+    def training_forward(self, batch, batch_nb, opt_idx):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:

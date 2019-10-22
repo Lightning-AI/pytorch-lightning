@@ -81,7 +81,7 @@ class TrainerDPMixin(object):
             )
             self.optimizers = optimizers
 
-        self.__run_pretrain_routine(model)
+        self.run_pretrain_routine(model)
 
     def dp_train(self, model):
 
@@ -108,4 +108,4 @@ class TrainerDPMixin(object):
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
-        self.__run_pretrain_routine(model)
+        self.run_pretrain_routine(model)

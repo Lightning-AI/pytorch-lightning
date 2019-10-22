@@ -5,12 +5,12 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 class TrainerTrainingTricksMixin(object):
 
-    def __clip_gradients(self):
+    def clip_gradients(self):
         if self.gradient_clip_val > 0:
             model = self.get_model()
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
 
-    def __print_nan_grads(self):
+    def print_nan_grads(self):
         model = self.get_model()
         for param in model.parameters():
             if torch.isnan(param.grad.float()).any():

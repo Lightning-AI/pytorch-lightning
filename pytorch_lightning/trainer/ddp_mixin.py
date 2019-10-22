@@ -183,7 +183,7 @@ class TrainerDDPMixin(object):
         )
 
         # continue training routine
-        self.__run_pretrain_routine(model)
+        self.run_pretrain_routine(model)
 
     def __init_tcp_connection(self):
         """

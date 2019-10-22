@@ -41,11 +41,11 @@ class TrainerEvaluationLoopMixin(object):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.__evaluation_forward(model,
-                                                   batch,
-                                                   batch_idx,
-                                                   dataloader_idx,
-                                                   test)
+                output = self.evaluation_forward(model,
+                                                 batch,
+                                                 batch_idx,
+                                                 dataloader_idx,
+                                                 test)
 
                 # track outputs for collation
                 dl_outputs.append(output)
@@ -138,7 +138,7 @@ class TrainerEvaluationLoopMixin(object):
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
 
-    def __evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
+    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 

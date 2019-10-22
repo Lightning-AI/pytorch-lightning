@@ -23,7 +23,7 @@ class TrainerLoggingMixin(object):
         metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
-        scalar_metrics = self.__metrics_to_scalars(metrics)
+        scalar_metrics = self.metrics_to_scalars(metrics)
 
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
@@ -37,23 +37,18 @@ class TrainerLoggingMixin(object):
 
             self.tqdm_metrics[k] = v
 
-    def __metrics_to_scalars(self, metrics):
+    def metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
             if type(v) is dict:
-                v = self.__metrics_to_scalars(v)
+                v = self.metrics_to_scalars(v)
 
             new_metrics[k] = v
 
         return new_metrics
-
-    def __log_vals_blacklist(self):
-        """avoid logging some vals lightning uses to maintain state"""
-        blacklist = {'batch_nb', 'v_nb', 'gpu'}
-        return blacklist
 
     def process_output(self, output, train=False):
         """
