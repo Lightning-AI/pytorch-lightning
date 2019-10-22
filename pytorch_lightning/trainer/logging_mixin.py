@@ -123,7 +123,7 @@ class TrainerLoggingMixin(object):
 
             # when using dp need to reduce the loss
             if self.use_dp or self.use_ddp2:
-                loss = self.reduce_distributed_output(loss, self.num_gpus)
+                loss = reduce_distributed_output(loss, self.num_gpus)
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
@@ -136,22 +136,23 @@ class TrainerLoggingMixin(object):
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics
 
-    def reduce_distributed_output(self, output, nb_gpus):
-        if nb_gpus <= 1:
-            return output
 
-        # when using DP, we get one output per gpu
-        # average outputs and return
-        if type(output) is torch.Tensor:
-            return output.mean()
-
-        for k, v in output.items():
-            # recurse on nested dics
-            if isinstance(output[k], dict):
-                output[k] = self.reduce_distributed_output(output[k], nb_gpus)
-
-            # reduce only metrics that have the same nb of gpus
-            elif output[k].size(0) == nb_gpus:
-                reduced = torch.mean(output[k])
-                output[k] = reduced
+def reduce_distributed_output(output, nb_gpus):
+    if nb_gpus <= 1:
         return output
+
+    # when using DP, we get one output per gpu
+    # average outputs and return
+    if type(output) is torch.Tensor:
+        return output.mean()
+
+    for k, v in output.items():
+        # recurse on nested dics
+        if isinstance(output[k], dict):
+            output[k] = reduce_distributed_output(output[k], nb_gpus)
+
+        # reduce only metrics that have the same nb of gpus
+        elif output[k].size(0) == nb_gpus:
+            reduced = torch.mean(output[k])
+            output[k] = reduced
+    return output

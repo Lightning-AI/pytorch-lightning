@@ -13,7 +13,11 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
 from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
-from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
+from pytorch_lightning.trainer.dp_mixin import (
+    TrainerDPMixin,
+    parse_gpu_ids,
+    determine_root_gpu_device
+)
 from pytorch_lightning.trainer.amp_mixin import TrainerAMPMixin
 from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.evaluation_loop_mixin import TrainerEvaluationLoopMixin

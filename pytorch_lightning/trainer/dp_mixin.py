@@ -110,6 +110,7 @@ class TrainerDPMixin(object):
 
         self.run_pretrain_routine(model)
 
+
 def normalize_parse_gpu_string_input(s):
     if type(s) is str:
         if s == '-1':
@@ -119,11 +120,13 @@ def normalize_parse_gpu_string_input(s):
     else:
         return s
 
+
 def get_all_available_gpus():
     """
     :return: a list of all available gpus
     """
     return list(range(torch.cuda.device_count()))
+
 
 def check_gpus_data_type(gpus):
     """
@@ -139,6 +142,7 @@ def check_gpus_data_type(gpus):
         type(gpus) is not list):    # noqa E129
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
+
 def normalize_parse_gpu_input_to_list(gpus):
     assert gpus is not None
     if isinstance(gpus, list):
@@ -150,6 +154,7 @@ def normalize_parse_gpu_input_to_list(gpus):
             return get_all_available_gpus()
         else:
             return list(range(gpus))
+
 
 def sanitize_gpu_ids(gpus):
     """
@@ -167,6 +172,7 @@ def sanitize_gpu_ids(gpus):
             """
             raise MisconfigurationException(message)
     return gpus
+
 
 def parse_gpu_ids(gpus):
     """
