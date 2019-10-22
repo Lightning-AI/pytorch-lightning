@@ -2,16 +2,17 @@
 Example template for defining a system
 """
 import os
+from argparse import ArgumentParser
 from collections import OrderedDict
-import torch.nn as nn
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
+
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from test_tube import HyperOptArgumentParser
+import torchvision.transforms as transforms
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
 from pytorch_lightning.root_module.root_module import LightningModule
@@ -79,14 +80,14 @@ class LightningTemplateModel(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, data_batch, batch_i):
+    def training_step(self, batch, batch_idx):
         """
         Lightning calls this inside the training loop
-        :param data_batch:
+        :param batch:
         :return:
         """
         # forward pass
-        x, y = data_batch
+        x, y = batch
         x = x.view(x.size(0), -1)
 
         y_hat = self.forward(x)
@@ -95,23 +96,26 @@ class LightningTemplateModel(LightningModule):
         loss_val = self.loss(y, y_hat)
 
         # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp:
+        if self.trainer.use_dp or self.trainer.use_ddp2:
             loss_val = loss_val.unsqueeze(0)
 
+        tqdm_dict = {'train_loss': loss_val}
         output = OrderedDict({
-            'loss': loss_val
+            'loss': loss_val,
+            'progress_bar': tqdm_dict,
+            'log': tqdm_dict
         })
 
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_step(self, data_batch, batch_i):
+    def validation_step(self, batch, batch_idx):
         """
         Lightning calls this inside the validation loop
-        :param data_batch:
+        :param batch:
         :return:
         """
-        x, y = data_batch
+        x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self.forward(x)
 
@@ -126,7 +130,7 @@ class LightningTemplateModel(LightningModule):
             val_acc = val_acc.cuda(loss_val.device.index)
 
         # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp:
+        if self.trainer.use_dp or self.trainer.use_ddp2:
             loss_val = loss_val.unsqueeze(0)
             val_acc = val_acc.unsqueeze(0)
 
@@ -160,15 +164,16 @@ class LightningTemplateModel(LightningModule):
 
             # reduce manually when using dp
             val_acc = output['val_acc']
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_acc = torch.mean(val_acc)
 
             val_acc_mean += val_acc
 
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
-        tqdm_dic = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        return tqdm_dic
+        tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
+        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': val_loss_mean}
+        return result
 
     # ---------------------
     # TRAINING SETUP
@@ -189,27 +194,27 @@ class LightningTemplateModel(LightningModule):
         dataset = MNIST(root=self.hparams.data_root, train=train,
                         transform=transform, download=True)
 
-        # when using multi-node (ddp) we need to add the datasampler
+        # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
         batch_size = self.hparams.batch_size
 
         if self.use_ddp:
-            train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-            batch_size = batch_size // self.trainer.world_size  # scale batch size
+            train_sampler = DistributedSampler(dataset)
 
         should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=should_shuffle,
-            sampler=train_sampler
+            sampler=train_sampler,
+            num_workers=0
         )
 
         return loader
 
     @pl.data_loader
-    def tng_dataloader(self):
-        print('tng data loader called')
+    def train_dataloader(self):
+        print('training data loader called')
         return self.__dataloader(train=True)
 
     @pl.data_loader
@@ -230,31 +235,23 @@ class LightningTemplateModel(LightningModule):
         :param root_dir:
         :return:
         """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
+        parser = ArgumentParser(parents=[parent_parser])
 
         # param overwrites
-        # parser.set_defaults(gradient_clip=5.0)
+        # parser.set_defaults(gradient_clip_val=5.0)
 
         # network params
         parser.add_argument('--in_features', default=28 * 28, type=int)
         parser.add_argument('--out_features', default=10, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
         parser.add_argument('--hidden_dim', default=50000, type=int)
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
+        parser.add_argument('--drop_prob', default=0.2, type=float)
+        parser.add_argument('--learning_rate', default=0.001, type=float)
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str,
-                        options=['adam'], tunable=False)
-
-        # if using 2 nodes with 4 gpus each the batch size here
-        #  (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256 * 8, type=int,
-                        options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all gpus being used across all nodes')
+        parser.add_argument('--optimizer_name', default='adam', type=str)
+        parser.add_argument('--batch_size', default=64, type=int)
         return parser

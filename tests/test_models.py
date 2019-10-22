@@ -3,44 +3,536 @@ import shutil
 import warnings
 from argparse import Namespace
 
-import pytest
 import numpy as np
+import pytest
 import torch
-from test_tube import Experiment, SlurmCluster
 
+from pl_examples import LightningTemplateModel
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel, NoValEndTestModel, NoValModel
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+)
+from pytorch_lightning.logging import TestTubeLogger
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.models.trainer import reduce_distributed_output
-from pytorch_lightning.root_module import model_saving
-from examples import LightningTemplateModel
+from pytorch_lightning.testing import (
+    LightningTestModel,
+    LightningTestModelBase,
+    LightningValidationStepMixin,
+    LightningValidationMultipleDataloadersMixin,
+    LightningTestMixin,
+    LightningTestMultipleDataloadersMixin,
+)
+from pytorch_lightning.trainer import trainer_io
+from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+# generate a list of random seeds for each test
+RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
+RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
+ROOT_SEED = 1234
+torch.manual_seed(ROOT_SEED)
+np.random.seed(ROOT_SEED)
+RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
 # ------------------------------------------------------------------------
 # TESTS
 # ------------------------------------------------------------------------
+def test_multi_gpu_model_ddp2():
+    """
+    Make sure DDP2 works
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=2,
+        weights_summary=None,
+        distributed_backend='ddp2'
+    )
+
+    run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_early_stopping_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    stopping = EarlyStopping(monitor='val_loss')
+    trainer_options = dict(
+        early_stop_callback=stopping,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        print_nan_grads=True,
+        show_progress_bar=True,
+        logger=get_test_tube_logger(),
+        train_percent_check=0.1,
+        val_percent_check=0.1
+    )
+
+    model, hparams = get_model()
+    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+
+def test_running_test_pretrained_model_ddp():
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+    set_random_master_port()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # exp file to get meta
+    logger = get_test_tube_logger(False)
+
+    # exp file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    exp = logger.experiment
+    print(os.listdir(exp.get_data_path(exp.name, exp.version)))
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
+                                  module_class=LightningTestModel)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+
+    clear_save_dir()
+
+
+def test_lbfgs_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        weights_summary='top',
+        train_percent_check=1.0,
+        val_percent_check=0.2
+    )
+
+    model, hparams = get_model(use_test_model=True, lbfgs=True)
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False, min_acc=0.30)
+
+    clear_save_dir()
+
+
+def test_default_logger_callbacks_cpu_model():
+    """
+    Test each of the trainer options
+    :return:
+    """
+    reset_seed()
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        print_nan_grads=True,
+        show_progress_bar=False,
+        train_percent_check=0.01,
+        val_percent_check=0.01
+    )
+
+    model, hparams = get_model()
+    run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
+def test_dp_resume():
+    """
+    Make sure DP continues training correctly
+    :return:
+    """
+    if not can_run_gpu_test():
+        return
+
+    reset_seed()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=2,
+        gpus=2,
+        distributed_backend='dp',
+    )
+
+    save_dir = init_save_dir()
+
+    # get logger
+    logger = get_test_tube_logger(debug=False)
+
+    # exp file to get weights
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    # add these to the trainer options
+    trainer_options['logger'] = logger
+    trainer_options['checkpoint_callback'] = checkpoint
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.is_slurm_managing_tasks = True
+    result = trainer.fit(model)
+
+    # track epoch before saving
+    real_global_epoch = trainer.current_epoch
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + dp model failed to complete'
+
+    # ---------------------------
+    # HPC LOAD/SAVE
+    # ---------------------------
+    # save
+    trainer.hpc_save(save_dir, logger)
+
+    # init new trainer
+    new_logger = get_test_tube_logger(version=logger.version)
+    trainer_options['logger'] = new_logger
+    trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
+    trainer_options['train_percent_check'] = 0.2
+    trainer_options['val_percent_check'] = 0.2
+    trainer_options['max_nb_epochs'] = 1
+    new_trainer = Trainer(**trainer_options)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_good_acc():
+        assert new_trainer.current_epoch == real_global_epoch and new_trainer.current_epoch > 0
+
+        # if model and state loaded correctly, predictions will be good even though we
+        # haven't trained with the new loaded model
+        dp_model = new_trainer.model
+        dp_model.eval()
+
+        dataloader = trainer.get_train_dataloader()
+        run_prediction(dataloader, dp_model, dp=True)
+
+    # new model
+    model = LightningTestModel(hparams)
+    model.on_sanity_check_start = assert_good_acc
+
+    # fit new model which should load hpc weights
+    new_trainer.fit(model)
+
+    # test freeze on gpu
+    model.freeze()
+    model.unfreeze()
+
+    clear_save_dir()
+
+
+def test_running_test_after_fitting():
+    """Verify test() on fitted model"""
+    reset_seed()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+
+    clear_save_dir()
+
+
+def test_running_test_without_val():
+    reset_seed()
+
+    """Verify test() works on a model with no val_loader"""
+
+    class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
+        pass
+
+    hparams = get_hparams()
+    model = CurrentTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    trainer.test()
+
+    # test we have good test accuracy
+    assert_ok_test_acc(trainer)
+
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model():
+    reset_seed()
+
+    """Verify test() on pretrained model"""
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(
+        logger.experiment, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
+    )
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
+def test_running_test_pretrained_model_dp():
+    reset_seed()
+
+    """Verify test() on pretrained model"""
+    if not can_run_gpu_test():
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = init_save_dir()
+
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='dp'
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
+                                  module_class=LightningTestModel)
+
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    assert_ok_test_acc(new_trainer)
+    clear_save_dir()
+
+
+def test_gradient_accumulation_scheduling():
+    reset_seed()
+
+    """
+    Test grad accumulation by the freq of optimizer updates
+    """
+    # test incorrect configs
+    with pytest.raises(IndexError):
+        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-2: 3})
+
+    with pytest.raises(TypeError):
+        assert Trainer(accumulate_grad_batches={})
+        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+        assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
+
+    # test optimizer call freq matches scheduler
+    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+        # only test the first 12 batches in epoch
+        if batch_nb < 12:
+            if epoch_nb == 0:
+                # reset counter when starting epoch
+                if batch_nb == 0:
+                    self.prev_called_batch_nb = 0
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 1
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 1
+
+            elif 1 <= epoch_nb <= 2:
+                # reset counter when starting epoch
+                if batch_nb == 1:
+                    self.prev_called_batch_nb = 1
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 2
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 2
+
+            else:
+                if batch_nb == 3:
+                    self.prev_called_batch_nb = 3
+
+                    # use this opportunity to test once
+                    assert self.trainer.accumulate_grad_batches == 4
+
+                assert batch_nb == self.prev_called_batch_nb
+                self.prev_called_batch_nb += 3
+
+        optimizer.step()
+
+        # clear gradients
+        optimizer.zero_grad()
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+    schedule = {1: 2, 3: 4}
+
+    trainer = Trainer(accumulate_grad_batches=schedule,
+                      train_percent_check=0.1,
+                      val_percent_check=0.1,
+                      max_nb_epochs=4)
+
+    # for the test
+    trainer.optimizer_step = optimizer_step
+    model.prev_called_batch_nb = 0
+
+    trainer.fit(model)
+
+
 def test_multi_gpu_model_ddp():
     """
     Make sure DDP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    reset_seed()
+    set_random_master_port()
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
@@ -167,6 +659,7 @@ def test_model_checkpoint_options():
 
 
 def test_optimizer_return_options():
+    reset_seed()
 
     trainer = Trainer()
     model, hparams = get_model()
@@ -197,13 +690,9 @@ def test_optimizer_return_options():
 
 
 def test_single_gpu_batch_parse():
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    reset_seed()
+
+    if not can_run_gpu_test():
         return
 
     trainer = Trainer()
@@ -244,51 +733,28 @@ def test_single_gpu_batch_parse():
     assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
 
 
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    stopping = EarlyStopping(monitor='val_loss')
-    trainer_options = dict(
-        early_stop_callback=stopping,
-        gradient_clip=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        print_nan_grads=True,
-        show_progress_bar=False,
-        experiment=get_exp(),
-        train_percent_check=0.1,
-        val_percent_check=0.1
-    )
-
-    model, hparams = get_model()
-    run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
-
-
 def test_no_val_module():
     """
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
-    model = NoValModel(hparams)
+
+    class CurrentTestModel(LightningTestModelBase):
+        pass
+
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -296,7 +762,7 @@ def test_no_val_module():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # traning complete
+    # training complete
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
@@ -304,10 +770,10 @@ def test_no_val_module():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
@@ -319,20 +785,22 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
+
+    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+        pass
+
     hparams = get_hparams()
-    model = NoValEndTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -348,10 +816,10 @@ def test_no_val_end_module():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
@@ -363,12 +831,14 @@ def test_simple_cpu():
     Verify continue training session on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
+    # logger file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
@@ -390,6 +860,8 @@ def test_amp_single_gpu():
     Make sure DDP + AMP work
     :return:
     """
+    reset_seed()
+
     if not torch.cuda.is_available():
         warnings.warn('test_amp_gpu_ddp cannot run.'
                       'Rerun on a GPU node to run this test')
@@ -405,12 +877,43 @@ def test_amp_single_gpu():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0],
-        distributed_backend='dp',
+        gpus=1,
+        distributed_backend='ddp',
         use_amp=True
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_no_amp_single_gpu():
+    """
+    Make sure DDP + AMP work
+    :return:
+    """
+    reset_seed()
+
+    if not torch.cuda.is_available():
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a GPU node to run this test')
+        return
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_amp_gpu_ddp cannot run.'
+                      'Rerun on a node with 2+ GPUs to run this test')
+        return
+
+    hparams = get_hparams()
+    model = LightningTestModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=True,
+        max_nb_epochs=1,
+        gpus=1,
+        distributed_backend='dp',
+        use_amp=True
+    )
+
+    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+        run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_cpu_restore_training():
@@ -418,23 +921,23 @@ def test_cpu_restore_training():
     Verify continue training session on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    test_exp_version = 10
-    exp = get_exp(False, version=test_exp_version)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    test_logger_version = 10
+    logger = get_test_tube_logger(False, version=test_logger_version)
 
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -449,13 +952,13 @@ def test_cpu_restore_training():
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    new_exp = get_exp(False, version=test_exp_version)
+    new_logger = get_test_tube_logger(False, version=test_logger_version)
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
-        experiment=new_exp,
+        logger=new_logger,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
     trainer = Trainer(**trainer_options)
@@ -468,7 +971,8 @@ def test_cpu_restore_training():
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        _ = [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+        for dataloader in trainer.get_val_dataloaders():
+            run_prediction(dataloader, trainer.model)
 
     model.on_sanity_check_start = assert_good_acc
 
@@ -484,16 +988,11 @@ def test_amp_gpu_ddp():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams)
@@ -501,7 +1000,7 @@ def test_amp_gpu_ddp():
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
@@ -514,21 +1013,21 @@ def test_cpu_slurm_save_load():
     Verify model save/load/checkpoint on CPU
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
 
-    cluster_a = SlurmCluster()
+    version = logger.version
+
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=cluster_a,
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -542,8 +1041,9 @@ def test_cpu_slurm_save_load():
 
     # predict with trained model before saving
     # make a prediction
-    for batch in model.test_dataloader:
-        break
+    for dataloader in model.test_dataloader():
+        for batch in dataloader:
+            break
 
     x, y = batch
     x = x.view(x.size(0), -1)
@@ -551,23 +1051,17 @@ def test_cpu_slurm_save_load():
     model.eval()
     pred_before_saving = model(x)
 
-    # test registering a save function
-    trainer.enable_auto_hpc_walltime_manager()
-
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(save_dir, exp)
+    saved_filepath = trainer.hpc_save(save_dir, logger)
     assert os.path.exists(saved_filepath)
 
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    continue_tng_hparams = get_hparams(continue_training=True,
-                                       hpc_exp_number=cluster_a.hpc_exp_number)
+    # new logger file to get meta
+    logger = get_test_tube_logger(False, version=version)
+
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(continue_tng_hparams),
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir),
     )
     trainer = Trainer(**trainer_options)
@@ -592,17 +1086,22 @@ def test_cpu_slurm_save_load():
 
 
 def test_loading_meta_tags():
+    reset_seed()
+
+    from argparse import Namespace
     hparams = get_hparams()
 
     # save tags
-    exp = get_exp(False)
-    exp.tag({'some_str': 'a_str', 'an_int': 1, 'a_float': 2.0})
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
+    logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
+    logger.log_hyperparams(hparams)
+    logger.save()
 
     # load tags
-    tags_path = exp.get_data_path(exp.name, exp.version) + '/meta_tags.csv'
-    tags = model_saving.load_hparams_from_tags_csv(tags_path)
+    tags_path = logger.experiment.get_data_path(
+        logger.experiment.name, logger.experiment.version
+    ) + '/meta_tags.csv'
+    tags = trainer_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
@@ -610,13 +1109,15 @@ def test_loading_meta_tags():
 
 
 def test_dp_output_reduce():
+    mixin = TrainerLoggingMixin()
+    reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
-    assert reduce_distributed_output(out, nb_gpus=1) is out
+    assert mixin.reduce_distributed_output(out, nb_gpus=1) is out
 
     # average when we have multiples
-    assert reduce_distributed_output(out, nb_gpus=2) == out.mean()
+    assert mixin.reduce_distributed_output(out, nb_gpus=2) == out.mean()
 
     # when we have a dict of vals
     out = {
@@ -625,7 +1126,7 @@ def test_dp_output_reduce():
             'c': out
         }
     }
-    reduced = reduce_distributed_output(out, nb_gpus=3)
+    reduced = mixin.reduce_distributed_output(out, nb_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
@@ -635,20 +1136,19 @@ def test_model_saving_loading():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = init_save_dir()
 
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
-        cluster=SlurmCluster(),
-        experiment=exp,
+        logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
 
@@ -660,8 +1160,9 @@ def test_model_saving_loading():
     assert result == 1, 'amp + ddp model failed to complete'
 
     # make a prediction
-    for batch in model.test_dataloader:
-        break
+    for dataloader in model.test_dataloader():
+        for batch in dataloader:
+            break
 
     x, y = batch
     x = x.view(x.size(0), -1)
@@ -675,10 +1176,10 @@ def test_model_saving_loading():
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path, on_gpu=False)
+                                                   tags_csv=tags_path)
     model_2.eval()
 
     # make prediction
@@ -690,6 +1191,8 @@ def test_model_saving_loading():
 
 
 def test_model_freeze_unfreeze():
+    reset_seed()
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
@@ -702,17 +1205,13 @@ def test_amp_gpu_ddp_slurm_managed():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
+    reset_seed()
+
     # simulate setting slurm flags
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
     hparams = get_hparams()
@@ -729,16 +1228,14 @@ def test_amp_gpu_ddp_slurm_managed():
     save_dir = init_save_dir()
 
     # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
+    logger = get_test_tube_logger(False)
 
     # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
+    checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['logger'] = logger
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -755,11 +1252,10 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    map_location = 'cuda:1'
-    pretrained_model = load_model(exp, save_dir, True, map_location)
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
 
     # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
+    [run_prediction(dataloader, pretrained_model) for dataloader in trainer.get_test_dataloaders()]
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
@@ -767,7 +1263,7 @@ def test_amp_gpu_ddp_slurm_managed():
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
     trainer.hpc_load(save_dir, on_gpu=True)
 
     # test freeze on gpu
@@ -782,10 +1278,11 @@ def test_cpu_model_with_amp():
     Make sure model trains on CPU
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
@@ -803,10 +1300,11 @@ def test_cpu_model():
     Make sure model trains on CPU
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -822,14 +1320,15 @@ def test_all_features_cpu_model():
     Test each of the trainer options
     :return:
     """
+    reset_seed()
 
     trainer_options = dict(
-        gradient_clip=1.0,
+        gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
-        experiment=get_exp(),
+        logger=get_test_tube_logger(),
         accumulate_grad_batches=2,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -845,6 +1344,8 @@ def test_single_gpu_model():
     Make sure single GPU works (DP mode)
     :return:
     """
+    reset_seed()
+
     if not torch.cuda.is_available():
         warnings.warn('test_single_gpu_model cannot run.'
                       ' Rerun on a GPU node to run this test')
@@ -856,10 +1357,34 @@ def test_single_gpu_model():
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        gpus=[0]
+        gpus=1
     )
 
     run_gpu_model_test(trainer_options, model, hparams)
+
+
+def test_multi_gpu_none_backend():
+    """
+    Make sure when using multiple GPUs the user can't use
+    distributed_backend = None
+    :return:
+    """
+    reset_seed()
+
+    if not can_run_gpu_test():
+        return
+
+    model, hparams = get_model()
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_nb_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus='-1'
+    )
+
+    with pytest.raises(MisconfigurationException):
+        run_gpu_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_dp():
@@ -867,17 +1392,15 @@ def test_multi_gpu_model_dp():
     Make sure DP works
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    reset_seed()
+
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         show_progress_bar=False,
+        distributed_backend='dp',
         max_nb_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -895,14 +1418,11 @@ def test_amp_gpu_dp():
     Make sure DP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a GPU node to run this test')
+    reset_seed()
+
+    if not can_run_gpu_test():
         return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_dp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return
+
     model, hparams = get_model()
     trainer_options = dict(
         max_nb_epochs=1,
@@ -919,23 +1439,19 @@ def test_ddp_sampler_error():
     Make sure DDP + AMP work
     :return:
     """
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run. Rerun on a node with 2+ GPUs to run this test')
+    if not can_run_gpu_test():
         return
 
-    os.environ['MASTER_PORT'] = str(np.random.randint(12000, 19000, 1)[0])
+    reset_seed()
+    set_random_master_port()
 
     hparams = get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
-    exp = get_exp(True)
-    exp.save()
+    logger = get_test_tube_logger(True)
 
     trainer = Trainer(
-        experiment=exp,
+        logger=logger,
         show_progress_bar=False,
         max_nb_epochs=1,
         gpus=[0, 1],
@@ -954,12 +1470,56 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
+    reset_seed()
+
+    class CurrentTestModel(
+        LightningValidationMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
+
     hparams = get_hparams()
-    model = LightningTestModel(hparams)
+    model = CurrentTestModel(hparams)
 
-    save_dir = init_save_dir()
+    # logger file to get meta
+    trainer_options = dict(
+        max_nb_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=1.0,
+    )
 
-    # exp file to get meta
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    # verify there are 2 val loaders
+    assert len(trainer.get_val_dataloaders()) == 2, \
+        'Multiple val_dataloaders not initiated properly'
+
+    # make sure predictions are good for each val set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.get_val_dataloaders()]
+
+
+def test_multiple_test_dataloader():
+    """
+    Verify multiple test_dataloader
+    :return:
+    """
+    reset_seed()
+
+    class CurrentTestModel(
+        LightningTestMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
+
+    hparams = get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
     trainer_options = dict(
         max_nb_epochs=1,
         val_percent_check=0.1,
@@ -970,33 +1530,23 @@ def test_multiple_val_dataloader():
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # verify tng completed
-    assert result == 1
-
     # verify there are 2 val loaders
-    assert len(trainer.val_dataloader) == 2, 'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.get_test_dataloaders()) == 2, \
+        'Multiple test_dataloaders not initiated properly'
 
-    # make sure predictions are good for each val set
-    [run_prediction(dataloader, trainer.model) for dataloader in trainer.val_dataloader]
+    # make sure predictions are good for each test set
+    [run_prediction(dataloader, trainer.model) for dataloader in trainer.get_test_dataloaders()]
+
+    # run the test method
+    trainer.test()
 
 
 # ------------------------------------------------------------------------
 # UTILS
 # ------------------------------------------------------------------------
-def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
+def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_acc=0.50):
     save_dir = init_save_dir()
-
-    # exp file to get meta
-    exp = get_exp(False)
-    exp.argparse(hparams)
-    exp.save()
-
-    # exp file to get weights
-    checkpoint = ModelCheckpoint(save_dir)
-
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['experiment'] = exp
+    trainer_options['default_save_path'] = save_dir
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -1006,18 +1556,54 @@ def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(exp, save_dir, on_gpu)
+    pretrained_model = load_model(trainer.logger.experiment,
+                                  trainer.checkpoint_callback.filepath)
 
-    # test model preds
-    run_prediction(model.test_dataloader, pretrained_model)
+    # test new model accuracy
+    for dataloader in model.test_dataloader():
+        run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
+    clear_save_dir()
+
+
+def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
+    save_dir = init_save_dir()
+
+    # logger file to get meta
+    logger = get_test_tube_logger(False)
+
+    # logger file to get weights
+    checkpoint = init_checkpoint_callback(logger)
+
+    # add these to the trainer options
+    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['logger'] = logger
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # test model loading
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
+
+    # test new model accuracy
+    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+
+    if trainer.use_ddp or trainer.use_ddp2:
+        # on hpc this would work fine... but need to hack it for the purpose of the test
+        trainer.model = pretrained_model
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, exp)
+    trainer.hpc_save(save_dir, logger)
     trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
     clear_save_dir()
@@ -1044,9 +1630,12 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     return hparams
 
 
-def get_model(use_test_model=False):
+def get_model(use_test_model=False, lbfgs=False):
     # set up model with these hyperparams
     hparams = get_hparams()
+    if lbfgs:
+        setattr(hparams, 'optimizer_name', 'lbfgs')
+        setattr(hparams, 'learning_rate', 0.002)
 
     if use_test_model:
         model = LightningTestModel(hparams)
@@ -1056,19 +1645,21 @@ def get_model(use_test_model=False):
     return model, hparams
 
 
-def get_exp(debug=True, version=None):
-    # set up exp object without actually saving logs
+def get_test_tube_logger(debug=True, version=None):
+    # set up logger object without actually saving logs
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(debug=debug, save_dir=root_dir, name='tests_tt_dir', version=version)
-    return exp
+    save_dir = os.path.join(root_dir, 'save_dir')
+    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=False, version=version)
+    return logger
 
 
 def init_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
 
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        n = RANDOM_FILE_PATHS.pop()
+        shutil.move(save_dir, save_dir + f'_{n}')
 
     os.makedirs(save_dir, exist_ok=True)
 
@@ -1079,29 +1670,27 @@ def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
     save_dir = os.path.join(root_dir, 'save_dir')
     if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+        n = RANDOM_FILE_PATHS.pop()
+        shutil.move(save_dir, save_dir + f'_{n}')
 
 
-def load_model(exp, save_dir, on_gpu, map_location=None):
-
+def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
     # load trained model
     tags_path = exp.get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
-    checkpoints = [x for x in os.listdir(save_dir) if '.ckpt' in x]
-    weights_dir = os.path.join(save_dir, checkpoints[0])
+    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
-    trained_model = LightningTemplateModel.load_from_metrics(weights_path=weights_dir,
-                                                             tags_csv=tags_path,
-                                                             on_gpu=on_gpu,
-                                                             map_location=map_location)
+    trained_model = module_class.load_from_metrics(weights_path=weights_dir,
+                                                   tags_csv=tags_path)
 
     assert trained_model is not None, 'loading model failed'
 
     return trained_model
 
 
-def run_prediction(dataloader, trained_model):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -1109,23 +1698,64 @@ def run_prediction(dataloader, trained_model):
     x, y = batch
     x = x.view(x.size(0), -1)
 
-    y_hat = trained_model(x)
+    if dp:
+        output = trained_model(batch, 0)
+        acc = output['val_acc']
+        acc = torch.mean(acc).item()
 
-    # acc
-    labels_hat = torch.argmax(y_hat, dim=1)
-    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-    val_acc = torch.tensor(val_acc)
-    val_acc = val_acc.item()
+    else:
+        y_hat = trained_model(x)
 
-    print(val_acc)
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        acc = torch.tensor(acc)
+        acc = acc.item()
 
-    assert val_acc > 0.50, 'this model is expected to get > 0.50 in test set (it got %f)' % val_acc
+    assert acc > min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
 
 
-def assert_ok_acc(trainer):
+def assert_ok_val_acc(trainer):
     # this model should get 0.80+ acc
-    acc = trainer.tng_tqdm_dic['val_acc']
-    assert acc > 0.50, 'model failed to get expected 0.50 validation accuracy. Got: %f' % acc
+    acc = trainer.training_tqdm_dict['val_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def assert_ok_test_acc(trainer):
+    # this model should get 0.80+ acc
+    acc = trainer.training_tqdm_dict['test_acc']
+    assert acc > 0.50, f'model failed to get expected 0.50 validation accuracy. Got: {acc}'
+
+
+def can_run_gpu_test():
+    if not torch.cuda.is_available():
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a GPU node to run this test')
+        return False
+    if not torch.cuda.device_count() > 1:
+        warnings.warn('test_multi_gpu_model_ddp cannot run.'
+                      ' Rerun on a node with 2+ GPUs to run this test')
+        return False
+    return True
+
+
+def reset_seed():
+    SEED = RANDOM_SEEDS.pop()
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+
+
+def set_random_master_port():
+    port = RANDOM_PORTS.pop()
+    os.environ['MASTER_PORT'] = str(port)
+
+
+def init_checkpoint_callback(logger):
+    exp = logger.experiment
+    exp_path = exp.get_data_path(exp.name, exp.version)
+    ckpt_dir = os.path.join(exp_path, 'checkpoints')
+    checkpoint = ModelCheckpoint(ckpt_dir)
+    return checkpoint
 
 
 if __name__ == '__main__':

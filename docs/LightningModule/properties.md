@@ -9,12 +9,22 @@ The current epoch
 Current dtype    
 
 ---
-#### experiment    
-An instance of test-tube Experiment which you can use to log anything for tensorboard (subclass of [PyTorch SummaryWriter](https://pytorch.org/docs/stable/tensorboard.html)).   
+#### logger    
+A reference to the logger you passed into trainer. 
+Passing a logger is optional. If you don't pass one in, Lightning will create one for you automatically.
+This logger saves logs to '''/os.getcwd()/lightning_logs'''
+```python
+Trainer(logger=your_logger)
+```    
+
+Call it from anywhere in your LightningModule to add metrics, images, etc... whatever your logger supports.  
+
+Here is an example using the TestTubeLogger (which is a wrapper on [PyTorch SummaryWriter](https://pytorch.org/docs/stable/tensorboard.html) with versioned folder structure).     
 ```{.python}
-self.experiment.add_embedding(...)   
-self.experiment.log({'val_loss': 0.9})   
-self.experiment.add_scalars(...)   
+# if logger is a tensorboard logger or TestTubeLogger
+self.logger.experiment.add_embedding(...)   
+self.logger.experiment.log({'val_loss': 0.9})   
+self.logger.experiment.add_scalars(...)   
 ```
 
 --- 
@@ -22,7 +32,7 @@ self.experiment.add_scalars(...)
 Total training batches seen across all epochs   
 
 --- 
-#### gradient_clip   
+#### gradient_clip_val   
 The current gradient clip value    
 
 ---

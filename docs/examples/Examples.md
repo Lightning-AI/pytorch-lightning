@@ -1,6 +1,5 @@
 ### Template model definition
-
-In 99% of cases you want to just copy [this template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/lightning_module_template.py) to start a new lightningModule and change the core of what your model is actually trying to do.
+In 99% of cases you want to just copy [one of the examples](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples) to start a new lightningModule and change the core of what your model is actually trying to do.
 
 ```bash
 # get a copy of the module template
@@ -44,62 +43,25 @@ The main function should have 3 arguments:
 - slurm_manager: Slurm cluster manager object (can be None)
 - dict: for you to return any values you want (useful in meta-learning, otherwise set to \_)
 
-```{}
+```python
 def main(hparams, cluster, results_dict):
     """
     Main training routine specific for this project
     :param hparams:
     :return:
     """
-    # init experiment
-    log_dir = os.path.dirname(os.path.realpath(__file__))
-    exp = Experiment(
-        name='test_tube_exp',
-        debug=True,
-        save_dir=log_dir,
-        version=0,
-        autosave=False,
-        description='test demo'
-    )
-
-    # set the hparams for the experiment
-    exp.argparse(hparams)
-    exp.save()
-
     # build model
     model = MyLightningModule(hparams)
 
-    # callbacks
-    early_stop = EarlyStopping(
-        monitor=hparams.early_stop_metric,
-        patience=hparams.early_stop_patience,
-        verbose=True,
-        mode=hparams.early_stop_mode
-    )
-
-    model_save_path = '{}/{}/{}'.format(hparams.model_save_path, exp.name, exp.version)
-    checkpoint = ModelCheckpoint(
-        filepath=model_save_path,
-        save_function=None,
-        save_top_k=-1,
-        verbose=True,
-        monitor=hparams.model_save_monitor_value,
-        mode=hparams.model_save_monitor_mode
-    )
-
     # configure trainer
-    trainer = Trainer(
-        experiment=exp,
-        cluster=cluster,
-        checkpoint_callback=checkpoint,
-        early_stop_callback=early_stop,
-    )
+    trainer = Trainer()
 
     # train model
     trainer.fit(model)
 ```
 
-The **main** function will start training on your **main** function. If you use the HyperParameterOptimizer
+
+The __main__ function will start training on your **main** function. If you use the HyperParameterOptimizer
 in hyper parameter optimization mode, this main function will get one set of hyperparameters. If you use it as a simple
 argument parser you get the default arguments in the argument parser.
 

@@ -20,11 +20,37 @@ trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
 ```
 
 ---
+#### Early stopping
+The trainer already sets up default early stopping for you. 
+To modify this behavior, pass in your own EarlyStopping callback.
+``` {.python}
+from pytorch_lightning.callbacks import EarlyStopping
+
+# DEFAULTS used by Trainer
+early_stop_callback = EarlyStopping(
+    monitor='val_loss',
+    min_delta=0.00,
+    patience=3,
+    verbose=False,
+    mode='min'
+)
+
+# without passing anything in, uses the default callback above
+trainer = Trainer()
+
+# pass in your own to override the default callback 
+trainer = Trainer(early_stop_callback=early_stop_callback)
+
+# pass in None to disable it 
+trainer = Trainer(early_stop_callback=None)
+```
+
+---
 #### Force disable early stop 
-Use this to turn off early stopping and run training to the [max_epoch](#force-training-for-min-or-max-epochs)
+To disable early stopping pass None to the early_stop_callback
 ``` {.python}
 # DEFAULT
-trainer = Trainer(enable_early_stop=True)
+trainer = Trainer(early_stop_callback=None)
 ```
 
 ---
@@ -34,10 +60,10 @@ Specifically, this will [clip the gradient norm computed over all model paramete
 
 ``` {.python}
 # DEFAULT (ie: don't clip)
-trainer = Trainer(gradient_clip=0)
+trainer = Trainer(gradient_clip_val=0)
 
 # clip gradients with norm above 0.5
-trainer = Trainer(gradient_clip=0.5)
+trainer = Trainer(gradient_clip_val=0.5)
 ```
 
 ---

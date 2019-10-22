@@ -13,11 +13,16 @@ include LICENSE
 exclude *.sh
 exclude *.toml
 exclude *.svg    
-recursive-include examples *.py
 recursive-include pytorch_lightning *.py
+
+# include examples
+recursive-include pl_examples *.py
+recursive-include pl_examples *.md
+recursive-include pl_examples *.sh
 
 # exclude tests from package
 recursive-exclude tests *
+recursive-exclude site *
 exclude tests
 
 # Exclude the documentation files

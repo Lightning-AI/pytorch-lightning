@@ -47,7 +47,7 @@ if use_bert:
 else:
     model = CoolerNotBERT()
     
-trainer = Trainer(gpus=[0, 1, 2, 3], use_amp=True)
+trainer = Trainer(gpus=4, use_amp=True)
 trainer.fit(model)
 ```
 
@@ -60,9 +60,8 @@ Notice a few things about this flow:
 ###### Templates 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
-    - [Basic CPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/single_cpu_template.py) 
-    - [Multi-GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/single_gpu_node_template.py)
-    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/blob/master/examples/new_project_templates/multi_node_cluster_template.py)
+    - [Basic CPU, GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples) 
+    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)
 
 ###### Docs shortcuts
 - [LightningModule](LightningModule/RequiredTrainerInterface/)  
@@ -77,6 +76,7 @@ Notice a few things about this flow:
 
 ###### Checkpointing    
 
+- [Checkpoint callback](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)    
 - [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
 - [Model loading](https://williamfalcon.github.io/pytorch-lightning/LightningModule/methods/#load-from-metrics) 
 - [Restoring training session](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#restoring-training-session)
@@ -120,6 +120,7 @@ Notice a few things about this flow:
 
 - [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
 - [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
+- [Early stopping callback](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#early-stopping)    
 - [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
 - [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
 - [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
@@ -137,3 +138,5 @@ Notice a few things about this flow:
 - [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
 - [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
 
+###### Testing loop  
+- [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  

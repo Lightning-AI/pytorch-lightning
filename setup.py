@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version='0.4.6',
+    version='0.5.2.1',
     description='The Keras for ML researchers using PyTorch',
     author='William Falcon',
     author_email='waf2107@columbia.edu',
@@ -29,8 +29,8 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     install_requires=[
-        'torch==1.2.0',
-        'tqdm',
+        'torch>=1.2.0',
+        'tqdm>=4.35.0',
         'test-tube>=0.6.9',
         'pandas>=0.20.3',
     ],
@@ -51,7 +51,6 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],

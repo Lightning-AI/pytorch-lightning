@@ -58,16 +58,6 @@ def on_post_performance_check(self):
 ```
 
 ---
-#### on_tng_metrics
-Called in the training loop, right before metrics are logged.
-Although you can log at any time by using self.experiment, you can use
-this callback to modify what will be logged.
-```python
-def on_tng_metrics(self, metrics):
-    # do something before validation end
-```
-
----   
 #### optimizer_step 
 Calls .step() and .zero_grad for each optimizer.  
 You can override this method to adjust how you do the optimizer step for each optimizer
@@ -75,12 +65,12 @@ You can override this method to adjust how you do the optimizer step for each op
 Called once per optimizer
 ```python
 # DEFAULT
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     optimizer.step()   
     optimizer.zero_grad()   
     
 # Alternating schedule for optimizer steps (ie: GANs)    
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     # update generator opt every 2 steps
     if optimizer_i == 0:
         if batch_nb % 2 == 0 :
@@ -101,7 +91,7 @@ This step allows you to do a lot of non-standard training tricks such as learnin
 
 ```python
 # learning rate warm-up
-def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i):
+def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
     # warm up lr
     if self.trainer.global_step < 500:
         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -137,5 +127,5 @@ def on_after_backward(self):
         for k, v in params.items():
             grads = v
             name = k
-            self.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
+            self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
 ```

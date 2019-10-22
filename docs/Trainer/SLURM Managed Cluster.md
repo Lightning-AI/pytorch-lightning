@@ -1,8 +1,10 @@
 Lightning supports model training on a cluster managed by SLURM in the following cases:    
 
-1. Training on single or multi-cpus only.
-2. Training on single or multi-gpus on the same node.
-3. Coming SOON: Training across multiple nodes.
+1. Training on a single cpu or single GPU.
+2. Train on multiple GPUs on the same node using DataParallel or DistributedDataParallel
+3. Training across multiple GPUs on multiple different nodes via DistributedDataParallel.
+
+**Note: A node means a machine with multiple GPUs**
 
 ---
 #### Running grid search on a cluster
@@ -23,6 +25,9 @@ parser.opt_list('--nb_layers', default=2, type=int, tunable=True, options=[2, 4,
 hparams = parser.parse_args()    
 ```    
     
+**NOTE** You must set ```Tunable=True``` for that argument to be considered in the permutation set. Otherwise
+test-tube will use the default value. This flag is useful when you don't want to search over an argument and
+want to use the default instead.   
      
 (2). Define the cluster options in the [SlurmCluster object](https://williamfalcon.github.io/test-tube/hpc/SlurmCluster/) (over 5 nodes and 8 gpus)    
 
@@ -55,8 +60,8 @@ cluster.memory_mb_per_node = 10000
 cluster.job_time = '10:00'
 ```
 
-(3). Give trainer the cluster_manager in your main function:    
-
+(3). Make a main function with your model and trainer. Each job will call this function with a particular
+hparams configuration.    
 ```{.python}
 from pytorch_lightning import Trainer
 
@@ -66,12 +71,12 @@ def train_fx(trial_hparams, cluster_manager, _):
     my_model = MyLightningModel()
     
     # give the trainer the cluster object
-    trainer = Trainer(cluster=cluster_manager)
+    trainer = Trainer()
     trainer.fit(my_model)
 
 ```
 
-(4). Start the grid search     
+(3). Start the grid/random search     
 ```{.python}
 # run the models on the cluster
 cluster.optimize_parallel_cluster_gpu(
@@ -81,24 +86,27 @@ cluster.optimize_parallel_cluster_gpu(
     job_display_name='my_exp')
 ```
 
-That's it! The SlurmCluster object will automatically checkpoint the lightning model and resubmit if it runs into the walltime!
-
+**NOTE** nb_trials specifies how many of the possible permutations to use. If using ```grid_search``` it will use
+the depth first ordering. If using ```random_search``` it will use the first k shuffled options. FYI, random search
+has been shown to be just as good as any Bayesian optimization method when using a reasonable number of samples (60),
+[see this paper for more information](http://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf).
 
 ---
 #### Walltime auto-resubmit
-Lightning automatically resubmits jobs when they reach the walltime. You get this behavior for free if you give lightning
-a slurm cluster object.
+Lightning automatically resubmits jobs when they reach the walltime. Make sure to set the SIGUSR1 signal in 
+your SLURM script.   
 
-```{.python}
-def my_main_fx(hparams, slurm_manager, _):
-    trainer = Trainer(cluster=slurm_manager)
+```bash
+# 90 seconds before training ends
+#SBATCH --signal=SIGUSR1@90
 ``` 
 
-(See the grid search example above for cluster configuration).
-With this feature lightning will:    
+When lightning receives the SIGUSR1 signal it will:
+1. save a checkpoint with 'hpc_ckpt' in the name.
+2. resubmit the job using the SLURM_JOB_ID  
 
-1. automatically checkpoint the model
-2. checkpoint the trainer session
-3. resubmit a continuation job.
-4. load the checkpoint and trainer session in the new model
+When the script starts again, Lightning will:
+1. search for a 'hpc_ckpt' checkpoint. 
+2. restore the model, optimizers, schedulers, epoch, etc...   
+
 

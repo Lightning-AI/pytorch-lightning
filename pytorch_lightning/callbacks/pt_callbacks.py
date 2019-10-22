@@ -11,7 +11,6 @@ class Callback(object):
     # Properties
         params: dict. Training parameters
             (eg. verbosity, batch size, number of epochs...).
-        model: instance of `keras.models.Model`.
             Reference of the model being trained.
     The `logs` dictionary that callback methods
     take as argument will contain keys for quantities relevant to
@@ -125,7 +124,8 @@ class EarlyStopping(Callback):
             print('Early stopping conditioned on metric `%s` '
                   'which is not available. Available metrics are: %s' %
                   (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
-            exit(-1)
+            stop_training = True
+            return stop_training
 
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
@@ -178,7 +178,7 @@ class ModelCheckpoint(Callback):
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
-                 save_top_k=0, save_weights_only=False,
+                 save_top_k=1, save_weights_only=False,
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
         self.monitor = monitor
@@ -304,5 +304,47 @@ class ModelCheckpoint(Callback):
 
             else:
                 if self.verbose > 0:
-                    print(f'\nEpoch {epoch:05d}: saving model to {filepath}')
-                self._save_model(filepath)
+                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                self.save_model(filepath, overwrite=False)
+
+
+class GradientAccumulationScheduler(Callback):
+    """Change gradient accumulation factor according to scheduling.
+    # Arguments
+        scheduling: dict, scheduling in format {epoch: accumulation_factor}
+    """
+
+    def __init__(self, scheduling: dict):
+        if scheduling == {}:  # empty dict error
+            raise TypeError("Empty dict cannot be interpreted correct")
+
+        for key in scheduling.keys():
+            if not isinstance(key, int) or not isinstance(scheduling[key], int):
+                raise TypeError("All epoches and accumulation factor must be integers")
+
+        minimal_epoch = min(scheduling.keys())
+        if minimal_epoch < 1:
+            msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
+            raise IndexError(msg)
+        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
+            scheduling.update({1: 1})
+
+        self.scheduling = scheduling
+        self.epochs = sorted(scheduling.keys())
+
+    def on_epoch_begin(self, epoch, trainer):
+        epoch += 1  # indexing epochs from 1
+        for i in reversed(range(len(self.epochs))):
+            if epoch >= self.epochs[i]:
+                trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
+                break
+
+
+if __name__ == '__main__':
+    c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
+    losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
+    for i, loss in enumerate(losses):
+        should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
+        print(loss)
+        if should_stop:
+            break
