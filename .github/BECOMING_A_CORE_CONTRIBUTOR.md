@@ -48,4 +48,4 @@ The first 5 core contributors will fit this profile. Thus if you overlap strongl
 - Solve 10 Github issues. The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
 - Do 10 PR reviews. The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
 
-If you want to be considered, ping me on gitter and i'll start tracking your contributions!
+If you want to be considered, ping me on gitter and start [tracking your progress here](https://docs.google.com/spreadsheets/d/15D58gp8DvI0Z6qbbYVRuaWioiwzafcP58-UlbuO_CMU/edit?usp=sharing).
