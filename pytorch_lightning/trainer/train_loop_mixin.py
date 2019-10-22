@@ -74,7 +74,6 @@ class TrainerTrainLoopMixin(object):
         # run epoch
         for batch_nb, batch in enumerate(self.get_train_dataloader()):
             self.batch_nb = batch_nb
-            self.global_step += 1
 
             model = self.get_model()
             model.global_step = self.global_step
@@ -119,6 +118,8 @@ class TrainerTrainLoopMixin(object):
             # end epoch early
             if early_stop_epoch or self.fast_dev_run:
                 break
+
+            self.global_step += 1
 
         # epoch end hook
         if self.is_function_implemented('on_epoch_end'):
