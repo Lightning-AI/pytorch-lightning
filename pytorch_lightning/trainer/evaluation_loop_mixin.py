@@ -130,7 +130,7 @@ class TrainerEvaluationLoopMixin(object):
 
             if self.show_progress_bar:
                 # add model specific metrics
-                tqdm_metrics = self.__training_tqdm_dict
+                tqdm_metrics = self.training_tqdm_dict
                 self.progress_bar.set_postfix(**tqdm_metrics)
 
         # model checkpointing

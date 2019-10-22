@@ -286,7 +286,11 @@ class Trainer(TrainerIOMixin,
         return self.use_dp or self.use_ddp or self.use_ddp2
 
     @property
-    def __training_tqdm_dict(self):
+    def training_tqdm_dict(self):
+        """
+        Read-only for tqdm metrics
+        :return:
+        """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
             'epoch': '{}'.format(self.current_epoch),
@@ -302,14 +306,6 @@ class Trainer(TrainerIOMixin,
             tqdm_dict['gpu'] = '{}'.format(torch.cuda.current_device())
 
         return tqdm_dict
-
-    @property
-    def training_tqdm_dict(self):
-        """
-        Read-only for tqdm metrics
-        :return:
-        """
-        return self.__training_tqdm_dict
 
     @property
     def tng_tqdm_dic(self):
