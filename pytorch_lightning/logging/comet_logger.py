@@ -4,9 +4,6 @@ from comet_ml import Experiment as CometExperiment
 
 from .base import LightningLoggerBase, rank_zero_only
 
-# needed to prevent ImportError and duplicated logs.
-environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
-
 
 class CometLogger(LightningLoggerBase):
     def __init__(self, *args, **kwargs):
