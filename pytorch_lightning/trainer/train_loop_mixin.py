@@ -2,6 +2,7 @@ import numpy as np
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
@@ -112,7 +113,6 @@ class TrainerTrainLoopMixin(object):
             # when metrics should be logged
             should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
-
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 

@@ -1,6 +1,5 @@
 import os
 import shutil
-import warnings
 
 import numpy as np
 
@@ -260,6 +259,7 @@ class GradientAccumulationScheduler(Callback):
     # Arguments
         scheduling: dict, scheduling in format {epoch: accumulation_factor}
     """
+
     def __init__(self, scheduling: dict):
         if scheduling == {}:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")

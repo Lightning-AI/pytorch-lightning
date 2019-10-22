@@ -7,7 +7,6 @@ import os
 
 
 def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None):
-
     # training, test, val check intervals
     parser.add_argument('--eval_test_set', dest='eval_test_set', action='store_true',
                         help='true = run test set also')

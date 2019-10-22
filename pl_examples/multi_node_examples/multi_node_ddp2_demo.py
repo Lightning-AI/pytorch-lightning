@@ -2,12 +2,13 @@
 Multi-node example (GPU)
 """
 import os
+from argparse import ArgumentParser
+
 import numpy as np
 import torch
 
-from argparse import ArgumentParser
-from pytorch_lightning import Trainer
 from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
+from pytorch_lightning import Trainer
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -41,7 +42,6 @@ def main(hparams):
 
 
 if __name__ == '__main__':
-
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = ArgumentParser(add_help=False)
 

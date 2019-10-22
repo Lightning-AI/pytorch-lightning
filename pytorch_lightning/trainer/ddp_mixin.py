@@ -4,12 +4,13 @@ import warnings
 
 import torch
 import torch.distributed as dist
+
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
-
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False

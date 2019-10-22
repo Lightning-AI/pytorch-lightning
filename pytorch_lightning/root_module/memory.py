@@ -3,11 +3,11 @@ Generates a summary of a model's layers and dimensionality
 '''
 
 import gc
-
-import torch
 import subprocess
+
 import numpy as np
 import pandas as pd
+import torch
 
 
 class ModelSummary(object):
@@ -146,7 +146,6 @@ class ModelSummary(object):
         df['Params'] = df['Params'].map(get_human_readable_count)
 
         if self.model.example_input_array is not None:
-
             df['In_sizes'] = self.in_sizes
             df['Out_sizes'] = self.out_sizes
 
