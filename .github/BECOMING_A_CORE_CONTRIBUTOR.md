@@ -6,7 +6,12 @@ We're currently recruiting for a team of 5 core maintainers.
 As a core maintainer you will have a strong say in the direction of the project. Big changes will require a majority of maintainers to agree.
 
 ### Code of conduct  
-First and foremost, you'll be evaluated against [these core values](https://github.com/williamFalcon/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). Any code we commit or feature we add needs to align with those core values
+First and foremost, you'll be evaluated against [these core values](https://github.com/williamFalcon/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). Any code we commit or feature we add needs to align with those core values.
+
+### The bar for joining the team   
+Lightning is being used to solve really hard problems at the top AI labs in the world. As such, the bar for adding team members is extremely high. Candidates must have solid engineering skills, have a good eye for user experience, and must be a power user of Lightning and PyTorch.
+
+With that said, the Lightning team will be diverse and a reflection of an inclusive AI community. You don't have to be an engineer to conntribute! Scientists with great usability intuition and PyTorch ninja skills are welcomed!
 
 ### Responsibilities:
 The responsibilities mainly revolve around 3 things.
