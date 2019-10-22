@@ -101,7 +101,7 @@ class Trainer(TrainerIOMixin,
         :param train_percent_check: int. How much of train set to check
         :param val_percent_check: int. How much of val set to check
         :param test_percent_check: int. How much of test set to check
-        :param val_check_interval: int. Check val this frequently within a train epoch
+        :param val_check_interval: float/int. If float, % of tng epoch. If int, check every n batch
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
         :param add_row_log_interval: int. How often to add logging rows. Deprecated.
@@ -160,6 +160,7 @@ class Trainer(TrainerIOMixin,
         self.get_train_dataloader = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
+        self.is_iterable_train_dataloader = False
 
         # training state
         self.model = None
