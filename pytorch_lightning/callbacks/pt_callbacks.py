@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 
 import numpy as np
@@ -156,11 +157,15 @@ class ModelCheckpoint(Callback):
         filepath: string, path to save the model file.
         monitor: quantity to monitor.
         verbose: verbosity mode, 0 or 1.
-        save_best_only: if `save_best_only=True`,
+        save_best: if `save_best=True`,
             the latest best model according to
-            the quantity monitored will not be overwritten.
+            the quantity monitored will be saved with prefix `best`.
+        save_all: if `save_all=True`,
+            every model trained wil be saved
+        save_last: if `save_last=True`,
+            the latest model will be saved.
         mode: one of {auto, min, max}.
-            If `save_best_only=True`, the decision
+            If `save_best=True`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,
@@ -174,13 +179,16 @@ class ModelCheckpoint(Callback):
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
-                 save_best_only=True, save_weights_only=False,
+                 save_best=True, save_all=False, save_last=False,
+                 save_weights_only=False,
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
         self.monitor = monitor
         self.verbose = verbose
         self.filepath = filepath
-        self.save_best_only = save_best_only
+        self.save_best = save_best
+        self.save_all = save_all
+        self.save_last = save_last
         self.save_weights_only = save_weights_only
         self.period = period
         self.epochs_since_last_save = 0
@@ -205,7 +213,7 @@ class ModelCheckpoint(Callback):
                 self.monitor_op = np.less
                 self.best = np.Inf
 
-    def save_model(self, filepath, overwrite):
+    def save_model(self, filepath, overwrite, prefix):
         dirpath = '/'.join(filepath.split('/')[:-1])
 
         # make paths
@@ -213,7 +221,7 @@ class ModelCheckpoint(Callback):
 
         if overwrite:
             for filename in os.listdir(dirpath):
-                if self.prefix in filename:
+                if re.match(r'{}_ckpt_epoch_\d+.ckpt'.format(prefix), filename):
                     path_to_delete = os.path.join(dirpath, filename)
                     try:
                         shutil.rmtree(path_to_delete)
@@ -228,30 +236,34 @@ class ModelCheckpoint(Callback):
         self.epochs_since_last_save += 1
         if self.epochs_since_last_save >= self.period:
             self.epochs_since_last_save = 0
-            filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, epoch + 1)
-            if self.save_best_only:
+            if self.save_all or self.save_last:
+                overwrite = not self.save_all
+                filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, epoch + 1)
+                self.save_model(filepath, overwrite=overwrite, prefix=self.prefix)
+                if self.verbose > 0:
+                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+            if self.save_best:
                 current = logs.get(self.monitor)
                 if current is None:
                     print('Can save best model only with %s available,'
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
+                        prefix = 'best_{}'.format(self.prefix)
+                        filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
+                            self.filepath, prefix, epoch + 1)
                         if self.verbose > 0:
                             print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
                                   ' saving model to %s'
                                   % (epoch + 1, self.monitor, self.best,
                                      current, filepath))
                         self.best = current
-                        self.save_model(filepath, overwrite=True)
+                        self.save_model(filepath, overwrite=True, prefix=prefix)
 
                     else:
                         if self.verbose > 0:
                             print('\nEpoch %05d: %s did not improve' %
                                   (epoch + 1, self.monitor))
-            else:
-                if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
-                self.save_model(filepath, overwrite=False)
 
 
 class GradientAccumulationScheduler(Callback):
