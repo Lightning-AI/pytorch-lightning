@@ -76,7 +76,7 @@ class TestTubeLogger(LightningLoggerBase):
         self._rank = value
         if self._experiment is not None:
             self.experiment.rank = value
-    
+
     @property
     def name(self):
         if self._experiment is None:

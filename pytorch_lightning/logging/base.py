@@ -64,7 +64,7 @@ class LightningLoggerBase(object):
     def rank(self, value):
         """Set the process rank"""
         self._rank = value
-    
+
     @property
     def name(self):
         """Return the experiment name"""

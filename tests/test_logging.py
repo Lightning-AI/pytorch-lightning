@@ -157,15 +157,15 @@ def test_custom_logger(tmpdir):
         @rank_zero_only
         def finalize(self, status):
             self.finalized_status = status
-        
+
         @property
         def name(self):
             return "name"
-        
+
         @property
         def version(self):
             return "1"
-        
+
     hparams = get_hparams()
     model = LightningTestModel(hparams)
 
