@@ -12,7 +12,7 @@ from pytorch_lightning.pt_overrides.override_data_parallel import (
 
 class TrainerIOMixin(object):
 
-    def __get_model(self):
+    def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
                                                LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
@@ -134,7 +134,7 @@ class TrainerIOMixin(object):
         checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
-        model = self.__get_model()
+        model = self.get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
@@ -173,7 +173,7 @@ class TrainerIOMixin(object):
         checkpoint['lr_schedulers'] = lr_schedulers
 
         # add the state_dict from the model
-        model = self.__get_model()
+        model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
 
         # give the model a chance to add a few things
@@ -252,7 +252,7 @@ class TrainerIOMixin(object):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, ckpt_number)
 
         # give model a chance to do something on hpc_save
-        model = self.__get_model()
+        model = self.get_model()
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
@@ -269,7 +269,7 @@ class TrainerIOMixin(object):
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
-        model = self.__get_model()
+        model = self.get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
