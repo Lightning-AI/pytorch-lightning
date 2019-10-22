@@ -2,6 +2,9 @@ import warnings
 
 from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
+from torch.utils.data import IterableDataset
+
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -15,8 +18,11 @@ class TrainerDataLoadingMixin(object):
     def layout_bookeeping(self):
 
         # determine number of training batches
-        self.nb_training_batches = len(self.get_train_dataloader())
-        self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
+        if isinstance(self.get_train_dataloader(), IterableDataset):
+            self.nb_training_batches = float('inf')
+        else:
+            self.nb_training_batches = len(self.get_train_dataloader())
+            self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
@@ -126,6 +132,16 @@ class TrainerDataLoadingMixin(object):
             self.get_train_dataloader()
             self.get_test_dataloaders()
             self.get_val_dataloaders()
+
+        # support IterableDataset for train data
+        self.is_iterable_train_dataloader = isinstance(self.get_train_dataloader(), IterableDataset)
+        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+            m = '''
+            When using an iterableDataset for train_dataloader,
+            Trainer(val_check_interval) must be an int.
+            An int k specifies checking validation every k training batches
+            '''
+            raise MisconfigurationException('when using ')
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
