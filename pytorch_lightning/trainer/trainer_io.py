@@ -175,7 +175,13 @@ class TrainerIOMixin(object):
         # add the hparams and state_dict from the model
         model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
-        checkpoint['hparams'] = vars(model.hparams)
+        if hasattr(model, "hparams"):
+            checkpoint['hparams'] = vars(model.hparams)
+        else:
+            warnings.warn(
+                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
+                " hyperparameters"
+            )
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
