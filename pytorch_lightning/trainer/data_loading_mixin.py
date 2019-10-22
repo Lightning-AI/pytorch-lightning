@@ -40,8 +40,13 @@ class TrainerDataLoadingMixin(object):
             self.nb_test_batches = max(1, self.nb_test_batches)
 
         # determine when to check validation
-        self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
-        self.val_check_batch = max(1, self.val_check_batch)
+        # if int passed in, val checks that often
+        # otherwise, it checks in [0, 1.0] % range of a training epoch
+        if isinstance(self.val_check_interval, int):
+            self.val_check_batch = self.val_check_interval
+        else:
+            self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
+            self.val_check_batch = max(1, self.val_check_batch)
 
     def get_dataloaders(self, model):
         """
