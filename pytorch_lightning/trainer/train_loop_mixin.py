@@ -2,6 +2,7 @@ import numpy as np
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
@@ -31,7 +32,12 @@ class TrainerTrainLoopMixin(object):
 
             # init progress_bar when requested
             if self.show_progress_bar:
-                self.progress_bar.reset(self.total_batches)
+                nb_iterations = self.total_batches
+
+                #  for iterable train loader, the progress bar never ends
+                if self.is_iterable_train_dataloader:
+                    nb_iterations = float('inf')
+                self.progress_bar.reset(nb_iterations)
 
             # changing gradient according accumulation_scheduler
             self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
@@ -107,7 +113,6 @@ class TrainerTrainLoopMixin(object):
             # when metrics should be logged
             should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
-
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 

@@ -3,16 +3,22 @@ import shutil
 import warnings
 from argparse import Namespace
 
-import pytest
 import numpy as np
+import pytest
 import torch
 
+from pl_examples import LightningTemplateModel
 # sys.path += [os.path.abspath('..'), os.path.abspath('../..')]
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+)
+from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.root_module import memory
 from pytorch_lightning.testing import (
     LightningTestModel,
     LightningTestModelBase,
-    LightningValidationMixin,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMixin,
@@ -32,10 +38,8 @@ from pytorch_lightning.trainer.dp_mixin import (
 
 from pytorch_lightning.root_module import model_saving
 from pytorch_lightning.trainer import trainer_io
-from pytorch_lightning.logging import TestTubeLogger
-from pl_examples import LightningTemplateModel
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 # generate a list of random seeds for each test
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
@@ -332,8 +336,10 @@ def test_running_test_without_val():
     reset_seed()
 
     """Verify test() works on a model with no val_loader"""
+
     class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
         pass
+
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 
@@ -641,6 +647,7 @@ def test_no_val_module():
 
     class CurrentTestModel(LightningTestModelBase):
         pass
+
     model = CurrentTestModel(hparams)
 
     save_dir = init_save_dir()
@@ -685,6 +692,7 @@ def test_no_val_end_module():
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
         pass
+
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 
@@ -1372,6 +1380,7 @@ def test_multiple_val_dataloader():
         LightningTestModelBase
     ):
         pass
+
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 
@@ -1409,6 +1418,7 @@ def test_multiple_test_dataloader():
         LightningTestModelBase
     ):
         pass
+
     hparams = get_hparams()
     model = CurrentTestModel(hparams)
 

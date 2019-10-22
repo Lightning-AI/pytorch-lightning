@@ -1,5 +1,6 @@
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False

@@ -1,16 +1,13 @@
-import os.path
-from copy import copy
+from test_tube import Experiment
 
 from .base import LightningLoggerBase, rank_zero_only
-
-from test_tube import Experiment
 
 
 class TestTubeLogger(LightningLoggerBase):
     __test__ = False
 
     def __init__(
-        self, save_dir, name="default", description=None, debug=False,
+            self, save_dir, name="default", description=None, debug=False,
             version=None, create_git_tag=False
     ):
         super().__init__()

@@ -1,17 +1,12 @@
-import os
-import re
-import signal
-import pdb
-from subprocess import call
-
 import torch
-import torch.distributed as dist
+
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False

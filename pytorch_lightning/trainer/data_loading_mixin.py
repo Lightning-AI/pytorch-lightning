@@ -1,10 +1,14 @@
 import warnings
 
-from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
+from torch.utils.data import IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
@@ -15,8 +19,11 @@ class TrainerDataLoadingMixin(object):
     def layout_bookeeping(self):
 
         # determine number of training batches
-        self.nb_training_batches = len(self.get_train_dataloader())
-        self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
+        if isinstance(self.get_train_dataloader(), IterableDataset):
+            self.nb_training_batches = float('inf')
+        else:
+            self.nb_training_batches = len(self.get_train_dataloader())
+            self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
@@ -34,8 +41,13 @@ class TrainerDataLoadingMixin(object):
             self.nb_test_batches = max(1, self.nb_test_batches)
 
         # determine when to check validation
-        self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
-        self.val_check_batch = max(1, self.val_check_batch)
+        # if int passed in, val checks that often
+        # otherwise, it checks in [0, 1.0] % range of a training epoch
+        if isinstance(self.val_check_interval, int):
+            self.val_check_batch = self.val_check_interval
+        else:
+            self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
+            self.val_check_batch = max(1, self.val_check_batch)
 
     def get_dataloaders(self, model):
         """
@@ -126,6 +138,16 @@ class TrainerDataLoadingMixin(object):
             self.get_train_dataloader()
             self.get_test_dataloaders()
             self.get_val_dataloaders()
+
+        # support IterableDataset for train data
+        self.is_iterable_train_dataloader = isinstance(self.get_train_dataloader(), IterableDataset)
+        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+            m = '''
+            When using an iterableDataset for train_dataloader,
+            Trainer(val_check_interval) must be an int.
+            An int k specifies checking validation every k training batches
+            '''
+            raise MisconfigurationException('when using ')
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
