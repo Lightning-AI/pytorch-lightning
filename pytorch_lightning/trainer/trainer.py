@@ -21,6 +21,7 @@ from pytorch_lightning.trainer.train_loop_mixin import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfigMixin
+from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 import pdb
@@ -41,7 +42,8 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerLoggingMixin,
               TrainerTrainingTricksMixin,
-              TrainerCallbackConfigMixin):
+              TrainerCallbackConfigMixin,
+              TrainerModelHooksMixin):
 
     def __init__(self,
                  logger=True,
