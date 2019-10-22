@@ -12,7 +12,7 @@ class TestTubeLogger(LightningLoggerBase):
     ):
         super().__init__()
         self.save_dir = save_dir
-        self.name = name
+        self._name = name
         self.description = description
         self.debug = debug
         self._version = version
@@ -26,7 +26,7 @@ class TestTubeLogger(LightningLoggerBase):
 
         self._experiment = Experiment(
             save_dir=self.save_dir,
-            name=self.name,
+            name=self._name,
             debug=self.debug,
             version=self.version,
             description=self.description,
@@ -76,6 +76,13 @@ class TestTubeLogger(LightningLoggerBase):
         self._rank = value
         if self._experiment is not None:
             self.experiment.rank = value
+    
+    @property
+    def name(self):
+        if self._experiment is None:
+            return self._name
+        else:
+            return self.experiment.name
 
     @property
     def version(self):

@@ -64,8 +64,13 @@ class LightningLoggerBase(object):
     def rank(self, value):
         """Set the process rank"""
         self._rank = value
+    
+    @property
+    def name(self):
+        """Return the experiment name"""
+        raise NotImplementedError("Sub-classes must provide a name property")
 
     @property
     def version(self):
         """Return the experiment version"""
-        return None
+        raise NotImplementedError("Sub-classes must provide a version property")
