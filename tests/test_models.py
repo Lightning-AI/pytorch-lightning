@@ -25,7 +25,6 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.root_module import memory
-from pytorch_lightning.trainer.logging_mixin import reduce_distributed_output
 from pytorch_lightning.trainer.dp_mixin import (
     parse_gpu_ids,
     determine_root_gpu_device,
