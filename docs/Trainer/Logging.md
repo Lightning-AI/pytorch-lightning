@@ -72,7 +72,6 @@ mlf_logger = MLFlowLogger(
 )
 trainer = Trainer(logger=mlf_logger)
 ```
-
 Use the logger anywhere in you LightningModule as follows:
 ```python
 def train_step(...):
@@ -81,6 +80,30 @@ def train_step(...):
     
 def any_lightning_module_function_or_hook(...):
     self.logger.experiment.whatever_ml_flow_supports(...)
+```
+
+---
+#### Comet.ml
+
+Log using [comet](https://www.comet.ml)
+
+```{.python}
+from pytorch_lightning.logging import CometLogger
+# arguments made to CometLogger are passed on to the comet_ml.Experiment class
+comet_logger = CometLogger(
+    api_key=os.environ["COMET_KEY"],
+    workspace=os.environ["COMET_KEY"],
+)
+trainer = Trainer(logger=comet_logger)
+```
+Use the logger anywhere in you LightningModule as follows:
+```python
+def train_step(...):
+    # example
+    self.logger.experiment.whatever_comet_ml_supports(...)
+
+def any_lightning_module_function_or_hook(...):
+    self.logger.experiment.whatever_comet_ml_supports(...)
 ```
 
 ---
