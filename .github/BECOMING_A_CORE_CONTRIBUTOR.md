@@ -5,6 +5,9 @@ We're currently recruiting for a team of 5 core maintainers.
 
 As a core maintainer you will have a strong say in the direction of the project. Big changes will require a majority of maintainers to agree.
 
+### Code of conduct  
+First and foremost, you'll be evaluated against [these core values](https://github.com/williamFalcon/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). Any code we commit or feature we add needs to align with those core values
+
 ### Responsibilities:
 The responsibilities mainly revolve around 3 things.
 
