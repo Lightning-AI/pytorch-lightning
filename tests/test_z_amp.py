@@ -19,13 +19,7 @@ def test_amp_single_gpu():
     """
     testing_utils.reset_seed()
 
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not testing_utils.can_run_gpu_test():
         return
 
     hparams = testing_utils.get_hparams()
@@ -49,13 +43,7 @@ def test_no_amp_single_gpu():
     """
     testing_utils.reset_seed()
 
-    if not torch.cuda.is_available():
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a GPU node to run this test')
-        return
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_amp_gpu_ddp cannot run.'
-                      'Rerun on a node with 2+ GPUs to run this test')
+    if not testing_utils.can_run_gpu_test():
         return
 
     hparams = testing_utils.get_hparams()
