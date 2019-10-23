@@ -45,6 +45,10 @@ class TrainerIOMixin(object):
             # wait for all processes to catch up
             dist.barrier()
 
+        # clear cache after restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
+
     def restore_state_if_checkpoint_exists(self, model):
         did_restore = False
 
