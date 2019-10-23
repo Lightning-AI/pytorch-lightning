@@ -162,6 +162,7 @@ class ModelSummary(object):
             pass
         # self.make_summary()
 
+        self.summary = 'fix'
 
 def print_mem_stack():  # pragma: no cover
     for obj in gc.get_objects():
