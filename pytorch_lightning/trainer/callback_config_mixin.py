@@ -18,7 +18,7 @@ class TrainerCallbackConfigMixin(object):
                 ckpt_path = os.path.join(
                     self.default_save_path,
                     self.logger.name,
-                    str(self.logger.version),
+                    f'version_{self.logger.version}',
                     "checkpoints"
                 )
             else:
