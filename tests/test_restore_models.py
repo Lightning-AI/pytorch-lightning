@@ -340,9 +340,6 @@ def test_cpu_restore_training():
 
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
-    import pdb
-    pdb.set_trace()
-
     trainer.fit(model)
 
     testing_utils.clear_save_dir()
