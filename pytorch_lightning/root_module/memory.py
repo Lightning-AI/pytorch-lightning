@@ -158,9 +158,8 @@ class ModelSummary(object):
         self.get_parameter_nums()
 
         if self.model.example_input_array is not None:
-            import pdb
-            pdb.set_trace()
-            self.get_variable_sizes()
+            # self.get_variable_sizes()
+            pass
         self.make_summary()
 
 
