@@ -58,14 +58,21 @@ Below are the possible configurations we support.
 You also have the option of specifying which GPUs to use by passing a list:   
 
 ```python
-# DEFAULT (int)
+# DEFAULT (int) specifies how many GPUs to use.
 Trainer(gpus=k)  
+
+# Above is equivalent to 
+Trainer(gpus=list(range(k)))
 
 # You specify which GPUs (don't use if running on cluster)  
 Trainer(gpus=[0, 1])  
 
 # can also be a string
 Trainer(gpus='0, 1')
+
+# can also be -1 or '-1', this uses all available GPUs
+# this is equivalent to list(range(torch.cuda.available_devices()))
+Trainer(gpus=-1)
 ```
 
 ---
