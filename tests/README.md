@@ -1,6 +1,7 @@
 # PyTorch-Lightning Tests
 Most PL tests train a full MNIST model under various trainer conditions (ddp, ddp2+amp, etc...).
 This provides testing for most combinations of important settings.
+The tests expect the model to perform to a reasonable degree of testing accuracy to pass.
 
 ## Running tests
 The automatic travis tests ONLY run CPU-based tests. Although these cover most of the use cases,
