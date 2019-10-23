@@ -74,23 +74,17 @@ class TrainerTrainLoopMixin(object):
         # run epoch
         for batch_nb, batch in enumerate(self.get_train_dataloader()):
             self.batch_nb = batch_nb
-            self.global_step += 1
 
             model = self.get_model()
             model.global_step = self.global_step
-
-            # stop when the flag is changed or we've gone past the amount
-            #  requested in the batches
-            self.total_batch_nb += 1
-            met_batch_limit = batch_nb >= self.nb_training_batches
-            if met_batch_limit:
-                break
 
             # ---------------
             # RUN TRAIN STEP
             # ---------------
             output = self.run_training_batch(batch, batch_nb)
             batch_result, grad_norm_dic, batch_step_metrics = output
+
+            # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
 
             # ---------------
@@ -116,8 +110,18 @@ class TrainerTrainLoopMixin(object):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
+            self.global_step += 1
+            self.total_batch_nb += 1
+
             # end epoch early
+            # stop when the flag is changed or we've gone past the amount
+            # requested in the batches
             if early_stop_epoch or self.fast_dev_run:
+                break
+
+            # stop epoch if we limited nb batches
+            met_batch_limit = batch_nb >= self.nb_training_batches
+            if met_batch_limit:
                 break
 
         # epoch end hook
