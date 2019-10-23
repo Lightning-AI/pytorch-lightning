@@ -1,4 +1,5 @@
 import warnings
+from argparse import Namespace
 
 import torch
 
@@ -167,6 +168,36 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         # load on CPU only to avoid OOM issues
         # then its up to user to put back on GPUs
         checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
+
+        # load the state_dict on the model automatically
+        model = cls(hparams)
+        model.load_state_dict(checkpoint['state_dict'])
+
+        # give model a chance to load something
+        model.on_load_checkpoint(checkpoint)
+
+        return model
+
+    @classmethod
+    def load_from_checkpoint(cls, checkpoint_path):
+        """
+        Primary way of loading model from a checkpoint
+        :param checkpoint_path:
+        :param map_location: dic for mapping storage {'cuda:1':'cuda:0'}
+        :return:
+        """
+
+        # load on CPU only to avoid OOM issues
+        # then its up to user to put back on GPUs
+        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+        try:
+            ckpt_hparams = checkpoint['hparams']
+        except KeyError:
+            raise IOError(
+                "Checkpoint does not contain hyperparameters. Are your model hyperparameters stored"
+                "in self.hparams?"
+            )
+        hparams = Namespace(**ckpt_hparams)
 
         # load the state_dict on the model automatically
         model = cls(hparams)
