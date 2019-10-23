@@ -80,13 +80,13 @@ class LightningValidationMixin(LightningValidationStepMixin):
             val_loss = output['val_loss']
 
             # reduce manually when using dp
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_loss = torch.mean(val_loss)
             val_loss_mean += val_loss
 
             # reduce manually when using dp
             val_acc = output['val_acc']
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_acc = torch.mean(val_acc)
 
             val_acc_mean += val_acc
