@@ -16,6 +16,10 @@ from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfi
 from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
 from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
+from pytorch_lightning.trainer.dp_mixin import (
+    parse_gpu_ids,
+    determine_root_gpu_device
+)
 from pytorch_lightning.trainer.evaluation_loop_mixin import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
@@ -87,7 +91,8 @@ class Trainer(TrainerIOMixin,
         :param gradient_clip: int. 0 means don't clip. Deprecated.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
-        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
+        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
+            OR '-1' / -1 to use all available gpus
         :param log_gpu_memory: str. None, 'min_max', 'all'
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
@@ -183,8 +188,8 @@ class Trainer(TrainerIOMixin,
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
-        self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
+        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # distributed backend choice
         self.use_ddp = False
@@ -272,14 +277,8 @@ class Trainer(TrainerIOMixin,
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-
-        if type(gpus) is list:
+        else:
             return len(gpus)
-        if type(gpus) is int:
-            return gpus
-
-        m = 'gpus must be int, none or list of ints'
-        raise MisconfigurationException(m)
 
     @property
     def data_parallel(self):

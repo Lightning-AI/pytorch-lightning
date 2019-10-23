@@ -1,6 +1,7 @@
 import os
 import re
 import signal
+import warnings
 from subprocess import call
 
 import torch
@@ -172,9 +173,16 @@ class TrainerIOMixin(object):
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
-        # add the state_dict from the model
+        # add the hparams and state_dict from the model
         model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
+        if hasattr(model, "hparams"):
+            checkpoint['hparams'] = vars(model.hparams)
+        else:
+            warnings.warn(
+                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
+                " hyperparameters"
+            )
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
