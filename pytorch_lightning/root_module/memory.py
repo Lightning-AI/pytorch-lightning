@@ -160,7 +160,7 @@ class ModelSummary(object):
         if self.model.example_input_array is not None:
             # self.get_variable_sizes()
             pass
-        self.make_summary()
+        # self.make_summary()
 
 
 def print_mem_stack():  # pragma: no cover
