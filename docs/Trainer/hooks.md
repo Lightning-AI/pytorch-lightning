@@ -116,6 +116,28 @@ def on_before_zero_grad(self, optimizer):
 ```
 
 ---
+#### on_backward
+Called to perform backward step.
+Feel free to override as needed.
+
+The loss passed in has already been scaled for accumulated gradients if requested.
+```python
+def on_backward(self, use_amp, loss, optimizer):
+    """
+    Override backward with your own implementation if you need to
+    :param use_amp: Whether amp was requested or not
+    :param loss: Loss is already scaled by accumulated grads
+    :param optimizer: Current optimizer being used
+    :return:
+    """
+    if use_amp:
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
+```
+
+---
 #### on_after_backward
 Called in the training loop after model.backward()
 This is the ideal place to inspect or log gradient information 
