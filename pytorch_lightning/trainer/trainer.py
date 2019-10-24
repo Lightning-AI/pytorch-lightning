@@ -135,6 +135,7 @@ class Trainer(TrainerIOMixin,
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.shown_warnings = set()
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
@@ -409,9 +410,6 @@ class Trainer(TrainerIOMixin,
 
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
-
-        # init training constants
-        self.layout_bookeeping()
 
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
