@@ -16,9 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 # DEFAULTS used by the Trainer
 checkpoint_callback = ModelCheckpoint(
     filepath=os.getcwd(),
-    save_best=True,
-    save_all=False, 
-    save_last=False,
+    saving_mode='best',
     verbose=True,
     monitor='val_loss',
     mode='min',

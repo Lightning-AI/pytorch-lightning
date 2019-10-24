@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 
 import numpy as np
@@ -157,15 +156,14 @@ class ModelCheckpoint(Callback):
         filepath: string, path to save the model file.
         monitor: quantity to monitor.
         verbose: verbosity mode, 0 or 1.
-        save_best: if `save_best=True`,
-            the latest best model according to
-            the quantity monitored will be saved with prefix `best`.
-        save_all: if `save_all=True`,
-            every model trained wil be saved
-        save_last: if `save_last=True`,
-            the latest model will be saved.
+        saving_mode: either a string (one of {best, last, all, none})
+            or a tuple with a combination of the first three.
+            `best` saves a checkpoint with the latest best model according to
+            the quantity monitored and is will be saved with suffix `best`.
+            `last` saves a checkpoint of the last epoch with suffix `last`.
+            `all` saves a checkpoint after every epoch with the epoch number.
         mode: one of {auto, min, max}.
-            If `save_best=True`, the decision
+            If `saving_mode` is or includes `best`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,
@@ -179,16 +177,26 @@ class ModelCheckpoint(Callback):
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
-                 save_best=True, save_all=False, save_last=False,
+                 saving_mode='best',
                  save_weights_only=False,
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
         self.monitor = monitor
         self.verbose = verbose
         self.filepath = filepath
-        self.save_best = save_best
-        self.save_all = save_all
-        self.save_last = save_last
+        if isinstance(saving_mode, tuple):
+            self.save_best = 'best' in saving_mode
+            self.save_last = 'last' in saving_mode
+            self.save_all = 'all' in saving_mode
+        else:
+            self.save_best = 'best' == saving_mode
+            self.save_last = 'last' == saving_mode
+            self.save_all = 'all' == saving_mode
+            if saving_mode not in ('best', 'last', 'all', 'none'):
+                print('ModelCheckpoint saving_mode %s is unknown, ',
+                      'falling back to only saving best.' % (mode), RuntimeWarning)
+                self.save_best = True
+
         self.save_weights_only = save_weights_only
         self.period = period
         self.epochs_since_last_save = 0
@@ -213,35 +221,39 @@ class ModelCheckpoint(Callback):
                 self.monitor_op = np.less
                 self.best = np.Inf
 
-    def save_model(self, filepath, overwrite, prefix):
-        dirpath = '/'.join(filepath.split('/')[:-1])
-
+    def save_model(self, filepath, new_filename, overwrite):
         # make paths
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        os.makedirs(filepath, exist_ok=True)
 
         if overwrite:
-            for filename in os.listdir(dirpath):
-                if re.match(r'{}_ckpt_epoch_\d+.ckpt'.format(prefix), filename):
-                    path_to_delete = os.path.join(dirpath, filename)
+            for filename in os.listdir(filepath):
+                if filename == new_filename:
+                    path_to_delete = os.path.join(filepath, filename)
                     try:
                         shutil.rmtree(path_to_delete)
                     except OSError:
                         os.remove(path_to_delete)
 
         # delegate the saving to the model
-        self.save_function(filepath)
+        self.save_function('{}/{}'.format(filepath, new_filename))
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         self.epochs_since_last_save += 1
         if self.epochs_since_last_save >= self.period:
             self.epochs_since_last_save = 0
-            if self.save_all or self.save_last:
-                overwrite = not self.save_all
-                filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(self.filepath, self.prefix, epoch + 1)
-                self.save_model(filepath, overwrite=overwrite, prefix=self.prefix)
+            if self.save_all:
+                filename = '{}_ckpt_epoch_{}.ckpt'.format(self.prefix, epoch + 1)
+                self.save_model(self.filepath, filename, overwrite=False)
                 if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, '{}/{}'.format(
+                        self.filepath, filename)))
+            if self.save_last:
+                filename = '{}_ckpt_epoch_{}.ckpt'.format(self.prefix, 'last')
+                self.save_model(self.filepath, filename, overwrite=True)
+                if self.verbose > 0:
+                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, '{}/{}'.format(
+                        self.filepath, filename)))
             if self.save_best:
                 current = logs.get(self.monitor)
                 if current is None:
@@ -249,16 +261,14 @@ class ModelCheckpoint(Callback):
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
-                        prefix = 'best_{}'.format(self.prefix)
-                        filepath = '{}/{}_ckpt_epoch_{}.ckpt'.format(
-                            self.filepath, prefix, epoch + 1)
+                        filename = '{}_ckpt_epoch_{}.ckpt'.format(self.prefix, 'best')
                         if self.verbose > 0:
                             print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
                                   ' saving model to %s'
                                   % (epoch + 1, self.monitor, self.best,
-                                     current, filepath))
+                                     current, '{}/{}'.format(self.filepath, filename)))
                         self.best = current
-                        self.save_model(filepath, overwrite=True, prefix=prefix)
+                        self.save_model(self.filepath, filename, overwrite=True)
 
                     else:
                         if self.verbose > 0:

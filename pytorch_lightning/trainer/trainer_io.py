@@ -58,6 +58,14 @@ class TrainerIOMixin(object):
                 continue
 
             if '.ckpt' in name:
+                if '_last' in name:
+                    last_ckpt_name = name
+                    break
+                elif '_best' in name:
+                    # only use best if no last or numbered ckpt is available
+                    if last_ckpt_name is None:
+                        last_ckpt_name = name
+                    continue
                 epoch = name.split('epoch_')[1]
                 epoch = int(re.sub('[^0-9]', '', epoch))
 
