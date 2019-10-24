@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from io import open
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
