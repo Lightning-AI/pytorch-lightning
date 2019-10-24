@@ -174,7 +174,7 @@ class TrainerDataLoadingMixin(object):
             Trainer(val_check_interval) must be an int.
             An int k specifies checking validation every k training batches
             '''
-            raise MisconfigurationException('when using ')
+            raise MisconfigurationException(m)
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
