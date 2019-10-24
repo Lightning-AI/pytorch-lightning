@@ -120,7 +120,7 @@ def test_cpu_slurm_save_load():
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(save_dir, saving_mode='all')
     )
 
     # fit model
