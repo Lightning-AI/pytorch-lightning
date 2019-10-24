@@ -56,8 +56,8 @@ install:
 
 script:
   # integration
-  - python setup.py install --dry-run
   - tox --sitepackages
+  - pip install . --editable
 
 after_success:
   - coverage report
