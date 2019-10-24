@@ -7,6 +7,7 @@ import torch.distributed as dist
 
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Trainer
 
 try:
     from apex import amp
@@ -16,7 +17,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDDPMixin(object):
+class TrainerDDPMixin(Trainer):
     def set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
         # skip for CPU
         if self.num_gpus == 0:

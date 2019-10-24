@@ -1,9 +1,10 @@
 import torch
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning import Trainer
 
 
-class TrainerTrainingTricksMixin(object):
+class TrainerTrainingTricksMixin(Trainer):
 
     def clip_gradients(self):
         if self.gradient_clip_val > 0:

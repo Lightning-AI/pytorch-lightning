@@ -1,7 +1,8 @@
 from pytorch_lightning.root_module.root_module import LightningModule
+from pytorch_lightning import Trainer
 
 
-class TrainerModelHooksMixin(object):
+class TrainerModelHooksMixin(Trainer):
 
     def is_function_implemented(self, f_name):
         model = self.get_model()

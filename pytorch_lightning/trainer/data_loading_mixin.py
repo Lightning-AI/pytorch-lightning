@@ -5,6 +5,7 @@ from torch.utils.data import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Trainer
 
 try:
     from apex import amp
@@ -14,7 +15,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDataLoadingMixin(object):
+class TrainerDataLoadingMixin(Trainer):
 
     def layout_bookeeping(self):
 

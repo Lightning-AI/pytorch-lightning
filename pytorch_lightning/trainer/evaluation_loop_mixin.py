@@ -1,9 +1,10 @@
 import torch
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Trainer
 
 
-class TrainerEvaluationLoopMixin(object):
+class TrainerEvaluationLoopMixin(Trainer):
 
     def evaluate(self, model, dataloaders, max_batches, test=False):
         """

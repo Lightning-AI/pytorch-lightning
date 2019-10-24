@@ -3,6 +3,7 @@ import torch
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Trainer
 
 try:
     from apex import amp
@@ -12,7 +13,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDPMixin(object):
+class TrainerDPMixin(Trainer):
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module

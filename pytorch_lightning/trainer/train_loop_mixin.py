@@ -1,4 +1,5 @@
 import numpy as np
+from pytorch_lightning import Trainer
 
 try:
     from apex import amp
@@ -8,7 +9,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerTrainLoopMixin(object):
+class TrainerTrainLoopMixin(Trainer):
 
     def train(self):
         # run all epochs

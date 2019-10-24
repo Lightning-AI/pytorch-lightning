@@ -7,11 +7,12 @@ from subprocess import call
 import torch
 import torch.distributed as dist
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
 
-class TrainerIOMixin(object):
+class TrainerIOMixin(Trainer):
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,

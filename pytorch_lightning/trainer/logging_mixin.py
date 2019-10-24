@@ -1,9 +1,10 @@
 import torch
 
 from pytorch_lightning.root_module import memory
+from pytorch_lightning import Trainer
 
 
-class TrainerLoggingMixin(object):
+class TrainerLoggingMixin(Trainer):
 
     def log_metrics(self, metrics, grad_norm_dic):
         """

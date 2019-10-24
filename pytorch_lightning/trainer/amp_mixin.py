@@ -1,3 +1,5 @@
+from pytorch_lightning import Trainer
+
 try:
     from apex import amp
 
@@ -6,7 +8,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerAMPMixin(object):
+class TrainerAMPMixin(Trainer):
 
     def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
