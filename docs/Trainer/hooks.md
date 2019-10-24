@@ -116,13 +116,13 @@ def on_before_zero_grad(self, optimizer):
 ```
 
 ---
-#### on_backward
+#### backward
 Called to perform backward step.
 Feel free to override as needed.
 
 The loss passed in has already been scaled for accumulated gradients if requested.
 ```python
-def on_backward(self, use_amp, loss, optimizer):
+def backward(self, use_amp, loss, optimizer):
     """
     Override backward with your own implementation if you need to
     :param use_amp: Whether amp was requested or not
