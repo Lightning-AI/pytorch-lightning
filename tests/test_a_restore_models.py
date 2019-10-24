@@ -327,8 +327,8 @@ def test_cpu_restore_training():
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_good_acc():
-        assert trainer.current_epoch > 0
         assert trainer.current_epoch == real_global_epoch
+        assert trainer.current_epoch >= 0
 
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
