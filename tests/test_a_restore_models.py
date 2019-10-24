@@ -114,7 +114,7 @@ def test_load_model_from_checkpoint_best():
     save_dir = testing_utils.init_save_dir()
 
     trainer_options = dict(
-        checkpoint_callback=ModelCheckpoint(os.getcwd(), 
+        checkpoint_callback=ModelCheckpoint(os.getcwd(),
                                             saving_mode='best'),
         show_progress_bar=False,
         max_nb_epochs=1,
@@ -156,13 +156,12 @@ def test_load_model_from_checkpoint_last():
     save_dir = testing_utils.init_save_dir()
 
     trainer_options = dict(
-        checkpoint_callback=ModelCheckpoint(os.getcwd(), 
+        checkpoint_callback=ModelCheckpoint(os.getcwd(),
                                             saving_mode='last'),
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        checkpoint_callback=True,
         logger=False,
         default_save_path=save_dir
     )
@@ -199,13 +198,12 @@ def test_load_model_from_checkpoint_all():
     save_dir = testing_utils.init_save_dir()
 
     trainer_options = dict(
-        checkpoint_callback=ModelCheckpoint(os.getcwd(), 
+        checkpoint_callback=ModelCheckpoint(os.getcwd(),
                                             saving_mode='all'),
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        checkpoint_callback=True,
         logger=False,
         default_save_path=save_dir
     )
