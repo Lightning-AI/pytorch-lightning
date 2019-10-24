@@ -1,4 +1,4 @@
-from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.trainer import Trainer
 
 try:
     from apex import amp

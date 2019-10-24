@@ -1,6 +1,6 @@
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging import TestTubeLogger
-from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.trainer import Trainer
 
 
 class TrainerCallbackConfigMixin(Trainer):

@@ -1,7 +1,7 @@
 import torch
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.trainer import Trainer
 
 
 class TrainerTrainingTricksMixin(Trainer):
