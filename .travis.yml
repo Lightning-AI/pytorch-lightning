@@ -57,7 +57,7 @@ install:
 script:
   # integration
   - tox --sitepackages
-  - pip install . --editable
+  - pip install --editable .
 
 after_success:
   - coverage report
