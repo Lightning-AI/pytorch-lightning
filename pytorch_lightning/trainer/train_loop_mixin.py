@@ -1,4 +1,5 @@
 import numpy as np
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -153,76 +154,94 @@ class TrainerTrainLoopMixin(object):
         if self.show_progress_bar:
             self.progress_bar.update(1)
 
-        # call training_step once per optimizer
-        for opt_idx, optimizer in enumerate(self.optimizers):
-
-            # wrap the forward step in a closure so second order methods work
-            def optimizer_closure():
-                # forward pass
-                output = self.training_forward(batch, batch_nb, opt_idx)
-                closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
-
-                # track metrics for callbacks
-                all_callback_metrics.append(callback_metrics)
-
-                # track progress bar metrics
-                self.add_tqdm_metrics(progress_bar_metrics)
-                all_log_metrics.append(log_metrics)
-
-                # accumulate loss
-                # (if accumulate_grad_batches = 1 no effect)
-                closure_loss = closure_loss / self.accumulate_grad_batches
-
-                # backward pass
-                # done in hook so user can overwrite if needed
+        splits = [batch]
+        if self.truncated_bptt:
+            if self.is_function_implemented('tbptt_batch_split'):
                 model_ref = self.get_model()
-                model_ref.backward(self.use_amp, closure_loss, optimizer)
+                splits = model_ref.tbptt_batch_split(batch)
+            else:
+                m = 'tpbtt_batch_split(self, batch) must be defined if truncated_bptt is True'
+                raise MisconfigurationException(m)
 
-                # insert after step hook
-                if self.is_function_implemented('on_after_backward'):
-                    model_ref = self.get_model()
-                    model_ref.on_after_backward()
+        self.hiddens = None
+        for split_nb, split_batch in enumerate(splits):
+            self.split_nb = split_nb
 
-                return closure_loss
+            # call training_step once per optimizer
+            for opt_idx, optimizer in enumerate(self.optimizers):
 
-            # calculate loss
-            loss = optimizer_closure()
+                # wrap the forward step in a closure so second order methods work
+                def optimizer_closure():
+                    # forward pass
+                    output = self.training_forward(
+                        split_batch, batch_nb, opt_idx, self.hiddens)
 
-            # nan grads
-            if self.print_nan_grads:
-                self.print_nan_gradients()
+                    closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = output
 
-            # track total loss for logging (avoid mem leaks)
-            self.batch_loss_value += loss.item()
+                    # track metrics for callbacks
+                    all_callback_metrics.append(callback_metrics)
 
-            # gradient update with accumulated gradients
-            if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+                    # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
+                    all_log_metrics.append(log_metrics)
 
-                # track gradient norms when requested
-                if batch_nb % self.row_log_interval == 0:
-                    if self.track_grad_norm > 0:
-                        model = self.get_model()
-                        grad_norm_dic = model.grad_norm(self.track_grad_norm)
+                    # accumulate loss
+                    # (if accumulate_grad_batches = 1 no effect)
+                    closure_loss = closure_loss / self.accumulate_grad_batches
 
-                # clip gradients
-                self.clip_gradients()
+                    # backward pass
+                    if self.use_amp:
+                        with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
+                            scaled_loss.backward()
+                    else:
+                        closure_loss.backward()
 
-                # calls .step(), .zero_grad()
-                # override function to modify this behavior
-                model = self.get_model()
-                model.optimizer_step(self.current_epoch, batch_nb,
-                                     optimizer, opt_idx, optimizer_closure)
+                    # insert after step hook
+                    if self.is_function_implemented('on_after_backward'):
+                        model_ref = self.get_model()
+                        model_ref.on_after_backward()
 
-                # calculate running loss for display
-                self.running_loss.append(self.batch_loss_value)
-                self.batch_loss_value = 0
-                self.avg_loss = np.mean(self.running_loss[-100:])
+                    return closure_loss
 
-                # update progress bar
-                if self.show_progress_bar:
-                    # add model specific metrics
-                    tqdm_metrics = self.training_tqdm_dict
-                    self.progress_bar.set_postfix(**tqdm_metrics)
+                # calculate loss
+                loss = optimizer_closure()
+
+                # nan grads
+                if self.print_nan_grads:
+                    self.print_nan_gradients()
+
+                # track total loss for logging (avoid mem leaks)
+                self.batch_loss_value += loss.item()
+
+                # gradient update with accumulated gradients
+                if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+
+                    # track gradient norms when requested
+                    if batch_nb % self.row_log_interval == 0:
+                        if self.track_grad_norm > 0:
+                            model = self.get_model()
+                            grad_norm_dic = model.grad_norm(
+                                self.track_grad_norm)
+
+                    # clip gradients
+                    self.clip_gradients()
+
+                    # calls .step(), .zero_grad()
+                    # override function to modify this behavior
+                    model = self.get_model()
+                    model.optimizer_step(self.current_epoch, batch_nb,
+                                         optimizer, opt_idx, optimizer_closure)
+
+                    # calculate running loss for display
+                    self.running_loss.append(self.batch_loss_value)
+                    self.batch_loss_value = 0
+                    self.avg_loss = np.mean(self.running_loss[-100:])
+
+                    # update progress bar
+                    if self.show_progress_bar:
+                        # add model specific metrics
+                        tqdm_metrics = self.training_tqdm_dict
+                        self.progress_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
         if self.is_function_implemented('on_batch_end'):
@@ -237,7 +256,7 @@ class TrainerTrainLoopMixin(object):
 
         return 0, grad_norm_dic, all_log_metrics
 
-    def training_forward(self, batch, batch_nb, opt_idx):
+    def training_forward(self, batch, batch_nb, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
@@ -251,6 +270,9 @@ class TrainerTrainLoopMixin(object):
         args = [batch, batch_nb]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
+
+        if self.truncated_bptt:
+            args.append(hiddens)
 
         if self.use_ddp or self.use_ddp2:
             output = self.model(*args)
@@ -269,5 +291,5 @@ class TrainerTrainLoopMixin(object):
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
-        loss, progress_bar_metrics, log_metrics, callback_metrics = output
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
+        loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens = output
+        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens

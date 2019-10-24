@@ -115,7 +115,8 @@ class TrainerEvaluationLoopMixin(object):
                                          dataloaders,
                                          max_batches,
                                          test)
-            _, prog_bar_metrics, log_metrics, callback_metrics = self.process_output(eval_results)
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
+                eval_results)
 
             # add metrics to prog bar
             self.add_tqdm_metrics(prog_bar_metrics)

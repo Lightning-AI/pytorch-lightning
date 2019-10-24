@@ -113,6 +113,14 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         # clear gradients
         optimizer.zero_grad()
 
+    def tbptt_split_batch(self, batch):
+        """
+        Return list of batch splits. Each split will be passed to forward_step to enable
+        truncated back propagation through time.
+        :return: list of splits
+        """
+        raise NotImplementedError
+
     @data_loader
     def tng_dataloader(self):
         """
