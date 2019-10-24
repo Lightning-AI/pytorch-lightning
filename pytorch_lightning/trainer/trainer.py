@@ -447,6 +447,10 @@ class Trainer(TrainerIOMixin,
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
+        # clear cache before training
+        if self.on_gpu:
+            torch.cuda.empty_cache()
+
         # CORE TRAINING LOOP
         self.train()
 

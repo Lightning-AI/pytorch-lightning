@@ -5,7 +5,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel
-from .test_models import get_hparams, get_test_tube_logger, init_save_dir, clear_save_dir
+from . import testing_utils
 
 RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
 ROOT_SEED = 1234
@@ -19,12 +19,12 @@ def test_testtube_logger():
     verify that basic functionality of test tube logger works
     """
     reset_seed()
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -37,7 +37,7 @@ def test_testtube_logger():
 
     assert result == 1, "Training failed"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_testtube_pickle():
@@ -46,12 +46,12 @@ def test_testtube_pickle():
     """
     reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
     logger.log_hyperparams(hparams)
     logger.save()
 
@@ -66,7 +66,7 @@ def test_testtube_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 # def test_mlflow_logger():
