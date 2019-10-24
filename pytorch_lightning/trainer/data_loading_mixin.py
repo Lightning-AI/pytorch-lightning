@@ -45,13 +45,16 @@ class TrainerDataLoadingMixin(object):
             You're using multiple gpus and multiple nodes without using a DistributedSampler
             to assign a subset of your data to each process. To silence this warning, pass a
             DistributedSampler to your DataLoader.
+
             ie: this:
             dataset = myDataset()
             dataloader = Dataloader(dataset)
+
             becomes:
             dataset = myDataset()
             dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
             dataloader = Dataloader(dataset, sampler=dist_sampler)
+
             If you want each process to load the full dataset, ignore this warning.
             """
             if msg not in self.shown_warnings and self.proc_rank == 0:
@@ -79,16 +82,20 @@ class TrainerDataLoadingMixin(object):
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your val_dataloader(s) don't use DistributedSampler.
-                    You're using multiple gpus and multiple nodes without using a DistributedSampler
-                    to assign a subset of your data to each process. To silence this warning, pass a
-                    DistributedSampler to your DataLoader.
+
+                    You're using multiple gpus and multiple nodes without using a
+                    DistributedSampler to assign a subset of your data to each process.
+                    To silence this warning, pass a DistributedSampler to your DataLoader.
+
                     ie: this:
                     dataset = myDataset()
                     dataloader = Dataloader(dataset)
+
                     becomes:
                     dataset = myDataset()
                     dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
                     dataloader = Dataloader(dataset, sampler=dist_sampler)
+
                     If you want each process to load the full dataset, ignore this warning.
                     """
                     if msg not in self.shown_warnings and self.proc_rank == 0:
@@ -118,16 +125,20 @@ class TrainerDataLoadingMixin(object):
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your test_dataloader(s) don't use DistributedSampler.
-                    You're using multiple gpus and multiple nodes without using a DistributedSampler
-                    to assign a subset of your data to each process. To silence this warning, pass a
-                    DistributedSampler to your DataLoader.
+
+                    You're using multiple gpus and multiple nodes without using a
+                    DistributedSampler to assign a subset of your data to each process.
+                    To silence this warning, pass a DistributedSampler to your DataLoader.
+
                     ie: this:
                     dataset = myDataset()
                     dataloader = Dataloader(dataset)
+
                     becomes:
                     dataset = myDataset()
                     dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
                     dataloader = Dataloader(dataset, sampler=dist_sampler)
+
                     If you want each process to load the full dataset, ignore this warning.
                     """
                     if msg not in self.shown_warnings and self.proc_rank == 0:
