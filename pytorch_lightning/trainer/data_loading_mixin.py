@@ -64,7 +64,7 @@ class TrainerDataLoadingMixin(object):
         :param model:
         :return:
         """
-        self.get_val_dataloader = model.val_dataloader
+        self.get_val_dataloaders = model.val_dataloader
 
         # enable multiple validation loaders
         have_val_loaders = self.val_dataloader is not None
@@ -108,7 +108,7 @@ class TrainerDataLoadingMixin(object):
         :return:
         """
 
-        self.get_test_dataloader = model.test_dataloader
+        self.get_test_dataloaders = model.test_dataloader
 
         # handle returning an actual dataloader instead of a list of loaders
         have_test_loaders = self.test_dataloader is not None
