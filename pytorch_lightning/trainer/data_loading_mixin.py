@@ -66,11 +66,6 @@ class TrainerDataLoadingMixin(object):
         """
         self.get_val_dataloaders = model.val_dataloader
 
-        # enable multiple validation loaders
-        have_val_loaders = self.val_dataloader is not None
-        if have_val_loaders and not isinstance(self.val_dataloader, list):
-            self.val_dataloader = [self.val_dataloader]
-
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.get_val_dataloaders() is not None:
@@ -110,16 +105,10 @@ class TrainerDataLoadingMixin(object):
 
         self.get_test_dataloaders = model.test_dataloader
 
-        # handle returning an actual dataloader instead of a list of loaders
-        have_test_loaders = self.test_dataloader is not None
-        if have_test_loaders and not isinstance(self.test_dataloader, list):
-            self.test_dataloader = [self.test_dataloader]
-
         # determine number of test batches
         if self.get_test_dataloaders() is not None:
-            self.nb_test_batches = sum(
-                len(dataloader) for dataloader in self.get_test_dataloaders()
-            )
+            len_sum = sum(len(dataloader) for dataloader in self.get_test_dataloaders())
+            self.nb_test_batches = len_sum
             self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
             self.nb_test_batches = max(1, self.nb_test_batches)
 
