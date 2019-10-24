@@ -1,10 +1,15 @@
 # Contributing    
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!   
 
-## One less thing to remember    
+## Core value 1: One less thing to remember    
 Simplify the API as much as possible from the user perspective. Any additions or improvements should minimize things the user needs to remember.   
 
-For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval(). This avoids all sorts of subtle errors the user could make.   
+For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval(). This avoids all sorts of subtle errors the user could make.  
+
+## Core value 2: Backward-compatible API   
+We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backwards compatible with good deprecation warnings.
+
+You shouldn't be afraid to upgrade Lightning :)
 
 ## Lightning Design Principles   
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.    
