@@ -16,7 +16,7 @@ except ImportError:
 PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
-import pytorch_lightning
+import pytorch_lightning  # noqa: E402
 
 
 def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
