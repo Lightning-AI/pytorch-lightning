@@ -10,9 +10,9 @@ try:
 except ModuleNotFoundError:
     pass
 try:
-    from .comet_logger import CometLogger
-
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
+
+    from .comet_logger import CometLogger
 except ModuleNotFoundError:
-    pass
+    del environ["COMET_DISABLE_AUTO_LOGGING"]

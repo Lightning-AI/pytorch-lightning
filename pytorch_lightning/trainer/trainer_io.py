@@ -1,6 +1,7 @@
 import os
 import re
 import signal
+import warnings
 from subprocess import call
 
 import torch
@@ -24,27 +25,37 @@ class TrainerIOMixin(object):
     def restore_weights(self, model):
         """
         To restore weights we have two cases.
-        First, if we use the same experiment version, then restore the latest ckpt.
-        AFTER that, if we find weights from hpc checkpoint, then restore that.
+        First, attempt to restore hpc weights. If successful, don't restore
+        other weights.
+
+        Otherwise, try to restore actual weights
         :param model:
         :return:
         """
-        # restore weights if same exp version
-        self.restore_state_if_checkpoint_exists(model)
 
         # if script called from hpc resubmit, load weights
-        self.restore_hpc_weights_if_needed(model)
+        did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
+
+        if not did_restore_hpc_weights:
+            # restore weights if same exp version
+            self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
             dist.barrier()
 
+        # clear cache after restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
+
     def restore_state_if_checkpoint_exists(self, model):
+        did_restore = False
+
         # do nothing if there's not dir or callback
         no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
         if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return
+            return did_restore
 
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
@@ -78,6 +89,9 @@ class TrainerIOMixin(object):
             last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
             self.restore(last_ckpt_path, self.on_gpu)
             print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+            did_restore = True
+
+        return did_restore
 
     # --------------------
     # HPC SIGNAL HANDLING
@@ -180,9 +194,16 @@ class TrainerIOMixin(object):
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
-        # add the state_dict from the model
+        # add the hparams and state_dict from the model
         model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
+        if hasattr(model, "hparams"):
+            checkpoint['hparams'] = vars(model.hparams)
+        else:
+            warnings.warn(
+                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
+                " hyperparameters"
+            )
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -198,6 +219,8 @@ class TrainerIOMixin(object):
         :param model:
         :return:
         """
+        did_restore = False
+
         # look for hpc weights
         folderpath = self.weights_save_path
         if os.path.exists(folderpath):
@@ -207,6 +230,8 @@ class TrainerIOMixin(object):
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
                 self.hpc_load(folderpath, self.on_gpu)
+                did_restore = True
+        return did_restore
 
     def restore_training_state(self, checkpoint):
         """
