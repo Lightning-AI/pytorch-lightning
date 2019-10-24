@@ -41,7 +41,7 @@ class TrainerDataLoadingMixin(object):
             self.val_check_batch = max(1, self.val_check_batch)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and not isinstance(self.train_dataloader.sampler, DistributedSampler):
+        if on_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
             msg = """
             You're using multiple gpus and multiple nodes without using a DistributedSampler
             to assign a subset of your data to each process. To silence this warning, pass a
@@ -80,8 +80,8 @@ class TrainerDataLoadingMixin(object):
             self.nb_val_batches = max(1, self.nb_val_batches)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and self.val_dataloader is not None:
-            for dataloader in self.val_dataloader:
+        if on_ddp and self.get_val_dataloaders() is not None:
+            for dataloader in self.get_val_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your val_dataloader(s) don't use DistributedSampler.
@@ -125,8 +125,8 @@ class TrainerDataLoadingMixin(object):
             self.nb_test_batches = max(1, self.nb_test_batches)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and self.test_dataloader is not None:
-            for dataloader in self.test_dataloader:
+        if on_ddp and self.get_test_dataloaders() is not None:
+            for dataloader in self.get_test_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your test_dataloader(s) don't use DistributedSampler.
