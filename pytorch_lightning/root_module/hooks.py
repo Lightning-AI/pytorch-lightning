@@ -57,7 +57,7 @@ class ModelHooks(torch.nn.Module):
         """
         pass
 
-    def on_backward(self, use_amp, loss, optimizer):
+    def backward(self, use_amp, loss, optimizer):
         """
         Override backward with your own implementation if you need to
         :param use_amp: Whether amp was requested or not

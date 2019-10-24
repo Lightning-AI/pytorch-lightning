@@ -176,7 +176,7 @@ class TrainerTrainLoopMixin(object):
                 # backward pass
                 # done in hook so user can overwrite if needed
                 model_ref = self.get_model()
-                model_ref.on_backward(self.use_amp, closure_loss, optimizer)
+                model_ref.backward(self.use_amp, closure_loss, optimizer)
 
                 # insert after step hook
                 if self.is_function_implemented('on_after_backward'):
