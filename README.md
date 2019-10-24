@@ -394,7 +394,7 @@ Nope. Please use anaconda or miniconda.
     # install latest Lightning version without upgrading deps    
     pip install -U --no-deps pytorch-lightning
     ```     
-- **PyTorch 1.2.0**
+- **PyTorch 1.2.0, 1.3.0,**
     Install via pip as normal   
 
 ## Custom installation
