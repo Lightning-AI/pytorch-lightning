@@ -1,19 +1,13 @@
 # Contributing    
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!   
 
-## Core value 1: One less thing to remember    
+## Main Core Value: One less thing to remember    
 Simplify the API as much as possible from the user perspective. Any additions or improvements should minimize things the user needs to remember.   
 
 For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval(). This avoids all sorts of subtle errors the user could make.  
 
-## Core value 2: Backward-compatible API   
-We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backwards compatible with good deprecation warnings.
-
-You shouldn't be afraid to upgrade Lightning :)
-
 ## Lightning Design Principles   
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.    
-
 #### No PyTorch interference   
 We don't want to add any abstractions on top of pure PyTorch. This gives researchers all the control they need without having to learn yet another framework.    
 
@@ -26,7 +20,12 @@ There are 1,000 ways to do something. However, something eventually becomes stan
 When something becomes a best practice, we add it to the framework. This likely looks like code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
 
 #### Simple External API    
-What makes sense to you may not make sense to others. Create an issue with an API change suggestion and validate that it makes sense for others. Treat code changes how you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.    
+What makes sense to you may not make sense to others. Create an issue with an API change suggestion and validate that it makes sense for others. Treat code changes how you treat a startup: validate that it's a needed feature, then add if it makes sense for many people. 
+
+#### Backward-compatible API   
+We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backwards compatible with good deprecation warnings.
+
+You shouldn't be afraid to upgrade Lightning :)
 
 #### Gain User Trust    
 As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.    
