@@ -411,9 +411,6 @@ class Trainer(TrainerIOMixin,
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
-        # init training constants
-        self.layout_bookeeping()
-
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
