@@ -1,6 +1,14 @@
 import torch
 
 
+try:
+    from apex import amp
+
+    APEX_AVAILABLE = True
+except ImportError:
+    APEX_AVAILABLE = False
+
+
 class ModelHooks(torch.nn.Module):
 
     def on_sanity_check_start(self):
@@ -48,3 +56,17 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         pass
+
+    def backward(self, use_amp, loss, optimizer):
+        """
+        Override backward with your own implementation if you need to
+        :param use_amp: Whether amp was requested or not
+        :param loss: Loss is already scaled by accumulated grads
+        :param optimizer: Current optimizer being used
+        :return:
+        """
+        if use_amp:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
