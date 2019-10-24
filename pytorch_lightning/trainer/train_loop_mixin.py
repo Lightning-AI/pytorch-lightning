@@ -174,11 +174,7 @@ class TrainerTrainLoopMixin(object):
                 closure_loss = closure_loss / self.accumulate_grad_batches
 
                 # backward pass
-                if self.use_amp:
-                    with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    closure_loss.backward()
+                model.on_backward(self.use_amp, closure_loss, optimizer)
 
                 # insert after step hook
                 if self.is_function_implemented('on_after_backward'):
