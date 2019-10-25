@@ -129,10 +129,7 @@ class TrainerLoggingMixin(object):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        try:
-            hiddens = output['hiddens']
-        except Exception:
-            hiddens = None
+        hiddens = output.get('hiddens')
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)

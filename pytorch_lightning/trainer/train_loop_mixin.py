@@ -1,5 +1,4 @@
 import numpy as np
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -155,13 +154,9 @@ class TrainerTrainLoopMixin(object):
             self.progress_bar.update(1)
 
         splits = [batch]
-        if self.truncated_bptt:
-            if self.is_function_implemented('tbptt_batch_split'):
-                model_ref = self.get_model()
-                splits = model_ref.tbptt_batch_split(batch)
-            else:
-                m = 'tpbtt_batch_split(self, batch) must be defined if truncated_bptt is True'
-                raise MisconfigurationException(m)
+        if self.truncated_bptt_steps is not None:
+            model_ref = self.get_model()
+            splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
         self.hiddens = None
         for split_nb, split_batch in enumerate(splits):
@@ -272,7 +267,7 @@ class TrainerTrainLoopMixin(object):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        if self.truncated_bptt:
+        if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
         if self.use_ddp or self.use_ddp2:

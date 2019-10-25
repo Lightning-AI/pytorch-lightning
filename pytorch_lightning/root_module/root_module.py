@@ -113,13 +113,28 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         # clear gradients
         optimizer.zero_grad()
 
-    def tbptt_split_batch(self, batch):
+    def tbptt_split_batch(self, batch, split_size):
         """
-        Return list of batch splits. Each split will be passed to forward_step to enable
-        truncated back propagation through time.
-        :return: list of splits
+        Return list of batch splits. Each split will be passed to forward_step to enable truncated
+        back propagation through time. The default implementation splits all root level tensors at
+        dim=1 (i.e. time dim). It assumes that each tensor has the same time dim length.
+        :return:
         """
-        raise NotImplementedError
+        time_dims = [x.shape[1] for x in batch if isinstance(x, torch.Tensor) and x.dims() > 1]
+        assert all(x == time_dims[0] for x in time_dims), "Tensor time dimension size is ambiguous"
+
+        splits = []
+        for t in range(0, time_dims[0], split_size):
+            batch_split = []
+            for i, x in enumerate(batch):
+                if isinstance(x, torch.Tensor):
+                    x = x[:, t:t + split_size]
+
+                batch_split.append(x)
+
+            splits.append(batch_split)
+
+        return splits
 
     @data_loader
     def tng_dataloader(self):
