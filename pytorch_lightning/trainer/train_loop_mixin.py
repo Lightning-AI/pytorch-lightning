@@ -176,7 +176,11 @@ class TrainerTrainLoopMixin(object):
                     output = self.training_forward(
                         split_batch, batch_nb, opt_idx, self.hiddens)
 
-                    closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = output
+                    closure_loss = output[0]
+                    progress_bar_metrics = output[1]
+                    log_metrics = output[2]
+                    callback_metrics = output[3]
+                    self.hiddens = output[4]
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)

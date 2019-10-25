@@ -117,7 +117,7 @@ class Trainer(TrainerIOMixin,
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
-        :param truncated_bptt: Bool. Enables multiple backward passes for each batch defined by tbptt_split_batch.
+        :param truncated_bptt: Bool. Enables multiple backward passes for each batch.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
