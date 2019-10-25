@@ -137,7 +137,13 @@ class TrainerIOMixin(object):
         checkpoint = self.dump_checkpoint()
 
         # do the actual save
-        torch.save(checkpoint, filepath)
+        try:
+            torch.save(checkpoint, filepath)
+        except AttributeError:
+            if 'hparams' in checkpoint:
+                del checkpoint['hparams']
+
+            torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
 
@@ -283,7 +289,14 @@ class TrainerIOMixin(object):
         model.on_hpc_save(checkpoint)
 
         # do the actual save
-        torch.save(checkpoint, filepath)
+        # TODO: fix for anything with multiprocess DP, DDP, DDP2
+        try:
+            torch.save(checkpoint, filepath)
+        except AttributeError:
+            if 'hparams' in checkpoint:
+                del checkpoint['hparams']
+
+            torch.save(checkpoint, filepath)
 
         return filepath
 
