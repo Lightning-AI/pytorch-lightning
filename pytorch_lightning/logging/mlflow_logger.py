@@ -3,8 +3,8 @@ from time import time
 
 try:
     import mlflow
-except ImportError:
-    raise ImportError('Missing mlflow package.')
+except Exception as e:
+    pass
 
 from .base import LightningLoggerBase, rank_zero_only
 
