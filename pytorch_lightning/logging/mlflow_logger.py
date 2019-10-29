@@ -1,7 +1,10 @@
 from logging import getLogger
 from time import time
 
-import mlflow
+try:
+    import mlflow
+except ImportError:
+    raise ImportError('Missing mlflow package.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

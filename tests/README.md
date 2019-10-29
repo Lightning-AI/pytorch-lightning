@@ -1,4 +1,7 @@
 # PyTorch-Lightning Tests
+Most PL tests train a full MNIST model under various trainer conditions (ddp, ddp2+amp, etc...).
+This provides testing for most combinations of important settings.
+The tests expect the model to perform to a reasonable degree of testing accuracy to pass.
 
 ## Running tests
 The automatic travis tests ONLY run CPU-based tests. Although these cover most of the use cases,
@@ -25,22 +28,6 @@ The GPU machine must have:
 1. At least 2 GPUs.
 2. [NVIDIA-apex](https://github.com/NVIDIA/apex#linux) installed.
 
-
-### test_models.py
-This file fits a tiny model on MNIST using these different set-ups.
-1. CPU only.
-2. Single GPU with DP.
-3. Multiple (2) GPUs using DP.
-3. Multiple (2) GPUs using DDP.
-3. Multiple (2) GPUs using DP + apex (for 16-bit precision).
-3. Multiple (2) GPUs using DDP + apex (for 16-bit precision).   
-
-For each set up it also tests:
-1. model saving.
-2. model loading.
-3. predicting with a loaded model.
-4. simulated save from HPC signal.
-5. simulated load from HPC signal.
 
 ## Running Coverage   
 Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed. 

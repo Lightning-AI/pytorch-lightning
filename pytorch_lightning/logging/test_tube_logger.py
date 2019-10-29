@@ -1,4 +1,7 @@
-from test_tube import Experiment
+try:
+    from test_tube import Experiment
+except ImportError:
+    raise ImportError('Missing test-tube package.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
