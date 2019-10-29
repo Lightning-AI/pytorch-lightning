@@ -23,7 +23,11 @@ class TrainerTrainLoopMixin(object):
             # update training progress in trainer and model
             model.current_epoch = epoch_nb
             self.current_epoch = epoch_nb
-            self.total_batches = self.nb_training_batches + self.nb_val_batches
+            is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
+            val_checks_per_epoch = self.nb_training_batches // self.val_check_batch
+            val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
+            self.total_batches = (self.nb_training_batches
+                                  + self.nb_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
 
             # limit the number of batches to 1 in fast_dev_run
