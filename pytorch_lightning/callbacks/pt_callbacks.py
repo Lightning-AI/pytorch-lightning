@@ -180,7 +180,6 @@ class ModelCheckpoint(Callback):
         super(ModelCheckpoint, self).__init__()
         if (
             save_best_only and
-            os.path.exists(filepath) and
             os.path.isdir(filepath) and
             len(os.listdir(filepath)) > 0
         ):

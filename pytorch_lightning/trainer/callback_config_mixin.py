@@ -22,7 +22,7 @@ class TrainerCallbackConfigMixin(object):
                     "checkpoints"
                 )
             else:
-                ckpt_path = "checkpoints"
+                ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
