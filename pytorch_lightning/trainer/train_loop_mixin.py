@@ -29,7 +29,7 @@ class TrainerTrainLoopMixin(object):
             val_checks_per_epoch = self.nb_training_batches // self.val_check_batch
             val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
 
-            # total batches includes multiple val checks            
+            # total batches includes multiple val checks
             self.total_batches = (self.nb_training_batches +
                                   self.nb_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
