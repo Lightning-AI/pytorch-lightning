@@ -304,11 +304,11 @@ def test_tbptt_cpu_model():
     batch_size = 30
 
     x_seq = torch.rand(batch_size, sequence_size, 1)
-    y_seq = torch.rand(batch_size, sequence_size, 1)
+    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
     class MockSeq2SeqDataset(torch.utils.data.Dataset):
         def __getitem__(self, i):
-            return x_seq, y_seq
+            return x_seq, y_seq_list
 
         def __len__(self):
             return 1
@@ -322,13 +322,15 @@ def test_tbptt_cpu_model():
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
-            x, y = batch
-            for x in batch:
-                assert x.shape[1] == truncated_bptt_steps, "tbptt default split function incorrect"
+            x_tensor, y_list = batch
+            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
 
-            pred = self.forward(x.view(batch_size, truncated_bptt_steps)
-                                ).view(batch_size, truncated_bptt_steps)
-            loss_val = torch.nn.functional.mse_loss(pred, y.view(batch_size, truncated_bptt_steps))
+            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
+            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
+
+            pred = self.forward(x_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(
+                pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
                 'loss': loss_val,
                 'hiddens': self.test_hidden,
