@@ -82,7 +82,7 @@ def test_mlflow_logger():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -102,7 +102,7 @@ def test_mlflow_logger():
     print('result finished')
     assert result == 1, "Training failed"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_mlflow_pickle():
@@ -116,7 +116,7 @@ def test_mlflow_pickle():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -134,7 +134,7 @@ def test_mlflow_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_custom_logger(tmpdir):
@@ -166,7 +166,7 @@ def test_custom_logger(tmpdir):
         def version(self):
             return "1"
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     logger = CustomLogger()
