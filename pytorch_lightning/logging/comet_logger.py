@@ -1,7 +1,7 @@
 try:
     from comet_ml import Experiment as CometExperiment
 except ImportError:
-    raise ImportError('Missing comet_ml package.')
+    pass
 
 from .base import LightningLoggerBase, rank_zero_only
 
