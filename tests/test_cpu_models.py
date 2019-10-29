@@ -3,7 +3,7 @@ import warnings
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
@@ -290,6 +290,79 @@ def test_all_features_cpu_model():
 
     model, hparams = testing_utils.get_model()
     testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+
+
+def test_tbptt_cpu_model():
+    """
+    Test truncated back propagation through time works.
+    :return:
+    """
+    testing_utils.reset_seed()
+
+    truncated_bptt_steps = 2
+    sequence_size = 30
+    batch_size = 30
+
+    x_seq = torch.rand(batch_size, sequence_size, 1)
+    y_seq = torch.rand(batch_size, sequence_size, 1)
+
+    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+        def __getitem__(self, i):
+            return x_seq, y_seq
+
+        def __len__(self):
+            return 1
+
+    class BpttTestModel(LightningTestModelBase):
+        def __init__(self, hparams):
+            super().__init__(hparams)
+            self.test_hidden = None
+
+        def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
+            self.test_hidden = torch.rand(1)
+
+            x, y = batch
+            for x in batch:
+                assert x.shape[1] == truncated_bptt_steps, "tbptt default split function incorrect"
+
+            pred = self.forward(x.view(batch_size, truncated_bptt_steps)
+                                ).view(batch_size, truncated_bptt_steps)
+            loss_val = torch.nn.functional.mse_loss(pred, y.view(batch_size, truncated_bptt_steps))
+            return {
+                'loss': loss_val,
+                'hiddens': self.test_hidden,
+            }
+
+        @data_loader
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(
+                dataset=MockSeq2SeqDataset(),
+                batch_size=batch_size,
+                shuffle=False,
+                sampler=None,
+            )
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        truncated_bptt_steps=truncated_bptt_steps,
+        val_percent_check=0,
+        weights_summary=None,
+    )
+
+    hparams = testing_utils.get_hparams()
+    hparams.batch_size = batch_size
+    hparams.in_features = truncated_bptt_steps
+    hparams.hidden_dim = truncated_bptt_steps
+    hparams.out_features = truncated_bptt_steps
+
+    model = BpttTestModel(hparams)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
 
 
 def test_single_gpu_model():

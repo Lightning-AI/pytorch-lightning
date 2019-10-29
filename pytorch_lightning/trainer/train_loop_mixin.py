@@ -287,5 +287,4 @@ class TrainerTrainLoopMixin(object):
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
-        loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens = output
-        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+        return output

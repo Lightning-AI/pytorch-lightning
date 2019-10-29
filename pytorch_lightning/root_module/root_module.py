@@ -120,7 +120,8 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         dim=1 (i.e. time dim). It assumes that each tensor has the same time dim length.
         :return:
         """
-        time_dims = [x.shape[1] for x in batch if isinstance(x, torch.Tensor) and x.dims() > 1]
+        time_dims = [x.shape[1] for x in batch if isinstance(x, torch.Tensor) and x.dim() > 1]
+        assert len(time_dims) >= 1, "Unable to determine Tensor time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Tensor time dimension size is ambiguous"
 
         splits = []
