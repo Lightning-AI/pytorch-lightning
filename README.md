@@ -337,10 +337,10 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
 ## Examples   
-- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/domain_templates/gan.py)    
-- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples)      
+- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
+- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)      
 - [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
-- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)   
+- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
