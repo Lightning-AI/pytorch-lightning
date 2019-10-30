@@ -432,6 +432,9 @@ class Trainer(TrainerIOMixin,
 
         # when testing requested only run test and return
         if self.testing:
+            if self.show_progress_bar:
+                self.progress_bar.reset(self.nb_test_batches)
+
             self.run_evaluation(test=True)
             return
 
