@@ -32,9 +32,16 @@ class TrainerIOMixin(object):
         :param model:
         :return:
         """
+        # clear cache before restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
 
         # if script called from hpc resubmit, load weights
         did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
+
+        # clear cache after restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
 
         if not did_restore_hpc_weights:
             # restore weights if same exp version
