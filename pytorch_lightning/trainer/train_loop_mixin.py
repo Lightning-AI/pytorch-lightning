@@ -1,4 +1,5 @@
 import numpy as np
+import tqdm
 
 try:
     from apex import amp
@@ -34,18 +35,20 @@ class TrainerTrainLoopMixin(object):
                                   self.nb_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
 
-            # limit the number of batches to 1 in fast_dev_run
+            nb_iterations = self.total_batches
+
+            #  for iterable train loader, the progress bar never ends
+            if self.is_iterable_train_dataloader:
+                nb_iterations = float('inf')
+
+            # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
             if self.fast_dev_run:
-                self.total_batches = 1
+                nb_iterations = 2
 
-            # init progress_bar when requested
-            if self.show_progress_bar:
-                nb_iterations = self.total_batches
-
-                #  for iterable train loader, the progress bar never ends
-                if self.is_iterable_train_dataloader:
-                    nb_iterations = float('inf')
-                self.progress_bar.reset(nb_iterations)
+            # reset progress bar
+            self.main_progress_bar.reset(nb_iterations)
+            desc = f'Epoch {epoch_nb}' if not self.is_iterable_train_dataloader else ''
+            self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
             self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
@@ -68,7 +71,10 @@ class TrainerTrainLoopMixin(object):
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
+                    self.main_progress_bar.close()
                     return
+
+        self.main_progress_bar.close()
 
         if self.logger is not None:
             self.logger.finalize("success")
@@ -158,9 +164,6 @@ class TrainerTrainLoopMixin(object):
             if response == -1:
                 return -1, grad_norm_dic
 
-        if self.show_progress_bar:
-            self.progress_bar.update(1)
-
         # call training_step once per optimizer
         for opt_idx, optimizer in enumerate(self.optimizers):
 
@@ -226,16 +229,14 @@ class TrainerTrainLoopMixin(object):
                 self.batch_loss_value = 0
                 self.avg_loss = np.mean(self.running_loss[-100:])
 
-                # update progress bar
-                if self.show_progress_bar:
-                    # add model specific metrics
-                    tqdm_metrics = self.training_tqdm_dict
-                    self.progress_bar.set_postfix(**tqdm_metrics)
-
         # activate batch end hook
         if self.is_function_implemented('on_batch_end'):
             model = self.get_model()
             model.on_batch_end()
+
+        # update progress bar
+        self.main_progress_bar.update(1)
+        self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
