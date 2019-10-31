@@ -71,6 +71,7 @@ But of course the fun is in all the advanced things it can do:
 - [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
 - [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
 - [Step optimizers at arbitrary intervals](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#optimizer_step)
+- [Packed sequences](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#packed-sequences-as-inputs)
 
 **Validation loop**    
 
