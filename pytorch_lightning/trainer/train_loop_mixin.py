@@ -39,7 +39,7 @@ class TrainerTrainLoopMixin(object):
 
             #  for iterable train loader, the progress bar never ends
             if self.is_iterable_train_dataloader:
-                nb_iterations = float('inf')
+                nb_iterations = None
 
             # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
             if self.fast_dev_run:
