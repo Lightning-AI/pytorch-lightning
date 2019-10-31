@@ -151,3 +151,27 @@ def on_after_backward(self):
             name = k
             self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
 ```
+
+---
+#### tbptt_split_batch
+Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`. Each returned batch split is passed separately to training_step(...).
+
+```python
+def tbptt_split_batch(self, batch, split_size):
+  splits = []
+  for t in range(0, time_dims[0], split_size):
+      batch_split = []
+      for i, x in enumerate(batch):
+          if isinstance(x, torch.Tensor):
+              split_x = x[:, t:t + split_size]
+          elif isinstance(x, collections.Sequence):
+              split_x = [None] * len(x)
+              for batch_idx in range(len(x)):
+                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+          batch_split.append(split_x)
+
+      splits.append(batch_split)
+
+  return splits
+```

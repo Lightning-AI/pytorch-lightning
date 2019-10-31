@@ -161,76 +161,91 @@ class TrainerTrainLoopMixin(object):
         if self.show_progress_bar:
             self.progress_bar.update(1)
 
-        # call training_step once per optimizer
-        for opt_idx, optimizer in enumerate(self.optimizers):
+        splits = [batch]
+        if self.truncated_bptt_steps is not None:
+            model_ref = self.get_model()
+            splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
-            # wrap the forward step in a closure so second order methods work
-            def optimizer_closure():
-                # forward pass
-                output = self.training_forward(batch, batch_nb, opt_idx)
-                closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
+        self.hiddens = None
+        for split_nb, split_batch in enumerate(splits):
+            self.split_nb = split_nb
 
-                # track metrics for callbacks
-                all_callback_metrics.append(callback_metrics)
+            # call training_step once per optimizer
+            for opt_idx, optimizer in enumerate(self.optimizers):
 
-                # track progress bar metrics
-                self.add_tqdm_metrics(progress_bar_metrics)
-                all_log_metrics.append(log_metrics)
+                # wrap the forward step in a closure so second order methods work
+                def optimizer_closure():
+                    # forward pass
+                    output = self.training_forward(
+                        split_batch, batch_nb, opt_idx, self.hiddens)
 
-                # accumulate loss
-                # (if accumulate_grad_batches = 1 no effect)
-                closure_loss = closure_loss / self.accumulate_grad_batches
+                    closure_loss = output[0]
+                    progress_bar_metrics = output[1]
+                    log_metrics = output[2]
+                    callback_metrics = output[3]
+                    self.hiddens = output[4]
 
-                # backward pass
-                # done in hook so user can overwrite if needed
-                model_ref = self.get_model()
-                model_ref.backward(self.use_amp, closure_loss, optimizer)
+                    # track metrics for callbacks
+                    all_callback_metrics.append(callback_metrics)
 
-                # insert after step hook
-                if self.is_function_implemented('on_after_backward'):
+                    # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
+                    all_log_metrics.append(log_metrics)
+
+                    # accumulate loss
+                    # (if accumulate_grad_batches = 1 no effect)
+                    closure_loss = closure_loss / self.accumulate_grad_batches
+
+                    # backward pass
                     model_ref = self.get_model()
-                    model_ref.on_after_backward()
+                    model_ref.backward(self.use_amp, closure_loss, optimizer)
 
-                return closure_loss
+                    # insert after step hook
+                    if self.is_function_implemented('on_after_backward'):
+                        model_ref = self.get_model()
+                        model_ref.on_after_backward()
 
-            # calculate loss
-            loss = optimizer_closure()
+                    return closure_loss
 
-            # nan grads
-            if self.print_nan_grads:
-                self.print_nan_gradients()
+                # calculate loss
+                loss = optimizer_closure()
 
-            # track total loss for logging (avoid mem leaks)
-            self.batch_loss_value += loss.item()
+                # nan grads
+                if self.print_nan_grads:
+                    self.print_nan_gradients()
 
-            # gradient update with accumulated gradients
-            if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+                # track total loss for logging (avoid mem leaks)
+                self.batch_loss_value += loss.item()
 
-                # track gradient norms when requested
-                if batch_nb % self.row_log_interval == 0:
-                    if self.track_grad_norm > 0:
-                        model = self.get_model()
-                        grad_norm_dic = model.grad_norm(self.track_grad_norm)
+                # gradient update with accumulated gradients
+                if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
 
-                # clip gradients
-                self.clip_gradients()
+                    # track gradient norms when requested
+                    if batch_nb % self.row_log_interval == 0:
+                        if self.track_grad_norm > 0:
+                            model = self.get_model()
+                            grad_norm_dic = model.grad_norm(
+                                self.track_grad_norm)
 
-                # calls .step(), .zero_grad()
-                # override function to modify this behavior
-                model = self.get_model()
-                model.optimizer_step(self.current_epoch, batch_nb,
-                                     optimizer, opt_idx, optimizer_closure)
+                    # clip gradients
+                    self.clip_gradients()
 
-                # calculate running loss for display
-                self.running_loss.append(self.batch_loss_value)
-                self.batch_loss_value = 0
-                self.avg_loss = np.mean(self.running_loss[-100:])
+                    # calls .step(), .zero_grad()
+                    # override function to modify this behavior
+                    model = self.get_model()
+                    model.optimizer_step(self.current_epoch, batch_nb,
+                                         optimizer, opt_idx, optimizer_closure)
 
-                # update progress bar
-                if self.show_progress_bar:
-                    # add model specific metrics
-                    tqdm_metrics = self.training_tqdm_dict
-                    self.progress_bar.set_postfix(**tqdm_metrics)
+                    # calculate running loss for display
+                    self.running_loss.append(self.batch_loss_value)
+                    self.batch_loss_value = 0
+                    self.avg_loss = np.mean(self.running_loss[-100:])
+
+                    # update progress bar
+                    if self.show_progress_bar:
+                        # add model specific metrics
+                        tqdm_metrics = self.training_tqdm_dict
+                        self.progress_bar.set_postfix(**tqdm_metrics)
 
         # activate batch end hook
         if self.is_function_implemented('on_batch_end'):
@@ -245,7 +260,7 @@ class TrainerTrainLoopMixin(object):
 
         return 0, grad_norm_dic, all_log_metrics
 
-    def training_forward(self, batch, batch_nb, opt_idx):
+    def training_forward(self, batch, batch_nb, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
@@ -259,6 +274,9 @@ class TrainerTrainLoopMixin(object):
         args = [batch, batch_nb]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
+
+        if self.truncated_bptt_steps is not None:
+            args.append(hiddens)
 
         if self.use_ddp or self.use_ddp2:
             output = self.model(*args)
@@ -277,5 +295,4 @@ class TrainerTrainLoopMixin(object):
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
-        loss, progress_bar_metrics, log_metrics, callback_metrics = output
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
+        return output
