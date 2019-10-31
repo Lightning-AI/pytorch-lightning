@@ -278,10 +278,15 @@ class TrainerTrainLoopMixin(object):
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
-        if self.use_ddp or self.use_ddp2:
+        if self.use_ddp:
             output = self.model(*args)
-        elif self.use_dp:
+        elif self.use_ddp2 or self.use_dp:
+            # in dp, allow model to use training_step and training_end
             output = self.model(*args)
+            if self.is_overriden('training_end'):
+                model_ref = self.get_model()
+                output = model_ref.training_end(output)
+
         elif self.single_gpu:
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
