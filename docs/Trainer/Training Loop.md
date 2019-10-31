@@ -91,3 +91,19 @@ trainer = Trainer(train_percent_check=1.0)
 # check 10% only
 trainer = Trainer(train_percent_check=0.1)
 ```
+
+
+---
+#### Packed sequences as inputs
+``` {.python}
+# For use in dataloader
+def collate_fn(batch):
+    x = [item[0] for item in batch]
+    y = [item[1] for item in batch]
+    return x, y
+# In module
+def training_step(self, batch, batch_nb):
+    x = rnn.pack_sequence(batch[0], enforce_sorted=False)
+    y = rnn.pack_sequence(batch[1], enforce_sorted=False)
+```
+When using PackedSequence, return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation), and pack the sequence in forward or training and validation steps depending on use case.
