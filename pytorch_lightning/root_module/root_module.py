@@ -51,6 +51,15 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
+    def training_end(self, *args, **kwargs):
+        """
+        return loss, dict with metrics for tqdm
+        :param called with batch, batch_nb
+        additional: optimizer_i if multiple optimizers used
+        :return:
+        """
+        pass
+
     def validation_step(self, *args, **kwargs):
         """
         return whatever outputs will need to be aggregated in validation_end
