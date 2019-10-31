@@ -180,18 +180,6 @@ def train_dataloader(self)
 ```
 Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
 If you want to change the data during every epoch DON'T use the data_loader decorator.
-``` {.python}
-def collate_fn(batch):
-    x = [item[0] for item in batch]
-    y = [item[1] for item in batch]
-    return x, y
-```
-``` {.python}
-def training_step(self, batch, batch_nb):
-    x = rnn.pack_sequence(batch[0], enforce_sorted=False)
-    y = rnn.pack_sequence(batch[1], enforce_sorted=False)
-```
-When using PackedSequence, return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation), and pack the sequence in forward or training and validation steps depending on use case.
 
 ##### Return
 PyTorch DataLoader
