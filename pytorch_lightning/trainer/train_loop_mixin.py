@@ -301,7 +301,4 @@ class TrainerTrainLoopMixin(object):
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
-        import pdb
-        pdb.set_trace()
-
         return output
