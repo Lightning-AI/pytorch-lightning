@@ -68,6 +68,8 @@ class TrainerLoggingMixin(object):
                 callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
+            import pdb
+            pdb.set_trace()
             nb_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, nb_gpus)
 
