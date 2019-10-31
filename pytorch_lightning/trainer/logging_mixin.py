@@ -68,8 +68,6 @@ class TrainerLoggingMixin(object):
                 callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
-            import pdb
-            pdb.set_trace()
             nb_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, nb_gpus)
 
@@ -157,6 +155,10 @@ class TrainerLoggingMixin(object):
             # recurse on nested dics
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], nb_gpus)
+
+            # do nothing when there's a scalar
+            elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:
+                pass
 
             # reduce only metrics that have the same nb of gpus
             elif output[k].size(0) == nb_gpus:
