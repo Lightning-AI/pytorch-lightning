@@ -185,13 +185,6 @@ class TrainerTrainLoopMixin(object):
                     callback_metrics = output[3]
                     self.hiddens = output[4]
 
-                    # track metrics for callbacks
-                    all_callback_metrics.append(callback_metrics)
-
-                    # track progress bar metrics
-                    self.add_tqdm_metrics(progress_bar_metrics)
-                    all_log_metrics.append(log_metrics)
-
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
                     closure_loss = closure_loss / self.accumulate_grad_batches
@@ -199,6 +192,13 @@ class TrainerTrainLoopMixin(object):
                     # backward pass
                     model_ref = self.get_model()
                     model_ref.backward(self.use_amp, closure_loss, optimizer)
+
+                    # track metrics for callbacks
+                    all_callback_metrics.append(callback_metrics)
+
+                    # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
+                    all_log_metrics.append(log_metrics)
 
                     # insert after step hook
                     if self.is_function_implemented('on_after_backward'):
