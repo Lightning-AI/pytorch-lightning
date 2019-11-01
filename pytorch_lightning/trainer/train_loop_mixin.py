@@ -192,7 +192,7 @@ class TrainerTrainLoopMixin(object):
                         closure_loss = closure_loss / self.accumulate_grad_batches
 
                         # backward pass
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
+                        with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
                             scaled_loss.backward()
 
                         # model_ref = self.get_model()
