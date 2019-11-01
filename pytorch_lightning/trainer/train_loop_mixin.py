@@ -180,22 +180,24 @@ class TrainerTrainLoopMixin(object):
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():
                     # forward pass
-                    output = self.training_forward(
-                        split_batch, batch_nb, opt_idx, self.hiddens)
+                    import torch
+                    with torch.autograd.detect_anomaly():
+                        output = self.training_forward(
+                            split_batch, batch_nb, opt_idx, self.hiddens)
 
-                    closure_loss = output[0]
-                    progress_bar_metrics = output[1]
-                    log_metrics = output[2]
-                    callback_metrics = output[3]
-                    self.hiddens = output[4]
+                        closure_loss = output[0]
+                        progress_bar_metrics = output[1]
+                        log_metrics = output[2]
+                        callback_metrics = output[3]
+                        self.hiddens = output[4]
 
-                    # accumulate loss
-                    # (if accumulate_grad_batches = 1 no effect)
-                    closure_loss = closure_loss / self.accumulate_grad_batches
+                        # accumulate loss
+                        # (if accumulate_grad_batches = 1 no effect)
+                        closure_loss = closure_loss / self.accumulate_grad_batches
 
-                    # backward pass
-                    model_ref = self.get_model()
-                    model_ref.backward(self.use_amp, closure_loss, optimizer)
+                        # backward pass
+                        model_ref = self.get_model()
+                        model_ref.backward(self.use_amp, closure_loss, optimizer)
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)
