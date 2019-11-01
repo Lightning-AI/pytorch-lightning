@@ -80,7 +80,8 @@ class Trainer(TrainerIOMixin,
                  weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
-                 nb_sanity_val_steps=5):
+                 nb_sanity_val_steps=5,
+                 truncated_bptt_steps=None):
         """
 
         :param logger: Logger for experiment tracking
@@ -116,6 +117,7 @@ class Trainer(TrainerIOMixin,
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
+        :param truncated_bptt_steps: int. Enables multiple backward passes for each batch.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
@@ -135,6 +137,7 @@ class Trainer(TrainerIOMixin,
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.truncated_bptt_steps = truncated_bptt_steps
         self.shown_warnings = set()
 
         self.fast_dev_run = fast_dev_run
@@ -295,6 +298,9 @@ class Trainer(TrainerIOMixin,
             'loss': '{0:.3f}'.format(self.avg_loss),
             'batch_nb': '{}'.format(self.batch_nb),
         }
+
+        if self.truncated_bptt_steps is not None:
+            tqdm_dict['split_nb'] = self.split_nb
 
         if self.logger is not None and self.logger.version is not None:
             tqdm_dict['v_nb'] = self.logger.version
