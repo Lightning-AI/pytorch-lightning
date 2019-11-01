@@ -47,7 +47,7 @@ class TrainerTrainLoopMixin(object):
 
             # reset progress bar
             self.main_progress_bar.reset(nb_iterations)
-            desc = f'Epoch {epoch_nb}' if not self.is_iterable_train_dataloader else ''
+            desc = f'Epoch {epoch_nb + 1}' if not self.is_iterable_train_dataloader else ''
             self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
