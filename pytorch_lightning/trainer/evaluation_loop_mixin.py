@@ -69,11 +69,11 @@ class TrainerEvaluationLoopMixin(object):
         elif self.is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
 
-        # enable gradients to save memory
-        torch.set_grad_enabled(True)
-
         # enable train mode again
         model.train()
+
+        # enable gradients to save memory
+        torch.set_grad_enabled(True)
 
         return eval_results
 
