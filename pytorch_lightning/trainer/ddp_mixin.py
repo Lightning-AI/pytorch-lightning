@@ -167,9 +167,7 @@ class TrainerDDPMixin(object):
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
+            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
         # DDP2 uses all GPUs on the machine
