@@ -35,15 +35,14 @@ class TrainerTrainLoopMixin(object):
                                   self.nb_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
 
-            nb_iterations = self.total_batches
-
-            #  for iterable train loader, the progress bar never ends
-            if self.is_iterable_train_dataloader:
-                nb_iterations = None
-
-            # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
             if self.fast_dev_run:
+                # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
                 nb_iterations = 2
+            elif self.is_iterable_train_dataloader:
+                # for iterable train loader, the progress bar never ends
+                nb_iterations = None
+            else:
+                nb_iterations = self.total_batches
 
             # reset progress bar
             # .reset() doesn't work on disabled progress bar so we should check
