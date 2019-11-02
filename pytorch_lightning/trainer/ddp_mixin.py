@@ -177,11 +177,8 @@ class TrainerDDPMixin(object):
         elif self.use_ddp2:
             device_ids = None
 
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
+        # allow user to configure ddp
+        model = model.configure_ddp(model, device_ids)
 
         # continue training routine
         self.run_pretrain_routine(model)
