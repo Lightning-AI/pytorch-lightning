@@ -11,6 +11,7 @@ from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
 import logging
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -98,6 +99,37 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :return: dic_with_metrics for tqdm
         """
         pass
+
+    def configure_ddp(self, model, device_ids):
+        """
+        Override to init DDP in a different way or use your own wrapper.
+        Must return model.
+        :param model:
+        :param device_ids:
+        :return:
+        """
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
+        return model
+
+    def configure_apex(self, amp, model, optimizers, amp_level):
+        """
+        Override to init AMP your own way
+        Must return a model and list of optimizers
+        :param amp:
+        :param model:
+        :param optimizers:
+        :param amp_level:
+        :return:
+        """
+        model, optimizers = amp.initialize(
+            model, optimizers, opt_level=amp_level,
+        )
+
+        return model, optimizers
 
     def configure_optimizers(self):
         """
