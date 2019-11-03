@@ -15,6 +15,7 @@ Otherwise, to Define a Lightning Module, implement the following methods:
 
 **Optional**:   
 
+- [training_end](RequiredTrainerInterface.md#training_end)      
 - [validation_step](RequiredTrainerInterface.md#validation_step)    
 - [validation_end](RequiredTrainerInterface.md#validation_end) 
 - [test_step](RequiredTrainerInterface.md#test_step)    
