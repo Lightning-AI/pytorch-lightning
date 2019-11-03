@@ -185,8 +185,8 @@ break out of the current training epoch early.
 def training_end(self, train_step_outputs)
 ```
 In certain cases (dp, ddp2), you might want to use all outputs of every process to do something.
-For instance, you could run a batch via dp and use ALL the outputs for a single softmax across
-the full batch.
+For instance, if using negative samples, you could run a batch via dp and use ALL the outputs 
+for a single softmax across the full batch (ie: the denominator would use the full batch).
 
 In this case you should define training_end to perform those calculations.
 
@@ -219,7 +219,7 @@ def training_step(self, batch, batch_nb):
     
     out = self.forward(x)
     loss = self.softmax(out)
-    loss = my_loss(loss, x)
+    loss = nce_loss(loss)
     return {'loss': loss}
 
 # --------------
@@ -229,16 +229,15 @@ def training_step(self, batch, batch_nb):
     x, y = batch
     
     out = self.forward(x)
-    return {'out': out, 'y': y}
+    return {'out': out}
 
 def training_end(self, outputs):
     # this out is now the full size of the batch
     out = outputs['out']
-    y = outputs['y']
 
     # this softmax now uses the full batch size
     loss = self.softmax(out)
-    loss = my_loss(loss, y)
+    loss = nce_loss(loss)
     return {'loss': loss}
 ```    
 
