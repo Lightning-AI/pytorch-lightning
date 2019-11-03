@@ -299,6 +299,8 @@ def test_tbptt_cpu_model():
     """
     testing_utils.reset_seed()
 
+    save_dir = testing_utils.init_save_dir()
+
     truncated_bptt_steps = 2
     sequence_size = 30
     batch_size = 30
@@ -365,6 +367,8 @@ def test_tbptt_cpu_model():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
+
+    testing_utils.clear_save_dir()
 
 
 def test_single_gpu_model():
