@@ -1,17 +1,7 @@
-import os
 from collections import OrderedDict
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch import optim
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from torchvision.datasets import MNIST
-from torchvision import transforms
-from test_tube import HyperOptArgumentParser
 
-from pytorch_lightning.root_module.root_module import LightningModule
 from pytorch_lightning import data_loader
 
 
@@ -90,13 +80,13 @@ class LightningValidationMixin(LightningValidationStepMixin):
             val_loss = output['val_loss']
 
             # reduce manually when using dp
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_loss = torch.mean(val_loss)
             val_loss_mean += val_loss
 
             # reduce manually when using dp
             val_acc = output['val_acc']
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_acc = torch.mean(val_acc)
 
             val_acc_mean += val_acc

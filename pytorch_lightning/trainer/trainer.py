@@ -3,59 +3,57 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 """
 
 import os
-import re
 import warnings
 
-import numpy as np
-import tqdm
 import torch
-from torch.utils.data.distributed import DistributedSampler
-import torch.multiprocessing as mp
 import torch.distributed as dist
+import torch.multiprocessing as mp
+import tqdm
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.root_module.root_module import LightningModule
-from pytorch_lightning.root_module import memory
-from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.trainer.amp_mixin import TrainerAMPMixin
+from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfigMixin
+from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
+from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
+from pytorch_lightning.trainer.dp_mixin import (
+    parse_gpu_ids,
+    determine_root_gpu_device
+)
+from pytorch_lightning.trainer.evaluation_loop_mixin import TrainerEvaluationLoopMixin
+from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
+from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
+from pytorch_lightning.trainer.train_loop_mixin import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
+<<<<<<< HEAD
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
     ReduceLROnPlateauScheduler, ModelCheckpoint, EarlyStopping
+=======
+from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
+>>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-import pdb
-from pytorch_lightning.trainer import ignored_warnings
-
 
 try:
     from apex import amp
+
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
 
 
-def reduce_distributed_output(output, nb_gpus):
-    if nb_gpus <= 1:
-        return output
-
-    # when using DP, we get one output per gpu
-    # average outputs and return
-    if type(output) is torch.Tensor:
-        return output.mean()
-
-    for k, v in output.items():
-        # recurse on nested dics
-        if isinstance(output[k], dict):
-            output[k] = reduce_distributed_output(output[k], nb_gpus)
-
-        # reduce only metrics that have the same nb of gpus
-        elif output[k].size(0) == nb_gpus:
-            reduced = torch.mean(output[k])
-            output[k] = reduced
-    return output
-
-
-class Trainer(TrainerIOMixin):
+class Trainer(TrainerIOMixin,
+              TrainerDDPMixin,
+              TrainerDPMixin,
+              TrainerDataLoadingMixin,
+              TrainerAMPMixin,
+              TrainerEvaluationLoopMixin,
+              TrainerTrainLoopMixin,
+              TrainerLoggingMixin,
+              TrainerTrainingTricksMixin,
+              TrainerCallbackConfigMixin,
+              TrainerModelHooksMixin):
 
     def __init__(self,
                  logger=True,
@@ -63,6 +61,7 @@ class Trainer(TrainerIOMixin):
                  early_stop_callback=True,
                  default_save_path=None,
                  gradient_clip_val=0,
+                 gradient_clip=None,  # backward compatible
                  process_position=0,
                  nb_gpu_nodes=1,
                  gpus=None,
@@ -81,6 +80,7 @@ class Trainer(TrainerIOMixin):
                  val_check_interval=1.0,
                  log_save_interval=100,
                  row_log_interval=10,
+                 add_row_log_interval=None,  # backward compatible
                  distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
@@ -95,9 +95,11 @@ class Trainer(TrainerIOMixin):
         :param early_stop_callback: Callback for early stopping
         :param default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
         :param gradient_clip_val: int. 0 means don't clip.
+        :param gradient_clip: int. 0 means don't clip. Deprecated.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
-        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
+        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
+            OR '-1' / -1 to use all available gpus
         :param log_gpu_memory: str. None, 'min_max', 'all'
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
@@ -110,9 +112,10 @@ class Trainer(TrainerIOMixin):
         :param train_percent_check: int. How much of train set to check
         :param val_percent_check: int. How much of val set to check
         :param test_percent_check: int. How much of test set to check
-        :param val_check_interval: int. Check val this frequently within a train epoch
+        :param val_check_interval: float/int. If float, % of tng epoch. If int, check every n batch
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
+        :param add_row_log_interval: int. How often to add logging rows. Deprecated.
         :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
         :param use_amp: Bool. If true uses apex for 16bit precision
         :param print_nan_grads: Bool. Prints nan gradients
@@ -124,6 +127,11 @@ class Trainer(TrainerIOMixin):
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
+        if not (gradient_clip is None):
+            # Backward compatibility
+            warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
+                          DeprecationWarning)
+            gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
@@ -163,6 +171,7 @@ class Trainer(TrainerIOMixin):
         self.get_train_dataloader = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
+        self.is_iterable_train_dataloader = False
 
         # training state
         self.model = None
@@ -176,6 +185,7 @@ class Trainer(TrainerIOMixin):
         # configure early stop callback
         # creates a default one if none passed in
         self.early_stop_callback = None
+<<<<<<< HEAD
         if early_stop_callback is True:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
@@ -206,18 +216,20 @@ class Trainer(TrainerIOMixin):
         else:
             self.logger = logger
             self.logger.rank = 0
+=======
+        self.configure_early_stopping(early_stop_callback, logger)
+>>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
-
         self.weights_save_path = weights_save_path
 
         # accumulated grads
-        self.__configure_accumulated_gradients(accumulate_grad_batches)
+        self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
-        self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
+        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # distributed backend choice
         self.use_ddp = False
@@ -225,16 +237,16 @@ class Trainer(TrainerIOMixin):
         self.use_dp = False
         self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.__set_distributed_mode(distributed_backend, nb_gpu_nodes)
+        self.set_distributed_mode(distributed_backend, nb_gpu_nodes)
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.__configure_slurm_ddp(nb_gpu_nodes)
+        self.configure_slurm_ddp(nb_gpu_nodes)
 
         # nvidia setup
-        self.__set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
+        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
@@ -243,15 +255,20 @@ class Trainer(TrainerIOMixin):
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
+        if not (add_row_log_interval is None):
+            # backward compatibility
+            warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
+                          DeprecationWarning)
+            row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        self.__determine_data_use_amount(train_percent_check, val_percent_check,
-                                         test_percent_check, overfit_pct)
+        self.determine_data_use_amount(train_percent_check, val_percent_check,
+                                       test_percent_check, overfit_pct)
 
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
-        self.__init_amp(use_amp)
+        self.init_amp(use_amp)
 
     @property
     def slurm_job_id(self):
@@ -261,67 +278,6 @@ class Trainer(TrainerIOMixin):
         except Exception as e:
             job_id = None
         return job_id
-
-    def __configure_checkpoint_callback(self):
-        """
-        Weight path set in this priority:
-        Checkpoint_callback's path (if passed in).
-        User provided weights_saved_path
-        Otherwise use os.getcwd()
-        """
-        if self.checkpoint_callback is True:
-            # init a default one
-            if isinstance(self.logger, TestTubeLogger):
-                ckpt_path = '{}/{}/version_{}/{}'.format(
-                    self.default_save_path,
-                    self.logger.experiment.name,
-                    self.logger.experiment.version,
-                    'checkpoints')
-            else:
-                ckpt_path = self.default_save_path
-
-            self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path
-            )
-        elif self.checkpoint_callback is False:
-            self.checkpoint_callback = None
-
-        if self.checkpoint_callback:
-            # set the path for the callbacks
-            self.checkpoint_callback.save_function = self.save_checkpoint
-
-            # if checkpoint callback used, then override the weights path
-            self.weights_save_path = self.checkpoint_callback.filepath
-
-        # if weights_save_path is still none here, set to current working dir
-        if self.weights_save_path is None:
-            self.weights_save_path = self.default_save_path
-
-    def __init_amp(self, use_amp):
-        self.use_amp = use_amp and APEX_AVAILABLE
-        if self.use_amp:
-            print('using 16bit precision')
-
-        if use_amp and not APEX_AVAILABLE:  # pragma: no cover
-            msg = """
-            You set use_amp=True but do not have apex installed.
-            Install apex first using this guide and rerun with use_amp=True:
-            https://github.com/NVIDIA/apex#linux
-
-            this run will NOT use 16 bit precision
-            """
-            raise ModuleNotFoundError(msg)
-
-    def __configure_accumulated_gradients(self, accumulate_grad_batches):
-        self.accumulate_grad_batches = None
-
-        if isinstance(accumulate_grad_batches, dict):
-            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {1: accumulate_grad_batches}
-            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")
 
     def __parse_gpu_ids(self, gpus):
         """
@@ -361,142 +317,19 @@ class Trainer(TrainerIOMixin):
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-
-        if type(gpus) is list:
+        else:
             return len(gpus)
-        if type(gpus) is int:
-            return gpus
-
-        m = 'gpus must be int, none or list of ints'
-        raise MisconfigurationException(m)
-
-    def __set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
-        # skip for CPU
-        if self.num_gpus == 0:
-            return
-
-        # single GPU case
-        # in single gpu case we allow ddp so we can train on multiple
-        # nodes, 1 gpu per node
-        if self.num_gpus == 1:
-            self.single_gpu = True
-
-            if distributed_backend is not None:
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-                # disable single gpu when using ddp2
-                if self.use_ddp2:
-                    self.single_gpu = False
-
-        # multiple GPU case
-        elif self.num_gpus > 1:
-            if distributed_backend is not None:
-                # DP, DDP case
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-            elif distributed_backend is None:
-                m = 'When using multiple GPUs set ' \
-                    'Trainer(distributed_backend=dp) (or ddp)'
-                raise MisconfigurationException(m)
-
-        # use ddp automatically if nb_gpu_nodes > 1
-        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-            self.use_ddp = True
-            self.use_dp = False
-            w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
-                'Switching to DistributedDataParallel for you. ' \
-                'To silence this warning set distributed_backend=ddp'
-            warnings.warn(w)
-
-        print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
-
-    def __configure_slurm_ddp(self, nb_gpu_nodes):
-        self.is_slurm_managing_tasks = False
-
-        # extract SLURM flag vars
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        if self.use_ddp:
-            self.nb_requested_gpus = self.num_gpus * nb_gpu_nodes
-            self.nb_slurm_tasks = 0
-            try:
-                self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
-
-                # in interactive mode we don't manage tasks
-                job_name = os.environ['SLURM_JOB_NAME']
-                if job_name == 'bash':
-                    self.is_slurm_managing_tasks = False
-
-            except Exception:
-                # likely not on slurm, so set the slurm managed flag to false
-                self.is_slurm_managing_tasks = False
-
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.is_slurm_managing_tasks = True
-        except Exception as e:
-            pass
-
-    def __set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
-        if data_parallel_device_ids is None:
-            return
-
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-        # when slurm is managing the task it sets the visible devices
-        if not is_slurm_managing_tasks:
-            if type(data_parallel_device_ids) is int:
-                id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
-                os.environ["CUDA_VISIBLE_DEVICES"] = id_str
-            else:
-                gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
-                os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-
-        print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
     @property
     def data_parallel(self):
         return self.use_dp or self.use_ddp or self.use_ddp2
 
-    def __determine_data_use_amount(self, train_percent_check, val_percent_check,
-                                    test_percent_check, overfit_pct):
-        """
-        Use less data for debugging purposes
-        """
-        self.train_percent_check = train_percent_check
-        self.val_percent_check = val_percent_check
-        self.test_percent_check = test_percent_check
-        if overfit_pct > 0:
-            self.train_percent_check = overfit_pct
-            self.val_percent_check = overfit_pct
-            self.test_percent_check = overfit_pct
-
-    def __get_model(self):
-        return self.model.module if self.data_parallel else self.model
-
-    def __is_function_implemented(self, f_name):
-        model = self.__get_model()
-        f_op = getattr(model, f_name, None)
-        return callable(f_op)
-
-    def __is_overriden(self, f_name):
-        model = self.__get_model()
-        super_object = LightningModule
-
-        # when code pointers are different, it was overriden
-        is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
-        return is_overriden
-
     @property
-    def __training_tqdm_dict(self):
+    def training_tqdm_dict(self):
+        """
+        Read-only for tqdm metrics
+        :return:
+        """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
             'epoch': '{}'.format(self.current_epoch),
@@ -514,235 +347,14 @@ class Trainer(TrainerIOMixin):
         return tqdm_dict
 
     @property
-    def training_tqdm_dict(self):
+    def tng_tqdm_dic(self):
         """
-        Read-only for tqdm metrics
+        * Deprecated in v0.5.0. use training_tqdm_dict instead. *
         :return:
         """
-        return self.__training_tqdm_dict
-
-    def __layout_bookeeping(self):
-
-        # determine number of training batches
-        self.nb_training_batches = len(self.get_train_dataloader())
-        self.nb_training_batches = int(self.nb_training_batches * self.train_percent_check)
-
-        # determine number of validation batches
-        # val datasets could be none, 1 or 2+
-        if self.get_val_dataloaders() is not None:
-            self.nb_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
-            self.nb_val_batches = int(self.nb_val_batches * self.val_percent_check)
-            self.nb_val_batches = max(1, self.nb_val_batches)
-
-        # determine number of test batches
-        if self.get_test_dataloaders() is not None:
-            self.nb_test_batches = sum(
-                len(dataloader) for dataloader in self.get_test_dataloaders()
-            )
-            self.nb_test_batches = int(self.nb_test_batches * self.test_percent_check)
-            self.nb_test_batches = max(1, self.nb_test_batches)
-
-        # determine when to check validation
-        self.val_check_batch = int(self.nb_training_batches * self.val_check_interval)
-        self.val_check_batch = max(1, self.val_check_batch)
-
-    def __add_tqdm_metrics(self, metrics):
-        for k, v in metrics.items():
-            if type(v) is torch.Tensor:
-                v = v.item()
-
-            self.tqdm_metrics[k] = v
-
-    def __evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
-        # make dataloader_idx arg in validation_step optional
-        args = [batch, batch_idx]
-
-        if test and len(self.get_test_dataloaders()) > 1:
-            args.append(dataloader_idx)
-
-        elif not test and len(self.get_val_dataloaders()) > 1:
-            args.append(dataloader_idx)
-
-        # handle DP, DDP forward
-        if self.use_ddp or self.use_dp or self.use_ddp2:
-            output = model(*args)
-            return output
-
-        # single GPU
-        if self.single_gpu:
-            # for single GPU put inputs on gpu manually
-            root_gpu = 0
-            if type(self.data_parallel_device_ids) is list:
-                root_gpu = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(batch, root_gpu)
-            args[0] = batch
-
-        # CPU
-        if test:
-            output = model.test_step(*args)
-        else:
-            output = model.validation_step(*args)
-
-        return output
-
-    def evaluate(self, model, dataloaders, max_batches, test=False):
-        """
-        Run evaluation code
-        :param model: PT model
-        :param dataloaders: list of PT dataloaders
-        :param max_batches: Scalar
-        :param test: boolean
-        :return:
-        """
-        # enable eval mode
-        model.zero_grad()
-        model.eval()
-
-        # disable gradients to save memory
-        torch.set_grad_enabled(False)
-
-        # bookkeeping
-        outputs = []
-
-        # run training
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dl_outputs = []
-            for batch_idx, batch in enumerate(dataloader):
-
-                if batch is None:  # pragma: no cover
-                    continue
-
-                # stop short when on fast_dev_run (sets max_batch=1)
-                if batch_idx >= max_batches:
-                    break
-
-                # -----------------
-                # RUN EVALUATION STEP
-                # -----------------
-                output = self.__evaluation_forward(model,
-                                                   batch,
-                                                   batch_idx,
-                                                   dataloader_idx,
-                                                   test)
-
-                # track outputs for collation
-                dl_outputs.append(output)
-
-                # batch done
-                if self.show_progress_bar:
-                    self.progress_bar.update(1)
-            outputs.append(dl_outputs)
-
-        eval_results = {}
-
-        # with a single dataloader don't pass an array
-        if len(dataloaders) == 1:
-            outputs = outputs[0]
-
-        # give model a chance to do something with the outputs (and method defined)
-        model = self.__get_model()
-        if test and self.__is_overriden('test_end'):
-            eval_results = model.test_end(outputs)
-        elif self.__is_overriden('validation_end'):
-            eval_results = model.validation_end(outputs)
-
-        # enable train mode again
-        model.train()
-
-        # enable gradients to save memory
-        torch.set_grad_enabled(True)
-
-        return eval_results
-
-    def get_dataloaders(self, model):
-        """
-        Dataloaders are provided by the model
-        :param model:
-        :return:
-        """
-        self.get_train_dataloader = model.train_dataloader
-        self.get_test_dataloaders = model.test_dataloader
-        self.get_val_dataloaders = model.val_dataloader
-
-        # call warnings from proc zero only which triggers dataloaders
-        # if those have to download data it will only happen on proc 0
-        if self.proc_rank == 0:
-            on_ddp = self.use_ddp or self.use_ddp2
-            if on_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
-                msg = """
-                You're using multiple gpus and multiple nodes without using a DistributedSampler
-                to assign a subset of your data to each process. To silence this warning, pass a
-                DistributedSampler to your DataLoader.
-
-                ie: this:
-                dataset = myDataset()
-                dataloader = Dataloader(dataset)
-
-                becomes:
-                dataset = myDataset()
-                dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                If you want each process to load the full dataset, ignore this warning.
-                """
-                warnings.warn(msg)
-
-            if on_ddp and self.get_val_dataloaders() is not None:
-                for dataloader in self.get_val_dataloaders():
-                    if not isinstance(dataloader.sampler, DistributedSampler):
-                        msg = """
-                        Your val_dataloader(s) don't use DistributedSampler.
-
-                        You're using multiple gpus and multiple nodes without using a
-                        DistributedSampler to assign a subset of your data to each process.
-                        To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                        ie: this:
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
-
-                        becomes:
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                        If you want each process to load the full dataset, ignore this warning.
-                        """
-                        warnings.warn(msg)
-                        break
-
-            if on_ddp and self.get_test_dataloaders() is not None:
-                for dataloader in self.get_test_dataloaders():
-                    if not isinstance(dataloader.sampler, DistributedSampler):
-                        msg = """
-                        Your test_dataloader(s) don't use DistributedSampler.
-
-                        You're using multiple gpus and multiple nodes without using a
-                        DistributedSampler to assign a subset of your data to each process.
-                        To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                        ie: this:
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
-
-                        becomes:
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                        If you want each process to load the full dataset, ignore this warning.
-                        """
-                        warnings.warn(msg)
-                        break
-
-        if self.use_ddp or self.use_ddp2:
-            # wait for all processes to catch up
-            dist.barrier()
-
-            # load each dataloader
-            self.get_train_dataloader()
-            self.get_test_dataloaders()
-            self.get_val_dataloaders()
+        warnings.warn("tng_tqdm_dict has renamed to training_tqdm_dict since v0.5.0",
+                      DeprecationWarning)
+        return self.training_tqdm_dict
 
     # -----------------------------
     # MODEL TRAINING
@@ -758,15 +370,15 @@ class Trainer(TrainerIOMixin):
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
-                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model, ))
+                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.__dp_train(model)
+            self.dp_train(model)
 
         elif self.single_gpu:
-            self.__single_gpu_train(model)
+            self.single_gpu_train(model)
 
         # ON CPU
         else:
@@ -779,7 +391,7 @@ class Trainer(TrainerIOMixin):
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-            self.__run_pretrain_routine(model)
+            self.run_pretrain_routine(model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -801,6 +413,7 @@ class Trainer(TrainerIOMixin):
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
 
+<<<<<<< HEAD
     def configure_schedulers(self, schedulers):
         for i in range(len(schedulers)):
             if isinstance(schedulers[i], torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -986,6 +599,9 @@ class Trainer(TrainerIOMixin):
         return root_node
 
     def __run_pretrain_routine(self, model):
+=======
+    def run_pretrain_routine(self, model):
+>>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
         """
         Sanity check a few things before starting actual training
         :param model:
@@ -999,13 +615,7 @@ class Trainer(TrainerIOMixin):
         ref_model.trainer = self
 
         # set local properties on the model
-        ref_model.on_gpu = self.on_gpu
-        ref_model.single_gpu = self.single_gpu
-        ref_model.use_dp = self.use_dp
-        ref_model.use_ddp = self.use_ddp
-        ref_model.use_ddp2 = self.use_ddp2
-        ref_model.use_amp = self.use_amp
-        ref_model.testing = self.testing
+        self.copy_trainer_model_properties(ref_model)
 
         # link up experiment object
         if self.logger is not None:
@@ -1021,7 +631,7 @@ class Trainer(TrainerIOMixin):
             dist.barrier()
 
         # set up checkpoint callback
-        self.__configure_checkpoint_callback()
+        self.configure_checkpoint_callback()
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
@@ -1030,7 +640,7 @@ class Trainer(TrainerIOMixin):
         self.get_dataloaders(ref_model)
 
         # init training constants
-        self.__layout_bookeeping()
+        self.layout_bookeeping()
 
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
@@ -1053,7 +663,7 @@ class Trainer(TrainerIOMixin):
 
         # when testing requested only run test and return
         if self.testing:
-            self.__run_evaluation(test=True)
+            self.run_evaluation(test=True)
             return
 
         # run tiny validation (if validation defined)
@@ -1066,6 +676,7 @@ class Trainer(TrainerIOMixin):
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
+<<<<<<< HEAD
         # ---------------------------
         # CORE TRAINING LOOP
         # ---------------------------
@@ -1202,17 +813,21 @@ class Trainer(TrainerIOMixin):
 
         # turn all tensors to scalars
         scalar_metrics = self.__metrics_to_scalars(metrics)
+=======
+        # clear cache before training
+        if self.on_gpu:
+            torch.cuda.empty_cache()
+>>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
 
-        # log actual metrics
-        if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
-            self.logger.save()
+        # CORE TRAINING LOOP
+        self.train()
 
     def test(self, model=None):
+        self.testing = True
         if model is not None:
-            self.testing = True
             self.fit(model)
         else:
+<<<<<<< HEAD
             self.__run_evaluation(test=True)
 
     def __metrics_to_scalars(self, metrics):
@@ -1563,3 +1178,6 @@ class Trainer(TrainerIOMixin):
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
+=======
+            self.run_evaluation(test=True)
+>>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86

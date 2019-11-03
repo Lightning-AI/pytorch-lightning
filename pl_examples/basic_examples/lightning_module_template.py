@@ -2,16 +2,17 @@
 Example template for defining a system
 """
 import os
-from collections import OrderedDict
-import torch.nn as nn
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
-import torch
-import torch.nn.functional as F
 from argparse import ArgumentParser
+from collections import OrderedDict
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
 from pytorch_lightning.root_module.root_module import LightningModule
@@ -157,7 +158,7 @@ class LightningTemplateModel(LightningModule):
             val_loss = output['val_loss']
 
             # reduce manually when using dp
-            if self.trainer.use_dp:
+            if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_loss = torch.mean(val_loss)
             val_loss_mean += val_loss
 

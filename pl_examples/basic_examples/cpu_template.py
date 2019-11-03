@@ -1,13 +1,14 @@
 """
-Multi-node example (GPU)
+Runs a model on a single node across N-gpus.
 """
 import os
+from argparse import ArgumentParser
+
 import numpy as np
 import torch
 
-from argparse import ArgumentParser
+from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
 from pytorch_lightning import Trainer
-from examples.basic_examples.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -18,7 +19,6 @@ def main(hparams):
     """
     Main training routine specific for this project
     :param hparams:
-    :return:
     """
     # ------------------------
     # 1 INIT LIGHTNING MODEL
@@ -28,11 +28,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = Trainer(
-        gpus=2,
-        nb_gpu_nodes=2,
-        distributed_backend='ddp'
-    )
+    trainer = Trainer()
 
     # ------------------------
     # 3 START TRAINING
@@ -41,7 +37,10 @@ def main(hparams):
 
 
 if __name__ == '__main__':
-
+    # ------------------------
+    # TRAINING ARGUMENTS
+    # ------------------------
+    # these are project-wide arguments
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = ArgumentParser(add_help=False)
 

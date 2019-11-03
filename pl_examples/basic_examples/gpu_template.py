@@ -2,12 +2,13 @@
 Runs a model on a single node across N-gpus.
 """
 import os
+from argparse import ArgumentParser
+
 import numpy as np
 import torch
 
-from argparse import ArgumentParser
+from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
 from pytorch_lightning import Trainer
-from examples.basic_examples.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)

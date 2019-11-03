@@ -1,18 +1,19 @@
 import os
 import re
 import signal
-import pdb
+import warnings
 from subprocess import call
 
 import torch
 import torch.distributed as dist
+
 from pytorch_lightning.pt_overrides.override_data_parallel import (
     LightningDistributedDataParallel, LightningDataParallel)
 
 
 class TrainerIOMixin(object):
 
-    def __get_model(self):
+    def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
                                                LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
@@ -24,27 +25,37 @@ class TrainerIOMixin(object):
     def restore_weights(self, model):
         """
         To restore weights we have two cases.
-        First, if we use the same experiment version, then restore the latest ckpt.
-        AFTER that, if we find weights from hpc checkpoint, then restore that.
+        First, attempt to restore hpc weights. If successful, don't restore
+        other weights.
+
+        Otherwise, try to restore actual weights
         :param model:
         :return:
         """
-        # restore weights if same exp version
-        self.restore_state_if_checkpoint_exists(model)
 
         # if script called from hpc resubmit, load weights
-        self.restore_hpc_weights_if_needed(model)
+        did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
+
+        if not did_restore_hpc_weights:
+            # restore weights if same exp version
+            self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
             dist.barrier()
 
+        # clear cache after restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
+
     def restore_state_if_checkpoint_exists(self, model):
+        did_restore = False
+
         # do nothing if there's not dir or callback
         no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
         if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return
+            return did_restore
 
         # restore trainer state and model if there is a weight for this experiment
         last_epoch = -1
@@ -70,6 +81,9 @@ class TrainerIOMixin(object):
             last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
             self.restore(last_ckpt_path, self.on_gpu)
             print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+            did_restore = True
+
+        return did_restore
 
     # --------------------
     # HPC SIGNAL HANDLING
@@ -134,7 +148,7 @@ class TrainerIOMixin(object):
         checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
-        model = self.__get_model()
+        model = self.get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
@@ -151,10 +165,10 @@ class TrainerIOMixin(object):
             'global_step': self.global_step
         }
 
-        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
+        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
             checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-        if self.early_stop_callback is not None or self.checkpoint_callback is not False:
+        if self.early_stop_callback is not None and self.checkpoint_callback is not False:
             checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
             checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
@@ -172,9 +186,16 @@ class TrainerIOMixin(object):
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
-        # add the state_dict from the model
-        model = self.__get_model()
+        # add the hparams and state_dict from the model
+        model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
+        if hasattr(model, "hparams"):
+            checkpoint['hparams'] = vars(model.hparams)
+        else:
+            warnings.warn(
+                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
+                " hyperparameters"
+            )
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -190,6 +211,8 @@ class TrainerIOMixin(object):
         :param model:
         :return:
         """
+        did_restore = False
+
         # look for hpc weights
         folderpath = self.weights_save_path
         if os.path.exists(folderpath):
@@ -199,6 +222,8 @@ class TrainerIOMixin(object):
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
                 self.hpc_load(folderpath, self.on_gpu)
+                did_restore = True
+        return did_restore
 
     def restore_training_state(self, checkpoint):
         """
@@ -207,10 +232,10 @@ class TrainerIOMixin(object):
         :param checkpoint:
         :return:
         """
-        if self.checkpoint_callback is not None or self.checkpoint_callback is not False:
+        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 
-        if self.early_stop_callback is not None or self.early_stop_callback is not False:
+        if self.early_stop_callback is not None and self.early_stop_callback is not False:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
@@ -252,7 +277,7 @@ class TrainerIOMixin(object):
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, ckpt_number)
 
         # give model a chance to do something on hpc_save
-        model = self.__get_model()
+        model = self.get_model()
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
@@ -269,7 +294,7 @@ class TrainerIOMixin(object):
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
-        model = self.__get_model()
+        model = self.get_model()
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])

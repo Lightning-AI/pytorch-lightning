@@ -1,25 +1,23 @@
 """
-To run this template just do:  
-python gan.py   
+To run this template just do:
+python gan.py
 
-After a few epochs, launch tensorboard to see the images being generated at every batch.   
+After a few epochs, launch tensorboard to see the images being generated at every batch.
 
 tensorboard --logdir default
 """
-from argparse import ArgumentParser
 import os
-import numpy as np
+from argparse import ArgumentParser
 from collections import OrderedDict
 
-import torchvision
-import torchvision.transforms as transforms
-from torchvision.datasets import MNIST
-
-from torch.utils.data import DataLoader
-
+import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
 
@@ -136,7 +134,8 @@ class GAN(pl.LightningModule):
 
             # how well can it label as fake?
             fake = torch.zeros(imgs.size(0), 1)
-            fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
+            fake_loss = self.adversarial_loss(
+                self.discriminator(self.generated_imgs.detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
@@ -146,8 +145,6 @@ class GAN(pl.LightningModule):
                 'progress_bar': tqdm_dict,
                 'log': tqdm_dict
             })
-
-
             return output
 
     def configure_optimizers(self):
@@ -179,7 +176,6 @@ class GAN(pl.LightningModule):
 
 
 def main(hparams):
-
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
@@ -200,9 +196,12 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
     parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+    parser.add_argument("--b1", type=float, default=0.5,
+                        help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--b2", type=float, default=0.999,
+                        help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--latent_dim", type=int, default=100,
+                        help="dimensionality of the latent space")
 
     hparams = parser.parse_args()
 

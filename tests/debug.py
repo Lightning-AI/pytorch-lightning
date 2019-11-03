@@ -1,19 +1,11 @@
-from pytorch_lightning import Trainer
-from examples import LightningTemplateModel
-from pytorch_lightning.testing import LightningTestModel
-from argparse import Namespace
-from test_tube import Experiment
-from pytorch_lightning.callbacks import ModelCheckpoint
-import os
-import shutil
-
-import pytorch_lightning as pl
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-import numpy as np
-import pdb
+
+import pytorch_lightning as pl
+
+
 # from test_models import assert_ok_test_acc, load_model, \
 #     clear_save_dir, get_test_tube_logger, get_hparams, init_save_dir, \
 #     init_checkpoint_callback, reset_seed, set_random_master_port
