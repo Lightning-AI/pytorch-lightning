@@ -139,12 +139,10 @@ class TrainerDDPMixin(object):
         if self.logger is not None:
             self.logger.rank = self.proc_rank
 
-        # set model properties before going into wrapper
-        self.copy_trainer_model_properties(model)
-
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
+        model.trainer = self
         model.init_ddp_connection()
 
         # CHOOSE OPTIMIZER
