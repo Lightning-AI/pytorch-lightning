@@ -285,9 +285,6 @@ class TrainerTrainLoopMixin(object):
         elif self.use_ddp2 or self.use_dp:
             # in dp, allow model to use training_step and training_end
             output = self.model(*args)
-            if self.is_overriden('training_end'):
-                model_ref = self.get_model()
-                output = model_ref.training_end(output)
 
         elif self.single_gpu:
             gpu_id = 0
@@ -299,6 +296,12 @@ class TrainerTrainLoopMixin(object):
 
         else:
             output = self.model.training_step(*args)
+
+        # allow any mode to define training_end
+        # dp and ddp2 need it but optional for all others
+        if self.is_overriden('training_end'):
+            model_ref = self.get_model()
+            output = model_ref.training_end(output)
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
