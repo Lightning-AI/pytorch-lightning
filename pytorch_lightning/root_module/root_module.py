@@ -4,6 +4,7 @@ import collections
 from argparse import Namespace
 
 import torch
+import torch.distributed as dist
 
 from pytorch_lightning.root_module.decorators import data_loader
 from pytorch_lightning.root_module.grads import GradInformation
@@ -116,13 +117,10 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         )
         return model
 
-    def init_ddp_connection(self, dist):
+    def init_ddp_connection(self):
         """
         Connect all procs in the world using the env:// init
         Use the first node as the root address
-        :param port:
-        :param tries:
-        :return:
         """
 
         # use slurm job id for the port number
