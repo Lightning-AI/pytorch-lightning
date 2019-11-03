@@ -42,6 +42,7 @@ But of course the fun is in all the advanced things it can do:
 
 **Distributed training**    
 
+- [Implement Your Own Distributed (DDP) training](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#init_ddp_connection)
 - [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
 - [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
 - [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)
