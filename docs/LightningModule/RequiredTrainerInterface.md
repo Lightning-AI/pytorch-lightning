@@ -178,6 +178,90 @@ def training_step(self, batch, batch_nb, hiddens):
 You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
 break out of the current training epoch early.
 
+---   
+### training_end
+
+``` {.python}
+def training_end(self, train_step_outputs)
+```
+In certain cases (dp, ddp2), you might want to use all outputs of every process to do something.
+For instance, you could run a batch via dp and use ALL the outputs for a single softmax across
+the full batch.
+
+In this case you should define training_end to perform those calculations.
+
+
+**Params**    
+
+| Param  | description  |
+|---|---|
+|  outputs | What you return in training_step. 
+
+**Return**   
+
+Dictionary or OrderedDict   
+
+| key  | value  | is required |
+|---|---|---|
+|  loss | tensor scalar  | Y |
+|  progress_bar | Dict for progress bar display. Must have only tensors  | N |
+|  log | Dict of metrics to add to logger. Must have only tensors (no images, etc)  | N |
+
+
+**Example**
+
+``` {.python}
+# WITHOUT training_end
+# if used in DP or DDP2, this batch is 1/nb_gpus large
+def training_step(self, batch, batch_nb):
+    # batch is 1/nb_gpus big
+    x, y = batch
+    
+    out = self.forward(x)
+    loss = self.softmax(out)
+    loss = my_loss(loss, x)
+    return {'loss': loss}
+
+# --------------
+# with training_end to do softmax over the full batch
+def training_step(self, batch, batch_nb):
+    # batch is 1/nb_gpus big
+    x, y = batch
+    
+    out = self.forward(x)
+    return {'out': out, 'y': y}
+
+def training_end(self, outputs):
+    # this out is now the full size of the batch
+    out = outputs['out']
+    y = outputs['y']
+
+    # this softmax now uses the full batch size
+    loss = self.softmax(out)
+    loss = my_loss(loss, y)
+    return {'loss': loss}
+```    
+
+If you define multiple optimizers, this step will also be called with an additional ```optimizer_idx``` param.    
+``` {.python}
+# Multiple optimizers (ie: GANs)     
+def training_step(self, batch, batch_nb, optimizer_idx):
+    if optimizer_idx == 0:
+        # do training_step with encoder
+    if optimizer_idx == 1:
+        # do training_step with decoder    
+```    
+
+If you add truncated back propagation through time you will also get an additional argument with the hidden states of the previous step.     
+``` {.python}
+# Truncated back-propagation through time   
+def training_step(self, batch, batch_nb, hiddens):
+    # hiddens are the hiddens from the previous truncated backprop step
+```    
+
+You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
+break out of the current training epoch early.
+
 --- 
 ### train_dataloader 
 
