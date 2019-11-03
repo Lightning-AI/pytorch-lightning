@@ -3,9 +3,7 @@ import re
 import warnings
 
 import torch
-import torch.distributed as dist
 
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
