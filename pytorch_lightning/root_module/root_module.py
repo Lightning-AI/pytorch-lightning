@@ -13,7 +13,6 @@ from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
