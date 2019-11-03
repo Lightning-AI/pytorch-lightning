@@ -177,6 +177,28 @@ def tbptt_split_batch(self, batch, split_size):
 ```
 
 ---
+#### configure_apex
+Overwrite to define your own Apex implementation init.
+
+```python
+def configure_apex(self, amp, model, optimizers, amp_level):
+    """
+    Override to init AMP your own way
+    Must return a model and list of optimizers
+    :param amp:
+    :param model:
+    :param optimizers:
+    :param amp_level:
+    :return: Apex wrapped model and optimizers
+    """
+    model, optimizers = amp.initialize(
+        model, optimizers, opt_level=amp_level,
+    )
+
+    return model, optimizers
+```
+
+---
 #### configure_ddp 
 Overwrite to define your own DDP implementation init.
 The only requirement is that:
