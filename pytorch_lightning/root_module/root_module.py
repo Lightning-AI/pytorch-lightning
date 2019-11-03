@@ -106,7 +106,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         Must return model.
         :param model:
         :param device_ids:
-        :return:
+        :return: DDP wrapped model
         """
         model = LightningDistributedDataParallel(
             model,
@@ -123,7 +123,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :param model:
         :param optimizers:
         :param amp_level:
-        :return:
+        :return: Apex wrapped model and optimizers
         """
         model, optimizers = amp.initialize(
             model, optimizers, opt_level=amp_level,
