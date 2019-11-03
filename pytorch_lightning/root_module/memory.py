@@ -198,19 +198,10 @@ def get_memory_profile(mode):
     memory_map = get_gpu_memory_map()
 
     if mode == 'min_max':
-        min_mem = 1000000
-        min_k = None
-        max_mem = 0
-        max_k = None
-        for k, v in memory_map.items():
-            if v > max_mem:
-                max_mem = v
-                max_k = k
-            if v < min_mem:
-                min_mem = v
-                min_k = k
+        min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
+        max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
 
-        memory_map = {min_k: min_mem, max_k: max_mem}
+        memory_map = {min_index: min_memory, max_index: max_memory}
 
     return memory_map
 
@@ -235,7 +226,7 @@ def get_gpu_memory_map():
         check=True)
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split('\n')]
-    gpu_memory_map = {f'gpu_{index}': utilization for index, utilization in enumerate(gpu_memory)}
+    gpu_memory_map = {f'gpu_{index}': memory for index, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
