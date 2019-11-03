@@ -116,6 +116,28 @@ def on_before_zero_grad(self, optimizer):
 ```
 
 ---
+#### backward
+Called to perform backward step.
+Feel free to override as needed.
+
+The loss passed in has already been scaled for accumulated gradients if requested.
+```python
+def backward(self, use_amp, loss, optimizer):
+    """
+    Override backward with your own implementation if you need to
+    :param use_amp: Whether amp was requested or not
+    :param loss: Loss is already scaled by accumulated grads
+    :param optimizer: Current optimizer being used
+    :return:
+    """
+    if use_amp:
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
+```
+
+---
 #### on_after_backward
 Called in the training loop after model.backward()
 This is the ideal place to inspect or log gradient information 
@@ -128,4 +150,28 @@ def on_after_backward(self):
             grads = v
             name = k
             self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
+```
+
+---
+#### tbptt_split_batch
+Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`. Each returned batch split is passed separately to training_step(...).
+
+```python
+def tbptt_split_batch(self, batch, split_size):
+  splits = []
+  for t in range(0, time_dims[0], split_size):
+      batch_split = []
+      for i, x in enumerate(batch):
+          if isinstance(x, torch.Tensor):
+              split_x = x[:, t:t + split_size]
+          elif isinstance(x, collections.Sequence):
+              split_x = [None] * len(x)
+              for batch_idx in range(len(x)):
+                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+          batch_split.append(split_x)
+
+      splits.append(batch_split)
+
+  return splits
 ```

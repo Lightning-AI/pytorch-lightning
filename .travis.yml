@@ -51,14 +51,13 @@ matrix:
 cache: pip
 
 install:
-  - pip install -r requirements.txt
-  - pip install -r ./tests/requirements.txt
-  - pip --version ; pip list
+  - pip install future  # needed for `builtins`
+  - sudo pip install tox
 
 script:
   # integration
   - tox --sitepackages
-  - python setup.py install --dry-run
+  - pip install --editable .
 
 after_success:
   - coverage report
