@@ -208,7 +208,7 @@ Instead of manually building SLURM scripts, you can use the [SlurmCluster object
 do this for you. The SlurmCluster can also run a grid search if you pass in a [HyperOptArgumentParser](https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser/).
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
-[The full examples are here](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/new_project_templates/multi_node_examples).
+[The full examples are here](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/new_project_templates/multi_node_examples).
 ```python
 # grid search 3 values of learning rate and 3 values of number of layers for your net
 # this generates 9 experiments (lr=1e-3, layers=16), (lr=1e-3, layers=32), (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
