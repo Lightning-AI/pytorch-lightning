@@ -175,3 +175,29 @@ def tbptt_split_batch(self, batch, split_size):
 
   return splits
 ```
+
+---
+#### configure_ddp 
+Overwrite to define your own DDP implementation init.
+The only requirement is that:
+1. On a validation batch the call goes to model.validation_step.   
+2. On a training batch the call goes to model.training_step.   
+3. On a testing batch, the call goes to model.test_step
+
+```python
+def configure_ddp(self, model, device_ids):
+    """
+    Override to init DDP in a different way or use your own wrapper.
+    Must return model.
+    :param model:
+    :param device_ids:
+    :return: DDP wrapped model
+    """
+    # Lightning DDP simply routes to test_step, val_step, etc...
+    model = LightningDistributedDataParallel(
+        model,
+        device_ids=device_ids,
+        find_unused_parameters=True
+    )
+    return model
+```
