@@ -1,6 +1,7 @@
-from os import environ
-
-from comet_ml import Experiment as CometExperiment
+try:
+    from comet_ml import Experiment as CometExperiment
+except ImportError:
+    raise ImportError('Missing comet_ml package.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

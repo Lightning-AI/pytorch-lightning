@@ -32,9 +32,16 @@ class TrainerIOMixin(object):
         :param model:
         :return:
         """
+        # clear cache before restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
 
         # if script called from hpc resubmit, load weights
         did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
+
+        # clear cache after restore
+        if self.on_gpu:
+            torch.cuda.empty_cache()
 
         if not did_restore_hpc_weights:
             # restore weights if same exp version
@@ -137,7 +144,13 @@ class TrainerIOMixin(object):
         checkpoint = self.dump_checkpoint()
 
         # do the actual save
-        torch.save(checkpoint, filepath)
+        try:
+            torch.save(checkpoint, filepath)
+        except AttributeError:
+            if 'hparams' in checkpoint:
+                del checkpoint['hparams']
+
+            torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
 
@@ -283,7 +296,14 @@ class TrainerIOMixin(object):
         model.on_hpc_save(checkpoint)
 
         # do the actual save
-        torch.save(checkpoint, filepath)
+        # TODO: fix for anything with multiprocess DP, DDP, DDP2
+        try:
+            torch.save(checkpoint, filepath)
+        except AttributeError:
+            if 'hparams' in checkpoint:
+                del checkpoint['hparams']
+
+            torch.save(checkpoint, filepath)
 
         return filepath
 

@@ -1,11 +1,36 @@
 #!/usr/bin/env python
 
+import os
+from io import open
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
-# https://packaging.python.org/guides/single-sourcing-package-version/
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 
+# https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
+
+PATH_ROOT = os.path.dirname(__file__)
+builtins.__LIGHTNING_SETUP__ = True
+
+import pytorch_lightning  # noqa: E402
+
+
+def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
+    with open(os.path.join(path_dir, 'requirements.txt'), 'r') as file:
+        lines = [ln.strip() for ln in file.readlines()]
+    reqs = []
+    for ln in lines:
+        # filer all comments
+        if comment_char in ln:
+            ln = ln[:ln.index(comment_char)]
+        if ln:  # if requirement is not empty
+            reqs.append(ln)
+    return reqs
+
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -14,26 +39,22 @@ from setuptools import setup, find_packages
 # engineer specific practices
 setup(
     name='pytorch-lightning',
-    version='0.5.2.1',
-    description='The Keras for ML researchers using PyTorch',
-    author='William Falcon',
-    author_email='waf2107@columbia.edu',
-    url='https://github.com/williamFalcon/pytorch-lightning',
+    version=pytorch_lightning.__version__,
+    description=pytorch_lightning.__docs__,
+    author=pytorch_lightning.__author__,
+    author_email=pytorch_lightning.__author_email__,
+    url=pytorch_lightning.__homepage__,
     download_url='https://github.com/williamFalcon/pytorch-lightning',
-    license='Apache-2',
-    packages=find_packages(),
+    license=pytorch_lightning.__license__,
+    packages=find_packages(exclude=['examples']),
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
-    install_requires=[
-        'torch>=1.2.0',
-        'tqdm>=4.35.0',
-        'test-tube>=0.6.9',
-        'pandas>=0.20.3',
-    ],
+    setup_requires=[],
+    install_requires=load_requirements(PATH_ROOT),
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

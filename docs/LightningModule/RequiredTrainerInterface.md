@@ -168,6 +168,13 @@ def training_step(self, batch, batch_nb, optimizer_idx):
         # do training_step with decoder    
 ```    
 
+If you add truncated back propagation through time you will also get an additional argument with the hidden states of the previous step.     
+``` {.python}
+# Truncated back-propagation through time   
+def training_step(self, batch, batch_nb, hiddens):
+    # hiddens are the hiddens from the previous truncated backprop step
+```    
+
 You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
 break out of the current training epoch early.
 
@@ -179,7 +186,7 @@ break out of the current training epoch early.
 def train_dataloader(self)
 ```
 Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
-If you want to change the data during every epoch DON'T use the data_loader decorator.   
+If you want to change the data during every epoch DON'T use the data_loader decorator.
 
 ##### Return
 PyTorch DataLoader
