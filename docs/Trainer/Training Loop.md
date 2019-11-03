@@ -93,6 +93,25 @@ trainer = Trainer(train_percent_check=0.1)
 ```
 
 ---
+#### Packed sequences as inputs
+When using PackedSequence, do 2 things:
+1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).    
+2. Pack the sequence in forward or training and validation steps depending on use case.
+
+``` {.python}
+# For use in dataloader
+def collate_fn(batch):
+    x = [item[0] for item in batch]
+    y = [item[1] for item in batch]
+    return x, y
+
+# In module
+def training_step(self, batch, batch_nb):
+    x = rnn.pack_sequence(batch[0], enforce_sorted=False)
+    y = rnn.pack_sequence(batch[1], enforce_sorted=False)
+```
+
+---
 #### Truncated Back Propagation Through Time
 There are times when multiple backwards passes are needed for each batch. For example, it may save memory to use Truncated Back Propagation Through Time when training RNNs.
 
