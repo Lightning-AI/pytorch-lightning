@@ -202,7 +202,7 @@ def get_memory_profile(mode):
         min_k = None
         max_mem = 0
         max_k = None
-        for k, v in memory_map:
+        for k, v in memory_map.items():
             if v > max_mem:
                 max_mem = v
                 max_k = k
