@@ -1,3 +1,4 @@
+import os
 import warnings
 import collections
 from argparse import Namespace
@@ -114,6 +115,44 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             find_unused_parameters=True
         )
         return model
+
+    def init_ddp_connection(self, dist):
+        """
+        Connect all procs in the world using the env:// init
+        Use the first node as the root address
+        :param port:
+        :param tries:
+        :return:
+        """
+
+        # use slurm job id for the port number
+        # guarantees unique ports across jobs from same grid search
+        try:
+            # use the last 4 numbers in the job id as the id
+            default_port = os.environ['SLURM_JOB_ID']
+            default_port = default_port[-4:]
+
+            # all ports should be in the 10k+ range
+            default_port = int(default_port) + 15000
+
+        except Exception as e:
+            default_port = 12910
+
+        # if user gave a port number, use that one instead
+        try:
+            default_port = os.environ['MASTER_PORT']
+        except Exception:
+            os.environ['MASTER_PORT'] = str(default_port)
+
+        # figure out the root node addr
+        try:
+            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        except Exception:
+            root_node = '127.0.0.2'
+
+        root_node = self.trainer.resolve_root_node_address(root_node)
+        os.environ['MASTER_ADDR'] = root_node
+        dist.init_process_group('nccl', rank=self.proc_rank, world_size=self.world_size)
 
     def configure_apex(self, amp, model, optimizers, amp_level):
         """
