@@ -49,16 +49,16 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return loss, dict with metrics for tqdm
         :param called with batch, batch_nb
         additional: optimizer_i if multiple optimizers used
-        :return:
+        :return: dict with loss key and optional log, progress keys
+                if implementing training_step, return whatever you need in that step
         """
         raise NotImplementedError
 
     def training_end(self, *args, **kwargs):
         """
         return loss, dict with metrics for tqdm
-        :param called with batch, batch_nb
-        additional: optimizer_i if multiple optimizers used
-        :return:
+        :param called with outputs of training_step
+        :return: dict with loss key and optional log, progress keys
         """
         pass
 
