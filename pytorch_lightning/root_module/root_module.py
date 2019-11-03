@@ -117,7 +117,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         )
         return model
 
-    def init_ddp_connection(self):
+    def init_ddp_connection(self, proc_rank, world_size):
         """
         Connect all procs in the world using the env:// init
         Use the first node as the root address
@@ -150,7 +150,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group('nccl', rank=self.proc_rank, world_size=self.world_size)
+        dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(self, amp, model, optimizers, amp_level):
         """
