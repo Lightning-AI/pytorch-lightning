@@ -235,10 +235,7 @@ def get_gpu_memory_map():
         check=True)
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split('\n')]
-    gpu_memory_map = {}
-    for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = f'gpu_{k}'
-        gpu_memory_map[k] = v
+    gpu_memory_map = {f'gpu_{index}': utilization for index, utilization in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
