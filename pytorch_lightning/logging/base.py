@@ -1,4 +1,5 @@
 from functools import wraps
+import logging
 
 
 def rank_zero_only(fn):
@@ -69,3 +70,15 @@ class LightningLoggerBase(object):
     def version(self):
         """Return the experiment version"""
         return None
+
+    def info(self, msg):
+        """
+        log msg using level 'INFO'
+        """
+        logging.info(msg)
+
+    def debug(self, msg):
+        """
+        log msg using level 'DEBUG'
+        """
+        logging.debug(msg)

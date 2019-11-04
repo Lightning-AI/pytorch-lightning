@@ -3,6 +3,7 @@ import re
 import signal
 import warnings
 from subprocess import call
+import logging
 
 import torch
 import torch.distributed as dist
@@ -87,7 +88,7 @@ class TrainerIOMixin(object):
         if last_ckpt_name is not None:
             last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
             self.restore(last_ckpt_path, self.on_gpu)
-            print(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+            logging.info(f'model and trainer restored from checkpoint: {last_ckpt_path}')
             did_restore = True
 
         return did_restore
@@ -106,14 +107,14 @@ class TrainerIOMixin(object):
             pass
 
         if on_slurm:
-            print('set slurm handle signals')
+            logging.info('set slurm handle signals')
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):
         if self.proc_rank == 0:
             # save weights
-            print('handling SIGUSR1')
+            logging.info('handling SIGUSR1')
             self.hpc_save(self.weights_save_path, self.logger)
 
             # find job id
@@ -121,21 +122,21 @@ class TrainerIOMixin(object):
             cmd = 'scontrol requeue {}'.format(job_id)
 
             # requeue job
-            print('\nrequeing job {}...'.format(job_id))
+            logging.info('\nrequeing job {}...'.format(job_id))
             result = call(cmd, shell=True)
 
             # print result text
             if result == 0:
-                print('requeued exp ', job_id)
+                logging.info('requeued exp ', job_id)
             else:
-                print('requeue failed...')
+                logging.info('requeue failed...')
 
             # close experiment to avoid issues
             self.logger.close()
 
     def term_handler(self, signum, frame):
         # save
-        print("bypassing sigterm")
+        logging.info("bypassing sigterm")
 
     # --------------------
     # MODEL SAVE CHECKPOINT
@@ -328,7 +329,7 @@ class TrainerIOMixin(object):
         # call model hook
         model.on_hpc_load(checkpoint)
 
-        print(f'restored hpc model from: {filepath}')
+        logging.info(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         files = os.listdir(path)

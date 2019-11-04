@@ -164,8 +164,8 @@ trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorboard logs 
-print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
-print('and going to http://localhost:6006 on your browser')
+logging.info('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
+logging.info('and going to http://localhost:6006 on your browser')
 ```    
 
 When you're all done you can even run the test set separately.   

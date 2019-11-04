@@ -119,7 +119,7 @@ def optimize_on_cluster(hyperparams):
     job_display_name = job_display_name[0:3]
 
     # run hopt
-    print('submitting jobs...')
+    logging.info('submitting jobs...')
     cluster.optimize_parallel_cluster_gpu(
         main,
         nb_trials=hyperparams.nb_hopt_trials,
