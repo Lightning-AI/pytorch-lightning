@@ -307,7 +307,7 @@ class ModelCheckpoint(Callback):
             else:
                 if self.verbose > 0:
                     print('\nEpoch %05d: saving model to %s' % (epoch, filepath))
-                self._save_model(filepath, overwrite=False)
+                self._save_model(filepath)
 
 
 class GradientAccumulationScheduler(Callback):
