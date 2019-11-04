@@ -243,7 +243,7 @@ def test_model_checkpoint_options():
     model = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()()
     losses = [10, 9, 2.8, 5, 2.5]
 
     # -----------------
