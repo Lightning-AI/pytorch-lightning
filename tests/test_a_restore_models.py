@@ -103,7 +103,6 @@ def test_running_test_pretrained_model():
     testing_utils.assert_ok_test_acc(new_trainer)
     testing_utils.clear_save_dir()
 
-# @pytest.mark.run(order=1)
 def test_load_model_from_checkpoint():
     testing_utils.reset_seed()
 
@@ -301,7 +300,6 @@ def test_cpu_restore_training():
         logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
-
 
     # fit model
     trainer = Trainer(**trainer_options)
