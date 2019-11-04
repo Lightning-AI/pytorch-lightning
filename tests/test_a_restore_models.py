@@ -103,7 +103,7 @@ def test_running_test_pretrained_model():
     testing_utils.assert_ok_test_acc(new_trainer)
     testing_utils.clear_save_dir()
 
-
+# @pytest.mark.run(order=1)
 def test_load_model_from_checkpoint():
     testing_utils.reset_seed()
 
@@ -130,7 +130,7 @@ def test_load_model_from_checkpoint():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = LightningTestModel.load_from_checkpoint(
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
     )
 
     # test that hparams loaded correctly
@@ -301,6 +301,7 @@ def test_cpu_restore_training():
         logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
+
 
     # fit model
     trainer = Trainer(**trainer_options)
