@@ -231,6 +231,7 @@ def test_dp_output_reduce():
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
+
 def test_model_checkpoint_options():
     """
     Test ModelCheckpoint options
@@ -341,6 +342,7 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_0.ckpt' in file_lists
 
     testing_utils.clear_save_dir()
+
 
 def test_model_freeze_unfreeze():
     testing_utils.reset_seed()
