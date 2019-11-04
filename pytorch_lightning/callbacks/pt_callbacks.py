@@ -195,7 +195,7 @@ class ModelCheckpoint(Callback):
         self.prefix = prefix
         self.best_k_models = {}
         # {filename: monitor}
-        self.kth_model = ''
+        self.kth_best_model = ''
         self.best = 0
 
         if mode not in ['auto', 'min', 'max']:
@@ -245,7 +245,7 @@ class ModelCheckpoint(Callback):
         less_than_k_models = len(self.best_k_models.keys()) < self.save_top_k
         if less_than_k_models:
             return True
-        return self.monitor_op(current, self.best_k_models[self.kth_model])
+        return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -276,18 +276,18 @@ class ModelCheckpoint(Callback):
 
                         # remove kth
                         if len(self.best_k_models.keys()) == self.save_top_k:
-                            delpath = self.kth_model
-                            self.best_k_models.pop(self.kth_model)
+                            delpath = self.kth_best_model
+                            self.best_k_models.pop(self.kth_best_model)
                             self._del_model(delpath)
 
                         self.best_k_models[filepath] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
                             if self.mode == 'min':
-                                self.kth_model = max(self.best_k_models, key=self.best_k_models.get)
+                                self.kth_best_model = max(self.best_k_models, key=self.best_k_models.get)
                             else:
-                                self.kth_model = min(self.best_k_models, key=self.best_k_models.get)
-                            self.kth_value = self.best_k_models[self.kth_model]
+                                self.kth_best_model = min(self.best_k_models, key=self.best_k_models.get)
+                            self.kth_value = self.best_k_models[self.kth_best_model]
 
                         if self.mode == 'min':
                             self.best = min(self.best_k_models.values())
