@@ -35,13 +35,19 @@ You might want to not only load a model but also continue training it. Use this 
 restore the trainer state as well. This will continue from the epoch and global step you last left off.  
 However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
 
-Lightning will restore the session if you pass an experiment with the same version and there's a saved checkpoint.
+Lightning will restore the session if you pass a logger with the same version and there's a saved checkpoint.   
+``` {.python}
+from pytorch_lightning import Trainer
+from pytorch_lightning.logging import TestTubeLogger
 
-```{.python}
-from test_tube import Experiment
-
-exp = Experiment(version=a_previous_version_with_a_saved_checkpoint)
-trainer = Trainer(experiment=exp)
+logger = TestTubeLogger(
+    save_dir='./savepath',
+    version=1  # An existing version with a saved checkpoint
+)
+trainer = Trainer(
+    logger=logger,
+    default_save_path='./savepath'
+)
 
 # this fit call loads model weights and trainer state
 # the trainer continues seamlessly from where you left off

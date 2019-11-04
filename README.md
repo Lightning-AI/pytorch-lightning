@@ -130,7 +130,7 @@ class CoolSystem(pl.LightningModule):
     @pl.data_loader
     def test_dataloader(self):
         # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
 ```python
@@ -337,10 +337,10 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
 ## Examples   
-- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/domain_templates/gan.py)    
-- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples)      
+- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
+- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)      
 - [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
-- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)   
+- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
@@ -394,7 +394,7 @@ Nope. Please use anaconda or miniconda.
     # install latest Lightning version without upgrading deps    
     pip install -U --no-deps pytorch-lightning
     ```     
-- **PyTorch 1.2.0**
+- **PyTorch 1.2.0, 1.3.0,**
     Install via pip as normal   
 
 ## Custom installation

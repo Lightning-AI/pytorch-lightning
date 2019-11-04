@@ -1,11 +1,9 @@
-from os import environ
-
-from comet_ml import Experiment as CometExperiment
+try:
+    from comet_ml import Experiment as CometExperiment
+except ImportError:
+    raise ImportError('Missing comet_ml package.')
 
 from .base import LightningLoggerBase, rank_zero_only
-
-# needed to prevent ImportError and duplicated logs.
-environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
 
 class CometLogger(LightningLoggerBase):

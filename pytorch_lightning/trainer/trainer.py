@@ -16,6 +16,10 @@ from pytorch_lightning.trainer.callback_config_mixin import TrainerCallbackConfi
 from pytorch_lightning.trainer.data_loading_mixin import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.ddp_mixin import TrainerDDPMixin
 from pytorch_lightning.trainer.dp_mixin import TrainerDPMixin
+from pytorch_lightning.trainer.dp_mixin import (
+    parse_gpu_ids,
+    determine_root_gpu_device
+)
 from pytorch_lightning.trainer.evaluation_loop_mixin import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
@@ -76,7 +80,8 @@ class Trainer(TrainerIOMixin,
                  weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
-                 nb_sanity_val_steps=5):
+                 nb_sanity_val_steps=5,
+                 truncated_bptt_steps=None):
         """
 
         :param logger: Logger for experiment tracking
@@ -87,7 +92,8 @@ class Trainer(TrainerIOMixin,
         :param gradient_clip: int. 0 means don't clip. Deprecated.
         :param process_position: shown in the tqdm bar
         :param nb_gpu_nodes: number of GPU nodes
-        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] or '0,1'
+        :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
+            OR '-1' / -1 to use all available gpus
         :param log_gpu_memory: str. None, 'min_max', 'all'
         :param show_progress_bar: Bool. If true shows tqdm bar
         :param overfit_pct: float. uses this much of all datasets
@@ -111,6 +117,7 @@ class Trainer(TrainerIOMixin,
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
+        :param truncated_bptt_steps: int. Enables multiple backward passes for each batch.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
@@ -130,6 +137,8 @@ class Trainer(TrainerIOMixin,
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.truncated_bptt_steps = truncated_bptt_steps
+        self.shown_warnings = set()
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
@@ -183,8 +192,8 @@ class Trainer(TrainerIOMixin,
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = self.__parse_gpu_ids(gpus)
-        self.root_gpu = self.__set_root_gpu(self.data_parallel_device_ids)
+        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # distributed backend choice
         self.use_ddp = False
@@ -272,14 +281,8 @@ class Trainer(TrainerIOMixin,
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-
-        if type(gpus) is list:
+        else:
             return len(gpus)
-        if type(gpus) is int:
-            return gpus
-
-        m = 'gpus must be int, none or list of ints'
-        raise MisconfigurationException(m)
 
     @property
     def data_parallel(self):
@@ -293,9 +296,11 @@ class Trainer(TrainerIOMixin,
         """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
-            'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
+
+        if self.truncated_bptt_steps is not None:
+            tqdm_dict['split_nb'] = self.split_nb
 
         if self.logger is not None and self.logger.version is not None:
             tqdm_dict['v_nb'] = self.logger.version
@@ -411,9 +416,6 @@ class Trainer(TrainerIOMixin,
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
-        # init training constants
-        self.layout_bookeeping()
-
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
@@ -429,10 +431,6 @@ class Trainer(TrainerIOMixin,
         # restore training and model before hpc call
         self.restore_weights(model)
 
-        # progress bar init
-        if self.show_progress_bar:
-            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
-
         # when testing requested only run test and return
         if self.testing:
             self.run_evaluation(test=True)
@@ -442,11 +440,28 @@ class Trainer(TrainerIOMixin,
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
-            # reset progress_bar limit for sanity check
-            if self.show_progress_bar:
-                self.progress_bar.reset(self.nb_sanity_val_steps)
+            # init progress bars for validation sanity check
+            pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
+                             leave=False, position=2 * self.process_position,
+                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+            self.main_progress_bar = pbar
+            # dummy validation progress bar
+            self.val_progress_bar = tqdm.tqdm(disable=True)
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
+
+            # close progress bars
+            self.main_progress_bar.close()
+            self.val_progress_bar.close()
+
+        # init progress bar
+        pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
+                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+        self.main_progress_bar = pbar
+
+        # clear cache before training
+        if self.on_gpu:
+            torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
         self.train()
