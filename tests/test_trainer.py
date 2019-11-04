@@ -261,7 +261,7 @@ def test_model_checkpoint_options():
     for i in range(0, len(losses)):
         assert f'_ckpt_epoch_{i}.ckpt' in file_lists
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
     # -----------------
     # CASE K=0 (none)
@@ -274,7 +274,7 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
@@ -288,7 +288,7 @@ def test_model_checkpoint_options():
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
     assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
     # -----------------
     # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
@@ -307,7 +307,7 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_2.ckpt' in file_lists
     assert 'other_file.ckpt' in file_lists
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
     # -----------------
     # CASE K=4 (save all 4 models)
@@ -322,7 +322,7 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
     # -----------------
     # CASE K=3 (save the 2nd, 3rd, 4th model)
@@ -340,7 +340,7 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_0_v1.ckpt' in file_lists
     assert '_ckpt_epoch_0.ckpt' in file_lists
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 def test_model_freeze_unfreeze():
     testing_utils.reset_seed()
