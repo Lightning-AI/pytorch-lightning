@@ -239,7 +239,7 @@ def test_model_checkpoint_options():
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     # simulated losses
