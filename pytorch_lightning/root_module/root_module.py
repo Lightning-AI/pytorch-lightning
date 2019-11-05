@@ -1,4 +1,5 @@
 import warnings
+import collections
 from argparse import Namespace
 
 import torch
@@ -9,6 +10,7 @@ from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
+import logging
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -113,6 +115,35 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         # clear gradients
         optimizer.zero_grad()
 
+    def tbptt_split_batch(self, batch, split_size):
+        """
+        Return list of batch splits. Each split will be passed to forward_step to enable truncated
+        back propagation through time. The default implementation splits root level Tensors and
+        Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+        :return:
+        """
+        time_dims = [len(x[0]) for x in batch if isinstance(
+            x, torch.Tensor) or isinstance(x, collections.Sequence)]
+        assert len(time_dims) >= 1, "Unable to determine batch time dimension"
+        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
+
+        splits = []
+        for t in range(0, time_dims[0], split_size):
+            batch_split = []
+            for i, x in enumerate(batch):
+                if isinstance(x, torch.Tensor):
+                    split_x = x[:, t:t + split_size]
+                elif isinstance(x, collections.Sequence):
+                    split_x = [None] * len(x)
+                    for batch_idx in range(len(x)):
+                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+                batch_split.append(split_x)
+
+            splits.append(batch_split)
+
+        return splits
+
     @data_loader
     def tng_dataloader(self):
         """
@@ -210,12 +241,16 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def summarize(self, mode):
         model_summary = ModelSummary(self, mode=mode)
-        print(model_summary)
+        logging.info(model_summary)
 
     def freeze(self):
         for param in self.parameters():
             param.requires_grad = False
 
+        self.eval()
+
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
+
+        self.train()

@@ -60,8 +60,8 @@ Notice a few things about this flow:
 ###### Templates 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
-    - [Basic CPU, GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples) 
-    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)
+    - [Basic CPU, GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)
+    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)
 
 ###### Docs shortcuts
 - [LightningModule](LightningModule/RequiredTrainerInterface/)  
