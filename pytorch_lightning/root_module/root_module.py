@@ -246,6 +246,10 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         for param in self.parameters():
             param.requires_grad = False
 
+        self.eval()
+
     def unfreeze(self):
         for param in self.parameters():
             param.requires_grad = True
+
+        self.train()
