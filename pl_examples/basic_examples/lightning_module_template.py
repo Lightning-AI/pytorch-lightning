@@ -2,6 +2,7 @@
 Example template for defining a system
 """
 import os
+import logging
 from argparse import ArgumentParser
 from collections import OrderedDict
 
@@ -214,17 +215,17 @@ class LightningTemplateModel(LightningModule):
 
     @pl.data_loader
     def train_dataloader(self):
-        print('training data loader called')
+        logging.info('training data loader called')
         return self.__dataloader(train=True)
 
     @pl.data_loader
     def val_dataloader(self):
-        print('val data loader called')
+        logging.info('val data loader called')
         return self.__dataloader(train=False)
 
     @pl.data_loader
     def test_dataloader(self):
-        print('test data loader called')
+        logging.info('test data loader called')
         return self.__dataloader(train=False)
 
     @staticmethod
