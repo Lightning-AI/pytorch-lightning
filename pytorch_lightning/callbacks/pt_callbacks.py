@@ -1,6 +1,7 @@
 import os
 import shutil
-
+import logging
+import warnings
 import numpy as np
 
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
@@ -91,7 +92,7 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
 
         if mode not in ['auto', 'min', 'max']:
-            print('EarlyStopping mode %s is unknown, fallback to auto mode.' % mode)
+            logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -121,9 +122,10 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         stop_training = False
         if current is None:
-            print('Early stopping conditioned on metric `%s` '
-                  'which is not available. Available metrics are: %s' %
-                  (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
+            warnings.warn(
+                f'Early stopping conditioned on metric `{self.monitor}`'
+                f' which is not available. Available metrics are: {",".join(list(logs.keys()))}',
+                RuntimeWarning)
             stop_training = True
             return stop_training
 
@@ -141,7 +143,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
+            logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
 class ModelCheckpoint(Callback):
@@ -199,8 +201,9 @@ class ModelCheckpoint(Callback):
         self.best = 0
 
         if mode not in ['auto', 'min', 'max']:
-            print('ModelCheckpoint mode %s is unknown, '
-                  'fallback to auto mode.' % (mode), RuntimeWarning)
+            warnings.warn(
+                f'ModelCheckpoint mode {mode} is unknown, '
+                'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         if mode == 'min':
@@ -269,8 +272,9 @@ class ModelCheckpoint(Callback):
                 current = logs.get(self.monitor)
 
                 if current is None:
-                    print(f'Can save best model only with {self.monitor} available,'
-                          f' skipping.', RuntimeWarning)
+                    warnings.warn(
+                        f'Can save best model only with {self.monitor} available,'
+                        ' skipping.', RuntimeWarning)
                 else:
                     if self.check_monitor_top_k(current):
 
@@ -294,20 +298,38 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            print(f'\nEpoch {epoch:05d}: {self.monitor} reached',
-                                  f'{current} (best {self.best}), saving model to',
+<<<<<<< HEAD
+                            logging.info(f'\nEpoch {epoch:05d}: {self.monitor} reached',
+                                  f'{current:0.5f} (best {self.best:0.5f}), saving model to',
                                   f'{filepath} as top {self.save_top_k}')
                         self._save_model(filepath)
 
                     else:
                         if self.verbose > 0:
-                            print(f'\nEpoch {epoch:05d}: {self.monitor}',
+                            logging.info(f'\nEpoch {epoch:05d}: {self.monitor}',
                                   f'was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch, filepath))
+                    logging.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
                 self._save_model(filepath)
+=======
+                            logging.info(
+                                f'\nEpoch {epoch + 1:05d}: {self.monitor} improved'
+                                f' from {self.best:0.5f} to {current:0.5f},',
+                                f' saving model to {filepath}')
+                        self.best = current
+                        self.save_model(filepath, overwrite=True)
+
+                    else:
+                        if self.verbose > 0:
+                            logging.info(
+                                f'\nEpoch {epoch + 1:05d}: {self.monitor} did not improve')
+            else:
+                if self.verbose > 0:
+                    logging.info(f'\nEpoch {epoch + 1:05d}: saving model to {filepath}')
+                self.save_model(filepath, overwrite=False)
+>>>>>>> will/master
 
 
 class GradientAccumulationScheduler(Callback):
@@ -347,6 +369,6 @@ if __name__ == '__main__':
     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
     for i, loss in enumerate(losses):
         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-        print(loss)
+        logging.info(loss)
         if should_stop:
             break

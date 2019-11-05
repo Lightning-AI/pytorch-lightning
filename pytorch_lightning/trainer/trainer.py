@@ -4,6 +4,7 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 
 import os
 import warnings
+import logging
 
 import torch
 import torch.distributed as dist
@@ -148,7 +149,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            print(m)
+            logging.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -233,6 +234,9 @@ class Trainer(TrainerIOMixin,
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.init_amp(use_amp)
+
+        # set logging options
+        logging.basicConfig(level=logging.INFO)
 
     @property
     def slurm_job_id(self):
