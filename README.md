@@ -130,7 +130,7 @@ class CoolSystem(pl.LightningModule):
     @pl.data_loader
     def test_dataloader(self):
         # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
 ```python
@@ -164,8 +164,8 @@ trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorboard logs 
-print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
-print('and going to http://localhost:6006 on your browser')
+logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+logging.info('and going to http://localhost:6006 on your browser')
 ```    
 
 When you're all done you can even run the test set separately.   
@@ -341,7 +341,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
 - [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)      
 - [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
-- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)   
+- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    

@@ -4,6 +4,7 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 
 import os
 import warnings
+import logging
 
 import torch
 import torch.distributed as dist
@@ -148,7 +149,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            print(m)
+            logging.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -234,6 +235,9 @@ class Trainer(TrainerIOMixin,
         self.amp_level = amp_level
         self.init_amp(use_amp)
 
+        # set logging options
+        logging.basicConfig(level=logging.INFO)
+
     @property
     def slurm_job_id(self):
         try:
@@ -296,7 +300,6 @@ class Trainer(TrainerIOMixin,
         """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
-            'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
 
@@ -432,15 +435,8 @@ class Trainer(TrainerIOMixin,
         # restore training and model before hpc call
         self.restore_weights(model)
 
-        # progress bar init
-        if self.show_progress_bar:
-            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
-
         # when testing requested only run test and return
         if self.testing:
-            if self.show_progress_bar:
-                self.progress_bar.reset(self.nb_test_batches)
-
             self.run_evaluation(test=True)
             return
 
@@ -448,11 +444,24 @@ class Trainer(TrainerIOMixin,
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
-            # reset progress_bar limit for sanity check
-            if self.show_progress_bar:
-                self.progress_bar.reset(self.nb_sanity_val_steps)
+            # init progress bars for validation sanity check
+            pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
+                             leave=False, position=2 * self.process_position,
+                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+            self.main_progress_bar = pbar
+            # dummy validation progress bar
+            self.val_progress_bar = tqdm.tqdm(disable=True)
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
+
+            # close progress bars
+            self.main_progress_bar.close()
+            self.val_progress_bar.close()
+
+        # init progress bar
+        pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
+                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+        self.main_progress_bar = pbar
 
         # clear cache before training
         if self.on_gpu:

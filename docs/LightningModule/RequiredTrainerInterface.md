@@ -270,7 +270,7 @@ break out of the current training epoch early.
 def train_dataloader(self)
 ```
 Called by lightning during training loop. Make sure to use the @pl.data_loader decorator, this ensures not calling this function until the data are needed.   
-If you want to change the data during every epoch DON'T use the data_loader decorator.   
+If you want to change the data during every epoch DON'T use the data_loader decorator.
 
 ##### Return
 PyTorch DataLoader
