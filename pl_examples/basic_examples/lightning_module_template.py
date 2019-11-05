@@ -2,6 +2,7 @@
 Example template for defining a system
 """
 import os
+import logging
 from argparse import ArgumentParser
 from collections import OrderedDict
 

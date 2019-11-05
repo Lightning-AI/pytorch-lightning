@@ -60,7 +60,7 @@ class TrainerDDPMixin(object):
                 'To silence this warning set distributed_backend=ddp'
             warnings.warn(w)
 
-        logging.info('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
+        logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
     def configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False

@@ -164,7 +164,7 @@ trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorboard logs 
-logging.info('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
+logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
 logging.info('and going to http://localhost:6006 on your browser')
 ```    
 

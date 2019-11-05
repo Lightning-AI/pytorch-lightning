@@ -122,12 +122,12 @@ class TrainerIOMixin(object):
             cmd = 'scontrol requeue {}'.format(job_id)
 
             # requeue job
-            logging.info('\nrequeing job {}...'.format(job_id))
+            logging.info('\nrequeing job {job_id}...')
             result = call(cmd, shell=True)
 
             # print result text
             if result == 0:
-                logging.info('requeued exp ', job_id)
+                logging.info('requeued exp {job_id}')
             else:
                 logging.info('requeue failed...')
 
