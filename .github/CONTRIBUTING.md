@@ -47,4 +47,4 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 ## Coding Styleguide
 1. Test the code with flake8.
-2. F-strings are preferred.
+2. Use f-strings.
