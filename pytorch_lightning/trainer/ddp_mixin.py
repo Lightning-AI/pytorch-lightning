@@ -1,6 +1,7 @@
 import os
 import re
 import warnings
+import logging
 
 import torch
 import torch.distributed as dist
@@ -59,7 +60,7 @@ class TrainerDDPMixin(object):
                 'To silence this warning set distributed_backend=ddp'
             warnings.warn(w)
 
-        print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
+        logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
     def configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -107,7 +108,7 @@ class TrainerDDPMixin(object):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        logging.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
     def ddp_train(self, gpu_nb, model):
         """
