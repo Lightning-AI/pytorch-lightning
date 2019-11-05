@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 # DEFAULTS used by the Trainer
 checkpoint_callback = ModelCheckpoint(
     filepath=os.getcwd(),
-    save_top_k=-1,
+    save_top_k=1,
     verbose=True,
     monitor='val_loss',
     mode='min',
@@ -26,6 +26,19 @@ checkpoint_callback = ModelCheckpoint(
 
 trainer = Trainer(checkpoint_callback=checkpoint_callback)
 ```
+
+The `save_top_k` options works in the following ways:
+
+| save_top_k        | behavior |
+| --------   | -----  |
+| 0     | no models are saved |
+| -1        |  all models are saved  |
+|  k (k >= 1)        |  the best k models are saved  |
+
+
+Also, if `save_top_k` >= 2 and the callback is called multiple
+times inside an epoch, the name of the saved file will be
+appended with a version count starting with `v0`.
 
 ---
 
