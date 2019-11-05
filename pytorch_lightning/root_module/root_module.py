@@ -12,7 +12,10 @@ from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> 233a4fd07c41bd57d0239ff9b0598f53567a92f5
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
