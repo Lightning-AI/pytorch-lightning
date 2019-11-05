@@ -299,7 +299,6 @@ class TrainerTrainLoopMixin(object):
             output = self.model.training_step(*args)
 
         # allow any mode to define training_end
-        # dp and ddp2 need it but optional for all others
         if self.is_overriden('training_end'):
             model_ref = self.get_model()
             output = model_ref.training_end(output)
