@@ -8,7 +8,7 @@ For example: One benefit of the validation_step is that the user doesn't have to
 
 ## Lightning Design Principles   
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.    
-#### No PyTorch interference   
+#### No PyTorch Interference   
 We don't want to add any abstractions on top of pure PyTorch. This gives researchers all the control they need without having to learn yet another framework.    
 
 #### Simple Internal Code    
@@ -30,12 +30,12 @@ You shouldn't be afraid to upgrade Lightning :)
 #### Gain User Trust    
 As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.    
 
-## Contribution types    
+## Contribution Types    
 Currently looking for help implementing new features or adding bug fixes. 
 
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) we're in a good state there thanks to all the early contributors (even pre-beta release)!   
 
-## Bug fixes:  
+## Bug Fixes:  
 1. Submit a github issue.   
 2. Fix it.  
 3. Submit a PR! 
@@ -44,3 +44,7 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 1. Submit a github issue.   
 2. We'll agree on the feature scope.     
 3. Submit a PR! (with updated docs and tests 🙃).   
+
+## Coding Styleguide
+1. Test the code with flake8.
+2. Use f-strings.
