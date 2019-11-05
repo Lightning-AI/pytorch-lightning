@@ -186,12 +186,12 @@ class ModelCheckpoint(Callback):
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
         if (
-            save_best_only and
+            save_top_k and
             os.path.isdir(filepath) and
             len(os.listdir(filepath)) > 0
         ):
             warnings.warn(
-                f"Checkpoint directory {filepath} exists and is not empty with save_best_only=True."
+                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
 
