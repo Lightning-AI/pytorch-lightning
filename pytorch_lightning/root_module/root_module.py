@@ -10,6 +10,7 @@ from pytorch_lightning.root_module.hooks import ModelHooks
 from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
+import logging
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -240,7 +241,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def summarize(self, mode):
         model_summary = ModelSummary(self, mode=mode)
-        print(model_summary)
+        logging.info(model_summary)
 
     def freeze(self):
         for param in self.parameters():
