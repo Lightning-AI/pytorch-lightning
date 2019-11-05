@@ -30,6 +30,9 @@ You shouldn't be afraid to upgrade Lightning :)
 #### Gain User Trust    
 As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.    
 
+#### Interoperability  
+Have a favorite feature from other libraries like fast.ai or transformers? Those should just work with lightning as well. Grab your favorite model or learning rate scheduler from your favorite library and run it in Lightning.
+
 ## Contribution Types    
 Currently looking for help implementing new features or adding bug fixes. 
 

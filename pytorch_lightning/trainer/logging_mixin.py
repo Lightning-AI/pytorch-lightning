@@ -156,6 +156,10 @@ class TrainerLoggingMixin(object):
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], nb_gpus)
 
+            # do nothing when there's a scalar
+            elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:
+                pass
+
             # reduce only metrics that have the same nb of gpus
             elif output[k].size(0) == nb_gpus:
                 reduced = torch.mean(output[k])
