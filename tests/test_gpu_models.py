@@ -224,7 +224,7 @@ def test_multi_gpu_model_dp():
     testing_utils.run_gpu_model_test(trainer_options, model, hparams)
 
     # test memory helper functions
-    memory.get_gpu_memory_map()
+    memory.get_memory_profile('min_max')
 
 
 def test_ddp_sampler_error():

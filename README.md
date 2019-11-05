@@ -164,8 +164,8 @@ trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorboard logs 
-print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
-print('and going to http://localhost:6006 on your browser')
+logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+logging.info('and going to http://localhost:6006 on your browser')
 ```    
 
 When you're all done you can even run the test set separately.   
@@ -294,6 +294,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 #### Distributed training    
 
+- [Implement Your Own Distributed (DDP) training](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#init_ddp_connection)
 - [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
 - [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
 - [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)
