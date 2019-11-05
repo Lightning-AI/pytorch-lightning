@@ -277,15 +277,15 @@ class TrainerTrainLoopMixin(object):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
+        # pass hiddens if using tbptt
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
-        if self.use_ddp:
-            output = self.model(*args)
-        elif self.use_ddp2 or self.use_dp:
-            # in dp, allow model to use training_step and training_end
+        # distributed forward
+        if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.model(*args)
 
+        # single GPU forward
         elif self.single_gpu:
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
@@ -294,6 +294,7 @@ class TrainerTrainLoopMixin(object):
             args[0] = batch
             output = self.model.training_step(*args)
 
+        # CPU forward
         else:
             output = self.model.training_step(*args)
 
