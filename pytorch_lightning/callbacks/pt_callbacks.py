@@ -249,7 +249,7 @@ class ModelCheckpoint(Callback):
                     print('\nEpoch %05d: saving model to %s' % (epoch + 1, '{}/{}'.format(
                         self.filepath, filename)))
             if self.save_last:
-                filename = '{}_ckpt_epoch_{}.ckpt'.format(self.prefix, 'last')
+                filename = f'{self.prefix}_ckpt_epoch_{epoch + 1}_last.ckpt'
                 self.save_model(self.filepath, filename, overwrite=True)
                 if self.verbose > 0:
                     print('\nEpoch %05d: saving model to %s' % (epoch + 1, '{}/{}'.format(
@@ -261,7 +261,7 @@ class ModelCheckpoint(Callback):
                           ' skipping.' % (self.monitor), RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
-                        filename = '{}_ckpt_epoch_{}.ckpt'.format(self.prefix, 'best')
+                        filename = f'{self.prefix}_ckpt_epoch_{epoch + 1}_best.ckpt'
                         if self.verbose > 0:
                             print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
                                   ' saving model to %s'
