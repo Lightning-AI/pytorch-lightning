@@ -1,8 +1,10 @@
+import os
 import warnings
 import collections
 from argparse import Namespace
 
 import torch
+import torch.distributed as dist
 
 from pytorch_lightning.root_module.decorators import data_loader
 from pytorch_lightning.root_module.grads import GradInformation
@@ -11,6 +13,7 @@ from pytorch_lightning.root_module.memory import ModelSummary
 from pytorch_lightning.root_module.model_saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
 import logging
+from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
@@ -48,9 +51,18 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return loss, dict with metrics for tqdm
         :param called with batch, batch_nb
         additional: optimizer_i if multiple optimizers used
-        :return:
+        :return: dict with loss key and optional log, progress keys
+                if implementing training_step, return whatever you need in that step
         """
         raise NotImplementedError
+
+    def training_end(self, *args, **kwargs):
+        """
+        return loss, dict with metrics for tqdm
+        :param called with outputs of training_step
+        :return: dict with loss key and optional log, progress keys
+        """
+        pass
 
     def validation_step(self, *args, **kwargs):
         """
@@ -89,6 +101,72 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :return: dic_with_metrics for tqdm
         """
         pass
+
+    def configure_ddp(self, model, device_ids):
+        """
+        Override to init DDP in a different way or use your own wrapper.
+        Must return model.
+        :param model:
+        :param device_ids:
+        :return: DDP wrapped model
+        """
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
+        return model
+
+    def init_ddp_connection(self, proc_rank, world_size):
+        """
+        Connect all procs in the world using the env:// init
+        Use the first node as the root address
+        """
+
+        # use slurm job id for the port number
+        # guarantees unique ports across jobs from same grid search
+        try:
+            # use the last 4 numbers in the job id as the id
+            default_port = os.environ['SLURM_JOB_ID']
+            default_port = default_port[-4:]
+
+            # all ports should be in the 10k+ range
+            default_port = int(default_port) + 15000
+
+        except Exception as e:
+            default_port = 12910
+
+        # if user gave a port number, use that one instead
+        try:
+            default_port = os.environ['MASTER_PORT']
+        except Exception:
+            os.environ['MASTER_PORT'] = str(default_port)
+
+        # figure out the root node addr
+        try:
+            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+        except Exception:
+            root_node = '127.0.0.2'
+
+        root_node = self.trainer.resolve_root_node_address(root_node)
+        os.environ['MASTER_ADDR'] = root_node
+        dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
+
+    def configure_apex(self, amp, model, optimizers, amp_level):
+        """
+        Override to init AMP your own way
+        Must return a model and list of optimizers
+        :param amp:
+        :param model:
+        :param optimizers:
+        :param amp_level:
+        :return: Apex wrapped model and optimizers
+        """
+        model, optimizers = amp.initialize(
+            model, optimizers, opt_level=amp_level,
+        )
+
+        return model, optimizers
 
     def configure_optimizers(self):
         """

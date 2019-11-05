@@ -189,13 +189,6 @@ class TrainerTrainLoopMixin(object):
                     callback_metrics = output[3]
                     self.hiddens = output[4]
 
-                    # track metrics for callbacks
-                    all_callback_metrics.append(callback_metrics)
-
-                    # track progress bar metrics
-                    self.add_tqdm_metrics(progress_bar_metrics)
-                    all_log_metrics.append(log_metrics)
-
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
                     closure_loss = closure_loss / self.accumulate_grad_batches
@@ -203,6 +196,13 @@ class TrainerTrainLoopMixin(object):
                     # backward pass
                     model_ref = self.get_model()
                     model_ref.backward(self.use_amp, closure_loss, optimizer)
+
+                    # track metrics for callbacks
+                    all_callback_metrics.append(callback_metrics)
+
+                    # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
+                    all_log_metrics.append(log_metrics)
 
                     # insert after step hook
                     if self.is_function_implemented('on_after_backward'):
@@ -277,13 +277,15 @@ class TrainerTrainLoopMixin(object):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
+        # pass hiddens if using tbptt
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
-        if self.use_ddp or self.use_ddp2:
+        # distributed forward
+        if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.model(*args)
-        elif self.use_dp:
-            output = self.model(*args)
+
+        # single GPU forward
         elif self.single_gpu:
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
@@ -292,9 +294,16 @@ class TrainerTrainLoopMixin(object):
             args[0] = batch
             output = self.model.training_step(*args)
 
+        # CPU forward
         else:
             output = self.model.training_step(*args)
 
+        # allow any mode to define training_end
+        if self.is_overriden('training_end'):
+            model_ref = self.get_model()
+            output = model_ref.training_end(output)
+
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
+
         return output
