@@ -3,6 +3,7 @@ Generates a summary of a model's layers and dimensionality
 '''
 
 import gc
+import os
 import subprocess
 
 import numpy as np
@@ -199,19 +200,10 @@ def get_memory_profile(mode):
     memory_map = get_gpu_memory_map()
 
     if mode == 'min_max':
-        min_mem = 1000000
-        min_k = None
-        max_mem = 0
-        max_k = None
-        for k, v in memory_map:
-            if v > max_mem:
-                max_mem = v
-                max_k = k
-            if v < min_mem:
-                min_mem = v
-                min_k = k
+        min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
+        max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
 
-        memory_map = {min_k: min_mem, max_k: max_mem}
+        memory_map = {min_index: min_memory, max_index: max_memory}
 
     return memory_map
 
@@ -225,17 +217,18 @@ def get_gpu_memory_map():
         Keys are device ids as integers.
         Values are memory usage as integers in MB.
     """
-    result = subprocess.check_output(
+    result = subprocess.run(
         [
-            'nvidia-smi', '--query-gpu=memory.used',
-            '--format=csv,nounits,noheader'
-        ], encoding='utf-8')
+            'nvidia-smi',
+            '--query-gpu=memory.used',
+            '--format=csv,nounits,noheader',
+        ],
+        encoding='utf-8',
+        capture_output=True,
+        check=True)
     # Convert lines into a dictionary
-    gpu_memory = [int(x) for x in result.strip().split('\n')]
-    gpu_memory_map = {}
-    for k, v in zip(range(len(gpu_memory)), gpu_memory):
-        k = f'gpu_{k}'
-        gpu_memory_map[k] = v
+    gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
+    gpu_memory_map = {f'gpu_{index}': memory for index, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
