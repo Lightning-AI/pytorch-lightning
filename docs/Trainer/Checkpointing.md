@@ -33,7 +33,7 @@ The `save_top_k` options works in the following ways:
 | --------   | -----  |
 | 0     | no models are saved |
 | -1        |  all models are saved  |
-|  k (k >= 1)        |  the best k models are saved  |
+|  k >= 1        |  the best k models are saved  |
 
 
 Also, if `save_top_k` >= 2 and the callback is called multiple
