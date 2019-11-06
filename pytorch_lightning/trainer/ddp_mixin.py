@@ -50,7 +50,7 @@ class TrainerDDPMixin(object):
                 raise MisconfigurationException(m)
 
         # throw error to force user ddp or ddp2 choice
-        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
+        if nb_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
             w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
                 'To silence this warning set distributed_backend=ddp' \
