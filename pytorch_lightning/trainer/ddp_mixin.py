@@ -49,14 +49,13 @@ class TrainerDDPMixin(object):
                     'Trainer(distributed_backend=dp) (or ddp)'
                 raise MisconfigurationException(m)
 
-        # use ddp automatically if nb_gpu_nodes > 1
+        # throw error to force user ddp or ddp2 choice
         if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-            self.use_ddp = True
-            self.use_dp = False
             w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
-                'To silence this warning set distributed_backend=ddp'
-            warnings.warn(w)
+                'To silence this warning set distributed_backend=ddp' \
+                'or distributed_backend=ddp2'
+            raise MisconfigurationException(w)
 
         logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
