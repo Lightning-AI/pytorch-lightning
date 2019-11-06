@@ -172,7 +172,7 @@ class TrainerDDPMixin(object):
         if self.distributed_backend == 'ddp':
             device_ids = [gpu_nb]
         elif self.use_ddp2:
-            device_ids = None
+            device_ids = self.data_parallel_device_ids
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
