@@ -117,6 +117,7 @@ class TrainerDDPMixin(object):
         """
         # node rank using relative slurm id
         # otherwise default to node rank 0
+        print(os.environ["CUDA_VISIBLE_DEVICES"])
         try:
             node_id = os.environ['SLURM_NODEID']
             self.node_rank = int(node_id)

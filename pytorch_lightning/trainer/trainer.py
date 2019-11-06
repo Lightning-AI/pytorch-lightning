@@ -211,8 +211,6 @@ class Trainer(TrainerIOMixin,
         self.configure_slurm_ddp(nb_gpu_nodes)
 
         # nvidia setup
-        import pdb
-        pdb.set_trace()
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # can't init progress bar here because starting a new process
