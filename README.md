@@ -141,7 +141,7 @@ To use lightning do 2 things:
     # most basic trainer, uses good defaults
     trainer = Trainer()    
     trainer.fit(model)   
-    ```     
+    ```
 
 Trainer sets up a tensorboard logger, early stopping and checkpointing by default (you can modify all of them or
 use something other than tensorboard).   
@@ -166,7 +166,7 @@ trainer.fit(model)
 # view tensorboard logs 
 logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
 logging.info('and going to http://localhost:6006 on your browser')
-```    
+```
 
 When you're all done you can even run the test set separately.   
 ```python

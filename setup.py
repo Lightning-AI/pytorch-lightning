@@ -48,8 +48,8 @@ setup(
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests']),
 
-    #long_description=open('README.md', encoding='utf-8').read(),
-    #long_description_content_type='text/markdown',
+    long_description=open('README.md', encoding='utf-8').read(),
+    long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
 
