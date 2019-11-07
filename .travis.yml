@@ -49,15 +49,13 @@ cache: pip
 
 install:
   - pip install future  # needed for `builtins`
-  - sudo pip install tox twine==1.12.1
+  - sudo pip install tox
 
 script:
   # integration
   - tox --sitepackages
   - pip install --editable .
   #- python setup.py install --dry-run --user
-  - python setup.py sdist
-  - twine check dist/*
 
 after_success:
   - coverage report
