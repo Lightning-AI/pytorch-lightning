@@ -57,15 +57,15 @@ install:
 script:
   # integration
   - tox --sitepackages
-  - pip install --editable .
+  # try install and run
+  - virtualenv vEnv ; source vEnv/bin/activate ; pip install .
+  - cd .. ; python -c "import pytorch_lightning as tl ; print(tl.__version__)"
 
 after_success:
   - coverage report
   # disable auto coverage bc it isn't accurate since it misses gpu code.
   # to get coverage, run local and push results
   # - codecov
-  - virtualenv vEnv ; source vEnv/bin/activate ; python setup.py install
-  - cd .. ; python -c "import pytorch_ligntning as tl ; print(tl.__version__)"
 
 notifications:
   email: false
