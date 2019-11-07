@@ -16,16 +16,13 @@ language: python
 
 matrix:
   include:
-    - os: linux
-      dist: xenial  # Ubuntu 16.04
+    - dist: xenial  # Ubuntu 16.04
+      python: 3.5
+      env: TOXENV=py35
+    - dist: bionic  # Ubuntu 18.04
       python: 3.6
       env: TOXENV=py36
-    - os: linux
-      dist: bionic  # Ubuntu 18.04
-      python: 3.6
-      env: TOXENV=py36
-    - os: linux
-      dist: bionic  # Ubuntu 18.04
+    - dist: bionic  # Ubuntu 18.04
       python: 3.7
       env: TOXENV=py37
     - os: osx
@@ -52,7 +49,7 @@ cache: pip
 
 install:
   - pip install future  # needed for `builtins`
-  - sudo pip install tox twine
+  - sudo pip install tox twine==1.12.1
 
 script:
   # integration
