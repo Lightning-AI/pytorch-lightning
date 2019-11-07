@@ -33,20 +33,8 @@ NORMALIZE = transforms.Normalize(
 class ImageNetLightningModel(pl.LightningModule):
 
     def __init__(self, hparams):
-        """
-        Pass in parsed HyperOptArgumentParser to the model
-        :param hparams:
-        """
-        # init superclass
         super(ImageNetLightningModel, self).__init__()
         self.hparams = hparams
-
-        self.batch_size = hparams.batch_size
-
-        ## if you specify an example input, the summary will show input/output for each layer
-        #self.example_input_array = torch.rand(5, 3, 224, 224)
-
-        # build model
         self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
 
     def forward(self, images):
@@ -73,15 +61,12 @@ class ImageNetLightningModel(pl.LightningModule):
             'log': tqdm_dict
         })
 
-        # can also return just a scalar instead of a dict (return loss_val)
         return output
 
     def validation_step(self, batch, batch_idx):
         images, target = batch
         output = self.forward(images)
         loss_val = F.cross_entropy(output, target)
-
-        # acc
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
         # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
@@ -96,17 +81,14 @@ class ImageNetLightningModel(pl.LightningModule):
             'val_acc5': acc5,
         })
 
-        # can also return just a scalar instead of a dict (return loss_val)
         return output
 
     def validation_end(self, outputs):
-        # if returned a scalar from validation_step, outputs is a list of tensor scalars
-        # we return just the average in this case (if we want)
-        # return torch.stack(outputs).mean()
 
         val_loss_mean = 0
         val_acc1_mean = 0
         val_acc5_mean = 0
+
         for output in outputs:
             val_loss = output['val_loss']
 
@@ -149,10 +131,6 @@ class ImageNetLightningModel(pl.LightningModule):
             return res
 
     def configure_optimizers(self):
-        """
-        return whatever optimizers we want here
-        :return: list of optimizers
-        """
         optimizer = optim.SGD(
             self.parameters(),
             lr=self.hparams.lr,
