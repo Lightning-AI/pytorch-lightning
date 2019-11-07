@@ -1,7 +1,8 @@
 try:
     from test_tube import Experiment
 except ImportError:
-    raise ImportError('Missing test-tube package.')
+    raise ImportError('You want to use `test-tube` logger which is not installed yet,'
+                      ' please install it e.g. `pip install test-tube`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

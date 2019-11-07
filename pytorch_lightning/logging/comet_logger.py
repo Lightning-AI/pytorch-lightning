@@ -1,12 +1,14 @@
 try:
     from comet_ml import Experiment as CometExperiment
 except ImportError:
-    raise ImportError('Missing comet_ml package.')
+    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+                      ' please install it e.g. `pip install comet_ml`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
 
 class CometLogger(LightningLoggerBase):
+
     def __init__(self, *args, **kwargs):
         super(CometLogger, self).__init__()
         self.experiment = CometExperiment(*args, **kwargs)
