@@ -59,7 +59,7 @@ class TrainerCallbackConfigMixin(object):
             self.enable_early_stop = True
 
         # default logger
-        if logger == 'test-tube':
+        if isinstance(logger, str) and logger == 'test-tube':
             try:
                 from pytorch_lightning.logging import TestTubeLogger
                 logger = TestTubeLogger(
@@ -72,8 +72,8 @@ class TrainerCallbackConfigMixin(object):
                 logger = None
 
         # configure logger
-        if logger:
+        if isinstance(logger, object):
             self.logger = logger
             self.logger.rank = 0
-        elif logger is False:
+        else:
             self.logger = None
