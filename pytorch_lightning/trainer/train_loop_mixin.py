@@ -1,5 +1,4 @@
 import numpy as np
-import tqdm
 
 try:
     from apex import amp
@@ -67,8 +66,8 @@ class TrainerTrainLoopMixin(object):
                 val_loss = self.callback_metrics.get('val_loss')
                 if val_loss is None:
                     print('ReduceLROnPlateau conditioned on metric `%s` '
-                        'which is not available. Available metrics are: %s' %
-                        ('val_loss', ','.join(list(self.callback_metrics.keys()))), RuntimeWarning)
+                          'which is not available. Available metrics are: %s' %
+                          ('val_loss', ','.join(list(self.callback_metrics.keys()))), RuntimeWarning)
                     exit(-1)
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 

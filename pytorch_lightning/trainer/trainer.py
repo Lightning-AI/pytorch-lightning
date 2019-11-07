@@ -185,7 +185,7 @@ class Trainer(TrainerIOMixin,
         self.early_stop_callback = None
         self.configure_early_stopping(early_stop_callback, logger)
 
-        self.reduce_lr_on_plateau_scheduler= None
+        self.reduce_lr_on_plateau_scheduler = None
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
