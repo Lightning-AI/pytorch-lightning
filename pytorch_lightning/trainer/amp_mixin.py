@@ -4,6 +4,7 @@ try:
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+import logging
 
 
 class TrainerAMPMixin(object):
@@ -11,7 +12,7 @@ class TrainerAMPMixin(object):
     def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
-            print('using 16bit precision')
+            logging.info('using 16bit precision')
 
         if use_amp and not APEX_AVAILABLE:  # pragma: no cover
             msg = """

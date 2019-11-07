@@ -130,7 +130,7 @@ class CoolSystem(pl.LightningModule):
     @pl.data_loader
     def test_dataloader(self):
         # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
 ```
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
 ```python
@@ -164,8 +164,8 @@ trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
 trainer.fit(model)
 
 # view tensorboard logs 
-print('View tensorboard logs by running\ntensorboard --logdir %s' % os.getcwd())
-print('and going to http://localhost:6006 on your browser')
+logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+logging.info('and going to http://localhost:6006 on your browser')
 ```    
 
 When you're all done you can even run the test set separately.   
@@ -294,6 +294,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 #### Distributed training    
 
+- [Implement Your Own Distributed (DDP) training](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#init_ddp_connection)
 - [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
 - [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
 - [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)
@@ -337,10 +338,10 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
 ## Examples   
-- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/domain_templates/gan.py)    
-- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples)      
+- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
+- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)      
 - [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
-- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)   
+- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
@@ -416,4 +417,17 @@ If you can't wait for the next release, install the most up to date code with:
 You can also install any past release from this repository:
 ```bash
 pip install https://github.com/williamFalcon/pytorch-lightning/archive/0.4.4.zip --upgrade
+```
+
+## Bibtex
+If you want to cite the framework feel free to use this (but only if you loved it 😊):
+```
+@misc{Falcon2019,
+  author = {Falcon, W.A.},
+  title = {PyTorch Lightning},
+  year = {2019},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/williamFalcon/pytorch-lightning}}
+}
 ```

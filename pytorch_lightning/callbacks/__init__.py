@@ -1,8 +1,7 @@
-from .pt_callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateauScheduler, GradientAccumulationScheduler
+from .pt_callbacks import EarlyStopping, ModelCheckpoint, GradientAccumulationScheduler
 
 __all__ = [
     'EarlyStopping',
     'ModelCheckpoint',
-    'ReduceLROnPlateauScheduler',
     'GradientAccumulationScheduler',
 ]

@@ -4,12 +4,16 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from test_tube import HyperOptArgumentParser
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.datasets import MNIST
+try:
+    from test_tube import HyperOptArgumentParser
+except ImportError:
+    # TODO: this should be discussed and moved out of this package
+    raise ImportError('Missing test-tube package.')
 
 from pytorch_lightning import data_loader
 from pytorch_lightning.root_module.root_module import LightningModule

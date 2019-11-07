@@ -4,6 +4,7 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 
 import os
 import warnings
+import logging
 
 import torch
 import torch.distributed as dist
@@ -25,14 +26,7 @@ from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks_mixin import TrainerModelHooksMixin
 from pytorch_lightning.trainer.train_loop_mixin import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.trainer_io import TrainerIOMixin
-<<<<<<< HEAD
-from pytorch_lightning.pt_overrides.override_data_parallel import (
-    LightningDistributedDataParallel, LightningDataParallel)
-from pytorch_lightning.callbacks import GradientAccumulationScheduler, \
-    ReduceLROnPlateauScheduler, ModelCheckpoint, EarlyStopping
-=======
 from pytorch_lightning.trainer.training_tricks_mixin import TrainerTrainingTricksMixin
->>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -87,7 +81,8 @@ class Trainer(TrainerIOMixin,
                  weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
-                 nb_sanity_val_steps=5):
+                 nb_sanity_val_steps=5,
+                 truncated_bptt_steps=None):
         """
 
         :param logger: Logger for experiment tracking
@@ -123,6 +118,7 @@ class Trainer(TrainerIOMixin,
         :param weights_save_path: Bool. Where to save weights if on cluster
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
+        :param truncated_bptt_steps: int. Enables multiple backward passes for each batch.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
@@ -142,6 +138,8 @@ class Trainer(TrainerIOMixin,
         self.min_nb_epochs = min_nb_epochs
         self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
+        self.truncated_bptt_steps = truncated_bptt_steps
+        self.shown_warnings = set()
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
@@ -151,7 +149,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            print(m)
+            logging.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -185,40 +183,9 @@ class Trainer(TrainerIOMixin,
         # configure early stop callback
         # creates a default one if none passed in
         self.early_stop_callback = None
-<<<<<<< HEAD
-        if early_stop_callback is True:
-            self.early_stop_callback = EarlyStopping(
-                monitor='val_loss',
-                patience=3,
-                verbose=True,
-                mode='min'
-            )
-            self.enable_early_stop = True
-        elif not early_stop_callback:
-            self.early_stop_callback = None
-            self.enable_early_stop = False
-        else:
-            self.early_stop_callback = early_stop_callback
-            self.enable_early_stop = True
-        self.val_loss_drop_lr_callback = None
-
-        # configure logger
-        if logger is True:
-            # default logger
-            self.logger = TestTubeLogger(
-                save_dir=self.default_save_path,
-                version=self.slurm_job_id,
-                name='lightning_logs'
-            )
-            self.logger.rank = 0
-        elif logger is False:
-            self.logger = None
-        else:
-            self.logger = logger
-            self.logger.rank = 0
-=======
         self.configure_early_stopping(early_stop_callback, logger)
->>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
+
+        self.reduce_lr_on_plateau_scheduler= None
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
@@ -269,6 +236,9 @@ class Trainer(TrainerIOMixin,
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.init_amp(use_amp)
+
+        # set logging options
+        logging.basicConfig(level=logging.INFO)
 
     @property
     def slurm_job_id(self):
@@ -332,9 +302,11 @@ class Trainer(TrainerIOMixin,
         """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
-            'epoch': '{}'.format(self.current_epoch),
             'batch_nb': '{}'.format(self.batch_nb),
         }
+
+        if self.truncated_bptt_steps is not None:
+            tqdm_dict['split_nb'] = self.split_nb
 
         if self.logger is not None and self.logger.version is not None:
             tqdm_dict['v_nb'] = self.logger.version
@@ -406,202 +378,21 @@ class Trainer(TrainerIOMixin,
         # two lists
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers, self.val_loss_drop_lr_callback = self.configure_schedulers(lr_schedulers)
+            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
 
-<<<<<<< HEAD
     def configure_schedulers(self, schedulers):
         for i in range(len(schedulers)):
             if isinstance(schedulers[i], torch.optim.lr_scheduler.ReduceLROnPlateau):
-                val_loss_drop_lr_callback = ReduceLROnPlateauScheduler(schedulers.pop(i),
-                                                                       monitor='val_loss')
-                return schedulers, val_loss_drop_lr_callback
+                reduce_lr_on_plateau_scheduler = schedulers.pop(i)
+                return schedulers, reduce_lr_on_plateau_scheduler
         return schedulers, None
 
-    def __single_gpu_train(self, model):
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-
-        model.cuda(self.root_gpu)
-
-        if self.use_amp:
-            # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
-            self.optimizers = optimizers
-
-        self.__run_pretrain_routine(model)
-
-    def __dp_train(self, model):
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-
-        model.cuda(self.root_gpu)
-
-        # check for this bug (amp + dp + !01 doesn't work)
-        # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp:
-            m = f"""
-            Amp level {self.amp_level} with DataParallel is not supported.
-            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-            We recommend you switch to ddp if you want to use amp
-            """
-            raise MisconfigurationException(m)
-
-        # create list of device ids
-        device_ids = self.data_parallel_device_ids
-        if type(device_ids) is int:
-            device_ids = list(range(device_ids))
-
-        model = LightningDataParallel(model, device_ids=device_ids)
-
-        self.__run_pretrain_routine(model)
-
-    def ddp_train(self, gpu_nb, model):
-        """
-        Entry point into a DP thread
-        :param gpu_nb:
-        :param model:
-        :param cluster_obj:
-        :return:
-        """
-        # node rank using relative slurm id
-        # otherwise default to node rank 0
-        try:
-            node_id = os.environ['SLURM_NODEID']
-            self.node_rank = int(node_id)
-        except Exception:
-            self.node_rank = 0
-
-        # show progressbar only on progress_rank 0
-        self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
-
-        # determine which process we are and world size
-        if self.use_ddp:
-            self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
-            self.world_size = self.nb_gpu_nodes * self.num_gpus
-
-        elif self.use_ddp2:
-            self.proc_rank = self.node_rank
-            self.world_size = self.nb_gpu_nodes
-
-        # let the exp know the rank to avoid overwriting logs
-        if self.logger is not None:
-            self.logger.rank = self.proc_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        self.__init_tcp_connection()
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-
-        # MODEL
-        # copy model to each gpu
-        if self.distributed_backend == 'ddp':
-            torch.cuda.set_device(gpu_nb)
-        model.cuda(gpu_nb)
-
-        # set model properties before going into wrapper
-        model.trainer = self
-        model.on_gpu = self.on_gpu
-        model.use_dp = self.use_dp
-        model.use_ddp2 = self.use_ddp2
-        model.use_ddp = self.use_ddp
-        model.use_amp = self.use_amp
-        model.testing = self.testing
-
-        # override root GPU
-        self.root_gpu = gpu_nb
-
-        # AMP
-        # run through amp wrapper before going to distributed DP
-        if self.use_amp:
-            # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
-            self.optimizers = optimizers
-
-        # DDP2 uses all GPUs on the machine
-        if self.distributed_backend == 'ddp':
-            device_ids = [gpu_nb]
-        elif self.use_ddp2:
-            device_ids = None
-
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
-
-        # continue training routine
-        self.__run_pretrain_routine(model)
-
-    def __init_tcp_connection(self):
-        """
-        Connect all procs in the world using the env:// init
-        Use the first node as the root address
-        :param port:
-        :param tries:
-        :return:
-        """
-
-        # use slurm job id for the port number
-        # guarantees unique ports across jobs from same grid search
-        try:
-            # use the last 4 numbers in the job id as the id
-            default_port = os.environ['SLURM_JOB_ID']
-            default_port = default_port[-4:]
-
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
-
-        except Exception as e:
-            default_port = 12910
-
-        # if user gave a port number, use that one instead
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            os.environ['MASTER_PORT'] = str(default_port)
-
-        # figure out the root node addr
-        try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-        except Exception:
-            root_node = '127.0.0.2'
-
-        root_node = self.resolve_root_node_address(root_node)
-        os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
-
-    def resolve_root_node_address(self, root_node):
-        if '[' in root_node:
-            name = root_node.split('[')[0]
-            number = root_node.split(',')[0]
-            if '-' in number:
-                number = number.split('-')[0]
-
-            number = re.sub('[^0-9]', '', number)
-            root_node = name + number
-
-        return root_node
-
-    def __run_pretrain_routine(self, model):
-=======
     def run_pretrain_routine(self, model):
->>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
         """
         Sanity check a few things before starting actual training
         :param model:
@@ -639,9 +430,6 @@ class Trainer(TrainerIOMixin,
         # transfer data loaders from model
         self.get_dataloaders(ref_model)
 
-        # init training constants
-        self.layout_bookeeping()
-
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
@@ -657,10 +445,6 @@ class Trainer(TrainerIOMixin,
         # restore training and model before hpc call
         self.restore_weights(model)
 
-        # progress bar init
-        if self.show_progress_bar:
-            self.progress_bar = tqdm.tqdm(0, position=self.process_position)
-
         # when testing requested only run test and return
         if self.testing:
             self.run_evaluation(test=True)
@@ -670,154 +454,28 @@ class Trainer(TrainerIOMixin,
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
-            # reset progress_bar limit for sanity check
-            if self.show_progress_bar:
-                self.progress_bar.reset(self.nb_sanity_val_steps)
+            # init progress bars for validation sanity check
+            pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
+                             leave=False, position=2 * self.process_position,
+                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+            self.main_progress_bar = pbar
+            # dummy validation progress bar
+            self.val_progress_bar = tqdm.tqdm(disable=True)
 
             self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
 
-<<<<<<< HEAD
-        # ---------------------------
-        # CORE TRAINING LOOP
-        # ---------------------------
-        self.__train()
+            # close progress bars
+            self.main_progress_bar.close()
+            self.val_progress_bar.close()
 
-    def __train(self):
-        # run all epochs
-        for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
-                self.get_train_dataloader().sampler.set_epoch(epoch_nb)
+        # init progress bar
+        pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
+                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+        self.main_progress_bar = pbar
 
-            # get model
-            model = self.__get_model()
-
-            # update training progress in trainer and model
-            model.current_epoch = epoch_nb
-            self.current_epoch = epoch_nb
-            self.total_batches = self.nb_training_batches + self.nb_val_batches
-            self.batch_loss_value = 0  # accumulated grads
-
-            # limit the number of batches to 1 in fast_dev_run
-            if self.fast_dev_run:
-                self.total_batches = 1
-
-            # init progress_bar when requested
-            if self.show_progress_bar:
-                self.progress_bar.reset(self.total_batches)
-
-            # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
-
-            # -----------------
-            # RUN TNG EPOCH
-            # -----------------
-            self.run_training_epoch()
-
-            # update LR schedulers
-            if self.lr_schedulers is not None:
-                for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step(epoch=self.current_epoch)
-
-            # early stopping
-            met_min_epochs = epoch_nb > self.min_nb_epochs
-            if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
-                                                                    logs=self.callback_metrics)
-                # stop training
-                stop = should_stop and met_min_epochs
-                if stop:
-                    return
-
-        if self.logger is not None:
-            self.logger.finalize("success")
-
-    def run_training_epoch(self):
-        # before epoch hook
-        if self.__is_function_implemented('on_epoch_start'):
-            model = self.__get_model()
-            model.on_epoch_start()
-
-        # run epoch
-        for batch_nb, batch in enumerate(self.get_train_dataloader()):
-            self.batch_nb = batch_nb
-            self.global_step += 1
-
-            model = self.__get_model()
-            model.global_step = self.global_step
-
-            # stop when the flag is changed or we've gone past the amount
-            #  requested in the batches
-            self.total_batch_nb += 1
-            met_batch_limit = batch_nb > self.nb_training_batches
-            if met_batch_limit:
-                break
-
-            # ---------------
-            # RUN TRAIN STEP
-            # ---------------
-            output = self.__run_training_batch(batch, batch_nb)
-            batch_result, grad_norm_dic, batch_step_metrics = output
-            early_stop_epoch = batch_result == -1
-
-            # ---------------
-            # RUN VAL STEP
-            # ---------------
-            is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
-            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
-
-            # fast_dev_run always forces val checking after train batch
-            if self.fast_dev_run or should_check_val:
-                self.__run_evaluation(test=self.testing)
-
-            # when logs should be saved
-            should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
-            if should_save_log or self.fast_dev_run:
-                if self.proc_rank == 0 and self.logger is not None:
-                    self.logger.save()
-
-            # when metrics should be logged
-            should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
-            if should_log_metrics or self.fast_dev_run:
-
-                # logs user requested information to logger
-                self.__log_metrics(batch_step_metrics, grad_norm_dic)
-
-            # end epoch early
-            if early_stop_epoch or self.fast_dev_run:
-                break
-
-        # epoch end hook
-        if self.__is_function_implemented('on_epoch_end'):
-            model = self.__get_model()
-            model.on_epoch_end()
-
-    def __log_metrics(self, metrics, grad_norm_dic):
-        """
-        Logs the metric dict passed in
-        :param metrics:
-        :param grad_norm_dic:
-        :return:
-        """
-        # added metrics by Lightning for convenience
-        metrics['epoch'] = self.current_epoch
-
-        # add gpu memory
-        if self.on_gpu and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
-
-        # add norms
-        metrics.update(grad_norm_dic)
-
-        # turn all tensors to scalars
-        scalar_metrics = self.__metrics_to_scalars(metrics)
-=======
         # clear cache before training
         if self.on_gpu:
             torch.cuda.empty_cache()
->>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86
 
         # CORE TRAINING LOOP
         self.train()
@@ -827,357 +485,4 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             self.fit(model)
         else:
-<<<<<<< HEAD
-            self.__run_evaluation(test=True)
-
-    def __metrics_to_scalars(self, metrics):
-        new_metrics = {}
-        for k, v in metrics.items():
-            if isinstance(v, torch.Tensor):
-                v = v.item()
-
-            if type(v) is dict:
-                v = self.__metrics_to_scalars(v)
-
-            new_metrics[k] = v
-
-        return new_metrics
-
-    def __log_vals_blacklist(self):
-        """avoid logging some vals lightning uses to maintain state"""
-        blacklist = {'batch_nb', 'v_nb', 'gpu'}
-        return blacklist
-
-    def transfer_batch_to_gpu(self, batch, gpu_id):
-        # base case: object can be directly moved using `cuda` or `to`
-        if callable(getattr(batch, 'cuda', None)):
-            return batch.cuda(gpu_id)
-
-        elif callable(getattr(batch, 'to', None)):
-            return batch.to(torch.device('cuda', gpu_id))
-
-        # when list
-        elif isinstance(batch, list):
-            for i, x in enumerate(batch):
-                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
-            return batch
-
-        # when tuple
-        elif isinstance(batch, tuple):
-            batch = list(batch)
-            for i, x in enumerate(batch):
-                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
-            return tuple(batch)
-
-        # when dict
-        elif isinstance(batch, dict):
-            for k, v in batch.items():
-                batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
-
-            return batch
-
-        # nothing matches, return the value as is without transform
-        return batch
-
-    def __training_forward(self, batch, batch_nb, opt_idx):
-        """
-        Handle forward for each training case (distributed, single gpu, etc...)
-        :param batch:
-        :param batch_nb:
-        :return:
-        """
-        # ---------------
-        # FORWARD
-        # ---------------
-        # enable not needing to add opt_idx to training_step
-        args = [batch, batch_nb]
-        if len(self.optimizers) > 1:
-            args.append(opt_idx)
-
-        if self.use_ddp or self.use_ddp2:
-            output = self.model(*args)
-        elif self.use_dp:
-            output = self.model(*args)
-        elif self.single_gpu:
-            gpu_id = 0
-            if type(self.data_parallel_device_ids) is list:
-                gpu_id = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(batch, gpu_id)
-            args[0] = batch
-            output = self.model.training_step(*args)
-
-        else:
-            output = self.model.training_step(*args)
-
-        # format and reduce outputs accordingly
-        output = self.__process_output(output, train=True)
-        loss, progress_bar_metrics, log_metrics, callback_metrics = output
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
-
-    def __process_output(self, output, train=False):
-        """
-        Reduces output according to the training mode.
-        Separates loss from logging and tqdm metrics
-        :param output:
-        :return:
-        """
-        # ---------------
-        # EXTRACT CALLBACK KEYS
-        # ---------------
-        # all keys not progress_bar or log are candidates for callbacks
-        callback_metrics = {}
-        for k, v in output.items():
-            if k not in ['progress_bar', 'log']:
-                callback_metrics[k] = v
-
-        if train and self.use_dp or self.use_ddp2:
-            nb_gpus = self.num_gpus
-            callback_metrics = reduce_distributed_output(callback_metrics, nb_gpus)
-
-        for k, v in callback_metrics.items():
-            callback_metrics[k] = v.item()
-
-        # ---------------
-        # EXTRACT PROGRESS BAR KEYS
-        # ---------------
-        try:
-            progress_output = output['progress_bar']
-
-            # reduce progress metrics for tqdm when using dp
-            if train and self.use_dp or self.use_ddp2:
-                nb_gpus = self.num_gpus
-                progress_output = reduce_distributed_output(progress_output, nb_gpus)
-
-            progress_bar_metrics = progress_output
-        except Exception:
-            progress_bar_metrics = {}
-
-        # ---------------
-        # EXTRACT LOGGING KEYS
-        # ---------------
-        # extract metrics to log to experiment
-        try:
-            log_output = output['log']
-
-            # reduce progress metrics for tqdm when using dp
-            if train and(self.use_dp or self.use_ddp2):
-                nb_gpus = self.num_gpus
-                log_output = reduce_distributed_output(log_output, nb_gpus)
-
-            log_metrics = log_output
-        except Exception:
-            log_metrics = {}
-
-        # ---------------
-        # EXTRACT LOSS
-        # ---------------
-        # if output dict doesn't have the keyword loss
-        # then assume the output=loss if scalar
-        loss = None
-        if train:
-            try:
-                loss = output['loss']
-            except Exception:
-                if type(output) is torch.Tensor:
-                    loss = output
-                else:
-                    raise RuntimeError(
-                        'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    )
-
-            # when using dp need to reduce the loss
-            if self.use_dp or self.use_ddp2:
-                loss = reduce_distributed_output(loss, self.num_gpus)
-
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
-
-    def __clip_gradients(self):
-        if self.gradient_clip_val > 0:
-            model = self.__get_model()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
-
-    def __print_nan_grads(self):
-        model = self.__get_model()
-        for param in model.parameters():
-            if torch.isnan(param.grad.float()).any():
-                print(param, param.grad)
-
-    def __run_training_batch(self, batch, batch_nb):
-        # track grad norms
-        grad_norm_dic = {}
-
-        # track all metrics for callbacks
-        all_callback_metrics = []
-
-        # track metrics to log
-        all_log_metrics = []
-
-        if batch is None:
-            return 0, grad_norm_dic
-
-        # hook
-        if self.__is_function_implemented('on_batch_start'):
-            model_ref = self.__get_model()
-            response = model_ref.on_batch_start(batch)
-
-            if response == -1:
-                return -1, grad_norm_dic
-
-        if self.show_progress_bar:
-            self.progress_bar.update(1)
-
-        # call training_step once per optimizer
-        for opt_idx, optimizer in enumerate(self.optimizers):
-
-            # wrap the forward step in a closure so second order methods work
-            def optimizer_closure():
-                # forward pass
-                output = self.__training_forward(batch, batch_nb, opt_idx)
-                closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
-
-                # track metrics for callbacks
-                all_callback_metrics.append(callback_metrics)
-
-                # track progress bar metrics
-                self.__add_tqdm_metrics(progress_bar_metrics)
-                all_log_metrics.append(log_metrics)
-
-                # accumulate loss
-                # (if accumulate_grad_batches = 1 no effect)
-                closure_loss = closure_loss / self.accumulate_grad_batches
-
-                # backward pass
-                if self.use_amp:
-                    with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    closure_loss.backward()
-
-                # insert after step hook
-                if self.__is_function_implemented('on_after_backward'):
-                    model_ref = self.__get_model()
-                    model_ref.on_after_backward()
-
-                return closure_loss
-
-            # calculate loss
-            loss = optimizer_closure()
-
-            # nan grads
-            if self.print_nan_grads:
-                self.__print_nan_grads()
-
-            # track total loss for logging (avoid mem leaks)
-            self.batch_loss_value += loss.item()
-
-            # gradient update with accumulated gradients
-            if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
-
-                # track gradient norms when requested
-                if batch_nb % self.row_log_interval == 0:
-                    if self.track_grad_norm > 0:
-                        model = self.__get_model()
-                        grad_norm_dic = model.grad_norm(self.track_grad_norm)
-
-                # clip gradients
-                self.__clip_gradients()
-
-                # calls .step(), .zero_grad()
-                # override function to modify this behavior
-                model = self.__get_model()
-                model.optimizer_step(self.current_epoch, batch_nb,
-                                     optimizer, opt_idx, optimizer_closure)
-
-                # calculate running loss for display
-                self.running_loss.append(self.batch_loss_value)
-                self.batch_loss_value = 0
-                self.avg_loss = np.mean(self.running_loss[-100:])
-
-                # update progress bar
-                if self.show_progress_bar:
-                    # add model specific metrics
-                    tqdm_metrics = self.__training_tqdm_dict
-                    self.progress_bar.set_postfix(**tqdm_metrics)
-
-        # activate batch end hook
-        if self.__is_function_implemented('on_batch_end'):
-            model = self.__get_model()
-            model.on_batch_end()
-
-        # collapse all metrics into one dict
-        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
-
-        # track all metrics for callbacks
-        self.callback_metrics = {k: v for d in all_callback_metrics for k, v in d.items()}
-
-        return 0, grad_norm_dic, all_log_metrics
-
-    def __run_evaluation(self, test=False):
-        # when testing make sure user defined a test step
-        can_run_test_step = False
-        if test:
-            can_run_test_step = self.__is_overriden('test_step') and self.__is_overriden('test_end')
-            if not can_run_test_step:
-                m = '''You called .test() without defining a test step or test_end.
-                Please define and try again'''
-                raise MisconfigurationException(m)
-
-        # validate only if model has validation_step defined
-        # test only if test_step or validation_step are defined
-        run_val_step = self.__is_overriden('validation_step')
-
-        if run_val_step or can_run_test_step:
-
-            # hook
-            model = self.__get_model()
-            model.on_pre_performance_check()
-
-            # select dataloaders
-            dataloaders = self.get_val_dataloaders()
-            max_batches = self.nb_val_batches
-
-            # calculate max batches to use
-            if test:
-                dataloaders = self.get_test_dataloaders()
-                max_batches = self.nb_test_batches
-
-            # cap max batches to 1 when using fast_dev_run
-            if self.fast_dev_run:
-                max_batches = 1
-
-            # run evaluation
-            eval_results = self.evaluate(self.model,
-                                         dataloaders,
-                                         max_batches,
-                                         test)
-            _, prog_bar_metrics, log_metrics, callback_metrics = self.__process_output(eval_results)
-
-            # add metrics to prog bar
-            self.__add_tqdm_metrics(prog_bar_metrics)
-
-            # log metrics
-            self.__log_metrics(log_metrics, {})
-
-            # track metrics for callbacks
-            self.callback_metrics = callback_metrics
-
-            # hook
-            model.on_post_performance_check()
-
-            if self.show_progress_bar:
-                # add model specific metrics
-                tqdm_metrics = self.__training_tqdm_dict
-                self.progress_bar.set_postfix(**tqdm_metrics)
-
-            # reduce learning rate based on metrics
-            if self.val_loss_drop_lr_callback is not None and not test:
-                self.val_loss_drop_lr_callback.on_epoch_end(epoch=self.current_epoch,
-                                                            logs=callback_metrics)
-
-        # model checkpointing
-        if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
-                                                  logs=self.callback_metrics)
-=======
             self.run_evaluation(test=True)
->>>>>>> 28c3bcb0c018d9fadf82085939c8392bf2e1fa86

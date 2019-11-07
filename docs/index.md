@@ -60,8 +60,8 @@ Notice a few things about this flow:
 ###### Templates 
 1. [MNIST LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#minimal-example) 
 2. [Trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)
-    - [Basic CPU, GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/basic_examples) 
-    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/examples/multi_node_examples)
+    - [Basic CPU, GPU Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)
+    - [GPU cluster Trainer Template](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)
 
 ###### Docs shortcuts
 - [LightningModule](LightningModule/RequiredTrainerInterface/)  
@@ -99,6 +99,7 @@ Notice a few things about this flow:
 
 ###### Distributed training    
 
+- [Implement Your Own Distributed (DDP) training](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#init_ddp_connection)
 - [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
 - [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
 - [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)

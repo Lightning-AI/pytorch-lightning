@@ -1,7 +1,10 @@
 from logging import getLogger
 from time import time
 
-import mlflow
+try:
+    import mlflow
+except ImportError:
+    raise ImportError('Missing mlflow package.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
@@ -57,3 +60,11 @@ class MLFlowLogger(LightningLoggerBase):
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
+
+    @property
+    def name(self):
+        return self.experiment_name
+
+    @property
+    def version(self):
+        return self._run_id

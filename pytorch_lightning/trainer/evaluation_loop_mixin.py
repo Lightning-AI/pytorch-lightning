@@ -1,4 +1,5 @@
 import torch
+import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -52,8 +53,11 @@ class TrainerEvaluationLoopMixin(object):
                 dl_outputs.append(output)
 
                 # batch done
-                if self.show_progress_bar:
-                    self.progress_bar.update(1)
+                if test:
+                    self.test_progress_bar.update(1)
+                else:
+                    self.val_progress_bar.update(1)
+                    self.main_progress_bar.update(1)
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -110,12 +114,22 @@ class TrainerEvaluationLoopMixin(object):
             if self.fast_dev_run:
                 max_batches = 1
 
+            # init validation or test progress bar
+            # main progress bar will already be closed when testing so initial position is free
+            position = 2 * self.process_position + (not test)
+            desc = 'Testing' if test else 'Validating'
+            pbar = tqdm.tqdm(desc=desc, total=max_batches, leave=test, position=position,
+                             disable=not self.show_progress_bar, dynamic_ncols=True,
+                             unit='batch')
+            setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
+
             # run evaluation
             eval_results = self.evaluate(self.model,
                                          dataloaders,
                                          max_batches,
                                          test)
-            _, prog_bar_metrics, log_metrics, callback_metrics = self.process_output(eval_results)
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
+                eval_results)
 
             # add metrics to prog bar
             self.add_tqdm_metrics(prog_bar_metrics)
@@ -129,10 +143,16 @@ class TrainerEvaluationLoopMixin(object):
             # hook
             model.on_post_performance_check()
 
-            if self.show_progress_bar:
-                # add model specific metrics
-                tqdm_metrics = self.training_tqdm_dict
-                self.progress_bar.set_postfix(**tqdm_metrics)
+            # add model specific metrics
+            tqdm_metrics = self.training_tqdm_dict
+            if not test:
+                self.main_progress_bar.set_postfix(**tqdm_metrics)
+
+            # close progress bar
+            if test:
+                self.test_progress_bar.close()
+            else:
+                self.val_progress_bar.close()
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:

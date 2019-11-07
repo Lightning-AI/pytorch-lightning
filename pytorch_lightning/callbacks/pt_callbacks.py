@@ -1,6 +1,7 @@
 import os
 import shutil
-
+import logging
+import warnings
 import numpy as np
 
 from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
@@ -91,7 +92,7 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
 
         if mode not in ['auto', 'min', 'max']:
-            print('EarlyStopping mode %s is unknown, fallback to auto mode.' % mode)
+            logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -121,9 +122,10 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         stop_training = False
         if current is None:
-            print('Early stopping conditioned on metric `%s` '
-                  'which is not available. Available metrics are: %s' %
-                  (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
+            warnings.warn(
+                f'Early stopping conditioned on metric `{self.monitor}`'
+                f' which is not available. Available metrics are: {",".join(list(logs.keys()))}',
+                RuntimeWarning)
             stop_training = True
             return stop_training
 
@@ -141,36 +143,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            print('Epoch %05d: early stopping' % (self.stopped_epoch + 1))
-
-
-class ReduceLROnPlateauScheduler(Callback):
-    """
-    Reduce learning rate when the monitored metric has stopped improving.
-    Wrapper for torch.optim.lr_schuduler.ReduceLROnPlateau learning rate
-    schedulers.
-
-    # Arguments
-        schedulers: list of torch.optim.lr_scheduler.ReduceLROnPlateau
-        monitor: quantity to be monitored.
-    """
-
-    def __init__(self, scheduler, monitor='val_loss'):
-        super(ReduceLROnPlateauScheduler, self).__init__()
-
-        self.monitor = monitor
-        self.scheduler = scheduler
-
-    def on_epoch_end(self, epoch, logs=None):
-        current = logs.get(self.monitor)
-        stop_training = False
-        if current is None:
-            print('ReduceLROnPlateau conditioned on metric `%s` '
-                  'which is not available. Available metrics are: %s' %
-                  (self.monitor, ','.join(list(logs.keys()))), RuntimeWarning)
-            exit(-1)
-
-        self.scheduler.step(current, epoch=epoch)
+            logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
 class ModelCheckpoint(Callback):
@@ -206,6 +179,16 @@ class ModelCheckpoint(Callback):
                  save_best_only=True, save_weights_only=False,
                  mode='auto', period=1, prefix=''):
         super(ModelCheckpoint, self).__init__()
+        if (
+            save_best_only and
+            os.path.isdir(filepath) and
+            len(os.listdir(filepath)) > 0
+        ):
+            warnings.warn(
+                f"Checkpoint directory {filepath} exists and is not empty with save_best_only=True."
+                "All files in this directory will be deleted when a checkpoint is saved!"
+            )
+
         self.monitor = monitor
         self.verbose = verbose
         self.filepath = filepath
@@ -216,8 +199,9 @@ class ModelCheckpoint(Callback):
         self.prefix = prefix
 
         if mode not in ['auto', 'min', 'max']:
-            print('ModelCheckpoint mode %s is unknown, '
-                  'fallback to auto mode.' % (mode), RuntimeWarning)
+            warnings.warn(
+                f'ModelCheckpoint mode {mode} is unknown, '
+                'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         if mode == 'min':
@@ -261,25 +245,26 @@ class ModelCheckpoint(Callback):
             if self.save_best_only:
                 current = logs.get(self.monitor)
                 if current is None:
-                    print('Can save best model only with %s available,'
-                          ' skipping.' % (self.monitor), RuntimeWarning)
+                    warnings.warn(
+                        f'Can save best model only with {self.monitor} available,'
+                        ' skipping.', RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
-                                  ' saving model to %s'
-                                  % (epoch + 1, self.monitor, self.best,
-                                     current, filepath))
+                            logging.info(
+                                f'\nEpoch {epoch + 1:05d}: {self.monitor} improved'
+                                f' from {self.best:0.5f} to {current:0.5f},'
+                                f' saving model to {filepath}')
                         self.best = current
                         self.save_model(filepath, overwrite=True)
 
                     else:
                         if self.verbose > 0:
-                            print('\nEpoch %05d: %s did not improve' %
-                                  (epoch + 1, self.monitor))
+                            logging.info(
+                                f'\nEpoch {epoch + 1:05d}: {self.monitor} did not improve')
             else:
                 if self.verbose > 0:
-                    print('\nEpoch %05d: saving model to %s' % (epoch + 1, filepath))
+                    logging.info(f'\nEpoch {epoch + 1:05d}: saving model to {filepath}')
                 self.save_model(filepath, overwrite=False)
 
 
@@ -320,6 +305,6 @@ if __name__ == '__main__':
     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
     for i, loss in enumerate(losses):
         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-        print(loss)
+        logging.info(loss)
         if should_stop:
             break

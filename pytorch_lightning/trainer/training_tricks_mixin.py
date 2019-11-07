@@ -1,5 +1,5 @@
 import torch
-
+import logging
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 
@@ -14,7 +14,7 @@ class TrainerTrainingTricksMixin(object):
         model = self.get_model()
         for param in model.parameters():
             if torch.isnan(param.grad.float()).any():
-                print(param, param.grad)
+                logging.info(param, param.grad)
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
         self.accumulate_grad_batches = None
