@@ -73,11 +73,12 @@ To use lightning do 2 things:
 **WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.    
 ```python
 import os
+
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
+from torchvision import transforms
 
 import pytorch_lightning as pl
 
