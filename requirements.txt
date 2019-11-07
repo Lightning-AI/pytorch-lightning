@@ -5,4 +5,5 @@ numpy==1.16.4
 torch>=1.2.0
 torchvision>=0.3.0
 pandas>=0.20.3
+test-tube>=0.6.9
 # future>=0.17.1  # required for buildins in setup.py
