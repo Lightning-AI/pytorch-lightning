@@ -242,9 +242,10 @@ def main(hparams):
         distributed_backend=hparams.distributed_backend,
         use_amp=hparams.use_16bit
     )
-    trainer.fit(model)
     if hparams.evaluate:
         trainer.run_evaluation()
+    else:
+        trainer.fit(model)
 
 
 if __name__ == '__main__':
