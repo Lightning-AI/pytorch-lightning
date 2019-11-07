@@ -8,4 +8,4 @@ check-manifest
 test_tube
 mlflow
 comet_ml
-twine
+twine==1.13.0
