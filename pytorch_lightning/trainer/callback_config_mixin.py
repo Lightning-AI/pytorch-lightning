@@ -68,7 +68,7 @@ class TrainerCallbackConfigMixin(object):
                     version=self.slurm_job_id,
                     name='lightning_logs'
                 )
-            except:
+            except Exception:
                 logging.exception('Fail to create Test-tube default logger.')
                 logger = None
 
