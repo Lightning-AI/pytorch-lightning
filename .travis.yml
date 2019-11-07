@@ -16,9 +16,16 @@ language: python
 
 matrix:
   include:
-#    - dist: xenial  # Ubuntu 16.04
-#      python: 3.5
-#      env: TOXENV=py35
+    - dist: xenial  # Ubuntu 16.04
+      python: 3.6
+      env:
+        - TOXENV=py36
+        - MIN_REQUIREMENTS=1
+    - dist: xenial  # Ubuntu 16.04
+      python: 3.7
+      env:
+        - TOXENV=py37
+        - MIN_REQUIREMENTS=1
     - dist: bionic  # Ubuntu 18.04
       python: 3.6
       env: TOXENV=py36
@@ -48,8 +55,17 @@ matrix:
 cache: pip
 
 install:
-  - pip install future  # needed for `builtins`
+  - pip install Cython future  # needed for `builtins`
   - sudo pip install tox
+
+before_script:
+  # rewrite all minimal requirements as strict
+  - if [[ "${MIN_REQUIREMENTS}" == "1" ]]; then
+      python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements-ci.txt', 'w').write(req)" ;
+    else
+      cp requirements.txt requirements-ci.txt ;
+    fi
+  - pip install -r requirements-ci.txt -U
 
 script:
   # integration
