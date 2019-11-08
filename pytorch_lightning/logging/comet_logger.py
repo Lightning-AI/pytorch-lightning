@@ -1,16 +1,16 @@
-from torch import is_tensor
-
 try:
     from comet_ml import Experiment as CometExperiment
     from comet_ml.papi import API
 except ImportError:
     raise ImportError('Missing comet_ml package.')
 
+from torch import is_tensor
+
 from .base import LightningLoggerBase, rank_zero_only
 
 
 class CometLogger(LightningLoggerBase):
-    def __init__(self, api_key, workspace, rest_api_key=None, project_name=None, experiment_name=None, *args, **kwargs):
+    def __init__(self, api_key, workspace, rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
         """
         Initialize a Comet.ml logger
 
@@ -22,12 +22,14 @@ class CometLogger(LightningLoggerBase):
         :param rest_api_key: Optional. Rest API key found in Comet.ml settings. This is used to determine version number
         :param experiment_name: Optional. String representing the name for this particular experiment on Comet.ml
         """
-        super(CometLogger, self).__init__()
-        self.experiment = CometExperiment(api_key=api_key, workspace=workspace, project_name=project_name, *args,
-                                          **kwargs)
+        super().__init__()
+        self._experiment = None
 
+        self.api_key = api_key
         self.workspace = workspace
         self.project_name = project_name
+
+        self._kwargs = kwargs
 
         if rest_api_key is not None:
             # Comet.ml rest API, used to determine version number
@@ -42,6 +44,20 @@ class CometLogger(LightningLoggerBase):
                 self._set_experiment_name(experiment_name)
             except TypeError as e:
                 print("Failed to set experiment name for comet.ml logger")
+
+    @property
+    def experiment(self):
+        if self._experiment is not None:
+            return self._experiment
+
+        self._experiment = CometExperiment(
+            api_key=self.api_key,
+            workspace=self.workspace,
+            project_name=self.project_name,
+            **self._kwargs
+        )
+
+        return self._experiment
 
     @rank_zero_only
     def log_hyperparams(self, params):

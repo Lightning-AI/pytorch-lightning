@@ -95,7 +95,7 @@ comet_logger = CometLogger(
     workspace=os.environ["COMET_WORKSPACE"],
     project_name="default_project", # Optional
     rest_api_key=os.environ["COMET_REST_KEY"], # Optional
-    experiment_name = "default" # Optional
+    experiment_name="default" # Optional
 )
 trainer = Trainer(logger=comet_logger)
 ```
