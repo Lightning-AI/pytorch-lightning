@@ -8,6 +8,7 @@ except ImportError:
 
 from .base import LightningLoggerBase, rank_zero_only
 
+
 class CometLogger(LightningLoggerBase):
     def __init__(self, api_key, workspace, rest_api_key=None, project_name=None, experiment_name=None, *args, **kwargs):
         """
@@ -22,7 +23,8 @@ class CometLogger(LightningLoggerBase):
         :param experiment_name: Optional. String representing the name for this particular experiment on Comet.ml
         """
         super(CometLogger, self).__init__()
-        self.experiment = CometExperiment(api_key=api_key, workspace=workspace, project_name=project_name, *args, **kwargs)
+        self.experiment = CometExperiment(api_key=api_key, workspace=workspace, project_name=project_name, *args,
+                                          **kwargs)
 
         self.workspace = workspace
         self.project_name = project_name
@@ -74,4 +76,3 @@ class CometLogger(LightningLoggerBase):
             return nb_exps + 1
         else:
             return None
-
