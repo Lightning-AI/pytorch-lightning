@@ -1,14 +1,17 @@
+"""
+This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
+"""
 import argparse
-from collections import OrderedDict
 import os
 import random
+from collections import OrderedDict
 
 import torch
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
+import torch.nn.parallel
+import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-import torch.nn.functional as F
 import torch.utils.data
 import torch.utils.data.distributed
 
@@ -37,9 +40,6 @@ class ImageNetLightningModel(pl.LightningModule):
         self.hparams = hparams
         self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
 
-    def forward(self, images):
-        return self.model(images)
-
     def training_step(self, batch, batch_idx):
         images, target = batch
         output = self.model(images)
@@ -65,7 +65,7 @@ class ImageNetLightningModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         images, target = batch
-        output = self.forward(images)
+        output = self.model(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
@@ -205,8 +205,6 @@ class ImageNetLightningModel(pl.LightningModule):
         parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
                             metavar='W', help='weight decay (default: 1e-4)',
                             dest='weight_decay')
-        parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                            help='evaluate model on validation set')
         parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                             help='use pre-trained model')
         return parser
@@ -224,6 +222,8 @@ def get_args():
                                help='supports three options dp, ddp, ddp2')
     parent_parser.add_argument('--use_16bit', dest='use_16bit', action='store_true',
                                help='if true uses 16 bit precision')
+    parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+                               help='evaluate model on validation set')
 
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     return parser.parse_args()
