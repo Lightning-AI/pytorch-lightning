@@ -92,7 +92,10 @@ from pytorch_lightning.logging import CometLogger
 # arguments made to CometLogger are passed on to the comet_ml.Experiment class
 comet_logger = CometLogger(
     api_key=os.environ["COMET_KEY"],
-    workspace=os.environ["COMET_KEY"],
+    workspace=os.environ["COMET_WORKSPACE"],
+    project_name="default_project", # Optional
+    rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+    experiment_name = "default" # Optional
 )
 trainer = Trainer(logger=comet_logger)
 ```

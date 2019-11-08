@@ -58,6 +58,10 @@ class CometLogger(LightningLoggerBase):
     def finalize(self, status):
         self.experiment.end()
 
+    @rank_zero_only
+    def _set_experiment_name(self, experiment_name):
+        self.experiment.set_name(experiment_name)
+
     @property
     def name(self):
         return self.experiment.project_name
@@ -71,5 +75,3 @@ class CometLogger(LightningLoggerBase):
         else:
             return None
 
-    def _set_experiment_name(self, experiment_name):
-        self.experiment.set_name(experiment_name)
