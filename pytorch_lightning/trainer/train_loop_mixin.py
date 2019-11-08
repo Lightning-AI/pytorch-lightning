@@ -1,4 +1,5 @@
 import numpy as np
+import tqdm
 
 try:
     from apex import amp
@@ -23,21 +24,32 @@ class TrainerTrainLoopMixin(object):
             # update training progress in trainer and model
             model.current_epoch = epoch_nb
             self.current_epoch = epoch_nb
-            self.total_batches = self.nb_training_batches + self.nb_val_batches
+
+            # val can be checked multiple times in epoch
+            is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
+            val_checks_per_epoch = self.nb_training_batches // self.val_check_batch
+            val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
+
+            # total batches includes multiple val checks
+            self.total_batches = (self.nb_training_batches +
+                                  self.nb_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
 
-            # limit the number of batches to 1 in fast_dev_run
             if self.fast_dev_run:
-                self.total_batches = 1
-
-            # init progress_bar when requested
-            if self.show_progress_bar:
+                # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
+                nb_iterations = 2
+            elif self.is_iterable_train_dataloader:
+                # for iterable train loader, the progress bar never ends
+                nb_iterations = None
+            else:
                 nb_iterations = self.total_batches
 
-                #  for iterable train loader, the progress bar never ends
-                if self.is_iterable_train_dataloader:
-                    nb_iterations = float('inf')
-                self.progress_bar.reset(nb_iterations)
+            # reset progress bar
+            # .reset() doesn't work on disabled progress bar so we should check
+            if not self.main_progress_bar.disable:
+                self.main_progress_bar.reset(nb_iterations)
+            desc = f'Epoch {epoch_nb + 1}' if not self.is_iterable_train_dataloader else ''
+            self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
             self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
@@ -60,7 +72,10 @@ class TrainerTrainLoopMixin(object):
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
+                    self.main_progress_bar.close()
                     return
+
+        self.main_progress_bar.close()
 
         if self.logger is not None:
             self.logger.finalize("success")
@@ -150,84 +165,94 @@ class TrainerTrainLoopMixin(object):
             if response == -1:
                 return -1, grad_norm_dic
 
-        if self.show_progress_bar:
-            self.progress_bar.update(1)
+        splits = [batch]
+        if self.truncated_bptt_steps is not None:
+            model_ref = self.get_model()
+            splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
-        # call training_step once per optimizer
-        for opt_idx, optimizer in enumerate(self.optimizers):
+        self.hiddens = None
+        for split_nb, split_batch in enumerate(splits):
+            self.split_nb = split_nb
 
-            # wrap the forward step in a closure so second order methods work
-            def optimizer_closure():
-                # forward pass
-                output = self.training_forward(batch, batch_nb, opt_idx)
-                closure_loss, progress_bar_metrics, log_metrics, callback_metrics = output
+            # call training_step once per optimizer
+            for opt_idx, optimizer in enumerate(self.optimizers):
 
-                # track metrics for callbacks
-                all_callback_metrics.append(callback_metrics)
+                # wrap the forward step in a closure so second order methods work
+                def optimizer_closure():
+                    # forward pass
+                    output = self.training_forward(
+                        split_batch, batch_nb, opt_idx, self.hiddens)
 
-                # track progress bar metrics
-                self.add_tqdm_metrics(progress_bar_metrics)
-                all_log_metrics.append(log_metrics)
+                    closure_loss = output[0]
+                    progress_bar_metrics = output[1]
+                    log_metrics = output[2]
+                    callback_metrics = output[3]
+                    self.hiddens = output[4]
 
-                # accumulate loss
-                # (if accumulate_grad_batches = 1 no effect)
-                closure_loss = closure_loss / self.accumulate_grad_batches
+                    # accumulate loss
+                    # (if accumulate_grad_batches = 1 no effect)
+                    closure_loss = closure_loss / self.accumulate_grad_batches
 
-                # backward pass
-                # done in hook so user can overwrite if needed
-                model_ref = self.get_model()
-                model_ref.backward(self.use_amp, closure_loss, optimizer)
-
-                # insert after step hook
-                if self.is_function_implemented('on_after_backward'):
+                    # backward pass
                     model_ref = self.get_model()
-                    model_ref.on_after_backward()
+                    model_ref.backward(self.use_amp, closure_loss, optimizer)
 
-                return closure_loss
+                    # track metrics for callbacks
+                    all_callback_metrics.append(callback_metrics)
 
-            # calculate loss
-            loss = optimizer_closure()
+                    # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
+                    all_log_metrics.append(log_metrics)
 
-            # nan grads
-            if self.print_nan_grads:
-                self.print_nan_gradients()
+                    # insert after step hook
+                    if self.is_function_implemented('on_after_backward'):
+                        model_ref = self.get_model()
+                        model_ref.on_after_backward()
 
-            # track total loss for logging (avoid mem leaks)
-            self.batch_loss_value += loss.item()
+                    return closure_loss
 
-            # gradient update with accumulated gradients
-            if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+                # calculate loss
+                loss = optimizer_closure()
 
-                # track gradient norms when requested
-                if batch_nb % self.row_log_interval == 0:
-                    if self.track_grad_norm > 0:
-                        model = self.get_model()
-                        grad_norm_dic = model.grad_norm(self.track_grad_norm)
+                # nan grads
+                if self.print_nan_grads:
+                    self.print_nan_gradients()
 
-                # clip gradients
-                self.clip_gradients()
+                # track total loss for logging (avoid mem leaks)
+                self.batch_loss_value += loss.item()
 
-                # calls .step(), .zero_grad()
-                # override function to modify this behavior
-                model = self.get_model()
-                model.optimizer_step(self.current_epoch, batch_nb,
-                                     optimizer, opt_idx, optimizer_closure)
+                # gradient update with accumulated gradients
+                if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
 
-                # calculate running loss for display
-                self.running_loss.append(self.batch_loss_value)
-                self.batch_loss_value = 0
-                self.avg_loss = np.mean(self.running_loss[-100:])
+                    # track gradient norms when requested
+                    if batch_nb % self.row_log_interval == 0:
+                        if self.track_grad_norm > 0:
+                            model = self.get_model()
+                            grad_norm_dic = model.grad_norm(
+                                self.track_grad_norm)
 
-                # update progress bar
-                if self.show_progress_bar:
-                    # add model specific metrics
-                    tqdm_metrics = self.training_tqdm_dict
-                    self.progress_bar.set_postfix(**tqdm_metrics)
+                    # clip gradients
+                    self.clip_gradients()
+
+                    # calls .step(), .zero_grad()
+                    # override function to modify this behavior
+                    model = self.get_model()
+                    model.optimizer_step(self.current_epoch, batch_nb,
+                                         optimizer, opt_idx, optimizer_closure)
+
+                    # calculate running loss for display
+                    self.running_loss.append(self.batch_loss_value)
+                    self.batch_loss_value = 0
+                    self.avg_loss = np.mean(self.running_loss[-100:])
 
         # activate batch end hook
         if self.is_function_implemented('on_batch_end'):
             model = self.get_model()
             model.on_batch_end()
+
+        # update progress bar
+        self.main_progress_bar.update(1)
+        self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
@@ -237,7 +262,7 @@ class TrainerTrainLoopMixin(object):
 
         return 0, grad_norm_dic, all_log_metrics
 
-    def training_forward(self, batch, batch_nb, opt_idx):
+    def training_forward(self, batch, batch_nb, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
@@ -252,10 +277,15 @@ class TrainerTrainLoopMixin(object):
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 
-        if self.use_ddp or self.use_ddp2:
+        # pass hiddens if using tbptt
+        if self.truncated_bptt_steps is not None:
+            args.append(hiddens)
+
+        # distributed forward
+        if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.model(*args)
-        elif self.use_dp:
-            output = self.model(*args)
+
+        # single GPU forward
         elif self.single_gpu:
             gpu_id = 0
             if type(self.data_parallel_device_ids) is list:
@@ -264,10 +294,16 @@ class TrainerTrainLoopMixin(object):
             args[0] = batch
             output = self.model.training_step(*args)
 
+        # CPU forward
         else:
             output = self.model.training_step(*args)
 
+        # allow any mode to define training_end
+        if self.is_overriden('training_end'):
+            model_ref = self.get_model()
+            output = model_ref.training_end(output)
+
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
-        loss, progress_bar_metrics, log_metrics, callback_metrics = output
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
+
+        return output

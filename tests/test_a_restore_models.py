@@ -1,4 +1,5 @@
 import os
+import logging
 
 import pytest
 import torch
@@ -44,7 +45,7 @@ def test_running_test_pretrained_model_ddp():
     result = trainer.fit(model)
 
     exp = logger.experiment
-    print(os.listdir(exp.get_data_path(exp.name, exp.version)))
+    logging.info(os.listdir(exp.get_data_path(exp.name, exp.version)))
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'

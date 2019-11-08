@@ -1,3 +1,5 @@
+import os
+
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging import TestTubeLogger
 
@@ -12,14 +14,15 @@ class TrainerCallbackConfigMixin(object):
         """
         if self.checkpoint_callback is True:
             # init a default one
-            if isinstance(self.logger, TestTubeLogger):
-                ckpt_path = '{}/{}/version_{}/{}'.format(
+            if self.logger is not None:
+                ckpt_path = os.path.join(
                     self.default_save_path,
-                    self.logger.experiment.name,
-                    self.logger.experiment.version,
-                    'checkpoints')
+                    self.logger.name,
+                    f'version_{self.logger.version}',
+                    "checkpoints"
+                )
             else:
-                ckpt_path = self.default_save_path
+                ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path

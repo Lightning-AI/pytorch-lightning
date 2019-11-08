@@ -64,7 +64,7 @@ class TrainerLoggingMixin(object):
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
         for k, v in output.items():
-            if k not in ['progress_bar', 'log']:
+            if k not in ['progress_bar', 'log', 'hiddens']:
                 callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
@@ -126,6 +126,11 @@ class TrainerLoggingMixin(object):
             if self.use_dp or self.use_ddp2:
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
+        # ---------------
+        # EXTRACT HIDDEN
+        # ---------------
+        hiddens = output.get('hiddens')
+
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
@@ -135,7 +140,7 @@ class TrainerLoggingMixin(object):
             if isinstance(v, torch.Tensor):
                 callback_metrics[k] = v.item()
 
-        return loss, progress_bar_metrics, log_metrics, callback_metrics
+        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
     def reduce_distributed_output(self, output, nb_gpus):
         if nb_gpus <= 1:
@@ -150,6 +155,10 @@ class TrainerLoggingMixin(object):
             # recurse on nested dics
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], nb_gpus)
+
+            # do nothing when there's a scalar
+            elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:
+                pass
 
             # reduce only metrics that have the same nb of gpus
             elif output[k].size(0) == nb_gpus:

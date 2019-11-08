@@ -1,11 +1,10 @@
 import os
 import re
 import warnings
+import logging
 
 import torch
-import torch.distributed as dist
 
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -50,16 +49,15 @@ class TrainerDDPMixin(object):
                     'Trainer(distributed_backend=dp) (or ddp)'
                 raise MisconfigurationException(m)
 
-        # use ddp automatically if nb_gpu_nodes > 1
-        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-            self.use_ddp = True
-            self.use_dp = False
+        # throw error to force user ddp or ddp2 choice
+        if nb_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
             w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
-                'To silence this warning set distributed_backend=ddp'
-            warnings.warn(w)
+                'To silence this warning set distributed_backend=ddp' \
+                'or distributed_backend=ddp2'
+            raise MisconfigurationException(w)
 
-        print('gpu available: {}, used: {}'.format(torch.cuda.is_available(), self.on_gpu))
+        logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
     def configure_slurm_ddp(self, nb_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -107,7 +105,7 @@ class TrainerDDPMixin(object):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        print(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        logging.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
     def ddp_train(self, gpu_nb, model):
         """
@@ -144,7 +142,8 @@ class TrainerDDPMixin(object):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.__init_tcp_connection()
+        model.trainer = self
+        model.init_ddp_connection(self.proc_rank, self.world_size)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -166,63 +165,20 @@ class TrainerDDPMixin(object):
         # run through amp wrapper before going to distributed DP
         if self.use_amp:
             # An example
-            model, optimizers = amp.initialize(
-                model, self.optimizers, opt_level=self.amp_level,
-            )
+            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
             device_ids = [gpu_nb]
         elif self.use_ddp2:
-            device_ids = None
+            device_ids = self.data_parallel_device_ids
 
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
+        # allow user to configure ddp
+        model = model.configure_ddp(model, device_ids)
 
         # continue training routine
         self.run_pretrain_routine(model)
-
-    def __init_tcp_connection(self):
-        """
-        Connect all procs in the world using the env:// init
-        Use the first node as the root address
-        :param port:
-        :param tries:
-        :return:
-        """
-
-        # use slurm job id for the port number
-        # guarantees unique ports across jobs from same grid search
-        try:
-            # use the last 4 numbers in the job id as the id
-            default_port = os.environ['SLURM_JOB_ID']
-            default_port = default_port[-4:]
-
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
-
-        except Exception as e:
-            default_port = 12910
-
-        # if user gave a port number, use that one instead
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            os.environ['MASTER_PORT'] = str(default_port)
-
-        # figure out the root node addr
-        try:
-            root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-        except Exception:
-            root_node = '127.0.0.2'
-
-        root_node = self.resolve_root_node_address(root_node)
-        os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group("nccl", rank=self.proc_rank, world_size=self.world_size)
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:

@@ -151,3 +151,116 @@ def on_after_backward(self):
             name = k
             self.logger.experiment.add_histogram(tag=name, values=grads, global_step=self.trainer.global_step)
 ```
+
+---
+#### tbptt_split_batch
+Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`. Each returned batch split is passed separately to training_step(...).
+
+```python
+def tbptt_split_batch(self, batch, split_size):
+  splits = []
+  for t in range(0, time_dims[0], split_size):
+      batch_split = []
+      for i, x in enumerate(batch):
+          if isinstance(x, torch.Tensor):
+              split_x = x[:, t:t + split_size]
+          elif isinstance(x, collections.Sequence):
+              split_x = [None] * len(x)
+              for batch_idx in range(len(x)):
+                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+          batch_split.append(split_x)
+
+      splits.append(batch_split)
+
+  return splits
+```
+
+---
+#### configure_apex
+Overwrite to define your own Apex implementation init.
+
+```python
+def configure_apex(self, amp, model, optimizers, amp_level):
+    """
+    Override to init AMP your own way
+    Must return a model and list of optimizers
+    :param amp:
+    :param model:
+    :param optimizers:
+    :param amp_level:
+    :return: Apex wrapped model and optimizers
+    """
+    model, optimizers = amp.initialize(
+        model, optimizers, opt_level=amp_level,
+    )
+
+    return model, optimizers
+```
+
+---
+#### configure_ddp 
+Overwrite to define your own DDP implementation init.
+The only requirement is that:
+1. On a validation batch the call goes to model.validation_step.   
+2. On a training batch the call goes to model.training_step.   
+3. On a testing batch, the call goes to model.test_step
+
+```python
+def configure_ddp(self, model, device_ids):
+    """
+    Override to init DDP in a different way or use your own wrapper.
+    Must return model.
+    :param model:
+    :param device_ids:
+    :return: DDP wrapped model
+    """
+    # Lightning DDP simply routes to test_step, val_step, etc...
+    model = LightningDistributedDataParallel(
+        model,
+        device_ids=device_ids,
+        find_unused_parameters=True
+    )
+    return model
+```
+
+---   
+#### init_ddp_connection   
+Override to init DDP in your own way.   
+
+```python
+def init_ddp_connection(self):
+    """
+    Connect all procs in the world using the env:// init
+    Use the first node as the root address
+    """
+
+    # use slurm job id for the port number
+    # guarantees unique ports across jobs from same grid search
+    try:
+        # use the last 4 numbers in the job id as the id
+        default_port = os.environ['SLURM_JOB_ID']
+        default_port = default_port[-4:]
+
+        # all ports should be in the 10k+ range
+        default_port = int(default_port) + 15000
+
+    except Exception as e:
+        default_port = 12910
+
+    # if user gave a port number, use that one instead
+    try:
+        default_port = os.environ['MASTER_PORT']
+    except Exception:
+        os.environ['MASTER_PORT'] = str(default_port)
+
+    # figure out the root node addr
+    try:
+        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+    except Exception:
+        root_node = '127.0.0.2'
+
+    root_node = self.trainer.resolve_root_node_address(root_node)
+    os.environ['MASTER_ADDR'] = root_node
+    dist.init_process_group('nccl', rank=self.proc_rank, world_size=self.world_size)
+```
