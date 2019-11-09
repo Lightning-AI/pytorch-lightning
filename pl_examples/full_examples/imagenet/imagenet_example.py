@@ -85,32 +85,23 @@ class ImageNetLightningModel(pl.LightningModule):
 
     def validation_end(self, outputs):
 
-        val_loss_mean = 0
-        val_acc1_mean = 0
-        val_acc5_mean = 0
+        tqdm_dict = {}
 
-        for output in outputs:
-            val_loss = output['val_loss']
+        for metric_name in ["val_loss", "val_acc1", "val_acc5"]:
+            metric_total = 0
 
-            # reduce manually when using dp
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_loss = torch.mean(val_loss)
-            val_loss_mean += val_loss
+            for output in outputs:
+                metric_value = output[metric_name]
 
-            # reduce manually when using dp
-            val_acc1 = output['val_acc1']
-            val_acc5 = output['val_acc5']
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_acc1 = torch.mean(val_acc1)
-                val_acc5 = torch.mean(val_acc5)
-            val_acc1_mean += val_acc1
-            val_acc5_mean += val_acc5
+                # reduce manually when using dp
+                if self.trainer.use_dp or self.trainer.use_ddp2:
+                    metric_value = torch.mean(metric_value)
 
-        val_loss_mean /= len(outputs)
-        val_acc1_mean /= len(outputs)
-        val_acc5_mean /= len(outputs)
-        tqdm_dict = {'val_loss': val_loss_mean, 'val_acc1': val_acc1_mean, 'val_acc5': val_acc5_mean}
-        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': val_loss_mean}
+                metric_total += metric_value
+
+            tqdm_dict[metric_name] = metric_total / len(outputs)
+
+        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': tqdm_dict["val_loss"]}
         return result
 
     @classmethod
@@ -212,15 +203,15 @@ class ImageNetLightningModel(pl.LightningModule):
 
 def get_args():
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('data', metavar='DIR',
+    parent_parser.add_argument('--data-path', metavar='DIR', type=str,
                                help='path to dataset')
-    parent_parser.add_argument('--save_path', metavar='DIR', default=".",
+    parent_parser.add_argument('--save-path', metavar='DIR', default=".", type=str,
                                help='path to save output')
     parent_parser.add_argument('--gpus', type=int, default=1,
                                help='how many gpus')
-    parent_parser.add_argument('--distributed_backend', type=str, default='dp',
+    parent_parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
                                help='supports three options dp, ddp, ddp2')
-    parent_parser.add_argument('--use_16bit', dest='use_16bit', action='store_true',
+    parent_parser.add_argument('--use-16bit', dest='use-16bit', action='store_true',
                                help='if true uses 16 bit precision')
     parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                                help='evaluate model on validation set')
