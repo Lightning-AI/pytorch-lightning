@@ -1,3 +1,5 @@
+from logging import getLogger
+
 try:
     from comet_ml import Experiment as CometExperiment
     from comet_ml.papi import API
@@ -8,19 +10,22 @@ from torch import is_tensor
 
 from .base import LightningLoggerBase, rank_zero_only
 
+logger = getLogger(__name__)
+
 
 class CometLogger(LightningLoggerBase):
     def __init__(self, api_key, workspace, rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
         """
         Initialize a Comet.ml logger
 
-        :param api_key: API key, found on Comet.ml
-        :param workspace: Name of workspace for this user
-        :param project_name: Optional. Send your experiment to a specific project.
+        :param str api_key: API key, found on Comet.ml
+        :param str workspace: Name of workspace for this user
+        :param str project_name: Optional. Send your experiment to a specific project.
         Otherwise will be sent to Uncategorized Experiments.
         If project name does not already exists Comet.ml will create a new project.
-        :param rest_api_key: Optional. Rest API key found in Comet.ml settings. This is used to determine version number
-        :param experiment_name: Optional. String representing the name for this particular experiment on Comet.ml
+        :param str rest_api_key: Optional. Rest API key found in Comet.ml settings.
+        This is used to determine version number
+        :param str experiment_name: Optional. String representing the name for this particular experiment on Comet.ml
         """
         super().__init__()
         self._experiment = None
@@ -43,7 +48,7 @@ class CometLogger(LightningLoggerBase):
             try:
                 self._set_experiment_name(experiment_name)
             except TypeError as e:
-                print("Failed to set experiment name for comet.ml logger")
+                logger.exception("Failed to set experiment name for comet.ml logger")
 
     @property
     def experiment(self):

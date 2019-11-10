@@ -137,6 +137,72 @@ def test_mlflow_pickle():
     testing_utils.clear_save_dir()
 
 
+def test_comet_logger():
+    """
+    verify that basic functionality of Comet.ml logger works
+    """
+    reset_seed()
+
+    try:
+        from pytorch_lightning.logging import CometLogger
+    except ModuleNotFoundError:
+        return
+
+    hparams = testing_utils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # API key for dummy Comet.ml account
+    logger = CometLogger(
+        api_key="KnmgASRHHyxWXOpwUfgrAFz8C",
+        project_name="general",
+        workspace="dummy-test",
+    )
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        train_percent_check=0.01,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    print('result finished')
+    assert result == 1, "Training failed"
+
+
+def test_comet_pickle():
+    """
+    verify that pickling trainer with mlflow logger works
+    """
+    reset_seed()
+
+    try:
+        from pytorch_lightning.logging import CometLogger
+    except ModuleNotFoundError:
+        return
+
+    hparams = testing_utils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # API key for dummy Comet.ml account
+    logger = CometLogger(
+        api_key="KnmgASRHHyxWXOpwUfgrAFz8C",
+        project_name="general",
+        workspace="dummy-test"
+    )
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
+
+
 def test_custom_logger(tmpdir):
 
     class CustomLogger(LightningLoggerBase):
