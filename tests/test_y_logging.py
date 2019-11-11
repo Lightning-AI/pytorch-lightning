@@ -151,9 +151,12 @@ def test_comet_logger():
     hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    # API key for dummy Comet.ml account
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    comet_dir = os.path.join(root_dir, "cometruns")
+
+    # We test CometLogger in offline mode with local saves
     logger = CometLogger(
-        api_key="KnmgASRHHyxWXOpwUfgrAFz8C",
+        save_dir=comet_dir,
         project_name="general",
         workspace="dummy-test",
     )
@@ -170,10 +173,12 @@ def test_comet_logger():
     print('result finished')
     assert result == 1, "Training failed"
 
+    testing_utils.clear_save_dir()
+
 
 def test_comet_pickle():
     """
-    verify that pickling trainer with mlflow logger works
+    verify that pickling trainer with comet logger works
     """
     reset_seed()
 
@@ -185,11 +190,14 @@ def test_comet_pickle():
     hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    # API key for dummy Comet.ml account
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    comet_dir = os.path.join(root_dir, "cometruns")
+
+    # We test CometLogger in offline mode with local saves
     logger = CometLogger(
-        api_key="KnmgASRHHyxWXOpwUfgrAFz8C",
+        save_dir=comet_dir,
         project_name="general",
-        workspace="dummy-test"
+        workspace="dummy-test",
     )
 
     trainer_options = dict(
@@ -202,9 +210,10 @@ def test_comet_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
+    testing_utils.clear_save_dir()
+
 
 def test_custom_logger(tmpdir):
-
     class CustomLogger(LightningLoggerBase):
         def __init__(self):
             super().__init__()

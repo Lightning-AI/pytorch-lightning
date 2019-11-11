@@ -2,6 +2,7 @@ from logging import getLogger
 
 try:
     from comet_ml import Experiment as CometExperiment
+    from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml.papi import API
 except ImportError:
     raise ImportError('Missing comet_ml package.')
@@ -14,12 +15,14 @@ logger = getLogger(__name__)
 
 
 class CometLogger(LightningLoggerBase):
-    def __init__(self, api_key, workspace, rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
+    def __init__(self, api_key=None, save_dir=None, workspace=None,
+                 rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
         """
-        Initialize a Comet.ml logger
+        Initialize a Comet.ml logger. Requires either an API Key (online mode) or a local directory path (offline mode)
 
-        :param str api_key: API key, found on Comet.ml
-        :param str workspace: Name of workspace for this user
+        :param str api_key: Required in online mode. API key, found on Comet.ml
+        :param str save_dir: Required in offline mode. The path for the directory to save local comet logs
+        :param str workspace: Optional. Name of workspace for this user
         :param str project_name: Optional. Send your experiment to a specific project.
         Otherwise will be sent to Uncategorized Experiments.
         If project name does not already exists Comet.ml will create a new project.
@@ -30,10 +33,25 @@ class CometLogger(LightningLoggerBase):
         super().__init__()
         self._experiment = None
 
-        self.api_key = api_key
+        # Determine online or offline mode based on which arguments were passed to CometLogger
+        if save_dir is not None and api_key is not None:
+            # If arguments are passed for both save_dir and api_key, preference is given to online mode
+            self.mode = "online"
+            self.api_key = api_key
+        elif api_key is not None:
+            self.mode = "online"
+            self.api_key = api_key
+        elif save_dir is not None:
+            self.mode = "offline"
+            self.save_dir = save_dir
+        else:
+            # If neither api_key nor save_dir are passed as arguments, raise an exception
+            raise Exception("CometLogger requires either api_key or save_dir during initialization.")
+
+        logger.info(f"CometLogger will be initialized in {self.mode} mode")
+
         self.workspace = workspace
         self.project_name = project_name
-
         self._kwargs = kwargs
 
         if rest_api_key is not None:
@@ -46,7 +64,7 @@ class CometLogger(LightningLoggerBase):
 
         if experiment_name:
             try:
-                self._set_experiment_name(experiment_name)
+                self.name = experiment_name
             except TypeError as e:
                 logger.exception("Failed to set experiment name for comet.ml logger")
 
@@ -55,12 +73,20 @@ class CometLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        self._experiment = CometExperiment(
-            api_key=self.api_key,
-            workspace=self.workspace,
-            project_name=self.project_name,
-            **self._kwargs
-        )
+        if self.mode == "online":
+            self._experiment = CometExperiment(
+                api_key=self.api_key,
+                workspace=self.workspace,
+                project_name=self.project_name,
+                **self._kwargs
+            )
+        else:
+            self._experiment = CometOfflineExperiment(
+                offline_directory=self.save_dir,
+                workspace=self.workspace,
+                project_name=self.project_name,
+                **self._kwargs
+            )
 
         return self._experiment
 
@@ -81,13 +107,13 @@ class CometLogger(LightningLoggerBase):
     def finalize(self, status):
         self.experiment.end()
 
-    @rank_zero_only
-    def _set_experiment_name(self, experiment_name):
-        self.experiment.set_name(experiment_name)
-
     @property
     def name(self):
         return self.experiment.project_name
+
+    @name.setter
+    def name(self, value):
+        self.experiment.set_name(value)
 
     @property
     def version(self):
