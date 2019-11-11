@@ -10,6 +10,7 @@ except ImportError:
 from torch import is_tensor
 
 from .base import LightningLoggerBase, rank_zero_only
+from ..utilities.debugging import MisconfigurationException
 
 logger = getLogger(__name__)
 
@@ -46,7 +47,7 @@ class CometLogger(LightningLoggerBase):
             self.save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise Exception("CometLogger requires either api_key or save_dir during initialization.")
+            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
         logger.info(f"CometLogger will be initialized in {self.mode} mode")
 
