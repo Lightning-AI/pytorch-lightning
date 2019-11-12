@@ -138,7 +138,7 @@ class TrainerEvaluationLoopMixin(object):
             self.log_metrics(log_metrics, {})
 
             # track metrics for callbacks
-            self.callback_metrics = callback_metrics
+            self.callback_metrics.update(callback_metrics)
 
             # hook
             model.on_post_performance_check()
