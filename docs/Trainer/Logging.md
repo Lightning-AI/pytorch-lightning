@@ -87,12 +87,30 @@ def any_lightning_module_function_or_hook(...):
 
 Log using [comet](https://www.comet.ml)
 
+Comet logger can be used in either online or offline mode.
+To log in online mode, CometLogger requries an API key:
 ```{.python}
 from pytorch_lightning.logging import CometLogger
 # arguments made to CometLogger are passed on to the comet_ml.Experiment class
 comet_logger = CometLogger(
     api_key=os.environ["COMET_KEY"],
-    workspace=os.environ["COMET_KEY"],
+    workspace=os.environ["COMET_WORKSPACE"], # Optional
+    project_name="default_project", # Optional
+    rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+    experiment_name="default" # Optional
+)
+trainer = Trainer(logger=comet_logger)
+```
+To log in offline mode, CometLogger requires a path to a local directory:
+```{.python}
+from pytorch_lightning.logging import CometLogger
+# arguments made to CometLogger are passed on to the comet_ml.Experiment class
+comet_logger = CometLogger(
+    save_dir=".",
+    workspace=os.environ["COMET_WORKSPACE"], # Optional
+    project_name="default_project", # Optional
+    rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+    experiment_name="default" # Optional
 )
 trainer = Trainer(logger=comet_logger)
 ```
