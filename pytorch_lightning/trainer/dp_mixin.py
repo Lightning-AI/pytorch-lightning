@@ -97,7 +97,6 @@ class TrainerDPMixin(object):
             else:
                 model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
 
-
         # create list of device ids
         device_ids = self.data_parallel_device_ids
         if type(device_ids) is int:
