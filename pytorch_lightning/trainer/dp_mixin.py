@@ -160,8 +160,8 @@ def sanitize_gpu_ids(gpus):
     for gpu in gpus:
         if gpu not in all_available_gpus:
             message = f"""
-            Non-available gpu index {gpu} specified:
-            Available gpu indices are: {all_available_gpus}
+            You requested GPUs: {gpus}
+            But your machine only has: {all_available_gpus}
             """
             raise MisconfigurationException(message)
     return gpus
