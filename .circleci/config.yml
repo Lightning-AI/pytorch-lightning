@@ -11,7 +11,7 @@ references:
       name: Install Dependences
       command: |
         # PyPI
-        pip install $TORCH_VERSION
+        pip install "$TORCH_VERSION" --user
         pip install -r requirements.txt --user
 
   tests_format: &tests_format
@@ -19,7 +19,7 @@ references:
      name: Tests and formating
      command: |
        sudo pip install pytest pytest-cov pytest-flake8
-       pip install -r tests/requiremensts.txt
+       pip install -r ./tests/requirements.txt
 
        python --version ; pip --version ; pip list
        py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml --flake8
