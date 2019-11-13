@@ -1,0 +1,71 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.0
+
+references:
+
+  install_deps: &install_deps
+    run:
+      name: Install Dependences
+      command: |
+        # PyPI
+        pip install "$TORCH_VERSION" --user
+        pip install -r requirements.txt --user
+        sudo pip install pytest pytest-cov pytest-flake8
+        pip install -r ./tests/requirements.txt --user
+
+  tests_format: &tests_format
+   run:
+     name: Tests and formating
+     command: |
+       python --version ; pip --version ; pip list
+       py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml --flake8
+
+jobs:
+
+  PyTorch:
+    docker:
+      - image: circleci/python:3.7
+    environment:
+      - TORCH_VERSION: "torch"
+    steps: &steps
+      - checkout
+
+      - *install_deps
+      - *tests_format
+
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports
+
+  PyTorch-v1.1:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.1, <1.2"
+    steps: *steps
+
+  PyTorch-v1.2:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.2, <1.3"
+    steps: *steps
+
+  PyTorch-v1.3:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.3, <1.4"
+    steps: *steps
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - PyTorch-v1.1
+      - PyTorch-v1.2
+      - PyTorch-v1.3
