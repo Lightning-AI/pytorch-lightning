@@ -9,7 +9,7 @@ model.freeze()
 ```
 
 ---    
-### load_from_metrics
+### load_from_checkpoint
 This is the easiest/fastest way which loads hyperparameters and weights from a checkpoint,
 such as the one saved by the `ModelCheckpoint` callback
 
