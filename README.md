@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](./docs/source/_static/lightning_logo_small.png)
+![Logo](docs_mkdocs/source/_static/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -183,7 +183,7 @@ trainer.test()
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-![Overview](./docs/source/_static/overview_flat.jpg)
+![Overview](docs_mkdocs/source/_static/overview_flat.jpg)
 
 ```python
 # what to do in the training loop
@@ -266,11 +266,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard, MLFlow and supports any logging module.   
 
-![tensorboard-support](./docs/source/_static/tf_loss.png)
+![tensorboard-support](docs_mkdocs/source/_static/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-![tensorboard-support](./docs/source/_static/tf_tags.png)
+![tensorboard-support](docs_mkdocs/source/_static/tf_tags.png)
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
