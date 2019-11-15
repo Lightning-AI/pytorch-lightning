@@ -2,6 +2,7 @@ import os
 import re
 import signal
 import warnings
+from pathlib import Path
 from subprocess import call
 import logging
 
@@ -46,7 +47,9 @@ class TrainerIOMixin(object):
 
         if not did_restore_hpc_weights:
             # restore weights if same exp version
-            self.restore_state_if_checkpoint_exists(model)
+            did_restore_last_checkpoint = self.restore_state_if_checkpoint_exists(model)
+            if not did_restore_last_checkpoint and self.restore_from_checkpoint is not None:
+                self.restore_state_from_checkpoint(self.restore_from_checkpoint)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
@@ -90,6 +93,18 @@ class TrainerIOMixin(object):
             self.restore(last_ckpt_path, self.on_gpu)
             logging.info(f'model and trainer restored from checkpoint: {last_ckpt_path}')
             did_restore = True
+
+        return did_restore
+
+    def restore_state_from_checkpoint(self, checkpoint_path):
+        did_restore = False
+
+        checkpoint_path = Path(checkpoint_path)
+        if not checkpoint_path.exists():
+            return did_restore
+
+        self.restore(checkpoint_path, self.on_gpu)
+        did_restore = True
 
         return did_restore
 
