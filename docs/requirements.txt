@@ -1,0 +1,6 @@
+sphinx>=1.4
+recommonmark  # fails with badges
+m2r  # fails with multi-line text
+nbsphinx
+pandoc
+docutils
