@@ -48,8 +48,8 @@ class TrainerIOMixin(object):
         if not did_restore_hpc_weights:
             # restore weights if same exp version
             did_restore_last_checkpoint = self.restore_state_if_checkpoint_exists(model)
-            if not did_restore_last_checkpoint and self.restore_from_checkpoint is not None:
-                self.restore_state_from_checkpoint(self.restore_from_checkpoint)
+            if not did_restore_last_checkpoint and self.resume_from_checkpoint is not None:
+                self.restore_state_from_checkpoint(self.resume_from_checkpoint)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
