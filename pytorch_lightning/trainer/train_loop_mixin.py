@@ -155,7 +155,7 @@ class TrainerTrainLoopMixin(object):
         all_log_metrics = []
 
         if batch is None:
-            return 0, grad_norm_dic
+            return 0, grad_norm_dic, all_log_metrics
 
         # hook
         if self.is_function_implemented('on_batch_start'):
