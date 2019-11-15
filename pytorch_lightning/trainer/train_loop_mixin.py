@@ -163,7 +163,7 @@ class TrainerTrainLoopMixin(object):
             response = model_ref.on_batch_start(batch)
 
             if response == -1:
-                return -1, grad_norm_dic
+                return -1, grad_norm_dic, all_log_metrics
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
