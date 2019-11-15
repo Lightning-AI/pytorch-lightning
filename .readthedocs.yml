@@ -5,9 +5,13 @@
 # Required
 version: 2
 
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+  configuration: docs/source/conf.py
+
 # Build documentation with MkDocs
-mkdocs:
-  configuration: mkdocs.yml
+#mkdocs:
+#  configuration: mkdocs.yml
 
 # Optionally build your docs in additional formats such as PDF and ePub
 formats: all
@@ -16,4 +20,5 @@ formats: all
 python:
   version: 3.7
   install:
+    - requirements: requirements.txt
     - requirements: docs/requirements.txt
