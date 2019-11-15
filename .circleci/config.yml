@@ -24,7 +24,23 @@ references:
        py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml --flake8
      no_output_timeout: 15m
 
+  make_docs: &make_docs
+   run:
+     name: Make Documentation
+     command: |
+       # sudo apt-get install pandoc
+       sudo pip install -r docs/requirements.txt
+       # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
+       cd docs; make html
+
 jobs:
+
+  Build-Docs:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - *make_docs
 
   PyTorch:
     docker:
@@ -67,6 +83,7 @@ workflows:
   version: 2
   build:
     jobs:
+      - Build-Docs
       - PyTorch-v1.1
       - PyTorch-v1.2
       - PyTorch-v1.3
