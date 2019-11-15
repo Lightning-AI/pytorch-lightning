@@ -18,31 +18,35 @@ import glob
 import shutil
 import inspect
 
-import m2r
+# import m2r
+import builtins
+import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
+
+builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
 
 # -- Project documents -------------------------------------------------------
 
 # export the documentation
-with open('intro.rst', 'w') as fp:
-    intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
-    fp.write(m2r.convert(intro))
-    # fp.write(pytorch_lightning.__doc__)
+# with open('intro.rst', 'w') as fp:
+#     intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
+#     fp.write(m2r.convert(intro))
+#     # fp.write(pytorch_lightning.__doc__)
 
 # export the READme
-with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
-    readme = fp.read()
-# replace all paths to relative
-for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
-             if os.path.isdir(p)):
-    readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
-with open('readme.md', 'w') as fp:
-    fp.write(readme)
+# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
+#     readme = fp.read()
+# # replace all paths to relative
+# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
+#              if os.path.isdir(p)):
+#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
+# with open('readme.md', 'w') as fp:
+#     fp.write(readme)
 
 # -- Project information -----------------------------------------------------
 
@@ -67,11 +71,12 @@ needs_sphinx = '1.4'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinxcontrib.mockautodoc',
+    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
-    # 'sphinx.ext.viewcode',
     'sphinx.ext.linkcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
@@ -94,7 +99,13 @@ nbsphinx_allow_errors = True
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = ['.rst', '.md', '.ipynb']
+# source_suffix = ['.rst', '.md', '.ipynb']
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+    '.ipynb': 'nbsphinx',
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -120,16 +131,24 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 # http://www.sphinx-doc.org/en/master/usage/theming.html#builtin-themes
-html_theme = 'nature'
+# html_theme = 'bizstyle'
+# https://sphinx-themes.org
+html_theme = 'pt_lightning_sphinx_theme'
+html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {
-#     'github_user': 'Borda',
-#     'github_repo': 'pytorch_lightning',
-# }
+
+html_theme_options = {
+    'pytorch_project': pytorch_lightning.__homepage__,
+    'canonical_url': pytorch_lightning.__homepage__,
+    'collapse_navigation': False,
+    'display_version': True,
+    'logo_only': False,
+}
+
+html_logo = '_static/images/lightning_logo_small.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -271,17 +290,18 @@ for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 
-MOCK_MODULES = []
+MOCK_REQUIRE_PACKAGES = []
 with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
     for ln in fp.readlines():
         found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
         pkg = ln[:min(found)] if found else ln
         if pkg.rstrip():
-            MOCK_MODULES.append(pkg.rstrip())
+            MOCK_REQUIRE_PACKAGES.append(pkg.rstrip())
 
 # TODO: better parse from package since the import name and package name may differ
-autodoc_mock_imports = MOCK_MODULES + ['torch', 'torchvision', 'test_tube']
-# for mod_name in MOCK_MODULES:
+MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'sklearn', 'test_tube', 'mlflow', 'comet_ml']
+autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
+# for mod_name in MOCK_REQUIRE_PACKAGES:
 #     sys.modules[mod_name] = mock.Mock()
 
 

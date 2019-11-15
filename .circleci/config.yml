@@ -29,9 +29,10 @@ references:
      name: Make Documentation
      command: |
        # sudo apt-get install pandoc
+       pip install -r requirements.txt --user
        sudo pip install -r docs/requirements.txt
        # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
-       cd docs; make html
+       cd docs; make clean ; make html
 
 jobs:
 

@@ -1,6 +1,9 @@
-sphinx>=1.4
+sphinx>=1.8.3
 recommonmark  # fails with badges
 m2r  # fails with multi-line text
 nbsphinx
 pandoc
 docutils
+git+https://github.com/Borda/lightning_sphinx_theme.git
+sphinxcontrib-fulltoc
+sphinxcontrib-mockautodoc
