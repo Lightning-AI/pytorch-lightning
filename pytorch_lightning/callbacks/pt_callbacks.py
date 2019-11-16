@@ -309,11 +309,10 @@ class ModelCheckpoint(Callback):
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
                             logging.info(
-                                f'\nEpoch {epoch + 1:05d}: {self.monitor} improved'
-                                f' from {self.best:0.5f} to {current:0.5f},'
-                                f' saving model to {filepath}')
-                        self.best = current
-                        self.save_model(filepath, overwrite=True)
+                                f'\nEpoch {epoch:05d}: {self.monitor} reached',
+                                f'{current:0.5f} (best {self.best:0.5f}), saving model to',
+                                f'{filepath} as top {self.save_top_k}')
+                        self._save_model(filepath)
 
                     else:
                         if self.verbose > 0:
