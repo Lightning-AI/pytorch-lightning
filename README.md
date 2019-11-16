@@ -37,7 +37,8 @@ pip install pytorch-lightning
 ## What is it?  
 Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
 
-[Read this post to understand how to convert your existing PyTorch code](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+## How much effort is it to convert?
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
