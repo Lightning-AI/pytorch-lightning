@@ -112,8 +112,8 @@ def training_step(self, batch, batch_nb):
 ```
 
 ---
-#### Truncated Back Propagation Through Time
-There are times when multiple backwards passes are needed for each batch. For example, it may save memory to use Truncated Back Propagation Through Time when training RNNs.
+#### Truncated Backpropagation Through Time
+There are times when multiple backwards passes are needed for each batch. For example, it may save memory to use Truncated Backpropagation Through Time when training RNNs.
 
 When this flag is enabled each batch is split into sequences of size truncated_bptt_steps and passed to training_step(...) separately. A default splitting function is provided, however, you can override it for more flexibility. See [tbptt_split_batch](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks#tbptt_split_batch).
 

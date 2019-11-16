@@ -16,16 +16,13 @@ language: python
 
 matrix:
   include:
-    - os: linux
-      dist: xenial  # Ubuntu 16.04
+#    - dist: xenial  # Ubuntu 16.04
+#      python: 3.5
+#      env: TOXENV=py35
+    - dist: bionic  # Ubuntu 18.04
       python: 3.6
       env: TOXENV=py36
-    - os: linux
-      dist: bionic  # Ubuntu 18.04
-      python: 3.6
-      env: TOXENV=py36
-    - os: linux
-      dist: bionic  # Ubuntu 18.04
+    - dist: bionic  # Ubuntu 18.04
       python: 3.7
       env: TOXENV=py37
     - os: osx
@@ -58,6 +55,7 @@ script:
   # integration
   - tox --sitepackages
   - pip install --editable .
+  #- python setup.py install --dry-run --user
 
 after_success:
   - coverage report
