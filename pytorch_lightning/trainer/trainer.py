@@ -120,7 +120,7 @@ class Trainer(TrainerIOMixin,
         :param amp_level: str. Check nvidia docs for level
         :param nb_sanity_val_steps: int. How many val steps before a full train loop.
         :param truncated_bptt_steps: int. Enables multiple backward passes for each batch.
-        :param resume_from_checkpoint: str or os.PathLike object. Resume from specific checkpoint.
+        :param resume_from_checkpoint: file-like object or str containing a file name. Resume from specific checkpoint.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
