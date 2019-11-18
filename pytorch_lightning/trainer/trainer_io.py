@@ -97,16 +97,12 @@ class TrainerIOMixin(object):
         return did_restore
 
     def restore_state_from_checkpoint(self, checkpoint_path):
-        did_restore = False
-
         checkpoint_path = Path(checkpoint_path)
         if not checkpoint_path.exists():
-            return did_restore
+            return False
 
         self.restore(checkpoint_path, self.on_gpu)
-        did_restore = True
-
-        return did_restore
+        return True
 
     # --------------------
     # HPC SIGNAL HANDLING
