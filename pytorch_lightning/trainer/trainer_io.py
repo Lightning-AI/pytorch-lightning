@@ -46,7 +46,7 @@ class TrainerIOMixin(object):
 
         if not did_restore_hpc_weights:
             if self.resume_from_checkpoint is not None:
-                self.restore(self.resume_from_checkpoint)
+                self.restore(self.resume_from_checkpoint, on_gpu=self.on_gpu)
             else:
                 # restore weights if same exp version
                 self.restore_state_if_checkpoint_exists(model)
