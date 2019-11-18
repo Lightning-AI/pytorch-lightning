@@ -2,7 +2,6 @@ import os
 import re
 import signal
 import warnings
-from pathlib import Path
 from subprocess import call
 import logging
 
@@ -46,10 +45,11 @@ class TrainerIOMixin(object):
             torch.cuda.empty_cache()
 
         if not did_restore_hpc_weights:
-            # restore weights if same exp version
-            did_restore_last_checkpoint = self.restore_state_if_checkpoint_exists(model)
-            if not did_restore_last_checkpoint and self.resume_from_checkpoint is not None:
-                self.restore_state_from_checkpoint(self.resume_from_checkpoint)
+            if self.resume_from_checkpoint is not None:
+                self.restore(self.resume_from_checkpoint)
+            else:
+                # restore weights if same exp version
+                self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
@@ -95,14 +95,6 @@ class TrainerIOMixin(object):
             did_restore = True
 
         return did_restore
-
-    def restore_state_from_checkpoint(self, checkpoint_path):
-        checkpoint_path = Path(checkpoint_path)
-        if not checkpoint_path.exists():
-            return False
-
-        self.restore(checkpoint_path, self.on_gpu)
-        return True
 
     # --------------------
     # HPC SIGNAL HANDLING
