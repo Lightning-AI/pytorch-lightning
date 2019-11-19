@@ -131,7 +131,7 @@ def test_load_model_from_checkpoint():
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = LightningTestModel.load_from_checkpoint(
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
     )
 
     # test that hparams loaded correctly

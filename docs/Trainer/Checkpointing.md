@@ -1,6 +1,7 @@
 Lightning can automate saving and loading checkpoints.
 
 ---
+
 ### Model saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in :
@@ -10,13 +11,13 @@ Trainer(default_save_path='/your/path/to/save/checkpoints')
 
 To modify the behavior of checkpointing pass in your own callback.
 
-``` {.python}
+```{.python}
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 # DEFAULTS used by the Trainer
 checkpoint_callback = ModelCheckpoint(
     filepath=os.getcwd(),
-    save_best_only=True,
+    save_top_k=1,
     verbose=True,
     monitor='val_loss',
     mode='min',
@@ -26,11 +27,26 @@ checkpoint_callback = ModelCheckpoint(
 trainer = Trainer(checkpoint_callback=checkpoint_callback)
 ```
 
+The `save_top_k` options works in the following ways:
+
+| save_top_k        | behavior |
+| --------   | -----  |
+| 0     | no models are saved |
+| -1        |  all models are saved  |
+|  k >= 1        |  the best k models are saved  |
+
+
+Also, if `save_top_k` >= 2 and the callback is called multiple
+times inside an epoch, the name of the saved file will be
+appended with a version count starting with `v0`.
+
 ---
-### Restoring training session 
+
+### Restoring training session
+
 You might want to not only load a model but also continue training it. Use this method to
 restore the trainer state as well. This will continue from the epoch and global step you last left off.  
-However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).   
+However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
 
 Lightning will restore the session if you pass a logger with the same version and there's a saved checkpoint.   
 ``` {.python}
@@ -52,18 +68,19 @@ trainer = Trainer(
 trainer.fit(model)
 ```
 
-The trainer restores:  
+The trainer restores:
 
-- global_step    
-- current_epoch    
-- All optimizers    
-- All lr_schedulers    
+- global_step
+- current_epoch
+- All optimizers
+- All lr_schedulers
 - Model weights
 
-You can even change the logic of your model as long as the weights and "architecture" of 
-the system isn't different. If you add a layer, for instance, it might not work.   
+You can even change the logic of your model as long as the weights and "architecture" of
+the system isn't different. If you add a layer, for instance, it might not work.
 
-At a rough level, here's [what happens inside Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/root_module/model_saving.py#L63):   
+At a rough level, here's [what happens inside Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/root_module/model_saving.py#L63):
+
 ```python
 
 self.global_step = checkpoint['global_step']
@@ -79,6 +96,6 @@ lr_schedulers = checkpoint['lr_schedulers']
 for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
     scheduler.load_state_dict(lrs_state)
 
-# uses the model you passed into trainer        
+# uses the model you passed into trainer
 model.load_state_dict(checkpoint['state_dict'])
-```    
+```
