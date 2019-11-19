@@ -66,7 +66,9 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.    
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
+
+[Try this live demo on colab!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
