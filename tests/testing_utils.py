@@ -149,7 +149,7 @@ def init_save_dir():
 
 def clear_save_dir():
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    save_dir = os.path.join(root_dir, 'save_dir')
+    save_dir = os.path.join(root_dir, 'tests', 'save_dir')
     if os.path.exists(save_dir):
         n = RANDOM_FILE_PATHS.pop()
         shutil.move(save_dir, save_dir + f'_{n}')

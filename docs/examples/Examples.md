@@ -6,14 +6,15 @@ In 99% of cases you want to just copy [one of the examples](https://github.com/w
 wget https://raw.githubusercontent.com/williamFalcon/pytorch-lightning/master/pl_examples/new_project_templates/lightning_module_template.py
 ```
 
----    
-### Trainer Example 
+---
 
-** \_\_main__ function**    
+### Trainer Example
 
-Normally, we want to let the \_\_main__ function start the training.
-Inside the main we parse training arguments with whatever hyperparameters we want. Your LightningModule will have a 
-chance to add hyperparameters.   
+** \_\_main\_\_ function**
+
+Normally, we want to let the \_\_main\_\_ function start the training.
+Inside the main we parse training arguments with whatever hyperparameters we want. Your LightningModule will have a
+chance to add hyperparameters.
 
 ```{.python}
 from test_tube import HyperOptArgumentParser
@@ -32,13 +33,15 @@ if __name__ == '__main__':
     # train model
     main(hyperparams)
 ```
-**Main Function**      
+
+**Main Function**
 
 The main function is your entry into the program. This is where you init your model, checkpoint directory, and launch the training.
-The main function should have 3 arguments:   
-- hparams: a configuration of hyperparameters.    
+The main function should have 3 arguments:
+
+- hparams: a configuration of hyperparameters.
 - slurm_manager: Slurm cluster manager object (can be None)
-- dict: for you to return any values you want (useful in meta-learning, otherwise set to _)    
+- dict: for you to return any values you want (useful in meta-learning, otherwise set to \_)
 
 ```python
 def main(hparams, cluster, results_dict):
@@ -62,13 +65,15 @@ The __main__ function will start training on your **main** function. If you use 
 in hyper parameter optimization mode, this main function will get one set of hyperparameters. If you use it as a simple
 argument parser you get the default arguments in the argument parser.
 
-So, calling main(hyperparams) runs the model with the default argparse arguments.       
+So, calling main(hyperparams) runs the model with the default argparse arguments.
+
 ```{.python}
 main(hyperparams)
 ```
 
 ---
-#### CPU hyperparameter search      
+
+#### CPU hyperparameter search
 
 ```{.python}
 # run a grid search over 20 hyperparameter combinations.
@@ -80,7 +85,9 @@ hyperparams.optimize_parallel_cpu(
 ```
 
 ---
-#### Hyperparameter search on a single or multiple GPUs       
+
+#### Hyperparameter search on a single or multiple GPUs
+
 ```{.python}
 # run a grid search over 20 hyperparameter combinations.
 hyperparams.optimize_parallel_gpu(
@@ -92,8 +99,10 @@ hyperparams.optimize_parallel_gpu(
 ```
 
 ---
-#### Hyperparameter search on a SLURM HPC cluster   
-```{.python}    
+
+#### Hyperparameter search on a SLURM HPC cluster
+
+```{.python}
 def optimize_on_cluster(hyperparams):
     # enable cluster training
     cluster = SlurmCluster(
@@ -126,6 +135,6 @@ def optimize_on_cluster(hyperparams):
         job_name=job_display_name
     )
 
-# run cluster hyperparameter search    
+# run cluster hyperparameter search
 optimize_on_cluster(hyperparams)
 ```
