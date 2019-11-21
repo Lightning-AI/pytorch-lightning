@@ -724,7 +724,7 @@ def val_dataloader(self):
     return [loader_a, loader_b, ..., loader_n]   
 ```
 
-In the case where you return multiple val_dataloaders, the validation_step will have an arguement ```dataset_idx```
+In the case where you return multiple val_dataloaders, the validation_step will have an argument ```dataset_idx```
 which matches the order here.    
 
 --- 
