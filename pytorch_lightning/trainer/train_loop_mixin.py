@@ -107,7 +107,8 @@ class TrainerTrainLoopMixin(object):
             # ---------------
             is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
+            should_check_val = ((is_val_check_batch or early_stop_epoch) and 
+                                can_check_epoch and not self.no_validation)
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:

@@ -72,6 +72,7 @@ class Trainer(TrainerIOMixin,
                  val_percent_check=1.0,
                  test_percent_check=1.0,
                  val_check_interval=1.0,
+                 no_validation=False,
                  log_save_interval=100,
                  row_log_interval=10,
                  add_row_log_interval=None,  # backward compatible
@@ -108,6 +109,7 @@ class Trainer(TrainerIOMixin,
         :param val_percent_check: int. How much of val set to check
         :param test_percent_check: int. How much of test set to check
         :param val_check_interval: float/int. If float, % of tng epoch. If int, check every n batch
+        :param no_validation: bool. If true, skips all validation steps even if validation is defined.
         :param log_save_interval: int. Writes logs to disk this often
         :param row_log_interval: int. How often to add logging rows
         :param add_row_log_interval: int. How often to add logging rows. Deprecated.
@@ -220,6 +222,7 @@ class Trainer(TrainerIOMixin,
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
+        
         if not (add_row_log_interval is None):
             # backward compatibility
             warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
@@ -235,8 +238,13 @@ class Trainer(TrainerIOMixin,
         self.amp_level = amp_level
         self.init_amp(use_amp)
 
+        # configure skiping validation
+        self.no_validation = no_validation
+
         # set logging options
         logging.basicConfig(level=logging.INFO)
+
+
 
     @property
     def slurm_job_id(self):
@@ -443,7 +451,8 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
+        if (self.get_val_dataloaders() is not None and 
+            self.nb_sanity_val_steps > 0 and not self.no_validation):
             # init progress bars for validation sanity check
             pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
                              leave=False, position=2 * self.process_position,
