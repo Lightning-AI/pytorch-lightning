@@ -276,8 +276,6 @@ class ModelCheckpoint(Callback):
                 filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch}_v{version_cnt}.ckpt'
                 version_cnt += 1
 
-            print(filepath)
-
             if self.save_top_k != -1:
                 current = logs.get(self.monitor)
 
