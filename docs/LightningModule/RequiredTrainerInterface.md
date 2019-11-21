@@ -511,7 +511,7 @@ Before test_step is called, the model is put in eval mode and PyTorch gradients 
 The dict you return here will be available in the `test_end` method. 
 
 This function is used when you execute `trainer.test()`.
-validation
+
 **Params**   
 
 | Param  | description  |
