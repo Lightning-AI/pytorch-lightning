@@ -102,7 +102,7 @@ The LightningModule interface is on the right. Each method corresponds to a part
 
 <p align="center">
   <a href="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg">
-    <img alt="" src="https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/overview_flat.jpg" height="900px">
+    <img alt="" src="https://raw.githubusercontent.com/williamFalcon/pytorch-lightning/master/docs/source/_static/overview_flat.jpg" width="100%">
   </a>
 </p>   
 
@@ -343,12 +343,12 @@ the [optimizer_step](https://williamfalcon.github.io/pytorch-lightning/Trainer/h
 def validation_step(self, batch, batch_nb)   
 
 # if you have multiple val dataloaders:  
-def validation_step(self, batch, batch_nb, dataloader_idxdx)
+def validation_step(self, batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
 If you don't need to validate you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy. 
 
-When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+Before validation_step is called, the model is put in eval mode and PyTorch gradients are disabled. After validation_step is called, the model is put back in training mode and gradients are reenabled.
 
 The dict you return here will be available in the `validation_end` method. 
 
@@ -501,17 +501,17 @@ def validation_end(self, outputs):
 def test_step(self, batch, batch_nb)   
 
 # if you have multiple test dataloaders:  
-def test_step(self, batch, batch_nb, dataloader_idxdx)
+def test_step(self, batch, batch_nb, dataloader_idx)
 ```
 **OPTIONAL**    
 If you don't need to test you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy.   
 
-When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+Before test_step is called, the model is put in eval mode and PyTorch gradients are disabled. After test_step is called, the model is put back in training mode and gradients are reenabled.
 
 The dict you return here will be available in the `test_end` method. 
 
 This function is used when you execute `trainer.test()`.
-
+validation
 **Params**   
 
 | Param  | description  |

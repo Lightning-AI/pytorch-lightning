@@ -49,7 +49,7 @@ tt_logger = TestTubeLogger(
 trainer = Trainer(logger=tt_logger)
 ```
 
-Use the logger anywhere in you LightningModule as follows:
+Use the logger anywhere in your LightningModule as follows:
 ```python
 def train_step(...):
     # example
@@ -158,7 +158,7 @@ class MyLogger(LightningLoggerBase):
         # finishes goes here
 ```
 
-If you write a logger than may be useful to others, please send
+If you write a logger that may be useful to others, please send
 a pull request to add it to Lighting!
 
 ---

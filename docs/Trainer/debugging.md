@@ -24,7 +24,7 @@ trainer = Trainer(track_grad_norm=2)
 #### Make model overfit on subset of data
 A useful debugging trick is to make your model overfit a tiny fraction of the data.
 
-setting `overfit_pct > 0` will overwrite train_percent_check, val_percent_check, test_percent_check
+setting `overfit_pct > 0` will overwrite [train_percent_check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check), [val_percent_check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-validation-set-to-check), and [test_percent_check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-test-set-to-check)
 
 ``` {.python}
 # DEFAULT don't overfit (ie: normal training)

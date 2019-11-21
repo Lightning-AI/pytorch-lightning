@@ -17,7 +17,7 @@ trainer = Trainer(check_val_every_n_epoch=1)
 #### Set how much of the validation set to check 
 If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
 
-val_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+val_percent_check will be overwritten by [overfit_pct](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data) if `overfit_pct > 0`
 
 ``` {.python}
 # DEFAULT
@@ -31,7 +31,7 @@ trainer = Trainer(val_percent_check=0.1)
 #### Set how much of the test set to check 
 If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
 
-test_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+test_percent_check will be overwritten by [overfit_pct](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data) if `overfit_pct > 0`
 
 ``` {.python}
 # DEFAULT

@@ -1,7 +1,7 @@
 Lightning supports model training on a cluster managed by SLURM in the following cases:    
 
-1. Training on a single cpu or single GPU.
-2. Train on multiple GPUs on the same node using DataParallel or DistributedDataParallel
+1. Training on a single CPU or single GPU.
+2. Training on multiple GPUs on the same node using DataParallel or DistributedDataParallel
 3. Training across multiple GPUs on multiple different nodes via DistributedDataParallel.
 
 **Note: A node means a machine with multiple GPUs**

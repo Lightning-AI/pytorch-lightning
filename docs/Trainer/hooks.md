@@ -7,7 +7,7 @@ To enable a hook, simply override the method in your LightningModule and the tra
 **Contributing** If there's a hook you'd like to add, simply:    
 1. Fork PyTorchLightning.    
 2. Add the hook [here](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/root_module/hooks.py).       
-3. Add the correct place in the [Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/models/trainer.py) where it should be called.    
+3. Add the correct place in the [Trainer](https://github.com/williamFalcon/pytorch-lightning/blob/master/pytorch_lightning/trainer/trainer.py) where it should be called.    
 
 ---
 #### on_epoch_start
@@ -201,7 +201,7 @@ def configure_apex(self, amp, model, optimizers, amp_level):
 ---
 #### configure_ddp 
 Overwrite to define your own DDP implementation init.
-The only requirement is that:
+The only requirements are that:
 1. On a validation batch the call goes to model.validation_step.   
 2. On a training batch the call goes to model.training_step.   
 3. On a testing batch, the call goes to model.test_step

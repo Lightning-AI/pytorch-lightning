@@ -27,10 +27,10 @@ trainer = Trainer(distributed_backend=None)
 # Change to DataParallel (gpus > 1)
 trainer = Trainer(distributed_backend='dp')
 
-# change to distributed data parallel (gpus > 1)
+# change to DistributedDataParallel (gpus > 1)
 trainer = Trainer(distributed_backend='ddp')
 
-# change to distributed data parallel (gpus > 1)
+# change to DistributedDataParallel-2 (gpus > 1)
 trainer = Trainer(distributed_backend='ddp2')
 ```
 
@@ -130,7 +130,7 @@ trainer = Trainer(gpus=1)
 ---
 #### multi-gpu 
 Make sure you're on a GPU machine. You can set as many GPUs as you want.
-In this setting, the model will run on all 8 GPUs at once using DataParallel under the hood.
+In this setting, the model will run on all 8 GPUs at once using DataParallel or DistributedDataParallel under the hood.
 ```python
 # to use DataParallel
 trainer = Trainer(gpus=8, distributed_backend='dp')

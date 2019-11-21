@@ -82,7 +82,7 @@ trainer = Trainer(track_grad_norm=2)
 #### Set how much of the training set to check
 If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
 
-train_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+train_percent_check will be overwritten by [overfit_pct](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data) if `overfit_pct > 0`
 
 ``` {.python}
 # DEFAULT
@@ -95,7 +95,7 @@ trainer = Trainer(train_percent_check=0.1)
 ---
 #### Packed sequences as inputs
 When using PackedSequence, do 2 things:
-1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).    
+1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example below shows the list implementation).    
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 ``` {.python}
