@@ -222,7 +222,6 @@ class Trainer(TrainerIOMixin,
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-        
         if not (add_row_log_interval is None):
             # backward compatibility
             warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
@@ -243,8 +242,6 @@ class Trainer(TrainerIOMixin,
 
         # set logging options
         logging.basicConfig(level=logging.INFO)
-
-
 
     @property
     def slurm_job_id(self):
@@ -451,8 +448,8 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        if (self.get_val_dataloaders() is not None and 
-            self.nb_sanity_val_steps > 0 and not self.no_validation):
+        if (self.get_val_dataloaders() is not None and
+                self.nb_sanity_val_steps > 0 and not self.no_validation):
             # init progress bars for validation sanity check
             pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
                              leave=False, position=2 * self.process_position,
