@@ -19,7 +19,7 @@ from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
 from . import testing_utils
 
 
-def test_no_val_module():
+def test_no_val_module(tmpdir):
     """
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
@@ -33,10 +33,10 @@ def test_no_val_module():
 
     model = CurrentTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -62,11 +62,8 @@ def test_no_val_module():
                                                    tags_csv=tags_path)
     model_2.eval()
 
-    # make prediction
-    testing_utils.clear_save_dir()
 
-
-def test_no_val_end_module():
+def test_no_val_end_module(tmpdir):
     """
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
@@ -79,10 +76,10 @@ def test_no_val_end_module():
     hparams = testing_utils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -108,11 +105,8 @@ def test_no_val_end_module():
                                                    tags_csv=tags_path)
     model_2.eval()
 
-    # make prediction
-    testing_utils.clear_save_dir()
 
-
-def test_gradient_accumulation_scheduling():
+def test_gradient_accumulation_scheduling(tmpdir):
     testing_utils.reset_seed()
 
     """
@@ -177,7 +171,8 @@ def test_gradient_accumulation_scheduling():
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_nb_epochs=4)
+                      max_nb_epochs=4,
+                      default_save_path=tmpdir)
 
     # for the test
     trainer.optimizer_step = optimizer_step
@@ -186,14 +181,14 @@ def test_gradient_accumulation_scheduling():
     trainer.fit(model)
 
 
-def test_loading_meta_tags():
+def test_loading_meta_tags(tmpdir):
     testing_utils.reset_seed()
 
     from argparse import Namespace
     hparams = testing_utils.get_hparams()
 
     # save tags
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -205,8 +200,6 @@ def test_loading_meta_tags():
     tags = trainer_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
-
-    testing_utils.clear_save_dir()
 
 
 def test_dp_output_reduce():
@@ -232,11 +225,14 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_model_checkpoint_options():
+def test_model_checkpoint_options(tmp_path):
     """
     Test ModelCheckpoint options
     :return:
     """
+
+    # TODO split this up into multiple tests
+
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
@@ -244,7 +240,8 @@ def test_model_checkpoint_options():
     model = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tmp_path / "1"
+    save_dir.mkdir()
     losses = [10, 9, 2.8, 5, 2.5]
 
     # -----------------
@@ -262,7 +259,8 @@ def test_model_checkpoint_options():
     for i in range(0, len(losses)):
         assert f'_ckpt_epoch_{i}.ckpt' in file_lists
 
-    testing_utils.clear_save_dir()
+    save_dir = tmp_path / "2"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=0 (none)
@@ -275,7 +273,8 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
-    testing_utils.clear_save_dir()
+    save_dir = tmp_path / "3"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
@@ -289,7 +288,8 @@ def test_model_checkpoint_options():
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
     assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
 
-    testing_utils.clear_save_dir()
+    save_dir = tmp_path / "4"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
@@ -308,7 +308,8 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_2.ckpt' in file_lists
     assert 'other_file.ckpt' in file_lists
 
-    testing_utils.clear_save_dir()
+    save_dir = tmp_path / "5"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=4 (save all 4 models)
@@ -323,7 +324,8 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
 
-    testing_utils.clear_save_dir()
+    save_dir = tmp_path / "6"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=3 (save the 2nd, 3rd, 4th model)
@@ -341,8 +343,6 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_0_v1.ckpt' in file_lists
     assert '_ckpt_epoch_0.ckpt' in file_lists
 
-    testing_utils.clear_save_dir()
-
 
 def test_model_freeze_unfreeze():
     testing_utils.reset_seed()
@@ -354,7 +354,7 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_multiple_val_dataloader():
+def test_multiple_val_dataloader(tmpdir):
     """
     Verify multiple val_dataloader
     :return:
@@ -372,6 +372,7 @@ def test_multiple_val_dataloader():
 
     # logger file to get meta
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
@@ -393,7 +394,7 @@ def test_multiple_val_dataloader():
         testing_utils.run_prediction(dataloader, trainer.model)
 
 
-def test_multiple_test_dataloader():
+def test_multiple_test_dataloader(tmpdir):
     """
     Verify multiple test_dataloader
     :return:
@@ -411,6 +412,7 @@ def test_multiple_test_dataloader():
 
     # logger file to get meta
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
