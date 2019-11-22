@@ -87,12 +87,15 @@ class TrainerDPMixin(object):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            m = f"""
-            Amp level {self.amp_level} with DataParallel is not supported.
-            See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-            We recommend you switch to ddp if you want to use amp
-            """
-            raise MisconfigurationException(m)
+            if self.amp_level == 'O2':
+                m = f"""
+                Amp level {self.amp_level} with DataParallel is not supported.
+                See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
+                We recommend you switch to ddp if you want to use amp
+                """
+                raise MisconfigurationException(m)
+            else:
+                model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
 
         # create list of device ids
         device_ids = self.data_parallel_device_ids
@@ -160,8 +163,8 @@ def sanitize_gpu_ids(gpus):
     for gpu in gpus:
         if gpu not in all_available_gpus:
             message = f"""
-            Non-available gpu index {gpu} specified:
-            Available gpu indices are: {all_available_gpus}
+            You requested GPUs: {gpus}
+            But your machine only has: {all_available_gpus}
             """
             raise MisconfigurationException(message)
     return gpus

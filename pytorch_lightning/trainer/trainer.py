@@ -3,6 +3,7 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 """
 
 import os
+import sys
 import warnings
 import logging
 
@@ -460,7 +461,8 @@ class Trainer(TrainerIOMixin,
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
-                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                         file=sys.stdout)
         self.main_progress_bar = pbar
 
         # clear cache before training

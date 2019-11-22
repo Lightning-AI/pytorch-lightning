@@ -155,7 +155,7 @@ class TrainerTrainLoopMixin(object):
         all_log_metrics = []
 
         if batch is None:
-            return 0, grad_norm_dic
+            return 0, grad_norm_dic, {}
 
         # hook
         if self.is_function_implemented('on_batch_start'):
@@ -163,7 +163,7 @@ class TrainerTrainLoopMixin(object):
             response = model_ref.on_batch_start(batch)
 
             if response == -1:
-                return -1, grad_norm_dic
+                return -1, grad_norm_dic, {}
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -258,7 +258,7 @@ class TrainerTrainLoopMixin(object):
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        self.callback_metrics = {k: v for d in all_callback_metrics for k, v in d.items()}
+        self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
         return 0, grad_norm_dic, all_log_metrics
 
