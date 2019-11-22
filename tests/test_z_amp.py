@@ -12,7 +12,7 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 from . import testing_utils
 
 
-def test_amp_single_gpu():
+def test_amp_single_gpu(tmpdir):
     """
     Make sure DDP + AMP work
     :return:
@@ -26,6 +26,7 @@ def test_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=1,
@@ -36,7 +37,7 @@ def test_amp_single_gpu():
     testing_utils.run_gpu_model_test(trainer_options, model, hparams)
 
 
-def test_no_amp_single_gpu():
+def test_no_amp_single_gpu(tmpdir):
     """
     Make sure DDP + AMP work
     :return:
@@ -50,6 +51,7 @@ def test_no_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=1,
@@ -61,7 +63,7 @@ def test_no_amp_single_gpu():
         testing_utils.run_gpu_model_test(trainer_options, model, hparams)
 
 
-def test_amp_gpu_ddp():
+def test_amp_gpu_ddp(tmpdir):
     """
     Make sure DDP + AMP work
     :return:
@@ -76,6 +78,7 @@ def test_amp_gpu_ddp():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
         max_nb_epochs=1,
         gpus=2,
@@ -86,7 +89,7 @@ def test_amp_gpu_ddp():
     testing_utils.run_gpu_model_test(trainer_options, model, hparams)
 
 
-def test_amp_gpu_ddp_slurm_managed():
+def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """
     Make sure DDP + AMP work
     :return:
@@ -111,10 +114,10 @@ def test_amp_gpu_ddp_slurm_managed():
         use_amp=True
     )
 
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tmpdir
 
     # exp file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(save_dir, False)
 
     # exp file to get weights
     checkpoint = testing_utils.init_checkpoint_callback(logger)
@@ -158,8 +161,6 @@ def test_amp_gpu_ddp_slurm_managed():
     model.freeze()
     model.unfreeze()
 
-    testing_utils.clear_save_dir()
-
 
 def test_cpu_model_with_amp():
     """
@@ -183,7 +184,7 @@ def test_cpu_model_with_amp():
         testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
-def test_amp_gpu_dp():
+def test_amp_gpu_dp(tmpdir):
     """
     Make sure DP + AMP work
     :return:
@@ -195,6 +196,7 @@ def test_amp_gpu_dp():
 
     model, hparams = testing_utils.get_model()
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',
