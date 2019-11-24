@@ -10,6 +10,10 @@ try:
 except ImportError:
     pass
 try:
+    from .wandb_logger import WandbLogger
+except ImportError:
+    pass
+try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
