@@ -53,7 +53,7 @@ class Trainer(TrainerIOMixin,
     def __init__(self,
                  logger=True,
                  checkpoint_callback=True,
-                 early_stop_callback=True,
+                 early_stop_callback=False,
                  default_save_path=None,
                  gradient_clip_val=0,
                  gradient_clip=None,  # backward compatible
@@ -185,6 +185,8 @@ class Trainer(TrainerIOMixin,
         # creates a default one if none passed in
         self.early_stop_callback = None
         self.configure_early_stopping(early_stop_callback, logger)
+        if self.enable_early_stop:
+            self.nb_sanity_val_steps = max(1, self.nb_sanity_val_steps)
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
@@ -444,6 +446,7 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
+        callback_metrics = {}
         if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
@@ -453,11 +456,20 @@ class Trainer(TrainerIOMixin,
             # dummy validation progress bar
             self.val_progress_bar = tqdm.tqdm(disable=True)
 
-            self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
+            eval_results = self.evaluate(model, self.get_val_dataloaders(),
+                                         self.nb_sanity_val_steps, False)
+            _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
             self.main_progress_bar.close()
             self.val_progress_bar.close()
+
+        if (self.enable_early_stop and
+                callback_metrics.get(self.early_stop_callback.monitor) is None):
+            raise RuntimeError(f"Early stopping was configured to monitor "
+                               f"{self.early_stop_callback.monitor} but it is not available "
+                               f"after validation_end. Available metrics are: "
+                               f"{','.join(list(callback_metrics.keys()))}")
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,

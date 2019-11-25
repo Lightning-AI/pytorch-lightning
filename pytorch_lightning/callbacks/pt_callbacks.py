@@ -124,9 +124,10 @@ class EarlyStopping(Callback):
         if current is None:
             warnings.warn(
                 f'Early stopping conditioned on metric `{self.monitor}`'
-                f' which is not available. Available metrics are: {",".join(list(logs.keys()))}',
+                f' which is not available, so early stopping will not work.'
+                f' Available metrics are: {",".join(list(logs.keys()))}',
                 RuntimeWarning)
-            stop_training = True
+
             return stop_training
 
         if self.monitor_op(current - self.min_delta, self.best):
