@@ -16,7 +16,7 @@ except ImportError:
     raise ImportError('Missing test-tube package.')
 
 from pytorch_lightning import data_loader
-from pytorch_lightning.root_module.root_module import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class LightningTestModelBase(LightningModule):
