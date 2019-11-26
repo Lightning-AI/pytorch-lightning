@@ -5,8 +5,10 @@ try:
     # loading for pyTorch 1.3
     from torch.utils.data import IterableDataset
 except ImportError:
-    # loading for pyTorch 1.2
-    print('Your version of pyTorch does not support `IterableDataset`, please upgrade to 1.3+')
+    # loading for pyTorch 1.1
+    import torch
+    warnings.warn('Your version of pyTorch %s does not support `IterableDataset`,'
+                  ' please upgrade to 1.2+' % torch.__version__, ImportWarning)
     EXIST_ITER_DATASET = False
 else:
     EXIST_ITER_DATASET = True
@@ -176,7 +178,7 @@ class TrainerDataLoadingMixin(object):
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
-                EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for train_dataloader,
