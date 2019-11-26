@@ -33,7 +33,7 @@ def test_amp_single_gpu():
         use_amp=True
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_no_amp_single_gpu():
@@ -58,7 +58,7 @@ def test_no_amp_single_gpu():
     )
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+        testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_amp_gpu_ddp():
@@ -83,7 +83,7 @@ def test_amp_gpu_ddp():
         use_amp=True
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_amp_gpu_ddp_slurm_managed():
@@ -180,7 +180,7 @@ def test_cpu_model_with_amp():
     model, hparams = testing_utils.get_model()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+        testing_utils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
 def test_amp_gpu_dp():
@@ -201,7 +201,7 @@ def test_amp_gpu_dp():
         use_amp=True
     )
     with pytest.raises(MisconfigurationException):
-        testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+        testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 if __name__ == '__main__':

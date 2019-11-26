@@ -42,7 +42,7 @@ def test_multi_gpu_model_ddp2():
         distributed_backend='ddp2'
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_ddp():
@@ -66,7 +66,7 @@ def test_multi_gpu_model_ddp():
         distributed_backend='ddp'
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_optimizer_return_options():
@@ -198,7 +198,7 @@ def test_multi_gpu_none_backend():
     )
 
     with pytest.raises(MisconfigurationException):
-        testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+        testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_dp():
@@ -221,7 +221,7 @@ def test_multi_gpu_model_dp():
         gpus='-1'
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
     # test memory helper functions
     memory.get_memory_profile('min_max')

@@ -22,7 +22,7 @@ def test_early_stopping_cpu_model():
     """
     testing_utils.reset_seed()
 
-    stopping = EarlyStopping(monitor='val_loss')
+    stopping = EarlyStopping(monitor='val_loss', min_delta=1e-2)
     trainer_options = dict(
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
@@ -36,7 +36,7 @@ def test_early_stopping_cpu_model():
     )
 
     model, hparams = testing_utils.get_model()
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    testing_utils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -265,7 +265,7 @@ def test_cpu_model():
 
     model, hparams = testing_utils.get_model()
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    testing_utils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
 def test_all_features_cpu_model():
@@ -289,7 +289,7 @@ def test_all_features_cpu_model():
     )
 
     model, hparams = testing_utils.get_model()
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    testing_utils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
 def test_tbptt_cpu_model():
@@ -392,7 +392,7 @@ def test_single_gpu_model():
         gpus=1
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 if __name__ == '__main__':
