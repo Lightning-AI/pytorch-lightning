@@ -26,7 +26,7 @@ def test_early_stopping_cpu_model():
     """
     reset_seed()
 
-    stopping = EarlyStopping(monitor='val_loss', min_delta=5e-2)
+    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
