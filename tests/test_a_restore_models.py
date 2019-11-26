@@ -83,7 +83,7 @@ def test_running_test_pretrained_model():
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_nb_epochs=2,
+        max_nb_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
