@@ -16,7 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 # DEFAULTS used by the Trainer
 checkpoint_callback = ModelCheckpoint(
-    filepath=os.getcwd(),
+    filepath=os.path.join(os.getcwd(), os.path.join(lightning_logs, checkpoints)),
     save_top_k=1,
     verbose=True,
     monitor='val_loss',
