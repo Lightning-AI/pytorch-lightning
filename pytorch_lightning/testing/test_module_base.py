@@ -19,6 +19,22 @@ from pytorch_lightning import data_loader
 from pytorch_lightning.core.lightning import LightningModule
 
 
+class TestingMNIST(MNIST):
+
+    def __init__(self, root, train=True, transform=None, target_transform=None,
+                 download=False, num_samples=8000):
+        super(TestingMNIST, self).__init__(
+            root,
+            train=train,
+            transform=transform,
+            target_transform=target_transform,
+            download=download
+        )
+        # take jsut a subset of MNIS dataset
+        self.data = self.data[:num_samples]
+        self.targets = self.targets[:num_samples]
+
+
 class LightningTestModelBase(LightningModule):
     """
     Base LightningModule for testing. Implements only the required
@@ -137,8 +153,8 @@ class LightningTestModelBase(LightningModule):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+        dataset = TestingMNIST(root=self.hparams.data_root, train=train,
+                               transform=transform, download=True, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
