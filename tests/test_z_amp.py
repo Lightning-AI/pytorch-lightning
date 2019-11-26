@@ -141,8 +141,7 @@ def test_amp_gpu_ddp_slurm_managed():
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
     # test model loading with a map_location
-    pretrained_model = load_model(logger.experiment,
-                                                trainer.checkpoint_callback.filepath)
+    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
 
     # test model preds
     for dataloader in trainer.get_test_dataloaders():

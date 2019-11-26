@@ -17,7 +17,7 @@ from pytorch_lightning.trainer.dp_mixin import (
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from .utils import (
     reset_seed, can_run_gpu_test, get_hparams, run_model_test, set_random_master_port,
-    init_save_dir, get_test_tube_logger, clear_save_dir
+    init_save_dir, get_test_tube_logger, clear_save_dir, get_model
 )
 
 PRETEND_N_OF_GPUS = 16
