@@ -63,11 +63,11 @@ class TrainerDPMixin(object):
         return batch
 
     def single_gpu_train(self, model):
+        model.cuda(self.root_gpu)
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-
-        model.cuda(self.root_gpu)
 
         if self.use_amp:
             # An example
