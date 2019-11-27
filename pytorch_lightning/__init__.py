@@ -25,8 +25,8 @@ if __LIGHTNING_SETUP__:
     # process, as it may not be compiled yet
 else:
     from .trainer.trainer import Trainer
-    from .root_module.root_module import LightningModule
-    from .root_module.decorators import data_loader
+    from .core.lightning import LightningModule
+    from .core.decorators import data_loader
 
     __all__ = [
         'Trainer',

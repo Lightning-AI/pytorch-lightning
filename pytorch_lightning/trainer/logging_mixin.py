@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_lightning.root_module import memory
+from pytorch_lightning.core import memory
 
 
 class TrainerLoggingMixin(object):

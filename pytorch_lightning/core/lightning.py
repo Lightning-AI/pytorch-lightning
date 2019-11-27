@@ -6,14 +6,14 @@ from argparse import Namespace
 import torch
 import torch.distributed as dist
 
-from pytorch_lightning.root_module.decorators import data_loader
-from pytorch_lightning.root_module.grads import GradInformation
-from pytorch_lightning.root_module.hooks import ModelHooks
-from pytorch_lightning.root_module.memory import ModelSummary
-from pytorch_lightning.root_module.model_saving import ModelIO
+from pytorch_lightning.core.decorators import data_loader
+from pytorch_lightning.core.grads import GradInformation
+from pytorch_lightning.core.hooks import ModelHooks
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.trainer_io import load_hparams_from_tags_csv
 import logging
-from pytorch_lightning.pt_overrides.override_data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
 class LightningModule(GradInformation, ModelIO, ModelHooks):
