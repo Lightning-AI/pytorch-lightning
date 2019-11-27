@@ -30,7 +30,7 @@ class TestingMNIST(MNIST):
             target_transform=target_transform,
             download=download
         )
-        # take jsut a subset of MNIS dataset
+        # take just a subset of MNIST dataset
         self.data = self.data[:num_samples]
         self.targets = self.targets[:num_samples]
 
