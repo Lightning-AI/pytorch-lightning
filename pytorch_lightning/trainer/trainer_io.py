@@ -8,8 +8,10 @@ import logging
 import torch
 import torch.distributed as dist
 
-from pytorch_lightning.pt_overrides.override_data_parallel import (
-    LightningDistributedDataParallel, LightningDataParallel)
+from pytorch_lightning.overrides.data_parallel import (
+    LightningDistributedDataParallel,
+    LightningDataParallel,
+)
 
 
 class TrainerIOMixin(object):

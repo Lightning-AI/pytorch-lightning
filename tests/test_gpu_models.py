@@ -6,7 +6,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
-from pytorch_lightning.root_module import memory
+from pytorch_lightning.core import memory
 from pytorch_lightning.testing import (
     LightningTestModel,
 )
