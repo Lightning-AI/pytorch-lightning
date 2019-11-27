@@ -22,7 +22,7 @@ references:
      command: |
        python --version ; pip --version ; pip list
        py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml --flake8
-     no_output_timeout: 30m
+     no_output_timeout: 15m
 
 jobs:
 
