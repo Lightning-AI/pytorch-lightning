@@ -1,3 +1,34 @@
+"""
+Log using `test tube <https://williamfalcon.github.io/test-tube>'_. Test tube logger is
+a strict subclass of `PyTorch SummaryWriter <https://pytorch.org/docs/stable/tensorboard.html>`_, refer to their
+documentation for all supported operations. The TestTubeLogger adds a nicer folder structure
+to manage experiments and snapshots all hyperparameters you pass to a LightningModule.
+
+.. code-block:: python
+
+    from pytorch_lightning.logging import TestTubeLogger
+    tt_logger = TestTubeLogger(
+        save_dir=".",
+        name="default",
+        debug=False,
+        create_git_tag=False
+    )
+    trainer = Trainer(logger=tt_logger)
+
+
+Use the logger anywhere in you LightningModule as follows:
+
+.. code-block:: python
+
+    def train_step(...):
+        # example
+        self.logger.experiment.whatever_method_summary_writer_supports(...)
+
+    def any_lightning_module_function_or_hook(...):
+        self.logger.experiment.add_histogram(...)
+
+"""
+
 try:
     from test_tube import Experiment
 except ImportError:
