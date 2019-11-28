@@ -1,6 +1,6 @@
-from .test_module import LightningTestModel
-from .test_module_base import LightningTestModelBase
-from .test_module_mixins import (
+from .model import LightningTestModel
+from .model_base import LightningTestModelBase
+from .model_mixins import (
     LightningValidationStepMixin,
     LightningValidationMixin,
     LightningValidationStepMultipleDataloadersMixin,
