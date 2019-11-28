@@ -52,7 +52,7 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_
     clear_save_dir()
 
 
-def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
+def run_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = init_save_dir()
 
     # logger file to get meta
