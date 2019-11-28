@@ -1,3 +1,29 @@
+"""
+Log using `mlflow <https://mlflow.org>'_
+
+.. code-block:: python
+
+    from pytorch_lightning.logging import MLFlowLogger
+    mlf_logger = MLFlowLogger(
+        experiment_name="default",
+        tracking_uri="file:/."
+    )
+    trainer = Trainer(logger=mlf_logger)
+
+
+Use the logger anywhere in you LightningModule as follows:
+
+.. code-block:: python
+
+    def train_step(...):
+        # example
+        self.logger.experiment.whatever_ml_flow_supports(...)
+
+    def any_lightning_module_function_or_hook(...):
+        self.logger.experiment.whatever_ml_flow_supports(...)
+
+"""
+
 from logging import getLogger
 from time import time
 

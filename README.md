@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](./docs/source/_static/lightning_logo_small.png)
+![Logo](docs/source/_static/images/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -11,7 +11,7 @@
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
 [![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/williamFalcon/pytorch-lightning)
-[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
@@ -183,7 +183,7 @@ trainer.test()
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-![Overview](./docs/source/_static/overview_flat.jpg)
+![Overview](docs/source/_static/images/overview_flat.jpg)
 
 ```python
 # what to do in the training loop
@@ -266,11 +266,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard, MLFlow and supports any logging module.   
 
-![tensorboard-support](./docs/source/_static/tf_loss.png)
+![tensorboard-support](docs/source/_static/images/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-![tensorboard-support](./docs/source/_static/tf_tags.png)
+![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 

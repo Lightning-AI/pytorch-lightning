@@ -1,3 +1,128 @@
+"""
+# Validation loop
+
+The lightning validation loop handles everything except the actual computations of your model.
+To decide what will happen in your validation loop, define the `validation_step` function.
+Below are all the things lightning automates for you in the validation loop.
+
+.. note:: Lightning will run 5 steps of validation in the beginning of training as a sanity
+ check so you don't have to wait until a full epoch to catch possible validation issues.
+
+Check validation every n epochs
+-------------------------------
+
+If you have a small dataset you might want to check validation every n epochs
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(check_val_every_n_epoch=1)
+
+Set how much of the validation set to check
+-------------------------------------------
+
+If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
+
+val_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(val_percent_check=1.0)
+
+    # check 10% only
+    trainer = Trainer(val_percent_check=0.1)
+
+Set how much of the test set to check
+-------------------------------------
+
+If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
+
+test_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(test_percent_check=1.0)
+
+    # check 10% only
+    trainer = Trainer(test_percent_check=0.1)
+
+Set validation check frequency within 1 training epoch
+------------------------------------------------------
+
+For large datasets it's often desirable to check validation multiple times within a training loop.
+ Pass in a float to check that often within 1 training epoch.
+ Pass in an int k to check every k training batches. Must use an int if using an IterableDataset.
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(val_check_interval=0.95)
+
+    # check every .25 of an epoch
+    trainer = Trainer(val_check_interval=0.25)
+
+    # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
+    trainer = Trainer(val_check_interval=100)
+
+
+Set the number of validation sanity steps
+-----------------------------------------
+
+Lightning runs a few steps of validation in the beginning of training.
+ This avoids crashing in the validation loop sometime deep into a lengthy training loop.
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(nb_sanity_val_steps=5)
+
+
+You can use `Trainer(nb_sanity_val_steps=0)` to skip the sanity check.
+
+# Testing loop
+
+To ensure you don't accidentally use test data to guide training decisions Lightning
+ makes running the test set deliberate.
+
+**test**
+
+You have two options to run the test set.
+First case is where you test right after a full training routine.
+
+.. code-block:: python
+
+    # run full training
+    trainer.fit(model)
+
+    # run test set
+    trainer.test()
+
+
+Second case is where you load a model and run the test set
+
+.. code-block:: python
+
+    model = MyLightningModule.load_from_metrics(
+        weights_path='/path/to/pytorch_checkpoint.ckpt',
+        tags_csv='/path/to/test_tube/experiment/version/meta_tags.csv',
+        on_gpu=True,
+        map_location=None
+    )
+
+    # init trainer with whatever options
+    trainer = Trainer(...)
+
+    # test (pass in the model)
+    trainer.test(model)
+
+In this second case, the options you pass to trainer will be used when running
+ the test set (ie: 16-bit, dp, ddp, etc...)
+
+"""
+
+
 import torch
 import sys
 import tqdm
