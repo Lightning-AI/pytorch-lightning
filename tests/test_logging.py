@@ -7,9 +7,13 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel
 from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
-from .utils import (
-    reset_seed, get_hparams, init_save_dir, get_test_tube_logger, clear_save_dir
-)
+from . import testing_utils
+
+RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
+ROOT_SEED = 1234
+torch.manual_seed(ROOT_SEED)
+np.random.seed(ROOT_SEED)
+RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
 def test_testtube_logger():
@@ -17,12 +21,12 @@ def test_testtube_logger():
     verify that basic functionality of test tube logger works
     """
     reset_seed()
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -35,7 +39,7 @@ def test_testtube_logger():
 
     assert result == 1, "Training failed"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_testtube_pickle():
@@ -44,12 +48,12 @@ def test_testtube_pickle():
     """
     reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
     logger.log_hyperparams(hparams)
     logger.save()
 
@@ -64,7 +68,7 @@ def test_testtube_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_mlflow_logger():
@@ -78,7 +82,7 @@ def test_mlflow_logger():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -98,7 +102,7 @@ def test_mlflow_logger():
     print('result finished')
     assert result == 1, "Training failed"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_mlflow_pickle():
@@ -112,7 +116,7 @@ def test_mlflow_pickle():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -130,7 +134,7 @@ def test_mlflow_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_comet_logger():
@@ -144,7 +148,7 @@ def test_comet_logger():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -169,7 +173,7 @@ def test_comet_logger():
     print('result finished')
     assert result == 1, "Training failed"
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_comet_pickle():
@@ -183,7 +187,7 @@ def test_comet_pickle():
     except ModuleNotFoundError:
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -206,7 +210,7 @@ def test_comet_pickle():
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_custom_logger(tmpdir):
@@ -237,7 +241,7 @@ def test_custom_logger(tmpdir):
         def version(self):
             return "1"
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     logger = CustomLogger()
@@ -255,3 +259,9 @@ def test_custom_logger(tmpdir):
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
+
+
+def reset_seed():
+    SEED = RANDOM_SEEDS.pop()
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)

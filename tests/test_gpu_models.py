@@ -15,10 +15,7 @@ from pytorch_lightning.trainer.dp_mixin import (
     determine_root_gpu_device,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from .utils import (
-    reset_seed, can_run_gpu_test, get_hparams, run_model_test, set_random_master_port,
-    init_save_dir, get_test_tube_logger, clear_save_dir, get_model
-)
+from . import testing_utils
 
 PRETEND_N_OF_GPUS = 16
 
@@ -28,13 +25,13 @@ def test_multi_gpu_model_ddp2():
     Make sure DDP2 works
     :return:
     """
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    reset_seed()
-    set_random_master_port()
+    testing_utils.reset_seed()
+    testing_utils.set_random_master_port()
 
-    model, hparams = get_model()
+    model, hparams = testing_utils.get_model()
     trainer_options = dict(
         show_progress_bar=True,
         max_nb_epochs=1,
@@ -45,7 +42,7 @@ def test_multi_gpu_model_ddp2():
         distributed_backend='ddp2'
     )
 
-    run_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_ddp():
@@ -53,13 +50,13 @@ def test_multi_gpu_model_ddp():
     Make sure DDP works
     :return:
     """
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    reset_seed()
-    set_random_master_port()
+    testing_utils.reset_seed()
+    testing_utils.set_random_master_port()
 
-    model, hparams = get_model()
+    model, hparams = testing_utils.get_model()
     trainer_options = dict(
         show_progress_bar=False,
         max_nb_epochs=1,
@@ -69,14 +66,14 @@ def test_multi_gpu_model_ddp():
         distributed_backend='ddp'
     )
 
-    run_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_optimizer_return_options():
-    reset_seed()
+    testing_utils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = get_model()
+    model, hparams = testing_utils.get_model()
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -108,15 +105,15 @@ def test_cpu_slurm_save_load():
     Verify model save/load/checkpoint on CPU
     :return:
     """
-    reset_seed()
+    testing_utils.reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     version = logger.version
 
@@ -152,7 +149,7 @@ def test_cpu_slurm_save_load():
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
-    logger = get_test_tube_logger(False, version=version)
+    logger = testing_utils.get_test_tube_logger(False, version=version)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -177,7 +174,7 @@ def test_cpu_slurm_save_load():
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_multi_gpu_none_backend():
@@ -186,12 +183,12 @@ def test_multi_gpu_none_backend():
     distributed_backend = None
     :return:
     """
-    reset_seed()
+    testing_utils.reset_seed()
 
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    model, hparams = get_model()
+    model, hparams = testing_utils.get_model()
     trainer_options = dict(
         show_progress_bar=False,
         max_nb_epochs=1,
@@ -201,7 +198,7 @@ def test_multi_gpu_none_backend():
     )
 
     with pytest.raises(MisconfigurationException):
-        run_model_test(trainer_options, model, hparams)
+        testing_utils.run_model_test(trainer_options, model, hparams)
 
 
 def test_multi_gpu_model_dp():
@@ -209,12 +206,12 @@ def test_multi_gpu_model_dp():
     Make sure DP works
     :return:
     """
-    reset_seed()
+    testing_utils.reset_seed()
 
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    model, hparams = get_model()
+    model, hparams = testing_utils.get_model()
     trainer_options = dict(
         show_progress_bar=False,
         distributed_backend='dp',
@@ -224,7 +221,7 @@ def test_multi_gpu_model_dp():
         gpus='-1'
     )
 
-    run_model_test(trainer_options, model, hparams)
+    testing_utils.run_model_test(trainer_options, model, hparams)
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
@@ -235,16 +232,16 @@ def test_ddp_sampler_error():
     Make sure DDP + AMP work
     :return:
     """
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    reset_seed()
-    set_random_master_port()
+    testing_utils.reset_seed()
+    testing_utils.set_random_master_port()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
-    logger = get_test_tube_logger(True)
+    logger = testing_utils.get_test_tube_logger(True)
 
     trainer = Trainer(
         logger=logger,
@@ -258,7 +255,7 @@ def test_ddp_sampler_error():
     with pytest.warns(UserWarning):
         trainer.get_dataloaders(model)
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 @pytest.fixture

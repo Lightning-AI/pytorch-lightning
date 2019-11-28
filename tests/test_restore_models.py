@@ -7,31 +7,27 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.testing import LightningTestModel
-from .utils import (
-    reset_seed, can_run_gpu_test, get_hparams, set_random_master_port, init_save_dir,
-    get_test_tube_logger, init_checkpoint_callback, load_model, run_prediction, clear_save_dir,
-    assert_ok_test_acc
-)
+from . import testing_utils
 
 
 def test_running_test_pretrained_model_ddp():
     """Verify test() on pretrained model"""
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    reset_seed()
-    set_random_master_port()
+    testing_utils.reset_seed()
+    testing_utils.set_random_master_port()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # exp file to get meta
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     # exp file to get weights
-    checkpoint = init_checkpoint_callback(logger)
+    checkpoint = testing_utils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -53,33 +49,34 @@ def test_running_test_pretrained_model_ddp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
-                                  module_class=LightningTestModel)
+    pretrained_model = testing_utils.load_model(logger.experiment,
+                                                trainer.checkpoint_callback.filepath,
+                                                module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     for dataloader in model.test_dataloader():
-        run_prediction(dataloader, pretrained_model)
+        testing_utils.run_prediction(dataloader, pretrained_model)
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_running_test_pretrained_model():
-    reset_seed()
+    testing_utils.reset_seed()
 
     """Verify test() on pretrained model"""
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = init_checkpoint_callback(logger)
+    checkpoint = testing_utils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -96,7 +93,7 @@ def test_running_test_pretrained_model():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(
+    pretrained_model = testing_utils.load_model(
         logger.experiment, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
@@ -104,18 +101,18 @@ def test_running_test_pretrained_model():
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
-    clear_save_dir()
+    testing_utils.assert_ok_test_acc(new_trainer)
+    testing_utils.clear_save_dir()
 
 
 def test_load_model_from_checkpoint():
-    reset_seed()
+    testing_utils.reset_seed()
 
     """Verify test() on pretrained model"""
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -145,27 +142,27 @@ def test_load_model_from_checkpoint():
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
-    clear_save_dir()
+    testing_utils.assert_ok_test_acc(new_trainer)
+    testing_utils.clear_save_dir()
 
 
 def test_running_test_pretrained_model_dp():
-    reset_seed()
+    testing_utils.reset_seed()
 
     """Verify test() on pretrained model"""
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     # logger file to get weights
-    checkpoint = init_checkpoint_callback(logger)
+    checkpoint = testing_utils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=True,
@@ -184,15 +181,16 @@ def test_running_test_pretrained_model_dp():
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath,
-                                  module_class=LightningTestModel)
+    pretrained_model = testing_utils.load_model(logger.experiment,
+                                                trainer.checkpoint_callback.filepath,
+                                                module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    assert_ok_test_acc(new_trainer)
-    clear_save_dir()
+    testing_utils.assert_ok_test_acc(new_trainer)
+    testing_utils.clear_save_dir()
 
 
 def test_dp_resume():
@@ -200,12 +198,12 @@ def test_dp_resume():
     Make sure DP continues training correctly
     :return:
     """
-    if not can_run_gpu_test():
+    if not testing_utils.can_run_gpu_test():
         return
 
-    reset_seed()
+    testing_utils.reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -215,14 +213,14 @@ def test_dp_resume():
         distributed_backend='dp',
     )
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # get logger
-    logger = get_test_tube_logger(debug=False)
+    logger = testing_utils.get_test_tube_logger(debug=False)
 
     # exp file to get weights
     # logger file to get weights
-    checkpoint = init_checkpoint_callback(logger)
+    checkpoint = testing_utils.init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['logger'] = logger
@@ -246,7 +244,7 @@ def test_dp_resume():
     trainer.hpc_save(save_dir, logger)
 
     # init new trainer
-    new_logger = get_test_tube_logger(version=logger.version)
+    new_logger = testing_utils.get_test_tube_logger(version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
@@ -264,7 +262,7 @@ def test_dp_resume():
         dp_model.eval()
 
         dataloader = trainer.get_train_dataloader()
-        run_prediction(dataloader, dp_model, dp=True)
+        testing_utils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = LightningTestModel(hparams)
@@ -277,7 +275,7 @@ def test_dp_resume():
     model.freeze()
     model.unfreeze()
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_cpu_restore_training():
@@ -285,16 +283,16 @@ def test_cpu_restore_training():
     Verify continue training session on CPU
     :return:
     """
-    reset_seed()
+    testing_utils.reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
     test_logger_version = 10
-    logger = get_test_tube_logger(False, version=test_logger_version)
+    logger = testing_utils.get_test_tube_logger(False, version=test_logger_version)
 
     trainer_options = dict(
         max_nb_epochs=2,
@@ -316,7 +314,7 @@ def test_cpu_restore_training():
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    new_logger = get_test_tube_logger(False, version=test_logger_version)
+    new_logger = testing_utils.get_test_tube_logger(False, version=test_logger_version)
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
@@ -337,7 +335,7 @@ def test_cpu_restore_training():
         # haven't trained with the new loaded model
         trainer.model.eval()
         for dataloader in trainer.get_val_dataloaders():
-            run_prediction(dataloader, trainer.model)
+            testing_utils.run_prediction(dataloader, trainer.model)
 
     model.on_sanity_check_start = assert_good_acc
 
@@ -345,7 +343,7 @@ def test_cpu_restore_training():
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 def test_model_saving_loading():
@@ -353,15 +351,15 @@ def test_model_saving_loading():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    reset_seed()
+    testing_utils.reset_seed()
 
-    hparams = get_hparams()
+    hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = init_save_dir()
+    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
-    logger = get_test_tube_logger(False)
+    logger = testing_utils.get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -404,7 +402,7 @@ def test_model_saving_loading():
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
-    clear_save_dir()
+    testing_utils.clear_save_dir()
 
 
 if __name__ == '__main__':

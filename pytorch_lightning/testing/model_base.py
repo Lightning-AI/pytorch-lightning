@@ -154,7 +154,7 @@ class LightningTestModelBase(LightningModule):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=True, num_samples=2000)
+                               transform=transform, download=True, num_samples=800)
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
