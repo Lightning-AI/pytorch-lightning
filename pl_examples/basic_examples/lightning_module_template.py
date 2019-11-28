@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
-from pytorch_lightning import data_loader
+import pytorch_lightning as pt
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -213,17 +213,17 @@ class LightningTemplateModel(LightningModule):
 
         return loader
 
-    @data_loader
+    @pt.data_loader
     def train_dataloader(self):
         logging.info('training data loader called')
         return self.__dataloader(train=True)
 
-    @data_loader
+    @pt.data_loader
     def val_dataloader(self):
         logging.info('val data loader called')
         return self.__dataloader(train=False)
 
-    @data_loader
+    @pt.data_loader
     def test_dataloader(self):
         logging.info('test data loader called')
         return self.__dataloader(train=False)
