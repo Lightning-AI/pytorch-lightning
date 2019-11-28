@@ -48,6 +48,7 @@ class TrainerDDPMixin(object):
                 m = 'You requested multiple GPUs but did not specify a backend' \
                     'Trainer(distributed_backend=dp) (or ddp, ddp2)' \
                     'Setting distributed_backend=dp for you'
+                warnings.warn(m)
                 self.use_dp = True
                 self.use_ddp = False
                 self.use_ddp2 = False
