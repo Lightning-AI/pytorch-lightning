@@ -45,9 +45,12 @@ class TrainerDDPMixin(object):
                 self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
-                m = 'When using multiple GPUs set ' \
-                    'Trainer(distributed_backend=dp) (or ddp)'
-                raise MisconfigurationException(m)
+                m = 'You requested multiple GPUs but did not specify a backend' \
+                    'Trainer(distributed_backend=dp) (or ddp, ddp2)' \
+                    'Setting distributed_backend=dp for you'
+                self.use_dp = True
+                self.use_ddp = False
+                self.use_ddp2 = False
 
         # throw error to force user ddp or ddp2 choice
         if nb_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
