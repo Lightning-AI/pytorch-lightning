@@ -1,7 +1,17 @@
 import warnings
 
 import torch.distributed as dist
-from torch.utils.data import IterableDataset
+try:
+    # loading for pyTorch 1.3
+    from torch.utils.data import IterableDataset
+except ImportError:
+    # loading for pyTorch 1.1
+    import torch
+    warnings.warn('Your version of pyTorch %s does not support `IterableDataset`,'
+                  ' please upgrade to 1.2+' % torch.__version__, ImportWarning)
+    EXIST_ITER_DATASET = False
+else:
+    EXIST_ITER_DATASET = True
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -24,7 +34,7 @@ class TrainerDataLoadingMixin(object):
         self.get_train_dataloader = model.train_dataloader
 
         # determine number of training batches
-        if isinstance(self.get_train_dataloader(), IterableDataset):
+        if EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
             self.nb_training_batches = float('inf')
         else:
             self.nb_training_batches = len(self.get_train_dataloader())
@@ -167,7 +177,8 @@ class TrainerDataLoadingMixin(object):
             self.get_val_dataloaders()
 
         # support IterableDataset for train data
-        self.is_iterable_train_dataloader = isinstance(self.get_train_dataloader(), IterableDataset)
+        self.is_iterable_train_dataloader = (
+            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for train_dataloader,

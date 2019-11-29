@@ -44,11 +44,13 @@ install:
   # purpose but it is problematic because it tends to cancel builds pushed
   # directly to master instead of just PR builds (or the converse).
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%path%
-  - pip install -U --user pip
-  - pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
-  - pip install -r ./tests/requirements.txt
+  #- pip install -U --user "pip<19.3"
+  - python -m pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
+  - python -m pip install -r ./tests/requirements.txt
+  - python -m pip install pytest-flake8
 
-# scripts to run before tests (working directory and environment changes are persisted from the previous steps such as "before_build")
+# scripts to run before tests (working directory and environment changes
+# are persisted from the previous steps such as "before_build")
 before_test:
   - python --version
   - pip --version
@@ -57,7 +59,9 @@ before_test:
 
 # to run your custom scripts instead of automatic tests
 test_script:
-  - tox --sitepackages --parallel auto
+  - py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
+  #- python setup.py sdist
+  #- twine check dist/*
 
 on_success:
   - coverage report

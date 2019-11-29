@@ -46,15 +46,18 @@ setup(
     url=pytorch_lightning.__homepage__,
     download_url='https://github.com/williamFalcon/pytorch-lightning',
     license=pytorch_lightning.__license__,
-    packages=find_packages(exclude=['examples']),
+    packages=find_packages(exclude=['tests']),
+
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
+
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
+
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',
