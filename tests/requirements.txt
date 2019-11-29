@@ -5,6 +5,7 @@ pytest>=3.0.5
 pytest-cov
 flake8
 check-manifest
-test_tube
+# test_tube  # already installed in main req.
 mlflow
 comet_ml
+twine==1.13.0
