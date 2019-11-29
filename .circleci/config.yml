@@ -10,8 +10,9 @@ references:
     run:
       name: Install Dependences
       command: |
-        # PyPI
         pip install "$TORCH_VERSION" --user
+        # this is temporal fix til test-tube is not merged and released
+        pip install https://github.com/Borda/test-tube/archive/fix-writer.zip -U --user
         pip install -r requirements.txt --user
         sudo pip install pytest pytest-cov pytest-flake8
         pip install -r ./tests/requirements.txt --user
