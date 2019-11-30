@@ -138,8 +138,11 @@ class TrainerIOMixin(object):
             torch.cuda.empty_cache()
 
         if not did_restore_hpc_weights:
-            # restore weights if same exp version
-            self.restore_state_if_checkpoint_exists(model)
+            if self.resume_from_checkpoint is not None:
+                self.restore(self.resume_from_checkpoint, on_gpu=self.on_gpu)
+            else:
+                # restore weights if same exp version
+                self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
