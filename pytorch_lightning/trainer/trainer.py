@@ -53,7 +53,7 @@ class Trainer(TrainerIOMixin,
     def __init__(self,
                  logger=True,
                  checkpoint_callback=True,
-                 early_stop_callback=False,
+                 early_stop_callback=True,
                  default_save_path=None,
                  gradient_clip_val=0,
                  gradient_clip=None,  # backward compatible
