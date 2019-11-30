@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](./docs/source/_static/lightning_logo_small.png)
+![Logo](docs/source/_static/images/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -11,7 +11,7 @@
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
 [![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/williamFalcon/pytorch-lightning)
-[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
@@ -31,11 +31,16 @@ Simple installation from PyPI
 pip install pytorch-lightning  
 ```
 
+[LIVE COLAB DEMO](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
 Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
+
+## How much effort is it to convert?
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
@@ -63,7 +68,7 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.    
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
@@ -178,7 +183,7 @@ trainer.test()
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-![Overview](./docs/source/_static/overview_flat.jpg)
+![Overview](docs/source/_static/images/overview_flat.jpg)
 
 ```python
 # what to do in the training loop
@@ -261,11 +266,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard, MLFlow and supports any logging module.   
 
-![tensorboard-support](./docs/source/_static/tf_loss.png)
+![tensorboard-support](docs/source/_static/images/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-![tensorboard-support](./docs/source/_static/tf_tags.png)
+![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
