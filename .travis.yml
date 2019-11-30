@@ -66,6 +66,8 @@ before_script:
       cp requirements.txt requirements-ci.txt ;
     fi
   - pip install -r requirements-ci.txt -U
+    # this is temporal fix til test-tube is not merged and released
+  - pip install https://github.com/Borda/test-tube/archive/fix-writer.zip -U
 
 script:
   # integration
