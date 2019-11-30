@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](./docs/source/_static/lightning_logo_small.png)
+![Logo](docs/source/_static/images/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -11,13 +11,13 @@
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
 [![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/williamFalcon/pytorch-lightning)
-[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
 [![Gitter](https://badges.gitter.im/PyTorch-Lightning/community.svg)](https://gitter.im/PyTorch-Lightning/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Nov%206-<COLOR>.svg)](https://shields.io/)
+[![Next Release](https://img.shields.io/badge/Next%20Release-Dec%206-<COLOR>.svg)](https://shields.io/)
 
 <!-- 
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
@@ -31,11 +31,16 @@ Simple installation from PyPI
 pip install pytorch-lightning  
 ```
 
+[LIVE COLAB DEMO](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
 ## What is it?  
 Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
+
+## How much effort is it to convert?
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
@@ -63,85 +68,85 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule]((https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)) which you fit using a Trainer.    
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)     
-
-**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.    
-```python
-import os
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-import torchvision.transforms as transforms
-
-import pytorch_lightning as pl
-
-class CoolSystem(pl.LightningModule):
-
-    def __init__(self):
-        super(CoolSystem, self).__init__()
-        # not the best model...
-        self.l1 = torch.nn.Linear(28 * 28, 10)
-
-    def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-    def training_step(self, batch, batch_nb):
-        # REQUIRED
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = F.cross_entropy(y_hat, y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
-
-    def validation_step(self, batch, batch_nb):
-        # OPTIONAL
-        x, y = batch
-        y_hat = self.forward(x)
-        return {'val_loss': F.cross_entropy(y_hat, y)}
-
-    def validation_end(self, outputs):
-        # OPTIONAL
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        tensorboard_logs = {'val_loss': avg_loss}
-        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
-
-    def configure_optimizers(self):
-        # REQUIRED
-        # can return multiple optimizers and learning_rate schedulers
-        # (LBFGS it is automatically supported, no need for closure function)
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-    @pl.data_loader
-    def train_dataloader(self):
-        # REQUIRED
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
-
-    @pl.data_loader
-    def val_dataloader(self):
-        # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
-
-    @pl.data_loader
-    def test_dataloader(self):
-        # OPTIONAL
-        return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
-```
+1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)
+**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
+    ```python
+    import os
+    
+    import torch
+    from torch.nn import functional as F
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
+    
+    import pytorch_lightning as pl
+    
+    class CoolSystem(pl.LightningModule):
+    
+        def __init__(self):
+            super(CoolSystem, self).__init__()
+            # not the best model...
+            self.l1 = torch.nn.Linear(28 * 28, 10)
+    
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+    
+        def training_step(self, batch, batch_nb):
+            # REQUIRED
+            x, y = batch
+            y_hat = self.forward(x)
+            loss = F.cross_entropy(y_hat, y)
+            tensorboard_logs = {'train_loss': loss}
+            return {'loss': loss, 'log': tensorboard_logs}
+    
+        def validation_step(self, batch, batch_nb):
+            # OPTIONAL
+            x, y = batch
+            y_hat = self.forward(x)
+            return {'val_loss': F.cross_entropy(y_hat, y)}
+    
+        def validation_end(self, outputs):
+            # OPTIONAL
+            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+            tensorboard_logs = {'val_loss': avg_loss}
+            return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+    
+        def configure_optimizers(self):
+            # REQUIRED
+            # can return multiple optimizers and learning_rate schedulers
+            # (LBFGS it is automatically supported, no need for closure function)
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+    
+        @pl.data_loader
+        def train_dataloader(self):
+            # REQUIRED
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+    
+        @pl.data_loader
+        def val_dataloader(self):
+            # OPTIONAL
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+    
+        @pl.data_loader
+        def test_dataloader(self):
+            # OPTIONAL
+            return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
+    ```
 2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
-```python
-from pytorch_lightning import Trainer
-
-model = CoolSystem()
-
-# most basic trainer, uses good defaults
-trainer = Trainer()    
-trainer.fit(model)   
-```     
+    ```python
+    from pytorch_lightning import Trainer
+    
+    model = CoolSystem()
+    
+    # most basic trainer, uses good defaults
+    trainer = Trainer()    
+    trainer.fit(model)   
+    ```
 
 Trainer sets up a tensorboard logger, early stopping and checkpointing by default (you can modify all of them or
 use something other than tensorboard).   
@@ -166,7 +171,7 @@ trainer.fit(model)
 # view tensorboard logs 
 logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
 logging.info('and going to http://localhost:6006 on your browser')
-```    
+```
 
 When you're all done you can even run the test set separately.   
 ```python
@@ -178,7 +183,7 @@ trainer.test()
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-![Overview](./docs/source/_static/overview_flat.jpg)
+![Overview](docs/source/_static/images/overview_flat.jpg)
 
 ```python
 # what to do in the training loop
@@ -261,11 +266,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard, MLFlow and supports any logging module.   
 
-![tensorboard-support](./docs/source/_static/tf_loss.png)
+![tensorboard-support](docs/source/_static/images/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-![tensorboard-support](./docs/source/_static/tf_tags.png)
+![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
@@ -348,7 +353,8 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [9 key speed features in Pytorch-Lightning](https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565)    
 - [SLURM, multi-node training with Lightning](https://towardsdatascience.com/trivial-multi-node-training-with-pytorch-lightning-ff75dfb809bd)     
 
----    
+---
+
 ## Asking for help    
 Welcome to the Lightning community!   
 

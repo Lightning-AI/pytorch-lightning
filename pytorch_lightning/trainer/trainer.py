@@ -3,6 +3,7 @@ The trainer handles all the logic for running a val loop, training loop, distrib
 """
 
 import os
+import sys
 import warnings
 import logging
 
@@ -88,50 +89,50 @@ class Trainer(TrainerIOMixin,
         :param logger: Logger for experiment tracking
         :param checkpoint_callback: Callback for checkpointing
         :param early_stop_callback: Callback for early stopping
-        :param default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
-        :param gradient_clip_val: int. 0 means don't clip.
-        :param gradient_clip: int. 0 means don't clip. Deprecated.
+        :param str default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
+        :param int gradient_clip_val: 0 means don't clip.
+        :param int gradient_clip: 0 means don't clip. Deprecated.
         :param process_position: shown in the tqdm bar
-        :param nb_gpu_nodes: number of GPU nodes
+        :param int nb_gpu_nodes: number of GPU nodes
         :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
             OR '-1' / -1 to use all available gpus
-        :param log_gpu_memory: str. None, 'min_max', 'all'
-        :param show_progress_bar: Bool. If true shows tqdm bar
-        :param overfit_pct: float. uses this much of all datasets
-        :param track_grad_norm: int. -1 no tracking. Otherwise tracks that norm
-        :param check_val_every_n_epoch: int. check val every n train epochs
-        :param fast_dev_run: Bool. runs full iteration over everything to find bugs
-        :param accumulate_grad_batches: int. Accumulates grads every k batches
-        :param max_nb_epochs: int.
-        :param min_nb_epochs: int.
-        :param train_percent_check: int. How much of train set to check
-        :param val_percent_check: int. How much of val set to check
-        :param test_percent_check: int. How much of test set to check
-        :param val_check_interval: float/int. If float, % of tng epoch. If int, check every n batch
-        :param log_save_interval: int. Writes logs to disk this often
-        :param row_log_interval: int. How often to add logging rows
-        :param add_row_log_interval: int. How often to add logging rows. Deprecated.
-        :param distributed_backend: str. Options: 'dp', 'ddp', 'ddp2'.
-        :param use_amp: Bool. If true uses apex for 16bit precision
-        :param print_nan_grads: Bool. Prints nan gradients
-        :param weights_summary: str. Options: 'full', 'top', None to not print.
-        :param weights_save_path: Bool. Where to save weights if on cluster
-        :param amp_level: str. Check nvidia docs for level
-        :param nb_sanity_val_steps: int. How many val steps before a full train loop.
-        :param truncated_bptt_steps: int. Enables multiple backward passes for each batch.
+        :param str log_gpu_memory: None, 'min_max', 'all'
+        :param bool show_progress_bar: If true shows tqdm bar
+        :param float overfit_pct: uses this much of all datasets
+        :param int track_grad_norm: -1 no tracking. Otherwise tracks that norm
+        :param int check_val_every_n_epoch: check val every n train epochs
+        :param bool fast_dev_run: runs full iteration over everything to find bugs
+        :param int accumulate_grad_batches: Accumulates grads every k batches
+        :param int max_nb_epochs:
+        :param int min_nb_epochs:
+        :param int train_percent_check: How much of train set to check
+        :param int val_percent_check: How much of val set to check
+        :param int test_percent_check: How much of test set to check
+        :param float|int val_check_interval: If float, % of tng epoch. If int, check every n batch
+        :param int log_save_interval: Writes logs to disk this often
+        :param int row_log_interval: How often to add logging rows
+        :param int add_row_log_interval: How often to add logging rows. Deprecated.
+        :param str distributed_backend: Options: 'dp', 'ddp', 'ddp2'.
+        :param bool use_amp: If true uses apex for 16bit precision
+        :param bool print_nan_grads: Prints nan gradients
+        :param str weights_summary: Options: 'full', 'top', None to not print.
+        :param bool weights_save_path: Where to save weights if on cluster
+        :param str amp_level: Check nvidia docs for level
+        :param int nb_sanity_val_steps: How many val steps before a full train loop.
+        :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
         """
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
         if not (gradient_clip is None):
             # Backward compatibility
-            warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
-                          DeprecationWarning)
+            warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+                          " and will be removed in v0.8.0", DeprecationWarning)
             gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
-        self.on_gpu = gpus is not None and torch.cuda.is_available()
+        self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
         self.process_position = process_position
         self.weights_summary = weights_summary
         self.max_nb_epochs = max_nb_epochs
@@ -224,8 +225,8 @@ class Trainer(TrainerIOMixin,
         self.val_check_interval = val_check_interval
         if not (add_row_log_interval is None):
             # backward compatibility
-            warnings.warn("gradient_clip has renamed to gradient_clip_val since v0.5.0",
-                          DeprecationWarning)
+            warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+                          " and will be removed in v0.8.0", DeprecationWarning)
             row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
@@ -320,12 +321,11 @@ class Trainer(TrainerIOMixin,
 
     @property
     def tng_tqdm_dic(self):
-        """
-        * Deprecated in v0.5.0. use training_tqdm_dict instead. *
+        """*Deprecated in v0.5.0. use training_tqdm_dict instead.*
         :return:
         """
-        warnings.warn("tng_tqdm_dict has renamed to training_tqdm_dict since v0.5.0",
-                      DeprecationWarning)
+        warnings.warn("`tng_tqdm_dict` has renamed to `training_tqdm_dict` since v0.5.0"
+                      " and will be removed in v0.8.0", DeprecationWarning)
         return self.training_tqdm_dict
 
     # -----------------------------
@@ -470,7 +470,8 @@ class Trainer(TrainerIOMixin,
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
-                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                         file=sys.stdout)
         self.main_progress_bar = pbar
 
         # clear cache before training

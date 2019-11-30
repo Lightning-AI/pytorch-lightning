@@ -81,7 +81,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.add_argument('--enable_tqdm', dest='enable_tqdm', default=False, action='store_true',
                         help='false removes the progress bar')
     parser.add_argument('--overfit', default=-1, type=float,
-                        help='% of dataset to use with this option. float, or -1 for none')
+                        help='%% of dataset to use with this option. float, or -1 for none')
 
     # debug args
     if rand_seed is not None:

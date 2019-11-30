@@ -1,7 +1,7 @@
 import torch
 
-from .lm_test_module_base import LightningTestModelBase
-from .lm_test_module_mixins import LightningValidationMixin, LightningTestMixin
+from .model_base import LightningTestModelBase
+from .model_mixins import LightningValidationMixin, LightningTestMixin
 
 
 class LightningTestModel(LightningValidationMixin, LightningTestMixin, LightningTestModelBase):

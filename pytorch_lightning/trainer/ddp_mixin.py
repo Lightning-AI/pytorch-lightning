@@ -1,7 +1,122 @@
+"""
+Lightning supports model training on a cluster managed by SLURM in the following cases:
+
+1. Training on a single cpu or single GPU.
+2. Train on multiple GPUs on the same node using DataParallel or DistributedDataParallel
+3. Training across multiple GPUs on multiple different nodes via DistributedDataParallel.
+
+.. note:: A node means a machine with multiple GPUs
+
+Running grid search on a cluster
+--------------------------------
+
+To use lightning to run a hyperparameter search (grid-search or random-search) on a cluster do 4 things:
+
+(1). Define the parameters for the grid search
+
+.. code-block:: python
+
+    from test_tube import HyperOptArgumentParser
+
+    # subclass of argparse
+    parser = HyperOptArgumentParser(strategy='random_search')
+    parser.add_argument('--learning_rate', default=0.002, type=float, help='the learning rate')
+
+    # let's enable optimizing over the number of layers in the network
+    parser.opt_list('--nb_layers', default=2, type=int, tunable=True, options=[2, 4, 8])
+
+    hparams = parser.parse_args()
+
+.. note:: You must set `Tunable=True` for that argument to be considered in the permutation set.
+ Otherwise test-tube will use the default value. This flag is useful when you don't want
+ to search over an argument and want to use the default instead.
+
+(2). Define the cluster options in the
+ `SlurmCluster object <https://williamfalcon.github.io/test-tube/hpc/SlurmCluster>`_ (over 5 nodes and 8 gpus)
+
+.. code-block:: python
+
+    from test_tube.hpc import SlurmCluster
+
+    # hyperparameters is a test-tube hyper params object
+    # see https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser/
+    hyperparams = args.parse()
+
+    # init cluster
+    cluster = SlurmCluster(
+        hyperparam_optimizer=hyperparams,
+        log_path='/path/to/log/results/to',
+        python_cmd='python3'
+    )
+
+    # let the cluster know where to email for a change in job status (ie: complete, fail, etc...)
+    cluster.notify_job_status(email='some@email.com', on_done=True, on_fail=True)
+
+    # set the job options. In this instance, we'll run 20 different models
+    # each with its own set of hyperparameters giving each one 1 GPU (ie: taking up 20 GPUs)
+    cluster.per_experiment_nb_gpus = 8
+    cluster.per_experiment_nb_nodes = 5
+
+    # we'll request 10GB of memory per node
+    cluster.memory_mb_per_node = 10000
+
+    # set a walltime of 10 minues
+    cluster.job_time = '10:00'
+
+
+(3). Make a main function with your model and trainer. Each job will call this function with a particular
+hparams configuration.::
+
+    from pytorch_lightning import Trainer
+
+    def train_fx(trial_hparams, cluster_manager, _):
+        # hparams has a specific set of hyperparams
+
+        my_model = MyLightningModel()
+
+        # give the trainer the cluster object
+        trainer = Trainer()
+        trainer.fit(my_model)
+
+    `
+
+(4). Start the grid/random search::
+
+    # run the models on the cluster
+    cluster.optimize_parallel_cluster_gpu(
+        train_fx,
+        nb_trials=20,
+        job_name='my_grid_search_exp_name',
+        job_display_name='my_exp')
+
+.. note:: `nb_trials` specifies how many of the possible permutations to use. If using `grid_search` it will use
+ the depth first ordering. If using `random_search` it will use the first k shuffled options. FYI, random search
+ has been shown to be just as good as any Bayesian optimization method when using a reasonable number of samples (60),
+ see this `paper <http://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf>`_  for more information.
+
+Walltime auto-resubmit
+----------------------
+
+Lightning automatically resubmits jobs when they reach the walltime. Make sure to set the SIGUSR1 signal in
+your SLURM script.::
+
+    # 90 seconds before training ends
+    #SBATCH --signal=SIGUSR1@90
+
+When lightning receives the SIGUSR1 signal it will:
+1. save a checkpoint with 'hpc_ckpt' in the name.
+2. resubmit the job using the SLURM_JOB_ID
+
+When the script starts again, Lightning will:
+1. search for a 'hpc_ckpt' checkpoint.
+2. restore the model, optimizers, schedulers, epoch, etc...
+
+"""
+
 import os
 import re
-import warnings
 import logging
+import warnings
 
 import torch
 
@@ -45,18 +160,21 @@ class TrainerDDPMixin(object):
                 self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
-                m = 'When using multiple GPUs set ' \
-                    'Trainer(distributed_backend=dp) (or ddp)'
-                raise MisconfigurationException(m)
+                m = 'You requested multiple GPUs but did not specify a backend' \
+                    'Trainer(distributed_backend=dp) (or ddp, ddp2)' \
+                    'Setting distributed_backend=dp for you'
+                warnings.warn(m)
+                self.use_dp = True
+                self.use_ddp = False
+                self.use_ddp2 = False
 
-        # use ddp automatically if nb_gpu_nodes > 1
-        if nb_gpu_nodes > 1 and self.use_dp:  # pragma: no cover
-            self.use_ddp = True
-            self.use_dp = False
+        # throw error to force user ddp or ddp2 choice
+        if nb_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
             w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
-                'To silence this warning set distributed_backend=ddp'
-            warnings.warn(w)
+                'To silence this warning set distributed_backend=ddp' \
+                'or distributed_backend=ddp2'
+            raise MisconfigurationException(w)
 
         logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
@@ -173,7 +291,7 @@ class TrainerDDPMixin(object):
         if self.distributed_backend == 'ddp':
             device_ids = [gpu_nb]
         elif self.use_ddp2:
-            device_ids = None
+            device_ids = self.data_parallel_device_ids
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)

@@ -16,7 +16,7 @@ from pytorch_lightning.testing import (
 )
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-from . import testing_utils
+import tests.utils as tutils
 
 
 def test_no_val_module():
@@ -24,19 +24,19 @@ def test_no_val_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
 
     class CurrentTestModel(LightningTestModelBase):
         pass
 
     model = CurrentTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tutils.init_save_dir()
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -63,7 +63,7 @@ def test_no_val_module():
     model_2.eval()
 
     # make prediction
-    testing_utils.clear_save_dir()
+    tutils.clear_save_dir()
 
 
 def test_no_val_end_module():
@@ -71,18 +71,18 @@ def test_no_val_end_module():
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
+    save_dir = tutils.init_save_dir()
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -109,11 +109,11 @@ def test_no_val_end_module():
     model_2.eval()
 
     # make prediction
-    testing_utils.clear_save_dir()
+    tutils.clear_save_dir()
 
 
 def test_gradient_accumulation_scheduling():
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """
     Test grad accumulation by the freq of optimizer updates
@@ -170,7 +170,7 @@ def test_gradient_accumulation_scheduling():
         # clear gradients
         optimizer.zero_grad()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
     schedule = {1: 2, 3: 4}
 
@@ -187,13 +187,13 @@ def test_gradient_accumulation_scheduling():
 
 
 def test_loading_meta_tags():
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     from argparse import Namespace
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
 
     # save tags
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -206,12 +206,12 @@ def test_loading_meta_tags():
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
-    testing_utils.clear_save_dir()
+    tutils.clear_save_dir()
 
 
 def test_dp_output_reduce():
     mixin = TrainerLoggingMixin()
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
@@ -232,10 +232,122 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_model_freeze_unfreeze():
-    testing_utils.reset_seed()
+def test_model_checkpoint_options():
+    """
+    Test ModelCheckpoint options
+    :return:
+    """
+    def mock_save_function(filepath):
+        open(filepath, 'a').close()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # simulated losses
+    save_dir = tutils.init_save_dir()
+    losses = [10, 9, 2.8, 5, 2.5]
+
+    # -----------------
+    # CASE K=-1  (all)
+    w = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
+    w.save_function = mock_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
+
+    # verify correct naming
+    for i in range(0, len(losses)):
+        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
+
+    tutils.clear_save_dir()
+
+    # -----------------
+    # CASE K=0 (none)
+    w = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
+    w.save_function = mock_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = os.listdir(save_dir)
+
+    assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
+
+    tutils.clear_save_dir()
+
+    # -----------------
+    # CASE K=1 (2.5, epoch 4)
+    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
+    w.save_function = mock_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
+    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
+
+    tutils.clear_save_dir()
+
+    # -----------------
+    # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
+    # make sure other files don't get deleted
+
+    w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
+    open(f'{save_dir}/other_file.ckpt', 'a').close()
+    w.save_function = mock_save_function
+    for i, loss in enumerate(losses):
+        w.on_epoch_end(i, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
+    assert '_ckpt_epoch_4.ckpt' in file_lists
+    assert '_ckpt_epoch_2.ckpt' in file_lists
+    assert 'other_file.ckpt' in file_lists
+
+    tutils.clear_save_dir()
+
+    # -----------------
+    # CASE K=4 (save all 4 models)
+    # multiple checkpoints within same epoch
+
+    w = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
+    w.save_function = mock_save_function
+    for loss in losses:
+        w.on_epoch_end(0, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
+
+    tutils.clear_save_dir()
+
+    # -----------------
+    # CASE K=3 (save the 2nd, 3rd, 4th model)
+    # multiple checkpoints within same epoch
+
+    w = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
+    w.save_function = mock_save_function
+    for loss in losses:
+        w.on_epoch_end(0, logs={'val_loss': loss})
+
+    file_lists = set(os.listdir(save_dir))
+
+    assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
+    assert '_ckpt_epoch_0_v2.ckpt' in file_lists
+    assert '_ckpt_epoch_0_v1.ckpt' in file_lists
+    assert '_ckpt_epoch_0.ckpt' in file_lists
+
+    tutils.clear_save_dir()
+
+
+def test_model_freeze_unfreeze():
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     model.freeze()
@@ -247,7 +359,7 @@ def test_multiple_val_dataloader():
     Verify multiple val_dataloader
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(
         LightningValidationMultipleDataloadersMixin,
@@ -255,7 +367,7 @@ def test_multiple_val_dataloader():
     ):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -278,7 +390,7 @@ def test_multiple_val_dataloader():
 
     # make sure predictions are good for each val set
     for dataloader in trainer.get_val_dataloaders():
-        testing_utils.run_prediction(dataloader, trainer.model)
+        tutils.run_prediction(dataloader, trainer.model)
 
 
 def test_multiple_test_dataloader():
@@ -286,7 +398,7 @@ def test_multiple_test_dataloader():
     Verify multiple test_dataloader
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(
         LightningTestMultipleDataloadersMixin,
@@ -294,7 +406,7 @@ def test_multiple_test_dataloader():
     ):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -314,7 +426,7 @@ def test_multiple_test_dataloader():
 
     # make sure predictions are good for each test set
     for dataloader in trainer.get_test_dataloaders():
-        testing_utils.run_prediction(dataloader, trainer.model)
+        tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
     trainer.test()
