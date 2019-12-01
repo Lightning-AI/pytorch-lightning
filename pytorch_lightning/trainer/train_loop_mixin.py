@@ -151,6 +151,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 import numpy as np
 
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+
 try:
     from apex import amp
 
@@ -216,10 +218,10 @@ class TrainerTrainLoopMixin(object):
             if self.reduce_lr_on_plateau_scheduler is not None:
                 val_loss = self.callback_metrics.get('val_loss')
                 if val_loss is None:
-                    print('ReduceLROnPlateau conditioned on metric `%s` '
-                          'which is not available. Available metrics are: %s' %
-                          ('val_loss', ','.join(list(self.callback_metrics.keys()))), RuntimeWarning)
-                    exit(-1)
+                    avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                    m = f'ReduceLROnPlateau conditioned on metric val_loss' \
+                          'which is not available. Available metrics are: {avail_metrics}'
+                    raise MisconfigurationException(m)
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
             # early stopping
