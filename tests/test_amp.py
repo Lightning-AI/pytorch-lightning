@@ -1,15 +1,13 @@
 import os
-import warnings
 
 import pytest
-import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import (
     LightningTestModel,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-import tests.utils as tutils
 
 
 def test_amp_single_gpu(tmpdir):

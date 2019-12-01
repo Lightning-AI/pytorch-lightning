@@ -1,13 +1,10 @@
 import os
 import pickle
 
-import numpy as np
-import torch
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel
-from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
 import tests.utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.testing import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):

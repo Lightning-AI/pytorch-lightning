@@ -1,7 +1,9 @@
 import os
+
 import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
@@ -11,12 +13,10 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
-    LightningTestMixin,
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-import tests.utils as tutils
 
 
 def test_no_val_module(tmpdir):

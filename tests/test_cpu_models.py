@@ -1,8 +1,8 @@
 import warnings
 
-import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -12,7 +12,6 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningTestMixin,
 )
-import tests.utils as tutils
 
 
 def test_early_stopping_cpu_model(tmpdir):

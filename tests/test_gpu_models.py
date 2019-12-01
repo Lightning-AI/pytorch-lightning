@@ -1,7 +1,9 @@
 import os
+
 import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
@@ -15,7 +17,6 @@ from pytorch_lightning.trainer.dp_mixin import (
     determine_root_gpu_device,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-import tests.utils as tutils
 
 PRETEND_N_OF_GPUS = 16
 
