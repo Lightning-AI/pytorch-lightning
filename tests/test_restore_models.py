@@ -11,7 +11,7 @@ import tests.utils as tutils
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
-    """Verify test() on pretrained model"""
+    """Verify `test()` on pretrained model."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -68,10 +68,8 @@ def test_running_test_pretrained_model(tmpdir):
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tmpdir
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -109,8 +107,6 @@ def test_load_model_from_checkpoint(tmpdir):
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tmpdir
-
     trainer_options = dict(
         show_progress_bar=False,
         max_nb_epochs=1,
@@ -118,7 +114,7 @@ def test_load_model_from_checkpoint(tmpdir):
         val_percent_check=0.2,
         checkpoint_callback=True,
         logger=False,
-        default_save_path=save_dir
+        default_save_path=tmpdir,
     )
 
     # fit model
@@ -189,10 +185,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
 
 def test_dp_resume(tmpdir):
-    """
-    Make sure DP continues training correctly
-    :return:
-    """
+    """Make sure DP continues training correctly."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -271,11 +264,9 @@ def test_dp_resume(tmpdir):
     model.unfreeze()
 
 
+
 def test_cpu_restore_training(tmpdir):
-    """
-    Verify continue training session on CPU
-    :return:
-    """
+    """Verify continue training session on CPU."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -337,11 +328,9 @@ def test_cpu_restore_training(tmpdir):
     trainer.fit(model)
 
 
+
 def test_model_saving_loading(tmpdir):
-    """
-    Tests use case where trainer saves the model, and user loads it from tags independently
-    :return:
-    """
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -394,5 +383,5 @@ def test_model_saving_loading(tmpdir):
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])

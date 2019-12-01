@@ -13,10 +13,7 @@ import tests.utils as tutils
 
 
 def test_amp_single_gpu(tmpdir):
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+    """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -38,10 +35,7 @@ def test_amp_single_gpu(tmpdir):
 
 
 def test_no_amp_single_gpu(tmpdir):
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+    """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -64,10 +58,7 @@ def test_no_amp_single_gpu(tmpdir):
 
 
 def test_amp_gpu_ddp(tmpdir):
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+    """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -90,10 +81,7 @@ def test_amp_gpu_ddp(tmpdir):
 
 
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+    """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -161,11 +149,9 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     model.unfreeze()
 
 
+
 def test_cpu_model_with_amp(tmpdir):
-    """
-    Make sure model trains on CPU
-    :return:
-    """
+    """Make sure model trains on CPU."""
     tutils.reset_seed()
 
     trainer_options = dict(
@@ -185,10 +171,7 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 def test_amp_gpu_dp(tmpdir):
-    """
-    Make sure DP + AMP work
-    :return:
-    """
+    """Make sure DP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():

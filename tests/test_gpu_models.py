@@ -21,10 +21,7 @@ PRETEND_N_OF_GPUS = 16
 
 
 def test_multi_gpu_model_ddp2(tmpdir):
-    """
-    Make sure DDP2 works
-    :return:
-    """
+    """Make sure DDP2 works."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -47,10 +44,7 @@ def test_multi_gpu_model_ddp2(tmpdir):
 
 
 def test_multi_gpu_model_ddp(tmpdir):
-    """
-    Make sure DDP works
-    :return:
-    """
+    """Make sure DDP works."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -103,10 +97,7 @@ def test_optimizer_return_options():
 
 
 def test_cpu_slurm_save_load(tmpdir):
-    """
-    Verify model save/load/checkpoint on CPU
-    :return:
-    """
+    """Verify model save/load/checkpoint on CPU."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -177,12 +168,9 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
+
 def test_multi_gpu_none_backend(tmpdir):
-    """
-    Make sure when using multiple GPUs the user can't use
-    distributed_backend = None
-    :return:
-    """
+    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -203,10 +191,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
 
 def test_multi_gpu_model_dp(tmpdir):
-    """
-    Make sure DP works
-    :return:
-    """
+    """Make sure DP works."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -230,10 +215,7 @@ def test_multi_gpu_model_dp(tmpdir):
 
 
 def test_ddp_sampler_error(tmpdir):
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+    """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -374,7 +356,8 @@ test_parse_gpu_ids_data = [
     pytest.param(1, [0]),
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
-    pytest.param(3, [0, 1, 2])]
+    pytest.param(3, [0, 1, 2]),
+]
 
 
 @pytest.mark.gpus_param_tests
@@ -403,5 +386,5 @@ def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_coun
         parse_gpu_ids(gpus)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])
