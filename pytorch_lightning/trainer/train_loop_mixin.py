@@ -219,8 +219,8 @@ class TrainerTrainLoopMixin(object):
                 val_loss = self.callback_metrics.get('val_loss')
                 if val_loss is None:
                     avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                    m = f'ReduceLROnPlateau conditioned on metric val_loss' \
-                          'which is not available. Available metrics are: {avail_metrics}'
+                    m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
+                        f'which is not available. Available metrics are: {avail_metrics}'
                     raise MisconfigurationException(m)
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
