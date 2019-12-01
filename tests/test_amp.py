@@ -31,7 +31,7 @@ def test_amp_single_gpu(tmpdir):
         use_amp=True
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
 def test_no_amp_single_gpu(tmpdir):
@@ -54,7 +54,7 @@ def test_no_amp_single_gpu(tmpdir):
     )
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, hparams)
+        tutils.run_model_test(trainer_options, model)
 
 
 def test_amp_gpu_ddp(tmpdir):
@@ -77,7 +77,7 @@ def test_amp_gpu_ddp(tmpdir):
         use_amp=True
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
@@ -167,7 +167,7 @@ def test_cpu_model_with_amp(tmpdir):
     model, hparams = tutils.get_model()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+        tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_amp_gpu_dp(tmpdir):

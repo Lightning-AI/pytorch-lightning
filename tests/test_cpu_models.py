@@ -34,7 +34,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -56,8 +56,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
-    tutils.run_model_test_no_loggers(trainer_options, model, hparams,
-                                     on_gpu=False, min_acc=0.30)
+    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
 
@@ -77,7 +76,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test_no_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -241,7 +240,7 @@ def test_cpu_model(tmpdir):
 
     model, hparams = tutils.get_model()
 
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_all_features_cpu_model(tmpdir):
@@ -263,7 +262,7 @@ def test_all_features_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_tbptt_cpu_model(tmpdir):
@@ -359,7 +358,7 @@ def test_single_gpu_model(tmpdir):
         gpus=1
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
 # if __name__ == '__main__':
