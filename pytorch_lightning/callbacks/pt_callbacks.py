@@ -315,7 +315,6 @@ class ModelCheckpoint(Callback):
                                 f'\nEpoch {epoch:05d}: {self.monitor} reached',
                                 f'{current:0.5f} (best {self.best:0.5f}), saving model to',
                                 f'{filepath} as top {self.save_top_k}')
-                        self.best = current
                         self._save_model(filepath)
 
                     else:
