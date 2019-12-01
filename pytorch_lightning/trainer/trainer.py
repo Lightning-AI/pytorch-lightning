@@ -386,7 +386,7 @@ class Trainer(TrainerIOMixin,
             return optimizers, []
 
     def configure_schedulers(self, schedulers):
-        for i, scheduler for enumerate(schedulers):
+        for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 reduce_lr_on_plateau_scheduler = schedulers.pop(i)
                 return schedulers, reduce_lr_on_plateau_scheduler
