@@ -41,7 +41,8 @@ def test_no_val_module():
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(save_dir),
+        early_stop_callback=False
     )
 
     # fit model
@@ -87,7 +88,8 @@ def test_no_val_end_module():
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(save_dir),
+        early_stop_callback=False
     )
 
     # fit model
@@ -414,6 +416,7 @@ def test_multiple_test_dataloader():
         max_nb_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
+        early_stop_callback=False
     )
 
     # fit model
