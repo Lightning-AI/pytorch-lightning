@@ -96,7 +96,7 @@ To use lightning do 2 things:
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
     
-        def training_step(self, batch, batch_nb):
+        def training_step(self, batch, batch_idx):
             # REQUIRED
             x, y = batch
             y_hat = self.forward(x)
@@ -104,7 +104,7 @@ To use lightning do 2 things:
             tensorboard_logs = {'train_loss': loss}
             return {'loss': loss, 'log': tensorboard_logs}
     
-        def validation_step(self, batch, batch_nb):
+        def validation_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
             y_hat = self.forward(x)
@@ -187,10 +187,10 @@ You define the blue parts using the LightningModule interface:
 
 ```python
 # what to do in the training loop
-def training_step(self, batch, batch_nb):
+def training_step(self, batch, batch_idx):
 
 # what to do in the validation loop
-def validation_step(self, batch, batch_nb):
+def validation_step(self, batch, batch_idx):
 
 # how to aggregate validation_step outputs
 def validation_end(self, outputs):
@@ -205,7 +205,7 @@ def test_dataloader():
 
 ```python
 # define what happens for training here
-def training_step(self, batch, batch_nb):
+def training_step(self, batch, batch_idx):
     x, y = batch
     
     # define your own forward and loss calculation
@@ -232,7 +232,7 @@ def training_step(self, batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, batch, batch_nb):    
+def validation_step(self, batch, batch_idx):    
     x, y = batch
     
     # or as basic as a CNN classification

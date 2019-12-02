@@ -124,40 +124,40 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
-        if batch_nb < 12:
-            if epoch_nb == 0:
+        if batch_idx < 12:
+            if epoch_idx == 0:
                 # reset counter when starting epoch
-                if batch_nb == 0:
-                    self.prev_called_batch_nb = 0
+                if batch_idx == 0:
+                    self.prev_called_batch_idx = 0
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 1
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 1
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 1
 
-            elif 1 <= epoch_nb <= 2:
+            elif 1 <= epoch_idx <= 2:
                 # reset counter when starting epoch
-                if batch_nb == 1:
-                    self.prev_called_batch_nb = 1
+                if batch_idx == 1:
+                    self.prev_called_batch_idx = 1
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 2
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 2
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 2
 
             else:
-                if batch_nb == 3:
-                    self.prev_called_batch_nb = 3
+                if batch_idx == 3:
+                    self.prev_called_batch_idx = 3
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 4
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 3
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 3
 
         optimizer.step()
 
@@ -176,7 +176,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
     # for the test
     trainer.optimizer_step = optimizer_step
-    model.prev_called_batch_nb = 0
+    model.prev_called_batch_idx = 0
 
     trainer.fit(model)
 

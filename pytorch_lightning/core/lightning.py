@@ -109,7 +109,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """return loss, dict with metrics for tqdm
 
         :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_nb: Integer displaying which batch this is
+        :param int batch_idx: Integer displaying which batch this is
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
             - loss -> tensor scalar [REQUIRED]
@@ -124,7 +124,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            def training_step(self, batch, batch_nb):
+            def training_step(self, batch, batch_idx):
                 x, y, z = batch
 
                 # implement your own
@@ -150,7 +150,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # Multiple optimizers (ie: GANs)
-            def training_step(self, batch, batch_nb, optimizer_idx):
+            def training_step(self, batch, batch_idx, optimizer_idx):
                 if optimizer_idx == 0:
                     # do training_step with encoder
                 if optimizer_idx == 1:
@@ -163,7 +163,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # Truncated back-propagation through time
-            def training_step(self, batch, batch_nb, hiddens):
+            def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hiddens from the previous truncated backprop step
 
         You can also return a -1 instead of a dict to stop the current loop. This is useful
@@ -193,7 +193,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
             # WITHOUT training_end
             # if used in DP or DDP2, this batch is 1/num_gpus large
-            def training_step(self, batch, batch_nb):
+            def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
 
@@ -204,7 +204,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
             # --------------
             # with training_end to do softmax over the full batch
-            def training_step(self, batch, batch_nb):
+            def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
 
@@ -225,7 +225,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # Multiple optimizers (ie: GANs)
-            def training_step(self, batch, batch_nb, optimizer_idx):
+            def training_step(self, batch, batch_idx, optimizer_idx):
                 if optimizer_idx == 0:
                     # do training_step with encoder
                 if optimizer_idx == 1:
@@ -237,7 +237,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # Truncated back-propagation through time
-            def training_step(self, batch, batch_nb, hiddens):
+            def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hiddens from the previous truncated backprop step
 
         You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
@@ -249,17 +249,17 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """return whatever outputs will need to be aggregated in validation_end
 
         :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_nb: Integer displaying which batch this is
+        :param int batch_idx: Integer displaying which batch this is
         :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple val datasets used)
         :return dict: Dict or OrderedDict - passed to the validation_end step
 
         .. code-block:: python
 
             # if you have one val dataloader:
-            def validation_step(self, batch, batch_nb)
+            def validation_step(self, batch, batch_idx)
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_nb, dataloader_idxdx)
+            def validation_step(self, batch, batch_idx, dataloader_idxdx)
 
         If you don't need to validate you don't need to implement this method.
          In this step you'd normally generate examples or calculate anything of interest such as accuracy.
@@ -275,7 +275,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # CASE 1: A single validation dataset
-            def validation_step(self, batch, batch_nb):
+            def validation_step(self, batch, batch_idx):
                 x, y = batch
 
                 # implement your own
@@ -307,7 +307,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # CASE 2: multiple validation datasets
-            def validation_step(self, batch, batch_nb, dataset_idx):
+            def validation_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
         The `dataset_idx` corresponds to the order of datasets returned in `val_dataloader`.
@@ -318,17 +318,17 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """return whatever outputs will need to be aggregated in test_end
 
         :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_nb: Integer displaying which batch this is
+        :param int batch_idx: Integer displaying which batch this is
         :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
         :return dict: Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors.
 
         .. code-block:: python
 
             # if you have one test dataloader:
-            def test_step(self, batch, batch_nb)
+            def test_step(self, batch, batch_idx)
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_nb, dataloader_idxdx)
+            def test_step(self, batch, batch_idx, dataloader_idxdx)
 
 
         **OPTIONAL**
@@ -348,7 +348,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # CASE 1: A single test dataset
-            def test_step(self, batch, batch_nb):
+            def test_step(self, batch, batch_idx):
                 x, y = batch
 
                 # implement your own
@@ -375,7 +375,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # CASE 2: multiple test datasets
-            def test_step(self, batch, batch_nb, dataset_idx):
+            def test_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
 
@@ -694,13 +694,13 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         """Do something instead of the standard optimizer behavior
 
-        :param int epoch_nb:
-        :param int batch_nb:
+        :param int epoch_idx:
+        :param int batch_idx:
         :param optimizer:
-        :param optimizer_i:
+        :param optimizer_idx:
         :param second_order_closure: closure for second order methods
         :return:
 
@@ -712,21 +712,21 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # DEFAULT
-            def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
                 optimizer.step()
                 optimizer.zero_grad()
 
             # Alternating schedule for optimizer steps (ie: GANs)
-            def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
                 # update generator opt every 2 steps
-                if optimizer_i == 0:
-                    if batch_nb % 2 == 0 :
+                if optimizer_idx == 0:
+                    if batch_idx % 2 == 0 :
                         optimizer.step()
                         optimizer.zero_grad()
 
                 # update discriminator opt every 4 steps
-                if optimizer_i == 1:
-                    if batch_nb % 4 == 0 :
+                if optimizer_idx == 1:
+                    if batch_idx % 4 == 0 :
                         optimizer.step()
                         optimizer.zero_grad()
 
@@ -739,7 +739,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # learning rate warm-up
-            def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
                 # warm up lr
                 if self.trainer.global_step < 500:
                     lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)

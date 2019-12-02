@@ -227,10 +227,10 @@ class TrainerDDPMixin(object):
 
         logging.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
-    def ddp_train(self, gpu_nb, model):
+    def ddp_train(self, gpu_idx, model):
         """
         Entry point into a DP thread
-        :param gpu_nb:
+        :param gpu_idx:
         :param model:
         :param cluster_obj:
         :return:
@@ -244,11 +244,11 @@ class TrainerDDPMixin(object):
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
-        self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_nb == 0
+        self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_idx == 0
 
         # determine which process we are and world size
         if self.use_ddp:
-            self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
+            self.proc_rank = self.node_rank * self.num_gpus + gpu_idx
             self.world_size = self.num_gpu_nodes * self.num_gpus
 
         elif self.use_ddp2:
@@ -272,14 +272,14 @@ class TrainerDDPMixin(object):
         # MODEL
         # copy model to each gpu
         if self.distributed_backend == 'ddp':
-            torch.cuda.set_device(gpu_nb)
-        model.cuda(gpu_nb)
+            torch.cuda.set_device(gpu_idx)
+        model.cuda(gpu_idx)
 
         # set model properties before going into wrapper
         self.copy_trainer_model_properties(model)
 
         # override root GPU
-        self.root_gpu = gpu_nb
+        self.root_gpu = gpu_idx
 
         # AMP
         # run through amp wrapper before going to distributed DP
@@ -290,7 +290,7 @@ class TrainerDDPMixin(object):
 
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
-            device_ids = [gpu_nb]
+            device_ids = [gpu_idx]
         elif self.use_ddp2:
             device_ids = self.data_parallel_device_ids
         else:

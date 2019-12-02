@@ -123,7 +123,7 @@ When using PackedSequence, do 2 things:
         return x, y
 
     # In module
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x = rnn.pack_sequence(batch[0], enforce_sorted=False)
         y = rnn.pack_sequence(batch[1], enforce_sorted=False)
 
@@ -165,17 +165,17 @@ class TrainerTrainLoopMixin(object):
 
     def train(self):
         # run all epochs
-        for epoch_nb in range(self.current_epoch, self.max_num_epochs):
+        for epoch_idx in range(self.current_epoch, self.max_num_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
             if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
-                self.get_train_dataloader().sampler.set_epoch(epoch_nb)
+                self.get_train_dataloader().sampler.set_epoch(epoch_idx)
 
             # get model
             model = self.get_model()
 
             # update training progress in trainer and model
-            model.current_epoch = epoch_nb
-            self.current_epoch = epoch_nb
+            model.current_epoch = epoch_idx
+            self.current_epoch = epoch_idx
 
             # val can be checked multiple times in epoch
             is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
@@ -200,11 +200,11 @@ class TrainerTrainLoopMixin(object):
             # .reset() doesn't work on disabled progress bar so we should check
             if not self.main_progress_bar.disable:
                 self.main_progress_bar.reset(num_iterations)
-            desc = f'Epoch {epoch_nb + 1}' if not self.is_iterable_train_dataloader else ''
+            desc = f'Epoch {epoch_idx + 1}' if not self.is_iterable_train_dataloader else ''
             self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_begin(epoch_nb, self)
+            self.accumulation_scheduler.on_epoch_begin(epoch_idx, self)
 
             # -----------------
             # RUN TNG EPOCH
@@ -225,9 +225,9 @@ class TrainerTrainLoopMixin(object):
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
             # early stopping
-            met_min_epochs = epoch_nb > self.min_num_epochs
+            met_min_epochs = epoch_idx > self.min_num_epochs
             if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
+                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_idx,
                                                                     logs=self.callback_metrics)
                 # stop training
                 stop = should_stop and met_min_epochs
@@ -247,8 +247,8 @@ class TrainerTrainLoopMixin(object):
             model.on_epoch_start()
 
         # run epoch
-        for batch_nb, batch in enumerate(self.get_train_dataloader()):
-            self.batch_nb = batch_nb
+        for batch_idx, batch in enumerate(self.get_train_dataloader()):
+            self.batch_idx = batch_idx
 
             model = self.get_model()
             model.global_step = self.global_step
@@ -256,7 +256,7 @@ class TrainerTrainLoopMixin(object):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            output = self.run_training_batch(batch, batch_nb)
+            output = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics = output
 
             # when returning -1 from train_step, we end epoch early
@@ -265,7 +265,7 @@ class TrainerTrainLoopMixin(object):
             # ---------------
             # RUN VAL STEP
             # ---------------
-            is_val_check_batch = (batch_nb + 1) % self.val_check_batch == 0
+            is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
 
@@ -274,19 +274,19 @@ class TrainerTrainLoopMixin(object):
                 self.run_evaluation(test=self.testing)
 
             # when logs should be saved
-            should_save_log = (batch_nb + 1) % self.log_save_interval == 0 or early_stop_epoch
+            should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
-            should_log_metrics = batch_nb % self.row_log_interval == 0 or early_stop_epoch
+            should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
             self.global_step += 1
-            self.total_batch_nb += 1
+            self.total_batch_idx += 1
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
@@ -295,7 +295,7 @@ class TrainerTrainLoopMixin(object):
                 break
 
             # stop epoch if we limited nb batches
-            met_batch_limit = batch_nb >= self.num_training_batches
+            met_batch_limit = batch_idx >= self.num_training_batches
             if met_batch_limit:
                 break
 
@@ -304,7 +304,7 @@ class TrainerTrainLoopMixin(object):
             model = self.get_model()
             model.on_epoch_end()
 
-    def run_training_batch(self, batch, batch_nb):
+    def run_training_batch(self, batch, batch_idx):
         # track grad norms
         grad_norm_dic = {}
 
@@ -331,8 +331,8 @@ class TrainerTrainLoopMixin(object):
             splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
         self.hiddens = None
-        for split_nb, split_batch in enumerate(splits):
-            self.split_nb = split_nb
+        for split_idx, split_batch in enumerate(splits):
+            self.split_idx = split_idx
 
             # call training_step once per optimizer
             for opt_idx, optimizer in enumerate(self.optimizers):
@@ -341,7 +341,7 @@ class TrainerTrainLoopMixin(object):
                 def optimizer_closure():
                     # forward pass
                     output = self.training_forward(
-                        split_batch, batch_nb, opt_idx, self.hiddens)
+                        split_batch, batch_idx, opt_idx, self.hiddens)
 
                     closure_loss = output[0]
                     progress_bar_metrics = output[1]
@@ -382,10 +382,10 @@ class TrainerTrainLoopMixin(object):
                 self.batch_loss_value += loss.item()
 
                 # gradient update with accumulated gradients
-                if (self.batch_nb + 1) % self.accumulate_grad_batches == 0:
+                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
 
                     # track gradient norms when requested
-                    if batch_nb % self.row_log_interval == 0:
+                    if batch_idx % self.row_log_interval == 0:
                         if self.track_grad_norm > 0:
                             model = self.get_model()
                             grad_norm_dic = model.grad_norm(
@@ -397,7 +397,7 @@ class TrainerTrainLoopMixin(object):
                     # calls .step(), .zero_grad()
                     # override function to modify this behavior
                     model = self.get_model()
-                    model.optimizer_step(self.current_epoch, batch_nb,
+                    model.optimizer_step(self.current_epoch, batch_idx,
                                          optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
@@ -422,18 +422,18 @@ class TrainerTrainLoopMixin(object):
 
         return 0, grad_norm_dic, all_log_metrics
 
-    def training_forward(self, batch, batch_nb, opt_idx, hiddens):
+    def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
-        :param batch_nb:
+        :param batch_idx:
         :return:
         """
         # ---------------
         # FORWARD
         # ---------------
         # enable not needing to add opt_idx to training_step
-        args = [batch, batch_nb]
+        args = [batch, batch_idx]
         if len(self.optimizers) > 1:
             args.append(opt_idx)
 

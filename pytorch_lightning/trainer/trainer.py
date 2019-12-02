@@ -162,10 +162,10 @@ class Trainer(TrainerIOMixin,
             self.default_save_path = os.getcwd()
 
         # training bookeeping
-        self.total_batch_nb = 0
+        self.total_batch_idx = 0
         self.running_loss = []
         self.avg_loss = 0
-        self.batch_nb = 0
+        self.batch_idx = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
         self.num_val_batches = 0
@@ -307,11 +307,11 @@ class Trainer(TrainerIOMixin,
         """
         tqdm_dict = {
             'loss': '{0:.3f}'.format(self.avg_loss),
-            'batch_nb': '{}'.format(self.batch_nb),
+            'batch_idx': '{}'.format(self.batch_idx),
         }
 
         if self.truncated_bptt_steps is not None:
-            tqdm_dict['split_nb'] = self.split_nb
+            tqdm_dict['split_idx'] = self.split_idx
 
         if self.logger is not None and self.logger.version is not None:
             tqdm_dict['v_nb'] = self.logger.version
