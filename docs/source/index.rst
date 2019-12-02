@@ -12,9 +12,11 @@ Table of content
 .. toctree::
    :maxdepth: 1
 
-   intro
-   pytorch_lightning
-   pl_examples
+   new-project
+   examples
+   tutorials
+   documentation
+   guidelines
 
 
 Indices and tables

@@ -48,6 +48,9 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
+    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch-Lightning'
