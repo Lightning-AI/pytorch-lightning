@@ -95,6 +95,7 @@ import signal
 import warnings
 from subprocess import call
 import logging
+from abc import ABC
 
 import torch
 import torch.distributed as dist
@@ -105,7 +106,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 
 
-class TrainerIOMixin(object):
+class TrainerIOMixin(ABC):
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,

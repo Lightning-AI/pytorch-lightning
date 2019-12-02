@@ -122,6 +122,7 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
+from abc import ABC
 
 import torch
 import sys
@@ -130,7 +131,7 @@ import tqdm
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
-class TrainerEvaluationLoopMixin(object):
+class TrainerEvaluationLoopMixin(ABC):
 
     def evaluate(self, model, dataloaders, max_batches, test=False):
         """

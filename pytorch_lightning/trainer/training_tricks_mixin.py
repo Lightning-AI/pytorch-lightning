@@ -1,9 +1,11 @@
+from abc import ABC
+
 import torch
 import logging
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 
-class TrainerTrainingTricksMixin(object):
+class TrainerTrainingTricksMixin(ABC):
 
     def clip_gradients(self):
         if self.gradient_clip_val > 0:

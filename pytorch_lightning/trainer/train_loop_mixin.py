@@ -150,6 +150,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 """
 
 import inspect
+from abc import ABC
+
 import numpy as np
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -162,7 +164,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerTrainLoopMixin(object):
+class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # run all epochs

@@ -1,8 +1,10 @@
 import inspect
+from abc import ABC
+
 from pytorch_lightning.core.lightning import LightningModule
 
 
-class TrainerModelHooksMixin(object):
+class TrainerModelHooksMixin(ABC):
 
     def is_function_implemented(self, f_name):
         model = self.get_model()

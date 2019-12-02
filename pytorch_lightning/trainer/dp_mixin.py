@@ -302,6 +302,8 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
+from abc import ABC
+
 import torch
 
 from pytorch_lightning.overrides.data_parallel import (
@@ -318,7 +320,8 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDPMixin(object):
+class TrainerDPMixin(ABC):
+
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module

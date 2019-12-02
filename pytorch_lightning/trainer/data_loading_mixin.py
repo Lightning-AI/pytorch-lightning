@@ -1,4 +1,5 @@
 import warnings
+from abc import ABC
 
 import torch.distributed as dist
 try:
@@ -24,7 +25,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDataLoadingMixin(object):
+class TrainerDataLoadingMixin(ABC):
     def init_train_dataloader(self, model):
         """
         Dataloaders are provided by the model

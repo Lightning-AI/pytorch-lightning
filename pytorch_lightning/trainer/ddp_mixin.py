@@ -117,6 +117,7 @@ import os
 import re
 import logging
 import warnings
+from abc import ABC
 
 import torch
 
@@ -130,7 +131,7 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerDDPMixin(object):
+class TrainerDDPMixin(ABC):
 
     def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
         # skip for CPU

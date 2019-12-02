@@ -1,10 +1,11 @@
 import os
+from abc import ABC
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging import TestTubeLogger
 
 
-class TrainerCallbackConfigMixin(object):
+class TrainerCallbackConfigMixin(ABC):
     def configure_checkpoint_callback(self):
         """
         Weight path set in this priority:

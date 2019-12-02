@@ -1,9 +1,11 @@
+from abc import ABC
+
 import torch
 
 from pytorch_lightning.core import memory
 
 
-class TrainerLoggingMixin(object):
+class TrainerLoggingMixin(ABC):
 
     def log_metrics(self, metrics, grad_norm_dic):
         """
