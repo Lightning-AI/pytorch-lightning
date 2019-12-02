@@ -227,7 +227,7 @@ class Trainer(TrainerIOMixin,
         self.val_check_interval = val_check_interval
         if not (add_row_log_interval is None):
             # backward compatibility
-            warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+            warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
@@ -299,8 +299,7 @@ class Trainer(TrainerIOMixin,
 
     @property
     def training_tqdm_dict(self):
-        """
-        Read-only for tqdm metrics
+        """Read-only for tqdm metrics.
         :return:
         """
         tqdm_dict = {
@@ -323,7 +322,9 @@ class Trainer(TrainerIOMixin,
 
     @property
     def tng_tqdm_dic(self):
-        """*Deprecated in v0.5.0. use training_tqdm_dict instead.*
+        """Read-only for tqdm metrics.
+
+        .. warning:: Deprecated in v0.5.0. use training_tqdm_dict instead.
         :return:
         """
         warnings.warn("`tng_tqdm_dict` has renamed to `training_tqdm_dict` since v0.5.0"

@@ -815,15 +815,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return splits
 
     @data_loader
-    def tng_dataloader(self):
-        """
-        Implement a PyTorch DataLoader
-        * Deprecated in v0.5.0. use train_dataloader instead. *
-        :return:
-        """
-        raise NotImplementedError
-
-    @data_loader
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -851,7 +842,14 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
 
         """
-        #
+        raise NotImplementedError
+
+    @data_loader
+    def tng_dataloader(self):
+        """Implement a PyTorch DataLoader.
+
+        .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
+        """
         try:
             output = self.tng_dataloader()
             warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
