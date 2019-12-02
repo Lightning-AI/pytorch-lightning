@@ -7,26 +7,20 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import LightningTestModel
 from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
-from . import testing_utils
-
-RANDOM_FILE_PATHS = list(np.random.randint(12000, 19000, 1000))
-ROOT_SEED = 1234
-torch.manual_seed(ROOT_SEED)
-np.random.seed(ROOT_SEED)
-RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
+import tests.utils as tutils
 
 
 def test_testtube_logger(tmpdir):
     """
     verify that basic functionality of test tube logger works
     """
-    reset_seed()
-    hparams = testing_utils.get_hparams()
+    tutils.reset_seed()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -44,14 +38,14 @@ def test_testtube_pickle(tmpdir):
     """
     Verify that pickling a trainer containing a test tube logger works
     """
-    reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
-    logger = testing_utils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(hparams)
     logger.save()
 
@@ -71,14 +65,14 @@ def test_mlflow_logger(tmpdir):
     """
     verify that basic functionality of mlflow logger works
     """
-    reset_seed()
+    tutils.reset_seed()
 
     try:
         from pytorch_lightning.logging import MLFlowLogger
     except ModuleNotFoundError:
         return
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
@@ -102,14 +96,14 @@ def test_mlflow_pickle(tmpdir):
     """
     verify that pickling trainer with mlflow logger works
     """
-    reset_seed()
+    tutils.reset_seed()
 
     try:
         from pytorch_lightning.logging import MLFlowLogger
     except ModuleNotFoundError:
         return
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
@@ -131,14 +125,14 @@ def test_comet_logger(tmpdir):
     """
     verify that basic functionality of Comet.ml logger works
     """
-    reset_seed()
+    tutils.reset_seed()
 
     try:
         from pytorch_lightning.logging import CometLogger
     except ModuleNotFoundError:
         return
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     comet_dir = os.path.join(tmpdir, "cometruns")
@@ -167,14 +161,14 @@ def test_comet_pickle(tmpdir):
     """
     verify that pickling trainer with comet logger works
     """
-    reset_seed()
+    tutils.reset_seed()
 
     try:
         from pytorch_lightning.logging import CometLogger
     except ModuleNotFoundError:
         return
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     comet_dir = os.path.join(tmpdir, "cometruns")
@@ -225,7 +219,7 @@ def test_custom_logger(tmpdir):
         def version(self):
             return "1"
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     logger = CustomLogger()
@@ -243,9 +237,3 @@ def test_custom_logger(tmpdir):
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
-
-
-def reset_seed():
-    SEED = RANDOM_SEEDS.pop()
-    torch.manual_seed(SEED)
-    np.random.seed(SEED)

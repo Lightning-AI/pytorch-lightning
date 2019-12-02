@@ -7,27 +7,27 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.testing import LightningTestModel
-from . import testing_utils
+import tests.utils as tutils
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
     """Verify test() on pretrained model"""
-    if not testing_utils.can_run_gpu_test():
+    if not tutils.can_run_gpu_test():
         return
 
-    testing_utils.reset_seed()
-    testing_utils.set_random_master_port()
+    tutils.reset_seed()
+    tutils.set_random_master_port()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
     # exp file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # exp file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -49,36 +49,36 @@ def test_running_test_pretrained_model_ddp(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = testing_utils.load_model(logger.experiment,
-                                                trainer.checkpoint_callback.filepath,
-                                                module_class=LightningTestModel)
+    pretrained_model = tutils.load_model(logger.experiment,
+                                         trainer.checkpoint_callback.filepath,
+                                         module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     for dataloader in model.test_dataloader():
-        testing_utils.run_prediction(dataloader, pretrained_model)
+        tutils.run_prediction(dataloader, pretrained_model)
 
 
 def test_running_test_pretrained_model(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """Verify test() on pretrained model"""
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # logger file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_nb_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -91,7 +91,7 @@ def test_running_test_pretrained_model(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = testing_utils.load_model(
+    pretrained_model = tutils.load_model(
         logger.experiment, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
@@ -99,14 +99,14 @@ def test_running_test_pretrained_model(tmpdir):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    testing_utils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_test_acc(new_trainer)
 
 
 def test_load_model_from_checkpoint(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """Verify test() on pretrained model"""
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
@@ -139,26 +139,26 @@ def test_load_model_from_checkpoint(tmpdir):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    testing_utils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_test_acc(new_trainer)
 
 
 def test_running_test_pretrained_model_dp(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """Verify test() on pretrained model"""
-    if not testing_utils.can_run_gpu_test():
+    if not tutils.can_run_gpu_test():
         return
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # logger file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=True,
@@ -177,15 +177,15 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = testing_utils.load_model(logger.experiment,
-                                                trainer.checkpoint_callback.filepath,
-                                                module_class=LightningTestModel)
+    pretrained_model = tutils.load_model(logger.experiment,
+                                         trainer.checkpoint_callback.filepath,
+                                         module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    testing_utils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_test_acc(new_trainer)
 
 
 def test_dp_resume(tmpdir):
@@ -193,12 +193,12 @@ def test_dp_resume(tmpdir):
     Make sure DP continues training correctly
     :return:
     """
-    if not testing_utils.can_run_gpu_test():
+    if not tutils.can_run_gpu_test():
         return
 
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -211,11 +211,11 @@ def test_dp_resume(tmpdir):
     save_dir = tmpdir
 
     # get logger
-    logger = testing_utils.get_test_tube_logger(save_dir, debug=False)
+    logger = tutils.get_test_tube_logger(save_dir, debug=False)
 
     # exp file to get weights
     # logger file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     # add these to the trainer options
     trainer_options['logger'] = logger
@@ -239,7 +239,7 @@ def test_dp_resume(tmpdir):
     trainer.hpc_save(save_dir, logger)
 
     # init new trainer
-    new_logger = testing_utils.get_test_tube_logger(save_dir, version=logger.version)
+    new_logger = tutils.get_test_tube_logger(save_dir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
@@ -257,7 +257,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.get_train_dataloader()
-        testing_utils.run_prediction(dataloader, dp_model, dp=True)
+        tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = LightningTestModel(hparams)
@@ -276,16 +276,16 @@ def test_cpu_restore_training(tmpdir):
     Verify continue training session on CPU
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
     # logger file to get meta
     test_logger_version = 10
-    logger = testing_utils.get_test_tube_logger(save_dir, False, version=test_logger_version)
+    logger = tutils.get_test_tube_logger(save_dir, False, version=test_logger_version)
 
     trainer_options = dict(
         max_nb_epochs=2,
@@ -307,7 +307,7 @@ def test_cpu_restore_training(tmpdir):
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    new_logger = testing_utils.get_test_tube_logger(save_dir, False, version=test_logger_version)
+    new_logger = tutils.get_test_tube_logger(save_dir, False, version=test_logger_version)
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
@@ -328,7 +328,7 @@ def test_cpu_restore_training(tmpdir):
         # haven't trained with the new loaded model
         trainer.model.eval()
         for dataloader in trainer.get_val_dataloaders():
-            testing_utils.run_prediction(dataloader, trainer.model)
+            tutils.run_prediction(dataloader, trainer.model)
 
     model.on_sanity_check_start = assert_good_acc
 
@@ -342,15 +342,15 @@ def test_model_saving_loading(tmpdir):
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,

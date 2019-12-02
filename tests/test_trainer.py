@@ -16,7 +16,7 @@ from pytorch_lightning.testing import (
 )
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-from . import testing_utils
+import tests.utils as tutils
 
 
 def test_no_val_module(tmpdir):
@@ -24,9 +24,9 @@ def test_no_val_module(tmpdir):
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
 
     class CurrentTestModel(LightningTestModelBase):
         pass
@@ -36,7 +36,7 @@ def test_no_val_module(tmpdir):
     save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -68,18 +68,18 @@ def test_no_val_end_module(tmpdir):
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
     save_dir = tmpdir
 
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -107,7 +107,7 @@ def test_no_val_end_module(tmpdir):
 
 
 def test_gradient_accumulation_scheduling(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """
     Test grad accumulation by the freq of optimizer updates
@@ -164,7 +164,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         # clear gradients
         optimizer.zero_grad()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
     schedule = {1: 2, 3: 4}
 
@@ -182,13 +182,13 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 
 def test_loading_meta_tags(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     from argparse import Namespace
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
 
     # save tags
-    logger = testing_utils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -204,7 +204,7 @@ def test_loading_meta_tags(tmpdir):
 
 def test_dp_output_reduce():
     mixin = TrainerLoggingMixin()
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
@@ -236,7 +236,7 @@ def test_model_checkpoint_options(tmp_path):
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     # simulated losses
@@ -345,9 +345,9 @@ def test_model_checkpoint_options(tmp_path):
 
 
 def test_model_freeze_unfreeze():
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
     model.freeze()
@@ -359,7 +359,7 @@ def test_multiple_val_dataloader(tmpdir):
     Verify multiple val_dataloader
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(
         LightningValidationMultipleDataloadersMixin,
@@ -367,7 +367,7 @@ def test_multiple_val_dataloader(tmpdir):
     ):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -391,7 +391,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # make sure predictions are good for each val set
     for dataloader in trainer.get_val_dataloaders():
-        testing_utils.run_prediction(dataloader, trainer.model)
+        tutils.run_prediction(dataloader, trainer.model)
 
 
 def test_multiple_test_dataloader(tmpdir):
@@ -399,7 +399,7 @@ def test_multiple_test_dataloader(tmpdir):
     Verify multiple test_dataloader
     :return:
     """
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     class CurrentTestModel(
         LightningTestMultipleDataloadersMixin,
@@ -407,7 +407,7 @@ def test_multiple_test_dataloader(tmpdir):
     ):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -428,7 +428,7 @@ def test_multiple_test_dataloader(tmpdir):
 
     # make sure predictions are good for each test set
     for dataloader in trainer.get_test_dataloaders():
-        testing_utils.run_prediction(dataloader, trainer.model)
+        tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
     trainer.test()

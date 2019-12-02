@@ -48,7 +48,7 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_gpu_model_test(trainer_options, model, hparams, on_gpu=True):
+def run_model_test(trainer_options, model, hparams, on_gpu=True):
     save_dir = trainer_options['default_save_path']
 
     # logger file to get meta

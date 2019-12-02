@@ -1,4 +1,4 @@
-from pytorch_lightning.root_module.root_module import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(object):
