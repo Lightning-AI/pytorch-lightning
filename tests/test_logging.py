@@ -204,7 +204,7 @@ def test_custom_logger(tmpdir):
             self.hparams_logged = params
 
         @rank_zero_only
-        def log_metrics(self, metrics, step_num):
+        def log_metrics(self, metrics, step_idx):
             self.metrics_logged = metrics
 
         @rank_zero_only

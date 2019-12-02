@@ -171,7 +171,7 @@ class TrainerDDPMixin(object):
 
         # throw error to force user ddp or ddp2 choice
         if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
-            w = 'DataParallel does not support num_gpu_nodes > 1. ' \
+            w = 'DataParallel does not support num_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
                 'To silence this warning set distributed_backend=ddp' \
                 'or distributed_backend=ddp2'

@@ -31,7 +31,7 @@ def main(hparams):
     # ------------------------
     trainer = Trainer(
         gpus=2,
-        num_gpu_nodes=2,
+        num_nodes=2,
         distributed_backend='ddp2'
     )
 

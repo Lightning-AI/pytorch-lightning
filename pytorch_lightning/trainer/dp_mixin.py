@@ -173,7 +173,7 @@ Multi-node training is easily done by specifying these flags.
 .. code-block:: python
 
     # train on 12*8 GPUs
-    trainer = Trainer(gpus=8, num_gpu_nodes=12, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, num_nodes=12, distributed_backend='ddp')
 
 
 You must configure your job submission script correctly for the trainer to work.

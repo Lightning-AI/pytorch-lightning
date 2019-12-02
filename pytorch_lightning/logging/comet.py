@@ -145,13 +145,13 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(vars(params))
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_num=None):
+    def log_metrics(self, metrics, step_idx=None):
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
                 metrics[key] = val.cpu().detach()
 
-        self.experiment.log_metrics(metrics, step=step_num)
+        self.experiment.log_metrics(metrics, step=step_idx)
 
     @rank_zero_only
     def finalize(self, status):
