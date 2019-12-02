@@ -192,9 +192,9 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # WITHOUT training_end
-            # if used in DP or DDP2, this batch is 1/nb_gpus large
+            # if used in DP or DDP2, this batch is 1/num_gpus large
             def training_step(self, batch, batch_nb):
-                # batch is 1/nb_gpus big
+                # batch is 1/num_gpus big
                 x, y = batch
 
                 out = self.forward(x)
@@ -205,7 +205,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             # --------------
             # with training_end to do softmax over the full batch
             def training_step(self, batch, batch_nb):
-                # batch is 1/nb_gpus big
+                # batch is 1/num_gpus big
                 x, y = batch
 
                 out = self.forward(x)

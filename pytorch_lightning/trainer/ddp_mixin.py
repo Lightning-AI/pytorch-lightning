@@ -131,7 +131,8 @@ except ImportError:
 
 
 class TrainerDDPMixin(object):
-    def set_distributed_mode(self, distributed_backend, nb_gpu_nodes):
+
+    def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
         # skip for CPU
         if self.num_gpus == 0:
             return
@@ -169,8 +170,8 @@ class TrainerDDPMixin(object):
                 self.use_ddp2 = False
 
         # throw error to force user ddp or ddp2 choice
-        if nb_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
-            w = 'DataParallel does not support nb_gpu_nodes > 1. ' \
+        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
+            w = 'DataParallel does not support num_gpu_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
                 'To silence this warning set distributed_backend=ddp' \
                 'or distributed_backend=ddp2'
@@ -178,18 +179,18 @@ class TrainerDDPMixin(object):
 
         logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
-    def configure_slurm_ddp(self, nb_gpu_nodes):
+    def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
         if self.use_ddp:
-            self.nb_requested_gpus = self.num_gpus * nb_gpu_nodes
-            self.nb_slurm_tasks = 0
+            self.num_requested_gpus = self.num_gpus * num_gpu_nodes
+            self.num_slurm_tasks = 0
             try:
-                self.nb_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                self.is_slurm_managing_tasks = self.nb_slurm_tasks == self.nb_requested_gpus
+                self.num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                self.is_slurm_managing_tasks = self.num_slurm_tasks == self.num_requested_gpus
 
                 # in interactive mode we don't manage tasks
                 job_name = os.environ['SLURM_JOB_NAME']
@@ -248,11 +249,11 @@ class TrainerDDPMixin(object):
         # determine which process we are and world size
         if self.use_ddp:
             self.proc_rank = self.node_rank * self.num_gpus + gpu_nb
-            self.world_size = self.nb_gpu_nodes * self.num_gpus
+            self.world_size = self.num_gpu_nodes * self.num_gpus
 
         elif self.use_ddp2:
             self.proc_rank = self.node_rank
-            self.world_size = self.nb_gpu_nodes
+            self.world_size = self.num_gpu_nodes
 
         # let the exp know the rank to avoid overwriting logs
         if self.logger is not None:
@@ -292,6 +293,8 @@ class TrainerDDPMixin(object):
             device_ids = [gpu_nb]
         elif self.use_ddp2:
             device_ids = self.data_parallel_device_ids
+        else:
+            device_ids = None
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)

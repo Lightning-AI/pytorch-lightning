@@ -23,7 +23,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
+    trainer = Trainer(min_num_epochs=1, max_num_epochs=1000)
 
 Early stopping
 --------------
@@ -165,7 +165,7 @@ class TrainerTrainLoopMixin(object):
 
     def train(self):
         # run all epochs
-        for epoch_nb in range(self.current_epoch, self.max_nb_epochs):
+        for epoch_nb in range(self.current_epoch, self.max_num_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
             if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
                 self.get_train_dataloader().sampler.set_epoch(epoch_nb)
@@ -179,27 +179,27 @@ class TrainerTrainLoopMixin(object):
 
             # val can be checked multiple times in epoch
             is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            val_checks_per_epoch = self.nb_training_batches // self.val_check_batch
+            val_checks_per_epoch = self.num_training_batches // self.val_check_batch
             val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
 
             # total batches includes multiple val checks
-            self.total_batches = (self.nb_training_batches +
-                                  self.nb_val_batches * val_checks_per_epoch)
+            self.total_batches = (self.num_training_batches +
+                                  self.num_val_batches * val_checks_per_epoch)
             self.batch_loss_value = 0  # accumulated grads
 
             if self.fast_dev_run:
                 # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
-                nb_iterations = 2
+                num_iterations = 2
             elif self.is_iterable_train_dataloader:
                 # for iterable train loader, the progress bar never ends
-                nb_iterations = None
+                num_iterations = None
             else:
-                nb_iterations = self.total_batches
+                num_iterations = self.total_batches
 
             # reset progress bar
             # .reset() doesn't work on disabled progress bar so we should check
             if not self.main_progress_bar.disable:
-                self.main_progress_bar.reset(nb_iterations)
+                self.main_progress_bar.reset(num_iterations)
             desc = f'Epoch {epoch_nb + 1}' if not self.is_iterable_train_dataloader else ''
             self.main_progress_bar.set_description(desc)
 
@@ -225,7 +225,7 @@ class TrainerTrainLoopMixin(object):
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
             # early stopping
-            met_min_epochs = epoch_nb > self.min_nb_epochs
+            met_min_epochs = epoch_nb > self.min_num_epochs
             if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch_nb,
                                                                     logs=self.callback_metrics)
@@ -295,7 +295,7 @@ class TrainerTrainLoopMixin(object):
                 break
 
             # stop epoch if we limited nb batches
-            met_batch_limit = batch_nb >= self.nb_training_batches
+            met_batch_limit = batch_nb >= self.num_training_batches
             if met_batch_limit:
                 break
 

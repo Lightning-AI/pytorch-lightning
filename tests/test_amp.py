@@ -28,7 +28,7 @@ def test_amp_single_gpu(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=1,
         distributed_backend='ddp',
         use_amp=True
@@ -53,7 +53,7 @@ def test_no_amp_single_gpu(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=1,
         distributed_backend='dp',
         use_amp=True
@@ -80,7 +80,7 @@ def test_amp_gpu_ddp(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=2,
         distributed_backend='ddp',
         use_amp=True
@@ -108,7 +108,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
         use_amp=True
@@ -172,7 +172,7 @@ def test_cpu_model_with_amp(tmpdir):
         default_save_path=tmpdir,
         show_progress_bar=False,
         logger=tutils.get_test_tube_logger(tmpdir),
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
         use_amp=True
@@ -197,7 +197,7 @@ def test_amp_gpu_dp(tmpdir):
     model, hparams = tutils.get_model()
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',
         use_amp=True

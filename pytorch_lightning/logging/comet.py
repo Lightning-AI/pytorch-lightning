@@ -169,7 +169,7 @@ class CometLogger(LightningLoggerBase):
     def version(self):
         if self.project_name and self.rest_api_key:
             # Determines the number of experiments in this project, and returns the next integer as the version number
-            nb_exps = len(self.comet_api.get_experiments(self.workspace, self.project_name))
-            return nb_exps + 1
+            num_exps = len(self.comet_api.get_experiments(self.workspace, self.project_name))
+            return num_exps + 1
         else:
             return None

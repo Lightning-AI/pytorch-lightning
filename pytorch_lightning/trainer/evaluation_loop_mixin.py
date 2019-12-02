@@ -76,10 +76,10 @@ Lightning runs a few steps of validation in the beginning of training.
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(nb_sanity_val_steps=5)
+    trainer = Trainer(num_sanity_val_steps=5)
 
 
-You can use `Trainer(nb_sanity_val_steps=0)` to skip the sanity check.
+You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check.
 
 # Testing loop
 
@@ -230,11 +230,11 @@ class TrainerEvaluationLoopMixin(object):
             # select dataloaders
             if test:
                 dataloaders = self.get_test_dataloaders()
-                max_batches = self.nb_test_batches
+                max_batches = self.num_test_batches
             else:
                 # val
                 dataloaders = self.get_val_dataloaders()
-                max_batches = self.nb_val_batches
+                max_batches = self.num_val_batches
 
             # cap max batches to 1 when using fast_dev_run
             if self.fast_dev_run:

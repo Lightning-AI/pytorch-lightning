@@ -39,7 +39,7 @@ def test_no_val_module(tmpdir):
     logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -82,7 +82,7 @@ def test_no_val_end_module(tmpdir):
     logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(save_dir)
     )
@@ -171,7 +171,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_nb_epochs=4,
+                      max_num_epochs=4,
                       default_save_path=tmpdir)
 
     # for the test
@@ -208,10 +208,10 @@ def test_dp_output_reduce():
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
-    assert mixin.reduce_distributed_output(out, nb_gpus=1) is out
+    assert mixin.reduce_distributed_output(out, num_gpus=1) is out
 
     # average when we have multiples
-    assert mixin.reduce_distributed_output(out, nb_gpus=2) == out.mean()
+    assert mixin.reduce_distributed_output(out, num_gpus=2) == out.mean()
 
     # when we have a dict of vals
     out = {
@@ -220,7 +220,7 @@ def test_dp_output_reduce():
             'c': out
         }
     }
-    reduced = mixin.reduce_distributed_output(out, nb_gpus=3)
+    reduced = mixin.reduce_distributed_output(out, num_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
@@ -373,7 +373,7 @@ def test_multiple_val_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
     )
@@ -413,7 +413,7 @@ def test_multiple_test_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )

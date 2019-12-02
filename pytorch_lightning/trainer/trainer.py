@@ -58,7 +58,7 @@ class Trainer(TrainerIOMixin,
                  gradient_clip_val=0,
                  gradient_clip=None,  # backward compatible
                  process_position=0,
-                 nb_gpu_nodes=1,
+                 num_gpu_nodes=1,
                  gpus=None,
                  log_gpu_memory=None,
                  show_progress_bar=True,
@@ -67,8 +67,8 @@ class Trainer(TrainerIOMixin,
                  check_val_every_n_epoch=1,
                  fast_dev_run=False,
                  accumulate_grad_batches=1,
-                 max_nb_epochs=1000,
-                 min_nb_epochs=1,
+                 max_num_epochs=1000,
+                 min_num_epochs=1,
                  train_percent_check=1.0,
                  val_percent_check=1.0,
                  test_percent_check=1.0,
@@ -82,9 +82,10 @@ class Trainer(TrainerIOMixin,
                  weights_summary='full',
                  weights_save_path=None,
                  amp_level='O1',
-                 nb_sanity_val_steps=5,
+                 num_sanity_val_steps=5,
                  truncated_bptt_steps=None,
-                 resume_from_checkpoint=None):
+                 resume_from_checkpoint=None,
+        ):
         """
 
         :param logger: Logger for experiment tracking
@@ -94,7 +95,7 @@ class Trainer(TrainerIOMixin,
         :param int gradient_clip_val: 0 means don't clip.
         :param int gradient_clip: 0 means don't clip. Deprecated.
         :param process_position: shown in the tqdm bar
-        :param int nb_gpu_nodes: number of GPU nodes
+        :param int num_gpu_nodes: number of GPU nodes
         :param gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
             OR '-1' / -1 to use all available gpus
         :param str log_gpu_memory: None, 'min_max', 'all'
@@ -104,8 +105,8 @@ class Trainer(TrainerIOMixin,
         :param int check_val_every_n_epoch: check val every n train epochs
         :param bool fast_dev_run: runs full iteration over everything to find bugs
         :param int accumulate_grad_batches: Accumulates grads every k batches
-        :param int max_nb_epochs:
-        :param int min_nb_epochs:
+        :param int max_num_epochs:
+        :param int min_num_epochs:
         :param int train_percent_check: How much of train set to check
         :param int val_percent_check: How much of val set to check
         :param int test_percent_check: How much of test set to check
@@ -119,11 +120,11 @@ class Trainer(TrainerIOMixin,
         :param str weights_summary: Options: 'full', 'top', None to not print.
         :param bool weights_save_path: Where to save weights if on cluster
         :param str amp_level: Check nvidia docs for level
-        :param int nb_sanity_val_steps: How many val steps before a full train loop.
+        :param int num_sanity_val_steps: How many val steps before a full train loop.
         :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
         """
         # Transfer params
-        self.nb_gpu_nodes = nb_gpu_nodes
+        self.num_gpu_nodes = num_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
         if not (gradient_clip is None):
             # Backward compatibility
@@ -136,9 +137,9 @@ class Trainer(TrainerIOMixin,
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
         self.process_position = process_position
         self.weights_summary = weights_summary
-        self.max_nb_epochs = max_nb_epochs
-        self.min_nb_epochs = min_nb_epochs
-        self.nb_sanity_val_steps = nb_sanity_val_steps
+        self.max_num_epochs = max_num_epochs
+        self.min_num_epochs = min_num_epochs
+        self.num_sanity_val_steps = num_sanity_val_steps
         self.print_nan_grads = print_nan_grads
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -146,8 +147,8 @@ class Trainer(TrainerIOMixin,
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
-            self.nb_sanity_val_steps = 1
-            self.max_nb_epochs = 1
+            self.num_sanity_val_steps = 1
+            self.max_num_epochs = 1
             m = '''
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
@@ -166,9 +167,9 @@ class Trainer(TrainerIOMixin,
         self.batch_nb = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
-        self.nb_val_batches = 0
-        self.nb_training_batches = 0
-        self.nb_test_batches = 0
+        self.num_val_batches = 0
+        self.num_training_batches = 0
+        self.num_test_batches = 0
         self.get_train_dataloader = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
@@ -207,13 +208,13 @@ class Trainer(TrainerIOMixin,
         self.use_dp = False
         self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend, nb_gpu_nodes)
+        self.set_distributed_mode(distributed_backend, num_gpu_nodes)
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.configure_slurm_ddp(nb_gpu_nodes)
+        self.configure_slurm_ddp(num_gpu_nodes)
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -455,16 +456,16 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        if self.get_val_dataloaders() is not None and self.nb_sanity_val_steps > 0:
+        if self.get_val_dataloaders() is not None and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
-            pbar = tqdm.tqdm(desc='Validation sanity check', total=self.nb_sanity_val_steps,
+            pbar = tqdm.tqdm(desc='Validation sanity check', total=self.num_sanity_val_steps,
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm.tqdm(disable=True)
 
-            self.evaluate(model, self.get_val_dataloaders(), self.nb_sanity_val_steps, self.testing)
+            self.evaluate(model, self.get_val_dataloaders(), self.num_sanity_val_steps, self.testing)
 
             # close progress bars
             self.main_progress_bar.close()

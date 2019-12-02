@@ -154,16 +154,16 @@ use something other than tensorboard).
 Here are more advanced examples
 ```python   
 # train on cpu using only 10% of the data (for demo purposes)
-trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
+trainer = Trainer(max_num_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus (lightning chooses GPUs for you)
-# trainer = Trainer(max_nb_epochs=1, gpus=4, distributed_backend='ddp')  
+# trainer = Trainer(max_num_epochs=1, gpus=4, distributed_backend='ddp')  
 
 # train on 4 gpus (you choose GPUs)
-# trainer = Trainer(max_nb_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
+# trainer = Trainer(max_num_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
 
 # train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
-# trainer = Trainer(max_nb_epochs=1, gpus=8, nb_gpu_nodes=4, distributed_backend='ddp')
+# trainer = Trainer(max_num_epochs=1, gpus=8, num_gpu_nodes=4, distributed_backend='ddp')
 
 # train (1 epoch only here for demo)
 trainer.fit(model)
