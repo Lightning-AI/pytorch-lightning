@@ -129,7 +129,7 @@ def test_running_test_after_fitting(tmpdir):
 
 
 def test_running_test_without_val(tmpdir):
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
     """Verify test() works on a model with no val_loader"""
 

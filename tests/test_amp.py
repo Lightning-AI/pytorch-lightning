@@ -161,7 +161,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     model.unfreeze()
 
 
-def test_cpu_model_with_amp():
+def test_cpu_model_with_amp(tmpdir):
     """
     Make sure model trains on CPU
     :return:
@@ -169,8 +169,9 @@ def test_cpu_model_with_amp():
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
