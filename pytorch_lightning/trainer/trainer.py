@@ -56,7 +56,7 @@ class Trainer(TrainerIOMixin,
                  early_stop_callback=True,
                  default_save_path=None,
                  gradient_clip_val=0,
-                 gradient_clip=None,  # backward compatible
+                 gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
                  process_position=0,
                  nb_gpu_nodes=1,
                  gpus=None,
@@ -75,7 +75,7 @@ class Trainer(TrainerIOMixin,
                  val_check_interval=1.0,
                  log_save_interval=100,
                  row_log_interval=10,
-                 add_row_log_interval=None,  # backward compatible
+                 add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
                  distributed_backend=None,
                  use_amp=False,
                  print_nan_grads=False,
@@ -125,11 +125,11 @@ class Trainer(TrainerIOMixin,
         # Transfer params
         self.nb_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
-        if not (gradient_clip is None):
-            # Backward compatibility
+        if gradient_clip is not None:  # Backward compatibility
             warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
-            gradient_clip_val = gradient_clip
+            if not gradient_clip_val:  # in case you did not set the proper value
+                gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
@@ -225,11 +225,12 @@ class Trainer(TrainerIOMixin,
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-        if not (add_row_log_interval is None):
+        if add_row_log_interval is not None:
             # backward compatibility
             warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
-            row_log_interval = add_row_log_interval
+            if not row_log_interval:  # in case you did not set the proper value
+                row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -253,24 +254,25 @@ class Trainer(TrainerIOMixin,
         return job_id
 
     def __parse_gpu_ids(self, gpus):
-        """
-        :param gpus: Int, string or list of ids
-        :return:
+        """Parse GPUs id.
+
+        :param list|str|int gpus: input GPU ids
+        :return list(int):
         """
         # if gpus = -1 then use all available devices
         # otherwise, split the string using commas
         if gpus is not None:
-            if type(gpus) is list:
+            if isinstance(gpus, list):
                 gpus = gpus
-            elif type(gpus) is str:
+            elif isinstance(gpus, str):
                 if gpus == '-1':
                     gpus = list(range(0, torch.cuda.device_count()))
                 else:
                     gpus = [int(x.strip()) for x in gpus.split(',')]
-            elif type(gpus) is int:
+            elif isinstance(gpus, int):
                 gpus = gpus
             else:
-                raise Exception('gpus has to be a string, int or list of ints')
+                raise ValueError('`gpus` has to be a string, int or list of ints')
 
         return gpus
 
@@ -327,7 +329,7 @@ class Trainer(TrainerIOMixin,
         .. warning:: Deprecated in v0.5.0. use training_tqdm_dict instead.
         :return:
         """
-        warnings.warn("`tng_tqdm_dict` has renamed to `training_tqdm_dict` since v0.5.0"
+        warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and will be removed in v0.8.0", DeprecationWarning)
         return self.training_tqdm_dict
 
@@ -359,8 +361,7 @@ class Trainer(TrainerIOMixin,
         else:
             # run through amp wrapper
             if self.use_amp:
-                raise MisconfigurationException('amp + cpu is not supported.'
-                                                ' Please use a GPU option')
+                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
