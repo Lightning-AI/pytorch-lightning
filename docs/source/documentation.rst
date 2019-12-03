@@ -1,10 +1,8 @@
 Documentation
 =============
 
-Table of content
-----------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 4
 
    pytorch_lightning

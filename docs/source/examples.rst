@@ -1,10 +1,8 @@
-Examples
-========
+Examples & Tutorials
+====================
 
-Table of content
-----------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
-    pl_examples
+   pl_examples

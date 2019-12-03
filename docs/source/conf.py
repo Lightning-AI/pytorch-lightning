@@ -32,13 +32,13 @@ import pytorch_lightning  # noqa: E402
 
 # -- Project documents -------------------------------------------------------
 
-# export the documentation
+# # export the documentation
 # with open('intro.rst', 'w') as fp:
 #     intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
 #     fp.write(m2r.convert(intro))
 #     # fp.write(pytorch_lightning.__doc__)
 
-# export the READme
+# # export the READme
 # with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
 #     readme = fp.read()
 # # replace all paths to relative
