@@ -10,7 +10,7 @@ from pytorch_lightning.testing import LightningTestModel
 import tests.utils as tutils
 
 
-def test_running_test_pretrained_model_ddp():
+def test_running_test_pretrained_model_ddp(tmpdir):
     """Verify test() on pretrained model"""
     if not tutils.can_run_gpu_test():
         return
@@ -21,10 +21,10 @@ def test_running_test_pretrained_model_ddp():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # exp file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -60,20 +60,18 @@ def test_running_test_pretrained_model_ddp():
     for dataloader in model.test_dataloader():
         tutils.run_prediction(dataloader, pretrained_model)
 
-    tutils.clear_save_dir()
 
-
-def test_running_test_pretrained_model():
+def test_running_test_pretrained_model(tmpdir):
     tutils.reset_seed()
 
     """Verify test() on pretrained model"""
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -102,17 +100,16 @@ def test_running_test_pretrained_model():
 
     # test we have good test accuracy
     tutils.assert_ok_test_acc(new_trainer)
-    tutils.clear_save_dir()
 
 
-def test_load_model_from_checkpoint():
+def test_load_model_from_checkpoint(tmpdir):
     tutils.reset_seed()
 
     """Verify test() on pretrained model"""
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -143,10 +140,9 @@ def test_load_model_from_checkpoint():
 
     # test we have good test accuracy
     tutils.assert_ok_test_acc(new_trainer)
-    tutils.clear_save_dir()
 
 
-def test_running_test_pretrained_model_dp():
+def test_running_test_pretrained_model_dp(tmpdir):
     tutils.reset_seed()
 
     """Verify test() on pretrained model"""
@@ -156,10 +152,10 @@ def test_running_test_pretrained_model_dp():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -190,10 +186,9 @@ def test_running_test_pretrained_model_dp():
 
     # test we have good test accuracy
     tutils.assert_ok_test_acc(new_trainer)
-    tutils.clear_save_dir()
 
 
-def test_dp_resume():
+def test_dp_resume(tmpdir):
     """
     Make sure DP continues training correctly
     :return:
@@ -213,10 +208,10 @@ def test_dp_resume():
         distributed_backend='dp',
     )
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # get logger
-    logger = tutils.get_test_tube_logger(debug=False)
+    logger = tutils.get_test_tube_logger(save_dir, debug=False)
 
     # exp file to get weights
     # logger file to get weights
@@ -244,7 +239,7 @@ def test_dp_resume():
     trainer.hpc_save(save_dir, logger)
 
     # init new trainer
-    new_logger = tutils.get_test_tube_logger(version=logger.version)
+    new_logger = tutils.get_test_tube_logger(save_dir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(save_dir)
     trainer_options['train_percent_check'] = 0.2
@@ -275,10 +270,8 @@ def test_dp_resume():
     model.freeze()
     model.unfreeze()
 
-    tutils.clear_save_dir()
 
-
-def test_cpu_restore_training():
+def test_cpu_restore_training(tmpdir):
     """
     Verify continue training session on CPU
     :return:
@@ -288,11 +281,11 @@ def test_cpu_restore_training():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
     test_logger_version = 10
-    logger = tutils.get_test_tube_logger(False, version=test_logger_version)
+    logger = tutils.get_test_tube_logger(save_dir, False, version=test_logger_version)
 
     trainer_options = dict(
         max_nb_epochs=2,
@@ -314,7 +307,7 @@ def test_cpu_restore_training():
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
     # we want to see if the weights come back correctly
-    new_logger = tutils.get_test_tube_logger(False, version=test_logger_version)
+    new_logger = tutils.get_test_tube_logger(save_dir, False, version=test_logger_version)
     trainer_options = dict(
         max_nb_epochs=2,
         val_check_interval=0.50,
@@ -343,10 +336,8 @@ def test_cpu_restore_training():
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
 
-    tutils.clear_save_dir()
 
-
-def test_model_saving_loading():
+def test_model_saving_loading(tmpdir):
     """
     Tests use case where trainer saves the model, and user loads it from tags independently
     :return:
@@ -356,10 +347,10 @@ def test_model_saving_loading():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -401,8 +392,6 @@ def test_model_saving_loading():
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
-    tutils.clear_save_dir()
 
 
 if __name__ == '__main__':

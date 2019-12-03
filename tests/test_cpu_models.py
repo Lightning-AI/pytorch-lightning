@@ -15,7 +15,7 @@ from pytorch_lightning.testing import (
 import tests.utils as tutils
 
 
-def test_early_stopping_cpu_model():
+def test_early_stopping_cpu_model(tmpdir):
     """
     Test each of the trainer options
     :return:
@@ -24,13 +24,14 @@ def test_early_stopping_cpu_model():
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
+        default_save_path=tmpdir,
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=True,
-        logger=tutils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1
     )
@@ -43,7 +44,7 @@ def test_early_stopping_cpu_model():
     model.unfreeze()
 
 
-def test_lbfgs_cpu_model():
+def test_lbfgs_cpu_model(tmpdir):
     """
     Test each of the trainer options
     :return:
@@ -51,6 +52,7 @@ def test_lbfgs_cpu_model():
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
@@ -63,10 +65,8 @@ def test_lbfgs_cpu_model():
     tutils.run_model_test_no_loggers(trainer_options, model, hparams,
                                      on_gpu=False, min_acc=0.30)
 
-    tutils.clear_save_dir()
 
-
-def test_default_logger_callbacks_cpu_model():
+def test_default_logger_callbacks_cpu_model(tmpdir):
     """
     Test each of the trainer options
     :return:
@@ -74,6 +74,7 @@ def test_default_logger_callbacks_cpu_model():
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
@@ -90,25 +91,22 @@ def test_default_logger_callbacks_cpu_model():
     model.freeze()
     model.unfreeze()
 
-    tutils.clear_save_dir()
 
-
-def test_running_test_after_fitting():
+def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model"""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -129,10 +127,8 @@ def test_running_test_after_fitting():
     # test we have good test accuracy
     tutils.assert_ok_test_acc(trainer)
 
-    tutils.clear_save_dir()
 
-
-def test_running_test_without_val():
+def test_running_test_without_val(tmpdir):
     tutils.reset_seed()
 
     """Verify test() works on a model with no val_loader"""
@@ -143,10 +139,8 @@ def test_running_test_without_val():
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -171,8 +165,6 @@ def test_running_test_without_val():
 
     # test we have good test accuracy
     tutils.assert_ok_test_acc(trainer)
-
-    tutils.clear_save_dir()
 
 
 def test_single_gpu_batch_parse():
@@ -219,7 +211,7 @@ def test_single_gpu_batch_parse():
     assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
 
 
-def test_simple_cpu():
+def test_simple_cpu(tmpdir):
     """
     Verify continue training session on CPU
     :return:
@@ -229,10 +221,9 @@ def test_simple_cpu():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
-
     # logger file to get meta
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
@@ -245,10 +236,8 @@ def test_simple_cpu():
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    tutils.clear_save_dir()
 
-
-def test_cpu_model():
+def test_cpu_model(tmpdir):
     """
     Make sure model trains on CPU
     :return:
@@ -256,8 +245,9 @@ def test_cpu_model():
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         max_nb_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -268,7 +258,7 @@ def test_cpu_model():
     tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
-def test_all_features_cpu_model():
+def test_all_features_cpu_model(tmpdir):
     """
     Test each of the trainer options
     :return:
@@ -276,12 +266,13 @@ def test_all_features_cpu_model():
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         accumulate_grad_batches=2,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -292,14 +283,12 @@ def test_all_features_cpu_model():
     tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
 
 
-def test_tbptt_cpu_model():
+def test_tbptt_cpu_model(tmpdir):
     """
     Test truncated back propagation through time works.
     :return:
     """
     tutils.reset_seed()
-
-    save_dir = tutils.init_save_dir()
 
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -348,6 +337,7 @@ def test_tbptt_cpu_model():
             )
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_nb_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
@@ -368,10 +358,8 @@ def test_tbptt_cpu_model():
 
     assert result == 1, 'training failed to complete'
 
-    tutils.clear_save_dir()
 
-
-def test_single_gpu_model():
+def test_single_gpu_model(tmpdir):
     """
     Make sure single GPU works (DP mode)
     :return:
@@ -385,6 +373,7 @@ def test_single_gpu_model():
     model, hparams = tutils.get_model()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,

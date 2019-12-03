@@ -20,7 +20,7 @@ import tests.utils as tutils
 PRETEND_N_OF_GPUS = 16
 
 
-def test_multi_gpu_model_ddp2():
+def test_multi_gpu_model_ddp2(tmpdir):
     """
     Make sure DDP2 works
     :return:
@@ -33,6 +33,7 @@ def test_multi_gpu_model_ddp2():
 
     model, hparams = tutils.get_model()
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -45,7 +46,7 @@ def test_multi_gpu_model_ddp2():
     tutils.run_model_test(trainer_options, model, hparams)
 
 
-def test_multi_gpu_model_ddp():
+def test_multi_gpu_model_ddp(tmpdir):
     """
     Make sure DDP works
     :return:
@@ -58,6 +59,7 @@ def test_multi_gpu_model_ddp():
 
     model, hparams = tutils.get_model()
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.4,
@@ -100,7 +102,7 @@ def test_optimizer_return_options():
     assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
 
 
-def test_cpu_slurm_save_load():
+def test_cpu_slurm_save_load(tmpdir):
     """
     Verify model save/load/checkpoint on CPU
     :return:
@@ -110,10 +112,10 @@ def test_cpu_slurm_save_load():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
+    save_dir = tmpdir
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(save_dir, False)
 
     version = logger.version
 
@@ -149,7 +151,7 @@ def test_cpu_slurm_save_load():
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
-    logger = tutils.get_test_tube_logger(False, version=version)
+    logger = tutils.get_test_tube_logger(save_dir, False, version=version)
 
     trainer_options = dict(
         max_nb_epochs=1,
@@ -174,10 +176,8 @@ def test_cpu_slurm_save_load():
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
 
-    tutils.clear_save_dir()
 
-
-def test_multi_gpu_none_backend():
+def test_multi_gpu_none_backend(tmpdir):
     """
     Make sure when using multiple GPUs the user can't use
     distributed_backend = None
@@ -190,6 +190,7 @@ def test_multi_gpu_none_backend():
 
     model, hparams = tutils.get_model()
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
         max_nb_epochs=1,
         train_percent_check=0.1,
@@ -201,7 +202,7 @@ def test_multi_gpu_none_backend():
         tutils.run_model_test(trainer_options, model, hparams)
 
 
-def test_multi_gpu_model_dp():
+def test_multi_gpu_model_dp(tmpdir):
     """
     Make sure DP works
     :return:
@@ -213,6 +214,7 @@ def test_multi_gpu_model_dp():
 
     model, hparams = tutils.get_model()
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
         distributed_backend='dp',
         max_nb_epochs=1,
@@ -227,7 +229,7 @@ def test_multi_gpu_model_dp():
     memory.get_memory_profile('min_max')
 
 
-def test_ddp_sampler_error():
+def test_ddp_sampler_error(tmpdir):
     """
     Make sure DDP + AMP work
     :return:
@@ -241,7 +243,7 @@ def test_ddp_sampler_error():
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
 
-    logger = tutils.get_test_tube_logger(True)
+    logger = tutils.get_test_tube_logger(tmpdir, True)
 
     trainer = Trainer(
         logger=logger,
@@ -254,8 +256,6 @@ def test_ddp_sampler_error():
 
     with pytest.warns(UserWarning):
         trainer.get_dataloaders(model)
-
-    tutils.clear_save_dir()
 
 
 @pytest.fixture
