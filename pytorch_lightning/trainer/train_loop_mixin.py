@@ -149,6 +149,7 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 """
 
+import inspect
 import numpy as np
 import tqdm
 
@@ -423,10 +424,16 @@ class TrainerTrainLoopMixin(object):
         # ---------------
         # FORWARD
         # ---------------
-        # enable not needing to add opt_idx to training_step
+        # training_step has an optional optimizer_idx argument
         args = [batch, batch_nb]
         if len(self.optimizers) > 1:
-            args.append(opt_idx)
+            if self.has_arg('training_step', 'optimizer_idx'):
+                args.append(opt_idx)
+            else:
+                raise ValueError(
+                    f'Your LightningModule defines {len(self.optimizers)} optimizers but '
+                    f'training_step is missing the "optimizer_idx" argument.'
+                )
 
         # pass hiddens if using tbptt
         if self.truncated_bptt_steps is not None:
