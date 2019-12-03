@@ -156,6 +156,8 @@ class TrainerEvaluationLoopMixin(ABC):
         self.checkpoint_callback = None
         self.current_epoch = None
         self.callback_metrics = None
+        self.get_test_dataloaders = None
+        self.get_val_dataloaders = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -169,16 +171,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def is_overriden(self, m):
-        # this is just empty shell for code from other class
-        pass
-
-    @abstractmethod
-    def get_test_dataloaders(self):
-        # this is just empty shell for code from other class
-        pass
-
-    @abstractmethod
-    def get_val_dataloaders(self):
         # this is just empty shell for code from other class
         pass
 

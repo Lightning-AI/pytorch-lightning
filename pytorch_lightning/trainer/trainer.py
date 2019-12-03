@@ -39,16 +39,17 @@ except ImportError:
 
 
 class Trainer(TrainerIOMixin,
-              TrainerDDPMixin,
               TrainerDPMixin,
+              TrainerDDPMixin,
+              TrainerModelHooksMixin,
+              TrainerTrainingTricksMixin,
               TrainerDataLoadingMixin,
               TrainerAMPMixin,
               TrainerEvaluationLoopMixin,
               TrainerTrainLoopMixin,
               TrainerLoggingMixin,
-              TrainerTrainingTricksMixin,
               TrainerCallbackConfigMixin,
-              TrainerModelHooksMixin):
+              ):
 
     def __init__(
             self,

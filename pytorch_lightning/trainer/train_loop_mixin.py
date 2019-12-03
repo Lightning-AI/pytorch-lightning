@@ -204,14 +204,10 @@ class TrainerTrainLoopMixin(ABC):
         self.model = None
         self.running_loss = None
         self.training_tqdm_dict = None
+        self.get_train_dataloader = None
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
-
-    @abstractmethod
-    def get_train_dataloader(self):
         # this is just empty shell for code from other class
         pass
 
