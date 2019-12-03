@@ -151,12 +151,12 @@ class TrainerDataLoadingMixin(ABC):
                     To silence this warning, pass a DistributedSampler to your DataLoader.
 
                     ie: this::
-                    
+
                         dataset = myDataset()
                         dataloader = Dataloader(dataset)
 
                     becomes::
-                    
+
                         dataset = myDataset()
                         dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
                         dataloader = Dataloader(dataset, sampler=dist_sampler)
