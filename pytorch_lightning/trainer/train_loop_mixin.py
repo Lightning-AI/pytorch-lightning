@@ -150,7 +150,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 """
 
 import numpy as np
-import tqdm
+
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -213,7 +214,15 @@ class TrainerTrainLoopMixin(object):
             # update LR schedulers
             if self.lr_schedulers is not None:
                 for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step(self.current_epoch)
+                    lr_scheduler.step(epoch=self.current_epoch)
+            if self.reduce_lr_on_plateau_scheduler is not None:
+                val_loss = self.callback_metrics.get('val_loss')
+                if val_loss is None:
+                    avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                    m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
+                        f'which is not available. Available metrics are: {avail_metrics}'
+                    raise MisconfigurationException(m)
+                self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
             # early stopping
             met_min_epochs = epoch_nb > self.min_nb_epochs
