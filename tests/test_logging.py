@@ -27,7 +27,6 @@ def test_testtube_logger(tmpdir):
     assert result == 1, "Training failed"
 
 
-
 def test_testtube_pickle(tmpdir):
     """Verify that pickling a trainer containing a test tube logger works."""
     tutils.reset_seed()
@@ -49,7 +48,6 @@ def test_testtube_pickle(tmpdir):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
-
 
 
 def test_mlflow_logger(tmpdir):
@@ -81,7 +79,6 @@ def test_mlflow_logger(tmpdir):
     assert result == 1, "Training failed"
 
 
-
 def test_mlflow_pickle(tmpdir):
     """Verify that pickling trainer with mlflow logger works."""
     tutils.reset_seed()
@@ -107,7 +104,6 @@ def test_mlflow_pickle(tmpdir):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
-
 
 
 def test_comet_logger(tmpdir):
@@ -142,7 +138,6 @@ def test_comet_logger(tmpdir):
 
     print('result finished')
     assert result == 1, "Training failed"
-
 
 
 def test_comet_pickle(tmpdir):

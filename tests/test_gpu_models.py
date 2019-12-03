@@ -104,17 +104,14 @@ def test_cpu_slurm_save_load(tmpdir):
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tmpdir
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
-
+    logger = tutils.get_test_tube_logger(tmpdir, False)
     version = logger.version
 
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -139,16 +136,16 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(save_dir, logger)
+    saved_filepath = trainer.hpc_save(tmpdir, logger)
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False, version=version)
+    logger = tutils.get_test_tube_logger(tmpdir, False, version=version)
 
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir),
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     trainer = Trainer(**trainer_options)
     model = LightningTestModel(hparams)
@@ -167,7 +164,6 @@ def test_cpu_slurm_save_load(tmpdir):
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
-
 
 
 def test_multi_gpu_none_backend(tmpdir):

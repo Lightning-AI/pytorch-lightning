@@ -58,7 +58,6 @@ def test_lbfgs_cpu_model(tmpdir):
     tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
-
 def test_default_logger_callbacks_cpu_model(tmpdir):
     """Test each of the trainer options."""
     tutils.reset_seed()
@@ -223,7 +222,6 @@ def test_simple_cpu(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
 
-
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
     tutils.reset_seed()
@@ -335,7 +333,6 @@ def test_tbptt_cpu_model(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-
 
 
 def test_single_gpu_model(tmpdir):

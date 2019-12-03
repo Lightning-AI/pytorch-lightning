@@ -30,15 +30,13 @@ def test_no_val_module(tmpdir):
 
     model = CurrentTestModel(hparams)
 
-    save_dir = tmpdir
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -49,7 +47,7 @@ def test_no_val_module(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
@@ -58,7 +56,6 @@ def test_no_val_module(tmpdir):
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path)
     model_2.eval()
-
 
 
 def test_no_val_end_module(tmpdir):
@@ -70,8 +67,6 @@ def test_no_val_end_module(tmpdir):
 
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
-
-    save_dir = tmpdir
 
     # logger file to get meta
     logger = tutils.get_test_tube_logger(tmpdir, False)
@@ -90,7 +85,7 @@ def test_no_val_end_module(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model

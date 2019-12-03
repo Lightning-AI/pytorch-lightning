@@ -100,10 +100,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         use_amp=True
     )
 
-    save_dir = tmpdir
-
     # exp file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -139,13 +137,12 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, logger)
-    trainer.hpc_load(save_dir, on_gpu=True)
+    trainer.hpc_save(tmpdir, logger)
+    trainer.hpc_load(tmpdir, on_gpu=True)
 
     # test freeze on gpu
     model.freeze()
     model.unfreeze()
-
 
 
 def test_cpu_model_with_amp(tmpdir):
