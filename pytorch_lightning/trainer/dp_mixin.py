@@ -302,7 +302,7 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import torch
 
@@ -321,6 +321,29 @@ except ImportError:
 
 
 class TrainerDPMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.on_gpu = None
+        self.use_dp = None
+        self.use_ddp2 = None
+        self.use_ddp = None
+        self.use_amp = None
+        self.testing = None
+        self.single_gpu = None
+        self.root_gpu = None
+        self.amp_level = None
+
+    @abstractmethod
+    def run_pretrain_routine(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def init_optimizers(self, optimizers):
+        # this is just empty shell for code from other class
+        pass
 
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):

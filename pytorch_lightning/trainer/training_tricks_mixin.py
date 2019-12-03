@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import torch
 import logging
@@ -6,6 +6,16 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 
 class TrainerTrainingTricksMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.gradient_clip_val = None
+
+    @abstractmethod
+    def get_model(self):
+        # this is just empty shell for code from other class
+        pass
 
     def clip_gradients(self):
         if self.gradient_clip_val > 0:

@@ -26,6 +26,16 @@ except ImportError:
 
 
 class TrainerDataLoadingMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.proc_rank = None
+        self.use_ddp = None
+        self.use_ddp2 = None
+        self.shown_warnings = None
+        self.val_check_interval = None
+
     def init_train_dataloader(self, model):
         """
         Dataloaders are provided by the model
@@ -115,10 +125,9 @@ class TrainerDataLoadingMixin(ABC):
                     break
 
     def init_test_dataloader(self, model):
-        """
-        Dataloaders are provided by the model
+        """Dataloaders are provided by the model.
+
         :param model:
-        :return:
         """
 
         self.get_test_dataloaders = model.test_dataloader
@@ -135,20 +144,22 @@ class TrainerDataLoadingMixin(ABC):
             for dataloader in self.get_test_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
-                    Your test_dataloader(s) don't use DistributedSampler.
+                    Your `test_dataloader(s)` don't use DistributedSampler.
 
                     You're using multiple gpus and multiple nodes without using a
                     DistributedSampler to assign a subset of your data to each process.
                     To silence this warning, pass a DistributedSampler to your DataLoader.
 
-                    ie: this:
-                    dataset = myDataset()
-                    dataloader = Dataloader(dataset)
+                    ie: this::
+                    
+                        dataset = myDataset()
+                        dataloader = Dataloader(dataset)
 
-                    becomes:
-                    dataset = myDataset()
-                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                    dataloader = Dataloader(dataset, sampler=dist_sampler)
+                    becomes::
+                    
+                        dataset = myDataset()
+                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+                        dataloader = Dataloader(dataset, sampler=dist_sampler)
 
                     If you want each process to load the full dataset, ignore this warning.
                     """
@@ -182,8 +193,8 @@ class TrainerDataLoadingMixin(ABC):
             EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
-            When using an iterableDataset for train_dataloader,
-            Trainer(val_check_interval) must be an int.
+            When using an iterableDataset for `train_dataloader`,
+            `Trainer(val_check_interval)` must be an int.
             An int k specifies checking validation every k training batches
             '''
             raise MisconfigurationException(m)

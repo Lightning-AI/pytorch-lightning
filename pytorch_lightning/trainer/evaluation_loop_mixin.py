@@ -122,7 +122,7 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import torch
 import sys
@@ -132,6 +132,60 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 class TrainerEvaluationLoopMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.test_progress_bar = None
+        self.val_progress_bar = None
+        self.main_progress_bar = None
+        self.use_ddp = None
+        self.use_dp = None
+        self.use_ddp2 = None
+        self.single_gpu = None
+        self.data_parallel_device_ids = None
+        self.model = None
+        self.nb_test_batches = None
+        self.nb_val_batches = None
+        self.fast_dev_run = None
+        self.process_position = None
+        self.show_progress_bar = None
+        self.process_output = None
+        self.training_tqdm_dict = None
+        self.proc_rank = None
+        self.checkpoint_callback = None
+        self.current_epoch = None
+        self.callback_metrics = None
+
+    @abstractmethod
+    def copy_trainer_model_properties(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def get_model(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def is_overriden(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def get_test_dataloaders(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def get_val_dataloaders(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def transfer_batch_to_gpu(self, batch, gpu):
+        # this is just empty shell for code from other class
+        pass
 
     def evaluate(self, model, dataloaders, max_batches, test=False):
         """
@@ -305,7 +359,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
-            if type(self.data_parallel_device_ids) is list:
+            if isinstance(self.data_parallel_device_ids, list):
                 root_gpu = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch

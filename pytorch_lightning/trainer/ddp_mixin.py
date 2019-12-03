@@ -117,7 +117,7 @@ import os
 import re
 import logging
 import warnings
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import torch
 
@@ -132,6 +132,33 @@ except ImportError:
 
 
 class TrainerDDPMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.num_gpus = None
+        self.on_gpu = None
+        self.num_gpu_nodes = None
+        self.logger = None
+        self.data_parallel_device_ids = None
+        self.distributed_backend = None
+        self.use_amp = None
+        self.amp_level = None
+
+    @abstractmethod
+    def copy_trainer_model_properties(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def run_pretrain_routine(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def init_optimizers(self, optimizers):
+        # this is just empty shell for code from other class
+        pass
 
     def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
         # skip for CPU

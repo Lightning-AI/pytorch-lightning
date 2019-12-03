@@ -1,5 +1,5 @@
 import inspect
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -23,3 +23,8 @@ class TrainerModelHooksMixin(ABC):
         model = self.get_model()
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
+
+    @abstractmethod
+    def get_model(self):
+        # this is just empty shell for code from other class
+        pass
