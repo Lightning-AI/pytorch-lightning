@@ -13,7 +13,7 @@ class TrainerTrainingTricksMixin(object):
     def print_nan_gradients(self):
         model = self.get_model()
         for param in model.parameters():
-            if torch.isnan(param.grad.float()).any():
+            if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 logging.info(param, param.grad)
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
