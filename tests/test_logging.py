@@ -106,8 +106,14 @@ def test_mlflow_pickle(tmpdir):
     trainer2.logger.log_metrics({"acc": 1.0})
 
 
-def test_comet_logger(tmpdir):
+def test_comet_logger(tmpdir, monkeypatch):
     """Verify that basic functionality of Comet.ml logger works."""
+
+    # prevent comet logger from trying to print at exit, since
+    # pytest's stdout/stderr redirection breaks it
+    import atexit
+    monkeypatch.setattr(atexit, "register", lambda _: None)
+
     tutils.reset_seed()
 
     try:
@@ -140,8 +146,14 @@ def test_comet_logger(tmpdir):
     assert result == 1, "Training failed"
 
 
-def test_comet_pickle(tmpdir):
+def test_comet_pickle(tmpdir, monkeypatch):
     """Verify that pickling trainer with comet logger works."""
+
+    # prevent comet logger from trying to print at exit, since
+    # pytest's stdout/stderr redirection breaks it
+    import atexit
+    monkeypatch.setattr(atexit, "register", lambda _: None)
+
     tutils.reset_seed()
 
     try:
