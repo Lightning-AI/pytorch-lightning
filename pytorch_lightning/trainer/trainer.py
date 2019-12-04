@@ -41,13 +41,13 @@ except ImportError:
 class Trainer(TrainerIOMixin,
               TrainerDPMixin,
               TrainerDDPMixin,
+              TrainerLoggingMixin,
               TrainerModelHooksMixin,
               TrainerTrainingTricksMixin,
               TrainerDataLoadingMixin,
               TrainerAMPMixin,
               TrainerEvaluationLoopMixin,
               TrainerTrainLoopMixin,
-              TrainerLoggingMixin,
               TrainerCallbackConfigMixin,
               ):
 
