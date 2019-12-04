@@ -276,9 +276,6 @@ class Trainer(TrainerIOMixin,
         self.amp_level = amp_level
         self.init_amp(use_amp)
 
-        # set logging options
-        logging.basicConfig(level=logging.INFO)
-
     @property
     def slurm_job_id(self):
         try:

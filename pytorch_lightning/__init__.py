@@ -28,9 +28,11 @@ else:
     from .trainer.trainer import Trainer
     from .core.lightning import LightningModule
     from .core.decorators import data_loader
+    import logging
 
     __all__ = [
         'Trainer',
         'LightningModule',
         'data_loader',
     ]
+    logging.basicConfig(level=logging.INFO)

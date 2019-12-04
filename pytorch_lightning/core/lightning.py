@@ -1020,7 +1020,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
     def summarize(self, mode):
         model_summary = ModelSummary(self, mode=mode)
-        logging.info(model_summary)
+        logging.info('\n' + model_summary.__str__())
 
     def freeze(self):
         """Freeze all params for inference
