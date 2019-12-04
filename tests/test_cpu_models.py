@@ -1,8 +1,8 @@
 import warnings
 
-import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -12,14 +12,10 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningTestMixin,
 )
-import tests.utils as tutils
 
 
 def test_early_stopping_cpu_model(tmpdir):
-    """
-    Test each of the trainer options
-    :return:
-    """
+    """Test each of the trainer options."""
     tutils.reset_seed()
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
@@ -37,7 +33,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -45,10 +41,7 @@ def test_early_stopping_cpu_model(tmpdir):
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    """
-    Test each of the trainer options
-    :return:
-    """
+    """Test each of the trainer options."""
     tutils.reset_seed()
 
     trainer_options = dict(
@@ -62,15 +55,11 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
-    tutils.run_model_test_no_loggers(trainer_options, model, hparams,
-                                     on_gpu=False, min_acc=0.30)
+    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
-    """
-    Test each of the trainer options
-    :return:
-    """
+    """Test each of the trainer options."""
     tutils.reset_seed()
 
     trainer_options = dict(
@@ -85,7 +74,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test_no_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -93,7 +82,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 
 def test_running_test_after_fitting(tmpdir):
-    """Verify test() on fitted model"""
+    """Verify test() on fitted model."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -129,9 +118,8 @@ def test_running_test_after_fitting(tmpdir):
 
 
 def test_running_test_without_val(tmpdir):
+    """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
-
-    """Verify test() works on a model with no val_loader"""
 
     class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
         pass
@@ -212,10 +200,7 @@ def test_single_gpu_batch_parse():
 
 
 def test_simple_cpu(tmpdir):
-    """
-    Verify continue training session on CPU
-    :return:
-    """
+    """Verify continue training session on CPU."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -238,10 +223,7 @@ def test_simple_cpu(tmpdir):
 
 
 def test_cpu_model(tmpdir):
-    """
-    Make sure model trains on CPU
-    :return:
-    """
+    """Make sure model trains on CPU."""
     tutils.reset_seed()
 
     trainer_options = dict(
@@ -255,14 +237,11 @@ def test_cpu_model(tmpdir):
 
     model, hparams = tutils.get_model()
 
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_all_features_cpu_model(tmpdir):
-    """
-    Test each of the trainer options
-    :return:
-    """
+    """Test each of the trainer options."""
     tutils.reset_seed()
 
     trainer_options = dict(
@@ -280,14 +259,11 @@ def test_all_features_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_tbptt_cpu_model(tmpdir):
-    """
-    Test truncated back propagation through time works.
-    :return:
-    """
+    """Test truncated back propagation through time works."""
     tutils.reset_seed()
 
     truncated_bptt_steps = 2
@@ -360,10 +336,7 @@ def test_tbptt_cpu_model(tmpdir):
 
 
 def test_single_gpu_model(tmpdir):
-    """
-    Make sure single GPU works (DP mode)
-    :return:
-    """
+    """Make sure single GPU works (DP mode)."""
     tutils.reset_seed()
 
     if not torch.cuda.is_available():
@@ -381,8 +354,8 @@ def test_single_gpu_model(tmpdir):
         gpus=1
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])
