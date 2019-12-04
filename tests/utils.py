@@ -24,7 +24,7 @@ np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 
 
-def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_acc=0.50):
+def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
     save_dir = trainer_options['default_save_path']
 
     # fit model
@@ -48,7 +48,7 @@ def run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=True, min_
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, hparams, on_gpu=True):
+def run_model_test(trainer_options, model, on_gpu=True):
     save_dir = trainer_options['default_save_path']
 
     # logger file to get meta
@@ -95,7 +95,8 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
         'optimizer_name': 'adam',
         'data_root': os.path.join(root_dir, 'mnist'),
         'out_features': 10,
-        'hidden_dim': 1000}
+        'hidden_dim': 1000,
+    }
 
     if continue_training:
         args['test_tube_do_checkpoint_load'] = True
@@ -122,7 +123,7 @@ def get_model(use_test_model=False, lbfgs=False):
 
 def get_test_tube_logger(save_dir, debug=True, version=None):
     # set up logger object without actually saving logs
-    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=False, version=version)
+    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=debug, version=version)
     return logger
 
 

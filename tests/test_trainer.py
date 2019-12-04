@@ -1,7 +1,9 @@
 import os
+
 import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
@@ -11,19 +13,14 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
-    LightningTestMixin,
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-import tests.utils as tutils
 
 
 def test_no_val_module(tmpdir):
-    """
-    Tests use case where trainer saves the model, and user loads it from tags independently
-    :return:
-    """
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -33,15 +30,13 @@ def test_no_val_module(tmpdir):
 
     model = CurrentTestModel(hparams)
 
-    save_dir = tmpdir
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -52,7 +47,7 @@ def test_no_val_module(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
@@ -64,10 +59,7 @@ def test_no_val_module(tmpdir):
 
 
 def test_no_val_end_module(tmpdir):
-    """
-    Tests use case where trainer saves the model, and user loads it from tags independently
-    :return:
-    """
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
@@ -76,15 +68,13 @@ def test_no_val_end_module(tmpdir):
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = tmpdir
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_nb_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -95,7 +85,7 @@ def test_no_val_end_module(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
@@ -226,18 +216,12 @@ def test_dp_output_reduce():
 
 
 def test_model_checkpoint_options(tmp_path):
-    """
-    Test ModelCheckpoint options
-    :return:
-    """
-
-    # TODO split this up into multiple tests
-
+    """Test ModelCheckpoint options."""
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
     hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
+    _ = LightningTestModel(hparams)
 
     # simulated losses
     save_dir = tmp_path / "1"
@@ -355,10 +339,7 @@ def test_model_freeze_unfreeze():
 
 
 def test_multiple_val_dataloader(tmpdir):
-    """
-    Verify multiple val_dataloader
-    :return:
-    """
+    """Verify multiple val_dataloader."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -395,10 +376,7 @@ def test_multiple_val_dataloader(tmpdir):
 
 
 def test_multiple_test_dataloader(tmpdir):
-    """
-    Verify multiple test_dataloader
-    :return:
-    """
+    """Verify multiple test_dataloader."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -434,5 +412,5 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])
