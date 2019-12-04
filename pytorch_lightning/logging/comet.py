@@ -145,13 +145,13 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(vars(params))
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_num=None):
+    def log_metrics(self, metrics, step_idx=None):
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
                 metrics[key] = val.cpu().detach()
 
-        self.experiment.log_metrics(metrics, step=step_num)
+        self.experiment.log_metrics(metrics, step=step_idx)
 
     @rank_zero_only
     def finalize(self, status):
@@ -169,7 +169,7 @@ class CometLogger(LightningLoggerBase):
     def version(self):
         if self.project_name and self.rest_api_key:
             # Determines the number of experiments in this project, and returns the next integer as the version number
-            nb_exps = len(self.comet_api.get_experiments(self.workspace, self.project_name))
-            return nb_exps + 1
+            num_exps = len(self.comet_api.get_experiments(self.workspace, self.project_name))
+            return num_exps + 1
         else:
             return None

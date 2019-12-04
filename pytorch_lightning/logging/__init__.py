@@ -52,7 +52,7 @@ only the first process in DDP training logs data.
             pass
 
         @rank_zero_only
-        def log_metrics(self, metrics, step_num):
+        def log_metrics(self, metrics, step_idx):
             # metrics is a dictionary of metric names and values
             # your code to record metrics goes here
             pass

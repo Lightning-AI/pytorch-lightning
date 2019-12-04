@@ -1,7 +1,9 @@
 import os
+
 import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
@@ -11,19 +13,14 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
-    LightningTestMixin,
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.trainer import trainer_io
 from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
-import tests.utils as tutils
 
 
-def test_no_val_module():
-    """
-    Tests use case where trainer saves the model, and user loads it from tags independently
-    :return:
-    """
+def test_no_val_module(tmpdir):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -33,15 +30,13 @@ def test_no_val_module():
 
     model = CurrentTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -52,7 +47,7 @@ def test_no_val_module():
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
@@ -62,15 +57,9 @@ def test_no_val_module():
                                                    tags_csv=tags_path)
     model_2.eval()
 
-    # make prediction
-    tutils.clear_save_dir()
 
-
-def test_no_val_end_module():
-    """
-    Tests use case where trainer saves the model, and user loads it from tags independently
-    :return:
-    """
+def test_no_val_end_module(tmpdir):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
     class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
@@ -79,15 +68,13 @@ def test_no_val_end_module():
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = tutils.init_save_dir()
-
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(save_dir)
+        checkpoint_callback=ModelCheckpoint(tmpdir)
     )
 
     # fit model
@@ -98,7 +85,7 @@ def test_no_val_end_module():
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save model
-    new_weights_path = os.path.join(save_dir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
@@ -108,11 +95,8 @@ def test_no_val_end_module():
                                                    tags_csv=tags_path)
     model_2.eval()
 
-    # make prediction
-    tutils.clear_save_dir()
 
-
-def test_gradient_accumulation_scheduling():
+def test_gradient_accumulation_scheduling(tmpdir):
     tutils.reset_seed()
 
     """
@@ -130,40 +114,40 @@ def test_gradient_accumulation_scheduling():
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
-        if batch_nb < 12:
-            if epoch_nb == 0:
+        if batch_idx < 12:
+            if epoch_idx == 0:
                 # reset counter when starting epoch
-                if batch_nb == 0:
-                    self.prev_called_batch_nb = 0
+                if batch_idx == 0:
+                    self.prev_called_batch_idx = 0
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 1
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 1
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 1
 
-            elif 1 <= epoch_nb <= 2:
+            elif 1 <= epoch_idx <= 2:
                 # reset counter when starting epoch
-                if batch_nb == 1:
-                    self.prev_called_batch_nb = 1
+                if batch_idx == 1:
+                    self.prev_called_batch_idx = 1
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 2
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 2
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 2
 
             else:
-                if batch_nb == 3:
-                    self.prev_called_batch_nb = 3
+                if batch_idx == 3:
+                    self.prev_called_batch_idx = 3
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 4
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 3
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 3
 
         optimizer.step()
 
@@ -177,23 +161,24 @@ def test_gradient_accumulation_scheduling():
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_nb_epochs=4)
+                      max_num_epochs=4,
+                      default_save_path=tmpdir)
 
     # for the test
     trainer.optimizer_step = optimizer_step
-    model.prev_called_batch_nb = 0
+    model.prev_called_batch_idx = 0
 
     trainer.fit(model)
 
 
-def test_loading_meta_tags():
+def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
     from argparse import Namespace
     hparams = tutils.get_hparams()
 
     # save tags
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -206,8 +191,6 @@ def test_loading_meta_tags():
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
-    tutils.clear_save_dir()
-
 
 def test_dp_output_reduce():
     mixin = TrainerLoggingMixin()
@@ -215,10 +198,10 @@ def test_dp_output_reduce():
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
-    assert mixin.reduce_distributed_output(out, nb_gpus=1) is out
+    assert mixin.reduce_distributed_output(out, num_gpus=1) is out
 
     # average when we have multiples
-    assert mixin.reduce_distributed_output(out, nb_gpus=2) == out.mean()
+    assert mixin.reduce_distributed_output(out, num_gpus=2) == out.mean()
 
     # when we have a dict of vals
     out = {
@@ -227,24 +210,22 @@ def test_dp_output_reduce():
             'c': out
         }
     }
-    reduced = mixin.reduce_distributed_output(out, nb_gpus=3)
+    reduced = mixin.reduce_distributed_output(out, num_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_model_checkpoint_options():
-    """
-    Test ModelCheckpoint options
-    :return:
-    """
+def test_model_checkpoint_options(tmp_path):
+    """Test ModelCheckpoint options."""
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
     hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
+    _ = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = tutils.init_save_dir()
+    save_dir = tmp_path / "1"
+    save_dir.mkdir()
     losses = [10, 9, 2.8, 5, 2.5]
 
     # -----------------
@@ -262,7 +243,8 @@ def test_model_checkpoint_options():
     for i in range(0, len(losses)):
         assert f'_ckpt_epoch_{i}.ckpt' in file_lists
 
-    tutils.clear_save_dir()
+    save_dir = tmp_path / "2"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=0 (none)
@@ -275,7 +257,8 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
-    tutils.clear_save_dir()
+    save_dir = tmp_path / "3"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
@@ -289,7 +272,8 @@ def test_model_checkpoint_options():
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
     assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
 
-    tutils.clear_save_dir()
+    save_dir = tmp_path / "4"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
@@ -308,7 +292,8 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_2.ckpt' in file_lists
     assert 'other_file.ckpt' in file_lists
 
-    tutils.clear_save_dir()
+    save_dir = tmp_path / "5"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=4 (save all 4 models)
@@ -323,7 +308,8 @@ def test_model_checkpoint_options():
 
     assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
 
-    tutils.clear_save_dir()
+    save_dir = tmp_path / "6"
+    save_dir.mkdir()
 
     # -----------------
     # CASE K=3 (save the 2nd, 3rd, 4th model)
@@ -341,8 +327,6 @@ def test_model_checkpoint_options():
     assert '_ckpt_epoch_0_v1.ckpt' in file_lists
     assert '_ckpt_epoch_0.ckpt' in file_lists
 
-    tutils.clear_save_dir()
-
 
 def test_model_freeze_unfreeze():
     tutils.reset_seed()
@@ -354,11 +338,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_multiple_val_dataloader():
-    """
-    Verify multiple val_dataloader
-    :return:
-    """
+def test_multiple_val_dataloader(tmpdir):
+    """Verify multiple val_dataloader."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -372,7 +353,8 @@ def test_multiple_val_dataloader():
 
     # logger file to get meta
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
     )
@@ -393,11 +375,8 @@ def test_multiple_val_dataloader():
         tutils.run_prediction(dataloader, trainer.model)
 
 
-def test_multiple_test_dataloader():
-    """
-    Verify multiple test_dataloader
-    :return:
-    """
+def test_multiple_test_dataloader(tmpdir):
+    """Verify multiple test_dataloader."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -411,7 +390,8 @@ def test_multiple_test_dataloader():
 
     # logger file to get meta
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )
@@ -432,5 +412,5 @@ def test_multiple_test_dataloader():
     trainer.test()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])

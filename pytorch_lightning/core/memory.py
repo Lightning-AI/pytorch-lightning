@@ -174,20 +174,20 @@ def print_mem_stack():  # pragma: no cover
 
 
 def count_mem_items():  # pragma: no cover
-    nb_params = 0
-    nb_tensors = 0
+    num_params = 0
+    num_tensors = 0
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
                 obj_type = str(type(obj))
                 if 'parameter' in obj_type:
-                    nb_params += 1
+                    num_params += 1
                 else:
-                    nb_tensors += 1
+                    num_tensors += 1
         except Exception:
             pass
 
-    return nb_params, nb_tensors
+    return num_params, num_tensors
 
 
 def get_memory_profile(mode):

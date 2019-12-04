@@ -1,22 +1,17 @@
 import os
-import warnings
 
 import pytest
-import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.testing import (
     LightningTestModel,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-import tests.utils as tutils
 
 
-def test_amp_single_gpu():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+def test_amp_single_gpu(tmpdir):
+    """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -26,21 +21,19 @@ def test_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=1,
         distributed_backend='ddp',
         use_amp=True
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
-def test_no_amp_single_gpu():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+def test_no_amp_single_gpu(tmpdir):
+    """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -50,22 +43,20 @@ def test_no_amp_single_gpu():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=1,
         distributed_backend='dp',
         use_amp=True
     )
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, hparams)
+        tutils.run_model_test(trainer_options, model)
 
 
-def test_amp_gpu_ddp():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+def test_amp_gpu_ddp(tmpdir):
+    """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -76,21 +67,19 @@ def test_amp_gpu_ddp():
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=2,
         distributed_backend='ddp',
         use_amp=True
     )
 
-    tutils.run_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
-def test_amp_gpu_ddp_slurm_managed():
-    """
-    Make sure DDP + AMP work
-    :return:
-    """
+def test_amp_gpu_ddp_slurm_managed(tmpdir):
+    """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
         return
 
@@ -105,16 +94,14 @@ def test_amp_gpu_ddp_slurm_managed():
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
         use_amp=True
     )
 
-    save_dir = tutils.init_save_dir()
-
     # exp file to get meta
-    logger = tutils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -150,27 +137,23 @@ def test_amp_gpu_ddp_slurm_managed():
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
     # test HPC loading / saving
-    trainer.hpc_save(save_dir, logger)
-    trainer.hpc_load(save_dir, on_gpu=True)
+    trainer.hpc_save(tmpdir, logger)
+    trainer.hpc_load(tmpdir, on_gpu=True)
 
     # test freeze on gpu
     model.freeze()
     model.unfreeze()
 
-    tutils.clear_save_dir()
 
-
-def test_cpu_model_with_amp():
-    """
-    Make sure model trains on CPU
-    :return:
-    """
+def test_cpu_model_with_amp(tmpdir):
+    """Make sure model trains on CPU."""
     tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(),
-        max_nb_epochs=1,
+        logger=tutils.get_test_tube_logger(tmpdir),
+        max_num_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
         use_amp=True
@@ -179,14 +162,11 @@ def test_cpu_model_with_amp():
     model, hparams = tutils.get_model()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, hparams, on_gpu=False)
+        tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_amp_gpu_dp():
-    """
-    Make sure DP + AMP work
-    :return:
-    """
+def test_amp_gpu_dp(tmpdir):
+    """Make sure DP + AMP work."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
@@ -194,7 +174,8 @@ def test_amp_gpu_dp():
 
     model, hparams = tutils.get_model()
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_num_epochs=1,
         gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',
         use_amp=True
