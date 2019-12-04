@@ -205,6 +205,7 @@ class TrainerTrainLoopMixin(ABC):
         self.running_loss = None
         self.training_tqdm_dict = None
         self.get_train_dataloader = None
+        self.reduce_lr_on_plateau_scheduler = None
 
     @abstractmethod
     def get_model(self):
@@ -238,6 +239,21 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def is_overriden(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def add_tqdm_metrics(self, metrics):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def log_metrics(self, metrics, grad_norm_dic):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def process_output(self, output, train):
         # this is just empty shell for code from other class
         pass
 

@@ -22,11 +22,10 @@ class TrainerLoggingMixin(ABC):
         self.num_gpus = None
 
     def log_metrics(self, metrics, grad_norm_dic):
-        """
-        Logs the metric dict passed in
+        """Logs the metric dict passed in.
+
         :param metrics:
         :param grad_norm_dic:
-        :return:
         """
         # added metrics by Lightning for convenience
         metrics['epoch'] = self.current_epoch
@@ -68,8 +67,8 @@ class TrainerLoggingMixin(ABC):
         return new_metrics
 
     def process_output(self, output, train=False):
-        """
-        Reduces output according to the training mode.
+        """Reduces output according to the training mode.
+
         Separates loss from logging and tqdm metrics
         :param output:
         :return:

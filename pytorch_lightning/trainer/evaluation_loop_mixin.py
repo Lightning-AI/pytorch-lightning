@@ -179,9 +179,19 @@ class TrainerEvaluationLoopMixin(ABC):
         # this is just empty shell for code from other class
         pass
 
+    @abstractmethod
+    def add_tqdm_metrics(self, metrics):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def log_metrics(self, metrics, grad_norm_dic):
+        # this is just empty shell for code from other class
+        pass
+
     def evaluate(self, model, dataloaders, max_batches, test=False):
-        """
-        Run evaluation code
+        """Run evaluation code.
+
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
