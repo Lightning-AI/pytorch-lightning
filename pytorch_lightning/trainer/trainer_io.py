@@ -95,6 +95,7 @@ import signal
 import warnings
 from subprocess import call
 import logging
+from abc import ABC
 
 import torch
 import torch.distributed as dist
@@ -105,7 +106,24 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 
 
-class TrainerIOMixin(object):
+class TrainerIOMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.model = None
+        self.on_gpu = None
+        self.root_gpu = None
+        self.resume_from_checkpoint = None
+        self.use_ddp = None
+        self.use_ddp2 = None
+        self.checkpoint_callback = None
+        self.proc_rank = None
+        self.weights_save_path = None
+        self.logger = None
+        self.early_stop_callback = None
+        self.lr_schedulers = None
+        self.optimizers = None
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,

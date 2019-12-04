@@ -150,6 +150,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 """
 
 import inspect
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -162,7 +164,98 @@ except ImportError:
     APEX_AVAILABLE = False
 
 
-class TrainerTrainLoopMixin(object):
+class TrainerTrainLoopMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.max_nb_epochs = None
+        self.use_ddp = None
+        self.use_dp = None
+        self.use_ddp2 = None
+        self.single_gpu = None
+        self.data_parallel_device_ids = None
+        self.check_val_every_n_epoch = None
+        self.nb_training_batches = None
+        self.val_check_batch = None
+        self.nb_val_batches = None
+        self.fast_dev_run = None
+        self.is_iterable_train_dataloader = None
+        self.main_progress_bar = None
+        self.accumulation_scheduler = None
+        self.lr_schedulers = None
+        self.min_nb_epochs = None
+        self.enable_early_stop = None
+        self.early_stop_callback = None
+        self.callback_metrics = None
+        self.logger = None
+        self.global_step = None
+        self.testing = None
+        self.log_save_interval = None
+        self.proc_rank = None
+        self.row_log_interval = None
+        self.total_batch_nb = None
+        self.truncated_bptt_steps = None
+        self.optimizers = None
+        self.accumulate_grad_batches = None
+        self.use_amp = None
+        self.print_nan_grads = None
+        self.track_grad_norm = None
+        self.model = None
+        self.running_loss = None
+        self.training_tqdm_dict = None
+        self.get_train_dataloader = None
+        self.reduce_lr_on_plateau_scheduler = None
+
+    @abstractmethod
+    def get_model(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def is_function_implemented(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def run_evaluation(self, test):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def transfer_batch_to_gpu(self, batch, gpu):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def clip_gradients(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def print_nan_gradients(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def is_overriden(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def add_tqdm_metrics(self, metrics):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def log_metrics(self, metrics, grad_norm_dic):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def process_output(self, output, train):
+        # this is just empty shell for code from other class
+        pass
 
     def train(self):
         # run all epochs
@@ -456,7 +549,7 @@ class TrainerTrainLoopMixin(object):
         # single GPU forward
         elif self.single_gpu:
             gpu_id = 0
-            if type(self.data_parallel_device_ids) is list:
+            if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(batch.copy(), gpu_id)
             args[0] = batch

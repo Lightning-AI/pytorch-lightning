@@ -1,3 +1,5 @@
+from abc import ABC
+
 try:
     from apex import amp
 
@@ -7,7 +9,7 @@ except ImportError:
 import logging
 
 
-class TrainerAMPMixin(object):
+class TrainerAMPMixin(ABC):
 
     def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
