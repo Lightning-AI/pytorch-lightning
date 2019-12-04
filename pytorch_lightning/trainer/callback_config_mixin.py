@@ -1,10 +1,19 @@
 import os
+from abc import ABC
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.logging import TestTubeLogger
 
 
-class TrainerCallbackConfigMixin(object):
+class TrainerCallbackConfigMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.default_save_path = None
+        self.save_checkpoint = None
+        self.slurm_job_id = None
+
     def configure_checkpoint_callback(self):
         """
         Weight path set in this priority:

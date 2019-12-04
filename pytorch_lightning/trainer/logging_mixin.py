@@ -1,16 +1,31 @@
+from abc import ABC
+
 import torch
 
 from pytorch_lightning.core import memory
 
 
-class TrainerLoggingMixin(object):
+class TrainerLoggingMixin(ABC):
+
+    def __init__(self):
+        # this is just a summary on variables used in this abstract class,
+        #  the proper values/initialisation should be done in child class
+        self.current_epoch = None
+        self.on_gpu = None
+        self.log_gpu_memory = None
+        self.logger = None
+        self.tqdm_metrics = None
+        self.global_step = None
+        self.proc_rank = None
+        self.use_dp = None
+        self.use_ddp2 = None
+        self.num_gpus = None
 
     def log_metrics(self, metrics, grad_norm_dic):
-        """
-        Logs the metric dict passed in
+        """Logs the metric dict passed in.
+
         :param metrics:
         :param grad_norm_dic:
-        :return:
         """
         # added metrics by Lightning for convenience
         metrics['epoch'] = self.current_epoch
@@ -52,8 +67,8 @@ class TrainerLoggingMixin(object):
         return new_metrics
 
     def process_output(self, output, train=False):
-        """
-        Reduces output according to the training mode.
+        """Reduces output according to the training mode.
+
         Separates loss from logging and tqdm metrics
         :param output:
         :return:

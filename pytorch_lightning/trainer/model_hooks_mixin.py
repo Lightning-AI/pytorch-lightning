@@ -1,8 +1,10 @@
 import inspect
+from abc import ABC, abstractmethod
+
 from pytorch_lightning.core.lightning import LightningModule
 
 
-class TrainerModelHooksMixin(object):
+class TrainerModelHooksMixin(ABC):
 
     def is_function_implemented(self, f_name):
         model = self.get_model()
@@ -21,3 +23,8 @@ class TrainerModelHooksMixin(object):
         model = self.get_model()
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
+
+    @abstractmethod
+    def get_model(self):
+        # this is just empty shell for code from other class
+        pass
