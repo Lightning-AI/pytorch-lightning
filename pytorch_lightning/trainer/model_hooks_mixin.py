@@ -1,3 +1,4 @@
+import inspect
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -15,3 +16,8 @@ class TrainerModelHooksMixin(object):
         # when code pointers are different, it was overriden
         is_overriden = getattr(model, f_name).__code__ is not getattr(super_object, f_name).__code__
         return is_overriden
+
+    def has_arg(self, f_name, arg_name):
+        model = self.get_model()
+        f_op = getattr(model, f_name, None)
+        return arg_name in inspect.signature(f_op).parameters
