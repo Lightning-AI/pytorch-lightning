@@ -12,7 +12,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.testing import (
     LightningTestModel,
 )
-from pytorch_lightning.trainer.dp_mixin import (
+from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
