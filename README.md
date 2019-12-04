@@ -96,7 +96,7 @@ To use lightning do 2 things:
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
     
-        def training_step(self, batch, batch_nb):
+        def training_step(self, batch, batch_idx):
             # REQUIRED
             x, y = batch
             y_hat = self.forward(x)
@@ -104,7 +104,7 @@ To use lightning do 2 things:
             tensorboard_logs = {'train_loss': loss}
             return {'loss': loss, 'log': tensorboard_logs}
     
-        def validation_step(self, batch, batch_nb):
+        def validation_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
             y_hat = self.forward(x)
@@ -154,16 +154,16 @@ use something other than tensorboard).
 Here are more advanced examples
 ```python   
 # train on cpu using only 10% of the data (for demo purposes)
-trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
+trainer = Trainer(max_num_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus (lightning chooses GPUs for you)
-# trainer = Trainer(max_nb_epochs=1, gpus=4, distributed_backend='ddp')  
+# trainer = Trainer(max_num_epochs=1, gpus=4, distributed_backend='ddp')  
 
 # train on 4 gpus (you choose GPUs)
-# trainer = Trainer(max_nb_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
+# trainer = Trainer(max_num_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
 
 # train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
-# trainer = Trainer(max_nb_epochs=1, gpus=8, nb_gpu_nodes=4, distributed_backend='ddp')
+# trainer = Trainer(max_num_epochs=1, gpus=8, num_gpu_nodes=4, distributed_backend='ddp')
 
 # train (1 epoch only here for demo)
 trainer.fit(model)
@@ -187,10 +187,10 @@ You define the blue parts using the LightningModule interface:
 
 ```python
 # what to do in the training loop
-def training_step(self, batch, batch_nb):
+def training_step(self, batch, batch_idx):
 
 # what to do in the validation loop
-def validation_step(self, batch, batch_nb):
+def validation_step(self, batch, batch_idx):
 
 # how to aggregate validation_step outputs
 def validation_end(self, outputs):
@@ -205,7 +205,7 @@ def test_dataloader():
 
 ```python
 # define what happens for training here
-def training_step(self, batch, batch_nb):
+def training_step(self, batch, batch_idx):
     x, y = batch
     
     # define your own forward and loss calculation
@@ -232,7 +232,7 @@ def training_step(self, batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, batch, batch_nb):    
+def validation_step(self, batch, batch_idx):    
     x, y = batch
     
     # or as basic as a CNN classification

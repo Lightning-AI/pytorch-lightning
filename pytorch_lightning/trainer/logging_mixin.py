@@ -28,7 +28,7 @@ class TrainerLoggingMixin(object):
 
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step_num=self.global_step)
+            self.logger.log_metrics(scalar_metrics, step_idx=self.global_step)
             self.logger.save()
 
     def add_tqdm_metrics(self, metrics):
@@ -68,8 +68,8 @@ class TrainerLoggingMixin(object):
                 callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
-            nb_gpus = self.num_gpus
-            callback_metrics = self.reduce_distributed_output(callback_metrics, nb_gpus)
+            num_gpus = self.num_gpus
+            callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
         for k, v in callback_metrics.items():
             callback_metrics[k] = v.item()
@@ -82,8 +82,8 @@ class TrainerLoggingMixin(object):
 
             # reduce progress metrics for tqdm when using dp
             if train and (self.use_dp or self.use_ddp2):
-                nb_gpus = self.num_gpus
-                progress_output = self.reduce_distributed_output(progress_output, nb_gpus)
+                num_gpus = self.num_gpus
+                progress_output = self.reduce_distributed_output(progress_output, num_gpus)
 
             progress_bar_metrics = progress_output
         except Exception:
@@ -98,8 +98,8 @@ class TrainerLoggingMixin(object):
 
             # reduce progress metrics for tqdm when using dp
             if train and (self.use_dp or self.use_ddp2):
-                nb_gpus = self.num_gpus
-                log_output = self.reduce_distributed_output(log_output, nb_gpus)
+                num_gpus = self.num_gpus
+                log_output = self.reduce_distributed_output(log_output, num_gpus)
 
             log_metrics = log_output
         except Exception:
@@ -142,8 +142,8 @@ class TrainerLoggingMixin(object):
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
-    def reduce_distributed_output(self, output, nb_gpus):
-        if nb_gpus <= 1:
+    def reduce_distributed_output(self, output, num_gpus):
+        if num_gpus <= 1:
             return output
 
         # when using DP, we get one output per gpu
@@ -154,14 +154,14 @@ class TrainerLoggingMixin(object):
         for k, v in output.items():
             # recurse on nested dics
             if isinstance(output[k], dict):
-                output[k] = self.reduce_distributed_output(output[k], nb_gpus)
+                output[k] = self.reduce_distributed_output(output[k], num_gpus)
 
             # do nothing when there's a scalar
             elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:
                 pass
 
             # reduce only metrics that have the same nb of gpus
-            elif output[k].size(0) == nb_gpus:
+            elif output[k].size(0) == num_gpus:
                 reduced = torch.mean(output[k])
                 output[k] = reduced
         return output

@@ -33,7 +33,7 @@ def test_multi_gpu_model_ddp2(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=True,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=2,
@@ -56,7 +56,7 @@ def test_multi_gpu_model_ddp(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=[0, 1],
@@ -109,7 +109,7 @@ def test_cpu_slurm_save_load(tmpdir):
     version = logger.version
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
@@ -143,7 +143,7 @@ def test_cpu_slurm_save_load(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False, version=version)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
@@ -177,7 +177,7 @@ def test_multi_gpu_none_backend(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
         gpus='-1'
@@ -199,7 +199,7 @@ def test_multi_gpu_model_dp(tmpdir):
         default_save_path=tmpdir,
         show_progress_bar=False,
         distributed_backend='dp',
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
         gpus='-1'
@@ -227,7 +227,7 @@ def test_ddp_sampler_error(tmpdir):
     trainer = Trainer(
         logger=logger,
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
         use_amp=True

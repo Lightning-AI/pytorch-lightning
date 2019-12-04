@@ -34,13 +34,13 @@ Minimal example
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-        def training_step(self, batch, batch_nb):
+        def training_step(self, batch, batch_idx):
             # REQUIRED
             x, y = batch
             y_hat = self.forward(x)
             return {'loss': F.cross_entropy(y_hat, y)}
 
-        def validation_step(self, batch, batch_nb):
+        def validation_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
             y_hat = self.forward(x)
@@ -51,7 +51,7 @@ Minimal example
             avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
             return {'avg_val_loss': avg_loss}
 
-        def test_step(self, batch, batch_nb):
+        def test_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
             y_hat = self.forward(x)
