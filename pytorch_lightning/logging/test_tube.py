@@ -76,10 +76,10 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.argparse(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_num=None):
+    def log_metrics(self, metrics, step_idx=None):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        self.experiment.log(metrics, global_step=step_num)
+        self.experiment.log(metrics, global_step=step_idx)
 
     @rank_zero_only
     def save(self):

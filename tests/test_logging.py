@@ -1,29 +1,22 @@
 import os
 import pickle
 
-import numpy as np
-import torch
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.testing import LightningTestModel
-from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
 import tests.utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.testing import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):
-    """
-    verify that basic functionality of test tube logger works
-    """
+    """Verify that basic functionality of test tube logger works."""
     tutils.reset_seed()
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = tmpdir
-
-    logger = tutils.get_test_tube_logger(save_dir, False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -35,22 +28,18 @@ def test_testtube_logger(tmpdir):
 
 
 def test_testtube_pickle(tmpdir):
-    """
-    Verify that pickling a trainer containing a test tube logger works
-    """
+    """Verify that pickling a trainer containing a test tube logger works."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-
-    save_dir = tmpdir
 
     logger = tutils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(hparams)
     logger.save()
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -62,9 +51,7 @@ def test_testtube_pickle(tmpdir):
 
 
 def test_mlflow_logger(tmpdir):
-    """
-    verify that basic functionality of mlflow logger works
-    """
+    """Verify that basic functionality of mlflow logger works."""
     tutils.reset_seed()
 
     try:
@@ -80,7 +67,7 @@ def test_mlflow_logger(tmpdir):
     logger = MLFlowLogger("test", f"file://{mlflow_dir}")
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -93,9 +80,7 @@ def test_mlflow_logger(tmpdir):
 
 
 def test_mlflow_pickle(tmpdir):
-    """
-    verify that pickling trainer with mlflow logger works
-    """
+    """Verify that pickling trainer with mlflow logger works."""
     tutils.reset_seed()
 
     try:
@@ -111,7 +96,7 @@ def test_mlflow_pickle(tmpdir):
     logger = MLFlowLogger("test", f"file://{mlflow_dir}")
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger
     )
 
@@ -122,9 +107,7 @@ def test_mlflow_pickle(tmpdir):
 
 
 def test_comet_logger(tmpdir):
-    """
-    verify that basic functionality of Comet.ml logger works
-    """
+    """Verify that basic functionality of Comet.ml logger works."""
     tutils.reset_seed()
 
     try:
@@ -145,7 +128,7 @@ def test_comet_logger(tmpdir):
     )
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -158,9 +141,7 @@ def test_comet_logger(tmpdir):
 
 
 def test_comet_pickle(tmpdir):
-    """
-    verify that pickling trainer with comet logger works
-    """
+    """Verify that pickling trainer with comet logger works."""
     tutils.reset_seed()
 
     try:
@@ -181,7 +162,7 @@ def test_comet_pickle(tmpdir):
     )
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger
     )
 
@@ -204,7 +185,7 @@ def test_custom_logger(tmpdir):
             self.hparams_logged = params
 
         @rank_zero_only
-        def log_metrics(self, metrics, step_num):
+        def log_metrics(self, metrics, step_idx):
             self.metrics_logged = metrics
 
         @rank_zero_only
@@ -225,7 +206,7 @@ def test_custom_logger(tmpdir):
     logger = CustomLogger()
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         train_percent_check=0.01,
         logger=logger,
         default_save_path=tmpdir

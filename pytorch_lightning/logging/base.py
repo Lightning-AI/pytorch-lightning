@@ -21,12 +21,11 @@ class LightningLoggerBase(object):
     def __init__(self):
         self._rank = 0
 
-    def log_metrics(self, metrics, step_num):
-        """Record metrics
+    def log_metrics(self, metrics, step_idx):
+        """Record metrics.
 
-        :param metric: Dictionary with metric names as keys and measured
-        quanties as values
-        :param step_num: Step number at which the metrics should be recorded
+        :param float metric: Dictionary with metric names as keys and measured quanties as values
+        :param int|None step_idx: Step number at which the metrics should be recorded
         """
         raise NotImplementedError()
 
