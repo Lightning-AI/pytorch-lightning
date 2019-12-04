@@ -16,7 +16,7 @@ from pytorch_lightning.testing import (
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.trainer import trainer_io
-from pytorch_lightning.trainer.logging_mixin import TrainerLoggingMixin
+from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 
 
 def test_no_val_module(tmpdir):
