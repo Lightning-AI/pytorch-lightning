@@ -90,12 +90,12 @@ class GAN(pl.LightningModule):
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
-    def training_step(self, batch, batch_nb, optimizer_i):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         imgs, _ = batch
         self.last_imgs = imgs
 
         # train generator
-        if optimizer_i == 0:
+        if optimizer_idx == 0:
             # sample noise
             z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
 
@@ -125,7 +125,7 @@ class GAN(pl.LightningModule):
             return output
 
         # train discriminator
-        if optimizer_i == 1:
+        if optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
 
             # how well can it label as real?

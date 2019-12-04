@@ -34,7 +34,7 @@ def test_no_val_module(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
@@ -72,7 +72,7 @@ def test_no_val_end_module(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        max_num_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
@@ -114,40 +114,40 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
-        if batch_nb < 12:
-            if epoch_nb == 0:
+        if batch_idx < 12:
+            if epoch_idx == 0:
                 # reset counter when starting epoch
-                if batch_nb == 0:
-                    self.prev_called_batch_nb = 0
+                if batch_idx == 0:
+                    self.prev_called_batch_idx = 0
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 1
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 1
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 1
 
-            elif 1 <= epoch_nb <= 2:
+            elif 1 <= epoch_idx <= 2:
                 # reset counter when starting epoch
-                if batch_nb == 1:
-                    self.prev_called_batch_nb = 1
+                if batch_idx == 1:
+                    self.prev_called_batch_idx = 1
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 2
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 2
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 2
 
             else:
-                if batch_nb == 3:
-                    self.prev_called_batch_nb = 3
+                if batch_idx == 3:
+                    self.prev_called_batch_idx = 3
 
                     # use this opportunity to test once
                     assert self.trainer.accumulate_grad_batches == 4
 
-                assert batch_nb == self.prev_called_batch_nb
-                self.prev_called_batch_nb += 3
+                assert batch_idx == self.prev_called_batch_idx
+                self.prev_called_batch_idx += 3
 
         optimizer.step()
 
@@ -161,12 +161,12 @@ def test_gradient_accumulation_scheduling(tmpdir):
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_nb_epochs=4,
+                      max_num_epochs=4,
                       default_save_path=tmpdir)
 
     # for the test
     trainer.optimizer_step = optimizer_step
-    model.prev_called_batch_nb = 0
+    model.prev_called_batch_idx = 0
 
     trainer.fit(model)
 
@@ -198,10 +198,10 @@ def test_dp_output_reduce():
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
-    assert mixin.reduce_distributed_output(out, nb_gpus=1) is out
+    assert mixin.reduce_distributed_output(out, num_gpus=1) is out
 
     # average when we have multiples
-    assert mixin.reduce_distributed_output(out, nb_gpus=2) == out.mean()
+    assert mixin.reduce_distributed_output(out, num_gpus=2) == out.mean()
 
     # when we have a dict of vals
     out = {
@@ -210,7 +210,7 @@ def test_dp_output_reduce():
             'c': out
         }
     }
-    reduced = mixin.reduce_distributed_output(out, nb_gpus=3)
+    reduced = mixin.reduce_distributed_output(out, num_gpus=3)
     assert reduced['a'] == out['a']
     assert reduced['b']['c'] == out['b']['c']
 
@@ -354,7 +354,7 @@ def test_multiple_val_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
     )
@@ -391,7 +391,7 @@ def test_multiple_test_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_nb_epochs=1,
+        max_num_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )

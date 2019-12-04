@@ -16,7 +16,7 @@ class BERT(pl.LightningModule):
         elif model_name == 'my_cool_version':
             self.net = MyCoolVersion()
             
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         if self.task == 'standard_bert':
             # do standard bert training with self.net...
             # return loss
@@ -35,7 +35,7 @@ class CoolerNotBERT(pl.LightningModule):
     def __init__(self):
         self.net = ...
         
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         # do some other cool task
         # return loss   
 ```   

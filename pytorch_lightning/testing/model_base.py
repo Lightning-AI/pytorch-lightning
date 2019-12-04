@@ -121,7 +121,7 @@ class LightningTestModelBase(LightningModule):
             loss_val = loss_val.unsqueeze(0)
 
         # alternate possible outputs to test
-        if self.trainer.batch_nb % 1 == 0:
+        if self.trainer.batch_idx % 1 == 0:
             output = OrderedDict({
                 'loss': loss_val,
                 'progress_bar': {'some_val': loss_val * loss_val},
@@ -129,7 +129,7 @@ class LightningTestModelBase(LightningModule):
             })
 
             return output
-        if self.trainer.batch_nb % 2 == 0:
+        if self.trainer.batch_idx % 2 == 0:
             return loss_val
 
     # ---------------------
