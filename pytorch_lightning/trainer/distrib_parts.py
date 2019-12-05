@@ -167,7 +167,7 @@ Make sure you're on a GPU machine. You can set as many GPUs as you want.
 Custom device selection
 -----------------------
 
-Thee number of GPUs can also be selected with a list of indices or a string containing a comma separated list of GPU ids.
+The number of GPUs can also be selected with a list of indices or a string containing a comma separated list of GPU ids.
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
 Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 
