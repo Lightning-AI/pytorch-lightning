@@ -70,8 +70,8 @@ before_script:
 script:
   # integration
   - tox --sitepackages
-  - pip install --editable .
-  #- python setup.py install --dry-run --user
+  #- pip install --editable .
+  - python setup.py install --dry-run --user
 
 after_success:
   - coverage report
