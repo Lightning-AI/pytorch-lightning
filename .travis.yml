@@ -72,9 +72,12 @@ script:
   - tox --sitepackages
 
   #- python setup.py install --dry-run --user
-  - virtualenv vEnv & source vEnv/bin/activate
-  - pip install --editable .
-  - cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+  - virtualenv vEnv ;
+    source vEnv/bin/activate
+  - pip install --editable . ;
+    cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+  - deactivate ;
+    rm -rf vEnv
 
 after_success:
   - coverage report
