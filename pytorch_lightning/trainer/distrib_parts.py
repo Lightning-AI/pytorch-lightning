@@ -562,7 +562,7 @@ def parse_gpu_ids(gpus):
     gpus = sanitize_gpu_ids(gpus)
 
     if not gpus:
-        raise MisconfigurationException("GPUs requested but non are available.")
+        raise MisconfigurationException("GPUs requested but none are available.")
     return gpus
 
 
