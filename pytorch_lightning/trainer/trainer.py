@@ -72,8 +72,8 @@ class Trainer(TrainerIOMixin,
             accumulate_grad_batches=1,
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            max_num_epochs=1000,
-            min_num_epochs=1,
+            max_epochs=1000,
+            min_epochs=1,
             train_percent_check=1.0,
             val_percent_check=1.0,
             test_percent_check=1.0,
@@ -111,8 +111,8 @@ class Trainer(TrainerIOMixin,
         :param int check_val_every_n_epoch: check val every n train epochs
         :param bool fast_dev_run: runs full iteration over everything to find bugs
         :param int accumulate_grad_batches: Accumulates grads every k batches
-        :param int max_num_epochs:
-        :param int min_num_epochs:
+        :param int max_epochs:
+        :param int min_epochs:
         :param int train_percent_check: How much of train set to check
         :param int val_percent_check: How much of val set to check
         :param int test_percent_check: How much of test set to check
@@ -158,17 +158,17 @@ class Trainer(TrainerIOMixin,
         self.process_position = process_position
         self.weights_summary = weights_summary
         if max_nb_epochs is not None:  # Backward compatibility
-            warnings.warn("`max_nb_epochs` has renamed to `max_num_epochs` since v0.5.0"
+            warnings.warn("`max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
-            if not max_num_epochs:  # in case you did not set the proper value
-                max_num_epochs = max_nb_epochs
-        self.max_num_epochs = max_num_epochs
+            if not max_epochs:  # in case you did not set the proper value
+                max_epochs = max_nb_epochs
+        self.max_epochs = max_epochs
         if min_nb_epochs is not None:  # Backward compatibility
-            warnings.warn("`min_nb_epochs` has renamed to `min_num_epochs` since v0.5.0"
+            warnings.warn("`min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
-            if not min_num_epochs:  # in case you did not set the proper value
-                min_num_epochs = min_nb_epochs
-        self.min_num_epochs = min_num_epochs
+            if not min_epochs:  # in case you did not set the proper value
+                min_epochs = min_nb_epochs
+        self.min_epochs = min_epochs
         if nb_sanity_val_steps is not None:  # Backward compatibility
             warnings.warn("`nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
@@ -183,7 +183,7 @@ class Trainer(TrainerIOMixin,
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
             self.num_sanity_val_steps = 1
-            self.max_num_epochs = 1
+            self.max_epochs = 1
             m = '''
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch

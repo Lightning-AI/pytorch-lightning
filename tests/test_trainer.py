@@ -34,7 +34,7 @@ def test_no_val_module(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
@@ -72,7 +72,7 @@ def test_no_val_end_module(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
@@ -114,10 +114,10 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
-            if epoch_idx == 0:
+            if epoch == 0:
                 # reset counter when starting epoch
                 if batch_idx == 0:
                     self.prev_called_batch_idx = 0
@@ -128,7 +128,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
                 assert batch_idx == self.prev_called_batch_idx
                 self.prev_called_batch_idx += 1
 
-            elif 1 <= epoch_idx <= 2:
+            elif 1 <= epoch <= 2:
                 # reset counter when starting epoch
                 if batch_idx == 1:
                     self.prev_called_batch_idx = 1
@@ -161,7 +161,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_num_epochs=4,
+                      max_epochs=4,
                       default_save_path=tmpdir)
 
     # for the test
@@ -354,7 +354,7 @@ def test_multiple_val_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
     )
@@ -391,7 +391,7 @@ def test_multiple_test_dataloader(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )
