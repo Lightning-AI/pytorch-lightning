@@ -704,7 +704,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         :param second_order_closure: closure for second order methods
         :return:
 
-        Calls `.step()` and `.zero_grad` for each optimizer.
+        Calls `.step()` for each optimizer.
         You can override this method to adjust how you do the optimizer step for each optimizer
 
         Called once per optimizer
@@ -714,7 +714,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             # DEFAULT
             def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
                 optimizer.step()
-                optimizer.zero_grad()
 
             # Alternating schedule for optimizer steps (ie: GANs)
             def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
@@ -722,13 +721,11 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
                 if optimizer_idx == 0:
                     if batch_idx % 2 == 0 :
                         optimizer.step()
-                        optimizer.zero_grad()
 
                 # update discriminator opt every 4 steps
                 if optimizer_idx == 1:
                     if batch_idx % 4 == 0 :
                         optimizer.step()
-                        optimizer.zero_grad()
 
                 # ...
                 # add as many optimizers as you want
@@ -748,7 +745,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
                 # update params
                 optimizer.step()
-                optimizer.zero_grad()
 
         """
         if isinstance(optimizer, torch.optim.LBFGS):
@@ -756,8 +752,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         else:
             optimizer.step()
 
-        # clear gradients
-        optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch, split_size):
         """

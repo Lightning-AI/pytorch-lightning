@@ -493,6 +493,13 @@ class TrainerTrainLoopMixin(ABC):
                     model = self.get_model()
                     model.optimizer_step(self.current_epoch, batch_idx,
                                          optimizer, opt_idx, optimizer_closure)
+                    
+                    # clear all gradients
+                    for optimizer_ in self.optimizers:
+                        optimizer_.zero_grad()
+                        
+                    # or just 
+                    # self.zero_grad()
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value)
