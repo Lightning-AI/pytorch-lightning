@@ -603,7 +603,8 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             default_port = int(default_port) + 15000
 
         except Exception as e:
-            default_port = 12910
+            import random
+            default_port = random.randint(15000,65535)
 
         # if user gave a port number, use that one instead
         try:
