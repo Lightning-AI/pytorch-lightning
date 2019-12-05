@@ -351,9 +351,14 @@ test_parse_gpu_ids_data = [
     pytest.param(None, None),
     pytest.param(0, None),
     pytest.param(1, [0]),
-    pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
-    pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, [0, 1, 2]),
+    pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
+    pytest.param([0], [0]),
+    pytest.param([1, 3], [1, 3]),
+    pytest.param('0', [0]),
+    pytest.param('3', [3]),
+    pytest.param('1, 3', [1, 3]),
+    pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
 ]
 
 
