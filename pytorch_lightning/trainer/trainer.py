@@ -491,8 +491,8 @@ class Trainer(TrainerIOMixin,
         ref_model.on_sanity_check_start()
         if self.get_val_dataloaders() is not None and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
-            pbar = tqdm.tqdm(desc='Validation sanity check', 
-                             total=self.num_sanity_val_steps*len(self.get_val_dataloaders()),
+            pbar = tqdm.tqdm(desc='Validation sanity check',
+                             total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
             self.main_progress_bar = pbar
