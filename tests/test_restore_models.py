@@ -247,7 +247,7 @@ def test_dp_resume(tmpdir):
 
     # new model
     model = LightningTestModel(hparams)
-    model.on_sanity_check_start = assert_good_acc
+    model.on_train_start = assert_good_acc
 
     # fit new model which should load hpc weights
     new_trainer.fit(model)
@@ -311,7 +311,7 @@ def test_cpu_restore_training(tmpdir):
         for dataloader in trainer.get_val_dataloaders():
             tutils.run_prediction(dataloader, trainer.model)
 
-    model.on_sanity_check_start = assert_good_acc
+    model.on_train_start = assert_good_acc
 
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
