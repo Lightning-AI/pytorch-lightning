@@ -331,6 +331,8 @@ class TrainerTrainLoopMixin(ABC):
 
         self.main_progress_bar.close()
 
+        model.on_train_end()
+
         if self.logger is not None:
             self.logger.finalize("success")
 

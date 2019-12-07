@@ -28,8 +28,24 @@ class ModelHooks(torch.nn.Module):
     def on_sanity_check_start(self):
         """
         Called before starting evaluate
+        .. warning:: will be deprecated.
         :return:
         """
+        pass
+
+    def on_train_start(self):
+        """Called at the beginning of training before sanity check
+        :return:
+        """
+        # do something at the start of training
+        pass
+
+    def on_train_end(self):
+        """
+        Called at the end of training before logger experiment is closed
+        :return:
+        """
+        # do something at the end of training
         pass
 
     def on_batch_start(self, batch):
