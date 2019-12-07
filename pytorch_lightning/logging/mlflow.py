@@ -45,7 +45,6 @@ class MLFlowLogger(LightningLoggerBase):
         self._run_id = None
         self.tags = tags
 
-
     @property
     def experiment(self):
         return self._mlflow_client
@@ -56,7 +55,7 @@ class MLFlowLogger(LightningLoggerBase):
             return self._run_id
 
         expt = self._mlflow_client.get_experiment_by_name(self.experiment_name)
-        
+
         if expt:
             self._expt_id = expt.experiment_id
         else:
