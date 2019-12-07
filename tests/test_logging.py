@@ -64,7 +64,7 @@ def test_mlflow_logger(tmpdir):
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
 
-    logger = MLFlowLogger("test", f"file://{mlflow_dir}")
+    logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -93,7 +93,7 @@ def test_mlflow_pickle(tmpdir):
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
 
-    logger = MLFlowLogger("test", f"file://{mlflow_dir}")
+    logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
 
     trainer_options = dict(
         max_epochs=1,
