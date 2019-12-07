@@ -752,7 +752,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         else:
             optimizer.step()
 
-
     def tbptt_split_batch(self, batch, split_size):
         """
         Return list of batch splits. Each split will be passed to forward_step to enable truncated
