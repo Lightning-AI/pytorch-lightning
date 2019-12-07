@@ -63,6 +63,7 @@ def test_mlflow_logger(tmpdir):
     model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
+    os.makedirs(mlflow_dir, exist_ok=True)
 
     logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
 
@@ -88,13 +89,12 @@ def test_mlflow_pickle(tmpdir):
     except ModuleNotFoundError:
         return
 
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
+    # hparams = tutils.get_hparams()
+    # model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
-
+    os.makedirs(mlflow_dir, exist_ok=True)
     logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
-
     trainer_options = dict(
         max_epochs=1,
         logger=logger
