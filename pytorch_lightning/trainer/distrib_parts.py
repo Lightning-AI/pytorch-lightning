@@ -164,6 +164,38 @@ Make sure you're on a GPU machine. You can set as many GPUs as you want.
     # RECOMMENDED use DistributedDataParallel
     trainer = Trainer(gpus=8, distributed_backend='ddp')
 
+Custom device selection
+-----------------------
+
+The number of GPUs can also be selected with a list of indices or a string containing
+a comma separated list of GPU ids.
+The table below lists examples of possible input formats and how they are interpreted by Lightning.
+Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
+
++---------------+-----------+---------------------+---------------------------------+
+| `gpus`        | Type      | Parsed              | Meaning                         |
++===============+===========+=====================+=================================+
+| None          | NoneType  | None                | CPU                             |
++---------------+-----------+---------------------+---------------------------------+
+| 0             | int       | None                | CPU                             |
++---------------+-----------+---------------------+---------------------------------+
+| 3             | int       | [0, 1, 2]           | first 3 GPUs                    |
++---------------+-----------+---------------------+---------------------------------+
+| -1            | int       | [0, 1, 2, ...]      | all available GPUs              |
++---------------+-----------+---------------------+---------------------------------+
+| [0]           | list      | [0]                 | GPU 0                           |
++---------------+-----------+---------------------+---------------------------------+
+| [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
++---------------+-----------+---------------------+---------------------------------+
+| "0"           | str       | [0]                 | GPU 0                           |
++---------------+-----------+---------------------+---------------------------------+
+| "3"           | str       | [3]                 | GPU 3                           |
++---------------+-----------+---------------------+---------------------------------+
+| "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
++---------------+-----------+---------------------+---------------------------------+
+| "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
++---------------+-----------+---------------------+---------------------------------+
+
 
 Multi-node
 ----------
@@ -531,7 +563,7 @@ def parse_gpu_ids(gpus):
     gpus = sanitize_gpu_ids(gpus)
 
     if not gpus:
-        raise MisconfigurationException("GPUs requested but non are available.")
+        raise MisconfigurationException("GPUs requested but none are available.")
     return gpus
 
 

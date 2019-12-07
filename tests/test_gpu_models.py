@@ -351,9 +351,14 @@ test_parse_gpu_ids_data = [
     pytest.param(None, None),
     pytest.param(0, None),
     pytest.param(1, [0]),
-    pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
-    pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     pytest.param(3, [0, 1, 2]),
+    pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
+    pytest.param([0], [0]),
+    pytest.param([1, 3], [1, 3]),
+    pytest.param('0', [0]),
+    pytest.param('3', [3]),
+    pytest.param('1, 3', [1, 3]),
+    pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
 ]
 
 
@@ -361,6 +366,33 @@ test_parse_gpu_ids_data = [
 @pytest.mark.parametrize(['gpus', 'expected_gpu_ids'], test_parse_gpu_ids_data)
 def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert parse_gpu_ids(gpus) == expected_gpu_ids
+
+
+test_parse_gpu_invalid_inputs_data = [
+    pytest.param(0.1),
+    pytest.param(-2),
+    pytest.param(False),
+    pytest.param([]),
+    pytest.param([-1]),
+    pytest.param([None]),
+    pytest.param(['0']),
+    pytest.param((0, 1)),
+]
+
+
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(['gpus'], test_parse_gpu_invalid_inputs_data)
+def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
+    with pytest.raises(MisconfigurationException):
+        parse_gpu_ids(gpus)
+
+
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize("gpus", [''])
+def test_parse_gpu_fail_on_empty_string(mocked_device_count, gpus):
+    # This currently results in a ValueError instead of MisconfigurationException
+    with pytest.raises(ValueError):
+        parse_gpu_ids(gpus)
 
 
 @pytest.mark.gpus_param_tests
