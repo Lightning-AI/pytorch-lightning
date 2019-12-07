@@ -63,16 +63,13 @@ def test_mlflow_logger(tmpdir):
     model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
-    os.makedirs(mlflow_dir, exist_ok=True)
-
-    logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
+    logger = MLFlowLogger("test", tracking_uri=f"file:{os.sep * 2}{mlflow_dir}")
 
     trainer_options = dict(
         max_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
-
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
@@ -93,8 +90,7 @@ def test_mlflow_pickle(tmpdir):
     # model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, "mlruns")
-    os.makedirs(mlflow_dir, exist_ok=True)
-    logger = MLFlowLogger("test", tracking_uri=mlflow_dir)
+    logger = MLFlowLogger("test", tracking_uri=f"file:{os.sep * 2}{mlflow_dir}")
     trainer_options = dict(
         max_epochs=1,
         logger=logger
