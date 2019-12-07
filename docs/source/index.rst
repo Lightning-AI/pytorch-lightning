@@ -6,15 +6,29 @@
 Welcome to PyTorch-Lightning!
 =============================
 
-Table of content
-----------------
+.. toctree::
+   :maxdepth: 4
+   :name: start
+   :caption: Quick Start
+
+   new-project
+   examples
+
+.. toctree::
+   :maxdepth: 4
+   :name: docs
+   :caption: Docs
+
+   documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: community
+   :caption: Community
 
-   intro
-   pytorch_lightning
-   pl_examples
+   CODE_OF_CONDUCT.md
+   CONTRIBUTING.md
+   BECOMING_A_CORE_CONTRIBUTOR.md
 
 
 Indices and tables
