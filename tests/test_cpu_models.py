@@ -46,7 +46,7 @@ def test_lbfgs_cpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -64,7 +64,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         print_nan_grads=True,
@@ -97,7 +97,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -135,7 +135,7 @@ def test_running_test_without_val(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -209,7 +209,7 @@ def test_simple_cpu(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )
@@ -230,7 +230,7 @@ def test_cpu_model(tmpdir):
         default_save_path=tmpdir,
         show_progress_bar=False,
         logger=tutils.get_test_tube_logger(tmpdir),
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
@@ -253,7 +253,7 @@ def test_all_features_cpu_model(tmpdir):
         show_progress_bar=False,
         logger=tutils.get_test_tube_logger(tmpdir),
         accumulate_grad_batches=2,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
@@ -314,7 +314,7 @@ def test_tbptt_cpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_num_epochs=1,
+        max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
         weights_summary=None,
@@ -348,7 +348,7 @@ def test_single_gpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
         gpus=1

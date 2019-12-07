@@ -694,10 +694,10 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         raise NotImplementedError
 
-    def optimizer_step(self, epoch_idx, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         """Do something instead of the standard optimizer behavior
 
-        :param int epoch_idx:
+        :param int epoch:
         :param int batch_idx:
         :param optimizer:
         :param optimizer_idx:

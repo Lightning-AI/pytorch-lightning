@@ -28,7 +28,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -73,7 +73,7 @@ def test_running_test_pretrained_model(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_num_epochs=4,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -106,7 +106,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=True,
@@ -153,7 +153,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -191,7 +191,7 @@ def test_dp_resume(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_num_epochs=2,
+        max_epochs=2,
         gpus=2,
         distributed_backend='dp',
     )
@@ -230,7 +230,7 @@ def test_dp_resume(tmpdir):
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
     trainer_options['train_percent_check'] = 0.2
     trainer_options['val_percent_check'] = 0.2
-    trainer_options['max_num_epochs'] = 1
+    trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
     # set the epoch start hook so we can predict before the model does the full training
@@ -269,7 +269,7 @@ def test_cpu_restore_training(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
 
     trainer_options = dict(
-        max_num_epochs=2,
+        max_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
@@ -290,7 +290,7 @@ def test_cpu_restore_training(tmpdir):
     # we want to see if the weights come back correctly
     new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
     trainer_options = dict(
-        max_num_epochs=2,
+        max_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
@@ -329,7 +329,7 @@ def test_model_saving_loading(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )

@@ -15,8 +15,10 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
     parser.opt_list('--accumulate_grad_batches', default=1, type=int, tunable=False,
                     help='accumulates gradients k times before applying update.'
                          ' Simulates huge batch size')
-    parser.add_argument('--max_num_epochs', default=200, type=int, help='cap epochs')
-    parser.add_argument('--min_num_epochs', default=2, type=int, help='min epochs')
+    parser.add_argument('--max_epochs', default=200, type=int,
+                        help='maximum number of epochs')
+    parser.add_argument('--min_epochs', default=2, type=int,
+                        help='minimum number of epochs')
     parser.add_argument('--train_percent_check', default=1.0, type=float,
                         help='how much of training set to check')
     parser.add_argument('--val_percent_check', default=1.0, type=float,

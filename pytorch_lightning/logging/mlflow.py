@@ -68,7 +68,7 @@ class MLFlowLogger(LightningLoggerBase):
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_idx=None):
+    def log_metrics(self, metrics, step=None):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
@@ -76,7 +76,7 @@ class MLFlowLogger(LightningLoggerBase):
                     f"Discarding metric with string value {k}={v}"
                 )
                 continue
-            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step_idx)
+            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     def save(self):
         pass

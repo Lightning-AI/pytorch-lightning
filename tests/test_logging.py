@@ -16,7 +16,7 @@ def test_testtube_logger(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -39,7 +39,7 @@ def test_testtube_pickle(tmpdir):
     logger.save()
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -67,7 +67,7 @@ def test_mlflow_logger(tmpdir):
     logger = MLFlowLogger("test", f"file://{mlflow_dir}")
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -96,7 +96,7 @@ def test_mlflow_pickle(tmpdir):
     logger = MLFlowLogger("test", f"file://{mlflow_dir}")
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         logger=logger
     )
 
@@ -134,7 +134,7 @@ def test_comet_logger(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.01,
         logger=logger
     )
@@ -174,7 +174,7 @@ def test_comet_pickle(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         logger=logger
     )
 
@@ -197,7 +197,7 @@ def test_custom_logger(tmpdir):
             self.hparams_logged = params
 
         @rank_zero_only
-        def log_metrics(self, metrics, step_idx):
+        def log_metrics(self, metrics, step):
             self.metrics_logged = metrics
 
         @rank_zero_only
@@ -218,7 +218,7 @@ def test_custom_logger(tmpdir):
     logger = CustomLogger()
 
     trainer_options = dict(
-        max_num_epochs=1,
+        max_epochs=1,
         train_percent_check=0.01,
         logger=logger,
         default_save_path=tmpdir
