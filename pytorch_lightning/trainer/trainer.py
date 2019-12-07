@@ -489,6 +489,7 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
+        ref_model.on_train_start()
         if self.get_val_dataloaders() is not None and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm.tqdm(desc='Validation sanity check',
