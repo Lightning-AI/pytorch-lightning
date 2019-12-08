@@ -35,7 +35,7 @@ class TensorboardLogger(LightningLoggerBase):
         super().__init__()
         self.save_dir = save_dir
         self._name = name
-        self._version = version if version is not None else None
+        self._version = version
 
         self._experiment = None
         self.kwargs = kwargs
@@ -59,9 +59,9 @@ class TensorboardLogger(LightningLoggerBase):
     def log_hyperparams(self, params):
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
-                f"Hyperparameter logging is not available for Torch version {torch.__version__}. "
-                "Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable "
-                "hyperparameter logging"
+                f"Hyperparameter logging is not available for Torch version {torch.__version__}."
+                " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
+                " hyperparameter logging."
             )
             return
         self.experiment.add_hparams(hparam_dict=vars(params))
@@ -75,7 +75,11 @@ class TensorboardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self):
-        self.experiment.flush()
+        try:
+            self.experiment.flush()
+        except AttributeError:
+            # you are using PT version (<v1.2) which does not have implemented flush
+            pass
 
     @rank_zero_only
     def finalize(self, status):
