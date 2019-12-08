@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-## Typos and docs fixes
+## 📚 Documentation
 
 For typos and doc fixes, please go ahead and:
 
