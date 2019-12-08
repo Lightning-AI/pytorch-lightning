@@ -59,7 +59,7 @@ before_test:
 
 # to run your custom scripts instead of automatic tests
 test_script:
-  - py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
+  - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
   #- python setup.py sdist
   #- twine check dist/*
 

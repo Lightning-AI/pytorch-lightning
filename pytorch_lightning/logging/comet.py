@@ -67,8 +67,8 @@ logger = getLogger(__name__)
 class CometLogger(LightningLoggerBase):
     def __init__(self, api_key=None, save_dir=None, workspace=None,
                  rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
-        """
-        Initialize a Comet.ml logger. Requires either an API Key (online mode) or a local directory path (offline mode)
+        """Initialize a Comet.ml logger.
+        Requires either an API Key (online mode) or a local directory path (offline mode)
 
         :param str api_key: Required in online mode. API key, found on Comet.ml
         :param str save_dir: Required in offline mode. The path for the directory to save local comet logs
