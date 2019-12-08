@@ -157,23 +157,30 @@ class Trainer(TrainerIOMixin,
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
         self.process_position = process_position
         self.weights_summary = weights_summary
-        if max_nb_epochs is not None:  # Backward compatibility
+
+        # Backward compatibility
+        if max_nb_epochs is not None:
             warnings.warn("`max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not max_epochs:  # in case you did not set the proper value
                 max_epochs = max_nb_epochs
         self.max_epochs = max_epochs
-        if min_nb_epochs is not None:  # Backward compatibility
+
+        # Backward compatibility
+        if min_nb_epochs is not None:
             warnings.warn("`min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not min_epochs:  # in case you did not set the proper value
                 min_epochs = min_nb_epochs
         self.min_epochs = min_epochs
-        if nb_sanity_val_steps is not None:  # Backward compatibility
+
+        # Backward compatibility
+        if nb_sanity_val_steps is not None:
             warnings.warn("`nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not num_sanity_val_steps:  # in case you did not set the proper value
                 num_sanity_val_steps = nb_sanity_val_steps
+
         self.num_sanity_val_steps = num_sanity_val_steps
         self.print_nan_grads = print_nan_grads
         self.truncated_bptt_steps = truncated_bptt_steps
