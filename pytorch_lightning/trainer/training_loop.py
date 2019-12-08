@@ -211,8 +211,7 @@ class TrainerTrainLoopMixin(ABC):
     @property
     def max_nb_epochs(self):
         """
-        .. warning:: `max_nb_epochs` is deprecated and will be removed in
-            v0.8.0, use `max_epochs` instead.
+        .. warning:: `max_nb_epochs` is deprecated and will be removed in v0.8.0, use `max_epochs` instead.
         """
         warnings.warn("`max_nb_epochs` is deprecated and will be removed in "
                       "v0.8.0, use `max_epochs` instead.", DeprecationWarning)
@@ -221,8 +220,7 @@ class TrainerTrainLoopMixin(ABC):
     @property
     def min_nb_epochs(self):
         """
-        .. warning:: `min_nb_epochs` is deprecated and will be removed in
-            v0.8.0, use `min_epochs` instead.
+        .. warning:: `min_nb_epochs` is deprecated and will be removed in v0.8.0, use `min_epochs` instead.
         """
         warnings.warn("`min_nb_epochs` is deprecated and will be removed in "
                       "v0.8.0, use `min_epochs` instead.", DeprecationWarning)
