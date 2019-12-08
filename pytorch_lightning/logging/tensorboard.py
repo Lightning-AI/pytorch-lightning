@@ -64,7 +64,7 @@ class TensorboardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
             return
-        self.experiment.add_hparams(hparam_dict=vars(params))
+        self.experiment.add_hparams(hparam_dict=dict(params))
 
     @rank_zero_only
     def log_metrics(self, metrics, step_idx=None):

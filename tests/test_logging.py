@@ -169,8 +169,8 @@ def test_comet_pickle(tmpdir, monkeypatch):
     except ModuleNotFoundError:
         return
 
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
+    # hparams = tutils.get_hparams()
+    # model = LightningTestModel(hparams)
 
     comet_dir = os.path.join(tmpdir, "cometruns")
 
@@ -213,10 +213,8 @@ def test_tensorboard_logger(tmpdir):
 def test_tensorboard_pickle(tmpdir):
     """Verify that pickling trainer with Tensorboard logger works."""
 
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
-
-    comet_dir = os.path.join(tmpdir, "cometruns")
+    # hparams = tutils.get_hparams()
+    # model = LightningTestModel(hparams)
 
     logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
 
