@@ -139,19 +139,24 @@ class Trainer(TrainerIOMixin,
 
         """
         # Transfer params
-        if nb_gpu_nodes is not None:  # Backward compatibility
+        # Backward compatibility
+        if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not num_nodes:  # in case you did not set the proper value
                 num_nodes = nb_gpu_nodes
         self.num_gpu_nodes = num_nodes
+
         self.log_gpu_memory = log_gpu_memory
-        if gradient_clip is not None:  # Backward compatibility
+
+        # Backward compatibility
+        if gradient_clip is not None:
             warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not gradient_clip_val:  # in case you did not set the proper value
                 gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
+
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
