@@ -410,7 +410,7 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-            # stop epoch if we limited num training batches
+            # stop epoch if we limited the number of training batches
             met_batch_limit = batch_idx >= self.num_training_batches
             if met_batch_limit:
                 break
