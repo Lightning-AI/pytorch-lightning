@@ -21,7 +21,7 @@ class TrainerLoggingMixin(ABC):
         self.use_ddp2 = None
         self.num_gpus = None
 
-    def log_metrics(self, metrics, grad_norm_dic):
+    def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
 
         :param metrics:
@@ -41,9 +41,10 @@ class TrainerLoggingMixin(ABC):
         # turn all tensors to scalars
         scalar_metrics = self.metrics_to_scalars(metrics)
 
+        step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step=self.global_step)
+            self.logger.log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
     def add_tqdm_metrics(self, metrics):

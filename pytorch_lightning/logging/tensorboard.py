@@ -64,14 +64,19 @@ class TensorboardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
             return
+        try:
+            # in case converting from namespace, todo: rather test if it is namespace
+            params = vars(params)
+        except TypeError:
+            pass
         self.experiment.add_hparams(hparam_dict=dict(params))
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_idx=None):
+    def log_metrics(self, metrics, step=None):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
-            self.experiment.add_scalar(k, v, step_idx)
+            self.experiment.add_scalar(k, v, step)
 
     @rank_zero_only
     def save(self):
