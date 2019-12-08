@@ -23,6 +23,7 @@ def test_testtube_logger(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         train_percent_check=0.01,
         logger=logger
@@ -46,6 +47,7 @@ def test_testtube_pickle(tmpdir):
     logger.save()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         train_percent_check=0.01,
         logger=logger
@@ -73,6 +75,7 @@ def test_mlflow_logger(tmpdir):
     logger = MLFlowLogger("test", tracking_uri=f"file:{os.sep * 2}{mlflow_dir}")
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         train_percent_check=0.01,
         logger=logger
@@ -99,6 +102,7 @@ def test_mlflow_pickle(tmpdir):
     mlflow_dir = os.path.join(tmpdir, "mlruns")
     logger = MLFlowLogger("test", tracking_uri=f"file:{os.sep * 2}{mlflow_dir}")
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         logger=logger
     )
@@ -137,6 +141,7 @@ def test_comet_logger(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         train_percent_check=0.01,
         logger=logger
@@ -177,6 +182,7 @@ def test_comet_pickle(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         max_epochs=1,
         logger=logger
     )
