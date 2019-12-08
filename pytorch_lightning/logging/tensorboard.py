@@ -8,8 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 from .base import LightningLoggerBase, rank_zero_only
 
 
-class TensorboardLogger(LightningLoggerBase):
-    r"""Log to local file system in Tensorboard format
+class TensorBoardLogger(LightningLoggerBase):
+    r"""Log to local file system in TensorBoard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     `os.path.join(save_dir, name, version)`
@@ -18,7 +18,7 @@ class TensorboardLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        logger = TensorboardLogger("tb_logs", name="my_model")
+        logger = TensorBoardLogger("tb_logs", name="my_model")
         trainer = Trainer(logger=logger)
         trainer.train(model)
 
@@ -63,6 +63,7 @@ class TensorboardLogger(LightningLoggerBase):
                 " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
                 " hyperparameter logging."
             )
+            # TODO: some alternative should be added
             return
         try:
             # in case converting from namespace, todo: rather test if it is namespace
@@ -70,7 +71,8 @@ class TensorboardLogger(LightningLoggerBase):
         except TypeError:
             pass
         if params is not None:
-            self.experiment.add_hparams(hparam_dict=dict(params))
+            # `add_hparams` requires both - hparams and metric
+            self.experiment.add_hparams(hparam_dict=dict(params), metric_dict={})
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
