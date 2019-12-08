@@ -69,7 +69,8 @@ class TensorboardLogger(LightningLoggerBase):
             params = vars(params)
         except TypeError:
             pass
-        self.experiment.add_hparams(hparam_dict=dict(params))
+        if params is not None:
+            self.experiment.add_hparams(hparam_dict=dict(params))
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
@@ -84,7 +85,7 @@ class TensorboardLogger(LightningLoggerBase):
             self.experiment.flush()
         except AttributeError:
             # you are using PT version (<v1.2) which does not have implemented flush
-            pass
+            self.experiment._get_file_writer().flush()
 
     @rank_zero_only
     def finalize(self, status):
