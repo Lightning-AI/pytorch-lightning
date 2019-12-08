@@ -258,6 +258,7 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     def train(self):
+        model = self.get_model()
         # run all epochs
         for epoch in range(self.current_epoch, self.max_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
