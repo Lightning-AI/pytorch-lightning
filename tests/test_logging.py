@@ -201,7 +201,7 @@ def test_tensorboard_logger(tmpdir):
 
     logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
 
-    trainer_options = dict(max_num_epochs=1, train_percent_check=0.01, logger=logger)
+    trainer_options = dict(max_epochs=1, train_percent_check=0.01, logger=logger)
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
@@ -220,7 +220,7 @@ def test_tensorboard_pickle(tmpdir):
 
     logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
 
-    trainer_options = dict(max_num_epochs=1, logger=logger)
+    trainer_options = dict(max_epochs=1, logger=logger)
 
     trainer = Trainer(**trainer_options)
     pkl_bytes = pickle.dumps(trainer)
