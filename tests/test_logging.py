@@ -1,9 +1,16 @@
 import os
 import pickle
 
+import pytest
+import torch
+
 import tests.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.logging import (
+    LightningLoggerBase,
+    rank_zero_only,
+    TensorboardLogger,
+)
 from pytorch_lightning.testing import LightningTestModel
 
 
@@ -178,6 +185,89 @@ def test_comet_pickle(tmpdir, monkeypatch):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
+
+
+def test_tensorboard_logger(tmpdir):
+    """Verify that basic functionality of Tensorboard logger works."""
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
+
+    trainer_options = dict(max_num_epochs=1, train_percent_check=0.01, logger=logger)
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    print("result finished")
+    assert result == 1, "Training failed"
+
+
+def test_tensorboard_pickle(tmpdir):
+    """Verify that pickling trainer with Tensorboard logger works."""
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    comet_dir = os.path.join(tmpdir, "cometruns")
+
+    logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
+
+    trainer_options = dict(max_num_epochs=1, logger=logger)
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
+
+
+def test_tensorboard_automatic_versioning(tmpdir):
+    """Verify that automatic versioning works"""
+
+    root_dir = tmpdir.mkdir("tb_versioning")
+    root_dir.mkdir("0")
+    root_dir.mkdir("1")
+
+    logger = TensorboardLogger(save_dir=tmpdir, name="tb_versioning")
+
+    assert logger.version == 2
+
+
+def test_tensorboard_manual_versioning(tmpdir):
+    """Verify that manual versioning works"""
+
+    root_dir = tmpdir.mkdir("tb_versioning")
+    root_dir.mkdir("0")
+    root_dir.mkdir("1")
+    root_dir.mkdir("2")
+
+    logger = TensorboardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
+
+    assert logger.version == 1
+
+
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_tensorboard_log_metrics(tmpdir, step_idx):
+    logger = TensorboardLogger(tmpdir)
+    metrics = {
+        "float": 0.3,
+        "int": 1,
+        "FloatTensor": torch.tensor(0.1),
+        "IntTensor": torch.tensor(1)
+    }
+    logger.log_metrics(metrics, step_idx)
+
+
+def test_tensorboard_log_hyperparams(tmpdir):
+    logger = TensorboardLogger(tmpdir)
+    hparams = {
+        "float": 0.3,
+        "int": 1,
+        "string": "abc",
+        "bool": True
+    }
+    logger.log_hyperparams(hparams)
 
 
 def test_custom_logger(tmpdir):
