@@ -21,7 +21,7 @@ class TensorboardLogger(LightningLoggerBase):
         logger = TensorboardLogger("tb_logs", name="my_model")
         trainer = Trainer(logger=logger)
         trainer.train(model)
-    
+
     :param str save_dir: Save directory
     :param str name: Experiment name. Defaults to "default".
     :param int version: Experiment version. If version is not specified the logger inspects the save
@@ -42,7 +42,7 @@ class TensorboardLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        """The underlying :class:`torch.utils.tensorboard.SummaryWriter`. 
+        """The underlying :class:`torch.utils.tensorboard.SummaryWriter`.
 
         :rtype: torch.utils.tensorboard.SummaryWriter
         """
