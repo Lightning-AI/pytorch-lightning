@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.logging import (
     LightningLoggerBase,
     rank_zero_only,
-    TensorboardLogger,
+    TensorBoardLogger,
 )
 from pytorch_lightning.testing import LightningTestModel
 
@@ -199,7 +199,7 @@ def test_tensorboard_logger(tmpdir):
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
 
     trainer_options = dict(max_num_epochs=1, train_percent_check=0.01, logger=logger)
 
@@ -218,7 +218,7 @@ def test_tensorboard_pickle(tmpdir):
 
     comet_dir = os.path.join(tmpdir, "cometruns")
 
-    logger = TensorboardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
 
     trainer_options = dict(max_num_epochs=1, logger=logger)
 
@@ -235,7 +235,7 @@ def test_tensorboard_automatic_versioning(tmpdir):
     root_dir.mkdir("0")
     root_dir.mkdir("1")
 
-    logger = TensorboardLogger(save_dir=tmpdir, name="tb_versioning")
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning")
 
     assert logger.version == 2
 
@@ -248,14 +248,14 @@ def test_tensorboard_manual_versioning(tmpdir):
     root_dir.mkdir("1")
     root_dir.mkdir("2")
 
-    logger = TensorboardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
 
     assert logger.version == 1
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
-    logger = TensorboardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir)
     metrics = {
         "float": 0.3,
         "int": 1,
@@ -266,7 +266,7 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
 
 
 def test_tensorboard_log_hyperparams(tmpdir):
-    logger = TensorboardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir)
     hparams = {
         "float": 0.3,
         "int": 1,

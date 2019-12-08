@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from .base import LightningLoggerBase, rank_zero_only
 
 
-class TensorboardLogger(LightningLoggerBase):
+class TensorBoardLogger(LightningLoggerBase):
     r"""Log to local file system in Tensorboard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
@@ -18,7 +18,7 @@ class TensorboardLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        logger = TensorboardLogger("tb_logs", name="my_model")
+        logger = TensorBoardLogger("tb_logs", name="my_model")
         trainer = Trainer(logger=logger)
         trainer.train(model)
 
