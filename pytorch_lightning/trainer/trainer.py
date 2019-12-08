@@ -273,8 +273,9 @@ class Trainer(TrainerIOMixin,
         # logging
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
+
+        # backward compatibility
         if add_row_log_interval is not None:
-            # backward compatibility
             warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
                           " and will be removed in v0.8.0", DeprecationWarning)
             if not row_log_interval:  # in case you did not set the proper value
