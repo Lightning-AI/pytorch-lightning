@@ -151,6 +151,7 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 import inspect
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 
@@ -169,22 +170,22 @@ class TrainerTrainLoopMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.max_nb_epochs = None
+        self.max_epochs = None
+        self.min_epochs = None
         self.use_ddp = None
         self.use_dp = None
         self.use_ddp2 = None
         self.single_gpu = None
         self.data_parallel_device_ids = None
         self.check_val_every_n_epoch = None
-        self.nb_training_batches = None
+        self.num_training_batches = None
         self.val_check_batch = None
-        self.nb_val_batches = None
+        self.num_val_batches = None
         self.fast_dev_run = None
         self.is_iterable_train_dataloader = None
         self.main_progress_bar = None
         self.accumulation_scheduler = None
         self.lr_schedulers = None
-        self.min_nb_epochs = None
         self.enable_early_stop = None
         self.early_stop_callback = None
         self.callback_metrics = None
@@ -194,7 +195,7 @@ class TrainerTrainLoopMixin(ABC):
         self.log_save_interval = None
         self.proc_rank = None
         self.row_log_interval = None
-        self.total_batch_nb = None
+        self.total_batches = None
         self.truncated_bptt_steps = None
         self.optimizers = None
         self.accumulate_grad_batches = None
@@ -206,6 +207,24 @@ class TrainerTrainLoopMixin(ABC):
         self.training_tqdm_dict = None
         self.get_train_dataloader = None
         self.reduce_lr_on_plateau_scheduler = None
+
+    @property
+    def max_nb_epochs(self):
+        """
+        .. warning:: `max_nb_epochs` has become deprecated and will be removed in v0.8.0.
+        """
+        warnings.warn("`max_nb_epochs` was renamed to `max_epochs` since v0.5.0"
+                      " and will be removed in v0.8.0", DeprecationWarning)
+        return self.max_epochs
+
+    @property
+    def min_nb_epochs(self):
+        """
+        .. warning:: `min_nb_epochs` has become deprecated and will be removed in v0.8.0.
+        """
+        warnings.warn("`min_nb_epochs` was renamed to `min_epochs` since v0.5.0"
+                      " and will be removed in v0.8.0", DeprecationWarning)
+        return self.min_epochs
 
     @abstractmethod
     def get_model(self):
@@ -391,7 +410,7 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-            # stop epoch if we limited nb batches
+            # stop epoch if we limited num training batches
             met_batch_limit = batch_idx >= self.num_training_batches
             if met_batch_limit:
                 break
