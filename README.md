@@ -34,7 +34,7 @@ pip install pytorch-lightning
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
-## DEMO  
+## Demo  
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What is it?  
