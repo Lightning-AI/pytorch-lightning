@@ -125,6 +125,34 @@ def any_lightning_module_function_or_hook(...):
 ```
 
 ---
+#### W&B
+
+Log using [W&B](https://www.wandb.com)
+
+```{.python}
+from pytorch_lightning.logging import WandbLogger
+wandb_logger = WandbLogger(
+    name="my_new_nun",    # Optional, display name
+    offline=False,        # Optional, run offline (can sync later)
+    version="run_12345",  # Optional, used to restart previous run
+    id="run_12345",       # Optional, same as version
+    anonymous=False,      # Optional, enable or disable anonymous logging
+    project="bert",       # Optional, project to which run belongs to
+    tags=["tag1", "tag2"] # Optional, tags associated with run
+    )
+trainer = Trainer(logger=wandb_logger)
+```
+Use the logger anywhere in you LightningModule as follows:
+```python
+def train_step(...):
+    # example
+    self.logger.experiment.whatever_wandb_supports(...)
+    
+def any_lightning_module_function_or_hook(...):
+    self.logger.experiment.whatever_wandb_supports(...)
+```
+
+---
 #### Custom logger
 
 You can implement your own logger by writing a class that inherits from

@@ -316,6 +316,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Save a snapshot of all hyperparameters](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#save-a-snapshot-of-all-hyperparameters) 
 - [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
 - [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
+- [Logging on W&B](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#w&b)
 
 #### Training loop    
 
