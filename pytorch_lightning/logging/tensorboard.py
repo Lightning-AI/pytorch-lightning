@@ -67,12 +67,19 @@ class TensorBoardLogger(LightningLoggerBase):
             return
         try:
             # in case converting from namespace, todo: rather test if it is namespace
-            params = vars(params)
+            parsed = vars(params)
+            to_add = {}
+            
+            # don't store methods
+            for k, v in parsed.items():
+                if not callable(v):
+                    to_add[k] = v
+
         except TypeError:
             pass
         if params is not None:
             # `add_hparams` requires both - hparams and metric
-            self.experiment.add_hparams(hparam_dict=dict(params), metric_dict={})
+            self.experiment.add_hparams(hparam_dict=to_add, metric_dict={})
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
