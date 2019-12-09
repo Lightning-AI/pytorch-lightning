@@ -213,6 +213,70 @@ def test_comet_pickle():
     testing_utils.clear_save_dir()
 
 
+def test_wandb_logger():
+    """
+    verify that basic functionality of wandb logger works
+    """
+    reset_seed()
+
+    try:
+        from pytorch_lightning.logging import WandbLogger
+    except ModuleNotFoundError:
+        return
+
+    hparams = testing_utils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    logger = WandbLogger(anonymous=True)
+    logger.log_hyperparams(hparams)
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        train_percent_check=0.01,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, "Training failed"
+
+    testing_utils.clear_save_dir()
+
+
+def test_wandb_pickle():
+    """
+    Verify that pickling a trainer containing a test tube logger works
+    """
+    reset_seed()
+
+    try:
+        from pytorch_lightning.logging import WandbLogger
+    except ModuleNotFoundError:
+        return
+
+    hparams = testing_utils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    save_dir = testing_utils.init_save_dir()
+
+    logger = WandbLogger(anonymous=True)
+    logger.log_hyperparams(hparams)
+
+    trainer_options = dict(
+        max_nb_epochs=1,
+        train_percent_check=0.01,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
+
+    testing_utils.clear_save_dir()
+
+
 def test_custom_logger(tmpdir):
     class CustomLogger(LightningLoggerBase):
         def __init__(self):
