@@ -339,7 +339,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
             # early stopping
-            met_min_epochs = epoch > self.min_epochs
+            met_min_epochs = epoch >= self.min_epochs - 1
             if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
                                                                     logs=self.callback_metrics)
