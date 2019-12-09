@@ -13,18 +13,28 @@ logger = getLogger(__name__)
 
 
 class WandbLogger(LightningLoggerBase):
-    def __init__(self, name=None, offline=False, id=None, anonymous=False, save_dir=None,
-                 version=None, project=None, tags=None, sync_checkpoints=False):
+    """
+    Logger for W&B.
+
+    Args:
+        name (str): display name for the run.
+        offline (bool): run offline (data can be streamed later to wandb servers).
+        id or version (str): sets the version, mainly used to resume a previous run.
+        anonymous (bool): enables or explicitly disables anonymous logging.
+        project (str): the name of the project to which this run will belong.
+        tags (list of str): tags associated with this run.
+    """
+
+    def __init__(self, name=None, offline=False, id=None, anonymous=False,
+                 version=None, project=None, tags=None):
         super().__init__()
         self._name = name
-        self._save_dir = save_dir or os.getcwd()
         self._anonymous = "allow" if anonymous else None
         self._id = version or id
         self._tags = tags
         self._project = project
         self._experiment = None
         self._offline = offline
-        self._sync_checkpoints = sync_checkpoints
 
     @property
     def experiment(self):
