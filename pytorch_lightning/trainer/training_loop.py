@@ -50,6 +50,9 @@ To modify this behavior, pass in your own EarlyStopping callback.
     # pass in your own to override the default callback
     trainer = Trainer(early_stop_callback=early_stop_callback)
 
+    # pass in min_epochs to enable the callback after min_epochs have run
+    trainer = Trainer(early_stop_callback=early_stop_callback, min_epochs=5)
+
     # pass in None to disable it
     trainer = Trainer(early_stop_callback=None)
 
