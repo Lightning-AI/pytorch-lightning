@@ -145,8 +145,8 @@ class TrainerEvaluationLoopMixin(ABC):
         self.single_gpu = None
         self.data_parallel_device_ids = None
         self.model = None
-        self.nb_test_batches = None
-        self.nb_val_batches = None
+        self.num_test_batches = None
+        self.num_val_batches = None
         self.fast_dev_run = None
         self.process_position = None
         self.show_progress_bar = None
