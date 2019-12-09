@@ -259,13 +259,7 @@ class TrainerIOMixin(ABC):
         checkpoint = self.dump_checkpoint()
 
         # do the actual save
-        try:
-            torch.save(checkpoint, filepath)
-        except AttributeError:
-            if 'hparams' in checkpoint:
-                del checkpoint['hparams']
-
-            torch.save(checkpoint, filepath)
+        torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
 
@@ -318,7 +312,7 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
         checkpoint['state_dict'] = model.state_dict()
         if hasattr(model, "hparams"):
-            checkpoint['hparams'] = vars(model.hparams)
+            checkpoint['hparams'] = model.hparams
         else:
             warnings.warn(
                 "Did not find hyperparameters at model.hparams. Saving checkpoint without"

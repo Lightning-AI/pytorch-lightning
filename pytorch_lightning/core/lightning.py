@@ -1007,7 +1007,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
                 "Checkpoint does not contain hyperparameters. Are your model hyperparameters stored"
                 "in self.hparams?"
             )
-        hparams = Namespace(**ckpt_hparams)
+        hparams = ckpt_hparams
 
         # load the state_dict on the model automatically
         model = cls(hparams)
