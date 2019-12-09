@@ -133,6 +133,7 @@ Log using [W&B](https://www.wandb.com)
 from pytorch_lightning.logging import WandbLogger
 wandb_logger = WandbLogger(
     name="my_new_nun",    # Optional, display name
+    save_dir="my_folder", # Optional, path to save data
     offline=False,        # Optional, run offline (can sync later)
     version="run_12345",  # Optional, used to restart previous run
     id="run_12345",       # Optional, same as version

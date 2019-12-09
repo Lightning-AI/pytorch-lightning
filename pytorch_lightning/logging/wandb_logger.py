@@ -18,6 +18,7 @@ class WandbLogger(LightningLoggerBase):
 
     Args:
         name (str): display name for the run.
+        save_dir (str): path where data is saved.
         offline (bool): run offline (data can be streamed later to wandb servers).
         id or version (str): sets the version, mainly used to resume a previous run.
         anonymous (bool): enables or explicitly disables anonymous logging.
@@ -25,10 +26,11 @@ class WandbLogger(LightningLoggerBase):
         tags (list of str): tags associated with this run.
     """
 
-    def __init__(self, name=None, offline=False, id=None, anonymous=False,
+    def __init__(self, name=None, save_dir=None, offline=False, id=None, anonymous=False,
                  version=None, project=None, tags=None):
         super().__init__()
         self._name = name
+        self._save_dir = save_dir
         self._anonymous = "allow" if anonymous else None
         self._id = version or id
         self._tags = tags

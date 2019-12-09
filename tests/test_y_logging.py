@@ -227,7 +227,10 @@ def test_wandb_logger():
     hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    logger = WandbLogger(anonymous=True)
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    wandb_dir = os.path.join(root_dir, "wandb")
+
+    logger = WandbLogger(save_dir = wandb_dir, anonymous=True)
     logger.log_hyperparams(hparams)
 
     trainer_options = dict(
@@ -246,7 +249,7 @@ def test_wandb_logger():
 
 def test_wandb_pickle():
     """
-    Verify that pickling a trainer containing a test tube logger works
+    Verify that pickling a trainer containing a wandb logger works
     """
     reset_seed()
 
@@ -258,7 +261,10 @@ def test_wandb_pickle():
     hparams = testing_utils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    wandb_dir = os.path.join(root_dir, "wandb")
+
+    logger = WandbLogger(save_dir = wandb_dir, anonymous=True)
 
     logger = WandbLogger(anonymous=True)
     logger.log_hyperparams(hparams)
