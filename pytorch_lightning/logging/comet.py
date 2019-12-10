@@ -52,7 +52,7 @@ from logging import getLogger
 try:
     from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
-    from comet_ml.papi import API
+    from comet_ml.api import API
 except ImportError:
     raise ImportError('Missing comet_ml package.')
 
