@@ -469,7 +469,6 @@ class Trainer(TrainerIOMixin,
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
-                pass
                 ref_model.summarize(mode=self.weights_summary)
             else:
                 m = "weights_summary can be None, 'full' or 'top'"
