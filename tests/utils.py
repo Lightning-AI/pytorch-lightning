@@ -144,6 +144,8 @@ def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
 
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
+    trained_model.eval()
+
     # run prediction on 1 batch
     for batch in dataloader:
         break
