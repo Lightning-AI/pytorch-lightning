@@ -157,6 +157,8 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.mean(acc).item()
 
     else:
+        import pdb
+        pdb.set_trace()
         y_hat = trained_model(x)
 
         # acc
