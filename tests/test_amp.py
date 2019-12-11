@@ -47,8 +47,8 @@ def test_no_amp_single_gpu(tmpdir):
         show_progress_bar=True,
         max_epochs=1,
         gpus=1,
-        distributed_backend='dp',
-        use_amp=False
+        distributed_backend=None,
+        use_amp=True
     )
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
