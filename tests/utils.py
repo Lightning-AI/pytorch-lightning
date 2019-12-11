@@ -159,7 +159,7 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.mean(acc).item()
 
     else:
-        y_hat = trained_model(x)
+        y_hat = trained_model(x, 0)
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
