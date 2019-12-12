@@ -53,7 +53,7 @@ This is how lightning separates the science (red) from the engineering (blue).
 ![Overview](docs/source/_static/images/pl.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
