@@ -182,7 +182,7 @@ trainer.test()
 ## What does lightning control for me?   
 
 Everything in Blue!   
-This is how lightning separates the science from the engineering.
+This is how lightning separates the science (red) from the engineering (blue).
 
 ![Overview](docs/source/_static/images/pl.gif)
 
