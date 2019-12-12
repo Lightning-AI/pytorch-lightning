@@ -184,7 +184,7 @@ trainer.test()
 Everything in gray!    
 You define the blue parts using the LightningModule interface:  
 
-![Overview](docs/source/_static/images/overview_flat.jpg)
+![Overview](docs/source/_static/images/pl.gif)
 
 ```python
 # what to do in the training loop
