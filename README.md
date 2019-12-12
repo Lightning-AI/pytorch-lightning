@@ -38,7 +38,14 @@ pip install pytorch-lightning
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
+Lightning is a very lightweight wrapper on PyTorch that decouples the science from the engineering. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
+
+## What does lightning control for me?   
+
+Everything in Blue!   
+This is how lightning separates the science (red) from the engineering (blue).
+
+![Overview](docs/source/_static/images/pl.gif)
 
 ## How much effort is it to convert?
 You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
@@ -177,29 +184,6 @@ logging.info('and going to http://localhost:6006 on your browser')
 When you're all done you can even run the test set separately.   
 ```python
 trainer.test()
-```
-
-## What does lightning control for me?   
-
-Everything in Blue!   
-This is how lightning separates the science (red) from the engineering (blue).
-
-![Overview](docs/source/_static/images/pl.gif)
-
-```python
-# what to do in the training loop
-def training_step(self, batch, batch_idx):
-
-# what to do in the validation loop
-def validation_step(self, batch, batch_idx):
-
-# how to aggregate validation_step outputs
-def validation_end(self, outputs):
-
-# and your dataloaders
-def train_dataloader():
-def val_dataloader():
-def test_dataloader():
 ```
 
 **Could be as complex as seq-2-seq + attention**    
