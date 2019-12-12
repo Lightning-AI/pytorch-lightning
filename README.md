@@ -181,8 +181,8 @@ trainer.test()
 
 ## What does lightning control for me?   
 
-Everything in gray!    
-You define the blue parts using the LightningModule interface:  
+Everything in Blue!   
+This is how lightning separates the science from the engineering.
 
 ![Overview](docs/source/_static/images/pl.gif)
 
