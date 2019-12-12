@@ -48,7 +48,7 @@ class WandbLogger(LightningLoggerBase):
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
             self._experiment = wandb.init(
-                name=self._name, project=self._project, anonymous=self._anonymous,
+                name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
                 id=self._id, resume="allow", tags=self._tags)
         return self._experiment
 
