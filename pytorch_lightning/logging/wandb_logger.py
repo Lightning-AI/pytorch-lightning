@@ -1,5 +1,3 @@
-from logging import getLogger
-from time import time
 import os
 
 try:
@@ -8,8 +6,6 @@ except ImportError:
     raise ImportError('Missing wandb package.')
 
 from .base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class WandbLogger(LightningLoggerBase):
@@ -37,6 +33,14 @@ class WandbLogger(LightningLoggerBase):
         self._project = project
         self._experiment = None
         self._offline = offline
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # cannot be pickled
+        state['_experiment'] = None
+        # args needed to reload correct experiment
+        state['_id'] = self.experiment.id
+        return state
 
     @property
     def experiment(self):
