@@ -90,12 +90,12 @@ class GAN(pl.LightningModule):
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
-    def training_step(self, batch, batch_nb, optimizer_i):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         imgs, _ = batch
         self.last_imgs = imgs
 
         # train generator
-        if optimizer_i == 0:
+        if optimizer_idx == 0:
             # sample noise
             z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
 
@@ -112,7 +112,10 @@ class GAN(pl.LightningModule):
             # self.logger.experiment.add_image('generated_images', grid, 0)
 
             # ground truth result (ie: all fake)
+            # put on GPU because we created this tensor inside training_loop
             valid = torch.ones(imgs.size(0), 1)
+            if self.on_gpu:
+                valid = valid.cuda(imgs.device.index)
 
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
@@ -125,15 +128,21 @@ class GAN(pl.LightningModule):
             return output
 
         # train discriminator
-        if optimizer_i == 1:
+        if optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
 
             # how well can it label as real?
             valid = torch.ones(imgs.size(0), 1)
+            if self.on_gpu:
+                valid = valid.cuda(imgs.device.index)
+
             real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
 
             # how well can it label as fake?
             fake = torch.zeros(imgs.size(0), 1)
+            if self.on_gpu:
+                fake = fake.cuda(imgs.device.index)
+
             fake_loss = self.adversarial_loss(
                 self.discriminator(self.generated_imgs.detach()), fake)
 

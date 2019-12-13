@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](./docs/source/_static/lightning_logo_small.png)
+![Logo](docs/source/_static/images/lightning_logo_small.png)
 
 # PyTorch Lightning
 
@@ -11,11 +11,11 @@
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
 [![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/williamFalcon/pytorch-lightning)
-[![Coverage](https://github.com/williamFalcon/pytorch-lightning/blob/master/docs/source/_static/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
-[![Gitter](https://badges.gitter.im/PyTorch-Lightning/community.svg)](https://gitter.im/PyTorch-Lightning/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-Dec%206-<COLOR>.svg)](https://shields.io/)
 
@@ -31,16 +31,29 @@ Simple installation from PyPI
 pip install pytorch-lightning  
 ```
 
-[LIVE COLAB DEMO](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
-
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
+## Demo  
+[Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
+Lightning is a very lightweight wrapper on PyTorch that decouples the science code from the engineering code. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code.  
+
+To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
+
+- If you are a researcher, Lightning is infinitely flexible, you can modify everything down to the way .backward is called or distributed is set up. 
+- If you are a scientist or production team, lightning is very simple to use with best practice defaults.
+
+## What does lightning control for me?   
+
+Everything in Blue!   
+This is how lightning separates the science (red) from the engineering (blue).
+
+![Overview](docs/source/_static/images/pl.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
@@ -96,7 +109,7 @@ To use lightning do 2 things:
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
     
-        def training_step(self, batch, batch_nb):
+        def training_step(self, batch, batch_idx):
             # REQUIRED
             x, y = batch
             y_hat = self.forward(x)
@@ -104,7 +117,7 @@ To use lightning do 2 things:
             tensorboard_logs = {'train_loss': loss}
             return {'loss': loss, 'log': tensorboard_logs}
     
-        def validation_step(self, batch, batch_nb):
+        def validation_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
             y_hat = self.forward(x)
@@ -154,16 +167,16 @@ use something other than tensorboard).
 Here are more advanced examples
 ```python   
 # train on cpu using only 10% of the data (for demo purposes)
-trainer = Trainer(max_nb_epochs=1, train_percent_check=0.1)
+trainer = Trainer(max_epochs=1, train_percent_check=0.1)
 
 # train on 4 gpus (lightning chooses GPUs for you)
-# trainer = Trainer(max_nb_epochs=1, gpus=4, distributed_backend='ddp')  
+# trainer = Trainer(max_epochs=1, gpus=4, distributed_backend='ddp')  
 
 # train on 4 gpus (you choose GPUs)
-# trainer = Trainer(max_nb_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
+# trainer = Trainer(max_epochs=1, gpus=[0, 1, 3, 7], distributed_backend='ddp')   
 
 # train on 32 gpus across 4 nodes (make sure to submit appropriate SLURM job)
-# trainer = Trainer(max_nb_epochs=1, gpus=8, nb_gpu_nodes=4, distributed_backend='ddp')
+# trainer = Trainer(max_epochs=1, gpus=8, num_gpu_nodes=4, distributed_backend='ddp')
 
 # train (1 epoch only here for demo)
 trainer.fit(model)
@@ -178,34 +191,11 @@ When you're all done you can even run the test set separately.
 trainer.test()
 ```
 
-## What does lightning control for me?   
-
-Everything in gray!    
-You define the blue parts using the LightningModule interface:  
-
-![Overview](./docs/source/_static/overview_flat.jpg)
-
-```python
-# what to do in the training loop
-def training_step(self, batch, batch_nb):
-
-# what to do in the validation loop
-def validation_step(self, batch, batch_nb):
-
-# how to aggregate validation_step outputs
-def validation_end(self, outputs):
-
-# and your dataloaders
-def train_dataloader():
-def val_dataloader():
-def test_dataloader():
-```
-
 **Could be as complex as seq-2-seq + attention**    
 
 ```python
 # define what happens for training here
-def training_step(self, batch, batch_nb):
+def training_step(self, batch, batch_idx):
     x, y = batch
     
     # define your own forward and loss calculation
@@ -232,7 +222,7 @@ def training_step(self, batch, batch_nb):
 
 ```python
 # define what happens for validation here
-def validation_step(self, batch, batch_nb):    
+def validation_step(self, batch, batch_idx):    
     x, y = batch
     
     # or as basic as a CNN classification
@@ -266,11 +256,11 @@ def validation_end(self, outputs):
 ## Tensorboard    
 Lightning is fully integrated with tensorboard, MLFlow and supports any logging module.   
 
-![tensorboard-support](./docs/source/_static/tf_loss.png)
+![tensorboard-support](docs/source/_static/images/tf_loss.png)
 
 Lightning also adds a text column with all the hyperparameters for this experiment.      
 
-![tensorboard-support](./docs/source/_static/tf_tags.png)
+![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
 ## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
 
