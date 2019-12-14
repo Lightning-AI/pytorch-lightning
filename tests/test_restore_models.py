@@ -106,7 +106,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_epochs=1,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=True,
@@ -121,7 +121,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = LightningTestModel.load_from_checkpoint(
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
     )
 
     # test that hparams loaded correctly
@@ -269,7 +269,7 @@ def test_cpu_restore_training(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
 
     trainer_options = dict(
-        max_epochs=2,
+        max_epochs=4,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
