@@ -48,8 +48,8 @@ Minimal example
 
         def validation_end(self, outputs):
             # OPTIONAL
-            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-            return {'avg_val_loss': avg_loss}
+            val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
+            return {'val_loss': val_loss_mean}
 
         def test_step(self, batch, batch_idx):
             # OPTIONAL
@@ -59,8 +59,8 @@ Minimal example
 
         def test_end(self, outputs):
             # OPTIONAL
-            avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-            return {'avg_test_loss': avg_loss}
+            test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
+            return {'test_loss': test_loss_mean}
 
         def configure_optimizers(self):
             # REQUIRED
