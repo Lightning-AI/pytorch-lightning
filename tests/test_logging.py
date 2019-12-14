@@ -197,10 +197,7 @@ def test_wandb_logger(tmpdir):
     """Verify that basic functionality of wandb logger works."""
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import WandbLogger
-    except ModuleNotFoundError:
-        return
+    from pytorch_lightning.logging import WandbLogger
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
@@ -226,15 +223,12 @@ def test_wandb_pickle(tmpdir):
     """Verify that pickling trainer with wandb logger works."""
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import WandbLogger
-    except ModuleNotFoundError:
-        return
+    from pytorch_lightning.logging import WandbLogger
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
 
-    wandb_dir = os.path.join(tmpdir, "wandb")
+    wandb_dir = str(tmpdir)
 
     logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
 
