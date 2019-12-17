@@ -19,7 +19,7 @@ def data_loader(fn):
                 if (
                         value is not None and
                         not isinstance(value, list) and
-                        fn.__name__ in ['test_dataloader', 'val_dataloader']
+                        fn.__name__ in ['test_dataloader', 'valid_dataloader']
                 ):
                     value = [value]
             except AttributeError as e:

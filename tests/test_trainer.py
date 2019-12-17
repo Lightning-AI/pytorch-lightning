@@ -338,8 +338,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_multiple_val_dataloader(tmpdir):
-    """Verify multiple val_dataloader."""
+def test_multiple_valid_dataloader(tmpdir):
+    """Verify multiple valid_dataloader."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -367,11 +367,11 @@ def test_multiple_val_dataloader(tmpdir):
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.get_valid_dataloaders()) == 2, \
+        'Multiple valid_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
-    for dataloader in trainer.get_val_dataloaders():
+    for dataloader in trainer.get_valid_dataloaders():
         tutils.run_prediction(dataloader, trainer.model)
 
 

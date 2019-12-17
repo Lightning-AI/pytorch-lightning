@@ -32,7 +32,7 @@ MODEL_NAMES = sorted(
 class ImageNetLightningModel(pl.LightningModule):
 
     def __init__(self, hparams):
-        super(ImageNetLightningModel, self).__init__()
+        super(ImageNetLightningModel, self).__idatasetdatasetnit__()
         self.hparams = hparams
         self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
 
@@ -159,7 +159,7 @@ class ImageNetLightningModel(pl.LightningModule):
         return train_loader
 
     @pl.data_loader
-    def val_dataloader(self):
+    def valid_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225],

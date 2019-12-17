@@ -7,12 +7,12 @@ from pytorch_lightning import data_loader
 
 class LightningValidationStepMixin:
     """
-    Add val_dataloader and validation_step methods for the case
-    when val_dataloader returns a single dataloader
+    Add valid_dataloader and validation_step methods for the case
+    when valid_dataloader returns a single dataloader
     """
 
     @data_loader
-    def val_dataloader(self):
+    def valid_dataloader(self):
         return self._dataloader(train=False)
 
     def validation_step(self, batch, batch_idx):
@@ -61,8 +61,8 @@ class LightningValidationStepMixin:
 
 class LightningValidationMixin(LightningValidationStepMixin):
     """
-    Add val_dataloader, validation_step, and validation_end methods for the case
-    when val_dataloader returns a single dataloader
+    Add valid_dataloader, validation_step, and validation_end methods for the case
+    when valid_dataloader returns a single dataloader
     """
 
     def validation_end(self, outputs):
@@ -101,12 +101,12 @@ class LightningValidationMixin(LightningValidationStepMixin):
 
 class LightningValidationStepMultipleDataloadersMixin:
     """
-    Add val_dataloader and validation_step methods for the case
-    when val_dataloader returns multiple dataloaders
+    Add valid_dataloader and validation_step methods for the case
+    when valid_dataloader returns multiple dataloaders
     """
 
     @data_loader
-    def val_dataloader(self):
+    def valid_dataloader(self):
         return [self._dataloader(train=False), self._dataloader(train=False)]
 
     def validation_step(self, batch, batch_idx, dataloader_idx):
@@ -161,8 +161,8 @@ class LightningValidationStepMultipleDataloadersMixin:
 
 class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipleDataloadersMixin):
     """
-    Add val_dataloader, validation_step, and validation_end methods for the case
-    when val_dataloader returns multiple dataloaders
+    Add valid_dataloader, validation_step, and validation_end methods for the case
+    when valid_dataloader returns multiple dataloaders
     """
 
     def validation_end(self, outputs):

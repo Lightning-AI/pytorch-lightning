@@ -308,7 +308,7 @@ def test_cpu_restore_training(tmpdir):
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        for dataloader in trainer.get_val_dataloaders():
+        for dataloader in trainer.get_valid_dataloaders():
             tutils.run_prediction(dataloader, trainer.model)
 
     model.on_train_start = assert_good_acc

@@ -82,27 +82,27 @@ class TrainerDataLoadingMixin(ABC):
                 self.shown_warnings.add(msg)
                 warnings.warn(msg)
 
-    def init_val_dataloader(self, model):
+    def init_valid_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
         :return:
         """
-        self.get_val_dataloaders = model.val_dataloader
+        self.get_valid_dataloaders = model.valid_dataloader
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
-        if self.get_val_dataloaders() is not None:
-            self.num_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
+        if self.get_valid_dataloaders() is not None:
+            self.num_val_batches = sum(len(dataloader) for dataloader in self.get_valid_dataloaders())
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
             self.num_val_batches = max(1, self.num_val_batches)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and self.get_val_dataloaders() is not None:
-            for dataloader in self.get_val_dataloaders():
+        if on_ddp and self.get_valid_dataloaders() is not None:
+            for dataloader in self.get_valid_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
-                    Your val_dataloader(s) don't use DistributedSampler.
+                    Your valid_dataloader(s) don't use DistributedSampler.
 
                     You're using multiple gpus and multiple nodes without using a
                     DistributedSampler to assign a subset of your data to each process.
@@ -177,7 +177,7 @@ class TrainerDataLoadingMixin(ABC):
 
         self.init_train_dataloader(model)
         self.init_test_dataloader(model)
-        self.init_val_dataloader(model)
+        self.init_valid_dataloader(model)
 
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
@@ -186,7 +186,7 @@ class TrainerDataLoadingMixin(ABC):
             # load each dataloader
             self.get_train_dataloader()
             self.get_test_dataloaders()
-            self.get_val_dataloaders()
+            self.get_valid_dataloaders()
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (

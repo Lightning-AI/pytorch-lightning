@@ -157,7 +157,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.current_epoch = None
         self.callback_metrics = None
         self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.get_valid_dataloaders = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -290,7 +290,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 max_batches = self.num_test_batches
             else:
                 # val
-                dataloaders = self.get_val_dataloaders()
+                dataloaders = self.get_valid_dataloaders()
                 max_batches = self.num_val_batches
 
             # cap max batches to 1 when using fast_dev_run
@@ -349,7 +349,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if test and len(self.get_test_dataloaders()) > 1:
             args.append(dataloader_idx)
 
-        elif not test and len(self.get_val_dataloaders()) > 1:
+        elif not test and len(self.get_valid_dataloaders()) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

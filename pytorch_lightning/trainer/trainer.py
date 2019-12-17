@@ -207,7 +207,7 @@ class Trainer(TrainerIOMixin,
         self.num_test_batches = 0
         self.get_train_dataloader = None
         self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.get_valid_dataloaders = None
         self.is_iterable_train_dataloader = False
 
         # training state
@@ -490,17 +490,17 @@ class Trainer(TrainerIOMixin,
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         ref_model.on_train_start()
-        if self.get_val_dataloaders() is not None and self.num_sanity_val_steps > 0:
+        if self.get_valid_dataloaders() is not None and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm.tqdm(desc='Validation sanity check',
-                             total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
+                             total=self.num_sanity_val_steps * len(self.get_valid_dataloaders()),
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm.tqdm(disable=True)
 
-            self.evaluate(model, self.get_val_dataloaders(), self.num_sanity_val_steps, self.testing)
+            self.evaluate(model, self.get_valid_dataloaders(), self.num_sanity_val_steps, self.testing)
 
             # close progress bars
             self.main_progress_bar.close()

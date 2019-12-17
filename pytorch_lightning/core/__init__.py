@@ -72,7 +72,7 @@ Minimal example
                               transform=transforms.ToTensor()), batch_size=32)
 
         @pl.data_loader
-        def val_dataloader(self):
+        def valid_dataloader(self):
             # OPTIONAL
             # can also return a list of val dataloaders
             return DataLoader(MNIST(os.getcwd(), train=True, download=True,

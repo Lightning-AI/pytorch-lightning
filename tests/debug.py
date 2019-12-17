@@ -46,7 +46,7 @@ class CoolModel(pl.LightningModule):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
     @pl.data_loader
-    def val_dataloader(self):
+    def valid_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
     @pl.data_loader

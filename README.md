@@ -141,7 +141,7 @@ To use lightning do 2 things:
             return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
     
         @pl.data_loader
-        def val_dataloader(self):
+        def valid_dataloader(self):
             # OPTIONAL
             return DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
     

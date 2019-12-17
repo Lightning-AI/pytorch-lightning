@@ -310,7 +310,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
             def validation_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
-        The `dataset_idx` corresponds to the order of datasets returned in `val_dataloader`.
+        The `dataset_idx` corresponds to the order of datasets returned in `valid_dataloader`.
         """
         pass
 
@@ -850,13 +850,10 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
         .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
         """
-        try:
-            output = self.tng_dataloader()
-            warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
-            return output
-        except NotImplementedError:
-            raise NotImplementedError
+        output = self.train_dataloader()
+        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
+                      " and will be removed in v0.8.0", DeprecationWarning)
+        return output
 
     @data_loader
     def test_dataloader(self):
@@ -891,7 +888,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         return None
 
     @data_loader
-    def val_dataloader(self):
+    def valid_dataloader(self):
         """Implement a PyTorch DataLoader.
 
         :return: PyTorch DataLoader or list of PyTorch Dataloaders.
@@ -908,7 +905,7 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             @pl.data_loader
-            def val_dataloader(self):
+            def valid_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
                 loader = torch.utils.data.DataLoader(
@@ -921,13 +918,25 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
 
             # can also return multiple dataloaders
             @pl.data_loader
-            def val_dataloader(self):
+            def valid_dataloader(self):
                 return [loader_a, loader_b, ..., loader_n]
 
-        In the case where you return multiple `val_dataloaders`, the `validation_step`
+        In the case where you return multiple `valid_dataloaders`, the `validation_step`
          will have an arguement `dataset_idx` which matches the order here.
         """
         return None
+
+
+    @data_loader
+    def val_dataloader(self):
+        """Implement a PyTorch DataLoader.
+
+        .. warning:: Deprecated in v0.5.0. use valid_dataloader instead.
+        """
+        output = self.valid_dataloader()
+        warnings.warn("`val_dataloader` has been renamed to `valid_dataloader` since v0.5.0"
+                      " and will be removed in v0.8.0", DeprecationWarning)
+        return output
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
