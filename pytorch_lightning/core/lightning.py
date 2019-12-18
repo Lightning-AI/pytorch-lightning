@@ -926,7 +926,6 @@ class LightningModule(GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-
     @data_loader
     def val_dataloader(self):
         """Implement a PyTorch DataLoader.
