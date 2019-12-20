@@ -98,17 +98,18 @@ class NeptuneLogger(LightningLoggerBase):
         self._kwargs = kwargs
 
         if offline_mode:
-            self.mode = "offline/silent-no experiment information will be logged"
-            self.backend = neptune.OfflineBackend()
+            self.mode = "offline"
+            Backend = neptune.OfflineBackend
+            self.project_name = "silent/project"
         else:
             self.mode = "online"
-            self.backend = neptune.HostedNeptuneBackend()
+            Backend = neptune.HostedNeptuneBackend
 
         logger.info(f"NeptuneLogger will be initialized in {self.mode} mode")
 
         neptune.init(api_token=self.api_key,
                      project_qualified_name=self.project_name,
-                     backend=self.backend)
+                     backend=Backend())
 
     @property
     def experiment(self):
@@ -122,6 +123,11 @@ class NeptuneLogger(LightningLoggerBase):
                                                          upload_source_files=self.upload_source_files,
                                                          **self._kwargs)
         return self._experiment
+
+    @rank_zero_only
+    def log_hyperparams(self, params):
+        for key, val in vars(params).items():
+            self.experiment.set_property(f"param__{key}", val)
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
@@ -146,11 +152,17 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self):
-        return self.experiment.name
+        if self.mode == "offline":
+            return "offline-name"
+        else:
+            return self.experiment.name
 
     @property
     def version(self):
-        return self.experiment.id
+        if self.mode == "offline":
+            return "offline-id-1234"
+        else:
+            return self.experiment.id
 
     @rank_zero_only
     def log_metric(self, metric_name, metric_value, step=None):
