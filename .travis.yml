@@ -33,13 +33,14 @@ matrix:
       python: 3.7
       env: TOXENV=py37
     - os: osx
-      osx_image: xcode9.4
+      # https://blog.travis-ci.com/2019-08-07-extensive-python-testing-on-travis-ci
+      osx_image: xcode10.3
       language: generic
       env: TOXENV=py37
-      addons:
-        homebrew:
-          # update: true
-          packages: python3.7
+      #addons:
+      #  homebrew:
+      #    # update: true
+      #    packages: python3.7
       before_install:
         - pip3 install virtualenv
         - virtualenv -p python3 ~/venv
