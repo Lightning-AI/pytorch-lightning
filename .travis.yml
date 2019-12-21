@@ -35,11 +35,11 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       language: generic
-      env: TOXENV=py36
+      env: TOXENV=py37
       addons:
         homebrew:
           # update: true
-          packages: python3.6
+          packages: python3.7
       before_install:
         - pip3 install virtualenv
         - virtualenv -p python3 ~/venv
