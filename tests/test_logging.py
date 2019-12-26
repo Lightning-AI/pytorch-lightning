@@ -197,10 +197,7 @@ def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import NeptuneLogger
-    except ModuleNotFoundError:
-        return
+    from pytorch_lightning.logging import NeptuneLogger
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
@@ -224,10 +221,7 @@ def test_neptune_pickle(tmpdir):
     """Verify that pickling trainer with neptune logger works."""
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import NeptuneLogger
-    except ModuleNotFoundError:
-        return
+    from pytorch_lightning.logging import NeptuneLogger
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)

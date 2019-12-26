@@ -35,6 +35,7 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
         self.logger.experiment.whatever_neptune_supports(...)
 
+
 """
 
 from logging import getLogger
@@ -42,7 +43,7 @@ from logging import getLogger
 try:
     import neptune
 except ImportError:
-    raise ImportError('Missing neptune package. Run pip install neptune-client')
+    raise ImportError('Missing neptune package. Run `pip install neptune-client`')
 
 from torch import is_tensor
 
@@ -60,30 +61,30 @@ class NeptuneLogger(LightningLoggerBase):
         Requires either an API Key (online mode) or a local directory path (offline mode)
 
         :param str|None api_key: Required in online mode. Neputne API token, found on https://neptune.ml.
-        Read how to get your API key here https://docs.neptune.ml/python-api/tutorials/get-started.html#copy-api-token.
+           Read how to get your API key here https://docs.neptune.ml/python-api/tutorials/get-started.html#copy-api-token.
         :param str project_name: Required in online mode. Qualified name of a project in a form of
-        "namespace/project_name" for example "tom/minst-classification".
-        If None, the value of NEPTUNE_PROJECT environment variable will be taken.
-        You need to create the project in https://neptune.ml first.
+           "namespace/project_name" for example "tom/minst-classification".
+           If None, the value of NEPTUNE_PROJECT environment variable will be taken.
+           You need to create the project in https://neptune.ml first.
         :param bool offline_mode: Optional default False. If offline_mode=True no logs will be send to neptune.
-        Usually used for debug purposes.
+           Usually used for debug purposes.
         :param str|None experiment_name: Optional. Editable name of the experiment.
-        Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
+           Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
         :param list|None upload_source_files: Optional. List of source files to be uploaded.
-        Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
-        If None is passed, Python file from which experiment was created will be uploaded.
-        Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
-        For example, you can pass '*.py' to upload all python source files from the current directory.
-        For recursion lookup use '**/*.py' (for Python 3.5 and later). For more information see glob library.
+           Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
+           If None is passed, Python file from which experiment was created will be uploaded.
+           Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
+           For example, you can pass '*.py' to upload all python source files from the current directory.
+           For recursion lookup use '**/*.py' (for Python 3.5 and later). For more information see glob library.
         :param dict|None params: Optional. Parameters of the experiment. After experiment creation params are read-only.
-        Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
-        viewed in experiments view as a column.
+           Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
+           viewed in experiments view as a column.
         :param dict|None properties: Optional default is {}. Properties of the experiment.
-        They are editable after experiment is created. Properties are displayed in the experiment’s Details and
-        each key-value pair can be viewed in experiments view as a column.
+           They are editable after experiment is created. Properties are displayed in the experiment’s Details and
+           each key-value pair can be viewed in experiments view as a column.
         :param list|None tags: Optional default []. Must be list of str. Tags of the experiment.
-        They are editable after experiment is created (see: append_tag() and remove_tag()).
-        Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
+           They are editable after experiment is created (see: append_tag() and remove_tag()).
+           Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
         """
         super().__init__()
         self.api_key = api_key
@@ -135,6 +136,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         :param float metric: Dictionary with metric names as keys and measured quanties as values
         :param int|None step: Step number at which the metrics should be recorded, must be strictly increasing
+
         """
 
         for key, val in metrics.items():
@@ -171,6 +173,7 @@ class NeptuneLogger(LightningLoggerBase):
         :param str metric_name:  The name of log, i.e. mse, loss, accuracy.
         :param str metric_value: The value of the log (data-point).
         :param int|None step: Step number at which the metrics should be recorded, must be strictly increasing
+
         """
         if step is None:
             self.experiment.log_metric(metric_name, metric_value)
@@ -184,6 +187,7 @@ class NeptuneLogger(LightningLoggerBase):
         :param str log_name:  The name of log, i.e. mse, my_text_data, timing_info.
         :param str text: The value of the log (data-point).
         :param int|None step: Step number at which the metrics should be recorded, must be strictly increasing
+
         """
         if step is None:
             self.experiment.log_metric(log_name, text)
@@ -196,7 +200,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         :param str log_name: The name of log, i.e. bboxes, visualisations, sample_images.
         :param str|PIL.Image|matplotlib.figure.Figure image: The value of the log (data-point).
-        Can be one of the following types: PIL image, matplotlib.figure.Figure, path to image file (str)
+           Can be one of the following types: PIL image, matplotlib.figure.Figure, path to image file (str)
         :param int|None step: Step number at which the metrics should be recorded, must be strictly increasing
 
         """
@@ -211,7 +215,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         :param str artifact: A path to the file in local filesystem.
         :param str|None destination: Optional default None.
-        A destination path. If None is passed, an artifact file name will be used.
+           A destination path. If None is passed, an artifact file name will be used.
 
         """
         self.experiment.log_artifact(artifact, destination)
@@ -227,13 +231,11 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment.set_property(key, value)
 
     @rank_zero_only
-    def append_tags(self, tag, *tags):
+    def append_tags(self, tags):
         """appends tags to neptune experiment
 
-        :param str tag: single str or multiple str or list of str.
-        :param str|list tags: Tag(s) to add to the current experiment.
-        If str is passed, singe tag is added.
-        If multiple - comma separated - str are passed, all of them are added as tags.
-        If list of str is passed, all elements of the list are added as tags.
+        :param list(str) tags: Tags to add to the current experiment.
+           All elements of the list are added as tags.
+
         """
-        self.experiment.append_tags(tag, *tags)
+        self.experiment.append_tags(*tags)
