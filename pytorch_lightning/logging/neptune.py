@@ -234,8 +234,12 @@ class NeptuneLogger(LightningLoggerBase):
     def append_tags(self, tags):
         """appends tags to neptune experiment
 
-        :param list(str) tags: Tags to add to the current experiment.
-           All elements of the list are added as tags.
+        :param str|tuple|list(str) tags: Tags to add to the current experiment.
+           If str is passed, singe tag is added.
+           If multiple - comma separated - str are passed, all of them are added as tags.
+           If list of str is passed, all elements of the list are added as tags.
 
         """
+        if not isinstance(tags, (list, set, tuple)):
+            tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)
