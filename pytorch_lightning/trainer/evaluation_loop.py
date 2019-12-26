@@ -267,7 +267,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def run_evaluation(self, test=False):
         # when testing make sure user defined a test step
         if test and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
-            m = '''You called .test() without defining a test step or test_end.
+            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
                     Please define and try again'''
             raise MisconfigurationException(m)
 
