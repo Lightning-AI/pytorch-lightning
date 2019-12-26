@@ -489,8 +489,8 @@ class Trainer(TrainerIOMixin,
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or
-                                   not self.is_overriden('validation_step'))
-                                   and not self.fast_dev_run)
+                                   not self.is_overriden('validation_step')) and
+                                   not self.fast_dev_run)
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
