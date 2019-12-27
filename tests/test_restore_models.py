@@ -269,7 +269,7 @@ def test_cpu_restore_training(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
 
     trainer_options = dict(
-        max_epochs=2,
+        max_epochs=4,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
