@@ -36,6 +36,15 @@ class TrainerDataLoadingMixin(ABC):
         self.shown_warnings = None
         self.val_check_interval = None
 
+    def _percent_range_check(self, name):
+        value = getattr(self, name)
+        msg = f"`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}."
+        if name == "val_check_interval":
+            msg += " If you want to disable validation set `val_percent_check` to 0.0 instead."
+
+        if not 0. <= value <= 1.:
+            raise ValueError(msg)
+
     def init_train_dataloader(self, model):
         """
         Dataloaders are provided by the model
@@ -48,9 +57,7 @@ class TrainerDataLoadingMixin(ABC):
         if EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
             self.num_training_batches = float('inf')
         else:
-            if not 0. <= self.train_percent_check <= 1.:
-                raise ValueError(f"train_percent_check must lie in the range [0.0, 1.0], but got "
-                                 f"{self.train_percent_check:.3f}.")
+            self._percent_range_check('train_percent_check')
 
             self.num_training_batches = len(self.get_train_dataloader())
             self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
@@ -63,14 +70,11 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = self.val_check_interval
             if self.val_check_batch > self.num_training_batches:
                 raise ValueError(
-                    f"val_check_interval ({self.val_check_interval}) must be less than or equal to "
-                    f"the number of the training batches ({self.num_training_batches}). "
-                    f"If you want to disable validation set val_percent_check to 0.0 instead.")
+                    f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
+                    f"to the number of the training batches ({self.num_training_batches}). "
+                    f"If you want to disable validation set `val_percent_check` to 0.0 instead.")
         else:
-            if not 0. <= self.val_check_interval <= 1.:
-                raise ValueError(f"val_check_interval must lie in the range [0.0, 1.0], but got "
-                                 f"{self.val_check_interval:.3f}. If you want to disable "
-                                 f"validation set val_percent_check to 0.0 instead.")
+            self._percent_range_check('val_check_interval')
 
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
@@ -109,10 +113,7 @@ class TrainerDataLoadingMixin(ABC):
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.get_val_dataloaders() is not None:
-            if not 0. <= self.val_percent_check <= 1.:
-                raise ValueError(f"val_percent_check must lie in the range [0.0, 1.0], but got "
-                                 f"{self.val_percent_check:.3f}. If you want to disable "
-                                 f"validation set it to 0.0.")
+            self._percent_range_check('val_percent_check')
 
             self.num_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
@@ -154,9 +155,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # determine number of test batches
         if self.get_test_dataloaders() is not None:
-            if not 0. <= self.test_percent_check <= 1.:
-                raise ValueError(f"test_percent_check must lie in the range [0.0, 1.0], but got "
-                                 f"{self.test_percent_check:.3f}.")
+            self._percent_range_check('test_percent_check')
 
             len_sum = sum(len(dataloader) for dataloader in self.get_test_dataloaders())
             self.num_test_batches = len_sum
@@ -233,7 +232,7 @@ class TrainerDataLoadingMixin(ABC):
         self.test_percent_check = test_percent_check
         if overfit_pct > 0:
             if overfit_pct > 1:
-                raise ValueError(f"overfit_pct must be not greater than 1.0, but got "
+                raise ValueError(f"`overfit_pct` must be not greater than 1.0, but got "
                                  f"{overfit_pct:.3f}.")
 
             self.train_percent_check = overfit_pct
