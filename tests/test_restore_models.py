@@ -109,7 +109,7 @@ def test_load_model_from_checkpoint(tmpdir):
         max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        checkpoint_callback=True,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
         default_save_path=tmpdir,
     )
@@ -368,7 +368,6 @@ def test_model_saving_loading(tmpdir):
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
