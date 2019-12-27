@@ -274,7 +274,7 @@ def test_cpu_restore_training(tmpdir):
         val_percent_check=0.2,
         train_percent_check=0.2,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1)
     )
 
     # fit model
