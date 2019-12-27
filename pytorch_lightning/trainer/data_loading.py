@@ -61,7 +61,6 @@ class TrainerDataLoadingMixin(ABC):
 
             self.num_training_batches = len(self.get_train_dataloader())
             self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
-            self.num_training_batches = max(1, self.num_training_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -160,7 +159,6 @@ class TrainerDataLoadingMixin(ABC):
             len_sum = sum(len(dataloader) for dataloader in self.get_test_dataloaders())
             self.num_test_batches = len_sum
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
-            self.num_test_batches = max(1, self.num_test_batches)
 
         on_ddp = self.use_ddp or self.use_ddp2
         if on_ddp and self.get_test_dataloaders() is not None:
