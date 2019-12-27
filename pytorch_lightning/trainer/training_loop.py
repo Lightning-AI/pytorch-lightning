@@ -367,6 +367,10 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, batch in enumerate(self.get_train_dataloader()):
+            # stop epoch if we limited the number of training batches
+            if batch_idx >= self.num_training_batches:
+                break
+
             self.batch_idx = batch_idx
 
             model = self.get_model()
@@ -411,11 +415,6 @@ class TrainerTrainLoopMixin(ABC):
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
             if early_stop_epoch or self.fast_dev_run:
-                break
-
-            # stop epoch if we limited the number of training batches
-            met_batch_limit = batch_idx >= self.num_training_batches
-            if met_batch_limit:
                 break
 
         # epoch end hook
