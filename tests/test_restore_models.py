@@ -106,7 +106,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_epochs=2,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
@@ -121,7 +121,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = LightningTestModel.load_from_checkpoint(
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_3.ckpt")
     )
 
     # test that hparams loaded correctly
