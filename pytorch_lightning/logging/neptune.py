@@ -100,17 +100,14 @@ class NeptuneLogger(LightningLoggerBase):
 
         if offline_mode:
             self.mode = "offline"
-            Backend = neptune.OfflineBackend
-            self.project_name = "silent/project"
+            neptune.init(project_qualified_name=self.project_name,
+                         backend=neptune.OfflineBackend())
         else:
             self.mode = "online"
-            Backend = neptune.HostedNeptuneBackend
+            neptune.init(project_qualified_name=self.project_name,
+                         backend=neptune.HostedNeptuneBackend(api_token=self.api_key))
 
-        logger.info(f"NeptuneLogger will be initialized in {self.mode} mode")
-
-        neptune.init(api_token=self.api_key,
-                     project_qualified_name=self.project_name,
-                     backend=Backend())
+        logger.info(f"NeptuneLogger was initialized in {self.mode} mode")
 
     @property
     def experiment(self):
