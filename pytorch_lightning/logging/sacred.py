@@ -13,10 +13,11 @@ logger = getLogger(__name__)
 
 
 class SacredLogger(LightningLoggerBase):
-    def __init__(self, experiment_name, mongodb_settings):
+    def __init__(self, sacred_experiment, mongodb_settings):
         super().__init__()
-        self.sacred_experiment = sacred.Experiment(experiment_name)
-        self.experiment_name = experiment_name
+        self.sacred_experiment = sacred_experiment
+        self.experiment_name = sacred_experiment.current_run.experiment_info["name"]
+        self._run_id = sacred_experiment.current_run._id
 
         # for now we only support MongoObserver -> could be extended to be more flexible
         self.sacred_experiment.observers.append(
@@ -26,27 +27,12 @@ class SacredLogger(LightningLoggerBase):
             )
         )
 
-        self._run_id = None
-
     @property
     def experiment(self):
         return self.sacred_experiment
 
     @property
     def run_id(self):
-        if self._run_id is not None:
-            return self._run_id
-
-        experiment = self.experiment.get_experiment_by_name(self.experiment_name)
-        if experiment is None:
-            logger.warning(
-                f"Experiment with name f{self.experiment_name} not found. Creating it."
-            )
-            self.experiment.create_experiment(self.experiment_name)
-            experiment = self.experiment.get_experiment_by_name(self.experiment_name)
-
-        run = self.experiment.create_run(experiment.experiment_id, tags=self.tags)
-        self._run_id = run.info.run_id
         return self._run_id
 
     @rank_zero_only
@@ -73,3 +59,11 @@ class SacredLogger(LightningLoggerBase):
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
+
+    @property
+    def name(self):
+        return self.experiment_name
+
+    @property
+    def version(self):
+        return self._run_id
