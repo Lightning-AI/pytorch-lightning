@@ -3,6 +3,7 @@ from time import time
 
 try:
     import sacred
+    from sacred.observers import MongoObserver
 except ImportError:
     raise ImportError('Missing sacred package.')
 
@@ -12,10 +13,19 @@ logger = getLogger(__name__)
 
 
 class SacredLogger(LightningLoggerBase):
-    def __init__(self, database_location, database_name, experiment_name):
+    def __init__(self, experiment_name, mongodb_settings):
         super().__init__()
         self.sacred_experiment = sacred.Experiment(experiment_name)
         self.experiment_name = experiment_name
+
+        # for now we only support MongoObserver -> could be extended to be more flexible
+        self.sacred_experiment.observers.append(
+            MongoObserver.create(
+                url='mongodb://{ip}:{port}'.format(**mongodb_settings),
+                db_name='{db}'.format(**mongodb_settings),
+            )
+        )
+
         self._run_id = None
 
     @property
