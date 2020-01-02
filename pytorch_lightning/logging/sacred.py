@@ -7,11 +7,12 @@ try:
 except ImportError:
     raise ImportError('Missing sacred package.')
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.logging.base import LightningLoggerBase, rank_zero_only
 
 logger = getLogger(__name__)
 
 
+# TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
     def __init__(self, sacred_experiment, mongodb_settings):
         super().__init__()
