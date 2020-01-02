@@ -5,7 +5,7 @@ try:
     import sacred
     from sacred.observers import MongoObserver
 except ImportError:
-    raise ImportError('Missing sacred package.')
+    raise ImportError('Missing sacred package.  Run `pip install sacred`')
 
 from pytorch_lightning.logging.base import LightningLoggerBase, rank_zero_only
 
