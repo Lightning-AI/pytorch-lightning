@@ -14,9 +14,13 @@ logger = getLogger(__name__)
 class SacredLogger(LightningLoggerBase):
     def __init__(self, database_location, database_name, experiment_name):
         super().__init__()
-        self.experiment = sacred.Experiment(experiment_name)
+        self.sacred_experiment = sacred.Experiment(experiment_name)
         self.experiment_name = experiment_name
         self._run_id = None
+
+    @property
+    def experiment(self):
+        return self.sacred_experiment
 
     @property
     def run_id(self):
