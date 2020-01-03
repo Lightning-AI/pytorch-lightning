@@ -47,7 +47,7 @@ class SacredLogger(LightningLoggerBase):
                     f"Discarding metric with string value {k}={v}"
                 )
                 continue
-            self.experiment.log_scalar(self.run_id, k, v, step)
+            self.experiment.log_scalar(k, v, step)
 
     def save(self):
         pass
