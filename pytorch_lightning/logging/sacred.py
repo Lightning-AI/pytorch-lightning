@@ -14,7 +14,7 @@ logger = getLogger(__name__)
 
 # TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
-    def __init__(self, sacred_experiment, observers):
+    def __init__(self, sacred_experiment, observers=[]):
         super().__init__()
         self.sacred_experiment = sacred_experiment
         self.experiment_name = sacred_experiment.path
