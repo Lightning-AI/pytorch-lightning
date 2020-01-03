@@ -114,4 +114,10 @@ try:
 except ImportError:
     pass
 
+try:
+    from .sacred import SacredLogger
+    all.append("SacredLogger")
+except ImportError:
+    pass
+
 __all__ = all
