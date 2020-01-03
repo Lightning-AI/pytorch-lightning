@@ -62,4 +62,4 @@ class SacredLogger(LightningLoggerBase):
 
     @property
     def version(self):
-        return self._run_id
+        return self.run_id
