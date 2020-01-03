@@ -35,8 +35,7 @@ class SacredLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params):
-        for k, v in vars(params).items():
-            self.experiment.log_param(self.run_id, k, v)
+        raise NotImplementedError("SacredLogger does not support log_hyperparams.")
 
     @rank_zero_only
     def log_metrics(self, metrics, step_num=None):
