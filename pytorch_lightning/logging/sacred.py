@@ -14,19 +14,14 @@ logger = getLogger(__name__)
 
 # TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
-    def __init__(self, sacred_experiment, mongodb_settings):
+    def __init__(self, sacred_experiment, observers):
         super().__init__()
         self.sacred_experiment = sacred_experiment
         self.experiment_name = sacred_experiment.current_run.experiment_info["name"]
         self._run_id = sacred_experiment.current_run._id
 
-        # for now we only support MongoObserver -> could be extended to be more flexible
-        self.sacred_experiment.observers.append(
-            MongoObserver.create(
-                url='mongodb://{ip}:{port}'.format(**mongodb_settings),
-                db_name='{db}'.format(**mongodb_settings),
-            )
-        )
+        for obs in observers:
+            self.sacred_experiment.observers.append(obs)
 
     @property
     def experiment(self):
