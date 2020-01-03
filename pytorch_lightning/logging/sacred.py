@@ -17,9 +17,7 @@ class SacredLogger(LightningLoggerBase):
     def __init__(self, sacred_experiment, observers):
         super().__init__()
         self.sacred_experiment = sacred_experiment
-        self.experiment_name = sacred_experiment.current_run.experiment_info["name"]
-        self._run_id = sacred_experiment.current_run._id
-
+        self.experiment_name = sacred_experiment.path
         for obs in observers:
             self.sacred_experiment.observers.append(obs)
 
@@ -29,7 +27,11 @@ class SacredLogger(LightningLoggerBase):
 
     @property
     def run_id(self):
-        return self._run_id
+        try:
+            return self.sacred_experiment.current_run._id
+        except:
+            pass
+        return None
 
     @rank_zero_only
     def log_hyperparams(self, params):
