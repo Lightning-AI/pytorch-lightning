@@ -21,7 +21,7 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys
-    sys.stderr.write('Partial import of skimage during the build process.\n')
+    sys.stderr.write('Partial import of torchlightning during the build process.\n')
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
