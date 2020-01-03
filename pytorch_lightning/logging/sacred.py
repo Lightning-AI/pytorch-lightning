@@ -40,14 +40,14 @@ class SacredLogger(LightningLoggerBase):
         raise NotImplementedError("SacredLogger does not support log_hyperparams.")
 
     @rank_zero_only
-    def log_metrics(self, metrics, step_num=None):
+    def log_metrics(self, metrics, step=None):
         for k, v in metrics.items():
             if isinstance(v, str):
                 logger.warning(
                     f"Discarding metric with string value {k}={v}"
                 )
                 continue
-            self.experiment.log_scalar(self.run_id, k, v, step_num)
+            self.experiment.log_scalar(self.run_id, k, v, step)
 
     def save(self):
         pass
