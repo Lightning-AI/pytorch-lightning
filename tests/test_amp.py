@@ -53,7 +53,7 @@ def test_no_amp_single_gpu(tmpdir):
     )
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(Model)
+    result = trainer.fit(model)
 
     assert result == 1
 
