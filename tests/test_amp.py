@@ -32,6 +32,7 @@ def test_amp_single_gpu(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.spawn
 def test_no_amp_single_gpu(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -78,6 +79,7 @@ def test_amp_gpu_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.spawn
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
@@ -165,6 +167,7 @@ def test_cpu_model_with_amp(tmpdir):
         tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
+@pytest.mark.spawn
 def test_amp_gpu_dp(tmpdir):
     """Make sure DP + AMP work."""
     tutils.reset_seed()
