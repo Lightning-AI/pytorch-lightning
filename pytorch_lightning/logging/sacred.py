@@ -14,14 +14,11 @@ logger = getLogger(__name__)
 
 # TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
-    def __init__(self, sacred_experiment, observers=None):
+    def __init__(self, sacred_experiment):
         super().__init__()
-        if observers is None:
-            observers = []
         self.sacred_experiment = sacred_experiment
         self.experiment_name = sacred_experiment.path
-        for obs in observers:
-            self.sacred_experiment.observers.append(obs)
+        self._run_id = None
 
     @property
     def experiment(self):
@@ -29,15 +26,19 @@ class SacredLogger(LightningLoggerBase):
 
     @property
     def run_id(self):
-        try:
-            return self.sacred_experiment.current_run._id
-        except:
-            pass
-        return None
+        if self._run_id is not None:
+            return self._run_id
+
+        # self._run_id = self.sacred_experiment.current_run.info.run_id
+        # TODO how to get run_id?
+        print(self.sacred_experiment.current_run.info)
+        self._run_id = 0
+        return self._run_id
 
     @rank_zero_only
     def log_hyperparams(self, params):
-        raise NotImplementedError("SacredLogger does not support log_hyperparams.")
+        # probably not needed bc. it is dealt with by sacred
+        pass
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
