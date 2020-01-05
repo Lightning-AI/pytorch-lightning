@@ -71,15 +71,6 @@ class SacredLogger(LightningLoggerBase):
                 continue
             self.experiment.log_scalar(k, v, step)
 
-    def save(self):
-        pass
-
-    @rank_zero_only
-    def finalize(self, status="FINISHED"):
-        if status == 'success':
-            status = 'FINISHED'
-        self.experiment.set_terminated(self.run_id, status)
-
     @property
     def name(self):
         return self.experiment_name
