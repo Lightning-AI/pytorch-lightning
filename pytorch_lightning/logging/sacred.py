@@ -1,3 +1,23 @@
+"""
+Log using `sacred <https://sacred.readthedocs.io/en/stable/index.html>'_
+.. code-block:: python
+    from pytorch_lightning.logging import SacredLogger
+    ex = Experiment() # initialize however you like
+    ex.main(your_main_fct)
+    ex.observers.append(
+        # add any observer you like
+    )
+    sacred_logger = SacredLogger(ex)
+    trainer = Trainer(logger=sacred_logger)
+Use the logger anywhere in you LightningModule as follows:
+.. code-block:: python
+    def train_step(...):
+        # example
+        self.logger.experiment.whatever_sacred_supports(...)
+    def any_lightning_module_function_or_hook(...):
+        self.logger.experiment.whatever_sacred_supports(...)
+"""
+
 from logging import getLogger
 from time import time
 
@@ -15,6 +35,11 @@ logger = getLogger(__name__)
 # TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
     def __init__(self, sacred_experiment):
+        """Initialize a sacred logger.
+
+        :param sacred.experiment.Experiment sacred_experiment: Required. Experiment object with desired observers
+        already appended.
+        """
         super().__init__()
         self.sacred_experiment = sacred_experiment
         self.experiment_name = sacred_experiment.path
