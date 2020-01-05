@@ -23,7 +23,6 @@ from time import time
 
 try:
     import sacred
-    from sacred.observers import MongoObserver
 except ImportError:
     raise ImportError('Missing sacred package.  Run `pip install sacred`')
 
@@ -54,10 +53,7 @@ class SacredLogger(LightningLoggerBase):
         if self._run_id is not None:
             return self._run_id
 
-        # self._run_id = self.sacred_experiment.current_run.info.run_id
-        # TODO how to get run_id?
-        print(self.sacred_experiment.current_run.info)
-        self._run_id = 0
+        self._run_id = self.sacred_experiment.current_run._id
         return self._run_id
 
     @rank_zero_only
