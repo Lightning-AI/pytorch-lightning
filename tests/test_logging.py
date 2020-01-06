@@ -386,3 +386,52 @@ def test_custom_logger(tmpdir):
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
+
+
+def test_sacred_logger(tmpdir):
+    """Verify that basic functionality of sacred logger works."""
+    tutils.reset_seed()
+
+    try:
+        from pytorch_lightning.logging import SacredLogger
+    except ModuleNotFoundError:
+        return
+
+    try:
+        from sacred import Experiment
+    except ModuleNotFoundError:
+        return
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    mlflow_dir = os.path.join(tmpdir, "sacredruns")
+    ex = Experiment()
+    ex_config = vars(hparams)
+    ex.add_config(ex_config)
+    # ex.observers.append(
+    #     MongoObserver.create(
+    #         url='mongodb://{ip}:{port}'.format(**mongodb_settings),
+    #         db_name='{db}'.format(**mongodb_settings),
+    #     )
+    # )
+
+
+    def run_fct():
+        logger = SacredLogger(ex)
+
+        trainer_options = dict(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            train_percent_check=0.01,
+            logger=logger
+        )
+        trainer = Trainer(**trainer_options)
+        result = trainer.fit(model)
+        return result
+
+
+    result = ex.run(run_fct) # TODO: will this return the result?
+
+    print('result finished')
+    assert result == 1, "Training failed"
