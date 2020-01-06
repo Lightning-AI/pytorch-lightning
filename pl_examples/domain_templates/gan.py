@@ -78,6 +78,12 @@ class GAN(pl.LightningModule):
         # networks
         mnist_shape = (1, 28, 28)
         self.generator = Generator(latent_dim=hparams.latent_dim, img_shape=mnist_shape)
+
+        # Note: if training on more than 1 GPU with Distributed Data Parallel training (ddp), consider wrapping the
+        # Generator model with the following code: torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator).
+        # This is in order to ensure model's batch norm layers sync their mean & std-dev between the model instances
+        # trained.
+
         self.discriminator = Discriminator(img_shape=mnist_shape)
 
         # cache for generated images
@@ -130,6 +136,10 @@ class GAN(pl.LightningModule):
         # train discriminator
         if optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
+
+            # Make sure no gradients are leaked to the discriminator when training the generator (this could be removed
+            # pending fix #603)
+            self.discriminator.zero_grad()
 
             # how well can it label as real?
             valid = torch.ones(imgs.size(0), 1)
