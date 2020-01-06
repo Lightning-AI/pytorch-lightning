@@ -19,7 +19,6 @@ Use the logger anywhere in you LightningModule as follows:
 """
 
 from logging import getLogger
-from time import time
 
 try:
     import sacred
@@ -31,7 +30,6 @@ from pytorch_lightning.logging.base import LightningLoggerBase, rank_zero_only
 logger = getLogger(__name__)
 
 
-# TODO: add docstring with type definition
 class SacredLogger(LightningLoggerBase):
     def __init__(self, sacred_experiment):
         """Initialize a sacred logger.
