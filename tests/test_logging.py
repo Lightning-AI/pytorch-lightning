@@ -404,24 +404,17 @@ def test_sacred_logger(tmpdir):
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
+    sacred_dir = os.path.join(tmpdir, "sacredruns")
 
-    mlflow_dir = os.path.join(tmpdir, "sacredruns")
     ex = Experiment()
     ex_config = vars(hparams)
     ex.add_config(ex_config)
-    # ex.observers.append(
-    #     MongoObserver.create(
-    #         url='mongodb://{ip}:{port}'.format(**mongodb_settings),
-    #         db_name='{db}'.format(**mongodb_settings),
-    #     )
-    # )
-
 
     def run_fct():
         logger = SacredLogger(ex)
 
         trainer_options = dict(
-            default_save_path=tmpdir,
+            default_save_path=sacred_dir,
             max_epochs=1,
             train_percent_check=0.01,
             logger=logger
@@ -435,3 +428,37 @@ def test_sacred_logger(tmpdir):
 
     print('result finished')
     assert result == 1, "Training failed"
+
+
+def test_sacred_pickle(tmpdir):
+    """Verify that pickling trainer with sacred logger works."""
+    tutils.reset_seed()
+
+    try:
+        from pytorch_lightning.logging import SacredLogger
+    except ModuleNotFoundError:
+        return
+
+    try:
+        from sacred import Experiment
+    except ModuleNotFoundError:
+        return
+
+    hparams = tutils.get_hparams()
+    sacred_dir = os.path.join(tmpdir, "sacredruns")
+
+    ex = Experiment()
+    ex_config = vars(hparams)
+    ex.add_config(ex_config)
+
+    logger = SacredLogger(ex)
+    trainer_options = dict(
+        default_save_path=sacred_dir,
+        max_epochs=1,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.loggerlog_metrics({"acc": 1.0})
