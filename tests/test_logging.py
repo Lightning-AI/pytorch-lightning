@@ -423,8 +423,7 @@ def test_sacred_logger(tmpdir):
         result = trainer.fit(model)
         return result
 
-
-    result = ex.run(run_fct) # TODO: will this return the result?
+    result = ex.run(run_fct)  # TODO: will this return the result?
 
     print('result finished')
     assert result == 1, "Training failed"
