@@ -6,3 +6,4 @@ torchvision>=0.4.0
 pandas>=0.24  # lower version do not support py3.7
 test-tube>=0.7.5
 future>=0.17.1  # required for builtins in setup.py
+Pillow<7.0.0  # temporary fix until torchvision 0.4.3 is released
