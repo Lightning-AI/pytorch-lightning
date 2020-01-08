@@ -97,7 +97,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_epochs=1,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,

@@ -153,7 +153,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=1,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -269,7 +269,7 @@ def test_cpu_restore_training(tmpdir):
     logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
 
     trainer_options = dict(
-        max_epochs=4,
+        max_epochs=8,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
@@ -290,7 +290,7 @@ def test_cpu_restore_training(tmpdir):
     # we want to see if the weights come back correctly
     new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
     trainer_options = dict(
-        max_epochs=4,
+        max_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
         train_percent_check=0.2,
