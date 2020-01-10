@@ -59,7 +59,7 @@ class MLFlowLogger(LightningLoggerBase):
         if expt:
             self._expt_id = expt.experiment_id
         else:
-            logger.warning(f"Experiment with name f{self.experiment_name} not found. Creating it.")
+            logger.warning(f"Experiment with name {self.experiment_name} not found. Creating it.")
             self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
 
         run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
