@@ -359,7 +359,7 @@ class Trainer(TrainerIOMixin,
             tqdm_dict['split_idx'] = self.split_idx
 
         if self.logger is not None and self.logger.version is not None:
-            tqdm_dict['v_nb'] = self.logger.version
+            tqdm_dict['v_num'] = self.logger.version
 
         tqdm_dict.update(self.tqdm_metrics)
 

@@ -168,7 +168,7 @@ Every k batches, lightning will write the new logs to disk
 from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 
-from .tensorboard import TensorboardLogger
+from .tensorboard import TensorBoardLogger
 
 try:
     from .test_tube import TestTubeLogger

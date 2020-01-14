@@ -31,16 +31,29 @@ Simple installation from PyPI
 pip install pytorch-lightning  
 ```
 
-[LIVE COLAB DEMO](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
-
 ## Docs   
 **[View the docs here](https://williamfalcon.github.io/pytorch-lightning/)**
 
+## Demo  
+[Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+
 ## What is it?  
-Lightning is a very lightweight wrapper on PyTorch. This means you don't have to learn a new library. To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format and Lightning will automate the rest. Lightning guarantees tested, correct, modern best practices for the automated parts.
+Lightning is a very lightweight wrapper on PyTorch that decouples the science code from the engineering code. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code.  
+
+To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
+
+- If you are a researcher, Lightning is infinitely flexible, you can modify everything down to the way .backward is called or distributed is set up. 
+- If you are a scientist or production team, lightning is very simple to use with best practice defaults.
+
+## What does lightning control for me?   
+
+Everything in Blue!   
+This is how lightning separates the science (red) from the engineering (blue).
+
+![Overview](docs/source/_static/images/pl.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format. [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
@@ -176,29 +189,6 @@ logging.info('and going to http://localhost:6006 on your browser')
 When you're all done you can even run the test set separately.   
 ```python
 trainer.test()
-```
-
-## What does lightning control for me?   
-
-Everything in gray!    
-You define the blue parts using the LightningModule interface:  
-
-![Overview](docs/source/_static/images/overview_flat.jpg)
-
-```python
-# what to do in the training loop
-def training_step(self, batch, batch_idx):
-
-# what to do in the validation loop
-def validation_step(self, batch, batch_idx):
-
-# how to aggregate validation_step outputs
-def validation_end(self, outputs):
-
-# and your dataloaders
-def train_dataloader():
-def val_dataloader():
-def test_dataloader():
 ```
 
 **Could be as complex as seq-2-seq + attention**    
