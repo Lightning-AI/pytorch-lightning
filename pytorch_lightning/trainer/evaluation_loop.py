@@ -266,76 +266,67 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self, test=False):
         # when testing make sure user defined a test step
-        can_run_test_step = False
+        if test and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
+            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
+                    Please define and try again'''
+            raise MisconfigurationException(m)
+
+        # hook
+        model = self.get_model()
+        model.on_pre_performance_check()
+
+        # select dataloaders
         if test:
-            can_run_test_step = self.is_overriden('test_step') and self.is_overriden('test_end')
-            if not can_run_test_step:
-                m = '''You called .test() without defining a test step or test_end.
-                Please define and try again'''
-                raise MisconfigurationException(m)
+            dataloaders = self.get_test_dataloaders()
+            max_batches = self.num_test_batches
+        else:
+            # val
+            dataloaders = self.get_val_dataloaders()
+            max_batches = self.num_val_batches
 
-        # validate only if model has validation_step defined
-        # test only if test_step or validation_step are defined
-        run_val_step = self.is_overriden('validation_step')
+        # cap max batches to 1 when using fast_dev_run
+        if self.fast_dev_run:
+            max_batches = 1
 
-        if run_val_step or can_run_test_step:
+        # init validation or test progress bar
+        # main progress bar will already be closed when testing so initial position is free
+        position = 2 * self.process_position + (not test)
+        desc = 'Testing' if test else 'Validating'
+        pbar = tqdm.tqdm(desc=desc, total=max_batches, leave=test, position=position,
+                         disable=not self.show_progress_bar, dynamic_ncols=True,
+                         unit='batch', file=sys.stdout)
+        setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
 
-            # hook
-            model = self.get_model()
-            model.on_pre_performance_check()
+        # run evaluation
+        eval_results = self.evaluate(self.model,
+                                     dataloaders,
+                                     max_batches,
+                                     test)
+        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
+            eval_results)
 
-            # select dataloaders
-            if test:
-                dataloaders = self.get_test_dataloaders()
-                max_batches = self.num_test_batches
-            else:
-                # val
-                dataloaders = self.get_val_dataloaders()
-                max_batches = self.num_val_batches
+        # add metrics to prog bar
+        self.add_tqdm_metrics(prog_bar_metrics)
 
-            # cap max batches to 1 when using fast_dev_run
-            if self.fast_dev_run:
-                max_batches = 1
+        # log metrics
+        self.log_metrics(log_metrics, {})
 
-            # init validation or test progress bar
-            # main progress bar will already be closed when testing so initial position is free
-            position = 2 * self.process_position + (not test)
-            desc = 'Testing' if test else 'Validating'
-            pbar = tqdm.tqdm(desc=desc, total=max_batches, leave=test, position=position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True,
-                             unit='batch', file=sys.stdout)
-            setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
+        # track metrics for callbacks
+        self.callback_metrics.update(callback_metrics)
 
-            # run evaluation
-            eval_results = self.evaluate(self.model,
-                                         dataloaders,
-                                         max_batches,
-                                         test)
-            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
-                eval_results)
+        # hook
+        model.on_post_performance_check()
 
-            # add metrics to prog bar
-            self.add_tqdm_metrics(prog_bar_metrics)
+        # add model specific metrics
+        tqdm_metrics = self.training_tqdm_dict
+        if not test:
+            self.main_progress_bar.set_postfix(**tqdm_metrics)
 
-            # log metrics
-            self.log_metrics(log_metrics, {})
-
-            # track metrics for callbacks
-            self.callback_metrics.update(callback_metrics)
-
-            # hook
-            model.on_post_performance_check()
-
-            # add model specific metrics
-            tqdm_metrics = self.training_tqdm_dict
-            if not test:
-                self.main_progress_bar.set_postfix(**tqdm_metrics)
-
-            # close progress bar
-            if test:
-                self.test_progress_bar.close()
-            else:
-                self.val_progress_bar.close()
+        # close progress bar
+        if test:
+            self.test_progress_bar.close()
+        else:
+            self.val_progress_bar.close()
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
