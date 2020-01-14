@@ -1,8 +1,8 @@
 import warnings
 
-import pytest
 import torch
 
+import tests.utils as tutils
 from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -12,46 +12,41 @@ from pytorch_lightning.testing import (
     LightningTestModelBase,
     LightningTestMixin,
 )
-from . import testing_utils
 
 
-def test_early_stopping_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_early_stopping_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    tutils.reset_seed()
 
-    stopping = EarlyStopping(monitor='val_loss')
+    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
+        default_save_path=tmpdir,
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=True,
-        logger=testing_utils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1
     )
 
-    model, hparams = testing_utils.get_model()
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    model, hparams = tutils.get_model()
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
     model.unfreeze()
 
 
-def test_lbfgs_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_lbfgs_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    tutils.reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_epochs=1,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -59,22 +54,17 @@ def test_lbfgs_cpu_model():
         val_percent_check=0.2
     )
 
-    model, hparams = testing_utils.get_model(use_test_model=True, lbfgs=True)
-    testing_utils.run_model_test_no_loggers(trainer_options,
-                                            model, hparams, on_gpu=False, min_acc=0.30)
-
-    testing_utils.clear_save_dir()
+    model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
+    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
-def test_default_logger_callbacks_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_default_logger_callbacks_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    tutils.reset_seed()
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         print_nan_grads=True,
@@ -83,34 +73,31 @@ def test_default_logger_callbacks_cpu_model():
         val_percent_check=0.01
     )
 
-    model, hparams = testing_utils.get_model()
-    testing_utils.run_model_test_no_loggers(trainer_options, model, hparams, on_gpu=False)
+    model, hparams = tutils.get_model()
+    tutils.run_model_test_no_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
     model.unfreeze()
 
-    testing_utils.clear_save_dir()
 
+def test_running_test_after_fitting(tmpdir):
+    """Verify test() on fitted model."""
+    tutils.reset_seed()
 
-def test_running_test_after_fitting():
-    """Verify test() on fitted model"""
-    testing_utils.reset_seed()
-
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
-
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # logger file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -127,33 +114,28 @@ def test_running_test_after_fitting():
     trainer.test()
 
     # test we have good test accuracy
-    testing_utils.assert_ok_test_acc(trainer)
-
-    testing_utils.clear_save_dir()
+    tutils.assert_ok_test_acc(trainer)
 
 
-def test_running_test_without_val():
-    testing_utils.reset_seed()
-
-    """Verify test() works on a model with no val_loader"""
+def test_running_test_without_val(tmpdir):
+    """Verify `test()` works on a model with no `val_loader`."""
+    tutils.reset_seed()
 
     class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
         pass
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-    save_dir = testing_utils.init_save_dir()
-
     # logger file to get meta
-    logger = testing_utils.get_test_tube_logger(False)
+    logger = tutils.get_test_tube_logger(tmpdir, False)
 
     # logger file to get weights
-    checkpoint = testing_utils.init_checkpoint_callback(logger)
+    checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -171,15 +153,13 @@ def test_running_test_without_val():
     trainer.test()
 
     # test we have good test accuracy
-    testing_utils.assert_ok_test_acc(trainer)
-
-    testing_utils.clear_save_dir()
+    tutils.assert_ok_test_acc(trainer)
 
 
 def test_single_gpu_batch_parse():
-    testing_utils.reset_seed()
+    tutils.reset_seed()
 
-    if not testing_utils.can_run_gpu_test():
+    if not tutils.can_run_gpu_test():
         return
 
     trainer = Trainer()
@@ -220,21 +200,17 @@ def test_single_gpu_batch_parse():
     assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
 
 
-def test_simple_cpu():
-    """
-    Verify continue training session on CPU
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_simple_cpu(tmpdir):
+    """Verify continue training session on CPU."""
+    tutils.reset_seed()
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-
-    save_dir = testing_utils.init_save_dir()
 
     # logger file to get meta
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )
@@ -246,61 +222,50 @@ def test_simple_cpu():
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
-    testing_utils.clear_save_dir()
 
-
-def test_cpu_model():
-    """
-    Make sure model trains on CPU
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_cpu_model(tmpdir):
+    """Make sure model trains on CPU."""
+    tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=testing_utils.get_test_tube_logger(),
-        max_nb_epochs=1,
+        logger=tutils.get_test_tube_logger(tmpdir),
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = testing_utils.get_model()
+    model, hparams = tutils.get_model()
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_all_features_cpu_model():
-    """
-    Test each of the trainer options
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_all_features_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    tutils.reset_seed()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
         print_nan_grads=True,
         show_progress_bar=False,
-        logger=testing_utils.get_test_tube_logger(),
+        logger=tutils.get_test_tube_logger(tmpdir),
         accumulate_grad_batches=2,
-        max_nb_epochs=1,
+        max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = testing_utils.get_model()
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams, on_gpu=False)
+    model, hparams = tutils.get_model()
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_tbptt_cpu_model():
-    """
-    Test truncated back propagation through time works.
-    :return:
-    """
-    testing_utils.reset_seed()
-
-    save_dir = testing_utils.init_save_dir()
+def test_tbptt_cpu_model(tmpdir):
+    """Test truncated back propagation through time works."""
+    tutils.reset_seed()
 
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -349,14 +314,15 @@ def test_tbptt_cpu_model():
             )
 
     trainer_options = dict(
-        max_nb_epochs=1,
+        default_save_path=tmpdir,
+        max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
         weights_summary=None,
         early_stop_callback=False
     )
 
-    hparams = testing_utils.get_hparams()
+    hparams = tutils.get_hparams()
     hparams.batch_size = batch_size
     hparams.in_features = truncated_bptt_steps
     hparams.hidden_dim = truncated_bptt_steps
@@ -370,32 +336,28 @@ def test_tbptt_cpu_model():
 
     assert result == 1, 'training failed to complete'
 
-    testing_utils.clear_save_dir()
 
-
-def test_single_gpu_model():
-    """
-    Make sure single GPU works (DP mode)
-    :return:
-    """
-    testing_utils.reset_seed()
+def test_single_gpu_model(tmpdir):
+    """Make sure single GPU works (DP mode)."""
+    tutils.reset_seed()
 
     if not torch.cuda.is_available():
         warnings.warn('test_single_gpu_model cannot run.'
                       ' Rerun on a GPU node to run this test')
         return
-    model, hparams = testing_utils.get_model()
+    model, hparams = tutils.get_model()
 
     trainer_options = dict(
+        default_save_path=tmpdir,
         show_progress_bar=False,
-        max_nb_epochs=1,
+        max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
         gpus=1
     )
 
-    testing_utils.run_gpu_model_test(trainer_options, model, hparams)
+    tutils.run_model_test(trainer_options, model)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+#     pytest.main([__file__])

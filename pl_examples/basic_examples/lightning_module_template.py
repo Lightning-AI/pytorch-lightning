@@ -16,7 +16,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
-from pytorch_lightning.root_module.root_module import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class LightningTemplateModel(LightningModule):
