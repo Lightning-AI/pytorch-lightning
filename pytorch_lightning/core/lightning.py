@@ -665,9 +665,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
 
-        .. note:: If you use LBFGS lightning handles the closure function automatically for you.
-        
-        .. note:: If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer at each training step.
+        .. note:: If you use LBFGS lightning handles the closure function automatically for you
+
+        .. note:: If you use multiple optimizers, gradients will be calculated only
+         for the parameters of current optimizer at each training step.
 
         Example
         -------
