@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="lightning_logo-name.svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="455.9084"
+     inkscape:cy="480.17304"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1028"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g22"
+       transform="matrix(0.08391551,0,0,0.08391551,51.360546,173.44777)">
+      <path
+         id="path20"
+         d="m 218.28104,90.106412 c 50.29195,50.291948 50.29195,130.968618 0,181.609818 -49.24421,50.29196 -130.270126,50.29196 -180.562077,0 -50.291951,-50.29195 -50.291951,-131.31787 0,-181.609818 L 127.82537,0 v 45.053206 l -8.38199,8.381992 -59.721688,59.721692 c -37.718964,37.02046 -37.718964,97.7899 0,135.50887 37.020463,37.71896 97.789908,37.71896 135.508868,0 37.71896,-37.02047 37.71896,-97.78991 0,-135.50887 z m -45.05321,-5.587995 c -9.25849,0 -16.76398,-7.505491 -16.76398,-16.763983 0,-9.258493 7.50549,-16.763984 16.76398,-16.763984 9.25849,0 16.76398,7.505491 16.76398,16.763984 0,9.258492 -7.50549,16.763983 -16.76398,16.763983 z"
+         inkscape:connector-curvature="0"
+         style="fill:#ee4c2c" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="106.21132"
+       y="193.05655"
+       id="text36"><tspan
+         sodipodi:role="line"
+         id="tspan34"
+         x="106.21132"
+         y="193.05655"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.57777786px;font-family:Laksaman;-inkscape-font-specification:'Laksaman Italic';stroke-width:0.26458332">Lightning</tspan></text>
+    <path
+       style="fill:#540c8c;fill-rule:evenodd;stroke:none;stroke-width:0.06695288"
+       inkscape:connector-curvature="0"
+       d="m 75.836927,173.5433 c -0.03658,0.0186 -0.08157,0.0636 -0.100043,0.10004 -0.02688,0.053 -0.03244,2.71675 -0.02735,13.28888 l 0.0059,13.22245 0.06097,0.061 0.06097,0.061 h 13.25523 13.255206 l 0.061,-0.061 0.061,-0.061 v -13.25519 -13.25519 l -0.061,-0.061 -0.061,-0.061 -13.22247,-0.006 c -10.572128,-0.005 -13.235775,4.1e-4 -13.288875,0.0273 m 15.248861,2.76134 c 0.434718,0.1513 0.460303,0.35531 0.156599,1.24827 -0.738576,2.27876 -1.502962,4.49668 -2.168205,6.50347 l 2.382723,2.37902 c 2.081031,2.07763 2.537108,2.54837 2.537108,2.6184 0,0.008 0.02226,0.0667 0.04937,0.12909 0.215986,0.49611 0.14669,1.11228 -0.172807,1.5367 -0.23661,0.31435 -7.037422,7.07277 -7.148026,7.10351 -0.2332,0.0648 -0.415906,-0.009 -0.574115,-0.23488 -0.128221,-0.1823 -0.116855,-0.22958 0.480051,-1.9982 0.579786,-1.84288 1.269561,-3.75213 1.821785,-5.50414 0,-0.013 -1.064088,-1.08785 -2.364644,-2.38841 -2.219221,-2.21929 -2.469292,-2.4816 -2.560349,-2.68601 -0.01965,-0.0442 -0.04641,-0.10135 -0.05943,-0.12688 -0.01302,-0.0256 -0.02368,-0.0683 -0.02368,-0.0951 0,-0.0268 -0.01267,-0.0612 -0.02818,-0.0767 -0.03765,-0.0376 -0.03765,-0.73079 0,-0.76849 0.01551,-0.0155 0.02818,-0.0547 0.02818,-0.087 0,-0.0607 0.11567,-0.29834 0.21814,-0.44812 0.133229,-0.19468 7.061646,-7.08816 7.124584,-7.08856 0.03422,-1.9e-4 0.08039,-0.0121 0.10241,-0.0264 0.05269,-0.034 0.07388,-0.0329 0.198381,0.0107"
+       id="path1-9"
+       sodipodi:nodetypes="ccscccccccccccscccccscccccccccsssscccc" />
+  </g>
+</svg>
