@@ -192,6 +192,14 @@ def test_comet_pickle(tmpdir, monkeypatch):
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
+def test_wandb_logger(tmpdir):
+    """Verify that basic functionality of wandb logger works."""
+    tutils.reset_seed()
+
+    from pytorch_lightning.logging import WandbLogger
+
+    wandb_dir = os.path.join(tmpdir, "wandb")
+    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
 
 def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
@@ -201,7 +209,6 @@ def test_neptune_logger(tmpdir):
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-
     logger = NeptuneLogger(offline_mode=True)
 
     trainer_options = dict(
@@ -216,6 +223,13 @@ def test_neptune_logger(tmpdir):
     print('result finished')
     assert result == 1, "Training failed"
 
+def test_wandb_pickle(tmpdir):
+    """Verify that pickling trainer with wandb logger works."""
+    tutils.reset_seed()
+
+    from pytorch_lightning.logging import WandbLogger
+    wandb_dir = str(tmpdir)
+    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
 
 def test_neptune_pickle(tmpdir):
     """Verify that pickling trainer with neptune logger works."""
@@ -227,6 +241,7 @@ def test_neptune_pickle(tmpdir):
     # model = LightningTestModel(hparams)
 
     logger = NeptuneLogger(offline_mode=True)
+
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
