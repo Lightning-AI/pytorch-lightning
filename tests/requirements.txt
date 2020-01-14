@@ -9,3 +9,4 @@ check-manifest
 mlflow
 comet_ml
 twine==1.13.0
+pillow<7.0.0
