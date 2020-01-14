@@ -106,10 +106,10 @@ def test_load_model_from_checkpoint(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_epochs=1,
+        max_epochs=5,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        checkpoint_callback=True,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
         default_save_path=tmpdir,
     )
@@ -121,7 +121,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = LightningTestModel.load_from_checkpoint(
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_4.ckpt")
     )
 
     # test that hparams loaded correctly
@@ -368,7 +368,6 @@ def test_model_saving_loading(tmpdir):
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
