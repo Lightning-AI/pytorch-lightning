@@ -2,7 +2,7 @@ import os
 from abc import ABC
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.logging import TensorboardLogger
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -69,7 +69,7 @@ class TrainerCallbackConfigMixin(ABC):
         # configure logger
         if logger is True:
             # default logger
-            self.logger = TestTubeLogger(
+            self.logger = TensorboardLogger(
                 save_dir=self.default_save_path,
                 version=self.slurm_job_id,
                 name='lightning_logs'
