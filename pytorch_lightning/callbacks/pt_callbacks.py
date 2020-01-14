@@ -84,18 +84,20 @@ class EarlyStopping(Callback):
     """
 
     def __init__(self, monitor='val_loss',
-                 min_delta=0.0, patience=0, verbose=0, mode='auto'):
+                 min_delta=0.0, patience=0, verbose=0, mode='auto', strict=True):
         super(EarlyStopping, self).__init__()
 
         self.monitor = monitor
         self.patience = patience
         self.verbose = verbose
+        self.strict = strict
         self.min_delta = min_delta
         self.wait = 0
         self.stopped_epoch = 0
 
         if mode not in ['auto', 'min', 'max']:
-            logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
+            if self.verbose > 0:
+                logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -115,6 +117,22 @@ class EarlyStopping(Callback):
 
         self.on_train_begin()
 
+    def check_metrics(self, logs):
+        monitor_val = logs.get(self.monitor)
+        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
+                     f' which is not available. Available metrics are:'
+                     f' `{"`, `".join(list(logs.keys()))}`')
+
+        if monitor_val is None:
+            if self.strict:
+                raise RuntimeError(error_msg)
+            elif self.verbose > 0:
+                warnings.warn(error_msg, RuntimeWarning)
+
+            return False
+
+        return True
+
     def on_train_begin(self, logs=None):
         # Allow instances to be re-used
         self.wait = 0
@@ -122,17 +140,11 @@ class EarlyStopping(Callback):
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self, epoch, logs=None):
-        current = logs.get(self.monitor)
         stop_training = False
-        if current is None:
-            warnings.warn(
-                f'Early stopping conditioned on metric `{self.monitor}`'
-                f' which is not available, so early stopping will not work.'
-                f' Available metrics are: {", ".join(list(logs.keys()))}',
-                RuntimeWarning)
-
+        if not self.check_metrics(logs):
             return stop_training
 
+        current = logs.get(self.monitor)
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0

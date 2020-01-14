@@ -55,7 +55,7 @@ class Trainer(TrainerIOMixin,
             self,
             logger=True,
             checkpoint_callback=True,
-            early_stop_callback=True,
+            early_stop_callback=None,
             default_save_path=None,
             gradient_clip_val=0,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -514,12 +514,8 @@ class Trainer(TrainerIOMixin,
             self.main_progress_bar.close()
             self.val_progress_bar.close()
 
-            if (self.enable_early_stop and
-                    callback_metrics.get(self.early_stop_callback.monitor) is None):
-                raise RuntimeError(f"Early stopping was configured to monitor"
-                                   f" {self.early_stop_callback.monitor} but it is not available"
-                                   f" after validation_end. Available metrics are:"
-                                   f" {', '.join(list(callback_metrics.keys()))}")
+            if self.enable_early_stop:
+                self.early_stop_callback.check_metrics(callback_metrics)
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,

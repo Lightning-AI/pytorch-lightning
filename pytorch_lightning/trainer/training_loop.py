@@ -400,12 +400,8 @@ class TrainerTrainLoopMixin(ABC):
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test=self.testing)
 
-                if (self.enable_early_stop and
-                        self.callback_metrics.get(self.early_stop_callback.monitor) is None):
-                    raise RuntimeError(f"Early stopping was configured to monitor"
-                                       f" {self.early_stop_callback.monitor} but it is not"
-                                       f" available after validation_end. Available metrics are:"
-                                       f" {', '.join(list(self.callback_metrics.keys()))}")
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch

@@ -55,7 +55,17 @@ class TrainerCallbackConfigMixin(ABC):
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
+                strict=True,
                 verbose=True,
+                mode='min'
+            )
+            self.enable_early_stop = True
+        elif early_stop_callback is None:
+            self.early_stop_callback = EarlyStopping(
+                monitor='val_loss',
+                patience=3,
+                strict=False,
+                verbose=False,
                 mode='min'
             )
             self.enable_early_stop = True
