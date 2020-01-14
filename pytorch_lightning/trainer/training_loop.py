@@ -184,6 +184,7 @@ class TrainerTrainLoopMixin(ABC):
         self.num_training_batches = None
         self.val_check_batch = None
         self.num_val_batches = None
+        self.disable_validation = None
         self.fast_dev_run = None
         self.is_iterable_train_dataloader = None
         self.main_progress_bar = None
@@ -294,14 +295,16 @@ class TrainerTrainLoopMixin(ABC):
             model.current_epoch = epoch
             self.current_epoch = epoch
 
-            # val can be checked multiple times in epoch
-            is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            val_checks_per_epoch = self.num_training_batches // self.val_check_batch
-            val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
+            total_val_batches = 0
+            if not self.disable_validation:
+                # val can be checked multiple times in epoch
+                is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
+                val_checks_per_epoch = self.num_training_batches // self.val_check_batch
+                val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
+                total_val_batches = self.num_val_batches * val_checks_per_epoch
 
             # total batches includes multiple val checks
-            self.total_batches = (self.num_training_batches +
-                                  self.num_val_batches * val_checks_per_epoch)
+            self.total_batches = self.num_training_batches + total_val_batches
             self.batch_loss_value = 0  # accumulated grads
 
             if self.fast_dev_run:
@@ -390,7 +393,8 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            should_check_val = ((is_val_check_batch or early_stop_epoch) and can_check_epoch)
+            should_check_val = (not self.disable_validation and can_check_epoch and
+                                (is_val_check_batch or early_stop_epoch))
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
