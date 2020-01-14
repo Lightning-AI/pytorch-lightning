@@ -355,7 +355,7 @@ def test_custom_logger(tmpdir):
 
     trainer_options = dict(
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger,
         default_save_path=tmpdir
     )

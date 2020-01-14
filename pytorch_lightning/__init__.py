@@ -1,6 +1,6 @@
 """Package info"""
 
-__version__ = '0.5.3.2'
+__version__ = '0.6.0'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'

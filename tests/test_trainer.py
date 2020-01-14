@@ -393,7 +393,7 @@ def test_multiple_test_dataloader(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
-        train_percent_check=0.1,
+        train_percent_check=0.2,
     )
 
     # fit model

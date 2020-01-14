@@ -367,6 +367,10 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, batch in enumerate(self.get_train_dataloader()):
+            # stop epoch if we limited the number of training batches
+            if batch_idx >= self.num_training_batches:
+                break
+
             self.batch_idx = batch_idx
 
             model = self.get_model()
@@ -413,11 +417,6 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-            # stop epoch if we limited the number of training batches
-            met_batch_limit = batch_idx >= self.num_training_batches
-            if met_batch_limit:
-                break
-
         # epoch end hook
         if self.is_function_implemented('on_epoch_end'):
             model = self.get_model()
@@ -455,6 +454,13 @@ class TrainerTrainLoopMixin(ABC):
 
             # call training_step once per optimizer
             for opt_idx, optimizer in enumerate(self.optimizers):
+                # make sure only the gradients of the current optimizer's paramaters are calculated 
+                # in the training step to prevent dangling gradients in multiple-optimizer setup.
+                for param in self.get_model().parameters():
+                    param.requires_grad = False
+                for group in optimizer.param_groups:
+                    for param in group['params']:
+                        param.requires_grad = True
 
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():

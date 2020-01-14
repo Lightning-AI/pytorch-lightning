@@ -32,6 +32,7 @@ def test_amp_single_gpu(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.spawn
 def test_no_amp_single_gpu(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -51,8 +52,10 @@ def test_no_amp_single_gpu(tmpdir):
         use_amp=True
     )
 
-    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
 
 
 def test_amp_gpu_ddp(tmpdir):
@@ -78,6 +81,7 @@ def test_amp_gpu_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.spawn
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     if not tutils.can_run_gpu_test():
@@ -124,26 +128,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
-    # test model loading with a map_location
-    pretrained_model = tutils.load_model(logger.experiment, trainer.checkpoint_callback.filepath)
-
-    # test model preds
-    for dataloader in trainer.get_test_dataloaders():
-        tutils.run_prediction(dataloader, pretrained_model)
-
-    if trainer.use_ddp:
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
-    # test HPC loading / saving
-    trainer.hpc_save(tmpdir, logger)
-    trainer.hpc_load(tmpdir, on_gpu=True)
-
-    # test freeze on gpu
-    model.freeze()
-    model.unfreeze()
-
 
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
@@ -165,6 +149,7 @@ def test_cpu_model_with_amp(tmpdir):
         tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
+@pytest.mark.spawn
 def test_amp_gpu_dp(tmpdir):
     """Make sure DP + AMP work."""
     tutils.reset_seed()
@@ -180,8 +165,11 @@ def test_amp_gpu_dp(tmpdir):
         distributed_backend='dp',
         use_amp=True
     )
-    with pytest.raises(MisconfigurationException):
-        tutils.run_model_test(trainer_options, model, hparams)
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
 
 
 if __name__ == '__main__':
