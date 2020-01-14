@@ -307,6 +307,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
 - [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
 - [Logging on W&B](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#w&b)
+- [Logging experiment data to Neptune](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#neptune-support)
 
 #### Training loop    
 

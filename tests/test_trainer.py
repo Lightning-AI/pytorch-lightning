@@ -15,7 +15,7 @@ from pytorch_lightning.testing import (
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
 )
-from pytorch_lightning.trainer import trainer_io
+from pytorch_lightning.trainer import training_io
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 
 
@@ -187,7 +187,7 @@ def test_loading_meta_tags(tmpdir):
     tags_path = logger.experiment.get_data_path(
         logger.experiment.name, logger.experiment.version
     ) + '/meta_tags.csv'
-    tags = trainer_io.load_hparams_from_tags_csv(tags_path)
+    tags = training_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
@@ -393,7 +393,7 @@ def test_multiple_test_dataloader(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
-        train_percent_check=0.1,
+        train_percent_check=0.2,
     )
 
     # fit model

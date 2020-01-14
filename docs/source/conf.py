@@ -62,7 +62,6 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -128,7 +127,6 @@ exclude_patterns = ['*.test_*']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -174,7 +172,6 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + '-doc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -198,7 +195,6 @@ latex_documents = [
     (master_doc, project + '.tex', project + ' Documentation', author, 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -206,7 +202,6 @@ latex_documents = [
 man_pages = [
     (master_doc, project, project + ' Documentation', [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -217,7 +212,6 @@ texinfo_documents = [
     (master_doc, project, project + ' Documentation', author, project,
      'One line description of project.', 'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -236,7 +230,6 @@ epub_title = project
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
 
-
 # -- Extension configuration -------------------------------------------------
 
 # -- Options for intersphinx extension ---------------------------------------
@@ -248,7 +241,6 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
 
 # https://github.com/rtfd/readthedocs.org/issues/1139
 # I use sphinx-apidoc to auto-generate API documentation for my project.
@@ -302,7 +294,7 @@ with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
             MOCK_REQUIRE_PACKAGES.append(pkg.rstrip())
 
 # TODO: better parse from package since the import name and package name may differ
-MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'sklearn', 'test_tube', 'mlflow', 'comet_ml', 'wandb']
+MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'sklearn', 'test_tube', 'mlflow', 'comet_ml', 'wandb', 'neptune']
 autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 # for mod_name in MOCK_REQUIRE_PACKAGES:
 #     sys.modules[mod_name] = mock.Mock()

@@ -191,3 +191,8 @@ try:
     from .comet import CometLogger
 except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
+
+try:
+    from .neptune import NeptuneLogger
+except ImportError:
+    pass
