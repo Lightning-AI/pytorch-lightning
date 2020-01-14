@@ -9,14 +9,14 @@
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
-[![Build Status](https://travis-ci.org/williamFalcon/pytorch-lightning.svg?branch=master)](https://travis-ci.org/williamFalcon/pytorch-lightning)
-[![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/williamFalcon/pytorch-lightning)
-[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/williamFalcon/pytorch-lightning/tree/master/tests#running-coverage)
+[![Build Status](https://travis-ci.org/PytorchLightning/pytorch-lightning.svg?branch=master)](https://travis-ci.org/PytorchLightning/pytorch-lightning)
+[![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/PytorchLightning/pytorch-lightning)
+[![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/williamFalcon/pytorch-lightning/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-Feb%206-<COLOR>.svg)](https://shields.io/)
 
 <!-- 
@@ -40,7 +40,7 @@ pip install pytorch-lightning
 ## What is it?  
 Lightning is a very lightweight wrapper on PyTorch that decouples the science code from the engineering code. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code.  
 
-To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
+To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
 
 - If you are a researcher, Lightning is infinitely flexible, you can modify everything down to the way .backward is called or distributed is set up. 
 - If you are a scientist or production team, lightning is very simple to use with best practice defaults.
@@ -56,7 +56,7 @@ This is how lightning separates the science (red) from the engineering (blue).
 You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
 
 ## Starting a new project?   
-[Use our seed-project aimed at reproducibility!](https://github.com/williamFalcon/pytorch-lightning-conference-seed)     
+[Use our seed-project aimed at reproducibility!](https://github.com/PytorchLightning/pytorch-lightning-conference-seed)     
 
 ## Why do I want to use lightning?
 Every research project starts the same, a model, a training loop, validation loop, etc. As your research advances, you're likely to need distributed training, 16-bit precision, checkpointing, gradient accumulation, etc.   
@@ -66,17 +66,17 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
  
 ## README Table of Contents        
-- [How do I use it](https://github.com/williamFalcon/pytorch-lightning#how-do-i-do-use-it)     
-- [What lightning automates](https://github.com/williamFalcon/pytorch-lightning#what-does-lightning-control-for-me)    
-- [Tensorboard integration](https://github.com/williamFalcon/pytorch-lightning#tensorboard)    
-- [Lightning features](https://github.com/williamFalcon/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
-- [Examples](https://github.com/williamFalcon/pytorch-lightning#examples)    
-- [Tutorials](https://github.com/williamFalcon/pytorch-lightning#tutorials)
-- [Contributing](https://github.com/williamFalcon/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
-- [Bleeding edge install](https://github.com/williamFalcon/pytorch-lightning#bleeding-edge)   
-- [Lightning Design Principles](https://github.com/williamFalcon/pytorch-lightning#lightning-design-principles)   
-- [Asking for help](https://github.com/williamFalcon/pytorch-lightning#asking-for-help)
-- [FAQ](https://github.com/williamFalcon/pytorch-lightning#faq)    
+- [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)     
+- [What lightning automates](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)    
+- [Tensorboard integration](https://github.com/PytorchLightning/pytorch-lightning#tensorboard)    
+- [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
+- [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)    
+- [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
+- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)   
+- [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)   
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)    
 
 ---
 
@@ -347,10 +347,10 @@ Lightning also adds a text column with all the hyperparameters for this experime
 - [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
 
 ## Examples   
-- [GAN](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
-- [MNIST](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/basic_examples)      
-- [Other projects using Lightning](https://github.com/williamFalcon/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
-- [Multi-node](https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
+- [GAN](https://github.com/PytorchLightning/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
+- [MNIST](https://github.com/PytorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples)      
+- [Other projects using Lightning](https://github.com/PytorchLightning/pytorch-lightning/network/dependents?package_id=UGFja2FnZS0zNzE3NDU4OTM%3D)    
+- [Multi-node](https://github.com/PytorchLightning/pytorch-lightning/tree/master/pl_examples/multi_node_examples)   
 
 ## Tutorials   
 - [Basic Lightning use](https://towardsdatascience.com/supercharge-your-ai-research-with-pytorch-lightning-337948a99eec)    
@@ -364,7 +364,7 @@ Welcome to the Lightning community!
 
 If you have any questions, feel free to:   
 1. [read the docs](https://williamfalcon.github.io/pytorch-lightning/).     
-2. [Search through the issues](https://github.com/williamFalcon/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
+2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
 
 If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
@@ -415,18 +415,18 @@ Nope. Please use anaconda or miniconda.
 If you can't wait for the next release, install the most up to date code with:
 * using GIT (locally clone whole repo with full history)
     ```bash
-    pip install git+https://github.com/williamFalcon/pytorch-lightning.git@master --upgrade
+    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
     ```
 * using instant zip (last state of the repo without git history)
     ```bash
-    pip install https://github.com/williamFalcon/pytorch-lightning/archive/master.zip --upgrade
+    pip install https://github.com/PytorchLightning/pytorch-lightning/archive/master.zip --upgrade
     ```
 
 ### Any release installation
 
 You can also install any past release from this repository:
 ```bash
-pip install https://github.com/williamFalcon/pytorch-lightning/archive/0.4.4.zip --upgrade
+pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.4.4.zip --upgrade
 ```
 
 ## Bibtex
@@ -438,6 +438,6 @@ If you want to cite the framework feel free to use this (but only if you loved i
   year = {2019},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/williamFalcon/pytorch-lightning}}
+  howpublished = {\url{https://github.com/PytorchLightning/pytorch-lightning}}
 }
 ```
