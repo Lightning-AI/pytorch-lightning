@@ -516,10 +516,10 @@ class Trainer(TrainerIOMixin,
 
             if (self.enable_early_stop and
                     callback_metrics.get(self.early_stop_callback.monitor) is None):
-                raise RuntimeError(f"Early stopping was configured to monitor "
-                                   f"{self.early_stop_callback.monitor} but it is not available "
-                                   f"after validation_end. Available metrics are: "
-                                   f"{','.join(list(callback_metrics.keys()))}")
+                raise RuntimeError(f"Early stopping was configured to monitor"
+                                   f" {self.early_stop_callback.monitor} but it is not available"
+                                   f" after validation_end. Available metrics are:"
+                                   f" {', '.join(list(callback_metrics.keys()))}")
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
