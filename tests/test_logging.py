@@ -236,6 +236,7 @@ def test_wandb_pickle(tmpdir):
     assert logger is not None
 
 
+
 def test_neptune_pickle(tmpdir):
     """Verify that pickling trainer with neptune logger works."""
     tutils.reset_seed()
