@@ -41,12 +41,11 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    exp = logger.experiment
-    logging.info(os.listdir(tutils.get_data_path(exp.name, exp.version)))
+    logging.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger.experiment,
+    pretrained_model = tutils.load_model(logger,
                                          trainer.checkpoint_callback.filepath,
                                          module_class=LightningTestModel)
 
@@ -87,7 +86,7 @@ def test_running_test_pretrained_model(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = tutils.load_model(
-        logger.experiment, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
+        logger, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
     new_trainer = Trainer(**trainer_options)
@@ -171,7 +170,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger.experiment,
+    pretrained_model = tutils.load_model(logger,
                                          trainer.checkpoint_callback.filepath,
                                          module_class=LightningTestModel)
 
@@ -361,7 +360,7 @@ def test_model_saving_loading(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger.experiment.name, logger.experiment.version)
+    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path)

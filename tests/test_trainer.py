@@ -51,7 +51,7 @@ def test_no_val_module(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger.experiment.name, logger.experiment.version)
+    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path)
@@ -89,7 +89,7 @@ def test_no_val_end_module(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger.experiment.name, logger.experiment.version)
+    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path)
@@ -184,9 +184,8 @@ def test_loading_meta_tags(tmpdir):
     logger.save()
 
     # load tags
-    tags_path = tutils.get_data_path(
-        logger.experiment.name, logger.experiment.version
-    ) + '/meta_tags.csv'
+    path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
+    tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
     tags = training_io.load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000

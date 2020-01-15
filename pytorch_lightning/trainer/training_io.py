@@ -96,7 +96,9 @@ import warnings
 from subprocess import call
 import logging
 from abc import ABC
+from argparse import Namespace
 
+import pandas as pd
 import torch
 import torch.distributed as dist
 
@@ -268,7 +270,6 @@ class TrainerIOMixin(ABC):
             torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
-
         # if on_gpu:
         #     checkpoint = torch.load(checkpoint_path)
         # else:
@@ -461,14 +462,13 @@ class TrainerIOMixin(ABC):
 
 
 def load_hparams_from_tags_csv(tags_csv):
-    from argparse import Namespace
-    import pandas as pd
+    if not os.path.isfile(tags_csv):
+        logging.warning(f'Missing Tags: {tags_csv}.')
+        return Namespace()
 
     tags_df = pd.read_csv(tags_csv)
     dic = tags_df.to_dict(orient='records')
-
     ns_dict = {row['key']: convert(row['value']) for row in dic}
-
     ns = Namespace(**ns_dict)
     return ns
 
