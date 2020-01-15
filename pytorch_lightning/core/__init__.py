@@ -111,7 +111,7 @@ Optional Methods
 Lightning has a list of default argparse commands.
  This method is your chance to add or modify commands specific to your model.
  The `hyperparameter argument parser
-  <https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_
+  <https://PyTorchLightning.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_
  is available anywhere in your model by calling self.hparams.
 
 **Return**
