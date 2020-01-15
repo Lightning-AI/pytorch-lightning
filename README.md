@@ -280,29 +280,16 @@ Lightning also adds a text column with all the hyperparameters for this experime
 ## Lightning automates all of the following ([each is also configurable](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.html)):
 
 
-#### General
-
-- [Model saving & Restoring training session](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_io.html)
 - [Running grid search on a cluster](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_data_parallel.html)  
 - [Fast dev run](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.utilities.debugging.html)
 - [Logging](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.logging.html)
-
-#### Distributed training    
-
 - [Implement Your Own Distributed (DDP) training](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
-- [16-bit mixed precision](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_parts.html)
 - [Multi-GPU & Multi-node](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_parts.html)
-
-#### Training and validations loop    
-
-- [Accumulate gradients](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#accumulated-gradients)
-- [Early stopping callback](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#early-stopping)
-- [Gradient Clipping](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#gradient-clipping)
+- [Training loop](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html)
 - [Hooks](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.hooks.html)
-- [Configure optimizers](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)  
-- [Set how much of the training set to check (1-100%)](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.evaluation_loop.html#set-how-much-of-the-validation-set-to-check)
-- [Step optimizers at arbitrary intervals](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.optimizer_step)
+- [Configure optimizers](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)
 - [Validations](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.evaluation_loop.html)
+- [Model saving & Restoring training session](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_io.html)
   
 
 ## Examples   
@@ -383,16 +370,16 @@ If you can't wait for the next release, install the most up to date code with:
 
 ### Any release installation
 
-You can also install any past release from this repository:
+You can also install any past release `0.X.Y` from this repository:
 ```bash
-pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.4.4.zip --upgrade
+pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 ```
 @misc{Falcon2019,
-  author = {Falcon, W.A.},
+  author = {Falcon, W.A. et al.},
   title = {PyTorch Lightning},
   year = {2019},
   publisher = {GitHub},
