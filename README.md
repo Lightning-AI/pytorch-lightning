@@ -367,9 +367,7 @@ If you have any questions, feel free to:
 2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
 
-If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
-
-To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community)!     
+If no one replies to you quickly enough, feel free to post the stackoverflow link to our [Slack channel](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)!       
 
 ---   
 ## FAQ    
