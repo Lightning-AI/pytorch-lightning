@@ -135,7 +135,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
 
-                # if using TestTubeLogger or TensorboardLogger you can nest scalars
+                # if using TestTubeLogger or TensorBoardLogger you can nest scalars
                 logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
 
                 output = {
