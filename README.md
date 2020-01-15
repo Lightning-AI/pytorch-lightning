@@ -84,12 +84,12 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://PyTorchLightning.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://torch-lightning.readthedocs.io/en/paths//LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://PyTorchLightning.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)
+1. [Define a LightningModule](https://torch-lightning.readthedocs.io/en/paths//LightningModule/RequiredTrainerInterface/)
 **WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
     ```python
     import os
@@ -165,7 +165,7 @@ To use lightning do 2 things:
             # OPTIONAL
             return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
     ```
-2. Fit with a [trainer](https://PyTorchLightning.github.io/pytorch-lightning/Trainer/)    
+2. Fit with a [trainer](https://torch-lightning.readthedocs.io/en/paths//Trainer/)    
     ```python
     from pytorch_lightning import Trainer
     
@@ -277,32 +277,32 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 ![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
-## Lightning automates all of the following ([each is also configurable](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.html)):
+## Lightning automates all of the following ([each is also configurable](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.html)):
 
 
 #### General
 
-- [Model saving & Restoring training session](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.training_io.html)
-- [Running grid search on a cluster](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.distrib_data_parallel.html)  
-- [Fast dev run](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.utilities.debugging.html)
-- [Logging](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.logging.html)
+- [Model saving & Restoring training session](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_io.html)
+- [Running grid search on a cluster](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_data_parallel.html)  
+- [Fast dev run](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.utilities.debugging.html)
+- [Logging](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.logging.html)
 
 #### Distributed training    
 
-- [Implement Your Own Distributed (DDP) training](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
-- [16-bit mixed precision](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.distrib_parts.html)
-- [Multi-GPU & Multi-node](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.distrib_parts.html)
+- [Implement Your Own Distributed (DDP) training](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
+- [16-bit mixed precision](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_parts.html)
+- [Multi-GPU & Multi-node](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.distrib_parts.html)
 
 #### Training and validations loop    
 
-- [Accumulate gradients](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.training_loop.html#accumulated-gradients)
-- [Early stopping callback](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.training_loop.html#early-stopping)
-- [Gradient Clipping](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.training_loop.html#gradient-clipping)
-- [Hooks](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.core.hooks.html)
-- [Configure optimizers](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)  
-- [Set how much of the training set to check (1-100%)](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.evaluation_loop.html#set-how-much-of-the-validation-set-to-check)
-- [Step optimizers at arbitrary intervals](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.optimizer_step)
-- [Validations](https://pytorchlightning.github.io/pytorch-lightning/pytorch_lightning.trainer.evaluation_loop.html)
+- [Accumulate gradients](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#accumulated-gradients)
+- [Early stopping callback](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#early-stopping)
+- [Gradient Clipping](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.training_loop.html#gradient-clipping)
+- [Hooks](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.hooks.html)
+- [Configure optimizers](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)  
+- [Set how much of the training set to check (1-100%)](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.evaluation_loop.html#set-how-much-of-the-validation-set-to-check)
+- [Step optimizers at arbitrary intervals](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.optimizer_step)
+- [Validations](https://torch-lightning.readthedocs.io/en/paths//pytorch_lightning.trainer.evaluation_loop.html)
   
 
 ## Examples   
@@ -322,7 +322,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 Welcome to the Lightning community!   
 
 If you have any questions, feel free to:   
-1. [read the docs](https://williamfalcon.github.io/pytorch-lightning/).     
+1. [read the docs](https://torch-lightning.readthedocs.io/en/paths//).     
 2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
 
@@ -333,7 +333,7 @@ To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch
 ---   
 ## FAQ    
 **How do I use Lightning for rapid research?**   
-[Here's a walk-through](https://williamfalcon.github.io/pytorch-lightning/)  
+[Here's a walk-through](https://torch-lightning.readthedocs.io/en/paths//)  
 
 **Why was Lightning created?**     
 Lightning has 3 goals in mind:
