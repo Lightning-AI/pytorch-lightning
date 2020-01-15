@@ -1,5 +1,6 @@
 """
-# Validation loop
+Validation loop
+===============
 
 The lightning validation loop handles everything except the actual computations of your model.
 To decide what will happen in your validation loop, define the `validation_step` function.

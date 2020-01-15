@@ -940,9 +940,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             for mapping storage {'cuda:1':'cuda:0'}
         :return: The pretrained LightningModule
 
-        If you're using test tube, there is an alternate method which uses the meta_tags.csv
-        file from test-tube to rebuild the model. The meta_tags.csv file can be found in the
-        test-tube experiment save_dir.
+        If you're using `test-tube`, there is an alternate method which uses the meta_tags.csv
+        file from test-tube to rebuild the model. The `meta_tags.csv` file can be found in the
+        `test-tube` experiment save_dir.
 
         .. code-block:: python
 
