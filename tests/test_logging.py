@@ -411,6 +411,7 @@ def test_sacred_logger(tmpdir):
     ex_config = vars(hparams)
     ex.add_config(ex_config)
 
+    @ex.main
     def run_fct():
         logger = SacredLogger(ex)
 
@@ -424,10 +425,10 @@ def test_sacred_logger(tmpdir):
         result = trainer.fit(model)
         return result
 
-    result = ex.run(run_fct)  # TODO: will this return the result?
+    result = ex.run()
 
     print('result finished')
-    assert result == 1, "Training failed"
+    assert result.status == "COMPLETED", "Training failed"
 
 
 def test_sacred_pickle(tmpdir):
