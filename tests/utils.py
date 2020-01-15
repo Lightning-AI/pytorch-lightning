@@ -1,5 +1,4 @@
 import os
-import shutil
 import warnings
 from argparse import Namespace
 
@@ -22,6 +21,7 @@ ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
+ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
@@ -127,9 +127,13 @@ def get_test_tube_logger(save_dir, debug=True, version=None):
     return logger
 
 
+def get_data_path(exp_name, exp_version):
+    return os.path.join(ROOT_PATH, exp_name, 'version_{}'.format(exp_version))
+
+
 def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
     # load trained model
-    tags_path = exp.get_data_path(exp.name, exp.version)
+    tags_path = get_data_path(exp.name, exp.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
 
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
@@ -205,7 +209,7 @@ def set_random_master_port():
 
 def init_checkpoint_callback(logger):
     exp = logger.experiment
-    exp_path = exp.get_data_path(exp.name, exp.version)
+    exp_path = get_data_path(exp.name, exp.version)
     ckpt_dir = os.path.join(exp_path, 'checkpoints')
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint

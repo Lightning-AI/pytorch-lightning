@@ -42,7 +42,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     result = trainer.fit(model)
 
     exp = logger.experiment
-    logging.info(os.listdir(exp.get_data_path(exp.name, exp.version)))
+    logging.info(os.listdir(tutils.get_data_path(exp.name, exp.version)))
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
@@ -361,7 +361,7 @@ def test_model_saving_loading(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = logger.experiment.get_data_path(logger.experiment.name, logger.experiment.version)
+    tags_path = tutils.get_data_path(logger.experiment.name, logger.experiment.version)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
     model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
                                                    tags_csv=tags_path)
