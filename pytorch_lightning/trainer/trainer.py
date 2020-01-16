@@ -665,6 +665,16 @@ class Trainer(TrainerIOMixin,
     # MODEL TRAINING
     # -----------------------------
     def fit(self, model):
+        r"""
+        Runs the full optimization routine.
+        
+        Example::
+        
+            trainer = Trainer()
+            model = LightningModule()
+        
+            trainer.fit()    
+        """
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
@@ -820,6 +830,30 @@ class Trainer(TrainerIOMixin,
         self.train()
 
     def test(self, model=None):
+        r"""
+        
+        Separates from fit to make sure you never run on your test set until you want to.
+        
+        Args:
+            model (LightningModule): The model to test.
+
+        Example::
+        
+            # Option 1: 
+            # run test after fitting
+            trainer = Trainer()
+            model = LightningModule()
+            
+            trainer.fit()
+            trainer.test()
+            
+            # Option 2: 
+            # run test from a model loaded
+            model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            trainer = Trainer()
+            
+            trainer.test(model)
+        """
         self.testing = True
         if model is not None:
             self.fit(model)
