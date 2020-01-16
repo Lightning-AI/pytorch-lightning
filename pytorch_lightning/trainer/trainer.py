@@ -360,7 +360,11 @@ class Trainer(TrainerIOMixin,
                         weights_save_path='my/path'
                     )
                 
-        # :param str amp_level: Check nvidia docs for level
+            amp_level (str): The optimization level to use (O1, O2, etc...).
+                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(amp_level='O1')
         """
         # :param int num_sanity_val_steps: How many val steps before a full train loop.
         # :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
