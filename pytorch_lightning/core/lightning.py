@@ -1234,6 +1234,7 @@ def convert(val):
             return False
 
     for c in constructors:
+
         try:
             return c(val)
         except ValueError:
