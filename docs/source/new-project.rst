@@ -69,4 +69,3 @@ Then you could do rapid research by switching between these two and using the sa
 1. You're writing pure PyTorch... no unnecessary abstractions or new libraries to learn.
 2. You get free GPU and 16-bit support without writing any of that code in your model.
 3. You also get early stopping, multi-gpu training, 16-bit and MUCH more without coding anything!
-
