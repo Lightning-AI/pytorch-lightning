@@ -135,7 +135,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
 
-                # if using TestTubeLogger or TensorboardLogger you can nest scalars
+                # if using TestTubeLogger or TensorBoardLogger you can nest scalars
                 logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
 
                 output = {
@@ -665,9 +665,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
 
-        .. note:: If you use LBFGS lightning handles the closure function automatically for you.
-        
-        .. note:: If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer at each training step.
+        .. note:: If you use LBFGS lightning handles the closure function automatically for you
+
+        .. note:: If you use multiple optimizers, gradients will be calculated only
+         for the parameters of current optimizer at each training step.
 
         Example
         -------
@@ -939,9 +940,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             for mapping storage {'cuda:1':'cuda:0'}
         :return: The pretrained LightningModule
 
-        If you're using test tube, there is an alternate method which uses the meta_tags.csv
-        file from test-tube to rebuild the model. The meta_tags.csv file can be found in the
-        test-tube experiment save_dir.
+        If you're using `test-tube`, there is an alternate method which uses the meta_tags.csv
+        file from test-tube to rebuild the model. The `meta_tags.csv` file can be found in the
+        `test-tube` experiment save_dir.
 
         .. code-block:: python
 

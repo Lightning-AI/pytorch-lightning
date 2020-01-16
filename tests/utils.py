@@ -1,5 +1,4 @@
 import os
-import shutil
 import warnings
 from argparse import Namespace
 
@@ -8,13 +7,9 @@ import torch
 
 from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    ModelCheckpoint,
-)
-from pytorch_lightning.logging import TestTubeLogger
-from pytorch_lightning.testing import (
-    LightningTestModel,
-)
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.logging import TestTubeLogger, TensorBoardLogger
+from pytorch_lightning.testing import LightningTestModel
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
@@ -22,6 +17,7 @@ ROOT_SEED = 1234
 torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
+ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
@@ -35,8 +31,9 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(trainer.logger.experiment,
-                                  trainer.checkpoint_callback.filepath)
+    pretrained_model = load_model(trainer.logger,
+                                  trainer.checkpoint_callback.filepath,
+                                  path_expt=trainer_options.get('default_save_path'))
 
     # test new model accuracy
     for dataloader in model.test_dataloader():
@@ -69,7 +66,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger.experiment, trainer.checkpoint_callback.filepath)
+    pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
     [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
@@ -127,10 +124,28 @@ def get_test_tube_logger(save_dir, debug=True, version=None):
     return logger
 
 
-def load_model(exp, root_weights_dir, module_class=LightningTemplateModel):
+def get_data_path(expt_logger, path_dir=None):
+    # some calls contain only experiment not complete logger
+    expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
+    # each logger has to have these attributes
+    name, version = expt_logger.name, expt_logger.version
+    # only the test-tube experiment has such attribute
+    if hasattr(expt, 'get_data_path'):
+        return expt.get_data_path(name, version)
+    # the other experiments...
+    if not path_dir:
+        path_dir = ROOT_PATH
+    path_expt = os.path.join(path_dir, name, 'version_%s' % version)
+    # try if the new sub-folder exists, typical case for test-tube
+    if not os.path.isdir(path_expt):
+        path_expt = path_dir
+    return path_expt
+
+
+def load_model(exp, root_weights_dir, module_class=LightningTemplateModel, path_expt=None):
     # load trained model
-    tags_path = exp.get_data_path(exp.name, exp.version)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    path_expt_dir = get_data_path(exp, path_dir=path_expt)
+    tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
 
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
@@ -203,9 +218,8 @@ def set_random_master_port():
     os.environ['MASTER_PORT'] = str(port)
 
 
-def init_checkpoint_callback(logger):
-    exp = logger.experiment
-    exp_path = exp.get_data_path(exp.name, exp.version)
+def init_checkpoint_callback(logger, path_dir=None):
+    exp_path = get_data_path(logger, path_dir=path_dir)
     ckpt_dir = os.path.join(exp_path, 'checkpoints')
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint

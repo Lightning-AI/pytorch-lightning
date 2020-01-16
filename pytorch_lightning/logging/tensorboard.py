@@ -1,8 +1,10 @@
 import os
 from warnings import warn
+from argparse import Namespace
+from pkg_resources import parse_version
 
 import torch
-from pkg_resources import parse_version
+import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 
 from .base import LightningLoggerBase, rank_zero_only
@@ -28,8 +30,8 @@ class TensorBoardLogger(LightningLoggerBase):
         directory for existing versions, then automatically assigns the next available version.
     :param \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
-
     """
+    NAME_CSV_TAGS = 'meta_tags.csv'
 
     def __init__(self, save_dir, name="default", version=None, **kwargs):
         super().__init__()
@@ -38,6 +40,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
 
         self._experiment = None
+        self.tags = {}
         self.kwargs = kwargs
 
     @property
@@ -57,22 +60,25 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params):
+        if params is None:
+            return
+
+        # in case converting from namespace
+        if isinstance(params, Namespace):
+            params = vars(params)
+        params = dict(params)
+
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
                 f"Hyperparameter logging is not available for Torch version {torch.__version__}."
                 " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
                 " hyperparameter logging."
             )
-            # TODO: some alternative should be added
-            return
-        try:
-            # in case converting from namespace, todo: rather test if it is namespace
-            params = vars(params)
-        except TypeError:
-            pass
-        if params is not None:
+        else:
             # `add_hparams` requires both - hparams and metric
-            self.experiment.add_hparams(hparam_dict=dict(params), metric_dict={})
+            self.experiment.add_hparams(hparam_dict=params, metric_dict={})
+        # some alternative should be added
+        self.tags.update(params)
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
@@ -88,6 +94,17 @@ class TensorBoardLogger(LightningLoggerBase):
         except AttributeError:
             # you are using PT version (<v1.2) which does not have implemented flush
             self.experiment._get_file_writer().flush()
+
+        # create a preudo standard path ala test-tube
+        dir_path = os.path.join(self.save_dir, self.name, 'version_%s' % self.version)
+        if not os.path.isdir(dir_path):
+            dir_path = self.save_dir
+        # prepare the file path
+        meta_tags_path = os.path.join(dir_path, self.NAME_CSV_TAGS)
+        # save the metatags file
+        df = pd.DataFrame({'key': list(self.tags.keys()),
+                           'value': list(self.tags.values())})
+        df.to_csv(meta_tags_path, index=False)
 
     @rank_zero_only
     def finalize(self, status):

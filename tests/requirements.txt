@@ -5,7 +5,7 @@ pytest>=3.0.5
 pytest-cov
 flake8
 check-manifest
-# test_tube  # already installed in main req.
+test-tube>=0.7.5
 mlflow
 comet_ml
 wandb
