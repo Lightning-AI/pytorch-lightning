@@ -1,6 +1,7 @@
 import os
 import sys
 import warnings
+import logging
 
 import torch
 import torch.distributed as dist
@@ -46,7 +47,9 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
-    r"""Abstract base class used to build new callbacks.
+    r"""
+    Main trainer class
+
     """
 
     def __init__(
@@ -417,6 +420,7 @@ class Trainer(TrainerIOMixin,
         """
         #
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
+
         #     - `nb_sanity_val_steps`
 
         # Transfer params
