@@ -313,7 +313,6 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(row_log_interval=10)
-
             add_row_log_interval (int):
                 .. deprecated:: 0.5.0
                     Use `row_log_interval` instead. Will remove 0.8.0.
