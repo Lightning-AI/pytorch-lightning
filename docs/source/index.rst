@@ -35,7 +35,14 @@ PyTorch-Lightning Documentation
    :name: Tutorials
    :caption: Tutorials
 
-   examples
+   tutorials
+
+.. toctree::
+   :maxdepth: 1
+   :name: Common Use Cases
+   :caption: Common Use Cases
+
+   common-cases
 
 
 .. toctree::
