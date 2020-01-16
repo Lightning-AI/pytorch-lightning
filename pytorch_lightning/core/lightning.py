@@ -1166,7 +1166,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def on_load_checkpoint(self, checkpoint):
         r"""
-
         Called by lightning to restore your model.
         If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
