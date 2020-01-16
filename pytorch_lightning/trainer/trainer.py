@@ -418,6 +418,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
         """
         #
+
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
         #     - `nb_sanity_val_steps`
 
