@@ -1,8 +1,14 @@
 """
-LightningModule
-====================================
-
+The LightningModule is the "system recipe." It groups the following in one file:
+    - computational system definition
+    - computations done on forward
+    - training loop
+    - validation loop
+    - testing loop
+    - train, val, test dataloaders
+    - optimizers
 """
+
 import os
 import warnings
 import collections
