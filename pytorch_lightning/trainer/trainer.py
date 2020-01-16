@@ -403,15 +403,15 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer (ie: disabled)
                     trainer = Trainer(truncated_bptt_steps=None)
-                    
+
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
-                    
+
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(resume_from_checkpoint=None)
-                    
+
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
         """
