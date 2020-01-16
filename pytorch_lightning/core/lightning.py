@@ -932,15 +932,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @data_loader
     def val_dataloader(self):
-        """Implement a PyTorch DataLoader.
-
-        :return: PyTorch DataLoader or list of PyTorch Dataloaders.
-
-        If you don't need a validation dataset and a validation_step, you don't need to implement this method.
+        r"""
 
         Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        this ensures not calling this function until the data are needed.
+
+        Return:
+            PyTorch DataLoader
 
         Example
         -------
@@ -964,8 +962,34 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def val_dataloader(self):
                 return [loader_a, loader_b, ..., loader_n]
 
-        In the case where you return multiple `val_dataloaders`, the `validation_step`
-         will have an argument `dataset_idx` which matches the order here.
+        Example
+        -------
+
+        .. code-block:: python
+
+            @pl.data_loader
+            def val_dataloader(self):
+                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                loader = torch.utils.data.DataLoader(
+                    dataset=dataset,
+                    batch_size=self.hparams.batch_size,
+                    shuffle=True
+                )
+
+                return loader
+
+            # can also return multiple dataloaders
+            @pl.data_loader
+            def val_dataloader(self):
+                return [loader_a, loader_b, ..., loader_n]
+
+        .. note:: If you don't need a validation dataset and a validation_step, you don't need to implement this method.
+
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
+
+        .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
+            will have an argument `dataset_idx` which matches the order here.
         """
         return None
 
