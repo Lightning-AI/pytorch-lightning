@@ -274,17 +274,91 @@ class Trainer(TrainerIOMixin,
                     # run through only 25% of the test set each epoch
                     trainer = Trainer(test_percent_check=0.25)
 
-        """
-        # :param float|int val_check_interval: If float, % of tng epoch. If int, check every n batch
-        # :param int log_save_interval: Writes logs to disk this often
-        # :param int row_log_interval: How often to add logging rows
-        # :param int add_row_log_interval: How often to add logging rows. Deprecated.
-        # :param str distributed_backend: Options: 'dp', 'ddp', 'ddp2'.
-        # :param bool use_amp: If true uses apex for 16bit precision
-        # :param bool print_nan_grads: Prints nan gradients
-        # :param str weights_summary: Options: 'full', 'top', None to not print.
-        # :param bool weights_save_path: Where to save weights if on cluster
+            val_check_interval (float|int): How often within one training epoch to check the validation set
+                If float, % of tng epoch. If int, check every n batch
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(val_check_interval=1.0)
+
+                    # check validation set 4 times during a training epoch
+                    trainer = Trainer(val_check_interval=0.25)
+
+                    # check validation set every 1000 training batches
+                    # use this when using iterableDataset and your dataset has no length
+                    # (ie: production cases with streaming data)
+                    trainer = Trainer(val_check_interval=1000)
+
+            log_save_interval (int): Writes logs to disk this often
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(log_save_interval=100)
+                
+            row_log_interval (int): How often to add logging rows (does not write to disk)
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(row_log_interval=10)
+            
+            add_row_log_interval (int):
+                .. deprecated:: 0.5.0
+                    Use `row_log_interval` instead. Will remove 0.8.0.
+
+            distributed_backend (str): The distributed backend to use.
+                Options: 'dp', 'ddp', 'ddp2'.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(distributed_backend=None)
+
+                    # dp = DataParallel (split a batch onto k gpus on same machine).
+                    trainer = Trainer(gpus=2, distributed_backend='dp')
+
+                    # ddp = DistributedDataParallel 
+                    # Each gpu trains by itself on a subset of the data. 
+                    # Gradients sync across all gpus and all machines.
+                    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+
+                    # ddp2 = DistributedDataParallel + dp
+                    # behaves like dp on every node
+                    # syncs gradients across nodes like ddp
+                    # useful for things like increasing the number of negative samples
+                    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+                    
+            use_amp (bool): If true uses apex for 16bit precision
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(use_amp=False)
+                    
+            print_nan_grads (bool): Prints gradients with nan values
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(print_nan_grads=False)
+        
+            weights_summary (str): Prints a summary of the weights when training begins.
+                Options: 'full', 'top', None.
+                Example::
+                    # default used by the Trainer (ie: print all weights)
+                    trainer = Trainer(weights_summary='full')
+                    
+                    # print only the top level modules
+                    trainer = Trainer(weights_summary='top')
+                    
+                    # don't print a summary
+                    trainer = Trainer(weights_summary=None)
+                
+            weights_save_path (str): Where to save weights if specified.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(weights_save_path=os.getcwd())
+
+                    # save to your custom path
+                    trainer = Trainer(weights_save_path='my/path')
+
+                    # if checkpoint callback used, then overrides the weights path
+                    # **NOTE: this saves weights to some/path NOT my/path
+                    checkpoint_callback = ModelCheckpoint(filepath='some/path')
+                    trainer = Trainer(checkpoint_callback=checkpoint_callback, weights_save_path='my/path')
+                
         # :param str amp_level: Check nvidia docs for level
+        """
         # :param int num_sanity_val_steps: How many val steps before a full train loop.
         # :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
         # 
