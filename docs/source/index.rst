@@ -19,7 +19,8 @@ PyTorch-Lightning Documentation
    :name: docs
    :caption: Python API
 
-   documentation
+   trainer
+   lightning-module
 
 .. toctree::
    :maxdepth: 1
