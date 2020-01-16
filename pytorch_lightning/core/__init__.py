@@ -152,7 +152,6 @@ Test
 # 
 # """
 
-from .test_b import TestB
 from .lightning import LightningModule
 
-__all__ = ['TestB']
+__all__ = ['LightningModule']

@@ -4,6 +4,7 @@ import os
 import warnings
 import collections
 import logging
+import pandas as pd
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
@@ -15,7 +16,6 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.trainer.training_io import load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
@@ -1095,3 +1095,32 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
         pass
+
+
+def load_hparams_from_tags_csv(tags_csv):
+    if not os.path.isfile(tags_csv):
+        logging.warning(f'Missing Tags: {tags_csv}.')
+        return Namespace()
+
+    tags_df = pd.read_csv(tags_csv)
+    dic = tags_df.to_dict(orient='records')
+    ns_dict = {row['key']: convert(row['value']) for row in dic}
+    ns = Namespace(**ns_dict)
+    return ns
+
+
+def convert(val):
+    constructors = [int, float, str]
+
+    if type(val) is str:
+        if val.lower() == 'true':
+            return True
+        if val.lower() == 'false':
+            return False
+
+    for c in constructors:
+        try:
+            return c(val)
+        except ValueError:
+            pass
+    return val
