@@ -802,9 +802,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             batch (torch.nn.Tensor): Current batch
             split_size (int): How big the split  is
 
-        .. note:: Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
-            Each returned batch split is passed separately to training_step(...).
-
         Return:
             list of batch splits. Each split will be passed to forward_step to enable truncated
             back propagation through time. The default implementation splits root level Tensors and
@@ -831,6 +828,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   splits.append(batch_split)
 
               return splits
+
+        .. note:: Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
+            Each returned batch split is passed separately to training_step(...).
+
         """
         time_dims = [len(x[0]) for x in batch if isinstance(
             x, torch.Tensor) or isinstance(x, collections.Sequence)]
