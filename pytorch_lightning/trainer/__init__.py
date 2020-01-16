@@ -23,6 +23,7 @@ This is the basic use of the trainer:
 
     trainer = Trainer()
     trainer.fit(model)
+
 """
 
 from .trainer import Trainer
