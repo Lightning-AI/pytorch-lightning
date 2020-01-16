@@ -19,6 +19,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
