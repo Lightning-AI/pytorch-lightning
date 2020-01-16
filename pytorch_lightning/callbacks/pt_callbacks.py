@@ -87,7 +87,7 @@ class EarlyStopping(Callback):
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
 
-    Example:
+    Example::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.callbacks import EarlyStopping
@@ -360,7 +360,7 @@ class GradientAccumulationScheduler(Callback):
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
 
-    Example:
+    Example::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.callbacks import GradientAccumulationScheduler
