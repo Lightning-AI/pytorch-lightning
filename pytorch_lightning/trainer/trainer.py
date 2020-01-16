@@ -839,7 +839,7 @@ class Trainer(TrainerIOMixin,
 
         Example::
         
-            # Option 1: 
+            # Option 1
             # run test after fitting
             trainer = Trainer()
             model = LightningModule()
@@ -847,8 +847,8 @@ class Trainer(TrainerIOMixin,
             trainer.fit()
             trainer.test()
             
-            # Option 2: 
-            # run test from a model loaded
+            # Option 2
+            # run test from a loaded model
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
             
