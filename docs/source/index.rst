@@ -55,7 +55,6 @@ PyTorch-Lightning Documentation
    BECOMING_A_CORE_CONTRIBUTOR.md
    governance.md
 
-
 Indices and tables
 ------------------
 
