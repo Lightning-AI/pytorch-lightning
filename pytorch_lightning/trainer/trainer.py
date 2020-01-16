@@ -158,6 +158,11 @@ class Trainer(TrainerIOMixin,
 
                     # to train on 8 nodes
                     trainer = Trainer(num_nodes=8)
+            
+            nb_gpu_nodes (int):
+                .. deprecated:: 0.5.0
+                    Use `num_nodes` instead. Will remove 0.8.0.
+            
             gpus (list|str|int): Which GPUs to train on.
                 Example::
                     # default used by the Trainer (ie: train on CPU)
@@ -241,11 +246,19 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(max_epochs=1000)
+                    
+            max_nb_epochs (int):
+                .. deprecated:: 0.5.0
+                    Use `max_epochs` instead. Will remove 0.8.0.
 
             min_epochs (int): Force training for at least these many epochs
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(min_epochs=1)
+                    
+            min_nb_epochs (int):
+                .. deprecated:: 0.5.0
+                    Use `min_nb_epochs` instead. Will remove 0.8.0.
 
             train_percent_check (int): How much of training dataset to check. 
                 Useful when debugging or testing something that happens at the end of an epoch.
@@ -376,6 +389,10 @@ class Trainer(TrainerIOMixin,
                     # turn it off
                     trainer = Trainer(num_sanity_val_steps=0)
 
+            nb_sanity_val_steps (int):
+                .. deprecated:: 0.5.0
+                    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
+            
             truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of a much longer sequence
                 If this is enabled, your batches will automatically get truncated
                 and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence dimension.
@@ -389,14 +406,17 @@ class Trainer(TrainerIOMixin,
                     
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
+                    
+            resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(resume_from_checkpoint=None)
+                    
+                    # resume from a specific checkpoint
+                    trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
         """
         # 
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
-        #     - `gradient_clip`,
-        #     - `nb_gpu_nodes`,
-        #     - `max_nb_epochs`,
-        #     - `min_nb_epochs`,
-        #     - `add_row_log_interval`,
         #     - `nb_sanity_val_steps`
 
         # Transfer params
