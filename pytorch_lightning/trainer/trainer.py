@@ -247,11 +247,34 @@ class Trainer(TrainerIOMixin,
                     # default used by the Trainer
                     trainer = Trainer(min_epochs=1)
 
+            train_percent_check (int): How much of training dataset to check. 
+                Useful when debugging or testing something that happens at the end of an epoch.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(train_percent_check=1.0)
+
+                    # run through only 25% of the training set each epoch
+                    trainer = Trainer(train_percent_check=0.25)
+
+            val_percent_check (int): How much of validation dataset to check. 
+                Useful when debugging or testing something that happens at the end of an epoch.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(val_percent_check=1.0)
+
+                    # run through only 25% of the validation set each epoch
+                    trainer = Trainer(val_percent_check=0.25)
+
+            test_percent_check (int): How much of test dataset to check. 
+                Useful when debugging or testing something that happens at the end of an epoch.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(test_percent_check=1.0)
+
+                    # run through only 25% of the test set each epoch
+                    trainer = Trainer(test_percent_check=0.25)
 
         """
-        # :param int train_percent_check: How much of train set to check
-        # :param int val_percent_check: How much of val set to check
-        # :param int test_percent_check: How much of test set to check
         # :param float|int val_check_interval: If float, % of tng epoch. If int, check every n batch
         # :param int log_save_interval: Writes logs to disk this often
         # :param int row_log_interval: How often to add logging rows
