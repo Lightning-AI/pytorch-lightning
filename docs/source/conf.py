@@ -83,6 +83,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'recommonmark',
+    'sphinx.ext.autosectionlabel',
     # 'm2r',
     'nbsphinx',
 ]

@@ -1,13 +1,13 @@
 Quick Start
 ===========
-To start a new project define two files, a LightningModule and a Trainer file.    
-To illustrate Lightning power and simplicity, here's an example of a typical research flow.    
+| To start a new project define two files, a LightningModule and a Trainer file.
+| To illustrate the power of Lightning and its simplicity, here's an example of a typical research flow.
 
 Case 1: BERT
 ------------
 
-Let's say you're working on something like BERT but want to try different ways of training or even different networks.  
-You would define a single LightningModule and use flags to switch between your different ideas.
+| Let's say you're working on something like BERT but want to try different ways of training or even different networks.
+| You would define a single LightningModule and use flags to switch between your different ideas.
 
 .. code-block:: python
 
@@ -66,6 +66,10 @@ Then you could do rapid research by switching between these two and using the sa
 
 **Notice a few things about this flow:**
 
-1. You're writing pure PyTorch... no unnecessary abstractions or new libraries to learn.   
-2. You get free GPU and 16-bit support without writing any of that code in your model.   
-3. You also get all of the capabilities below (without coding or testing yourself).     
+1. You're writing pure PyTorch... no unnecessary abstractions or new libraries to learn.
+2. You get free GPU and 16-bit support without writing any of that code in your model.
+3. You also get all of the capabilities below (without coding or testing yourself).   
+
+- :ref:`Examples & Tutorials`
+- :ref:`Examples & Tutorials`
+- :ref:`Examples & Tutorials`

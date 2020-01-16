@@ -3,13 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyTorch-Lightning!
+PyTorch-Lightning Documentation
 =============================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :name: start
-   :caption: Quick Start
+   :caption: Start Here
 
    new-project
    examples
@@ -17,7 +17,7 @@ Welcome to PyTorch-Lightning!
 .. toctree::
    :maxdepth: 4
    :name: docs
-   :caption: Docs
+   :caption: Python API
 
    documentation
 
