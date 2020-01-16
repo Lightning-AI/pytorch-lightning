@@ -94,15 +94,63 @@ class Trainer(TrainerIOMixin,
         Customize every aspect of training via flags
 
         Args:
-            logger (:class:`.Logger`): Logger for experiment tracking
-            example:
-                >>> asd
-            checkpoint_callback (:class:`CheckpointCallback`): Callback for checkpointing
+            logger (:class:`.Logger`): Logger for experiment tracking.
+                Example::
+                    from pytorch_lightning.logging import TensorBoardLogger
+
+                    # default logger used by trainer
+                    logger = TensorBoardLogger(
+                        save_dir=os.getcwd(),
+                        version=self.slurm_job_id,
+                        name='lightning_logs'
+                    )
+
+                    Trainer(logger=logger)
+            checkpoint_callback (:class:`CheckpointCallback`): Callback for checkpointing.
+                Example::
+                    from pytorch_lightning.callbacks import ModelCheckpoint 
+
+                    # default used by the Trainer
+                    checkpoint_callback = ModelCheckpoint(
+                        filepath=os.getcwd(),
+                        save_best_only=True,
+                        verbose=True,
+                        monitor='val_loss',
+                        mode='min',
+                        prefix=''
+                    )
+
+                    trainer = Trainer(checkpoint_callback=checkpoint_callback)
             early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping
-            default_save_path (str): Default path for logs+weights if no logger/ckpt_callback passed
-            gradient_clip_val (int): 0 means don't clip.
-            gradient_clip (int): 0 means don't clip. Deprecated.
-            process_position (int): shown in the tqdm bar
+                Example::
+                    from pytorch_lightning.callbacks import EarlyStopping 
+
+                    # default used by the Trainer
+                    early_stop_callback = EarlyStopping(
+                        monitor='val_loss',
+                        patience=3,
+                        verbose=True,
+                        mode='min'
+                    )
+
+                    trainer = Trainer(early_stop_callback=early_stop_callback)
+            default_save_path (str): Default path for logs and weights when no logger/ckpt_callback passed
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(default_save_path=os.getcwd())
+            gradient_clip_val (float): 0 means don't clip.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(gradient_clip_val=0.0)
+            gradient_clip (int):
+                .. deprecated:: 0.5.0
+                    Use `gradient_clip_val` instead.
+
+            process_position (int): orders the tqdm bar when running multiple models on same machine.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(process_position=0)
+                
             num_nodes (int): number of GPU nodes
         """
         # :param list|str|int gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
