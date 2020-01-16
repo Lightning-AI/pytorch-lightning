@@ -92,7 +92,6 @@ class NeptuneLogger(LightningLoggerBase):
             )
             trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
-
         Args:
             api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.
                 Read how to get your API key
