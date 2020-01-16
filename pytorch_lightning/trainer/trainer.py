@@ -144,26 +144,111 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(gradient_clip_val=0.0)
             gradient_clip (int):
                 .. deprecated:: 0.5.0
-                    Use `gradient_clip_val` instead.
+                    Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position (int): orders the tqdm bar when running multiple models on same machine.
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(process_position=0)
-                
-            num_nodes (int): number of GPU nodes
+
+            num_nodes (int): number of GPU nodes for distributed training.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(num_nodes=1)
+
+                    # to train on 8 nodes
+                    trainer = Trainer(num_nodes=8)
+            gpus (list|str|int): Which GPUs to train on.
+                Example::
+                    # default used by the Trainer (ie: train on CPU)
+                    trainer = Trainer(gpus=None)
+
+                    # int: train on 2 gpus
+                    trainer = Trainer(gpus=2)
+
+                    # list: train on GPUs 1, 4 (by bus ordering)
+                    trainer = Trainer(gpus=[1, 4])
+                    trainer = Trainer(gpus='1, 4') # equivalent
+
+                    # -1: train on all gpus
+                    trainer = Trainer(gpus=-1)
+                    trainer = Trainer(gpus='-1') # equivalent
+
+                    # combine with num_nodes to train on multiple GPUs across nodes
+                    trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
+
+            log_gpu_memory (str): None, 'min_max', 'all'. Might slow performance
+                because it uses the output of nvidia-smi.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(log_gpu_memory=None)
+
+                    # log all the GPUs (on master node only)
+                    trainer = Trainer(log_gpu_memory='all')
+
+                    # log only the min and max memory on the master node
+                    trainer = Trainer(log_gpu_memory='min_max')
+
+            show_progress_bar (bool): If true shows tqdm progress bar
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(show_progress_bar=True)
+
+            overfit_pct (float): uses this much data of all datasets.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(overfit_pct=0.0)
+
+                    # use only 1% of the train, test, val datasets
+                    trainer = Trainer(overfit_pct=0.01)
+            
+            track_grad_norm (int): -1 no tracking. Otherwise tracks that norm
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(track_grad_norm=-1)
+
+                    # track the 2-norm
+                    trainer = Trainer(track_grad_norm=2)
+
+            check_val_every_n_epoch (int): check val every n train epochs
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(check_val_every_n_epoch=1)
+
+                    # run val loop every 10 training epochs
+                    trainer = Trainer(check_val_every_n_epoch=10)
+
+            fast_dev_run (bool): runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(fast_dev_run=False)
+
+                    # runs 1 train, val, test  batch and program ends
+                    trainer = Trainer(fast_dev_run=True)
+            
+            accumulate_grad_batches (int|dict): Accumulates grads every k batches or as set up in the dict.
+                Example::
+                    # default used by the Trainer (no accumulation)
+                    trainer = Trainer(accumulate_grad_batches=1)
+
+                    # accumulate every 4 batches (effective batch size is batch*4)
+                    trainer = Trainer(accumulate_grad_batches=4)
+
+                    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
+                    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+
+            max_epochs (int): Stop training once this number of epochs is reached
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(max_epochs=1000)
+
+            min_epochs (int): Force training for at least these many epochs
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(min_epochs=1)
+
+
         """
-        # :param list|str|int gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
-        #     OR '-1' / -1 to use all available gpus
-        # :param str log_gpu_memory: None, 'min_max', 'all'
-        # :param bool show_progress_bar: If true shows tqdm bar
-        # :param float overfit_pct: uses this much of all datasets
-        # :param int track_grad_norm: -1 no tracking. Otherwise tracks that norm
-        # :param int check_val_every_n_epoch: check val every n train epochs
-        # :param bool fast_dev_run: runs full iteration over everything to find bugs
-        # :param int accumulate_grad_batches: Accumulates grads every k batches
-        # :param int max_epochs:
-        # :param int min_epochs:
         # :param int train_percent_check: How much of train set to check
         # :param int val_percent_check: How much of val set to check
         # :param int test_percent_check: How much of test set to check
