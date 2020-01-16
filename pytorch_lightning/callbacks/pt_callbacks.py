@@ -30,15 +30,16 @@ class Callback(object):
         self.model = model
 
     def on_epoch_begin(self, epoch, logs=None):
-        r"""
+        """
         called when the epoch begins
-        
+
         Args:
             epoch (int): current epoch
             logs (dict): key-value pairs of quantities to monitor
-            
+
             Example:
-                >>> on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
+
+                on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
         """
         pass
 
@@ -46,7 +47,7 @@ class Callback(object):
         pass
 
     def on_batch_begin(self, batch, logs=None):
-        r"""
+        """
         called when the batch starts.
 
         Args:
@@ -168,10 +169,11 @@ class ModelCheckpoint(Callback):
         filepath (str): path to save the model file.
             Can contain named formatting options to be auto-filled.
 
-            Example:
-                >>> # save epoch and val_loss in name
-                >>> ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
-                >>> # saves file like: /path/epoch_2-val_loss_0.2.hdf5
+            Example::
+
+                # save epoch and val_loss in name
+                ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
+                # saves file like: /path/epoch_2-val_loss_0.2.hdf5
         monitor (str): quantity to monitor.
         verbose (bool): verbosity mode, 0 or 1.
         save_top_k (int): if `save_top_k == k`,
@@ -196,14 +198,15 @@ class ModelCheckpoint(Callback):
             is saved (`model.save(filepath)`).
         period (int): Interval (number of epochs) between checkpoints.
 
-    Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import ModelCheckpoint
-        >>>
-        >>> checkpoint_callback = ModelCheckpoint(filepath='my_path')
-        >>> Trainer(checkpoint_callback=checkpoint_callback)
+    Example::
 
-        >>> # saves checkpoints to my_path whenever 'val_loss' has a new min
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import ModelCheckpoint
+
+        checkpoint_callback = ModelCheckpoint(filepath='my_path')
+        Trainer(checkpoint_callback=checkpoint_callback)
+
+        # saves checkpoints to my_path whenever 'val_loss' has a new min
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
@@ -356,12 +359,13 @@ class GradientAccumulationScheduler(Callback):
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
 
     Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
-        >>>
-        >>> # at epoch 5 start accumulating every 2 batches
-        >>> accumulator = GradientAccumulationScheduler(scheduling: {5: 2})
-        >>> Trainer(accumulate_grad_batches=accumulator)
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import GradientAccumulationScheduler
+
+        # at epoch 5 start accumulating every 2 batches
+        accumulator = GradientAccumulationScheduler(scheduling: {5: 2})
+        Trainer(accumulate_grad_batches=accumulator)
     """
 
     def __init__(self, scheduling: dict):
