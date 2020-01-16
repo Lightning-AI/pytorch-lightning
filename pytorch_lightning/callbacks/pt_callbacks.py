@@ -86,12 +86,14 @@ class EarlyStopping(Callback):
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
+
     Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import EarlyStopping
-        >>>
-        >>> early_stopping = EarlyStopping('val_loss')
-        >>> Trainer(early_stop_callback=early_stopping)
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import EarlyStopping
+
+        early_stopping = EarlyStopping('val_loss')
+        Trainer(early_stop_callback=early_stopping)
     """
 
     def __init__(self, monitor='val_loss',
