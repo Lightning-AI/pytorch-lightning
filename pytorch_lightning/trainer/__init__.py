@@ -1,5 +1,4 @@
 """
-
 The trainer de-couples the engineering code (16-bit, early stopping, GPU distribution, etc...) from the
 science code (GAN, BERT, your project, etc...). It uses many assumptions which are best practices in
 AI research today.
