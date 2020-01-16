@@ -49,9 +49,7 @@ class Trainer(TrainerIOMixin,
               ):
     r"""
     Main trainer class
-
     """
-
     def __init__(
             self,
             logger=True,
@@ -420,7 +418,6 @@ class Trainer(TrainerIOMixin,
         """
         #
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
-
         #     - `nb_sanity_val_steps`
 
         # Transfer params
