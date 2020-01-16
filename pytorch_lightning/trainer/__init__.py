@@ -16,4 +16,8 @@ This is the basic use of the trainer:
     trainer = Trainer()
     trainer.fit(model)
 
+The Trainer holds all the engineering code you might need such as distributing over GPUs or early stopping.
+The LightningTemplate holds the core computations, train, val, test loop, optimizer and dataloaders.
+
+This pattern de-couples the engineering from the science which makes your code reusable and free to run on any hardware.
 """
