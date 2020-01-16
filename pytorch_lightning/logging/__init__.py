@@ -67,6 +67,9 @@ Call the logger anywhere from your LightningModule by doing:
 
     def any_lightning_module_function_or_hook(...):
         self.logger.experiment.add_histogram(...)
+
+Supported Loggers
+-----------------
 """
 
 from os import environ
@@ -74,18 +77,23 @@ from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
+all = []
+
 try:
     from .test_tube import TestTubeLogger
+    all.append('TestTubeLogger')
 except ImportError:
     pass
 
 try:
     from .mlflow import MLFlowLogger
+    all.append('MLFlowLogger')
 except ImportError:
     pass
 
 try:
     from .wandb import WandbLogger
+    all.append('WandbLogger')
 except ImportError:
     pass
 try:
@@ -93,10 +101,14 @@ try:
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
     from .comet import CometLogger
+    all.append('CometLogger')
 except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
     from .neptune import NeptuneLogger
+    all.append('NeptuneLogger')
 except ImportError:
     pass
+
+__all__ = all
