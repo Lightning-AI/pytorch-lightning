@@ -852,7 +852,6 @@ class Trainer(TrainerIOMixin,
             # run test from a loaded model
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-
             trainer.test(model)
         """
         self.testing = True
