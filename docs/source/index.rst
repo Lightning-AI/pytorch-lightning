@@ -44,7 +44,6 @@ PyTorch-Lightning Documentation
 
    common-cases
 
-
 .. toctree::
    :maxdepth: 1
    :name: community
