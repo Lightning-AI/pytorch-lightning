@@ -898,15 +898,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @data_loader
     def test_dataloader(self):
-        """Implement a PyTorch DataLoader.
-
-        :return: PyTorch DataLoader
-
-        If you don't need a test dataset and a test_step, you don't need to implement this method.
+        r"""
 
         Called by lightning during test loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        this ensures not calling this function until the data are needed.
+
+        Return:
+            PyTorch DataLoader
 
         Example
         -------
@@ -924,6 +922,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
 
                 return loader
+
+        .. note:: If you don't need a test dataset and a test_step, you don't need to implement this method.
+
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
 
         """
         return None
