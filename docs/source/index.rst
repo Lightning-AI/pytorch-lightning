@@ -12,7 +12,6 @@ PyTorch-Lightning Documentation
    :caption: Start Here
 
    new-project
-   examples
 
 .. toctree::
    :maxdepth: 4
@@ -23,6 +22,21 @@ PyTorch-Lightning Documentation
    lightning-module
    logging
    trainer
+
+.. toctree::
+   :maxdepth: 1
+   :name: Examples
+   :caption: Examples
+
+   examples
+
+.. toctree::
+   :maxdepth: 1
+   :name: Tutorials
+   :caption: Tutorials
+
+   examples
+
 
 .. toctree::
    :maxdepth: 1
