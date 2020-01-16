@@ -395,6 +395,7 @@ class Trainer(TrainerIOMixin,
                 .. deprecated:: 0.5.0
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
+
             truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of
                 a much longer sequence If this is enabled, your batches will automatically get truncated
                 and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence
