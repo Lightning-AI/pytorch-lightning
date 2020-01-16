@@ -9,6 +9,6 @@ GAN
 ----
 GAN example
 
-BERT
-----
+BERT Finetuning
+----------------
 BERT example
