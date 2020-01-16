@@ -1,4 +1,7 @@
 """
+AAA
+====================================
+
 The trainer handles all the logic for running a val loop, training loop, distributing, etc.. .
 """
 
@@ -50,6 +53,8 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
+    r"""Abstract base class used to build new callbacks.
+    """
 
     def __init__(
             self,
