@@ -97,6 +97,13 @@ jobs:
       - TORCH_VERSION: "torch>=1.3, <1.4"
     steps: *steps
 
+  PyTorch-v1.4:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.4, <1.5"
+    steps: *steps
+
 workflows:
   version: 2
   build:
@@ -106,3 +113,4 @@ workflows:
       - PyTorch-v1.1
       - PyTorch-v1.2
       - PyTorch-v1.3
+      - PyTorch-v1.4
