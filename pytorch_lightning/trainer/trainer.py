@@ -854,6 +854,7 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
 
             trainer.test(model)
+
         """
         self.testing = True
         if model is not None:
