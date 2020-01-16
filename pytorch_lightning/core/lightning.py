@@ -15,7 +15,6 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.trainer.training_io import load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 

@@ -98,7 +98,6 @@ from abc import ABC
 from subprocess import call
 from argparse import Namespace
 
-import pandas as pd
 import torch
 import torch.distributed as dist
 
