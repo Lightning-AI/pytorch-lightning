@@ -93,7 +93,7 @@ def test_running_test_pretrained_model(tmpdir):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    tutils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_model_acc(new_trainer)
 
 
 def test_load_model_from_checkpoint(tmpdir):
@@ -134,7 +134,7 @@ def test_load_model_from_checkpoint(tmpdir):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    tutils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_model_acc(new_trainer)
 
 
 def test_running_test_pretrained_model_dp(tmpdir):
@@ -178,7 +178,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    tutils.assert_ok_test_acc(new_trainer)
+    tutils.assert_ok_model_acc(new_trainer)
 
 
 def test_dp_resume(tmpdir):

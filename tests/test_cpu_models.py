@@ -114,7 +114,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_test_acc(trainer)
+    tutils.assert_ok_model_acc(trainer)
 
 
 def test_running_test_without_val(tmpdir):
@@ -152,7 +152,7 @@ def test_running_test_without_val(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_test_acc(trainer)
+    tutils.assert_ok_model_acc(trainer)
 
 
 def test_single_gpu_batch_parse():
