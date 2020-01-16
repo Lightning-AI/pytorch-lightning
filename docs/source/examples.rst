@@ -1,8 +1,14 @@
-Examples & Tutorials
+Examples
 ====================
 
+MNIST
+-----
+Some MNIST example
 
-.. toctree::
-   :maxdepth: 3
+GAN
+----
+GAN example
 
-   pl_examples
+BERT
+----
+BERT example
