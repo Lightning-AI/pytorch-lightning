@@ -355,7 +355,10 @@ class Trainer(TrainerIOMixin,
                     # if checkpoint callback used, then overrides the weights path
                     # **NOTE: this saves weights to some/path NOT my/path
                     checkpoint_callback = ModelCheckpoint(filepath='some/path')
-                    trainer = Trainer(checkpoint_callback=checkpoint_callback, weights_save_path='my/path')
+                    trainer = Trainer(
+                        checkpoint_callback=checkpoint_callback, 
+                        weights_save_path='my/path'
+                    )
                 
         # :param str amp_level: Check nvidia docs for level
         """
