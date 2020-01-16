@@ -416,7 +416,7 @@ class Trainer(TrainerIOMixin,
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers = self.__init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
 
@@ -424,7 +424,7 @@ class Trainer(TrainerIOMixin,
         # used for testing or when we need to know that training succeeded
         return 1
 
-    def init_optimizers(self, optimizers):
+    def __init_optimizers(self, optimizers):
 
         # single optimizer
         if isinstance(optimizers, Optimizer):
@@ -433,14 +433,14 @@ class Trainer(TrainerIOMixin,
         # two lists
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
+            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.__configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
         elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
             return optimizers, []
 
-    def configure_schedulers(self, schedulers):
+    def __configure_schedulers(self, schedulers):
         for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 reduce_lr_on_plateau_scheduler = schedulers.pop(i)
