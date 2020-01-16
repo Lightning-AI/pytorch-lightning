@@ -359,15 +359,37 @@ class Trainer(TrainerIOMixin,
                         checkpoint_callback=checkpoint_callback, 
                         weights_save_path='my/path'
                     )
-                
+
             amp_level (str): The optimization level to use (O1, O2, etc...).
                 Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(amp_level='O1')
+        
+            num_sanity_val_steps (int): Sanity check runs n batches of val before starting the training routine.
+                This catches any bugs in your validation without having to wait for the first validation check.
+                The Trainer uses 5 steps by default. Turn it off or modify it here.
+                Example::
+                    # default used by the Trainer
+                    trainer = Trainer(num_sanity_val_steps=5)
+
+                    # turn it off
+                    trainer = Trainer(num_sanity_val_steps=0)
+
+            truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of a much longer sequence
+                If this is enabled, your batches will automatically get truncated
+                and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence dimension.
+
+                `Williams, Ronald J., and Jing Peng. "An efficient gradient-based algorithm for on-line training of recurrent network trajectories."
+                <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_
+                
+                Example::
+                    # default used by the Trainer (ie: disabled)
+                    trainer = Trainer(truncated_bptt_steps=None)
+                    
+                    # backprop every 5 steps in a batch
+                    trainer = Trainer(truncated_bptt_steps=5)
         """
-        # :param int num_sanity_val_steps: How many val steps before a full train loop.
-        # :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
         # 
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
         #     - `gradient_clip`,
