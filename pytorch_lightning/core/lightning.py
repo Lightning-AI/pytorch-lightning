@@ -250,12 +250,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         pass
 
     def validation_step(self, *args, **kwargs):
-        """return whatever outputs will need to be aggregated in validation_end
+        r"""
 
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
-        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple val datasets used)
-        :return dict: Dict or OrderedDict - passed to the validation_end step
+        This is the validation loop. It is called for each batch of the validation set.
+        Whatever is returned from here will be passed in as a list on validation_end.
+        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader. A tensor, tuple or list
+            batch_idx (int): The index of this batch
+            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple val datasets used)
+
+        Return:
+            Dict or OrderedDict - passed to the validation_end step
 
         .. code-block:: python
 
@@ -264,14 +271,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             # if you have multiple val dataloaders:
             def validation_step(self, batch, batch_idx, dataloader_idxdx)
-
-        If you don't need to validate you don't need to implement this method.
-         In this step you'd normally generate examples or calculate anything of interest such as accuracy.
-
-        When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-         have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
-
-        The dict you return here will be available in the `validation_end` method.
 
         Example
         -------
@@ -314,7 +313,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def validation_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
-        The `dataset_idx` corresponds to the order of datasets returned in `val_dataloader`.
+        .. note:: If you don't need to validate you don't need to implement this method.
+
+        .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
+            have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
         pass
 
