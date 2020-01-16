@@ -76,7 +76,7 @@ from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-all = []
+all = ['TensorBoardLogger']
 
 try:
     # needed to prevent ImportError and duplicated logs.
@@ -112,6 +112,5 @@ try:
     all.append('WandbLogger')
 except ImportError:
     pass
-
 
 __all__ = all
