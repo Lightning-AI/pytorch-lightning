@@ -1,3 +1,9 @@
+"""
+Callbacks
+====================================
+Callbacks supported by Lightning
+"""
+
 import os
 import shutil
 import logging
@@ -8,26 +14,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class Callback(object):
-    """Abstract base class used to build new callbacks.
-
-    # Properties
-        * params: dict. Training parameters
-            (eg. verbosity, batch size, number of epochs...).
-            Reference of the model being trained.
-
-    The `logs` dictionary that callback methods take as argument will contain keys
-     for quantities relevant to the current batch or epoch.
-    Currently, the `.fit()` method of the `Sequential` model class will include the following
-     quantities in the `logs` that it passes to its callbacks:
-    * on_epoch_end: logs include `acc` and `loss`, and
-            optionally include `val_loss`
-            (if validation is enabled in `fit`), and `val_acc`
-            (if validation and accuracy monitoring are enabled).
-    * on_batch_begin: logs include `size`,
-            the number of samples in the current batch.
-    * on_batch_end: logs include `loss`, and optionally `acc`
-            (if accuracy monitoring is enabled).
-
+    r"""Abstract base class used to build new callbacks.
     """
 
     def __init__(self):
@@ -43,12 +30,29 @@ class Callback(object):
         self.model = model
 
     def on_epoch_begin(self, epoch, logs=None):
+        r"""
+        called when the epoch begins
+        
+        Args:
+            epoch (int): current epoch
+            logs (dict): key-value pairs of quantities to monitor
+            
+            Example:
+                >>> on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
+        """
         pass
 
     def on_epoch_end(self, epoch, logs=None):
         pass
 
     def on_batch_begin(self, batch, logs=None):
+        r"""
+        called when the batch starts.
+
+        Args:
+            batch (Tensor): current batch tensor
+            logs (dict): key-value pairs of quantities to monitor
+        """
         pass
 
     def on_batch_end(self, batch, logs=None):
@@ -62,25 +66,28 @@ class Callback(object):
 
 
 class EarlyStopping(Callback):
-    """Stop training when a monitored quantity has stopped improving.
+    r"""
+    Stop training when a monitored quantity has stopped improving.
 
-    # Arguments
-        monitor: quantity to be monitored.
-        min_delta: minimum change in the monitored quantity
+    Args:
+        monitor (str): quantity to be monitored.
+        min_delta (float): minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than min_delta, will count as no
             improvement.
-        patience: number of epochs with no improvement
+        patience (int): number of epochs with no improvement
             after which training will be stopped.
-        verbose: verbosity mode.
-        mode: one of {auto, min, max}. In `min` mode,
+        verbose (bool): verbosity mode.
+        mode (str): one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
             monitored has stopped decreasing; in `max`
             mode it will stop when the quantity
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
-
+    Example:
+        >>> from pytorch_lightning.callbacks import EarlyStopping
+        >>> EarlyStopping('val_loss')
     """
 
     def __init__(self, monitor='val_loss',
@@ -150,20 +157,21 @@ class EarlyStopping(Callback):
 
 
 class ModelCheckpoint(Callback):
-    """Save the model after every epoch.
+    r"""
 
-    The `filepath` can contain named formatting options,
-    which will be filled the value of `epoch` and
-    keys in `logs` (passed in `on_epoch_end`).
-    For example: if `filepath` is `weights.{epoch:02d}-{val_loss:.2f}.hdf5`,
-    then the model checkpoints will be saved with the epoch number and
-    the validation loss in the filename.
+    Save the model after every epoch.
 
-    # Arguments
-        filepath: string, path to save the model file.
-        monitor: quantity to monitor.
-        verbose: verbosity mode, 0 or 1.
-        save_top_k: if `save_top_k == k`,
+    Args:
+        filepath (str): path to save the model file.
+            Can contain named formatting options to be auto-filled.
+
+            Example:
+                >>> # save epoch and val_loss in name
+                >>> ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
+                >>> # saves file like: /path/epoch_2-val_loss_0.2.hdf5
+        monitor (str): quantity to monitor.
+        verbose (bool): verbosity mode, 0 or 1.
+        save_top_k (int): if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
             if `save_top_k == 0`, no models are saved.
@@ -172,7 +180,7 @@ class ModelCheckpoint(Callback):
             if `save_top_k >= 2` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with `v0`.
-        mode: one of {auto, min, max}.
+        mode (str): one of {auto, min, max}.
             If `save_top_k != 0`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
@@ -180,11 +188,16 @@ class ModelCheckpoint(Callback):
             this should be `max`, for `val_loss` this should
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
-        save_weights_only: if True, then only the model's weights will be
+        save_weights_only (bool): if True, then only the model's weights will be
             saved (`model.save_weights(filepath)`), else the full model
             is saved (`model.save(filepath)`).
-        period: Interval (number of epochs) between checkpoints.
+        period (int): Interval (number of epochs) between checkpoints.
 
+    Example:
+        >>> from pytorch_lightning.callbacks import ModelCheckpoint
+        >>> ModelCheckpoint(filepath='my_path')
+        >>> # saves checkpoints to my_path whenever 'val_loss' has a new min
+            
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
@@ -330,11 +343,16 @@ class ModelCheckpoint(Callback):
 
 
 class GradientAccumulationScheduler(Callback):
-    """Change gradient accumulation factor according to scheduling.
+    r"""
+    Change gradient accumulation factor according to scheduling.
 
-    # Arguments
-        scheduling: dict, scheduling in format {epoch: accumulation_factor}
+    Args:
+        scheduling (dict): scheduling in format {epoch: accumulation_factor}
 
+    Example:
+        >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
+        >>> # at epoch 5 start accumulating every 2 batches
+        >>> GradientAccumulationScheduler(scheduling: {5: 2})
     """
 
     def __init__(self, scheduling: dict):

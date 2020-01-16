@@ -70,6 +70,6 @@ Then you could do rapid research by switching between these two and using the sa
 2. You get free GPU and 16-bit support without writing any of that code in your model.
 3. You also get all of the capabilities below (without coding or testing yourself).   
 
-- :ref:`Examples & Tutorials`
+- :ref:`Callbacks`
 - :ref:`Examples & Tutorials`
 - :ref:`Examples & Tutorials`
