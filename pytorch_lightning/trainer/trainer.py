@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 import warnings
@@ -47,6 +46,8 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
+    r"""Abstract base class used to build new callbacks.
+    """
 
     def __init__(
             self,
