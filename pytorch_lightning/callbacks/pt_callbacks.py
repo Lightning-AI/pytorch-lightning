@@ -382,7 +382,6 @@ class GradientAccumulationScheduler(Callback):
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
-
         elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 
