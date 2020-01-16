@@ -47,7 +47,6 @@ class MLFlowLogger(LightningLoggerBase):
             experiment_name (str): The name of the experiment
             tracking_uri (str): where this should track
             tags (dict): todo this param
-
         """
         super().__init__()
         self._mlflow_client = mlflow.tracking.MlflowClient(tracking_uri)
