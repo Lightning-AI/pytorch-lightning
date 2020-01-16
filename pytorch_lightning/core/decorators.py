@@ -1,4 +1,5 @@
 import traceback
+from functools import wraps
 
 
 def data_loader(fn):
@@ -8,6 +9,7 @@ def data_loader(fn):
     :return:
     """
 
+    wraps(fn)
     attr_name = '_lazy_' + fn.__name__
 
     def _get_data_loader(self):
