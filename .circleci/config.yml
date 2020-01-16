@@ -16,13 +16,20 @@ references:
         sudo pip install pytest pytest-cov pytest-flake8
         pip install -r ./tests/requirements.txt --user
 
-  tests_format: &tests_format
+  tests: &tests
    run:
-     name: Tests and formating
+     name: Testing
      command: |
        python --version ; pip --version ; pip list
-       py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml --flake8
+       py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 15m
+
+  format: &format
+   run:
+     name: Formatting
+     command: |
+       python --version ; pip --version ; pip list
+       flake8
 
   make_docs: &make_docs
    run:
@@ -43,6 +50,16 @@ jobs:
       - checkout
       - *make_docs
 
+  Formatting:
+    docker:
+      - image: circleci/python:3.7
+    environment:
+        - TORCH_VERSION: "torch"
+    steps:
+      - checkout
+      - *install_deps
+      - *format
+
   PyTorch:
     docker:
       - image: circleci/python:3.7
@@ -52,7 +69,7 @@ jobs:
       - checkout
 
       - *install_deps
-      - *tests_format
+      - *tests
 
       - store_test_results:
           path: test-reports
@@ -80,11 +97,20 @@ jobs:
       - TORCH_VERSION: "torch>=1.3, <1.4"
     steps: *steps
 
+  PyTorch-v1.4:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.4, <1.5"
+    steps: *steps
+
 workflows:
   version: 2
   build:
     jobs:
+      - Formatting
       - Build-Docs
       - PyTorch-v1.1
       - PyTorch-v1.2
       - PyTorch-v1.3
+      - PyTorch-v1.4

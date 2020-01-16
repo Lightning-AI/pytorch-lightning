@@ -458,7 +458,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # call training_step once per optimizer
             for opt_idx, optimizer in enumerate(self.optimizers):
-                # make sure only the gradients of the current optimizer's paramaters are calculated 
+                # make sure only the gradients of the current optimizer's paramaters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 for param in self.get_model().parameters():
                     param.requires_grad = False

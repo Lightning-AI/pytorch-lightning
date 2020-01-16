@@ -29,7 +29,7 @@ def test_early_stopping_cpu_model(tmpdir):
         show_progress_bar=True,
         logger=tutils.get_test_tube_logger(tmpdir),
         train_percent_check=0.1,
-        val_percent_check=0.1
+        val_percent_check=0.1,
     )
 
     model, hparams = tutils.get_model()
@@ -51,7 +51,7 @@ def test_lbfgs_cpu_model(tmpdir):
         show_progress_bar=False,
         weights_summary='top',
         train_percent_check=1.0,
-        val_percent_check=0.2
+        val_percent_check=0.2,
     )
 
     model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
@@ -70,7 +70,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         print_nan_grads=True,
         show_progress_bar=False,
         train_percent_check=0.01,
-        val_percent_check=0.01
+        val_percent_check=0.01,
     )
 
     model, hparams = tutils.get_model()
