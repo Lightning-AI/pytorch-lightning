@@ -1,4 +1,7 @@
 """
+Trainer
+====================================
+
 The lightning Trainer abstracts best practices for running a training, val, test routine.
  It calls parts of your model when it wants to hand over full control and otherwise makes
  training assumptions which are now standard practice in AI research.
