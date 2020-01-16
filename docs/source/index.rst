@@ -21,6 +21,7 @@ PyTorch-Lightning Documentation
 
    trainer
    lightning-module
+   callbacks
 
 .. toctree::
    :maxdepth: 1
