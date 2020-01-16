@@ -11,6 +11,7 @@ The trainer automates all parts of training except:
 - which optimizers to use
 - how to do the computations
 
+
 The Trainer delegates those calls to your LightningModule which defines how to do those parts.
 
 This is the basic use of the trainer:
