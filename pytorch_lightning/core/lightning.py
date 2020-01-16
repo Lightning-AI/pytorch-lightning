@@ -1015,7 +1015,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             map_location (dict): A dictionary mapping saved weight GPU devices to new
                 GPU devices (example: {'cuda:1':'cuda:0'})
-
         Return:
             LightningModule with loaded weights
 
@@ -1136,7 +1135,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def freeze(self):
         r"""
-
         Freeze all params for inference
 
         Example
