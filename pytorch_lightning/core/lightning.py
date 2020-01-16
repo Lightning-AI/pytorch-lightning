@@ -793,18 +793,25 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch, split_size):
-        """
-        Return list of batch splits. Each split will be passed to forward_step to enable truncated
-        back propagation through time. The default implementation splits root level Tensors and
-        Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+        r"""
 
-        :param batch:
-        :param split_size:
-        :return:
+        When using truncated backpropagation through time, each batch must be split along the time dimension.
+        Lightning handles this by default, but  for custom behavior override this function.
 
-        Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
-         Each returned batch split is passed separately to training_step(...).
+        Args:
+            batch (torch.nn.Tensor): Current batch
+            split_size (int): How big the split  is
 
+        .. note:: Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
+            Each returned batch split is passed separately to training_step(...).
+
+        Return:
+            list of batch splits. Each split will be passed to forward_step to enable truncated
+            back propagation through time. The default implementation splits root level Tensors and
+            Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+
+        Example
+        -------
         .. code-block:: python
 
             def tbptt_split_batch(self, batch, split_size):
