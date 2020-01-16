@@ -680,7 +680,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @abstractmethod
     def configure_optimizers(self):
         r"""
-
         This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
 
