@@ -361,6 +361,7 @@ class GradientAccumulationScheduler(Callback):
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
 
+
     Example::
 
         from pytorch_lightning import Trainer
