@@ -1,4 +1,5 @@
 
+
 import os
 import sys
 import warnings
@@ -47,7 +48,9 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
-    r"""Abstract base class used to build new callbacks.
+    r"""
+    Main trainer class
+    
     """
 
     def __init__(
@@ -91,52 +94,54 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
     ):
+        r"""
+        
+        Customize every aspect of training via flags
         """
+        # Args:
+        #     logger (ref:`Logger`): Logger for experiment tracking
+        #     checkpoint_callback (ref:`Callback`): Callback for checkpointing
+        # :param early_stop_callback: Callback for early stopping
+        # :param str default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
+        # :param int gradient_clip_val: 0 means don't clip.
+        # :param int gradient_clip: 0 means don't clip. Deprecated.
+        # :param process_position: shown in the tqdm bar
+        # :param int num_nodes: number of GPU nodes
+        # :param list|str|int gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
+        #     OR '-1' / -1 to use all available gpus
+        # :param str log_gpu_memory: None, 'min_max', 'all'
+        # :param bool show_progress_bar: If true shows tqdm bar
+        # :param float overfit_pct: uses this much of all datasets
+        # :param int track_grad_norm: -1 no tracking. Otherwise tracks that norm
+        # :param int check_val_every_n_epoch: check val every n train epochs
+        # :param bool fast_dev_run: runs full iteration over everything to find bugs
+        # :param int accumulate_grad_batches: Accumulates grads every k batches
+        # :param int max_epochs:
+        # :param int min_epochs:
+        # :param int train_percent_check: How much of train set to check
+        # :param int val_percent_check: How much of val set to check
+        # :param int test_percent_check: How much of test set to check
+        # :param float|int val_check_interval: If float, % of tng epoch. If int, check every n batch
+        # :param int log_save_interval: Writes logs to disk this often
+        # :param int row_log_interval: How often to add logging rows
+        # :param int add_row_log_interval: How often to add logging rows. Deprecated.
+        # :param str distributed_backend: Options: 'dp', 'ddp', 'ddp2'.
+        # :param bool use_amp: If true uses apex for 16bit precision
+        # :param bool print_nan_grads: Prints nan gradients
+        # :param str weights_summary: Options: 'full', 'top', None to not print.
+        # :param bool weights_save_path: Where to save weights if on cluster
+        # :param str amp_level: Check nvidia docs for level
+        # :param int num_sanity_val_steps: How many val steps before a full train loop.
+        # :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
+        # 
+        # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
+        #     - `gradient_clip`,
+        #     - `nb_gpu_nodes`,
+        #     - `max_nb_epochs`,
+        #     - `min_nb_epochs`,
+        #     - `add_row_log_interval`,
+        #     - `nb_sanity_val_steps`
 
-        :param logger: Logger for experiment tracking
-        :param checkpoint_callback: Callback for checkpointing
-        :param early_stop_callback: Callback for early stopping
-        :param str default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
-        :param int gradient_clip_val: 0 means don't clip.
-        :param int gradient_clip: 0 means don't clip. Deprecated.
-        :param process_position: shown in the tqdm bar
-        :param int num_nodes: number of GPU nodes
-        :param list|str|int gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
-            OR '-1' / -1 to use all available gpus
-        :param str log_gpu_memory: None, 'min_max', 'all'
-        :param bool show_progress_bar: If true shows tqdm bar
-        :param float overfit_pct: uses this much of all datasets
-        :param int track_grad_norm: -1 no tracking. Otherwise tracks that norm
-        :param int check_val_every_n_epoch: check val every n train epochs
-        :param bool fast_dev_run: runs full iteration over everything to find bugs
-        :param int accumulate_grad_batches: Accumulates grads every k batches
-        :param int max_epochs:
-        :param int min_epochs:
-        :param int train_percent_check: How much of train set to check
-        :param int val_percent_check: How much of val set to check
-        :param int test_percent_check: How much of test set to check
-        :param float|int val_check_interval: If float, % of tng epoch. If int, check every n batch
-        :param int log_save_interval: Writes logs to disk this often
-        :param int row_log_interval: How often to add logging rows
-        :param int add_row_log_interval: How often to add logging rows. Deprecated.
-        :param str distributed_backend: Options: 'dp', 'ddp', 'ddp2'.
-        :param bool use_amp: If true uses apex for 16bit precision
-        :param bool print_nan_grads: Prints nan gradients
-        :param str weights_summary: Options: 'full', 'top', None to not print.
-        :param bool weights_save_path: Where to save weights if on cluster
-        :param str amp_level: Check nvidia docs for level
-        :param int num_sanity_val_steps: How many val steps before a full train loop.
-        :param int truncated_bptt_steps: Enables multiple backward passes for each batch.
-
-        .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
-            - `gradient_clip`,
-            - `nb_gpu_nodes`,
-            - `max_nb_epochs`,
-            - `min_nb_epochs`,
-            - `add_row_log_interval`,
-            - `nb_sanity_val_steps`
-
-        """
         # Transfer params
         # Backward compatibility
         if nb_gpu_nodes is not None:
