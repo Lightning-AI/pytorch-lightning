@@ -48,11 +48,6 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
-    r"""
-    Main trainer class
-    
-    """
-
     def __init__(
             self,
             logger=True,
@@ -95,18 +90,21 @@ class Trainer(TrainerIOMixin,
             resume_from_checkpoint=None,
     ):
         r"""
-        
+
         Customize every aspect of training via flags
+
+        Args:
+            logger (:class:`.Logger`): Logger for experiment tracking
+            example:
+                >>> asd
+            checkpoint_callback (:class:`CheckpointCallback`): Callback for checkpointing
+            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping
+            default_save_path (str): Default path for logs+weights if no logger/ckpt_callback passed
+            gradient_clip_val (int): 0 means don't clip.
+            gradient_clip (int): 0 means don't clip. Deprecated.
+            process_position (int): shown in the tqdm bar
+            num_nodes (int): number of GPU nodes
         """
-        # Args:
-        #     logger (ref:`Logger`): Logger for experiment tracking
-        #     checkpoint_callback (ref:`Callback`): Callback for checkpointing
-        # :param early_stop_callback: Callback for early stopping
-        # :param str default_save_path: Default path for logs+weights if no logger/ckpt_callback passed
-        # :param int gradient_clip_val: 0 means don't clip.
-        # :param int gradient_clip: 0 means don't clip. Deprecated.
-        # :param process_position: shown in the tqdm bar
-        # :param int num_nodes: number of GPU nodes
         # :param list|str|int gpus: int. (ie: 2 gpus) OR list to specify which GPUs [0, 1] OR '0,1'
         #     OR '-1' / -1 to use all available gpus
         # :param str log_gpu_memory: None, 'min_max', 'all'
