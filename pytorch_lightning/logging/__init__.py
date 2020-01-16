@@ -77,7 +77,7 @@ from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-all = ['TensorBoardLogger']
+all = []
 
 try:
     # needed to prevent ImportError and duplicated logs.
@@ -99,6 +99,8 @@ try:
     all.append('NeptuneLogger')
 except ImportError:
     pass
+
+all.append('TensorBoardLogger')
 
 try:
     from .test_tube import TestTubeLogger
