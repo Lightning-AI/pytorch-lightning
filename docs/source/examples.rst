@@ -32,3 +32,4 @@ Imagenet
    :maxdepth: 3
 
    pl_examples.full_examples.imagenet.imagenet_example
+
