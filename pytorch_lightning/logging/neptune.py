@@ -111,6 +111,16 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+        Actual neptune object. To use neptune features do the following.
+
+        Example::
+
+            self.logger.experiment.some_neptune_function()
+
+        """
+
         if self._experiment is not None:
             return self._experiment
         else:

@@ -77,25 +77,8 @@ from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-all = []
+all = ['TensorBoardLogger']
 
-try:
-    from .test_tube import TestTubeLogger
-    all.append('TestTubeLogger')
-except ImportError:
-    pass
-
-try:
-    from .mlflow import MLFlowLogger
-    all.append('MLFlowLogger')
-except ImportError:
-    pass
-
-try:
-    from .wandb import WandbLogger
-    all.append('WandbLogger')
-except ImportError:
-    pass
 try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
@@ -106,9 +89,29 @@ except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
+    from .mlflow import MLFlowLogger
+    all.append('MLFlowLogger')
+except ImportError:
+    pass
+
+try:
     from .neptune import NeptuneLogger
     all.append('NeptuneLogger')
 except ImportError:
     pass
+
+try:
+    from .test_tube import TestTubeLogger
+    all.append('TestTubeLogger')
+except ImportError:
+    pass
+
+try:
+    from .wandb import WandbLogger
+    all.append('WandbLogger')
+except ImportError:
+    pass
+
+
 
 __all__ = all

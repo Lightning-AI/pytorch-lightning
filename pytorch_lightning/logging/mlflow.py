@@ -47,6 +47,15 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+        Actual mlflow object. To use mlflow features do the following.
+
+        Example::
+
+            self.logger.experiment.some_mlflow_function()
+
+        """
         return self._mlflow_client
 
     @property

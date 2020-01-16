@@ -45,10 +45,15 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        """The underlying :class:`torch.utils.tensorboard.SummaryWriter`.
+        r"""
 
-        :rtype: torch.utils.tensorboard.SummaryWriter
-        """
+         Actual tensorboard object. To use tensorboard features do the following.
+
+         Example::
+
+             self.logger.experiment.some_tensorboard_function()
+
+         """
         if self._experiment is not None:
             return self._experiment
 

@@ -55,6 +55,16 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+          Actual test-tube object. To use test-tube features do the following.
+
+          Example::
+
+              self.logger.experiment.some_test_tube_function()
+
+          """
+
         if self._experiment is not None:
             return self._experiment
 

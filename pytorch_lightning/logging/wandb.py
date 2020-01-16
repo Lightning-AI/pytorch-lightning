@@ -68,6 +68,15 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+          Actual wandb object. To use wandb features do the following.
+
+          Example::
+
+              self.logger.experiment.some_wandb_function()
+
+          """
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
