@@ -61,11 +61,52 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def forward(self, *args, **kwargs):
-        """
-        Expand model in into whatever you need.
-        Also need to return the target
-        :param x:
-        :return:
+        r"""
+        Same as torch.nn.Module.forward(), however in Lightning you want this to define
+        the  operations you want to use for prediction (ie: on a server or as a feature extractor).
+
+        Normally you'd call self.forward() from your training_step() method. This makes it easy to write a complex
+        system for training with the outputs you'd want in a prediction setting.
+
+        Args:
+            x (tensor): Whatever  you decide to define in the forward method
+
+        Return:
+            Predicted output
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                feature_maps = self.convnet(x)
+                return feature_maps
+
+            def training_step(self, batch, batch_idx):
+                x, y = batch
+                feature_maps = self.forward(x)
+                logits = self.classifier(feature_maps)
+
+                # ...
+                return loss
+
+            # splitting it this way allows you to use your model as a feature extractor now
+            model = MyModelAbove()
+
+            inputs = server.get_request()
+            results = model(inputs)
+            server.write_results(results)
+
+            # -------------
+            # This is in stark contrast to torch.nn.Module where normally you would have this:
+            def forward(self, batch):
+                x, y = batch
+                feature_maps = self.convnet(x)
+                logits = self.classifier(feature_maps)
+                return logits
+
         """
 
     @abstractmethod
@@ -484,20 +525,27 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         pass
 
     def configure_ddp(self, model, device_ids):
-        """Override to init DDP in a different way or use your own wrapper.
+        r"""
 
-        :param model:
-        :param device_ids:
-        :return: DDP wrapped model
+        Override to init DDP in your own way or with your own wrapper.
+        The only requirements are that:
 
-        Overwrite to define your own DDP implementation init.
-        The only requirement is that:
         1. On a validation batch the call goes to model.validation_step.
         2. On a training batch the call goes to model.training_step.
         3. On a testing batch, the call goes to model.test_step
 
+        Args:
+            model (LightningModule): the LightningModule currently being optimized
+            device_ids (list): the list of GPU ids
+
+        Return:
+            DDP wrapped model
+
+        Example
+        -------
         .. code-block:: python
 
+            # default implementation used in Trainer
             def configure_ddp(self, model, device_ids):
                 # Lightning DDP simply routes to test_step, val_step, etc...
                 model = LightningDistributedDataParallel(
@@ -585,19 +633,24 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(self, amp, model, optimizers, amp_level):
-        """
+        r"""
         Override to init AMP your own way
         Must return a model and list of optimizers
-        :param amp:
-        :param model:
-        :param optimizers:
-        :param amp_level:
-        :return: Apex wrapped model and optimizers
 
-        Overwrite to define your own Apex implementation init.
+        Args:
+            amp (object): pointer to amp library object
+            model (LightningModule): pointer to current lightningModule
+            optimizers (list): list of optimizers passed in configure_optimizers()
+            amp_level (str): AMP mode chosen ('O1', 'O2', etc...)
 
+        Return:
+            Apex wrapped model and optimizers
+
+        Example
+        -------
         .. code-block:: python
 
+            # Default implementation used by Trainer.
             def configure_apex(self, amp, model, optimizers, amp_level):
                 model, optimizers = amp.initialize(
                     model, optimizers, opt_level=amp_level,
@@ -613,24 +666,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def configure_optimizers(self):
-        """Return a list of optimizers and a list of schedulers (could be empty)
+        r"""
 
-        :return: any of these 3 options:
+        This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
+        Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
+
+        Return: any of these 3 options:
             - Single optimizer
             - List or Tuple - List of optimizers
             - Two lists - The first list has multiple optimizers, the second a list of learning-rate schedulers
-
-        Set up as many optimizers and (optionally) learning rate schedulers as you need.
-         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
-         Lightning will call .backward() and .step() on each one in every epoch.
-         If you use 16 bit precision it will also handle that.
-
-        .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
-
-        .. note:: If you use LBFGS lightning handles the closure function automatically for you
-
-        .. note:: If you use multiple optimizers, gradients will be calculated only
-         for the parameters of current optimizer at each training step.
 
         Example
         -------
@@ -655,8 +699,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
                 return [generator_opt, disriminator_opt], [discriminator_sched]
 
-        If you need to control how often those optimizers step or override the default .step() schedule,
-         override the `optimizer_step` hook.
+        .. note:: Lightning calls .backward() and .step() on each optimizer and learning rate scheduler as needed.
+
+        .. note:: If you use 16-bit precision (use_amp=True), Lightning will automatically
+            handle the optimizers for you.
+
+        .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
+
+        .. note:: If you use LBFGS lightning handles the closure function automatically for you
+
+        .. note:: If you use multiple optimizers, gradients will be calculated only
+            for the parameters of current optimizer at each training step.
+
+        .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
+            override the `optimizer_step` hook.
+
 
         """
 
