@@ -80,8 +80,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         def __init__(self):
             # put the dimensions of the first input to your system
             self.example_input_array = torch.rand(5, 28 * 28)
-
-
     """
 
     def __init__(self, *args, **kwargs):
