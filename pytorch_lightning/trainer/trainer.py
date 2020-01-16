@@ -400,6 +400,7 @@ class Trainer(TrainerIOMixin,
                 `Williams, Ronald J., and Jing Peng. "An efficient gradient-based algorithm for on-line training of recurrent network trajectories."
                 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_
                 
+    
                 Example::
                     # default used by the Trainer (ie: disabled)
                     trainer = Trainer(truncated_bptt_steps=None)
