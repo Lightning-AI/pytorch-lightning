@@ -44,6 +44,7 @@ PyTorch-Lightning Documentation
 
    common-cases
 
+
 .. toctree::
    :maxdepth: 1
    :name: community
@@ -61,4 +62,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
