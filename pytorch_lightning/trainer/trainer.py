@@ -396,10 +396,8 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of a much longer sequence
                 If this is enabled, your batches will automatically get truncated
                 and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence dimension.
-                `Williams, Ronald J., and Jing Peng. "An efficient gradient-based algorithm for on-line training of recurrent network trajectories."
-                <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_
-                
-    
+                (`Williams et al. "An efficient gradient-based algorithm for on-line training of recurrent network trajectories."
+                <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)   
                 Example::
                     # default used by the Trainer (ie: disabled)
                     trainer = Trainer(truncated_bptt_steps=None)
