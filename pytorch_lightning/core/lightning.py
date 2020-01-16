@@ -728,20 +728,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-        """Do something instead of the standard optimizer behavior
+        r"""
 
-        :param int epoch:
-        :param int batch_idx:
-        :param optimizer:
-        :param optimizer_idx:
-        :param second_order_closure: closure for second order methods
-        :return:
+        Override this method to adjust the default way the Trainer calls each optimizer. By default, Lightning
+        calls .step() and zero_grad() as shown in the example once per optimizer.
 
-        Calls `.step()` and `.zero_grad` for each optimizer.
-        You can override this method to adjust how you do the optimizer step for each optimizer
+        Args:
+            epoch (int): Current epoch
+            batch_idx (int): Index of current batch
+            optimizer (torch.nn.Optimizer): A PyTorch optimizer
+            optimizer_idx (int): If you used multiple optimizers this indexes into that list
+            second_order_closure (int): closure for second order methods
 
-        Called once per optimizer
-
+        Example
+        -------
         .. code-block:: python
 
             # DEFAULT
@@ -767,7 +767,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # add as many optimizers as you want
 
 
-        This step allows you to do a lot of non-standard training tricks such as learning-rate warm-up:
+        Here's another example showing how to use this for more advanced things such as learning-rate warm-up:
 
         .. code-block:: python
 
@@ -1131,13 +1131,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.train()
 
     def on_load_checkpoint(self, checkpoint):
-        """
+        r"""
 
-        :param checkpoint:
+        Called by lightning to restore your model.
+        If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
-        Called by lightning to restore your model. Lighting auto-restores global step, epoch, etc...
-         It also restores the model state_dict.
-         If you saved something with **on_save_checkpoint** this is your chance to restore this.
+        Args:
+            checkpoint (dict): Loaded checkpoint
+
 
         Example
         -------
@@ -1148,17 +1149,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # 99% of the time you don't need to implement this method
                 self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
+        .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
+            No need for you to restore anything regarding training.
         """
         pass
 
     def on_save_checkpoint(self, checkpoint):
-        """
+        r"""
 
-        :param checkpoint:
+        Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
+        might want to  save
 
-        Called by lightning to checkpoint your model. Lightning saves the training state
-         (current epoch, global_step, etc) and also saves the model state_dict.
-         If you want to save anything else, use this method to add your own key-value pair.
+        Args:
+            checkpoint (dic): Checkpoint to be saved
 
         Example
         -------
@@ -1168,6 +1171,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def on_save_checkpoint(self, checkpoint):
                 # 99% of use cases you don't need to implement this method
                 checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
+
+        .. note:: Lighting saves all aspects of training (epoch, global step, etc...) including amp scaling. No need
+            for you to store anything about training.
 
         """
         pass
