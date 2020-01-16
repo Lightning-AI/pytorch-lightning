@@ -86,8 +86,11 @@ class EarlyStopping(Callback):
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
     Example:
+        >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import EarlyStopping
-        >>> EarlyStopping('val_loss')
+        >>>
+        >>> early_stopping = EarlyStopping('val_loss')
+        >>> Trainer(early_stop_callback=early_stopping)
     """
 
     def __init__(self, monitor='val_loss',
@@ -194,10 +197,13 @@ class ModelCheckpoint(Callback):
         period (int): Interval (number of epochs) between checkpoints.
 
     Example:
+        >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
-        >>> ModelCheckpoint(filepath='my_path')
+        >>>
+        >>> checkpoint_callback = ModelCheckpoint(filepath='my_path')
+        >>> Trainer(checkpoint_callback=checkpoint_callback)
+
         >>> # saves checkpoints to my_path whenever 'val_loss' has a new min
-            
     """
 
     def __init__(self, filepath, monitor='val_loss', verbose=0,
@@ -350,9 +356,12 @@ class GradientAccumulationScheduler(Callback):
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
 
     Example:
+        >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
+        >>>
         >>> # at epoch 5 start accumulating every 2 batches
-        >>> GradientAccumulationScheduler(scheduling: {5: 2})
+        >>> accumulator = GradientAccumulationScheduler(scheduling: {5: 2})
+        >>> Trainer(accumulate_grad_batches=accumulator)
     """
 
     def __init__(self, scheduling: dict):
