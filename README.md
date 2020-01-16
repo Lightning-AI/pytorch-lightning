@@ -32,7 +32,8 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-**[View the docs here](https://pytorch-lightning.readthedocs.io/en/latest)**
+**[View the docs here](https://pytorch-lightning.readthedocs.io/en/latest)**   
+** DOCS TEMPORARILY have broken links because we recently switched orgs from williamfalcon/pytorch-lightning to pytorchlightning/pytorch-lightning.
 
 ## Demo  
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
