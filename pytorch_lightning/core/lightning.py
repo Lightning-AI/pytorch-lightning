@@ -1228,13 +1228,13 @@ def convert(val):
     constructors = [int, float, str]
 
     if type(val) is str:
+
         if val.lower() == 'true':
             return True
         if val.lower() == 'false':
             return False
 
     for c in constructors:
-
         try:
             return c(val)
         except ValueError:
