@@ -93,7 +93,7 @@ class NeptuneLogger(LightningLoggerBase):
             trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
         Args:
-            api_key (str|None): Required in online mode. Neputne API token, found on https://neptune.ml.
+            api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.
                 Read how to get your API key https://docs.neptune.ml/python-api/tutorials/get-started.html#copy-api-token.
             project_name (str): Required in online mode. Qualified name of a project in a form of
                "namespace/project_name" for example "tom/minst-classification".

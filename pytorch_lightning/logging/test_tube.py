@@ -38,6 +38,33 @@ from .base import LightningLoggerBase, rank_zero_only
 
 
 class TestTubeLogger(LightningLoggerBase):
+    r"""
+
+    Log to local file system in TensorBoard format but using a nicer folder structure.
+
+    Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
+    `os.path.join(save_dir, name, version)`
+
+    Example
+    --------
+
+    .. code-block:: python
+
+        logger = TestTubeLogger("tt_logs", name="my_exp_name")
+        trainer = Trainer(logger=logger)
+        trainer.train(model)
+
+    Args:
+        save_dir (str): Save directory
+        name (str): Experiment name. Defaults to "default".
+        description (str): A short snippet about this experiment
+        debug (bool): If True, it doesn't log anything
+        version (int): Experiment version. If version is not specified the logger inspects the save
+        directory for existing versions, then automatically assigns the next available version.
+        create_git_tag (bool): If True creates a git tag to save the code used in this experiment
+
+    """
+
     __test__ = False
 
     def __init__(

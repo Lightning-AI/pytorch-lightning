@@ -11,12 +11,15 @@ from .base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):
-    r"""Log to local file system in TensorBoard format
+    r"""
+
+    Log to local file system in TensorBoard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     `os.path.join(save_dir, name, version)`
 
-    :example:
+    Example
+    --------
 
     .. code-block:: python
 
@@ -24,11 +27,12 @@ class TensorBoardLogger(LightningLoggerBase):
         trainer = Trainer(logger=logger)
         trainer.train(model)
 
-    :param str save_dir: Save directory
-    :param str name: Experiment name. Defaults to "default".
-    :param int version: Experiment version. If version is not specified the logger inspects the save
+    Args:
+        save_dir (str): Save directory
+        name (str): Experiment name. Defaults to "default".
+        version (int): Experiment version. If version is not specified the logger inspects the save
         directory for existing versions, then automatically assigns the next available version.
-    :param \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
+        \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
     NAME_CSV_TAGS = 'meta_tags.csv'
