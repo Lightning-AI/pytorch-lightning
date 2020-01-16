@@ -18,3 +18,7 @@ The LightningTemplate holds the core computations, train, val, test loop, optimi
 
 This pattern de-couples the engineering from the science which makes your code reusable and free to run on any hardware.
 """
+
+from .trainer import Trainer
+
+__all__ = ['Trainer']
