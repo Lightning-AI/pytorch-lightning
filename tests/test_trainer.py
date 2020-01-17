@@ -15,7 +15,7 @@ from pytorch_lightning.testing import (
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
 )
-from pytorch_lightning.trainer import training_io
+from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 
 
@@ -186,7 +186,7 @@ def test_loading_meta_tags(tmpdir):
     # load tags
     path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
-    tags = training_io.load_hparams_from_tags_csv(tags_path)
+    tags = load_hparams_from_tags_csv(tags_path)
 
     assert tags.batch_size == 32 and tags.hidden_dim == 1000
 
