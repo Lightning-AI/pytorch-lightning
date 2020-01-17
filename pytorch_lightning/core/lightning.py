@@ -1,109 +1,112 @@
+
+
 import os
 import warnings
 import collections
 import logging
+import pandas as pd
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
 import torch
 import torch.distributed as dist
-
+#
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.trainer.training_io import load_hparams_from_tags_csv
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
-    """
-    A LightningModule has the following properties which you can access at any time
-
-    **logger**
-    A reference to the logger you passed into trainer.
-    Passing a logger is optional. If you don't pass one in, Lightning will create one
-     for you automatically. This logger saves logs to `/os.getcwd()/lightning_logs`::
-
-        Trainer(logger=your_logger)
-
-
-    Call it from anywhere in your LightningModule to add metrics, images, etc...
-     whatever your logger supports.
-
-    Here is an example using the TestTubeLogger (which is a wrapper
-     on 'PyTorch SummaryWriter <https://pytorch.org/docs/stable/tensorboard.html>`_
-     with versioned folder structure).
-
-    .. code-block:: python
-
-        # if logger is a tensorboard logger or TestTubeLogger
-        self.logger.experiment.add_embedding(...)
-        self.logger.experiment.log({'val_loss': 0.9})
-        self.logger.experiment.add_scalars(...)
-
-
-    **trainer**
-    Last resort access to any state the trainer has.
-     Changing certain properties here could affect your training run.
-
-    .. code-block:: python
-
-        self.trainer.optimizers
-        self.trainer.current_epoch
-        ...
-
-    Debugging
-    ---------
-
-    The LightningModule also offers these tricks to help debug.
-
-    **example_input_array**
-
-    In the LightningModule init, you can set a dummy tensor for this property
-    to get a print out of sizes coming into and out of every layer.
-
-    .. code-block:: python
-
-        def __init__(self):
-            # put the dimensions of the first input to your system
-            self.example_input_array = torch.rand(5, 28 * 28)
-
-
-    """
-
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
         #: Current dtype
         self.dtype = torch.FloatTensor
+
         self.exp_save_path = None
+
         #: The current epoch
         self.current_epoch = 0
+
         #: Total training batches seen across all epochs
         self.global_step = 0
+
         self.loaded_optimizer_states_dict = {}
+
+        #: Pointer to the trainer object
         self.trainer = None
+
+        #: Pointer to the logger object
         self.logger = None
         self.example_input_array = None
 
-        # track if gpu was requested for checkpointing
         #: True if your model is currently running on GPUs.
         #: Useful to set flags around the LightningModule for different CPU vs GPU behavior.
         self.on_gpu = False
+
+        #: True if using dp
         self.use_dp = False
+
+        #: True if using ddp
         self.use_ddp = False
+
+        #: True if using ddp2
         self.use_ddp2 = False
+
+        #: True if using amp
         self.use_amp = False
 
     @abstractmethod
     def forward(self, *args, **kwargs):
-        """
-        Expand model in into whatever you need.
-        Also need to return the target
-        :param x:
-        :return:
+        r"""
+        Same as torch.nn.Module.forward(), however in Lightning you want this to define
+        the  operations you want to use for prediction (ie: on a server or as a feature extractor).
+
+        Normally you'd call self.forward() from your training_step() method. This makes it easy to write a complex
+        system for training with the outputs you'd want in a prediction setting.
+
+        Args:
+            x (tensor): Whatever  you decide to define in the forward method
+
+        Return:
+            Predicted output
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                feature_maps = self.convnet(x)
+                return feature_maps
+
+            def training_step(self, batch, batch_idx):
+                x, y = batch
+                feature_maps = self.forward(x)
+                logits = self.classifier(feature_maps)
+
+                # ...
+                return loss
+
+            # splitting it this way allows model to be used a feature extractor
+            model = MyModelAbove()
+
+            inputs = server.get_request()
+            results = model(inputs)
+            server.write_results(results)
+
+            # -------------
+            # This is in stark contrast to torch.nn.Module where normally you would have this:
+            def forward(self, batch):
+                x, y = batch
+                feature_maps = self.convnet(x)
+                logits = self.classifier(feature_maps)
+                return logits
+
         """
 
     @abstractmethod
@@ -247,12 +250,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         pass
 
     def validation_step(self, *args, **kwargs):
-        """return whatever outputs will need to be aggregated in validation_end
+        r"""
 
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
-        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple val datasets used)
-        :return dict: Dict or OrderedDict - passed to the validation_end step
+        This is the validation loop. It is called for each batch of the validation set.
+        Whatever is returned from here will be passed in as a list on validation_end.
+        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
+            batch_idx (int): The index of this batch
+            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple
+                val datasets used)
+
+        Return:
+            Dict or OrderedDict - passed to the validation_end step
 
         .. code-block:: python
 
@@ -261,14 +273,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             # if you have multiple val dataloaders:
             def validation_step(self, batch, batch_idx, dataloader_idxdx)
-
-        If you don't need to validate you don't need to implement this method.
-         In this step you'd normally generate examples or calculate anything of interest such as accuracy.
-
-        When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-         have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
-
-        The dict you return here will be available in the `validation_end` method.
 
         Example
         -------
@@ -311,7 +315,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def validation_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
-        The `dataset_idx` corresponds to the order of datasets returned in `val_dataloader`.
+        .. note:: If you don't need to validate you don't need to implement this method.
+
+        .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
+            have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
         pass
 
@@ -522,20 +529,27 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         pass
 
     def configure_ddp(self, model, device_ids):
-        """Override to init DDP in a different way or use your own wrapper.
+        r"""
 
-        :param model:
-        :param device_ids:
-        :return: DDP wrapped model
+        Override to init DDP in your own way or with your own wrapper.
+        The only requirements are that:
 
-        Overwrite to define your own DDP implementation init.
-        The only requirement is that:
         1. On a validation batch the call goes to model.validation_step.
         2. On a training batch the call goes to model.training_step.
         3. On a testing batch, the call goes to model.test_step
 
+        Args:
+            model (LightningModule): the LightningModule currently being optimized
+            device_ids (list): the list of GPU ids
+
+        Return:
+            DDP wrapped model
+
+        Example
+        -------
         .. code-block:: python
 
+            # default implementation used in Trainer
             def configure_ddp(self, model, device_ids):
                 # Lightning DDP simply routes to test_step, val_step, etc...
                 model = LightningDistributedDataParallel(
@@ -555,11 +569,17 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return model
 
     def init_ddp_connection(self, proc_rank, world_size):
-        """Connect all procs in the world using the env:// init
-        Use the first node as the root address
+        r"""
 
-        Override to init DDP in your own way.
+        Override to define your custom way of setting up a distributed environment.
 
+        Lightning's implementation uses env:// init by default and sets the first node as root.
+
+        Args:
+            proc_rank (int): The current process rank within the node.
+            world_size (int): Number of GPUs being use across all nodes. (num_nodes*nb_gpu_nodes).
+        Example
+        -------
         .. code-block:: python
 
             def init_ddp_connection(self):
@@ -590,7 +610,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 root_node = self.trainer.resolve_root_node_address(root_node)
                 os.environ['MASTER_ADDR'] = root_node
-                dist.init_process_group('nccl', rank=self.proc_rank, world_size=self.world_size)
+                dist.init_process_group(
+                    'nccl',
+                    rank=self.proc_rank,
+                    world_size=self.world_size
+                )
 
         """
         # use slurm job id for the port number
@@ -623,19 +647,24 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(self, amp, model, optimizers, amp_level):
-        """
+        r"""
         Override to init AMP your own way
         Must return a model and list of optimizers
-        :param amp:
-        :param model:
-        :param optimizers:
-        :param amp_level:
-        :return: Apex wrapped model and optimizers
 
-        Overwrite to define your own Apex implementation init.
+        Args:
+            amp (object): pointer to amp library object
+            model (LightningModule): pointer to current lightningModule
+            optimizers (list): list of optimizers passed in configure_optimizers()
+            amp_level (str): AMP mode chosen ('O1', 'O2', etc...)
 
+        Return:
+            Apex wrapped model and optimizers
+
+        Example
+        -------
         .. code-block:: python
 
+            # Default implementation used by Trainer.
             def configure_apex(self, amp, model, optimizers, amp_level):
                 model, optimizers = amp.initialize(
                     model, optimizers, opt_level=amp_level,
@@ -651,24 +680,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def configure_optimizers(self):
-        """Return a list of optimizers and a list of schedulers (could be empty)
+        r"""
 
-        :return: any of these 3 options:
+        This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
+        Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
+
+        Return: any of these 3 options:
             - Single optimizer
             - List or Tuple - List of optimizers
             - Two lists - The first list has multiple optimizers, the second a list of learning-rate schedulers
-
-        Set up as many optimizers and (optionally) learning rate schedulers as you need.
-         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
-         Lightning will call .backward() and .step() on each one in every epoch.
-         If you use 16 bit precision it will also handle that.
-
-        .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
-
-        .. note:: If you use LBFGS lightning handles the closure function automatically for you
-
-        .. note:: If you use multiple optimizers, gradients will be calculated only
-         for the parameters of current optimizer at each training step.
 
         Example
         -------
@@ -693,26 +713,39 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
                 return [generator_opt, disriminator_opt], [discriminator_sched]
 
-        If you need to control how often those optimizers step or override the default .step() schedule,
-         override the `optimizer_step` hook.
+        .. note:: Lightning calls .backward() and .step() on each optimizer and learning rate scheduler as needed.
+
+        .. note:: If you use 16-bit precision (use_amp=True), Lightning will automatically
+            handle the optimizers for you.
+
+        .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
+
+        .. note:: If you use LBFGS lightning handles the closure function automatically for you
+
+        .. note:: If you use multiple optimizers, gradients will be calculated only
+            for the parameters of current optimizer at each training step.
+
+        .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
+            override the `optimizer_step` hook.
+
 
         """
 
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-        """Do something instead of the standard optimizer behavior
+        r"""
 
-        :param int epoch:
-        :param int batch_idx:
-        :param optimizer:
-        :param optimizer_idx:
-        :param second_order_closure: closure for second order methods
-        :return:
+        Override this method to adjust the default way the Trainer calls each optimizer. By default, Lightning
+        calls .step() and zero_grad() as shown in the example once per optimizer.
 
-        Calls `.step()` and `.zero_grad` for each optimizer.
-        You can override this method to adjust how you do the optimizer step for each optimizer
+        Args:
+            epoch (int): Current epoch
+            batch_idx (int): Index of current batch
+            optimizer (torch.nn.Optimizer): A PyTorch optimizer
+            optimizer_idx (int): If you used multiple optimizers this indexes into that list
+            second_order_closure (int): closure for second order methods
 
-        Called once per optimizer
-
+        Example
+        -------
         .. code-block:: python
 
             # DEFAULT
@@ -738,7 +771,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # add as many optimizers as you want
 
 
-        This step allows you to do a lot of non-standard training tricks such as learning-rate warm-up:
+        Here's another example showing how to use this for more advanced things such as learning-rate warm-up:
 
         .. code-block:: python
 
@@ -764,18 +797,22 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch, split_size):
-        """
-        Return list of batch splits. Each split will be passed to forward_step to enable truncated
-        back propagation through time. The default implementation splits root level Tensors and
-        Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+        r"""
 
-        :param batch:
-        :param split_size:
-        :return:
+        When using truncated backpropagation through time, each batch must be split along the time dimension.
+        Lightning handles this by default, but  for custom behavior override this function.
 
-        Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
-         Each returned batch split is passed separately to training_step(...).
+        Args:
+            batch (torch.nn.Tensor): Current batch
+            split_size (int): How big the split  is
 
+        Return:
+            list of batch splits. Each split will be passed to forward_step to enable truncated
+            back propagation through time. The default implementation splits root level Tensors and
+            Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+
+        Example
+        -------
         .. code-block:: python
 
             def tbptt_split_batch(self, batch, split_size):
@@ -795,6 +832,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   splits.append(batch_split)
 
               return splits
+
+        .. note:: Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
+            Each returned batch split is passed separately to training_step(...).
+
         """
         time_dims = [len(x[0]) for x in batch if isinstance(
             x, torch.Tensor) or isinstance(x, collections.Sequence)]
@@ -861,15 +902,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @data_loader
     def test_dataloader(self):
-        """Implement a PyTorch DataLoader.
-
-        :return: PyTorch DataLoader
-
-        If you don't need a test dataset and a test_step, you don't need to implement this method.
+        r"""
 
         Called by lightning during test loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        this ensures not calling this function until the data are needed.
+
+        Return:
+            PyTorch DataLoader
 
         Example
         -------
@@ -888,20 +927,22 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 return loader
 
+        .. note:: If you don't need a test dataset and a test_step, you don't need to implement this method.
+
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
+
         """
         return None
 
     @data_loader
     def val_dataloader(self):
-        """Implement a PyTorch DataLoader.
-
-        :return: PyTorch DataLoader or list of PyTorch Dataloaders.
-
-        If you don't need a validation dataset and a validation_step, you don't need to implement this method.
+        r"""
 
         Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        this ensures not calling this function until the data are needed.
+
+        Return:
+            PyTorch DataLoader
 
         Example
         -------
@@ -925,30 +966,68 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def val_dataloader(self):
                 return [loader_a, loader_b, ..., loader_n]
 
-        In the case where you return multiple `val_dataloaders`, the `validation_step`
-         will have an arguement `dataset_idx` which matches the order here.
+        Example
+        -------
+
+        .. code-block:: python
+
+            @pl.data_loader
+            def val_dataloader(self):
+                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                loader = torch.utils.data.DataLoader(
+                    dataset=dataset,
+                    batch_size=self.hparams.batch_size,
+                    shuffle=True
+                )
+
+                return loader
+
+            # can also return multiple dataloaders
+            @pl.data_loader
+            def val_dataloader(self):
+                return [loader_a, loader_b, ..., loader_n]
+
+        .. note:: If you don't need a validation dataset and a validation_step, you don't need to implement this method.
+
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
+
+        .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
+            will have an argument `dataset_idx` which matches the order here.
         """
         return None
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
-        """Primary way of loading model from csv weights path.
+        r"""
 
-        :param str weights_path: Path to a PyTorch checkpoint
-        :param str tags_csv: Path to meta_tags.csv file generated by the test-tube Experiment
-        :param dict map_location: A dictionary mapping saved weight GPU devices to new GPU devices
-            for mapping storage {'cuda:1':'cuda:0'}
-        :return: The pretrained LightningModule
+        You should use `load_from_checkpoint` instead!
+        However, if your .ckpt weights don't have the hyperparameters saved, use this method  to pass
+        in a .csv with the hparams you'd like to use. These will  be converted  into a argparse.Namespace
+        and passed into  your LightningModule for use.
 
-        If you're using `test-tube`, there is an alternate method which uses the meta_tags.csv
-        file from test-tube to rebuild the model. The `meta_tags.csv` file can be found in the
-        `test-tube` experiment save_dir.
+        Args:
 
+            weights_path (str): Path to a PyTorch checkpoint
+            tags_csv (str): Path to a .csv with two columns (key, value) as in this
+                Example::
+                    key,value
+                    drop_prob,0.2
+                    batch_size,32
+
+            map_location (dict): A dictionary mapping saved weight GPU devices to new
+                GPU devices (example: {'cuda:1':'cuda:0'})
+
+        Return:
+            LightningModule with loaded weights
+
+        Example
+        -------
         .. code-block:: python
 
             pretrained_model = MyLightningModule.load_from_metrics(
                 weights_path='/path/to/pytorch_checkpoint.ckpt',
-                tags_csv='/path/to/test_tube/experiment/version/meta_tags.csv',
+                tags_csv='/path/to/hparams_file.csv',
                 on_gpu=True,
                 map_location=None
             )
@@ -957,22 +1036,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             pretrained_model.eval()
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
-
-        This is the easiest/fastest way which loads hyperparameters and weights from a checkpoint,
-        such as the one saved by the `ModelCheckpoint` callback
-
-        .. code-block:: python
-
-            pretrained_model = MyLightningModule.load_from_checkpoint(
-                checkpoint_path='/path/to/pytorch_checkpoint.ckpt'
-            )
-
-            # predict
-            pretrained_model.eval()
-            pretrained_model.freeze()
-            y_hat = pretrained_model(x)
-
         """
+
         hparams = load_hparams_from_tags_csv(tags_csv)
         hparams.__setattr__('on_gpu', False)
 
@@ -992,11 +1057,56 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @classmethod
     def load_from_checkpoint(cls, checkpoint_path, map_location=None):
-        """
-        Primary way of loading model from a checkpoint
-        :param checkpoint_path:
-        :param map_location: dic for mapping storage {'cuda:1':'cuda:0'}
-        :return:
+        r"""
+
+        Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
+        it  stores  the hyperparameters in the checkpoint if you initialized your  LightningModule
+        with an argument  called `hparams` which is a Namespace or dictionary of hyperparameters
+
+            Example
+            -------
+            .. code-block:: python
+
+                # --------------
+                # Case 1
+                # when using Namespace (output of using Argparse to parse command line arguments)
+                from argparse import Namespace
+                hparams = Namespace(**{'learning_rate': 0.1})
+
+                model = MyModel(hparams)
+
+                class MyModel(pl.LightningModule):
+                    def __init__(self, hparams):
+                        self.learning_rate = hparams.learning_rate
+
+                # --------------
+                # Case 2
+                # when using a dict
+                model = MyModel({'learning_rate': 0.1})
+
+                class MyModel(pl.LightningModule):
+                    def __init__(self, hparams):
+                        self.learning_rate = hparams['learning_rate']
+
+        Args:
+            checkpoint_path (str): Path to checkpoint.
+            map_location (dic): If your checkpoint saved from a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup.
+
+        Return:
+            LightningModule with loaded weights.
+
+        Example
+        -------
+        .. code-block:: python
+
+            # load weights without mapping
+            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+
+            # load weights mapping all weights from GPU 1 to GPU 0
+            map_location = {'cuda:1':'cuda:0'}
+            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt', map_location=map_location)
+
         """
 
         if map_location is not None:
@@ -1027,8 +1137,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         logging.info('\n' + model_summary.__str__())
 
     def freeze(self):
-        """Freeze all params for inference
+        r"""
 
+        Freeze all params for inference
+
+        Example
+        -------
         .. code-block:: python
 
             model = MyLightningModule(...)
@@ -1055,13 +1169,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.train()
 
     def on_load_checkpoint(self, checkpoint):
-        """
+        r"""
 
-        :param checkpoint:
+        Called by lightning to restore your model.
+        If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
-        Called by lightning to restore your model. Lighting auto-restores global step, epoch, etc...
-         It also restores the model state_dict.
-         If you saved something with **on_save_checkpoint** this is your chance to restore this.
+        Args:
+            checkpoint (dict): Loaded checkpoint
+
 
         Example
         -------
@@ -1072,17 +1187,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # 99% of the time you don't need to implement this method
                 self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
+        .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
+            No need for you to restore anything regarding training.
         """
         pass
 
     def on_save_checkpoint(self, checkpoint):
-        """
+        r"""
 
-        :param checkpoint:
+        Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
+        might want to  save
 
-        Called by lightning to checkpoint your model. Lightning saves the training state
-         (current epoch, global_step, etc) and also saves the model state_dict.
-         If you want to save anything else, use this method to add your own key-value pair.
+        Args:
+            checkpoint (dic): Checkpoint to be saved
 
         Example
         -------
@@ -1093,5 +1210,37 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # 99% of use cases you don't need to implement this method
                 checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 
+        .. note:: Lighting saves all aspects of training (epoch, global step, etc...) including amp scaling. No need
+            for you to store anything about training.
+
         """
         pass
+
+
+def load_hparams_from_tags_csv(tags_csv):
+    if not os.path.isfile(tags_csv):
+        logging.warning(f'Missing Tags: {tags_csv}.')
+        return Namespace()
+
+    tags_df = pd.read_csv(tags_csv)
+    dic = tags_df.to_dict(orient='records')
+    ns_dict = {row['key']: convert(row['value']) for row in dic}
+    ns = Namespace(**ns_dict)
+    return ns
+
+
+def convert(val):
+    constructors = [int, float, str]
+
+    if type(val) is str:
+        if val.lower() == 'true':
+            return True
+        if val.lower() == 'false':
+            return False
+
+    for c in constructors:
+        try:
+            return c(val)
+        except ValueError:
+            pass
+    return val

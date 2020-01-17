@@ -1,17 +1,16 @@
 """
-Lightning Module interface
-==========================
+A LightningModule is a strict superclass of torch.nn.Module but provides an interface to standardize
+the "ingredients" for a research or production system.
 
-A lightning module is a strict superclass of nn.Module, it provides a standard interface
- for the trainer to interact with the model.
+- The model/system definition (__init__)
+- The model/system computations (forward)
+- What happens in the training loop (training_step, training_end)
+- What happens in the validation loop (validation_step, validation_end)
+- What happens in the test loop (test_step, test_end)
+- What optimizers to use (configure_optimizers)
+- What data to use (train_dataloader, val_dataloader, test_dataloader)
 
-The easiest thing to do is copy the minimal example below and modify accordingly.
-
-Otherwise, to Define a Lightning Module, implement the following methods:
-
-
-Minimal example
----------------
+Most methods are optional. Here's a minimal example.
 
 .. code-block:: python
 
@@ -28,14 +27,12 @@ Minimal example
 
         def __init__(self):
             super(CoolModel, self).__init__()
-            # not the best model...
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
 
         def training_step(self, batch, batch_idx):
-            # REQUIRED
             x, y = batch
             y_hat = self.forward(x)
             return {'loss': F.cross_entropy(y_hat, y)}
@@ -85,66 +82,19 @@ Minimal example
             return DataLoader(MNIST(os.getcwd(), train=False, download=True,
                               transform=transforms.ToTensor()), batch_size=32)
 
-
-How do these methods fit into the broader training?
----------------------------------------------------
-
-The LightningModule interface is on the right. Each method corresponds
- to a part of a research project. Lightning automates everything not in blue.
-
-.. figure::  docs/source/_static/images/overview_flat.jpg
-   :align:   center
-
-   Overview.
-
-
-Optional Methods
-----------------
-
-**add_model_specific_args**
+Once you've defined the LightningModule, fit  it using a trainer.
 
 .. code-block:: python
+   trainer = pl.Trainer()
+   model = CoolModel()
 
-    @staticmethod
-    def add_model_specific_args(parent_parser, root_dir)
+   trainer.fit(model)
 
-Lightning has a list of default argparse commands.
- This method is your chance to add or modify commands specific to your model.
- The `hyperparameter argument parser
-  <https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_
- is available anywhere in your model by calling self.hparams.
-
-**Return**
-An argument parser
-
-**Example**
-
-.. code-block:: python
-
-    @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
-
-        # param overwrites
-        # parser.set_defaults(gradient_clip_val=5.0)
-
-        # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28*28)
-        parser.add_argument('--out_features', default=10)
-        # use 500 for CPU, 50000 for GPU to see speed difference
-        parser.add_argument('--hidden_dim', default=50000)
-
-        # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-
-        # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005], tunable=False)
-        parser.opt_list('--batch_size', default=256, type=int,
-                        options=[32, 64, 128, 256], tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str,
-                        options=['adam'], tunable=False)
-        return parser
+Check out this
+`COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
+for a live demo.
 
 """
+from .lightning import LightningModule
+
+__all__ = ['LightningModule']

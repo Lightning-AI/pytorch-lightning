@@ -96,9 +96,7 @@ import warnings
 from subprocess import call
 import logging
 from abc import ABC
-from argparse import Namespace
 
-import pandas as pd
 import torch
 import torch.distributed as dist
 
@@ -459,32 +457,3 @@ class TrainerIOMixin(ABC):
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
-
-
-def load_hparams_from_tags_csv(tags_csv):
-    if not os.path.isfile(tags_csv):
-        logging.warning(f'Missing Tags: {tags_csv}.')
-        return Namespace()
-
-    tags_df = pd.read_csv(tags_csv)
-    dic = tags_df.to_dict(orient='records')
-    ns_dict = {row['key']: convert(row['value']) for row in dic}
-    ns = Namespace(**ns_dict)
-    return ns
-
-
-def convert(val):
-    constructors = [int, float, str]
-
-    if type(val) is str:
-        if val.lower() == 'true':
-            return True
-        if val.lower() == 'false':
-            return False
-
-    for c in constructors:
-        try:
-            return c(val)
-        except ValueError:
-            pass
-    return val
