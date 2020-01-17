@@ -63,7 +63,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         root_dir = os.path.join(self.save_dir, self.name)
         os.makedirs(root_dir, exist_ok=True)
-        log_dir = os.path.join(root_dir, str(self.version))
+        log_dir = os.path.join(root_dir, "version_" + str(self.version))
         self._experiment = SummaryWriter(log_dir=log_dir, **self.kwargs)
         return self._experiment
 
@@ -132,7 +132,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
         existing_versions = [
-            int(d) for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d)) and d.isdigit()
+            int(d.split("_")[1]) for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d)) and d.isdigit()
         ]
         if len(existing_versions) == 0:
             return 0
