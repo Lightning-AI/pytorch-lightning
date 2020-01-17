@@ -108,7 +108,7 @@ class Trainer(TrainerIOMixin,
                     Trainer(logger=logger)
             checkpoint_callback (:class:`CheckpointCallback`): Callback for checkpointing.
                 Example::
-                    from pytorch_lightning.callbacks import ModelCheckpoint 
+                    from pytorch_lightning.callbacks import ModelCheckpoint
 
                     # default used by the Trainer
                     checkpoint_callback = ModelCheckpoint(
@@ -123,7 +123,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
             early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping
                 Example::
-                    from pytorch_lightning.callbacks import EarlyStopping 
+                    from pytorch_lightning.callbacks import EarlyStopping
 
                     # default used by the Trainer
                     early_stop_callback = EarlyStopping(
@@ -158,11 +158,11 @@ class Trainer(TrainerIOMixin,
 
                     # to train on 8 nodes
                     trainer = Trainer(num_nodes=8)
-            
+
             nb_gpu_nodes (int):
                 .. deprecated:: 0.5.0
                     Use `num_nodes` instead. Will remove 0.8.0.
-            
+
             gpus (list|str|int): Which GPUs to train on.
                 Example::
                     # default used by the Trainer (ie: train on CPU)
@@ -206,7 +206,7 @@ class Trainer(TrainerIOMixin,
 
                     # use only 1% of the train, test, val datasets
                     trainer = Trainer(overfit_pct=0.01)
-            
+
             track_grad_norm (int): -1 no tracking. Otherwise tracks that norm
                 Example::
                     # default used by the Trainer
@@ -230,7 +230,7 @@ class Trainer(TrainerIOMixin,
 
                     # runs 1 train, val, test  batch and program ends
                     trainer = Trainer(fast_dev_run=True)
-            
+
             accumulate_grad_batches (int|dict): Accumulates grads every k batches or as set up in the dict.
                 Example::
                     # default used by the Trainer (no accumulation)
@@ -246,7 +246,7 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(max_epochs=1000)
-                    
+
             max_nb_epochs (int):
                 .. deprecated:: 0.5.0
                     Use `max_epochs` instead. Will remove 0.8.0.
@@ -255,12 +255,12 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(min_epochs=1)
-                    
+
             min_nb_epochs (int):
                 .. deprecated:: 0.5.0
                     Use `min_nb_epochs` instead. Will remove 0.8.0.
 
-            train_percent_check (int): How much of training dataset to check. 
+            train_percent_check (int): How much of training dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
                     # default used by the Trainer
@@ -269,7 +269,7 @@ class Trainer(TrainerIOMixin,
                     # run through only 25% of the training set each epoch
                     trainer = Trainer(train_percent_check=0.25)
 
-            val_percent_check (int): How much of validation dataset to check. 
+            val_percent_check (int): How much of validation dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
                     # default used by the Trainer
@@ -278,7 +278,7 @@ class Trainer(TrainerIOMixin,
                     # run through only 25% of the validation set each epoch
                     trainer = Trainer(val_percent_check=0.25)
 
-            test_percent_check (int): How much of test dataset to check. 
+            test_percent_check (int): How much of test dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
                     # default used by the Trainer
@@ -305,12 +305,12 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(log_save_interval=100)
-                
+
             row_log_interval (int): How often to add logging rows (does not write to disk)
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(row_log_interval=10)
-            
+
             add_row_log_interval (int):
                 .. deprecated:: 0.5.0
                     Use `row_log_interval` instead. Will remove 0.8.0.
@@ -324,8 +324,8 @@ class Trainer(TrainerIOMixin,
                     # dp = DataParallel (split a batch onto k gpus on same machine).
                     trainer = Trainer(gpus=2, distributed_backend='dp')
 
-                    # ddp = DistributedDataParallel 
-                    # Each gpu trains by itself on a subset of the data. 
+                    # ddp = DistributedDataParallel
+                    # Each gpu trains by itself on a subset of the data.
                     # Gradients sync across all gpus and all machines.
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
 
@@ -334,29 +334,29 @@ class Trainer(TrainerIOMixin,
                     # syncs gradients across nodes like ddp
                     # useful for things like increasing the number of negative samples
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
-                    
+
             use_amp (bool): If true uses apex for 16bit precision
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(use_amp=False)
-                    
+
             print_nan_grads (bool): Prints gradients with nan values
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(print_nan_grads=False)
-        
+
             weights_summary (str): Prints a summary of the weights when training begins.
                 Options: 'full', 'top', None.
                 Example::
                     # default used by the Trainer (ie: print all weights)
                     trainer = Trainer(weights_summary='full')
-                    
+
                     # print only the top level modules
                     trainer = Trainer(weights_summary='top')
-                    
+
                     # don't print a summary
                     trainer = Trainer(weights_summary=None)
-                
+
             weights_save_path (str): Where to save weights if specified.
                 Example::
                     # default used by the Trainer
@@ -369,7 +369,7 @@ class Trainer(TrainerIOMixin,
                     # **NOTE: this saves weights to some/path NOT my/path
                     checkpoint_callback = ModelCheckpoint(filepath='some/path')
                     trainer = Trainer(
-                        checkpoint_callback=checkpoint_callback, 
+                        checkpoint_callback=checkpoint_callback,
                         weights_save_path='my/path'
                     )
 
@@ -378,7 +378,7 @@ class Trainer(TrainerIOMixin,
                 Example::
                     # default used by the Trainer
                     trainer = Trainer(amp_level='O1')
-        
+
             num_sanity_val_steps (int): Sanity check runs n batches of val before starting the training routine.
                 This catches any bugs in your validation without having to wait for the first validation check.
                 The Trainer uses 5 steps by default. Turn it off or modify it here.
@@ -392,12 +392,13 @@ class Trainer(TrainerIOMixin,
             nb_sanity_val_steps (int):
                 .. deprecated:: 0.5.0
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
-            
-            truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of a much longer sequence
-                If this is enabled, your batches will automatically get truncated
-                and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence dimension.
-                (`Williams et al. "An efficient gradient-based algorithm for on-line training of recurrent network trajectories."
-                <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)   
+
+            truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of
+                a much longer sequence If this is enabled, your batches will automatically get truncated
+                and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence
+                dimension. (`Williams et al. "An efficient gradient-based algorithm for on-line training of
+                recurrent network trajectories."
+                <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
                 Example::
                     # default used by the Trainer (ie: disabled)
                     trainer = Trainer(truncated_bptt_steps=None)
@@ -413,7 +414,7 @@ class Trainer(TrainerIOMixin,
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
         """
-        # 
+        #
         # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
         #     - `nb_sanity_val_steps`
 
@@ -665,13 +666,13 @@ class Trainer(TrainerIOMixin,
     def fit(self, model):
         r"""
         Runs the full optimization routine.
-        
+
         Example::
-        
+
             trainer = Trainer()
             model = LightningModule()
-        
-            trainer.fit()    
+
+            trainer.fit()
         """
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
@@ -829,27 +830,27 @@ class Trainer(TrainerIOMixin,
 
     def test(self, model=None):
         r"""
-        
+
         Separates from fit to make sure you never run on your test set until you want to.
-        
+
         Args:
             model (LightningModule): The model to test.
 
         Example::
-        
+
             # Option 1
             # run test after fitting
             trainer = Trainer()
             model = LightningModule()
-            
+
             trainer.fit()
             trainer.test()
-            
+
             # Option 2
             # run test from a loaded model
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-            
+
             trainer.test(model)
         """
         self.testing = True

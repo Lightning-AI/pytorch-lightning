@@ -90,7 +90,8 @@ Once you've defined the LightningModule, fit  it using a trainer.
 
    trainer.fit(model)
 
-Check out this `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
+Check out this
+`COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
 
 """

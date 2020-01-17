@@ -257,9 +257,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         In this step you'd normally generate examples or calculate anything of interest such as accuracy.
 
         Args:
-            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader. A tensor, tuple or list
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
             batch_idx (int): The index of this batch
-            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple val datasets used)
+            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple
+                val datasets used)
 
         Return:
             Dict or OrderedDict - passed to the validation_end step

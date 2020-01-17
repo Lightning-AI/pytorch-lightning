@@ -15,7 +15,7 @@ from pytorch_lightning.testing import (
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
 )
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv 
+from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 
 
