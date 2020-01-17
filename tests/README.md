@@ -10,7 +10,7 @@ run on a 2-GPU machine to validate the full test-suite.
 
 To run all tests do the following:
 ```bash
-git clone https://github.com/williamFalcon/pytorch-lightning
+git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
 
 # install module locally

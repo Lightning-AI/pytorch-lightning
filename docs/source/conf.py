@@ -303,7 +303,7 @@ autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 
 # Options for the linkcode extension
 # ----------------------------------
-github_user = 'williamFalcon'
+github_user = 'PyTorchLightning'
 github_repo = project
 
 
