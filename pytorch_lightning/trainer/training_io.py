@@ -256,6 +256,18 @@ class TrainerIOMixin(ABC):
     # MODEL SAVE CHECKPOINT
     # --------------------
     def _atomic_save(self, checkpoint, filepath):
+        """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
+
+        This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
+        saving is finished.
+
+        Args:
+            checkpoint (object): The object to save.
+                Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
+                accepts.
+            filepath (str|pathlib.Path): The path to which the checkpoint will be saved.
+                This points to the file that the checkpoint will be stored in.
+        """
         tmp_path = str(filepath) + ".part"
         torch.save(checkpoint, tmp_path)
         os.replace(tmp_path, filepath)
