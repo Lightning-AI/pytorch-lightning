@@ -150,7 +150,7 @@ html_theme_options = {
     'logo_only': False,
 }
 
-html_logo = '_static/images/lightning_logo_small.png'
+html_logo = '_static/images/lightning_logo-name.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -303,7 +303,7 @@ autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 
 # Options for the linkcode extension
 # ----------------------------------
-github_user = 'williamFalcon'
+github_user = 'PyTorchLightning'
 github_repo = project
 
 

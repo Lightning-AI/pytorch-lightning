@@ -3,13 +3,13 @@ Generates a summary of a model's layers and dimensionality
 '''
 
 import gc
+import logging
 import os
 import subprocess
 
 import numpy as np
 import pandas as pd
 import torch
-import logging
 
 
 class ModelSummary(object):

@@ -44,7 +44,7 @@ setup(
     author=pytorch_lightning.__author__,
     author_email=pytorch_lightning.__author_email__,
     url=pytorch_lightning.__homepage__,
-    download_url='https://github.com/williamFalcon/pytorch-lightning',
+    download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests']),
 

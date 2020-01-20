@@ -123,10 +123,10 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
+import sys
 from abc import ABC, abstractmethod
 
 import torch
-import sys
 import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException

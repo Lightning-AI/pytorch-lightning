@@ -8,19 +8,17 @@ from collections import OrderedDict
 
 import torch
 import torch.backends.cudnn as cudnn
-import torch.nn.parallel
 import torch.nn.functional as F
+import torch.nn.parallel
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.data
 import torch.utils.data.distributed
-
-import torchvision.transforms as transforms
-import torchvision.models as models
 import torchvision.datasets as datasets
+import torchvision.models as models
+import torchvision.transforms as transforms
 
 import pytorch_lightning as pl
-
 
 # pull out resnet names from torchvision models
 MODEL_NAMES = sorted(
