@@ -6,6 +6,7 @@ import gc
 import logging
 import os
 import subprocess
+from subprocess import PIPE
 
 import numpy as np
 import pandas as pd
@@ -235,7 +236,8 @@ def get_gpu_memory_map():
             '--format=csv,nounits,noheader',
         ],
         encoding='utf-8',
-        capture_output=True,
+        # capture_output=True,          # valid for python version >=3.7
+        stdout=PIPE, stderr=PIPE,       # for backward compatibility with python version 3.6
         check=True)
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
