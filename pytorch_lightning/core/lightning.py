@@ -5,6 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
+import pandas as pd
 import torch
 import torch.distributed as dist
 

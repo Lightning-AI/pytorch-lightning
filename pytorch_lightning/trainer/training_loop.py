@@ -152,6 +152,7 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 """
 
+import copy
 import warnings
 from abc import ABC, abstractmethod
 
