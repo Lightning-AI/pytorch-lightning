@@ -1,29 +1,26 @@
 # project
 .DS_Store
-.data/
 run_configs/
-test_tube_logs/
-test_tube_data/
-datasets/
 model_weights/
 app/models/
 pip-wheel-metadata/
-test_tube_exp/
-tests/tests_tt_dir/
-tests/save_dir
-default/
 lightning_logs/
-tests/tests/
-*.rst
+
+# Test-tube
+test_tube_logs/
+test_tube_data/
+test_tube_exp/
+
+# Documentations
+docs/source/pl_examples*.rst
+docs/source/pytorch_lightning*.rst
 /docs/source/*.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-example.py
 timit_data/
-LJSpeech-1.1/
 
 # C extensions
 *.so
@@ -32,7 +29,6 @@ LJSpeech-1.1/
 
 # Distribution / packaging
 .Python
-env/
 ide_layouts/
 build/
 develop-eggs/
@@ -44,7 +40,6 @@ lib/
 lib64/
 parts/
 sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
@@ -70,6 +65,9 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+tests/tests_tt_dir/
+tests/save_dir
+tests/tests/
 
 # Translations
 *.mo
@@ -87,7 +85,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
 
 # PyBuilder
 target/
@@ -109,6 +107,7 @@ celerybeat-schedule
 
 # virtualenv
 .venv
+env/
 venv/
 ENV/
 
@@ -126,4 +125,6 @@ ENV/
 .mypy_cache/
 
 # data
+.data/
+datasets/
 mnist/

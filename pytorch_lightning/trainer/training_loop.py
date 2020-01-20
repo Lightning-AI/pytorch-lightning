@@ -151,10 +151,10 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 
 """
+
 import copy
-import inspect
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC, abstractmethod
 
 import numpy as np
 

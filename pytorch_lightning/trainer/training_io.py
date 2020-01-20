@@ -89,14 +89,16 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 """
 
+import logging
 import os
 import re
 import signal
 import warnings
-from subprocess import call
-import logging
 from abc import ABC
+from subprocess import call
+from argparse import Namespace
 
+import pandas as pd
 import torch
 import torch.distributed as dist
 
@@ -268,6 +270,7 @@ class TrainerIOMixin(ABC):
             torch.save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
+
         # if on_gpu:
         #     checkpoint = torch.load(checkpoint_path)
         # else:

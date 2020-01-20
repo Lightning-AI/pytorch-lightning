@@ -1,13 +1,15 @@
 """
 Callbacks
-====================================
+=========
+
 Callbacks supported by Lightning
 """
 
+import logging
 import os
 import shutil
-import logging
 import warnings
+
 import numpy as np
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -163,9 +165,7 @@ class EarlyStopping(Callback):
 
 
 class ModelCheckpoint(Callback):
-    r"""
-
-    Save the model after every epoch.
+    r"""Save the model after every epoch.
 
     Args:
         filepath (str): path to save the model file.

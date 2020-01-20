@@ -32,7 +32,7 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-**[View the docs here](https://pytorch-lightning.readthedocs.io/en/latest)**   
+**[View the docs here](https://pytorch-lightning.rtfd.io/en/latest)**   
 ** DOCS TEMPORARILY have broken links because we recently switched orgs from williamfalcon/pytorch-lightning to pytorchlightning/pytorch-lightning [jan 15, 2020]. 
 
 As a temporary hack, when you get the 404, replace williamfalcon.github.io with pytorchlightning.github.io.   
@@ -84,12 +84,12 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/)
+1. [Define a LightningModule](https://pytorch-lightning.rtfd.io/en/latest/LightningModule/RequiredTrainerInterface/)
 **WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
     ```python
     import os
@@ -165,7 +165,7 @@ To use lightning do 2 things:
             # OPTIONAL
             return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
     ```
-2. Fit with a [trainer](https://williamfalcon.github.io/pytorch-lightning/Trainer/)    
+2. Fit with a [trainer](https://pytorch-lightning.rtfd.io/en/latest/Trainer/)    
     ```python
     from pytorch_lightning import Trainer
     
@@ -277,77 +277,20 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 ![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
-## Lightning automates all of the following ([each is also configurable](https://williamfalcon.github.io/pytorch-lightning/Trainer/)):
-
-#### Checkpointing    
-
-- [Checkpoint callback](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
-- [Model saving](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#model-saving)
-- [Model loading](https://williamfalcon.github.io/pytorch-lightning/LightningModule/methods/#load-from-metrics) 
-- [Restoring training session](https://williamfalcon.github.io/pytorch-lightning/Trainer/Checkpointing/#restoring-training-session)
-
-#### Computing cluster (SLURM)    
-
-- [Running grid search on a cluster](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#running-grid-search-on-a-cluster) 
-- [Walltime auto-resubmit](https://williamfalcon.github.io/pytorch-lightning/Trainer/SLURM%20Managed%20Cluster#walltime-auto-resubmit)   
-
-#### Debugging  
-
-- [Fast dev run](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#fast-dev-run)
-- [Inspect gradient norms](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#inspect-gradient-norms)
-- [Log GPU usage](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#Log-gpu-usage)
-- [Make model overfit on subset of data](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#make-model-overfit-on-subset-of-data)
-- [Print the parameter count by layer](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-the-parameter-count-by-layer)
-- [Print which gradients are nan](https://williamfalcon.github.io/pytorch-lightning/Trainer/debugging/#print-which-gradients-are-nan)
-- [Print input and output size of every module in system](https://williamfalcon.github.io/pytorch-lightning/LightningModule/properties/#example_input_array)
+## Lightning automates all of the following ([each is also configurable](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)):
 
 
-#### Distributed training    
-
-- [Implement Your Own Distributed (DDP) training](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#init_ddp_connection)
-- [16-bit mixed precision](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#16-bit-mixed-precision)
-- [Multi-GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-GPU)
-- [Multi-node](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#Multi-node)
-- [Single GPU](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#single-gpu)
-- [Self-balancing architecture](https://williamfalcon.github.io/pytorch-lightning/Trainer/Distributed%20training/#self-balancing-architecture)
-
-
-#### Experiment Logging   
-
-- [Display metrics in progress bar](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#display-metrics-in-progress-bar)
-- [Log metric row every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#log-metric-row-every-k-batches)
-- [Process position](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#process-position)
-- [Tensorboard support](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#tensorboard-support)
-- [Save a snapshot of all hyperparameters](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#save-a-snapshot-of-all-hyperparameters) 
-- [Snapshot code for a training run](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#snapshot-code-for-a-training-run) 
-- [Write logs file to csv every k batches](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#write-logs-file-to-csv-every-k-batches)
-- [Logging on W&B](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#w&b)
-- [Logging experiment data to Neptune](https://williamfalcon.github.io/pytorch-lightning/Trainer/Logging/#neptune-support)
-
-#### Training loop    
-
-- [Accumulate gradients](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#accumulated-gradients)
-- [Force training for min or max epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-training-for-min-or-max-epochs)
-- [Early stopping callback](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#early-stopping)
-- [Force disable early stop](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#force-disable-early-stop)
-- [Gradient Clipping](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#gradient-clipping)
-- [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
-- [Learning rate scheduling](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)    
-- [Use multiple optimizers (like GANs)](https://williamfalcon.github.io/pytorch-lightning/LightningModule/RequiredTrainerInterface/#configure_optimizers)
-- [Set how much of the training set to check (1-100%)](https://williamfalcon.github.io/pytorch-lightning/Trainer/Training%20Loop/#set-how-much-of-the-training-set-to-check)
-- [Step optimizers at arbitrary intervals](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/#optimizer_step)
-
-#### Validation loop    
-
-- [Check validation every n epochs](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#check-validation-every-n-epochs)
-- [Hooks](https://williamfalcon.github.io/pytorch-lightning/Trainer/hooks/)
-- [Set how much of the validation set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-validation-set-to-check)
-- [Set how much of the test set to check](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-how-much-of-the-test-set-to-check)
-- [Set validation check frequency within 1 training epoch](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-validation-check-frequency-within-1-training-epoch)
-- [Set the number of validation sanity steps](https://williamfalcon.github.io/pytorch-lightning/Trainer/Validation%20loop/#set-the-number-of-validation-sanity-steps)
-
-#### Testing loop  
-- [Run test set](https://williamfalcon.github.io/pytorch-lightning/Trainer/Testing%20loop/)  
+- [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_data_parallel.html)  
+- [Fast dev run](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.utilities.debugging.html)
+- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.logging.html)
+- [Implement Your Own Distributed (DDP) training](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
+- [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_parts.html)
+- [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_loop.html)
+- [Hooks](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.hooks.html)
+- [Configure optimizers](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)
+- [Validations](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.evaluation_loop.html)
+- [Model saving & Restoring training session](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_io.html)
+  
 
 ## Examples   
 - [GAN](https://github.com/PytorchLightning/pytorch-lightning/tree/master/pl_examples/domain_templates/gan.py)    
@@ -366,16 +309,18 @@ Lightning also adds a text column with all the hyperparameters for this experime
 Welcome to the Lightning community!   
 
 If you have any questions, feel free to:   
-1. [read the docs](https://williamfalcon.github.io/pytorch-lightning/).     
+1. [read the docs](https://pytorch-lightning.rtfd.io/en/latest/).     
 2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).      
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
 
-If no one replies to you quickly enough, feel free to post the stackoverflow link to our [Slack channel](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)!       
+If no one replies to you quickly enough, feel free to post the stackoverflow link to our Gitter chat!   
+
+To chat with the rest of us visit our [gitter channel](https://gitter.im/PyTorch-Lightning/community)!     
 
 ---   
 ## FAQ    
 **How do I use Lightning for rapid research?**   
-[Here's a walk-through](https://williamfalcon.github.io/pytorch-lightning/)  
+[Here's a walk-through](https://pytorch-lightning.rtfd.io/en/latest/)  
 
 **Why was Lightning created?**     
 Lightning has 3 goals in mind:
@@ -425,16 +370,16 @@ If you can't wait for the next release, install the most up to date code with:
 
 ### Any release installation
 
-You can also install any past release from this repository:
+You can also install any past release `0.X.Y` from this repository:
 ```bash
-pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.4.4.zip --upgrade
+pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 ```
 @misc{Falcon2019,
-  author = {Falcon, W.A.},
+  author = {Falcon, W.A. et al.},
   title = {PyTorch Lightning},
   year = {2019},
   publisher = {GitHub},
