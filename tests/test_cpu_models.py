@@ -21,6 +21,7 @@ def test_early_stopping_cpu_model(tmpdir):
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
         default_save_path=tmpdir,
+        min_epochs=2,
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
@@ -33,7 +34,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False, early_stop=True)
 
     # test freeze on cpu
     model.freeze()
