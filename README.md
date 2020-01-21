@@ -14,7 +14,7 @@
 [![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.6.0)](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-Feb%206-<COLOR>.svg)](https://shields.io/)
@@ -34,10 +34,9 @@ pip install pytorch-lightning
 ## Docs   
 [jan 20, 2020]   
 
-**[Old docs (some links might be broken)](https://pytorch-lightning.readthedocs.io/en/stable)
-###### As a temporary hack, when you get the 404, replace williamfalcon.github.io with pytorchlightning.github.io.   
-
-**[New docs, CURRENTLY DEBUGING](https://pytorch-lightning.rtfd.io/en/latest)**   
+- [master](https://pytorch-lightning.readthedocs.io/en/latest)   
+- [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
+- [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 
 ## Demo  
