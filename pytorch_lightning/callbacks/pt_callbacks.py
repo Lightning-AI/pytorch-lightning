@@ -2,7 +2,6 @@
 Callbacks
 ====================================
 Callbacks supported by Lightning
-
 """
 
 import os
@@ -95,7 +94,6 @@ class EarlyStopping(Callback):
 
         early_stopping = EarlyStopping('val_loss')
         Trainer(early_stop_callback=early_stopping)
-
     """
 
     def __init__(self, monitor='val_loss',

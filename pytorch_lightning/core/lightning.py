@@ -1228,7 +1228,6 @@ def convert(val):
     constructors = [int, float, str]
 
     if type(val) is str:
-
         if val.lower() == 'true':
             return True
         if val.lower() == 'false':

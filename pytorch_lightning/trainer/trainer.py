@@ -48,9 +48,6 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
-    r"""
-    Main trainer class
-    """
     def __init__(
             self,
             logger=True,
