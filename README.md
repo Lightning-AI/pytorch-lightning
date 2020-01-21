@@ -17,7 +17,7 @@
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.6.0)](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Feb%206-<COLOR>.svg)](https://shields.io/)
+[![Next Release](https://img.shields.io/badge/Next%20Release-Mar%21-<COLOR>.svg)](https://shields.io/)
 
 <!-- 
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
