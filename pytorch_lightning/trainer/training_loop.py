@@ -352,12 +352,9 @@ class TrainerTrainLoopMixin(ABC):
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
-                    self.main_progress_bar.close()
-                    model.on_train_end()
-                    return
+                    break
 
         self.main_progress_bar.close()
-
         model.on_train_end()
 
         if self.logger is not None:
