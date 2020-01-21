@@ -6,6 +6,7 @@ app/models/
 pip-wheel-metadata/
 lightning_logs/
 
+
 # Test-tube
 test_tube_logs/
 test_tube_data/
@@ -14,6 +15,7 @@ test_tube_exp/
 # Documentations
 docs/source/pl_examples*.rst
 docs/source/pytorch_lightning*.rst
+tests/tests/
 /docs/source/*.md
 
 # Byte-compiled / optimized / DLL files
@@ -21,6 +23,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 timit_data/
+
 
 # C extensions
 *.so

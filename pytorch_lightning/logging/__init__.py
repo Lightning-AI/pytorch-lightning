@@ -71,7 +71,6 @@ Call the logger anywhere from your LightningModule by doing:
 Supported Loggers
 -----------------
 """
-
 from os import environ
 
 from .base import LightningLoggerBase, rank_zero_only
