@@ -1,9 +1,8 @@
-
-
-import logging
 import os
 import sys
 import warnings
+import logging
+
 
 import torch
 import torch.distributed as dist
@@ -20,6 +19,7 @@ from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device
 )
+
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -850,7 +850,6 @@ class Trainer(TrainerIOMixin,
             # run test from a loaded model
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-
             trainer.test(model)
         """
         self.testing = True

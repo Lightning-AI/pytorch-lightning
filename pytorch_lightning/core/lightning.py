@@ -5,15 +5,16 @@ import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
+
 import pandas as pd
 import torch
 import torch.distributed as dist
-
+#
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
@@ -679,7 +680,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @abstractmethod
     def configure_optimizers(self):
         r"""
-
         This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
 
@@ -1015,7 +1015,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             map_location (dict): A dictionary mapping saved weight GPU devices to new
                 GPU devices (example: {'cuda:1':'cuda:0'})
-
         Return:
             LightningModule with loaded weights
 
@@ -1136,7 +1135,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def freeze(self):
         r"""
-
         Freeze all params for inference
 
         Example
@@ -1168,7 +1166,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def on_load_checkpoint(self, checkpoint):
         r"""
-
         Called by lightning to restore your model.
         If you saved something with **on_save_checkpoint** this is your chance to restore this.
 

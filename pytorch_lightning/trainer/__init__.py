@@ -26,5 +26,4 @@ This is the basic use of the trainer:
 """
 
 from .trainer import Trainer
-
 __all__ = ['Trainer']
