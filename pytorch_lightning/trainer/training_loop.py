@@ -353,6 +353,7 @@ class TrainerTrainLoopMixin(ABC):
                 stop = should_stop and met_min_epochs
                 if stop:
                     self.main_progress_bar.close()
+                    model.on_train_end()
                     return
 
         self.main_progress_bar.close()
