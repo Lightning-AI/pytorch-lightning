@@ -32,8 +32,9 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-[jan 20, 2020]
-**[Old docs (some links might be broken](https://pytorch-lightning.readthedocs.io/en/stable)
+[jan 20, 2020]   
+
+**[Old docs (some links might be broken)](https://pytorch-lightning.readthedocs.io/en/stable)
 ###### As a temporary hack, when you get the 404, replace williamfalcon.github.io with pytorchlightning.github.io.   
 
 **[New docs, CURRENTLY DEBUGING](https://pytorch-lightning.rtfd.io/en/latest)**   
