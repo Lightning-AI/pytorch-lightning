@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](docs/source/_static/images/lightning_logo_small.png)
+<img src="docs/source/_static/images/lightning_logo.png" width="50" height="50">
 
 # PyTorch Lightning
 
@@ -32,8 +32,6 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-[jan 20, 2020]   
-
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)   
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
