@@ -183,7 +183,7 @@ def test_multi_gpu_none_backend(tmpdir):
         gpus='-1'
     )
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(UserWarning):
         tutils.run_model_test(trainer_options, model)
 
 

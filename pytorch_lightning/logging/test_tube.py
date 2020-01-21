@@ -135,8 +135,9 @@ class TestTubeLogger(LightningLoggerBase):
     def close(self):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        exp = self.experiment
-        exp.close()
+        if not self.debug:
+            exp = self.experiment
+            exp.close()
 
     @property
     def rank(self):
