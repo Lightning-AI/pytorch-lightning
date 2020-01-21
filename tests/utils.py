@@ -45,7 +45,7 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True):
+def run_model_test(trainer_options, model, on_gpu=True, early_stop=False):
     save_dir = trainer_options['default_save_path']
 
     # logger file to get meta
@@ -64,6 +64,10 @@ def run_model_test(trainer_options, model, on_gpu=True):
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
+
+    if (early_stop):
+        assert trainer.current_epoch >= trainer.min_epochs, 'amp + ddp model failed to complete'
+        assert trainer.current_epoch < trainer.max_epochs-1, 'amp + ddp model failed to stop early'
 
     # test model loading
     pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
