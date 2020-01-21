@@ -7,3 +7,4 @@ docutils
 git+https://github.com/PytorchLightning/lightning_sphinx_theme.git
 sphinxcontrib-fulltoc
 sphinxcontrib-mockautodoc
+PackageFinder
