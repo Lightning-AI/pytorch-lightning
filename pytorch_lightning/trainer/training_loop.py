@@ -345,6 +345,11 @@ class TrainerTrainLoopMixin(ABC):
                     raise MisconfigurationException(m)
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                self.main_progress_bar.close()
+                model.on_train_end()
+                return
+
             # early stopping
             met_min_epochs = epoch >= self.min_epochs - 1
             if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
@@ -420,6 +425,10 @@ class TrainerTrainLoopMixin(ABC):
 
             self.global_step += 1
             self.total_batch_idx += 1
+
+            # max steps reached, end training
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount

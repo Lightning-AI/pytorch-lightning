@@ -71,6 +71,7 @@ class Trainer(TrainerIOMixin,
             min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             max_epochs=1000,
             min_epochs=1,
+            max_steps=None,
             train_percent_check=1.0,
             val_percent_check=1.0,
             test_percent_check=1.0,
@@ -504,6 +505,8 @@ class Trainer(TrainerIOMixin,
             if not min_epochs:  # in case you did not set the proper value
                 min_epochs = min_nb_epochs
         self.min_epochs = min_epochs
+
+        self.max_steps = max_steps
 
         # Backward compatibility
         if nb_sanity_val_steps is not None:
