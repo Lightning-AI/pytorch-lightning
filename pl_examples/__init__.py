@@ -3,13 +3,13 @@ Template model definition
 -------------------------
 
 In 99% of cases you want to just copy `one of the examples
- <https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples>`_
+ <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples>`_
  to start a new lightningModule and change the core of what your model is actually trying to do.
 
 .. code-block:: bash
 
     # get a copy of the module template
-    wget https://raw.githubusercontent.com/williamFalcon/pytorch-lightning/master/pl_examples/new_project_templates/lightning_module_template.py  # noqa: E501
+    wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/pl_examples/new_project_templates/lightning_module_template.py  # noqa: E501
 
 
 Trainer Example

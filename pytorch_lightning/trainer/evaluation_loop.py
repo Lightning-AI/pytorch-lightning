@@ -1,5 +1,6 @@
 """
-# Validation loop
+Validation loop
+===============
 
 The lightning validation loop handles everything except the actual computations of your model.
 To decide what will happen in your validation loop, define the `validation_step` function.
@@ -122,10 +123,10 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
+import sys
 from abc import ABC, abstractmethod
 
 import torch
-import sys
 import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException

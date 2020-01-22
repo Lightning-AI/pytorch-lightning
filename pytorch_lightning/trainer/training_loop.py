@@ -152,9 +152,9 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 """
 
-import inspect
-from abc import ABC, abstractmethod
+import copy
 import warnings
+from abc import ABC, abstractmethod
 
 import numpy as np
 
@@ -353,6 +353,7 @@ class TrainerTrainLoopMixin(ABC):
                 stop = should_stop and met_min_epochs
                 if stop:
                     self.main_progress_bar.close()
+                    model.on_train_end()
                     return
 
         self.main_progress_bar.close()
@@ -461,13 +462,14 @@ class TrainerTrainLoopMixin(ABC):
 
             # call training_step once per optimizer
             for opt_idx, optimizer in enumerate(self.optimizers):
-                # make sure only the gradients of the current optimizer's paramaters are calculated 
+                # make sure only the gradients of the current optimizer's paramaters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                for param in self.get_model().parameters():
-                    param.requires_grad = False
-                for group in optimizer.param_groups:
-                    for param in group['params']:
-                        param.requires_grad = True
+                if len(self.optimizers) > 1:
+                    for param in self.get_model().parameters():
+                        param.requires_grad = False
+                    for group in optimizer.param_groups:
+                        for param in group['params']:
+                            param.requires_grad = True
 
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():
@@ -589,7 +591,7 @@ class TrainerTrainLoopMixin(ABC):
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(batch.copy(), gpu_id)
+            batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 

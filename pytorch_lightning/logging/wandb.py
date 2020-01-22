@@ -1,27 +1,3 @@
-"""
-Log using `W&B <https://www.wandb.com>`_
-
-.. code-block:: python
-
-    >>> from pytorch_lightning.logging import WandbLogger
-    >>> from pytorch_lightning import Trainer
-    >>> wandb_logger = WandbLogger()
-    >>> trainer = Trainer(logger=wandb_logger)
-
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.whatever_wandb_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.whatever_wandb_supports(...)
-
-"""
-
 import os
 
 try:
@@ -44,10 +20,20 @@ class WandbLogger(LightningLoggerBase):
         anonymous (bool): enables or explicitly disables anonymous logging.
         project (str): the name of the project to which this run will belong.
         tags (list of str): tags associated with this run.
+
+    Example
+    --------
+    .. code-block:: python
+
+        from pytorch_lightning.logging import WandbLogger
+        from pytorch_lightning import Trainer
+
+        wandb_logger = WandbLogger()
+        trainer = Trainer(logger=wandb_logger)
     """
 
     def __init__(self, name=None, save_dir=None, offline=False, id=None, anonymous=False,
-                 version=None, project=None, tags=None):
+                 version=None, project=None, tags=None, experiment=None):
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -55,7 +41,7 @@ class WandbLogger(LightningLoggerBase):
         self._id = version or id
         self._tags = tags
         self._project = project
-        self._experiment = None
+        self._experiment = experiment
         self._offline = offline
 
     def __getstate__(self):
@@ -68,6 +54,15 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+          Actual wandb object. To use wandb features do the following.
+
+          Example::
+
+              self.logger.experiment.some_wandb_function()
+
+          """
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
@@ -86,7 +81,7 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
         metrics["global_step"] = step
-        self.experiment.history.add(metrics)
+        self.experiment.log(metrics)
 
     def save(self):
         pass

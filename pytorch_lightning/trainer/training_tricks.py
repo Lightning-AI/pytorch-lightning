@@ -1,7 +1,8 @@
+import logging
 from abc import ABC, abstractmethod
 
 import torch
-import logging
+
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 

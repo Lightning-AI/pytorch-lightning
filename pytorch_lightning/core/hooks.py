@@ -1,5 +1,6 @@
 """
-# Hooks
+Hooks
+=====
 
 There are cases when you might want to do something different at different parts of the training/validation loop.
  To enable a hook, simply override the method in your LightningModule and the trainer will call it at the correct time.

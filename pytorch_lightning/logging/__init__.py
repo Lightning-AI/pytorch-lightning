@@ -1,36 +1,20 @@
 """
-Lighting offers options for logging information about model, gpu usage, etc,
- via several different logging frameworks. It also offers printing options for training monitoring.
-
-**default_save_path**
-
-Lightning sets a default TestTubeLogger and CheckpointCallback for you which log to
-`os.getcwd()` by default. To modify the logging path you can set::
-
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
-
-
-If you need more custom behavior (different paths for both, different metrics, etc...)
- from the logger and the checkpointCallback, pass in your own instances as explained below.
-
-Setting up logging
-------------------
-
-The trainer inits a default logger for you (TestTubeLogger). All logs will
-go to the current working directory under a folder named `os.getcwd()/lightning_logs`.
-
-If you want to modify the default logging behavior even more, pass in a logger
- (which should inherit from `LightningBaseLogger`).
+Lightning supports most popular logging frameworks (Tensorboard, comet, weights and biases, etc...).
+To use a logger, simply pass it into the trainer.
 
 .. code-block:: python
+    from pytorch_lightning import logging
 
-    my_logger = MyLightningLogger(...)
-    trainer = Trainer(logger=my_logger)
+    # lightning uses tensorboard by default
+    tb_logger = logging.TensorBoardLogger()
+    trainer = Trainer(logger=tb_logger)
 
+    # or choose from any of the others such as MLFlow, Comet, Neptune, Wandb
+    comet_logger = logging.CometLogger()
+    trainer = Trainer(logger=comet_logger)
 
-The path in this logger will overwrite `default_save_path`.
-
-Lightning supports several common experiment tracking frameworks out of the box
+.. note:: All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
+    Trainer(default_save_path='/your/path/to/save/checkpoints')
 
 Custom logger
 -------------
@@ -73,7 +57,7 @@ a pull request to add it to Lighting!
 Using loggers
 -------------
 
-You can call the logger anywhere from your LightningModule by doing:
+Call the logger anywhere from your LightningModule by doing:
 
 .. code-block:: python
 
@@ -84,115 +68,49 @@ You can call the logger anywhere from your LightningModule by doing:
     def any_lightning_module_function_or_hook(...):
         self.logger.experiment.add_histogram(...)
 
-Display metrics in progress bar
--------------------------------
-
-.. code-block:: python
-
-    # DEFAULT
-    trainer = Trainer(show_progress_bar=True)
-
-Log metric row every k batches
-------------------------------
-
-Every k batches lightning will make an entry in the metrics log
-
-.. code-block:: python
-
-    # DEFAULT (ie: save a .csv log file every 10 batches)
-    trainer = Trainer(row_log_interval=10)
-
-Log GPU memory
---------------
-
-Logs GPU memory when metrics are logged.
-
-.. code-block:: python
-
-    # DEFAULT
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log only the min/max utilization
-    trainer = Trainer(log_gpu_memory='min_max')
-
-    # log all the GPU memory (if on DDP, logs only that node)
-    trainer = Trainer(log_gpu_memory='all')
-
-Process position
-----------------
-
-When running multiple models on the same machine we want to decide which progress bar to use.
- Lightning will stack progress bars according to this value.
-
-.. code-block:: python
-
-    # DEFAULT
-    trainer = Trainer(process_position=0)
-
-    # if this is the second model on the node, show the second progress bar below
-    trainer = Trainer(process_position=1)
-
-
-Save a snapshot of all hyperparameters
---------------------------------------
-
-Automatically log hyperparameters stored in the `hparams` attribute as an `argparse.Namespace`
-
-.. code-block:: python
-
-    class MyModel(pl.Lightning):
-        def __init__(self, hparams):
-            self.hparams = hparams
-
-        ...
-
-    args = parser.parse_args()
-    model = MyModel(args)
-
-    logger = TestTubeLogger(...)
-    t = Trainer(logger=logger)
-    trainer.fit(model)
-
-Write logs file to csv every k batches
---------------------------------------
-
-Every k batches, lightning will write the new logs to disk
-
-.. code-block:: python
-
-    # DEFAULT (ie: save a .csv log file every 100 batches)
-    trainer = Trainer(log_save_interval=100)
-
+Supported Loggers
+-----------------
 """
-
 from os import environ
-from .base import LightningLoggerBase, rank_zero_only
 
+from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-try:
-    from .test_tube import TestTubeLogger
-except ImportError:
-    pass
+all = []
 
-try:
-    from .mlflow import MLFlowLogger
-except ImportError:
-    pass
-
-try:
-    from .wandb import WandbLogger
-except ImportError:
-    pass
 try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
     from .comet import CometLogger
+    all.append('CometLogger')
 except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
-    from .neptune import NeptuneLogger
+    from .mlflow import MLFlowLogger
+    all.append('MLFlowLogger')
 except ImportError:
     pass
+
+try:
+    from .neptune import NeptuneLogger
+    all.append('NeptuneLogger')
+except ImportError:
+    pass
+
+all.append('TensorBoardLogger')
+
+try:
+    from .test_tube import TestTubeLogger
+    all.append('TestTubeLogger')
+except ImportError:
+    pass
+
+try:
+    from .wandb import WandbLogger
+    all.append('WandbLogger')
+except ImportError:
+    pass
+
+__all__ = all

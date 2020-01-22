@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.datasets import MNIST
+
 try:
     from test_tube import HyperOptArgumentParser
 except ImportError:

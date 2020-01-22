@@ -1,9 +1,17 @@
 """
-# Trainer
 
-The lightning trainer abstracts best practices for running a training, val, test routine.
- It calls parts of your model when it wants to hand over full control and otherwise makes
- training assumptions which are now standard practice in AI research.
+The trainer de-couples the engineering code (16-bit, early stopping, GPU distribution, etc...) from the
+science code (GAN, BERT, your project, etc...). It uses many assumptions which are best practices in
+AI research today.
+
+The trainer automates all parts of training except:
+
+- what happens in training , test, val loop
+- where the data come from
+- which optimizers to use
+- how to do the computations
+
+The Trainer delegates those calls to your LightningModule which defines how to do those parts.
 
 This is the basic use of the trainer:
 
@@ -11,9 +19,11 @@ This is the basic use of the trainer:
 
     from pytorch_lightning import Trainer
 
-    model = LightningTemplate()
+    model = MyLightningModule()
 
     trainer = Trainer()
     trainer.fit(model)
-
 """
+
+from .trainer import Trainer
+__all__ = ['Trainer']

@@ -1,8 +1,8 @@
 """
 Example template for defining a system
 """
-import os
 import logging
+import os
 from argparse import ArgumentParser
 from collections import OrderedDict
 

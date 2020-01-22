@@ -1,52 +1,3 @@
-"""
-Log using `comet <https://www.comet.ml>`_
-
-Comet logger can be used in either online or offline mode.
-To log in online mode, CometLogger requries an API key:
-
-.. code-block:: python
-
-    from pytorch_lightning.logging import CometLogger
-    # arguments made to CometLogger are passed on to the comet_ml.Experiment class
-    comet_logger = CometLogger(
-        api_key=os.environ["COMET_KEY"],
-        workspace=os.environ["COMET_WORKSPACE"], # Optional
-        project_name="default_project", # Optional
-        rest_api_key=os.environ["COMET_REST_KEY"], # Optional
-        experiment_name="default" # Optional
-    )
-    trainer = Trainer(logger=comet_logger)
-
-To log in offline mode, CometLogger requires a path to a local directory:
-
-.. code-block:: python
-
-    from pytorch_lightning.logging import CometLogger
-    # arguments made to CometLogger are passed on to the comet_ml.Experiment class
-    comet_logger = CometLogger(
-        save_dir=".",
-        workspace=os.environ["COMET_WORKSPACE"], # Optional
-        project_name="default_project", # Optional
-        rest_api_key=os.environ["COMET_REST_KEY"], # Optional
-        experiment_name="default" # Optional
-    )
-    trainer = Trainer(logger=comet_logger)
-
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.whatever_comet_ml_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.whatever_comet_ml_supports(...)
-
-
-"""
-
 from logging import getLogger
 
 try:
@@ -71,18 +22,54 @@ logger = getLogger(__name__)
 class CometLogger(LightningLoggerBase):
     def __init__(self, api_key=None, save_dir=None, workspace=None,
                  rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
-        """Initialize a Comet.ml logger.
+        r"""
+
+        Log using `comet <https://www.comet.ml>`_.
+
         Requires either an API Key (online mode) or a local directory path (offline mode)
 
-        :param str api_key: Required in online mode. API key, found on Comet.ml
-        :param str save_dir: Required in offline mode. The path for the directory to save local comet logs
-        :param str workspace: Optional. Name of workspace for this user
-        :param str project_name: Optional. Send your experiment to a specific project.
-        Otherwise will be sent to Uncategorized Experiments.
-        If project name does not already exists Comet.ml will create a new project.
-        :param str rest_api_key: Optional. Rest API key found in Comet.ml settings.
-        This is used to determine version number
-        :param str experiment_name: Optional. String representing the name for this particular experiment on Comet.ml
+        .. code-block:: python
+
+            # ONLINE MODE
+            from pytorch_lightning.logging import CometLogger
+
+            # arguments made to CometLogger are passed on to the comet_ml.Experiment class
+            comet_logger = CometLogger(
+                api_key=os.environ["COMET_KEY"],
+                workspace=os.environ["COMET_WORKSPACE"], # Optional
+                project_name="default_project", # Optional
+                rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+                experiment_name="default" # Optional
+            )
+            trainer = Trainer(logger=comet_logger)
+
+
+        .. code-block:: python
+
+            # OFFLINE MODE
+            from pytorch_lightning.logging import CometLogger
+
+            # arguments made to CometLogger are passed on to the comet_ml.Experiment class
+            comet_logger = CometLogger(
+                save_dir=".",
+                workspace=os.environ["COMET_WORKSPACE"], # Optional
+                project_name="default_project", # Optional
+                rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+                experiment_name="default" # Optional
+            )
+            trainer = Trainer(logger=comet_logger)
+
+        Args:
+            api_key (str): Required in online mode. API key, found on Comet.ml
+            save_dir (str): Required in offline mode. The path for the directory to save local comet logs
+            workspace (str): Optional. Name of workspace for this user
+            project_name (str): Optional. Send your experiment to a specific project.
+            Otherwise will be sent to Uncategorized Experiments.
+            If project name does not already exists Comet.ml will create a new project.
+            rest_api_key (str): Optional. Rest API key found in Comet.ml settings.
+                This is used to determine version number
+            experiment_name (str): Optional. String representing the name for this particular experiment on Comet.ml
+
         """
         super().__init__()
         self._experiment = None
@@ -124,6 +111,15 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
+        r"""
+
+        Actual comet object. To use comet features do the following.
+
+        Example::
+
+            self.logger.experiment.some_comet_function()
+
+        """
         if self._experiment is not None:
             return self._experiment
 

@@ -276,7 +276,7 @@ Instead of manually building SLURM scripts, you can use the
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
  The full examples are `here
- <https://github.com/williamFalcon/pytorch-lightning/tree/master/pl_examples/new_project_templates/multi_node_examples>`_.
+ <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/new_project_templates/multi_node_examples>`_.
 
 .. code-block:: python
 

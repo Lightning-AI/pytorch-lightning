@@ -113,9 +113,9 @@ When the script starts again, Lightning will:
 
 """
 
+import logging
 import os
 import re
-import logging
 import warnings
 from abc import ABC, abstractmethod
 

@@ -192,6 +192,7 @@ def test_comet_pickle(tmpdir, monkeypatch):
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
+
 def test_wandb_logger(tmpdir):
     """Verify that basic functionality of wandb logger works."""
     tutils.reset_seed()
@@ -200,6 +201,7 @@ def test_wandb_logger(tmpdir):
 
     wandb_dir = os.path.join(tmpdir, "wandb")
     logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
+
 
 def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
@@ -223,6 +225,7 @@ def test_neptune_logger(tmpdir):
     print('result finished')
     assert result == 1, "Training failed"
 
+
 def test_wandb_pickle(tmpdir):
     """Verify that pickling trainer with wandb logger works."""
     tutils.reset_seed()
@@ -230,6 +233,8 @@ def test_wandb_pickle(tmpdir):
     from pytorch_lightning.logging import WandbLogger
     wandb_dir = str(tmpdir)
     logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
+    assert logger is not None
+
 
 def test_neptune_pickle(tmpdir):
     """Verify that pickling trainer with neptune logger works."""
@@ -291,8 +296,8 @@ def test_tensorboard_automatic_versioning(tmpdir):
     """Verify that automatic versioning works"""
 
     root_dir = tmpdir.mkdir("tb_versioning")
-    root_dir.mkdir("0")
-    root_dir.mkdir("1")
+    root_dir.mkdir("version_0")
+    root_dir.mkdir("version_1")
 
     logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning")
 
@@ -303,9 +308,9 @@ def test_tensorboard_manual_versioning(tmpdir):
     """Verify that manual versioning works"""
 
     root_dir = tmpdir.mkdir("tb_versioning")
-    root_dir.mkdir("0")
-    root_dir.mkdir("1")
-    root_dir.mkdir("2")
+    root_dir.mkdir("version_0")
+    root_dir.mkdir("version_1")
+    root_dir.mkdir("version_2")
 
     logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
 
