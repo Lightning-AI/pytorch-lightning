@@ -71,21 +71,23 @@ class EarlyStopping(Callback):
     Stop training when a monitored quantity has stopped improving.
 
     Args:
-        monitor (str): quantity to be monitored.
+        monitor (str): quantity to be monitored. Default: ``'val_loss'``.
         min_delta (float): minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
-            change of less than min_delta, will count as no
-            improvement.
+            change of less than `min_delta`, will count as no
+            improvement. Default: ``0``.
         patience (int): number of epochs with no improvement
-            after which training will be stopped.
-        verbose (bool): verbosity mode.
+            after which training will be stopped. Default: ``0``.
+        verbose (bool): verbosity mode. Default: ``0``.
         mode (str): one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
             monitored has stopped decreasing; in `max`
             mode it will stop when the quantity
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
-            from the name of the monitored quantity.
+            from the name of the monitored quantity. Default: ``'auto'``.
+        strict (bool): whether to crash the training if `monitor` is
+            not found in the metrics. Default: ``True``.
 
     Example::
 
