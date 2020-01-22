@@ -121,7 +121,13 @@ class Trainer(TrainerIOMixin,
                     )
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
-            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping
+            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping. If
+                set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+                Will raise an error if ``'val_loss'`` is not found.
+                If set to ``False``, then early stopping will be disabled.
+                If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
+                If ``'val_loss'`` is not found will work as if early stopping is disabled.
+                Default: ``None``.
                 Example::
                     from pytorch_lightning.callbacks import EarlyStopping
 
@@ -129,7 +135,8 @@ class Trainer(TrainerIOMixin,
                     early_stop_callback = EarlyStopping(
                         monitor='val_loss',
                         patience=3,
-                        verbose=True,
+                        strict=False,
+                        verbose=False,
                         mode='min'
                     )
 
