@@ -65,7 +65,7 @@ def run_model_test(trainer_options, model, on_gpu=True, early_stop=False):
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
-    if (early_stop):
+    if early_stop:
         assert trainer.current_epoch >= trainer.min_epochs, 'amp + ddp model failed to complete'
         assert trainer.current_epoch < trainer.max_epochs-1, 'amp + ddp model failed to stop early'
 
