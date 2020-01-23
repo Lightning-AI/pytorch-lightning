@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
-import pandas as pd
+import csv
 import torch
 import torch.distributed as dist
 
@@ -1220,10 +1220,13 @@ def load_hparams_from_tags_csv(tags_csv):
         logging.warning(f'Missing Tags: {tags_csv}.')
         return Namespace()
 
-    tags_df = pd.read_csv(tags_csv)
-    dic = tags_df.to_dict(orient='records')
-    ns_dict = {row['key']: convert(row['value']) for row in dic}
-    ns = Namespace(**ns_dict)
+    tags = {}
+    with open('meta_tags.csv') as f:
+        csv_reader = csv.reader(f, delimiter=',')
+        for i, row in enumerate(csv_reader):
+            if i != 0:  # header
+                tags[convert(row[0])] = convert(row[1])
+    ns = Namespace(**tags)
     return ns
 
 

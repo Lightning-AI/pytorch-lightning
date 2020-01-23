@@ -9,7 +9,6 @@ import subprocess
 from subprocess import PIPE
 
 import numpy as np
-import pandas as pd
 import torch
 
 
@@ -146,24 +145,14 @@ class ModelSummary(object):
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         '''
-
-        cols = ['Name', 'Type', 'Params']
+        arrays = [['Name', self.layer_names],
+                  ['Type', self.layer_types],
+                  ['Params', list(map(get_human_readable_count, self.param_nums))]]
         if self.model.example_input_array is not None:
-            cols.extend(['In_sizes', 'Out_sizes'])
+            arrays.append(['In sizes', self.in_sizes])
+            arrays.append(['Out sizes', self.out_sizes])
 
-        df = pd.DataFrame(np.zeros((len(self.layer_names), len(cols))))
-        df.columns = cols
-
-        df['Name'] = self.layer_names
-        df['Type'] = self.layer_types
-        df['Params'] = self.param_nums
-        df['Params'] = df['Params'].map(get_human_readable_count)
-
-        if self.model.example_input_array is not None:
-            df['In_sizes'] = self.in_sizes
-            df['Out_sizes'] = self.out_sizes
-
-        self.summary = df
+        self.summary = formatter(*arrays)
         return
 
     def summarize(self):
@@ -174,6 +163,46 @@ class ModelSummary(object):
         if self.model.example_input_array is not None:
             self.get_variable_sizes()
         self.make_summary()
+
+
+def formatter(*cols):
+    n_rows = len(cols[0][1])
+    n_cols = 1 + len(cols)
+
+    # Layer counter
+    counter = list(map(str, list(range(n_rows))))
+    counter_len = max([len(c) for c in counter])
+
+    # Get formatting length of each column
+    length = []
+    for c in cols:
+        str_l = len(c[0])  # default length is header length
+        for a in c[1]:
+            if isinstance(a, np.ndarray):
+                array_string = '[' + ', '.join([str(j) for j in a]) + ']'
+                str_l = max(len(array_string), str_l)
+            else:
+                str_l = max(len(a), str_l)
+        length.append(str_l)
+
+    # Formatting
+    s = '{:<{}}'
+    full_length = sum(length) + 3 * n_cols
+    header = [s.format(' ', counter_len)] + [s.format(c[0], l) for c, l in zip(cols, length)]
+
+    # Summary = header + divider + Rest of table
+    summary = ' | '.join(header) + '\n' + '-' * full_length
+    for i in range(n_rows):
+        line = s.format(counter[i], counter_len)
+        for c, l in zip(cols, length):
+            if isinstance(c[1][i], np.ndarray):
+                array_string = '[' + ', '.join([str(j) for j in c[1][i]]) + ']'
+                line += ' | ' + array_string + ' ' * (l - len(array_string))
+            else:
+                line += ' | ' + s.format(c[1][i], l)
+        summary += '\n' + line
+
+    return summary
 
 
 def print_mem_stack():  # pragma: no cover
