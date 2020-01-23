@@ -1223,9 +1223,8 @@ def load_hparams_from_tags_csv(tags_csv):
     tags = {}
     with open('meta_tags.csv') as f:
         csv_reader = csv.reader(f, delimiter=',')
-        for i, row in enumerate(csv_reader):
-            if i != 0:  # header
-                tags[convert(row[0])] = convert(row[1])
+        for row in list(csv_reader)[1:]:
+            tags[row[0]] = convert(row[1])
     ns = Namespace(**tags)
     return ns
 

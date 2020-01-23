@@ -152,7 +152,7 @@ class ModelSummary(object):
             arrays.append(['In sizes', self.in_sizes])
             arrays.append(['Out sizes', self.out_sizes])
 
-        self.summary = formatter(*arrays)
+        self.summary = _format_summary_table(*arrays)
         return
 
     def summarize(self):
@@ -165,7 +165,12 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def formatter(*cols):
+def _format_summary_table(*cols):
+    ''' 
+    Takes in a number of arrays, each specifying a column in
+    the summary table, and combines them all into one big
+    string defining the summary table that are nicely formatted.
+    '''
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
