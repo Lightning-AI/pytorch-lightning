@@ -486,12 +486,13 @@ class TrainerTrainLoopMixin(ABC):
 
                     # backward pass
                     model_ref = self.get_model()
-                    model_ref.backward(self.use_amp, closure_loss, optimizer)
+                    model_ref.backward(self.use_amp, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)
 
                     # track progress bar metrics
+                    self.add_tqdm_metrics(progress_bar_metrics)
                     self.add_tqdm_metrics(progress_bar_metrics)
                     all_log_metrics.append(log_metrics)
 
