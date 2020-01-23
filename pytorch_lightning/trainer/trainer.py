@@ -52,7 +52,7 @@ class Trainer(TrainerIOMixin,
             self,
             logger=True,
             checkpoint_callback=True,
-            early_stop_callback=True,
+            early_stop_callback=None,
             default_save_path=None,
             gradient_clip_val=0,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -121,7 +121,13 @@ class Trainer(TrainerIOMixin,
                     )
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
-            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping
+            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping. If
+                set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+                Will raise an error if ``'val_loss'`` is not found.
+                If set to ``False``, then early stopping will be disabled.
+                If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
+                If ``'val_loss'`` is not found will work as if early stopping is disabled.
+                Default: ``None``.
                 Example::
                     from pytorch_lightning.callbacks import EarlyStopping
 
@@ -129,7 +135,8 @@ class Trainer(TrainerIOMixin,
                     early_stop_callback = EarlyStopping(
                         monitor='val_loss',
                         patience=3,
-                        verbose=True,
+                        strict=False,
+                        verbose=False,
                         mode='min'
                     )
 
@@ -809,11 +816,16 @@ class Trainer(TrainerIOMixin,
             # dummy validation progress bar
             self.val_progress_bar = tqdm.tqdm(disable=True)
 
-            self.evaluate(model, self.get_val_dataloaders(), self.num_sanity_val_steps, self.testing)
+            eval_results = self.evaluate(model, self.get_val_dataloaders(),
+                                         self.num_sanity_val_steps, False)
+            _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
             self.main_progress_bar.close()
             self.val_progress_bar.close()
+
+            if self.enable_early_stop:
+                self.early_stop_callback.check_metrics(callback_metrics)
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,

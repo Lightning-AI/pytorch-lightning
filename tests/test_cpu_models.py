@@ -140,7 +140,8 @@ def test_running_test_without_val(tmpdir):
         val_percent_check=0.2,
         test_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
+        early_stop_callback=False
     )
 
     # fit model
@@ -318,6 +319,7 @@ def test_tbptt_cpu_model(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
         weights_summary=None,
+        early_stop_callback=False
     )
 
     hparams = tutils.get_hparams()
