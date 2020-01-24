@@ -124,12 +124,13 @@ class ModelHooks(torch.nn.Module):
         """
         pass
 
-    def backward(self, use_amp, loss, optimizer):
+    def backward(self, use_amp, loss, optimizer, optimizer_idx):
         """Override backward with your own implementation if you need to
 
         :param use_amp: Whether amp was requested or not
         :param loss: Loss is already scaled by accumulated grads
         :param optimizer: Current optimizer being used
+        :param optimizer_idx: Index of the current optimizer being used
         :return:
 
         Called to perform backward step.
