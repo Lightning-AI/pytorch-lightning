@@ -699,9 +699,10 @@ class Trainer(TrainerIOMixin,
     def tng_tqdm_dic(self):
         """Read-only for tqdm metrics.
 
+        :return: dictionary
+
         .. deprecated:: 0.5.0
                     Use `training_tqdm_dict` instead. Will remove 0.8.0.
-        :return: dictionary
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and will be removed in v0.8.0", DeprecationWarning)
@@ -758,7 +759,6 @@ class Trainer(TrainerIOMixin,
         return 1
 
     def init_optimizers(self, optimizers):
-
         # single optimizer
         if isinstance(optimizers, Optimizer):
             return [optimizers], []
