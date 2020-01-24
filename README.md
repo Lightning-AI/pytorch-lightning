@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](docs/source/_static/images/lightning_logo_small.png)
+<img src="docs/source/_static/images/lightning_logo.png" width="50" height="50">
 
 # PyTorch Lightning
 
@@ -14,10 +14,10 @@
 [![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.6.0)](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Feb%206-<COLOR>.svg)](https://shields.io/)
+[![Next Release](https://img.shields.io/badge/Next%20Release-Mar%2021-<COLOR>.svg)](https://shields.io/)
 
 <!-- 
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
@@ -32,10 +32,10 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-**[View the docs here](https://pytorch-lightning.rtfd.io/en/latest)**   
-** DOCS TEMPORARILY have broken links because we recently switched orgs from williamfalcon/pytorch-lightning to pytorchlightning/pytorch-lightning [jan 15, 2020]. 
+- [master](https://pytorch-lightning.readthedocs.io/en/latest)   
+- [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
+- [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
-As a temporary hack, when you get the 404, replace williamfalcon.github.io with pytorchlightning.github.io.   
 
 ## Demo  
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)

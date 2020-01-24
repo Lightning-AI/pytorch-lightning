@@ -1,15 +1,13 @@
 """
 Callbacks
-=========
-
+====================================
 Callbacks supported by Lightning
 """
 
-import logging
 import os
 import shutil
+import logging
 import warnings
-
 import numpy as np
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -73,21 +71,23 @@ class EarlyStopping(Callback):
     Stop training when a monitored quantity has stopped improving.
 
     Args:
-        monitor (str): quantity to be monitored.
+        monitor (str): quantity to be monitored. Default: ``'val_loss'``.
         min_delta (float): minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
-            change of less than min_delta, will count as no
-            improvement.
+            change of less than `min_delta`, will count as no
+            improvement. Default: ``0``.
         patience (int): number of epochs with no improvement
-            after which training will be stopped.
-        verbose (bool): verbosity mode.
+            after which training will be stopped. Default: ``0``.
+        verbose (bool): verbosity mode. Default: ``0``.
         mode (str): one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
             monitored has stopped decreasing; in `max`
             mode it will stop when the quantity
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
-            from the name of the monitored quantity.
+            from the name of the monitored quantity. Default: ``'auto'``.
+        strict (bool): whether to crash the training if `monitor` is
+            not found in the metrics. Default: ``True``.
 
     Example::
 
@@ -99,18 +99,20 @@ class EarlyStopping(Callback):
     """
 
     def __init__(self, monitor='val_loss',
-                 min_delta=0.0, patience=0, verbose=0, mode='auto'):
+                 min_delta=0.0, patience=0, verbose=0, mode='auto', strict=True):
         super(EarlyStopping, self).__init__()
 
         self.monitor = monitor
         self.patience = patience
         self.verbose = verbose
+        self.strict = strict
         self.min_delta = min_delta
         self.wait = 0
         self.stopped_epoch = 0
 
         if mode not in ['auto', 'min', 'max']:
-            logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
+            if self.verbose > 0:
+                logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -130,6 +132,22 @@ class EarlyStopping(Callback):
 
         self.on_train_begin()
 
+    def check_metrics(self, logs):
+        monitor_val = logs.get(self.monitor)
+        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
+                     f' which is not available. Available metrics are:'
+                     f' `{"`, `".join(list(logs.keys()))}`')
+
+        if monitor_val is None:
+            if self.strict:
+                raise RuntimeError(error_msg)
+            elif self.verbose > 0:
+                warnings.warn(error_msg, RuntimeWarning)
+
+            return False
+
+        return True
+
     def on_train_begin(self, logs=None):
         # Allow instances to be re-used
         self.wait = 0
@@ -137,16 +155,11 @@ class EarlyStopping(Callback):
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self, epoch, logs=None):
-        current = logs.get(self.monitor)
         stop_training = False
-        if current is None:
-            warnings.warn(
-                f'Early stopping conditioned on metric `{self.monitor}`'
-                f' which is not available. Available metrics are: {",".join(list(logs.keys()))}',
-                RuntimeWarning)
-            stop_training = True
+        if not self.check_metrics(logs):
             return stop_training
 
+        current = logs.get(self.monitor)
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0
@@ -165,7 +178,9 @@ class EarlyStopping(Callback):
 
 
 class ModelCheckpoint(Callback):
-    r"""Save the model after every epoch.
+    r"""
+
+    Save the model after every epoch.
 
     Args:
         filepath (str): path to save the model file.

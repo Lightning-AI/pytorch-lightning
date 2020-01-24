@@ -71,47 +71,44 @@ Call the logger anywhere from your LightningModule by doing:
 Supported Loggers
 -----------------
 """
-
 from os import environ
 
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-all = []
+loggers = ['TensorBoardLogger']
 
 try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
     from .comet import CometLogger
-    all.append('CometLogger')
+    loggers.append('CometLogger')
 except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
     from .mlflow import MLFlowLogger
-    all.append('MLFlowLogger')
+    loggers.append('MLFlowLogger')
 except ImportError:
     pass
 
 try:
     from .neptune import NeptuneLogger
-    all.append('NeptuneLogger')
+    loggers.append('NeptuneLogger')
 except ImportError:
     pass
 
-all.append('TensorBoardLogger')
-
 try:
     from .test_tube import TestTubeLogger
-    all.append('TestTubeLogger')
+    loggers.append('TestTubeLogger')
 except ImportError:
     pass
 
 try:
     from .wandb import WandbLogger
-    all.append('WandbLogger')
+    loggers.append('WandbLogger')
 except ImportError:
     pass
 
-__all__ = all
+__all__ = loggers

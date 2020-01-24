@@ -346,13 +346,15 @@ class TrainerTrainLoopMixin(ABC):
 
             # early stopping
             met_min_epochs = epoch >= self.min_epochs - 1
-            if self.enable_early_stop and (met_min_epochs or self.fast_dev_run):
+            if (self.enable_early_stop and not self.disable_validation and
+                    (met_min_epochs or self.fast_dev_run)):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
                                                                     logs=self.callback_metrics)
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
                     self.main_progress_bar.close()
+                    model.on_train_end()
                     return
 
         self.main_progress_bar.close()
@@ -399,6 +401,9 @@ class TrainerTrainLoopMixin(ABC):
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test=self.testing)
+
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
@@ -460,11 +465,12 @@ class TrainerTrainLoopMixin(ABC):
             for opt_idx, optimizer in enumerate(self.optimizers):
                 # make sure only the gradients of the current optimizer's paramaters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                for param in self.get_model().parameters():
-                    param.requires_grad = False
-                for group in optimizer.param_groups:
-                    for param in group['params']:
-                        param.requires_grad = True
+                if len(self.optimizers) > 1:
+                    for param in self.get_model().parameters():
+                        param.requires_grad = False
+                    for group in optimizer.param_groups:
+                        for param in group['params']:
+                            param.requires_grad = True
 
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():
