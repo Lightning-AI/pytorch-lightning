@@ -239,7 +239,7 @@ class Trainer(TrainerIOMixin,
                     # track the 2-norm
                     trainer = Trainer(track_grad_norm=2)
 
-            check_val_every_n_epoch (int): check val every n train epochs
+            check_val_every_n_epoch (int): Check val every n train epochs.
                 Example::
 
                     # default used by the Trainer
@@ -269,7 +269,7 @@ class Trainer(TrainerIOMixin,
                     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
                     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-            max_epochs (int): Stop training once this number of epochs is reached
+            max_epochs (int): Stop training once this number of epochs is reached.
                 Example::
 
                     # default used by the Trainer
@@ -459,7 +459,9 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
+
             - `nb_sanity_val_steps`
+
         """
 
         # Transfer params
@@ -697,8 +699,9 @@ class Trainer(TrainerIOMixin,
     def tng_tqdm_dic(self):
         """Read-only for tqdm metrics.
 
-        .. warning:: Deprecated in v0.5.0. use training_tqdm_dict instead.
-        :return:
+        .. deprecated:: 0.5.0
+                    Use `training_tqdm_dict` instead. Will remove 0.8.0.
+        :return: dictionary
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and will be removed in v0.8.0", DeprecationWarning)
