@@ -296,6 +296,7 @@ class TrainerTrainLoopMixin(ABC):
             self.current_epoch = epoch
 
             total_val_batches = 0
+            is_val_epoch = False
             if not self.disable_validation:
                 # val can be checked multiple times in epoch
                 is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
@@ -346,7 +347,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # early stopping
             met_min_epochs = epoch >= self.min_epochs - 1
-            if (self.enable_early_stop and not self.disable_validation and
+            if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
                     (met_min_epochs or self.fast_dev_run)):
                 should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
                                                                     logs=self.callback_metrics)
