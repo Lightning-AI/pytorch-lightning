@@ -795,7 +795,7 @@ class Trainer(TrainerIOMixin,
             pbar = tqdm.tqdm(desc='Validation sanity check',
                              total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+                             disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm.tqdm(disable=True)
@@ -813,7 +813,7 @@ class Trainer(TrainerIOMixin,
 
         # init progress bar
         pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
-                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                         disable=not self.show_progress_bar, dynamic_ncols=True,
                          file=sys.stdout)
         self.main_progress_bar = pbar
 

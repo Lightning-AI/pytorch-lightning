@@ -295,7 +295,7 @@ class TrainerEvaluationLoopMixin(ABC):
         desc = 'Testing' if test else 'Validating'
         pbar = tqdm.tqdm(desc=desc, total=max_batches, leave=test, position=position,
                          disable=not self.show_progress_bar, dynamic_ncols=True,
-                         unit='batch', file=sys.stdout)
+                         file=sys.stdout)
         setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
 
         # run evaluation

@@ -1219,8 +1219,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Dictionary with the items to be displayed in the progress bar.
         """
         tqdm_dict = {
-            'loss': '{:.3f}'.format(self.trainer.avg_loss),
-            'batch_idx': '{}'.format(self.trainer.batch_idx),
+            'loss': '{:.3f}'.format(self.trainer.avg_loss)
         }
 
         if self.trainer.truncated_bptt_steps is not None:
@@ -1228,9 +1227,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             tqdm_dict['v_num'] = self.trainer.logger.version
-
-        if self.trainer.on_gpu:
-            tqdm_dict['gpu'] = f'{torch.cuda.current_device()}'
 
         return tqdm_dict
 
