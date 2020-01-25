@@ -638,23 +638,7 @@ class Trainer(TrainerIOMixin,
         """Read-only for tqdm metrics.
         :return:
         """
-        tqdm_dict = {
-            'loss': '{0:.3f}'.format(self.avg_loss),
-            'batch_idx': '{}'.format(self.batch_idx),
-        }
-
-        if self.truncated_bptt_steps is not None:
-            tqdm_dict['split_idx'] = self.split_idx
-
-        if self.logger is not None and self.logger.version is not None:
-            tqdm_dict['v_num'] = self.logger.version
-
-        tqdm_dict.update(self.tqdm_metrics)
-
-        if self.on_gpu:
-            tqdm_dict['gpu'] = '{}'.format(torch.cuda.current_device())
-
-        return tqdm_dict
+        return dict(**self.model.get_tqdm_dict(), **self.tqdm_metrics)
 
     @property
     def tng_tqdm_dic(self):
