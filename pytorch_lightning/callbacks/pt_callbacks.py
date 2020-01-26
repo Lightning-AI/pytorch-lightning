@@ -42,7 +42,6 @@ class Callback(object):
 
                 on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
         """
-        pass
 
     def on_epoch_end(self, epoch, logs=None):
         pass
@@ -55,7 +54,6 @@ class Callback(object):
             batch (Tensor): current batch tensor
             logs (dict): key-value pairs of quantities to monitor
         """
-        pass
 
     def on_batch_end(self, batch, logs=None):
         pass
