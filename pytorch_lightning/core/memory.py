@@ -166,7 +166,7 @@ class ModelSummary(object):
 
 
 def _format_summary_table(*cols):
-    ''' 
+    '''
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
     string defining the summary table that are nicely formatted.
