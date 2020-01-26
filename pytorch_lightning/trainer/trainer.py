@@ -657,7 +657,7 @@ class Trainer(TrainerIOMixin,
 
         # set root gpu
         root_gpu = 0
-        if type(gpus) is list:
+        if isinstance(gpus, list):
             root_gpu = gpus[0]
 
         return root_gpu

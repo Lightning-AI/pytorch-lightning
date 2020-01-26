@@ -463,7 +463,7 @@ class TrainerDPMixin(ABC):
 
         # create list of device ids
         device_ids = self.data_parallel_device_ids
-        if type(device_ids) is int:
+        if isinstance(device_ids, int):
             device_ids = list(range(device_ids))
 
         model = LightningDataParallel(model, device_ids=device_ids)
@@ -472,7 +472,7 @@ class TrainerDPMixin(ABC):
 
 
 def normalize_parse_gpu_string_input(s):
-    if type(s) is str:
+    if isinstance(s, str):
         if s == '-1':
             return -1
         else:
@@ -496,10 +496,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    if (gpus is not None and
-        type(gpus) is not int and
-        type(gpus) is not str and
-        type(gpus) is not list):    # noqa E129
+    if gpus is not None and not isinstance(gpus, (int, str, list)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
@@ -552,7 +549,7 @@ def parse_gpu_ids(gpus):
     check_gpus_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or type(gpus) is int and gpus == 0:
+    if gpus is None or isinstance(gpus, int) and gpus == 0:
         return None
 
     # We know user requested GPUs therefore if some of the
