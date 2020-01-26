@@ -127,7 +127,7 @@ import sys
 from abc import ABC, abstractmethod
 
 import torch
-import tqdm
+from tqdm.auto import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -293,7 +293,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # main progress bar will already be closed when testing so initial position is free
         position = 2 * self.process_position + (not test)
         desc = 'Testing' if test else 'Validating'
-        pbar = tqdm.tqdm(desc=desc, total=max_batches, leave=test, position=position,
+        pbar = tqdm(desc=desc, total=max_batches, leave=test, position=position,
                          disable=not self.show_progress_bar, dynamic_ncols=True,
                          unit='batch', file=sys.stdout)
         setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
