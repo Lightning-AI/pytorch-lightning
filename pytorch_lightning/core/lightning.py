@@ -1220,7 +1220,7 @@ def load_hparams_from_tags_csv(tags_csv):
 def convert(val):
     constructors = [int, float, str]
 
-    if type(val) is str:
+    if isinstance(val, str):
         if val.lower() == 'true':
             return True
         if val.lower() == 'false':

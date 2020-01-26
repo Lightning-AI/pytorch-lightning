@@ -26,7 +26,7 @@ class Callback(object):
         self.params = params
 
     def set_model(self, model):
-        if type(model) is LightningDistributedDataParallel:
+        if isinstance(model, LightningDistributedDataParallel):
             model = model.module
         self.model = model
 

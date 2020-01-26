@@ -78,7 +78,7 @@ class ModelSummary(object):
                 if isinstance(input_, (list, tuple)):  # pragma: no cover
                     in_size = []
                     for x in input_:
-                        if type(x) is list:
+                        if isinstance(x, list):
                             in_size.append(len(x))
                         else:
                             in_size.append(x.size())
