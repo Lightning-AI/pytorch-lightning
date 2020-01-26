@@ -558,10 +558,12 @@ class Trainer(TrainerIOMixin,
         self.current_epoch = 0
         self.total_batches = 0
 
+        # configure logger
+        self.configure_logger(logger)
+
         # configure early stop callback
         # creates a default one if none passed in
-        self.early_stop_callback = None
-        self.configure_early_stopping(early_stop_callback, logger)
+        self.configure_early_stopping(early_stop_callback)
 
         self.reduce_lr_on_plateau_scheduler = None
 

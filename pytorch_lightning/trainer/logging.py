@@ -3,6 +3,7 @@ from abc import ABC
 import torch
 
 from pytorch_lightning.core import memory
+from pytorch_lightning.logging import TensorBoardLogger
 
 
 class TrainerLoggingMixin(ABC):
@@ -20,6 +21,21 @@ class TrainerLoggingMixin(ABC):
         self.use_dp = None
         self.use_ddp2 = None
         self.num_gpus = None
+
+    def configure_logger(self, logger):
+        if logger is True:
+            # default logger
+            self.logger = TensorBoardLogger(
+                save_dir=self.default_save_path,
+                version=self.slurm_job_id,
+                name='lightning_logs'
+            )
+            self.logger.rank = 0
+        elif logger is False:
+            self.logger = None
+        else:
+            self.logger = logger
+            self.logger.rank = 0
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
