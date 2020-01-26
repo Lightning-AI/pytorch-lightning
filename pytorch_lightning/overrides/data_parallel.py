@@ -56,10 +56,10 @@ class LightningDataParallel(DataParallel):
             # lightning
             if self.module.training:
                 return self.module.training_step(*inputs[0], **kwargs[0])
-            elif self.module.testing:
+            if self.module.testing:
                 return self.module.test_step(*inputs[0], **kwargs[0])
-            else:
-                return self.module.validation_step(*inputs[0], **kwargs[0])
+
+            return self.module.validation_step(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)

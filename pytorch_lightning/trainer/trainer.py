@@ -667,8 +667,7 @@ class Trainer(TrainerIOMixin,
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-        else:
-            return len(gpus)
+        return len(gpus)
 
     @property
     def data_parallel(self):
@@ -766,7 +765,7 @@ class Trainer(TrainerIOMixin,
             return [optimizers], []
 
         # two lists
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
+        if len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
             lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
