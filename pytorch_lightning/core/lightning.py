@@ -169,6 +169,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # Truncated back-propagation through time
             def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hiddens from the previous truncated backprop step
+                ...
+                out, hiddens = self.lstm(data, hiddens)
+                ...
+
+                return {
+                    "loss": ...,
+                    "hiddens": hiddens  # remember to detach() this
+                }
 
         You can also return a -1 instead of a dict to stop the current loop. This is useful
          if you want to break out of the current training epoch early.
