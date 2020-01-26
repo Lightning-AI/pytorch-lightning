@@ -413,6 +413,10 @@ class Trainer(TrainerIOMixin,
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
 
+                Using this feature requires updating your LightningModule's `training_step()` to include
+                a `hiddens` arg.
+
+
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
                     # default used by the Trainer
