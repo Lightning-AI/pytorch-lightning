@@ -7,7 +7,7 @@ import logging
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import tqdm
+from tqdm.auto import tqdm
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
@@ -850,13 +850,13 @@ class Trainer(TrainerIOMixin,
         ref_model.on_train_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
-            pbar = tqdm.tqdm(desc='Validation sanity check',
+            pbar = tqdm(desc='Validation sanity check',
                              total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
             self.main_progress_bar = pbar
             # dummy validation progress bar
-            self.val_progress_bar = tqdm.tqdm(disable=True)
+            self.val_progress_bar = tqdm(disable=True)
 
             eval_results = self.evaluate(model, self.get_val_dataloaders(),
                                          self.num_sanity_val_steps, False)
@@ -870,9 +870,9 @@ class Trainer(TrainerIOMixin,
                 self.early_stop_callback.check_metrics(callback_metrics)
 
         # init progress bar
-        pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
-                         disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
-                         file=sys.stdout)
+        pbar = tqdm(leave=True, position=2 * self.process_position,
+                    disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                    file=sys.stdout)
         self.main_progress_bar = pbar
 
         # clear cache before training
