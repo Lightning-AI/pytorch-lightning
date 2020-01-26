@@ -638,7 +638,9 @@ class Trainer(TrainerIOMixin,
         """Read-only for tqdm metrics.
         :return:
         """
-        return dict(**self.model.get_tqdm_dict(), **self.tqdm_metrics)
+        ref_model = self.model if not self.data_parallel else self.model.module
+
+        return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
 
     @property
     def tng_tqdm_dic(self):
