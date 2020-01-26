@@ -143,5 +143,5 @@ class TensorBoardLogger(LightningLoggerBase):
 
         if len(existing_versions) == 0:
             return 0
-        else:
-            return max(existing_versions) + 1
+
+        return max(existing_versions) + 1

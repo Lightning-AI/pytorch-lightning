@@ -157,13 +157,13 @@ class NeptuneLogger(LightningLoggerBase):
 
         if self._experiment is not None:
             return self._experiment
-        else:
-            self._experiment = neptune.create_experiment(name=self.experiment_name,
-                                                         params=self.params,
-                                                         properties=self.properties,
-                                                         tags=self.tags,
-                                                         upload_source_files=self.upload_source_files,
-                                                         **self._kwargs)
+
+        self._experiment = neptune.create_experiment(name=self.experiment_name,
+                                                     params=self.params,
+                                                     properties=self.properties,
+                                                     tags=self.tags,
+                                                     upload_source_files=self.upload_source_files,
+                                                     **self._kwargs)
         return self._experiment
 
     @rank_zero_only
@@ -197,15 +197,15 @@ class NeptuneLogger(LightningLoggerBase):
     def name(self):
         if self.mode == "offline":
             return "offline-name"
-        else:
-            return self.experiment.name
+
+        return self.experiment.name
 
     @property
     def version(self):
         if self.mode == "offline":
             return "offline-id-1234"
-        else:
-            return self.experiment.id
+
+        return self.experiment.id
 
     @rank_zero_only
     def log_metric(self, metric_name, metric_value, step=None):
