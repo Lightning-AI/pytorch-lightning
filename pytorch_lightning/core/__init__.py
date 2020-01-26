@@ -85,6 +85,7 @@ Most methods are optional. Here's a minimal example.
 Once you've defined the LightningModule, fit  it using a trainer.
 
 .. code-block:: python
+
    trainer = pl.Trainer()
    model = CoolModel()
 
