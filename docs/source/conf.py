@@ -318,7 +318,7 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, part)
         fname = inspect.getsourcefile(obj)
         # https://github.com/rtfd/readthedocs.org/issues/5735
-        if any([s in fname for s in ('readthedocs', 'checkouts')]):
+        if any([s in fname for s in ('readthedocs', 'rtfd', 'checkouts')]):
             # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
             #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
             path_top = os.path.abspath(os.path.join('..', '..', '..'))
@@ -338,6 +338,10 @@ def linkcode_resolve(domain, info):
     # import subprocess
     # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
     #                        universal_newlines=True).communicate()[0][:-1]
+    branch = filename.split('/')[0]
+    # do mapping from latest tags to master
+    branch = {'latest': 'master', 'stable': 'master'}.get(branch, branch)
+    filename = '/'.join([branch] + filename.split('/')[1:])
     return "https://github.com/%s/%s/blob/%s" \
            % (github_user, github_repo, filename)
 

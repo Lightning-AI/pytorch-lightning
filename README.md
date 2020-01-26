@@ -84,12 +84,12 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 ---
 
 ## How do I do use it?   
-Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/LightningModule/RequiredTrainerInterface/) which you fit using a Trainer.
+Think about Lightning as refactoring your research code instead of using a new framework. The research code goes into a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html) which you fit using a Trainer.
 
 The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.     
 
 To use lightning do 2 things:  
-1. [Define a LightningModule](https://pytorch-lightning.rtfd.io/en/latest/LightningModule/RequiredTrainerInterface/)
+1. [Define a LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
 **WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
     ```python
     import os
@@ -165,7 +165,7 @@ To use lightning do 2 things:
             # OPTIONAL
             return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
     ```
-2. Fit with a [trainer](https://pytorch-lightning.rtfd.io/en/latest/Trainer/)    
+2. Fit with a [trainer](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)    
     ```python
     from pytorch_lightning import Trainer
     

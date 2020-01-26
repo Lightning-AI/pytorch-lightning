@@ -7,7 +7,7 @@ import logging
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import tqdm
+from tqdm.auto import tqdm
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
@@ -96,6 +96,7 @@ class Trainer(TrainerIOMixin,
         Args:
             logger (:class:`.Logger`): Logger for experiment tracking.
                 Example::
+
                     from pytorch_lightning.logging import TensorBoardLogger
 
                     # default logger used by trainer
@@ -106,8 +107,10 @@ class Trainer(TrainerIOMixin,
                     )
 
                     Trainer(logger=logger)
+
             checkpoint_callback (:class:`CheckpointCallback`): Callback for checkpointing.
                 Example::
+
                     from pytorch_lightning.callbacks import ModelCheckpoint
 
                     # default used by the Trainer
@@ -121,6 +124,7 @@ class Trainer(TrainerIOMixin,
                     )
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
+
             early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping. If
                 set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
@@ -129,6 +133,7 @@ class Trainer(TrainerIOMixin,
                 If ``'val_loss'`` is not found will work as if early stopping is disabled.
                 Default: ``None``.
                 Example::
+
                     from pytorch_lightning.callbacks import EarlyStopping
 
                     # default used by the Trainer
@@ -141,25 +146,32 @@ class Trainer(TrainerIOMixin,
                     )
 
                     trainer = Trainer(early_stop_callback=early_stop_callback)
+
             default_save_path (str): Default path for logs and weights when no logger/ckpt_callback passed
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(default_save_path=os.getcwd())
+
             gradient_clip_val (float): 0 means don't clip.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(gradient_clip_val=0.0)
+
             gradient_clip (int):
                 .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position (int): orders the tqdm bar when running multiple models on same machine.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(process_position=0)
 
             num_nodes (int): number of GPU nodes for distributed training.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(num_nodes=1)
 
@@ -172,6 +184,7 @@ class Trainer(TrainerIOMixin,
 
             gpus (list|str|int): Which GPUs to train on.
                 Example::
+
                     # default used by the Trainer (ie: train on CPU)
                     trainer = Trainer(gpus=None)
 
@@ -192,6 +205,7 @@ class Trainer(TrainerIOMixin,
             log_gpu_memory (str): None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(log_gpu_memory=None)
 
@@ -203,11 +217,13 @@ class Trainer(TrainerIOMixin,
 
             show_progress_bar (bool): If true shows tqdm progress bar
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(show_progress_bar=True)
 
             overfit_pct (float): uses this much data of all datasets.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(overfit_pct=0.0)
 
@@ -216,14 +232,16 @@ class Trainer(TrainerIOMixin,
 
             track_grad_norm (int): -1 no tracking. Otherwise tracks that norm
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(track_grad_norm=-1)
 
                     # track the 2-norm
                     trainer = Trainer(track_grad_norm=2)
 
-            check_val_every_n_epoch (int): check val every n train epochs
+            check_val_every_n_epoch (int): Check val every n train epochs.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(check_val_every_n_epoch=1)
 
@@ -232,6 +250,7 @@ class Trainer(TrainerIOMixin,
 
             fast_dev_run (bool): runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(fast_dev_run=False)
 
@@ -240,6 +259,7 @@ class Trainer(TrainerIOMixin,
 
             accumulate_grad_batches (int|dict): Accumulates grads every k batches or as set up in the dict.
                 Example::
+
                     # default used by the Trainer (no accumulation)
                     trainer = Trainer(accumulate_grad_batches=1)
 
@@ -249,8 +269,9 @@ class Trainer(TrainerIOMixin,
                     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
                     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-            max_epochs (int): Stop training once this number of epochs is reached
+            max_epochs (int): Stop training once this number of epochs is reached.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(max_epochs=1000)
 
@@ -260,6 +281,7 @@ class Trainer(TrainerIOMixin,
 
             min_epochs (int): Force training for at least these many epochs
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(min_epochs=1)
 
@@ -270,6 +292,7 @@ class Trainer(TrainerIOMixin,
             train_percent_check (int): How much of training dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(train_percent_check=1.0)
 
@@ -279,6 +302,7 @@ class Trainer(TrainerIOMixin,
             val_percent_check (int): How much of validation dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(val_percent_check=1.0)
 
@@ -288,6 +312,7 @@ class Trainer(TrainerIOMixin,
             test_percent_check (int): How much of test dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(test_percent_check=1.0)
 
@@ -297,6 +322,7 @@ class Trainer(TrainerIOMixin,
             val_check_interval (float|int): How often within one training epoch to check the validation set
                 If float, % of tng epoch. If int, check every n batch
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(val_check_interval=1.0)
 
@@ -310,11 +336,13 @@ class Trainer(TrainerIOMixin,
 
             log_save_interval (int): Writes logs to disk this often
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(log_save_interval=100)
 
             row_log_interval (int): How often to add logging rows (does not write to disk)
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(row_log_interval=10)
 
@@ -325,6 +353,7 @@ class Trainer(TrainerIOMixin,
             distributed_backend (str): The distributed backend to use.
                 Options: 'dp', 'ddp', 'ddp2'.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(distributed_backend=None)
 
@@ -344,17 +373,20 @@ class Trainer(TrainerIOMixin,
 
             use_amp (bool): If true uses apex for 16bit precision
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(use_amp=False)
 
             print_nan_grads (bool): Prints gradients with nan values
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(print_nan_grads=False)
 
             weights_summary (str): Prints a summary of the weights when training begins.
                 Options: 'full', 'top', None.
                 Example::
+
                     # default used by the Trainer (ie: print all weights)
                     trainer = Trainer(weights_summary='full')
 
@@ -366,6 +398,7 @@ class Trainer(TrainerIOMixin,
 
             weights_save_path (str): Where to save weights if specified.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(weights_save_path=os.getcwd())
 
@@ -383,6 +416,7 @@ class Trainer(TrainerIOMixin,
             amp_level (str): The optimization level to use (O1, O2, etc...).
                 Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(amp_level='O1')
 
@@ -390,6 +424,7 @@ class Trainer(TrainerIOMixin,
                 This catches any bugs in your validation without having to wait for the first validation check.
                 The Trainer uses 5 steps by default. Turn it off or modify it here.
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(num_sanity_val_steps=5)
 
@@ -407,6 +442,7 @@ class Trainer(TrainerIOMixin,
                 recurrent network trajectories."
                 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
                 Example::
+
                     # default used by the Trainer (ie: disabled)
                     trainer = Trainer(truncated_bptt_steps=None)
 
@@ -415,15 +451,18 @@ class Trainer(TrainerIOMixin,
 
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
+
                     # default used by the Trainer
                     trainer = Trainer(resume_from_checkpoint=None)
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+
+        .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
+
+            - `nb_sanity_val_steps`
+
         """
-        #
-        # .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
-        #     - `nb_sanity_val_steps`
 
         # Transfer params
         # Backward compatibility
@@ -519,10 +558,12 @@ class Trainer(TrainerIOMixin,
         self.current_epoch = 0
         self.total_batches = 0
 
+        # configure logger
+        self.configure_logger(logger)
+
         # configure early stop callback
         # creates a default one if none passed in
-        self.early_stop_callback = None
-        self.configure_early_stopping(early_stop_callback, logger)
+        self.configure_early_stopping(early_stop_callback)
 
         self.reduce_lr_on_plateau_scheduler = None
 
@@ -646,8 +687,10 @@ class Trainer(TrainerIOMixin,
     def tng_tqdm_dic(self):
         """Read-only for tqdm metrics.
 
-        .. warning:: Deprecated in v0.5.0. use training_tqdm_dict instead.
-        :return:
+        :return: dictionary
+
+        .. deprecated:: 0.5.0
+                    Use `training_tqdm_dict` instead. Will remove 0.8.0.
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and will be removed in v0.8.0", DeprecationWarning)
@@ -704,7 +747,6 @@ class Trainer(TrainerIOMixin,
         return 1
 
     def init_optimizers(self, optimizers):
-
         # single optimizer
         if isinstance(optimizers, Optimizer):
             return [optimizers], []
@@ -794,13 +836,13 @@ class Trainer(TrainerIOMixin,
         ref_model.on_train_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
-            pbar = tqdm.tqdm(desc='Validation sanity check',
+            pbar = tqdm(desc='Validation sanity check',
                              total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
-            self.val_progress_bar = tqdm.tqdm(disable=True)
+            self.val_progress_bar = tqdm(disable=True)
 
             eval_results = self.evaluate(model, self.get_val_dataloaders(),
                                          self.num_sanity_val_steps, False)
@@ -814,9 +856,9 @@ class Trainer(TrainerIOMixin,
                 self.early_stop_callback.check_metrics(callback_metrics)
 
         # init progress bar
-        pbar = tqdm.tqdm(leave=True, position=2 * self.process_position,
-                         disable=not self.show_progress_bar, dynamic_ncols=True,
-                         file=sys.stdout)
+        pbar = tqdm(leave=True, position=2 * self.process_position,
+                    disable=not self.show_progress_bar, dynamic_ncols=True,
+                    file=sys.stdout)
         self.main_progress_bar = pbar
 
         # clear cache before training

@@ -46,7 +46,7 @@ class TestTubeLogger(LightningLoggerBase):
     `os.path.join(save_dir, name, version)`
 
     Example
-    --------
+    -------
 
     .. code-block:: python
 
