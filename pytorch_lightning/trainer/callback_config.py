@@ -2,7 +2,6 @@ import os
 from abc import ABC
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.logging import TensorBoardLogger
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -50,7 +49,7 @@ class TrainerCallbackConfigMixin(ABC):
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
 
-    def configure_early_stopping(self, early_stop_callback, logger):
+    def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
@@ -75,18 +74,3 @@ class TrainerCallbackConfigMixin(ABC):
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
-
-        # configure logger
-        if logger is True:
-            # default logger
-            self.logger = TensorBoardLogger(
-                save_dir=self.default_save_path,
-                version=self.slurm_job_id,
-                name='lightning_logs'
-            )
-            self.logger.rank = 0
-        elif logger is False:
-            self.logger = None
-        else:
-            self.logger = logger
-            self.logger.rank = 0
