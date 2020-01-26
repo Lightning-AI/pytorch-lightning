@@ -43,18 +43,15 @@ class LightningLoggerBase(ABC):
 
     def save(self):
         """Save log data."""
-        pass
 
     def finalize(self, status):
         """Do any processing that is necessary to finalize an experiment.
 
         :param status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
-        pass
 
     def close(self):
         """Do any cleanup that is necessary to close an experiment."""
-        pass
 
     @property
     def rank(self):
