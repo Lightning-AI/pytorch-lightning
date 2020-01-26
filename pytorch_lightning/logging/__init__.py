@@ -3,6 +3,7 @@ Lightning supports most popular logging frameworks (Tensorboard, comet, weights 
 To use a logger, simply pass it into the trainer.
 
 .. code-block:: python
+
     from pytorch_lightning import logging
 
     # lightning uses tensorboard by default
