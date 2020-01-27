@@ -1217,7 +1217,7 @@ def load_hparams_from_tags_csv(tags_csv):
         return Namespace()
 
     tags = {}
-    with open('meta_tags.csv') as f:
+    with open(tags_csv) as f:
         csv_reader = csv.reader(f, delimiter=',')
         for row in list(csv_reader)[1:]:
             tags[row[0]] = convert(row[1])
