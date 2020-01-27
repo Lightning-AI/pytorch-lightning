@@ -574,7 +574,7 @@ def determine_root_gpu_device(gpus):
         return None
 
     assert isinstance(gpus, list), "gpus should be a list"
-    assert len(gpus), "gpus should be a non empty list"
+    assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
     root_gpu = gpus[0]
