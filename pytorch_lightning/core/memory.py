@@ -98,7 +98,6 @@ class ModelSummary(object):
         self.in_sizes = in_sizes
         self.out_sizes = out_sizes
         assert len(in_sizes) == len(out_sizes)
-        return
 
     def get_layer_names(self):
         '''Collect Layer Names'''
@@ -113,7 +112,6 @@ class ModelSummary(object):
 
         self.layer_names = names
         self.layer_types = layer_types
-        return
 
     def get_parameter_sizes(self):
         '''Get sizes of all parameters in `model`'''
@@ -127,7 +125,6 @@ class ModelSummary(object):
             sizes.append(modsz)
 
         self.param_sizes = sizes
-        return
 
     def get_parameter_nums(self):
         '''Get number of parameters in each layer'''
@@ -138,7 +135,6 @@ class ModelSummary(object):
                 all_params += np.prod(p)
             param_nums.append(all_params)
         self.param_nums = param_nums
-        return
 
     def make_summary(self):
         '''
@@ -164,7 +160,6 @@ class ModelSummary(object):
             df['Out_sizes'] = self.out_sizes
 
         self.summary = df
-        return
 
     def summarize(self):
         self.get_layer_names()
