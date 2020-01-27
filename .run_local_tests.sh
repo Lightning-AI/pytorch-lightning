@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # use this to run tests
 rm -rf _ckpt_*
 rm -rf tests/save_dir*
