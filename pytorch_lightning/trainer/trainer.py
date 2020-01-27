@@ -771,7 +771,7 @@ class Trainer(TrainerIOMixin,
             return optimizers, lr_schedulers
 
         # single list or tuple
-        elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
+        if isinstance(optimizers, (list, tuple)):
             return optimizers, []
 
     def configure_schedulers(self, schedulers):
