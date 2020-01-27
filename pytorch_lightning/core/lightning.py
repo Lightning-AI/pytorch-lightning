@@ -829,8 +829,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Each returned batch split is passed separately to training_step(...).
 
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(
-            x, torch.Tensor) or isinstance(x, collections.Sequence)]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
