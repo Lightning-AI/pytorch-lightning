@@ -893,7 +893,7 @@ class Trainer(TrainerIOMixin,
         Example::
 
             # Option 1
-            # run test after fitting
+            # run test after fitting and get elvaluation results
             trainer = Trainer()
             model = LightningModule()
 
@@ -908,6 +908,8 @@ class Trainer(TrainerIOMixin,
         """
         self.testing = True
         if model is not None:
-            self.fit(model)
+            eval_results = self.fit(model)
         else:
-            self.run_evaluation(test=True)
+            eval_results = self.run_evaluation(test=True)
+        self.testing = False
+        return eval_results

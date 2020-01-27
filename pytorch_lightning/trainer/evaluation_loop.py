@@ -334,6 +334,10 @@ class TrainerEvaluationLoopMixin(ABC):
             self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
                                                   logs=self.callback_metrics)
 
+        # return evaluation results called from Trainer.test()
+        if test:
+            return eval_results
+
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
