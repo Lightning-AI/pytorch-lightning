@@ -58,7 +58,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
 
 
 def test_running_test_pretrained_model(tmpdir):
-    """Verify test() on pretrained model"""
+    """Verify test() on pretrained model."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -97,7 +97,7 @@ def test_running_test_pretrained_model(tmpdir):
 
 
 def test_load_model_from_checkpoint(tmpdir):
-    """Verify test() on pretrained model"""
+    """Verify test() on pretrained model."""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
@@ -138,7 +138,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
 
 def test_running_test_pretrained_model_dp(tmpdir):
-    """Verify test() on pretrained model"""
+    """Verify test() on pretrained model."""
     tutils.reset_seed()
 
     if not tutils.can_run_gpu_test():
