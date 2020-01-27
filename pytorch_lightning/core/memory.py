@@ -118,9 +118,7 @@ class ModelSummary(object):
         sizes = []
         for _, m in mods:
             p = list(m.parameters())
-            modsz = []
-            for j in range(len(p)):
-                modsz.append(np.array(p[j].size()))
+            modsz = [np.array(param.size()) for param in p]
             sizes.append(modsz)
 
         self.param_sizes = sizes
