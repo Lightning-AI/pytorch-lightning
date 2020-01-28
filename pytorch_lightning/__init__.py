@@ -10,7 +10,6 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
 
-
 try:
     # This variable is injected in the __builtins__ by the build
     # process. It used to enable importing subpackages of skimage when
@@ -37,3 +36,5 @@ else:
         'LightningModule',
         'data_loader',
     ]
+
+    __package__ = __all__
