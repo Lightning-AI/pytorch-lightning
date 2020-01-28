@@ -31,10 +31,8 @@ else:
     from .core.lightning import LightningModule
     from .core.decorators import data_loader
 
-    __all__ = [
-        'Trainer',
-        'LightningModule',
-        'data_loader',
-    ]
-
-    __package__ = __all__
+__all__ = [
+    'Trainer',
+    'LightningModule',
+    'data_loader',
+]
