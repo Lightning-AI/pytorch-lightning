@@ -713,17 +713,61 @@ class Trainer(TrainerIOMixin,
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    def fit(self, model):
+    def fit(self, model, train_dataloader=None, val_dataloader=None, test_dataloader=None):
         r"""
         Runs the full optimization routine.
 
-        Example::
+        Args:
+            model (:class:`.LightningModule'): Model to fit.
+	        Example::
 
-            trainer = Trainer()
-            model = LightningModule()
+        	    trainer = Trainer()
+        	    model = LightningModule()
+        	    trainer.fit(model)
 
-            trainer.fit()
+	    train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloader: A Pytorch DataLoader with validation samples. If the model has
+                a predefined val_dataloader method this will be skipped 
+
+            test_dataloader: A Pytorch DataLoader with test samples. If the model has a
+                a predefined test_dataloader method this will be skipped
+
         """
+        if train_dataloader:
+            if isinstance(train_dataloader, torch.utils.data.DataLoader):
+                if model.train_dataloader() is None:
+                    model.train_dataloader = lambda: train_dataloader
+                else:
+                    logging.info('Model has predefined train_dataloader, ' \
+				 'will skip the train_dataloader passed to fit method')
+            else:
+                raise ValueError('train_dataloader needs to be an instance' \
+                                 'of torch.utils.data.DataLoader')
+
+        if val_dataloader:
+            if isinstance(val_dataloader, torch.utils.data.DataLoader):
+                if model.val_dataloader() is None:
+                    model.val_dataloader = lambda: val_dataloader
+                else:
+                    logging.info('Model has predefined val_dataloader, ' \
+                                 'will skip the val_dataloader passed to fit method ')
+            else:
+                raise ValueError('val_dataloader needs to be an instance ' \
+                                 'of torch.utils.data.DataLoader')
+
+        if test_dataloader:
+           if isinstance(test_dataloader, torch.utils.data.DataLoader):
+               if model.test_dataloader() is None:
+                   model.test_dataloader = lambda: test_dataloader
+               else:
+                   logging.info('Model has predefined test_dataloader,' \
+                                'will skip the test_dataloader passed to fit method ')
+           else:
+                raise ValueError('test_dataloader needs to be an instance' \
+                                 'of torch.utils.data.DataLoader')
+
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
