@@ -292,13 +292,12 @@ class Trainer(TrainerIOMixin,
 
             max_steps (int): Stop training after this number of steps.
                 Example::
-                
+
                     # default used by the Trainer (disabled)
                     trainer = Trainer(max_steps=None)
-                    
+
                     # Stop after 100 steps (batches)
                     trainer = Trainer(max_steps=100)
-                
 
             train_percent_check (int): How much of training dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
