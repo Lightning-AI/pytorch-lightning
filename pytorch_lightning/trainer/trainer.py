@@ -718,20 +718,23 @@ class Trainer(TrainerIOMixin,
         Runs the full optimization routine.
 
         Args:
-            model (:class:`.LightningModule'): Model to fit.
+            model (LightningModule): Model to fit.
 	        Example::
 
         	    trainer = Trainer()
         	    model = LightningModule()
         	    trainer.fit(model)
 
-	    train_dataloader: A Pytorch DataLoader with training samples. If the model has
+	    train_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch 
+		DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
 
-            val_dataloader: A Pytorch DataLoader with validation samples. If the model has
+            val_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch 
+		DataLoader with validation samples. If the model has
                 a predefined val_dataloader method this will be skipped 
 
-            test_dataloader: A Pytorch DataLoader with test samples. If the model has a
+            test_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch 
+		DataLoader with test samples. If the model has a
                 a predefined test_dataloader method this will be skipped
 
         """
