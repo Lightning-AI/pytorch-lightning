@@ -888,9 +888,12 @@ class Trainer(TrainerIOMixin,
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (LightningModule): The model to test.
+            model (LightningModule): The model to test. If `None` tests with the last fitted model.
 
-        Example::
+        Returns:
+            dict: The dictionary returned by `test_end`.
+
+        Example:
 
             # Option 1
             # run test after fitting and get elvaluation results
@@ -908,8 +911,9 @@ class Trainer(TrainerIOMixin,
         """
         self.testing = True
         if model is not None:
-            eval_results = self.fit(model)
+            eval_results = self.run_evaluation(test=True, model=model)
         else:
             eval_results = self.run_evaluation(test=True)
         self.testing = False
         return eval_results
+    

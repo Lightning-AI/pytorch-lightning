@@ -265,7 +265,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_results
 
-    def run_evaluation(self, test=False):
+    def run_evaluation(self, test=False, model=None):
         # when testing make sure user defined a test step
         if test and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
             m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
@@ -273,7 +273,8 @@ class TrainerEvaluationLoopMixin(ABC):
             raise MisconfigurationException(m)
 
         # hook
-        model = self.get_model()
+        if model is None:
+            model = self.get_model()
         model.on_pre_performance_check()
 
         # select dataloaders
