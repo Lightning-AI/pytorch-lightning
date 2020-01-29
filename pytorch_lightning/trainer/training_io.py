@@ -39,7 +39,7 @@ Lightning will restore the session if you pass a logger with the same version an
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.logging import TestTubeLogger
+    from pytorch_lightning.loggers import TestTubeLogger
 
     logger = TestTubeLogger(
         save_dir='./savepath',

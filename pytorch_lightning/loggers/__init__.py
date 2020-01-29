@@ -4,14 +4,14 @@ To use a logger, simply pass it into the trainer.
 
 .. code-block:: python
 
-    from pytorch_lightning import logging
+    from pytorch_lightning import loggers
 
     # lightning uses tensorboard by default
-    tb_logger = logging.TensorBoardLogger()
+    tb_logger = loggers.TensorBoardLogger()
     trainer = Trainer(logger=tb_logger)
 
     # or choose from any of the others such as MLFlow, Comet, Neptune, Wandb
-    comet_logger = logging.CometLogger()
+    comet_logger = loggers.CometLogger()
     trainer = Trainer(logger=comet_logger)
 
 .. note:: All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
@@ -26,7 +26,7 @@ only the first process in DDP training logs data.
 
 .. code-block:: python
 
-    from pytorch_lightning.logging import LightningLoggerBase, rank_zero_only
+    from pytorch_lightning.loggers import LightningLoggerBase, rank_zero_only
 
     class MyLogger(LightningLoggerBase):
 

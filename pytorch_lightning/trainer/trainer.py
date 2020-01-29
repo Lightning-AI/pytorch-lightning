@@ -97,7 +97,7 @@ class Trainer(TrainerIOMixin,
             logger (:class:`.Logger`): Logger for experiment tracking.
                 Example::
 
-                    from pytorch_lightning.logging import TensorBoardLogger
+                    from pytorch_lightning.loggers import TensorBoardLogger
 
                     # default logger used by trainer
                     logger = TensorBoardLogger(

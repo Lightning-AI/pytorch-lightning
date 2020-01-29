@@ -6,7 +6,7 @@ to manage experiments and snapshots all hyperparameters you pass to a LightningM
 
 .. code-block:: python
 
-    from pytorch_lightning.logging import TestTubeLogger
+    from pytorch_lightning.loggers import TestTubeLogger
     tt_logger = TestTubeLogger(
         save_dir=".",
         name="default",

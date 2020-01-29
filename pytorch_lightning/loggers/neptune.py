@@ -6,7 +6,7 @@ To log experiment data in online mode, NeptuneLogger requries an API key:
 
 .. code-block:: python
 
-    from pytorch_lightning.logging import NeptuneLogger
+    from pytorch_lightning.loggers import NeptuneLogger
     # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
 
     neptune_logger = NeptuneLogger(
@@ -66,7 +66,7 @@ class NeptuneLogger(LightningLoggerBase):
         .. code-block:: python
 
             # ONLINE MODE
-            from pytorch_lightning.logging import NeptuneLogger
+            from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
 
             neptune_logger = NeptuneLogger(
@@ -81,7 +81,7 @@ class NeptuneLogger(LightningLoggerBase):
         .. code-block:: python
 
             # OFFLINE MODE
-            from pytorch_lightning.logging import NeptuneLogger
+            from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
 
             neptune_logger = NeptuneLogger(
