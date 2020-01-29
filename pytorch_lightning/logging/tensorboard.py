@@ -4,7 +4,7 @@ from argparse import Namespace
 from pkg_resources import parse_version
 
 import torch
-import pandas as pd
+import csv
 from torch.utils.tensorboard import SummaryWriter
 
 from .base import LightningLoggerBase, rank_zero_only
@@ -108,12 +108,17 @@ class TensorBoardLogger(LightningLoggerBase):
         dir_path = os.path.join(self.save_dir, self.name, 'version_%s' % self.version)
         if not os.path.isdir(dir_path):
             dir_path = self.save_dir
+
         # prepare the file path
         meta_tags_path = os.path.join(dir_path, self.NAME_CSV_TAGS)
+
         # save the metatags file
-        df = pd.DataFrame({'key': list(self.tags.keys()),
-                           'value': list(self.tags.values())})
-        df.to_csv(meta_tags_path, index=False)
+        with open(meta_tags_path, 'w', newline='') as csvfile:
+            fieldnames = ['key', 'value']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writerow({'key': 'key', 'value': 'value'})
+            for k, v in self.tags.items():
+                writer.writerow({'key': k, 'value': v})
 
     @rank_zero_only
     def finalize(self, status):

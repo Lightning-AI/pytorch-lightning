@@ -4,12 +4,11 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
+import csv
 
-
-import pandas as pd
 import torch
 import torch.distributed as dist
-#
+
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
@@ -1217,10 +1216,12 @@ def load_hparams_from_tags_csv(tags_csv):
         logging.warning(f'Missing Tags: {tags_csv}.')
         return Namespace()
 
-    tags_df = pd.read_csv(tags_csv)
-    dic = tags_df.to_dict(orient='records')
-    ns_dict = {row['key']: convert(row['value']) for row in dic}
-    ns = Namespace(**ns_dict)
+    tags = {}
+    with open(tags_csv) as f:
+        csv_reader = csv.reader(f, delimiter=',')
+        for row in list(csv_reader)[1:]:
+            tags[row[0]] = convert(row[1])
+    ns = Namespace(**tags)
     return ns
 
 
