@@ -77,39 +77,37 @@ from os import environ
 from .base import LightningLoggerBase, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-loggers = ['TensorBoardLogger']
+__all__ = ['TensorBoardLogger']
 
 try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
     from .comet import CometLogger
-    loggers.append('CometLogger')
+    __all__.append('CometLogger')
 except ImportError:
     del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
     from .mlflow import MLFlowLogger
-    loggers.append('MLFlowLogger')
+    __all__.append('MLFlowLogger')
 except ImportError:
     pass
 
 try:
     from .neptune import NeptuneLogger
-    loggers.append('NeptuneLogger')
+    __all__.append('NeptuneLogger')
 except ImportError:
     pass
 
 try:
     from .test_tube import TestTubeLogger
-    loggers.append('TestTubeLogger')
+    __all__.append('TestTubeLogger')
 except ImportError:
     pass
 
 try:
     from .wandb import WandbLogger
-    loggers.append('WandbLogger')
+    __all__.append('WandbLogger')
 except ImportError:
     pass
-
-__all__ = loggers
