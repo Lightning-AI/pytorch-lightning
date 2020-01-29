@@ -5,10 +5,8 @@ from io import open
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
+import builtins
+# import __builtin__ as builtins
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
@@ -57,6 +55,12 @@ setup(
     python_requires='>=3.6',
     setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
+
+    project_urls={
+        "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
+        "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
+        "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
+    },
 
     classifiers=[
         'Environment :: Console',
