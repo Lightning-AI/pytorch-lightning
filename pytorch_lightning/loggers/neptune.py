@@ -48,7 +48,7 @@ except ImportError:
 from torch import is_tensor
 
 # from .base import LightningLoggerBase, rank_zero_only
-from pytorch_lightning.logging.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 logger = getLogger(__name__)
 

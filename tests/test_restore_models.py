@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import os
 
 import torch
@@ -41,7 +41,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    logging.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
+    log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'

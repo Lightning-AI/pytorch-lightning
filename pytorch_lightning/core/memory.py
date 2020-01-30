@@ -3,7 +3,7 @@ Generates a summary of a model's layers and dimensionality
 '''
 
 import gc
-import logging
+import logging as log
 import os
 import subprocess
 from subprocess import PIPE
@@ -214,7 +214,7 @@ def print_mem_stack():  # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                logging.info(type(obj), obj.size())
+                log.info(type(obj), obj.size())
         except Exception:
             pass
 

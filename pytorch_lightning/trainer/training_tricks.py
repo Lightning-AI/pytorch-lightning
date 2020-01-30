@@ -1,4 +1,4 @@
-import logging
+import logging aas log
 from abc import ABC, abstractmethod
 
 import torch
@@ -27,7 +27,7 @@ class TrainerTrainingTricksMixin(ABC):
         model = self.get_model()
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
-                logging.info(param, param.grad)
+                log.info(param, param.grad)
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
         self.accumulate_grad_batches = None
