@@ -1,4 +1,4 @@
-import logging aas log
+import logging as log
 from abc import ABC, abstractmethod
 
 import torch
