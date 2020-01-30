@@ -581,15 +581,6 @@ class Trainer(
         self._fit(model)
 
     def _fit(self, model, train_dataloader=None, val_dataloader=None, test_dataloader=None):
-<<<<<<< HEAD
-=======
-        # Update the dataloader attributes of the model with the ones supplied here,
-        # if they are not already defined in model
-        _set_dataloader(model, train_dataloader, 'train_dataloader')
-        _set_dataloader(model, val_dataloader, 'val_dataloader')
-        _set_dataloader(model, test_dataloader, 'test_dataloader')
-
->>>>>>> f7d67d0... Update trainer.py
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
@@ -847,40 +838,7 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-        # summarize profile results
-        self.profiler.describe()
-
-    def validate(self, model: Optional[LightningModule] = None):
-        r"""
-
-        Separates from fit to make sure you never run on your test set until you want to.
-
-        Args:
-            model: The model to test.
-
-        Example::
-
-            # Option 1
-            # run validation after fitting
-            trainer = Trainer()
-            model = LightningModule()
-
-            trainer.fit()
-            trainer.validate()
-
-            # Option 2
-            # run validation from a loaded model
-            model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
-            trainer = Trainer()
-            trainer.validate(model)
-        """
-        self.mode = TrainerMode.VALIDATING
-        if model is not None:
-            self._fit(model)
-        else:
-            self.run_evaluation()
-
-    def test(self, model=None):
+    def test(self, model=None, validation=False):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
