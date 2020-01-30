@@ -18,7 +18,7 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-from pytorch_lightning import data_loader, Trainer, LightningModule
+import pytorch_lightning as pl
 
 # pull out resnet names from torchvision models
 MODEL_NAMES = sorted(
@@ -27,7 +27,7 @@ MODEL_NAMES = sorted(
 )
 
 
-class ImageNetLightningModel(LightningModule):
+class ImageNetLightningModel(pl.LightningModule):
 
     def __init__(self, hparams):
         super(ImageNetLightningModel, self).__init__()
@@ -128,7 +128,7 @@ class ImageNetLightningModel(LightningModule):
         scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
         return [optimizer], [scheduler]
 
-    @data_loader
+    @pl.data_loader
     def train_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -159,7 +159,7 @@ class ImageNetLightningModel(LightningModule):
         )
         return train_loader
 
-    @data_loader
+    @pl.data_loader
     def val_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -232,7 +232,7 @@ def main(hparams):
         random.seed(hparams.seed)
         torch.manual_seed(hparams.seed)
         cudnn.deterministic = True
-    trainer = Trainer(
+    trainer = pl.Trainer(
         default_save_path=hparams.save_path,
         gpus=hparams.gpus,
         max_epochs=hparams.epochs,

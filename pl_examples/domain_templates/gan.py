@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
-from pytorch_lightning import data_loader, LightningModule, Trainer
+import pytorch_lightning as pl
 
 
 class Generator(nn.Module):
@@ -69,7 +69,7 @@ class Discriminator(nn.Module):
         return validity
 
 
-class GAN(LightningModule):
+class GAN(pl.LightningModule):
 
     def __init__(self, hparams):
         super(GAN, self).__init__()
@@ -165,7 +165,7 @@ class GAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
-    @data_loader
+    @pl.data_loader
     def train_dataloader(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize([0.5], [0.5])])
@@ -193,7 +193,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = Trainer()
+    trainer = pl.Trainer()
 
     # ------------------------
     # 3 START TRAINING

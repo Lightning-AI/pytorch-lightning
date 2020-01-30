@@ -15,10 +15,10 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
-from pytorch_lightning import data_loader, LightningModule
+import pytorch_lightning as pl
 
 
-class LightningTemplateModel(LightningModule):
+class LightningTemplateModel(pl.LightningModule):
     """
     Sample model to show how to define a template
     """
@@ -212,17 +212,17 @@ class LightningTemplateModel(LightningModule):
 
         return loader
 
-    @data_loader
+    @pl.data_loader
     def train_dataloader(self):
         log.info('Training data loader called.')
         return self.__dataloader(train=True)
 
-    @data_loader
+    @pl.data_loader
     def val_dataloader(self):
         log.info('Validation data loader called.')
         return self.__dataloader(train=False)
 
-    @data_loader
+    @pl.data_loader
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)

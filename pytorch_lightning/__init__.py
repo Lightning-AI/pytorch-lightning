@@ -27,15 +27,12 @@ else:
     import logging as log
     log.basicConfig(level=log.INFO)
 
-    from .trainer.trainer import Trainer
-    from .core.lightning import LightningModule
-    from .core.decorators import data_loader
+    from .core import *
+    from .trainer import *
 
-    import sys
-
-__all__ = [
-    'Trainer',
-    'LightningModule',
-    'data_loader',
-]
-__call__ = __all__
+    __all__ = [
+        'Trainer',
+        'LightningModule',
+        'data_loader',
+    ]
+    __call__ = __all__
