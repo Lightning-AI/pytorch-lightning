@@ -859,7 +859,6 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model)
         """
-
         self.testing = True
         if model is not None:
             self.model = model
