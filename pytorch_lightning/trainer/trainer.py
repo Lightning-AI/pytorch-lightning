@@ -290,7 +290,9 @@ class Trainer(TrainerIOMixin,
                 .. deprecated:: 0.5.0
                     Use `min_nb_epochs` instead. Will remove 0.8.0.
 
-            max_steps (int): Stop training after this number of steps.
+            max_steps (int): Stop training after this number of steps. Disabled by default (None).
+                Training will stop if max_epochs is reached prior to max_steps.
+                Training will stop despite not running for min_epochs. 
                 Example::
 
                     # default used by the Trainer (disabled)
