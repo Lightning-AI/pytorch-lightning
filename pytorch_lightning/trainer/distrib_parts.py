@@ -363,7 +363,6 @@ else:
 
 class TrainerDPMixin(ABC):
 
-<<<<<<< HEAD
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     on_gpu: bool
@@ -382,25 +381,6 @@ class TrainerDPMixin(ABC):
     tpu_global_core_rank: int
     use_tpu: bool
     data_parallel_device_ids: ...
-=======
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.on_gpu = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.use_ddp = None
-        self.use_amp = None
-        self.single_gpu = None
-        self.root_gpu = None
-        self.amp_level = None
-        self.precision = None
-        self.current_tpu_idx = None
-        self.proc_rank = None
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-        self.use_tpu = None
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
 
     @abstractmethod
     def run_pretrain_routine(self, *args):
