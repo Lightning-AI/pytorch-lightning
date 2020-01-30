@@ -910,10 +910,7 @@ class Trainer(TrainerIOMixin,
             trainer.test(model)
         """
         self.testing = True
-        if model is not None:
-            eval_results = self.run_evaluation(test=True, model=model)
-        else:
-            eval_results = self.run_evaluation(test=True)
+        eval_results = self.run_evaluation(test=True, model=model)
         self.testing = False
         return eval_results
     
