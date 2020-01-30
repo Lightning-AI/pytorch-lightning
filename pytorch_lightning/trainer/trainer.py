@@ -19,7 +19,7 @@ from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device
 )
-
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -729,47 +729,21 @@ class Trainer(TrainerIOMixin,
                 DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
 
-            val_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch
-                DataLoader with validation samples. If the model has
+            val_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples. If the model has
                 a predefined val_dataloader method this will be skipped
 
-            test_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch
-                DataLoader with test samples. If the model has a
-                a predefined test_dataloader method this will be skipped
+            test_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples. If the model has
+                a predefined val_dataloader method this will be skipped
 
         """
-        if train_dataloader:
-            if isinstance(train_dataloader, torch.utils.data.DataLoader):
-                if model.train_dataloader() is None:
-                    model.train_dataloader = lambda: train_dataloader
-                else:
-                    logging.info('Model has predefined train_dataloader, '
-                                 'will skip the train_dataloader passed to fit method')
-            else:
-                raise ValueError('train_dataloader needs to be an instance'
-                                 'of torch.utils.data.DataLoader')
 
-        if val_dataloader:
-            if isinstance(val_dataloader, torch.utils.data.DataLoader):
-                if model.val_dataloader() is None:
-                    model.val_dataloader = lambda: val_dataloader
-                else:
-                    logging.info('Model has predefined val_dataloader, '
-                                 'will skip the val_dataloader passed to fit method ')
-            else:
-                raise ValueError('val_dataloader needs to be an instance '
-                                 'of torch.utils.data.DataLoader')
-
-        if test_dataloader:
-            if isinstance(test_dataloader, torch.utils.data.DataLoader):
-                if model.test_dataloader() is None:
-                    model.test_dataloader = lambda: test_dataloader
-                else:
-                    logging.info('Model has predefined test_dataloader,'
-                                 'will skip the test_dataloader passed to fit method ')
-            else:
-                raise ValueError('test_dataloader needs to be an instance'
-                                 'of torch.utils.data.DataLoader')
+        # Update the dataloader attributes of the model with the ones supplied here,
+        # if they are not already defined in model
+        _set_dataloader(model, train_dataloader, 'train_dataloader')
+        _set_dataloader(model, val_dataloader, 'val_dataloader')
+        _set_dataloader(model, test_dataloader, 'test_dataloader')
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
@@ -958,3 +932,34 @@ class Trainer(TrainerIOMixin,
             self.fit(model)
         else:
             self.run_evaluation(test=True)
+
+
+def _set_dataloader(model, dataloader, attribute):
+    r''' Check dataloaders passed to .fit() method if they are pytorch DataLoader
+         objects and whether or not we should overright the corresponding dataloader
+         in the model '''
+
+    # Check if attribute comes directly from base class or
+    # derived in user subclass
+    if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
+        # Val and test should be list of dataloaders
+        dataloader = dataloader if attribute == 'train_dataloader' or \
+            (attribute != 'train_dataloader' and isinstance(dataloader, list)) else [dataloader]
+
+        # Check if input is correct
+        if isinstance(dataloader, torch.utils.data.DataLoader) or \
+           isinstance(dataloader, list) and all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader):
+
+            # Overwrite abstract methods
+            dl = lambda: dataloader
+            dl.__name__ = attribute
+            setattr(model, attribute, dl)
+
+        elif dataloader:
+            raise ValueError(f'`{attribute}` needs to be an instance of'
+                             '`torch.utils.data.DataLoader` or a list of, instead got'
+                             f'`{dataloader}`')
+
+    else:
+        logging.info(f'Model has predefined `{attribute}`,'
+                     f'will skip `{attribute}` passed to fit method')

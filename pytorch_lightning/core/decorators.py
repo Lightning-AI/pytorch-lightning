@@ -9,9 +9,8 @@ def data_loader(fn):
     :return:
     """
 
-    wraps(fn)
     attr_name = '_lazy_' + fn.__name__
-
+    @wraps(fn)
     def _get_data_loader(self):
         try:
             value = getattr(self, attr_name)
