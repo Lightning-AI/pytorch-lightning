@@ -44,7 +44,8 @@ def main(hparams):
 
         if hparams.evaluate_val:
             trainer.validate(model)
-        elif hparams.evaluate_test:
+
+        if hparams.evaluate_test:
             trainer.test(model)
     else:
         trainer.fit(model)
