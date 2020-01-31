@@ -21,6 +21,7 @@ class Callback(object):
     def __init__(self):
         self.validation_data = None
         self.model = None
+        self.trainer = None
 
     def set_params(self, params):
         self.params = params
@@ -30,40 +31,55 @@ class Callback(object):
             model = model.module
         self.model = model
 
-    def on_epoch_begin(self, epoch, logs=None):
+    def set_trainer(self, trainer):
+        self.trainer = trainer
+
+    def on_epoch_begin(self):
         """
         called when the epoch begins
-
-        Args:
-            epoch (int): current epoch
-            logs (dict): key-value pairs of quantities to monitor
-
-            Example:
-
-                on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
         """
         pass
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self):
+        """
+        called when the epoch ends
+        """
         pass
 
-    def on_batch_begin(self, batch, logs=None):
+    def on_batch_begin(self):
         """
         called when the batch starts.
-
-        Args:
-            batch (Tensor): current batch tensor
-            logs (dict): key-value pairs of quantities to monitor
         """
         pass
 
-    def on_batch_end(self, batch, logs=None):
+    def on_batch_end(self):
+        """
+        called when the batch ends.
+        """
         pass
 
-    def on_train_begin(self, logs=None):
+    def on_train_begin(self):
+        """
+        called when the train begins.
+        """
         pass
 
-    def on_train_end(self, logs=None):
+    def on_train_end(self):
+        """
+        called when the train ends.
+        """
+        pass
+
+    def on_validation_begin(self):
+        """
+        called when the validation loop starts.
+        """
+        pass
+
+    def on_validation_end(self):
+        """
+        called when the validation loop ends.
+        """
         pass
 
 
@@ -149,13 +165,14 @@ class EarlyStopping(Callback):
 
         return True
 
-    def on_train_begin(self, logs=None):
+    def on_train_begin(self):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self):
+        logs = self.trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):
             return stop_training
@@ -167,13 +184,13 @@ class EarlyStopping(Callback):
         else:
             self.wait += 1
             if self.wait >= self.patience:
-                self.stopped_epoch = epoch
+                self.stopped_epoch = self.trainer.current_epoch
                 stop_training = True
                 self.on_train_end()
 
         return stop_training
 
-    def on_train_end(self, logs=None):
+    def on_train_end(self):
         if self.stopped_epoch > 0 and self.verbose > 0:
             logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
@@ -305,8 +322,9 @@ class ModelCheckpoint(Callback):
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
+    def on_validation_end(self):
+        logs = self.trainer.callback_metrics
+        epoch = self.trainer.current_epoch
         self.epochs_since_last_check += 1
 
         if self.save_top_k == 0:
@@ -404,8 +422,9 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def on_epoch_begin(self, epoch, trainer):
-        epoch += 1  # indexing epochs from 1
+    def on_epoch_begin(self):
+        trainer = self.trainer
+        epoch = trainer.current_epoch + 1 # indexing epochs from 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])

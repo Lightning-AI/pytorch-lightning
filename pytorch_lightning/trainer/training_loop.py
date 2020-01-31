@@ -325,7 +325,7 @@ class TrainerTrainLoopMixin(ABC):
             self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_begin(epoch, self)
+            self.accumulation_scheduler.on_epoch_begin()
 
             # -----------------
             # RUN TNG EPOCH
@@ -349,8 +349,7 @@ class TrainerTrainLoopMixin(ABC):
             met_min_epochs = epoch >= self.min_epochs - 1
             if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
                     (met_min_epochs or self.fast_dev_run)):
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
-                                                                    logs=self.callback_metrics)
+                should_stop = self.early_stop_callback.on_epoch_end()
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
