@@ -82,14 +82,14 @@ Lightning runs a few steps of validation in the beginning of training.
 
 You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check.
 
-# Testing loop
+# Validation or Testing loop
 
-To ensure you don't accidentally use test data to guide training decisions Lightning
- makes running the test set deliberate.
+To ensure you don't accidentally use validation or test data to guide training decisions Lightning
+ makes running the validation or test set deliberate.
 
 **test**
 
-You have two options to run the test set.
+You have two options to run the validation or test set.
 First case is where you test right after a full training routine.
 
 .. code-block:: python
@@ -97,11 +97,14 @@ First case is where you test right after a full training routine.
     # run full training
     trainer.fit(model)
 
+    # run validation set
+    trainer.validate()
+
     # run test set
     trainer.test()
 
 
-Second case is where you load a model and run the test set
+Second case is where you load a model and run the validation or test set
 
 .. code-block:: python
 
@@ -115,11 +118,14 @@ Second case is where you load a model and run the test set
     # init trainer with whatever options
     trainer = Trainer(...)
 
+    # validate (pass in the model)
+    trainer.validate(model)
+
     # test (pass in the model)
     trainer.test(model)
 
 In this second case, the options you pass to trainer will be used when running
- the test set (ie: 16-bit, dp, ddp, etc...)
+ the validation or test set (ie: 16-bit, dp, ddp, etc...)
 
 """
 

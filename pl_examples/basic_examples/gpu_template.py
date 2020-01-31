@@ -39,8 +39,13 @@ def main(hparams):
     # 3 START TRAINING
     # ------------------------
     if hparams.evaluate_val or hparams.evaluate_test:
+        assert hparams.checkpoint != '', 'Please specify checkpoint for evaluation'
         model.load_from_checkpoint(hparams.checkpoint)
-        trainer.test(model=model, validation=hparams.evaluate_val)
+
+        if hparams.evaluate_val:
+            trainer.validate(model)
+        elif hparams.evaluate_test:
+            trainer.test(model)
     else:
         trainer.fit(model)
 
