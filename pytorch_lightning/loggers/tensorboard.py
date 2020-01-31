@@ -6,7 +6,6 @@ from pkg_resources import parse_version
 import torch
 import csv
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 from .base import LightningLoggerBase, rank_zero_only
 
@@ -85,6 +84,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
+            from torch.utils.tensorboard.summary import hparams
             exp, ssi, sei = hparams(params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
