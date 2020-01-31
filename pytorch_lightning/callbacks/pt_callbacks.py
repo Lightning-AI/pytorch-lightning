@@ -424,7 +424,7 @@ class GradientAccumulationScheduler(Callback):
 
     def on_epoch_begin(self):
         trainer = self.trainer
-        epoch = trainer.current_epoch + 1 # indexing epochs from 1
+        epoch = trainer.current_epoch + 1  # indexing epochs from 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
