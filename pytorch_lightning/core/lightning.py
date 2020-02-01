@@ -253,7 +253,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
         break out of the current training epoch early.
         """
-        pass
 
     def validation_step(self, *args, **kwargs):
         r"""
@@ -326,7 +325,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
-        pass
 
     def test_step(self, *args, **kwargs):
         """return whatever outputs will need to be aggregated in test_end
@@ -395,7 +393,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
-        pass
 
     def validation_end(self, outputs):
         """Outputs has the appended output after each validation step.
@@ -467,7 +464,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return results
 
         """
-        pass
 
     def test_end(self, outputs):
         """Outputs has the appended output after each test step.
@@ -532,7 +528,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return results
 
         """
-        pass
 
     def configure_ddp(self, model, device_ids):
         r"""
@@ -842,8 +837,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Each returned batch split is passed separately to training_step(...).
 
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(
-            x, torch.Tensor) or isinstance(x, collections.Sequence)]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
@@ -1192,7 +1186,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
             No need for you to restore anything regarding training.
         """
-        pass
 
     def on_save_checkpoint(self, checkpoint):
         r"""
@@ -1216,7 +1209,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             for you to store anything about training.
 
         """
-        pass
 
 
 def load_hparams_from_tags_csv(tags_csv):
@@ -1236,7 +1228,7 @@ def load_hparams_from_tags_csv(tags_csv):
 def convert(val):
     constructors = [int, float, str]
 
-    if type(val) is str:
+    if isinstance(val, str):
         if val.lower() == 'true':
             return True
         if val.lower() == 'false':

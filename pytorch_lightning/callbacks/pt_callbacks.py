@@ -27,7 +27,7 @@ class Callback(object):
         self.params = params
 
     def set_model(self, model):
-        if type(model) is LightningDistributedDataParallel:
+        if isinstance(model, LightningDistributedDataParallel):
             model = model.module
         self.model = model
 
@@ -43,7 +43,6 @@ class Callback(object):
 
                 on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
         """
-        pass
 
     def on_epoch_end(self, epoch, logs=None):
         pass
@@ -56,7 +55,6 @@ class Callback(object):
             batch (Tensor): current batch tensor
             logs (dict): key-value pairs of quantities to monitor
         """
-        pass
 
     def on_batch_end(self, batch, logs=None):
         pass
@@ -143,7 +141,7 @@ class EarlyStopping(Callback):
         if monitor_val is None:
             if self.strict:
                 raise RuntimeError(error_msg)
-            elif self.verbose > 0:
+            if self.verbose > 0:
                 warnings.warn(error_msg, RuntimeWarning)
 
             return False
@@ -399,7 +397,7 @@ class GradientAccumulationScheduler(Callback):
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
-        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
+        if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 
         self.scheduling = scheduling

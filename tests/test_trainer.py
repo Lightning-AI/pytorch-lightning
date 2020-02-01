@@ -97,11 +97,11 @@ def test_no_val_end_module(tmpdir):
 
 
 def test_gradient_accumulation_scheduling(tmpdir):
-    tutils.reset_seed()
-
     """
     Test grad accumulation by the freq of optimizer updates
     """
+    tutils.reset_seed()
+
     # test incorrect configs
     with pytest.raises(IndexError):
         assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
