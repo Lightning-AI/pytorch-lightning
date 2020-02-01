@@ -7,8 +7,9 @@ Callbacks supported by Lightning
 
 import os
 import shutil
-import logging
+import logging as log
 import warnings
+
 import numpy as np
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -113,7 +114,7 @@ class EarlyStopping(Callback):
 
         if mode not in ['auto', 'min', 'max']:
             if self.verbose > 0:
-                logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
+                log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -175,7 +176,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
 class ModelCheckpoint(Callback):
@@ -351,7 +352,7 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                                 f' {current:0.5f} (best {self.best:0.5f}), saving model to'
                                 f' {filepath} as top {self.save_top_k}')
@@ -359,13 +360,13 @@ class ModelCheckpoint(Callback):
 
                     else:
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor}'
                                 f' was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    logging.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+                    log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
                 self._save_model(filepath)
 
 
@@ -417,6 +418,6 @@ class GradientAccumulationScheduler(Callback):
 #     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
 #     for i, loss in enumerate(losses):
 #         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-#         logging.info(loss)
+#         log.info(loss)
 #         if should_stop:
 #             break
