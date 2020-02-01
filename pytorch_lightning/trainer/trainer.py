@@ -1,8 +1,7 @@
 import os
 import sys
 import warnings
-import logging
-
+import logging as log
 
 import torch
 import torch.distributed as dist
@@ -97,7 +96,7 @@ class Trainer(TrainerIOMixin,
             logger (:class:`.Logger`): Logger for experiment tracking.
                 Example::
 
-                    from pytorch_lightning.logging import TensorBoardLogger
+                    from pytorch_lightning.loggers import TensorBoardLogger
 
                     # default logger used by trainer
                     logger = TensorBoardLogger(
@@ -526,7 +525,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            logging.info(m)
+            log.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path

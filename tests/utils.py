@@ -8,7 +8,7 @@ import torch
 from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.logging import TestTubeLogger, TensorBoardLogger
+from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
 from pytorch_lightning.testing import LightningTestModel
 
 # generate a list of random seeds for each test

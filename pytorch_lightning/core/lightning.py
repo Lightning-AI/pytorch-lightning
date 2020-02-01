@@ -1,10 +1,10 @@
 import collections
-import logging
+import logging as log
+import csv
 import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-import csv
 
 import torch
 import torch.distributed as dist
@@ -1124,7 +1124,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def summarize(self, mode):
         model_summary = ModelSummary(self, mode=mode)
-        logging.info('\n' + model_summary.__str__())
+        log.info('\n' + model_summary.__str__())
 
     def freeze(self):
         r"""
@@ -1205,7 +1205,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 def load_hparams_from_tags_csv(tags_csv):
     if not os.path.isfile(tags_csv):
-        logging.warning(f'Missing Tags: {tags_csv}.')
+        log.warning(f'Missing Tags: {tags_csv}.')
         return Namespace()
 
     tags = {}

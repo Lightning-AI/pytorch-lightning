@@ -31,7 +31,7 @@ class CometLogger(LightningLoggerBase):
         .. code-block:: python
 
             # ONLINE MODE
-            from pytorch_lightning.logging import CometLogger
+            from pytorch_lightning.loggers import CometLogger
 
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
@@ -47,7 +47,7 @@ class CometLogger(LightningLoggerBase):
         .. code-block:: python
 
             # OFFLINE MODE
-            from pytorch_lightning.logging import CometLogger
+            from pytorch_lightning.loggers import CometLogger
 
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
