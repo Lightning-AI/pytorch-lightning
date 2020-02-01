@@ -10,7 +10,7 @@
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Build Status](https://travis-ci.org/PytorchLightning/pytorch-lightning.svg?branch=master)](https://travis-ci.org/PytorchLightning/pytorch-lightning)
-[![Build status](https://ci.appveyor.com/api/projects/status/NEW-PROJECT-ID?svg=true)](https://ci.appveyor.com/project/PytorchLightning/pytorch-lightning)
+[![Build status](https://ci.appveyor.com/api/projects/status/nwr730s1qd9199g3/branch/master?svg=true)](https://ci.appveyor.com/project/PyTorchLightning/pytorch-lightning/branch/master)
 [![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/borda/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/borda/pytorch-lightning)    
 
