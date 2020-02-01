@@ -3,7 +3,7 @@ from abc import ABC
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.logging import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 class TrainerLoggingMixin(ABC):

@@ -6,10 +6,14 @@ import torch
 
 import tests.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.logging import (
+from pytorch_lightning.loggers import (
     LightningLoggerBase,
     rank_zero_only,
     TensorBoardLogger,
+    MLFlowLogger,
+    CometLogger,
+    WandbLogger,
+    NeptuneLogger
 )
 from pytorch_lightning.testing import LightningTestModel
 
@@ -63,11 +67,6 @@ def test_mlflow_logger(tmpdir):
     """Verify that basic functionality of mlflow logger works."""
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import MLFlowLogger
-    except ModuleNotFoundError:
-        return
-
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
@@ -90,11 +89,6 @@ def test_mlflow_logger(tmpdir):
 def test_mlflow_pickle(tmpdir):
     """Verify that pickling trainer with mlflow logger works."""
     tutils.reset_seed()
-
-    try:
-        from pytorch_lightning.logging import MLFlowLogger
-    except ModuleNotFoundError:
-        return
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
@@ -122,11 +116,6 @@ def test_comet_logger(tmpdir, monkeypatch):
     monkeypatch.setattr(atexit, "register", lambda _: None)
 
     tutils.reset_seed()
-
-    try:
-        from pytorch_lightning.logging import CometLogger
-    except ModuleNotFoundError:
-        return
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
@@ -164,11 +153,6 @@ def test_comet_pickle(tmpdir, monkeypatch):
 
     tutils.reset_seed()
 
-    try:
-        from pytorch_lightning.logging import CometLogger
-    except ModuleNotFoundError:
-        return
-
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
 
@@ -197,17 +181,13 @@ def test_wandb_logger(tmpdir):
     """Verify that basic functionality of wandb logger works."""
     tutils.reset_seed()
 
-    from pytorch_lightning.logging import WandbLogger
-
     wandb_dir = os.path.join(tmpdir, "wandb")
-    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
+    _ = WandbLogger(save_dir=wandb_dir, anonymous=True)
 
 
 def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
     tutils.reset_seed()
-
-    from pytorch_lightning.logging import NeptuneLogger
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
@@ -230,7 +210,6 @@ def test_wandb_pickle(tmpdir):
     """Verify that pickling trainer with wandb logger works."""
     tutils.reset_seed()
 
-    from pytorch_lightning.logging import WandbLogger
     wandb_dir = str(tmpdir)
     logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
     assert logger is not None
@@ -239,8 +218,6 @@ def test_wandb_pickle(tmpdir):
 def test_neptune_pickle(tmpdir):
     """Verify that pickling trainer with neptune logger works."""
     tutils.reset_seed()
-
-    from pytorch_lightning.logging import NeptuneLogger
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
