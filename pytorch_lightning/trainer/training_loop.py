@@ -498,7 +498,6 @@ class TrainerTrainLoopMixin(ABC):
 
                     # track progress bar metrics
                     self.add_tqdm_metrics(progress_bar_metrics)
-                    self.add_tqdm_metrics(progress_bar_metrics)
                     all_log_metrics.append(log_metrics)
 
                     # insert after step hook

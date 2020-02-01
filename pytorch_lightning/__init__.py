@@ -1,10 +1,10 @@
-"""Package info"""
+"""Root package info."""
 
-__version__ = '0.6.0'
+__version__ = '0.6.0.dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
-__copyright__ = 'Copyright (c) 2018-2019, %s.' % __author__
+__copyright__ = 'Copyright (c) 2018-2020, %s.' % __author__
 __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
@@ -21,7 +21,7 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys
-    sys.stderr.write('Partial import of torchlightning during the build process.\n')
+    sys.stderr.write('Partial import of `torchlightning` during the build process.\n')
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
