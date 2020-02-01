@@ -77,7 +77,7 @@ class ModelSummary(object):
                 if isinstance(input_, (list, tuple)):  # pragma: no cover
                     in_size = []
                     for x in input_:
-                        if type(x) is list:
+                        if isinstance(x, list):
                             in_size.append(len(x))
                         else:
                             in_size.append(x.size())
@@ -97,7 +97,6 @@ class ModelSummary(object):
         self.in_sizes = in_sizes
         self.out_sizes = out_sizes
         assert len(in_sizes) == len(out_sizes)
-        return
 
     def get_layer_names(self):
         '''Collect Layer Names'''
@@ -112,7 +111,6 @@ class ModelSummary(object):
 
         self.layer_names = names
         self.layer_types = layer_types
-        return
 
     def get_parameter_sizes(self):
         '''Get sizes of all parameters in `model`'''
@@ -120,13 +118,10 @@ class ModelSummary(object):
         sizes = []
         for _, m in mods:
             p = list(m.parameters())
-            modsz = []
-            for j in range(len(p)):
-                modsz.append(np.array(p[j].size()))
+            modsz = [np.array(param.size()) for param in p]
             sizes.append(modsz)
 
         self.param_sizes = sizes
-        return
 
     def get_parameter_nums(self):
         '''Get number of parameters in each layer'''
@@ -137,7 +132,6 @@ class ModelSummary(object):
                 all_params += np.prod(p)
             param_nums.append(all_params)
         self.param_nums = param_nums
-        return
 
     def make_summary(self):
         '''
