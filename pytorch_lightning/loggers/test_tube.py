@@ -153,15 +153,15 @@ class TestTubeLogger(LightningLoggerBase):
     def name(self):
         if self._experiment is None:
             return self._name
-
-        return self.experiment.name
+        else:
+            return self.experiment.name
 
     @property
     def version(self):
         if self._experiment is None:
             return self._version
-
-        return self.experiment.version
+        else:
+            return self.experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See
