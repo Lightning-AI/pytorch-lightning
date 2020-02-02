@@ -65,9 +65,11 @@ class BaseProfiler(ABC):
         the profiler will start once you've entered the context and automatically stop
         once you exit the code block
         """
-        self.start(action_name)
-        yield action_name
-        self.stop(action_name)
+        try:
+            self.start(action_name)
+            yield action_name
+        finally:
+            self.stop(action_name)
 
     def describe(self):
         """
@@ -84,10 +86,10 @@ class PassThroughProfiler(BaseProfiler):
     def __init__(self):
         pass
 
-    def start(self):
+    def start(self, action_name):
         pass
 
-    def stop(self):
+    def stop(self, action_name):
         pass
 
 
