@@ -15,8 +15,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class Callback(object):
-    r"""Abstract base class used to build new callbacks.
-    """
+    """Abstract base class used to build new callbacks."""
 
     def __init__(self):
         self.validation_data = None
@@ -27,59 +26,45 @@ class Callback(object):
         self.params = params
 
     def set_model(self, model):
+        """Make a link to the model."""
         if type(model) is LightningDistributedDataParallel:
             model = model.module
         self.model = model
 
     def set_trainer(self, trainer):
+        """Make a link to the trainer."""
         self.trainer = trainer
 
     def on_epoch_begin(self):
-        """
-        called when the epoch begins
-        """
+        """Called when the epoch begins."""
         pass
 
     def on_epoch_end(self):
-        """
-        called when the epoch ends
-        """
+        """Called when the epoch ends."""
         pass
 
     def on_batch_begin(self):
-        """
-        called when the batch starts.
-        """
+        """Called when the training batch begins."""
         pass
 
     def on_batch_end(self):
-        """
-        called when the batch ends.
-        """
+        """Called when the training batch ends."""
         pass
 
     def on_train_begin(self):
-        """
-        called when the train begins.
-        """
+        """Called when the train begins."""
         pass
 
     def on_train_end(self):
-        """
-        called when the train ends.
-        """
+        """Called when the train ends."""
         pass
 
     def on_validation_begin(self):
-        """
-        called when the validation loop starts.
-        """
+        """Called when the validation loop begins."""
         pass
 
     def on_validation_end(self):
-        """
-        called when the validation loop ends.
-        """
+        """Called when the validation loop ends."""
         pass
 
 
