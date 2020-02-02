@@ -545,7 +545,7 @@ class TrainerTrainLoopMixin(ABC):
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
                         model.optimizer_step(self.current_epoch, batch_idx,
-                                            optimizer, opt_idx, optimizer_closure)
+                                             optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value)
