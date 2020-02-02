@@ -890,6 +890,9 @@ class Trainer(TrainerIOMixin,
 
         # CORE TRAINING LOOP
         self.train()
+        
+        # summarize profile results
+        self.profiler.describe()
 
     def test(self, model=None):
         r"""
