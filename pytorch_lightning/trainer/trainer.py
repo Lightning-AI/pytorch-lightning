@@ -463,8 +463,17 @@ class Trainer(TrainerIOMixin,
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
-            profiler (utilities.BaseProfiler):  # TODO document
-        
+            profiler (utilities.BaseProfiler):  To profile individual steps during training and assist in
+                identifying bottlenecks.
+                Example::
+
+                    # default used by the Trainer
+                    trainer = Trainer(profiler=None)
+
+                    # profile a training run and get a report on completion of the training job
+                    profiler = utilities.Profiler()
+                    trainer = Trainer(profiler=profiler)
+
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
             - `nb_sanity_val_steps`
