@@ -1,8 +1,7 @@
 import os
 import sys
 import warnings
-import logging
-
+import logging as log
 
 import torch
 import torch.distributed as dist
@@ -97,7 +96,7 @@ class Trainer(TrainerIOMixin,
             logger (:class:`.Logger`): Logger for experiment tracking.
                 Example::
 
-                    from pytorch_lightning.logging import TensorBoardLogger
+                    from pytorch_lightning.loggers import TensorBoardLogger
 
                     # default logger used by trainer
                     logger = TensorBoardLogger(
@@ -449,6 +448,10 @@ class Trainer(TrainerIOMixin,
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
 
+                Using this feature requires updating your LightningModule's `training_step()` to include
+                a `hiddens` arg.
+
+
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
 
@@ -526,7 +529,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            logging.info(m)
+            log.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -657,7 +660,7 @@ class Trainer(TrainerIOMixin,
 
         # set root gpu
         root_gpu = 0
-        if type(gpus) is list:
+        if isinstance(gpus, list):
             root_gpu = gpus[0]
 
         return root_gpu
@@ -667,8 +670,7 @@ class Trainer(TrainerIOMixin,
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-        else:
-            return len(gpus)
+        return len(gpus)
 
     @property
     def data_parallel(self):
@@ -766,13 +768,13 @@ class Trainer(TrainerIOMixin,
             return [optimizers], []
 
         # two lists
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
+        if len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
             lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
-        elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
+        if isinstance(optimizers, (list, tuple)):
             return optimizers, []
 
     def configure_schedulers(self, schedulers):

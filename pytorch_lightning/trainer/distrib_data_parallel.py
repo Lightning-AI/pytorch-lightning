@@ -113,7 +113,7 @@ When the script starts again, Lightning will:
 
 """
 
-import logging
+import logging as log
 import os
 import re
 import warnings
@@ -205,7 +205,7 @@ class TrainerDDPMixin(ABC):
                 'or distributed_backend=ddp2'
             raise MisconfigurationException(w)
 
-        logging.info(f'gpu available: {torch.cuda.is_available()}, used: {self.on_gpu}')
+        log.info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -246,14 +246,14 @@ class TrainerDDPMixin(ABC):
 
         # when slurm is managing the task it sets the visible devices
         if not is_slurm_managing_tasks:
-            if type(data_parallel_device_ids) is int:
+            if isinstance(data_parallel_device_ids, int):
                 id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
                 os.environ["CUDA_VISIBLE_DEVICES"] = id_str
             else:
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        logging.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        log.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
     def ddp_train(self, gpu_idx, model):
         """

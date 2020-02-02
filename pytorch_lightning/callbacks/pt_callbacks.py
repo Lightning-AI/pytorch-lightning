@@ -7,8 +7,9 @@ Callbacks supported by Lightning
 
 import os
 import shutil
-import logging
+import logging as log
 import warnings
+
 import numpy as np
 
 
@@ -105,7 +106,7 @@ class EarlyStopping(Callback):
 
         if mode not in ['auto', 'min', 'max']:
             if self.verbose > 0:
-                logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
+                log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -134,7 +135,7 @@ class EarlyStopping(Callback):
         if monitor_val is None:
             if self.strict:
                 raise RuntimeError(error_msg)
-            elif self.verbose > 0:
+            if self.verbose > 0:
                 warnings.warn(error_msg, RuntimeWarning)
 
             return False
@@ -170,7 +171,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
 class ModelCheckpoint(Callback):
@@ -349,7 +350,7 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                                 f' {current:0.5f} (best {self.best:0.5f}), saving model to'
                                 f' {filepath} as top {self.save_top_k}')
@@ -357,13 +358,13 @@ class ModelCheckpoint(Callback):
 
                     else:
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor}'
                                 f' was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    logging.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+                    log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
                 self._save_model(filepath)
 
 
@@ -398,7 +399,7 @@ class GradientAccumulationScheduler(Callback):
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
-        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
+        if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 
         self.scheduling = scheduling
