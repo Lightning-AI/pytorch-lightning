@@ -2,10 +2,29 @@
 Profiling your training run can help you understand if there are any bottlenecks in your code.
 
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
-- enumerate  # TODO
-- exaples  # TODO
-- here  # TODO
+- on_epoch_start
+- on_epoch_end
+- on_batch_start
+- tbptt_split_batch
+- model_forward
+- model_backward
+- on_after_backward
+- optimizer_step
+- on_batch_end
+- training_end
 
+If you only wish to profile the standard actions, you can construct a Profiler object and simply
+pass it into the Trainer.
+
+.. code-block:: python
+    profiler = Profiler()
+    trainer = Trainer(..., profiler=profiler)
+
+You can also reference this profiler to profiler any arbitrary code.
+
+.. code-block:: python
+    with profiler.profile('my_custom_action'):
+        my_custom_action()
 """
 
 
@@ -56,6 +75,21 @@ class BaseProfiler(ABC):
         pass
 
 
+class PassThroughProfiler(BaseProfiler):
+    """
+    this can be used when you don't want to profile your runs
+    """
+
+    def __init__(self):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+
 class Profiler(BaseProfiler):
     """
     this profiler simply records the duration of actions (in seconds) and reports
@@ -85,12 +119,12 @@ class Profiler(BaseProfiler):
 
     def describe(self):
         def print_row(action, mean, std_dev):
-            print(f"{action}\t|\t{mean:.4}\t|\t{std_dev:.4}")
+            print(f"{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}")
 
-        print_row("Action", "Mean duration", "Std deviation")
-        print("-" * 40)
+        print_row("Action", "Mean duration (s)", "Std dev.")
+        print("-" * 60)
         for action, durations in self.recorded_durations.items():
-            print_row(action, np.mean(durations), np.std(durations))
+            print_row(action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}")
 
 
 class AdvancedProfiler(BaseProfiler):
@@ -98,6 +132,7 @@ class AdvancedProfiler(BaseProfiler):
     this profiler uses Python's cProfiler to record more detailed information about
     time spent in each function call recorded during a given action
     """
+
     def __init__(self):
         self.profiled_actions = {}
 
@@ -127,36 +162,50 @@ class AdvancedProfiler(BaseProfiler):
             print(stats)
 
 
-if __name__ == '__main__.py':
+if __name__ == "__main__.py":
 
     p = Profiler()
 
-    with p.profile("test"):
+    with p.profile("context handler"):
         time.sleep(5)
+        a = np.random.randn(3000, 2)
+        b = a + 2
+        c = b / 3
 
-    with p.profile("test"):
-        time.sleep(2)
-
-    with p.profile("test"):
-        time.sleep(4)
-
-    with p.profile("ok"):
+    with p.profile("context handler"):
         time.sleep(1)
+        a = np.random.randn(3000, 2)
+        b = a + 2
+        c = b / 3
+
+    p.start("manual")
+    time.sleep(5)
+    a = np.random.randn(3000, 2)
+    b = a + 2
+    c = b / 3
+    p.stop("manual")
 
     p.describe()
 
     ap = AdvancedProfiler()
 
-    with ap.profile("test"):
+    with ap.profile("context handler"):
         time.sleep(5)
+        a = np.random.randn(3000, 2)
+        b = a + 2
+        c = b / 3
 
-    with ap.profile("test"):
-        time.sleep(2)
-
-    with ap.profile("test"):
-        time.sleep(4)
-
-    with ap.profile("ok"):
+    with ap.profile("context handler"):
         time.sleep(1)
+        a = np.random.randn(3000, 2)
+        b = a + 2
+        c = b / 3
+
+    ap.start("manual")
+    time.sleep(5)
+    a = np.random.randn(3000, 2)
+    b = a + 2
+    c = b / 3
+    ap.stop("manual")
 
     ap.describe()
