@@ -11,29 +11,16 @@ import logging
 import warnings
 import numpy as np
 
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-
 
 class Callback(object):
     """Abstract base class used to build new callbacks."""
 
     def __init__(self):
-        self.validation_data = None
-        self.model = None
-        self.trainer = None
-
-    def set_params(self, params):
-        self.params = params
-
-    def set_model(self, model):
-        """Make a link to the model."""
-        if type(model) is LightningDistributedDataParallel:
-            model = model.module
-        self.model = model
+        self._trainer = None
 
     def set_trainer(self, trainer):
         """Make a link to the trainer."""
-        self.trainer = trainer
+        self._trainer = trainer
 
     def on_epoch_begin(self):
         """Called when the epoch begins."""
@@ -157,7 +144,7 @@ class EarlyStopping(Callback):
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self):
-        logs = self.trainer.callback_metrics
+        logs = self._trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):
             return stop_training
@@ -169,7 +156,7 @@ class EarlyStopping(Callback):
         else:
             self.wait += 1
             if self.wait >= self.patience:
-                self.stopped_epoch = self.trainer.current_epoch
+                self.stopped_epoch = self._trainer.current_epoch
                 stop_training = True
                 self.on_train_end()
 
@@ -308,8 +295,8 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def on_validation_end(self):
-        logs = self.trainer.callback_metrics
-        epoch = self.trainer.current_epoch
+        logs = self._trainer.callback_metrics
+        epoch = self._trainer.current_epoch
         self.epochs_since_last_check += 1
 
         if self.save_top_k == 0:
@@ -408,19 +395,9 @@ class GradientAccumulationScheduler(Callback):
         self.epochs = sorted(scheduling.keys())
 
     def on_epoch_begin(self):
-        trainer = self.trainer
+        trainer = self._trainer
         epoch = trainer.current_epoch + 1  # indexing epochs from 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
                 break
-
-
-# if __name__ == '__main__':
-#     c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
-#     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
-#     for i, loss in enumerate(losses):
-#         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-#         logging.info(loss)
-#         if should_stop:
-#             break
