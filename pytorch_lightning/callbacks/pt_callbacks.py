@@ -19,7 +19,8 @@ class Callback(object):
         self._trainer = None
 
     def set_trainer(self, trainer):
-        """Make a link to the trainer."""
+        """Make a link to the trainer, so different things like `trainer.current_epoch`,
+        `trainer.batch_idx`, `trainer.global_step` can be used."""
         self._trainer = trainer
 
     def on_epoch_begin(self):
