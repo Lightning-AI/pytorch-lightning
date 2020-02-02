@@ -72,6 +72,7 @@ class Trainer(TrainerIOMixin,
             max_epochs=1000,
             min_epochs=1,
             max_steps=None,
+            min_steps=None,
             train_percent_check=1.0,
             val_percent_check=1.0,
             test_percent_check=1.0,
@@ -291,15 +292,24 @@ class Trainer(TrainerIOMixin,
                     Use `min_nb_epochs` instead. Will remove 0.8.0.
 
             max_steps (int): Stop training after this number of steps. Disabled by default (None).
-                Training will stop if max_epochs is reached prior to max_steps.
-                Training will stop despite not running for min_epochs. 
+                Training will stop if max_steps or max_epochs have reached (earliest).
                 Example::
 
                     # default used by the Trainer (disabled)
                     trainer = Trainer(max_steps=None)
 
-                    # Stop after 100 steps (batches)
+                    # Stop after 100 steps
                     trainer = Trainer(max_steps=100)
+
+            min_steps(int): Force training for at least these number of steps.
+                Trainer will train model for at least min_steps or min_epochs (latest).
+                Example::
+
+                    # default used by the Trainer (disabled)
+                    trainer = Trainer(min_steps=None)
+
+                    # Run at least for 100 steps (disable min_epochs)
+                    trainer = Trainer(min_steps=100, min_epochs=0)
 
             train_percent_check (int): How much of training dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
@@ -518,6 +528,7 @@ class Trainer(TrainerIOMixin,
         self.min_epochs = min_epochs
 
         self.max_steps = max_steps
+        self.min_steps = min_steps
 
         # Backward compatibility
         if nb_sanity_val_steps is not None:
