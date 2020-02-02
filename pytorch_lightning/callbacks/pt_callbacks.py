@@ -55,6 +55,9 @@ class Callback(object):
         pass
 
 
+_no_trainer_error_msg = ".set_trainer() should be called after the callback initialization"
+
+
 class EarlyStopping(Callback):
     r"""
     Stop training when a monitored quantity has stopped improving.
@@ -144,6 +147,8 @@ class EarlyStopping(Callback):
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self):
+        assert self._trainer is not None, _no_trainer_error_msg
+
         logs = self._trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):
@@ -295,6 +300,8 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def on_validation_end(self):
+        assert self._trainer is not None, _no_trainer_error_msg
+
         logs = self._trainer.callback_metrics
         epoch = self._trainer.current_epoch
         self.epochs_since_last_check += 1
@@ -395,6 +402,8 @@ class GradientAccumulationScheduler(Callback):
         self.epochs = sorted(scheduling.keys())
 
     def on_epoch_begin(self):
+        assert self._trainer is not None, _no_trainer_error_msg
+
         trainer = self._trainer
         epoch = trainer.current_epoch + 1  # indexing epochs from 1
         for i in reversed(range(len(self.epochs))):
