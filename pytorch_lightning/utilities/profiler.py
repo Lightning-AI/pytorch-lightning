@@ -12,6 +12,7 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - optimizer_step
 - on_batch_end
 - training_end
+- on_training_end
 
 If you only wish to profile the standard actions, you can construct a Profiler object and simply
 pass it into the Trainer.
@@ -160,52 +161,3 @@ class AdvancedProfiler(BaseProfiler):
         for action, stats in self.recorded_stats.items():
             print(f"Profile stats for: {action}")
             print(stats)
-
-
-if __name__ == "__main__.py":
-
-    p = Profiler()
-
-    with p.profile("context handler"):
-        time.sleep(5)
-        a = np.random.randn(3000, 2)
-        b = a + 2
-        c = b / 3
-
-    with p.profile("context handler"):
-        time.sleep(1)
-        a = np.random.randn(3000, 2)
-        b = a + 2
-        c = b / 3
-
-    p.start("manual")
-    time.sleep(5)
-    a = np.random.randn(3000, 2)
-    b = a + 2
-    c = b / 3
-    p.stop("manual")
-
-    p.describe()
-
-    ap = AdvancedProfiler()
-
-    with ap.profile("context handler"):
-        time.sleep(5)
-        a = np.random.randn(3000, 2)
-        b = a + 2
-        c = b / 3
-
-    with ap.profile("context handler"):
-        time.sleep(1)
-        a = np.random.randn(3000, 2)
-        b = a + 2
-        c = b / 3
-
-    ap.start("manual")
-    time.sleep(5)
-    a = np.random.randn(3000, 2)
-    b = a + 2
-    c = b / 3
-    ap.stop("manual")
-
-    ap.describe()
