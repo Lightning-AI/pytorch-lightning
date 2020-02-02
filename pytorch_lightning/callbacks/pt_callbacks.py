@@ -385,6 +385,8 @@ class GradientAccumulationScheduler(Callback):
     """
 
     def __init__(self, scheduling: dict):
+        super().__init__()
+
         if scheduling == {}:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
 
