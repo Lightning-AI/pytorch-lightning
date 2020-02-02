@@ -211,6 +211,7 @@ class TrainerTrainLoopMixin(ABC):
         self.training_tqdm_dict = None
         self.get_train_dataloader = None
         self.reduce_lr_on_plateau_scheduler = None
+        self.profiler = None
 
     @property
     def max_nb_epochs(self):
@@ -369,7 +370,8 @@ class TrainerTrainLoopMixin(ABC):
         # before epoch hook
         if self.is_function_implemented('on_epoch_start'):
             model = self.get_model()
-            model.on_epoch_start()
+            with self.profiler.profile('on_epoch_start'):
+                model.on_epoch_start()
 
         # run epoch
         for batch_idx, batch in enumerate(self.get_train_dataloader()):
@@ -430,7 +432,8 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         if self.is_function_implemented('on_epoch_end'):
             model = self.get_model()
-            model.on_epoch_end()
+            with self.profiler.profile('on_epoch_end'):
+                model.on_epoch_end()
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
@@ -448,7 +451,8 @@ class TrainerTrainLoopMixin(ABC):
         # hook
         if self.is_function_implemented('on_batch_start'):
             model_ref = self.get_model()
-            response = model_ref.on_batch_start(batch)
+            with self.profiler.profile('on_batch_start'):
+                response = model_ref.on_batch_start(batch)
 
             if response == -1:
                 return -1, grad_norm_dic, {}
@@ -456,7 +460,8 @@ class TrainerTrainLoopMixin(ABC):
         splits = [batch]
         if self.truncated_bptt_steps is not None:
             model_ref = self.get_model()
-            splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
+            with self.profiler.profile('tbptt_split_batch'):
+                splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
         self.hiddens = None
         for split_idx, split_batch in enumerate(splits):
@@ -476,8 +481,9 @@ class TrainerTrainLoopMixin(ABC):
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():
                     # forward pass
-                    output = self.training_forward(
-                        split_batch, batch_idx, opt_idx, self.hiddens)
+                    with self.profiler.profile('model_forward'):
+                        output = self.training_forward(
+                            split_batch, batch_idx, opt_idx, self.hiddens)
 
                     closure_loss = output[0]
                     progress_bar_metrics = output[1]
@@ -491,7 +497,8 @@ class TrainerTrainLoopMixin(ABC):
 
                     # backward pass
                     model_ref = self.get_model()
-                    model_ref.backward(self.use_amp, closure_loss, optimizer, opt_idx)
+                    with self.profiler.profile('model_backward'):
+                        model_ref.backward(self.use_amp, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)
@@ -503,7 +510,8 @@ class TrainerTrainLoopMixin(ABC):
                     # insert after step hook
                     if self.is_function_implemented('on_after_backward'):
                         model_ref = self.get_model()
-                        model_ref.on_after_backward()
+                        with self.profiler.profile('on_after_backward'):
+                            model_ref.on_after_backward()
 
                     return closure_loss
 
@@ -533,8 +541,9 @@ class TrainerTrainLoopMixin(ABC):
                     # calls .step(), .zero_grad()
                     # override function to modify this behavior
                     model = self.get_model()
-                    model.optimizer_step(self.current_epoch, batch_idx,
-                                         optimizer, opt_idx, optimizer_closure)
+                    with self.profiler.profile('optimizer_step'):
+                        model.optimizer_step(self.current_epoch, batch_idx,
+                                            optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value)
@@ -544,7 +553,8 @@ class TrainerTrainLoopMixin(ABC):
         # activate batch end hook
         if self.is_function_implemented('on_batch_end'):
             model = self.get_model()
-            model.on_batch_end()
+            with self.profiler.profile('on_batch_end'):
+                model.on_batch_end()
 
         # update progress bar
         self.main_progress_bar.update(1)
@@ -604,7 +614,8 @@ class TrainerTrainLoopMixin(ABC):
         # allow any mode to define training_end
         if self.is_overriden('training_end'):
             model_ref = self.get_model()
-            output = model_ref.training_end(output)
+            with self.profiler.profile('training_end'):
+                output = model_ref.training_end(output)
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)

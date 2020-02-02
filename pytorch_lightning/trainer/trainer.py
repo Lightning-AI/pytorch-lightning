@@ -26,6 +26,8 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.profiler import PassThroughProfiler
+
 
 try:
     from apex import amp
@@ -87,6 +89,7 @@ class Trainer(TrainerIOMixin,
             num_sanity_val_steps=5,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
+            profiler=None
     ):
         r"""
 
@@ -460,7 +463,8 @@ class Trainer(TrainerIOMixin,
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
-
+            profiler (utilities.BaseProfiler):  # TODO document
+        
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
             - `nb_sanity_val_steps`
@@ -563,6 +567,9 @@ class Trainer(TrainerIOMixin,
 
         # configure logger
         self.configure_logger(logger)
+
+        # configure profiler
+        self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
         # creates a default one if none passed in
