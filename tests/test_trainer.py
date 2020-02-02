@@ -234,8 +234,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for i, loss in enumerate(losses):
-        w.trainer.current_epoch = i
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = i
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
@@ -256,8 +256,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for i, loss in enumerate(losses):
-        w.trainer.current_epoch = i
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = i
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = os.listdir(save_dir)
@@ -274,8 +274,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for i, loss in enumerate(losses):
-        w.trainer.current_epoch = i
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = i
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
@@ -296,8 +296,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for i, loss in enumerate(losses):
-        w.trainer.current_epoch = i
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = i
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
@@ -319,8 +319,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for loss in losses:
-        w.trainer.current_epoch = 0
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = 0
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
@@ -339,8 +339,8 @@ def test_model_checkpoint_options(tmp_path):
     trainer = Trainer()
     w.set_trainer(trainer)
     for loss in losses:
-        w.trainer.current_epoch = 0
-        w.trainer.callback_metrics = {'val_loss': loss}
+        w._trainer.current_epoch = 0
+        w._trainer.callback_metrics = {'val_loss': loss}
         w.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
