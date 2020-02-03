@@ -441,6 +441,7 @@ def test_num_trainer_steps(tmpdir):
     assert trainer.global_step == 93 * 2 and \
         trainer.current_epoch == 1, "Model did not stop at max_epochs"
 
+    trainer.pop("max_steps", None)
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['min_epochs'] = 1
