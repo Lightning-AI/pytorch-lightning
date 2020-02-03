@@ -37,6 +37,9 @@ import cProfile
 import pstats
 import io
 from abc import ABC, abstractmethod
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BaseProfiler(ABC):
@@ -121,13 +124,13 @@ class Profiler(BaseProfiler):
         self.recorded_durations[action_name].append(duration)
 
     def describe(self):
-        def print_row(action, mean, std_dev):
-            print(f"{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}")
+        def log_row(action, mean, std_dev):
+            logger.info(f"{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}")
 
-        print_row("Action", "Mean duration (s)", "Std dev.")
-        print("-" * 60)
+        log_row("Action", "Mean duration (s)", "Std dev.")
+        logger.info("-" * 60)
         for action, durations in self.recorded_durations.items():
-            print_row(action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}")
+            log_row(action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}")
 
 
 class AdvancedProfiler(BaseProfiler):
@@ -137,10 +140,10 @@ class AdvancedProfiler(BaseProfiler):
     """
 
     def __init__(self, output_filename=None):
-        '''
+        """
         :param output_filename (str): optionally save profile results to file instead of printing
             to std out when training is finished.
-        '''
+        """
         self.profiled_actions = {}
         self.output_filename = output_filename
 
@@ -167,12 +170,11 @@ class AdvancedProfiler(BaseProfiler):
             self.recorded_stats[action_name] = s.getvalue()
         if self.output_filename is not None:
             # save to file
-            with open(self.output_filename, 'w') as f:
+            with open(self.output_filename, "w") as f:
                 for action, stats in self.recorded_stats.items():
                     f.write(f"Profile stats for: {action}")
                     f.write(stats)
         else:
             # print to standard out
             for action, stats in self.recorded_stats.items():
-                print(f"Profile stats for: {action}")
-                print(stats)
+                logger.info(f"Profile stats for: {action}\n{stats}")
