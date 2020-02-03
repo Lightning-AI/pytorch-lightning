@@ -213,6 +213,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def log_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+<<<<<<< HEAD
     @abstractmethod
     def reset_test_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
@@ -222,12 +223,18 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
+=======
+    def evaluate(self, model, dataloaders, max_batches):
+>>>>>>> Removed test variable into mode consisting of training/validating/testing.
         """Run evaluation code.
 
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
+<<<<<<< HEAD
         :param test_mode
+=======
+>>>>>>> Removed test variable into mode consisting of training/validating/testing.
         :return:
         """
         # enable eval mode
@@ -264,7 +271,14 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
+<<<<<<< HEAD
                 output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+=======
+                output = self.evaluation_forward(model,
+                                                 batch,
+                                                 batch_idx,
+                                                 dataloader_idx,)
+>>>>>>> Removed test variable into mode consisting of training/validating/testing.
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
@@ -282,12 +296,21 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
+<<<<<<< HEAD
                 if batch_idx % self.progress_bar_refresh_rate == 0:
                     if test_mode:
                         self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
                         self.val_progress_bar.update(self.progress_bar_refresh_rate)
                         self.main_progress_bar.update(self.progress_bar_refresh_rate)
+=======
+                if self.mode == 'testing':
+                    self.test_progress_bar.update(1)
+                else:
+                    self.val_progress_bar.update(1)
+                    if not self.mode == 'validating':
+                        self.main_progress_bar.update(1)
+>>>>>>> Removed test variable into mode consisting of training/validating/testing.
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -324,11 +347,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_results
 
-    def run_evaluation(self, test_mode: bool = False):
+    def run_evaluation(self):
         # when testing make sure user defined a test step
-        if test_mode and not self.is_overriden('test_step'):
-            m = "You called `.test()` without defining model's `.test_step()`." \
-                " Please define and try again"
+        if self.mode == 'testing' and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
+            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
+                    Please define and try again'''
             raise MisconfigurationException(m)
 
         # Validation/Test begin callbacks
@@ -370,7 +393,9 @@ class TrainerEvaluationLoopMixin(ABC):
         setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation
-        eval_results = self.evaluate(self.model, dataloaders, max_batches, test_mode)
+        eval_results = self.evaluate(self.model,
+                                     dataloaders,
+                                     max_batches)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
             eval_results)
 

@@ -341,8 +341,7 @@ class Trainer(
 
         # training state
         self.model = None
-        self.testing = False
-        self.use_validation_on_test = False
+        self.mode = 'training'
         self.disable_validation = False
         self.lr_schedulers = []
         self.optimizers = None
@@ -810,10 +809,8 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model,
-                                         self.val_dataloaders,
-                                         self.num_sanity_val_steps,
-                                         False)
+            eval_results = self.evaluate(model, self.get_val_dataloaders(),
+                                         self.num_sanity_val_steps)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
@@ -860,12 +857,11 @@ class Trainer(
             trainer = Trainer()
             trainer.validate(model)
         """
-        self.use_validation_on_test = True
-        self.testing = True
+        self.mode = 'validating'
         if model is not None:
             self.fit(model)
         else:
-            self.run_evaluation(test=True, use_validation_on_test=True)
+            self.run_evaluation()
 
     def test(self, model=None):
         r"""
@@ -891,7 +887,7 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model)
         """
-        self.testing = True
+        self.mode = 'testing'
         if model is not None:
             self.model = model
             self.fit(model)
