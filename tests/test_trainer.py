@@ -1,3 +1,4 @@
+import math
 import os
 
 import pytest
@@ -417,53 +418,55 @@ def test_num_trainer_steps(tmpdir):
     tutils.reset_seed()
     model, _ = tutils.get_model()
 
+    train_percent = 0.05
+    num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
+
     trainer_options = dict(
-        max_epochs=5,
         gpus=None,
         default_save_path=tmpdir,
-        train_percent_check=0.05,
+        train_percent_check=train_percent,
     )
-
-    trainer_options['max_epochs'] = 2
-    trainer_options['max_steps'] = 100
+    
+    trainer_options['max_epochs'] = 5
+    trainer_options['max_steps'] = num_train_samples + 10
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
     # should stop at max_steps
-    assert trainer.global_step == 100, "Model did not stop at max_steps"
+    assert trainer.global_step == trainer_options['max_steps'], "Model did not stop at max_steps"
 
     trainer_options['max_epochs'] = 2
-    trainer_options['max_steps'] = 500
+    trainer_options['max_steps'] = trainer_options['max_epochs'] * 2 * num_train_samples
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
     # should stop at max_epochs
-    assert trainer.global_step == 93 * 2 and \
-        trainer.current_epoch == 1, "Model did not stop at max_epochs"
+    assert trainer.global_step == num_train_samples * trainer_options['max_epochs'] and \
+        trainer.current_epoch == trainer_options['max_epochs'] - 1, "Model did not stop at max_epochs"
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['min_epochs'] = 1
-    trainer_options['min_steps'] = 10
+    trainer_options['min_steps'] = math.floor(num_train_samples / 2)
     trainer_options['max_epochs'] = 10
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
     # should run at least 1 epoch
-    assert trainer.global_step >= 93 and \
+    assert trainer.global_step >= num_train_samples and \
         trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['val_check_interval'] = 20
     trainer_options['min_epochs'] = 1
-    trainer_options['min_steps'] = 100
+    trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
     trainer_options['max_epochs'] = 10
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
     # should run at least 100 steps
-    assert trainer.global_step >= 100 and \
+    assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 # if __name__ == '__main__':
