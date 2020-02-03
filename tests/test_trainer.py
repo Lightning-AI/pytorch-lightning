@@ -426,7 +426,7 @@ def test_num_trainer_steps(tmpdir):
         default_save_path=tmpdir,
         train_percent_check=train_percent,
     )
-    
+
     trainer_options['max_epochs'] = 5
     trainer_options['max_steps'] = num_train_samples + 10
     trainer = Trainer(**trainer_options)
@@ -444,6 +444,7 @@ def test_num_trainer_steps(tmpdir):
     assert trainer.global_step == num_train_samples * trainer_options['max_epochs'] and \
         trainer.current_epoch == trainer_options['max_epochs'] - 1, "Model did not stop at max_epochs"
 
+    trainer_options.pop("max_steps", None)
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['min_epochs'] = 1
