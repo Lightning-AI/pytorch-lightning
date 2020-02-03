@@ -56,7 +56,7 @@ class LightningDataParallel(DataParallel):
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
         if len(self.device_ids) == 1:
             # lightning
-            if self.module.training:
+            if self. mode == 'training':
                 return self.module.training_step(*inputs[0], **kwargs[0])
             if self.module.mode is TrainerMode.TESTING:
                 return self.module.test_step(*inputs[0], **kwargs[0])
@@ -90,7 +90,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # normal
                 # output = self.module(*inputs[0], **kwargs[0])
                 # lightning
-                if self.module.training:
+                if self. mode == 'training':
                     output = self.module.training_step(*inputs[0], **kwargs[0])
                 elif self.module.mode is TrainerMode.TESTING:
                     output = self.module.test_step(*inputs[0], **kwargs[0])
@@ -157,7 +157,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
                 # ---------------
                 # CHANGE
-                if module.training:
+                if module.mode == 'training':
                     output = module.training_step(*input, **kwargs)
 
                 elif module.mode is TrainerMode.TESTING:
