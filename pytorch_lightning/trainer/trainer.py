@@ -862,12 +862,11 @@ class Trainer(
             trainer = Trainer()
             trainer.validate(model)
         """
-        self.use_validation_on_test = True
-        self.testing = True
+        self.mode = 'validating'
         if model is not None:
             self.fit(model)
         else:
-            self.run_evaluation(test=True, use_validation_on_test=True)
+            self.run_evaluation()
 
     def test(self, model=None):
         r"""
