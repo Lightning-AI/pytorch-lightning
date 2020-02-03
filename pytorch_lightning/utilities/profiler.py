@@ -136,8 +136,13 @@ class AdvancedProfiler(BaseProfiler):
     time spent in each function call recorded during a given action
     """
 
-    def __init__(self):
+    def __init__(self, output_filename=None):
+        '''
+        :param output_filename (str): optionally save profile results to file instead of printing
+            to std out when training is finished.
+        '''
         self.profiled_actions = {}
+        self.output_filename = output_filename
 
     def start(self, action_name):
         if action_name not in self.profiled_actions:
@@ -160,6 +165,14 @@ class AdvancedProfiler(BaseProfiler):
             ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby)
             ps.print_stats(line_count_restriction)
             self.recorded_stats[action_name] = s.getvalue()
-        for action, stats in self.recorded_stats.items():
-            print(f"Profile stats for: {action}")
-            print(stats)
+        if self.output_filename is not None:
+            # save to file
+            with open(self.output_filename, 'w') as f:
+                for action, stats in self.recorded_stats.items():
+                    f.write(f"Profile stats for: {action}")
+                    f.write(stats)
+        else:
+            # print to standard out
+            for action, stats in self.recorded_stats.items():
+                print(f"Profile stats for: {action}")
+                print(stats)
