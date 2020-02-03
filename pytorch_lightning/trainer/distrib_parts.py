@@ -391,6 +391,10 @@ class TrainerDPMixin(ABC):
         self.use_ddp2 = None
         self.use_ddp = None
         self.use_amp = None
+<<<<<<< HEAD
+=======
+        self.mode = 'training'
+>>>>>>> Removed test variable into mode consisting of training/validating/testing.
         self.single_gpu = None
         self.root_gpu = None
         self.amp_level = None
