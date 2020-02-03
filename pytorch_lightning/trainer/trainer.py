@@ -822,8 +822,7 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model, self.val_dataloaders,
-                                         self.num_sanity_val_steps)
+
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
@@ -845,6 +844,7 @@ class Trainer(
 
         # CORE TRAINING LOOP
         self.train()
+
 
 
         r"""
@@ -870,7 +870,7 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model)
         """
-        self.mode = TrainerMode.TESTING
+
         if model is not None:
             self.model = model
             self.fit(model)
