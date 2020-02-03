@@ -411,18 +411,19 @@ def test_multiple_test_dataloader(tmpdir):
     # run the test method
     trainer.test()
 
+
 def test_num_trainer_steps(tmpdir):
     """Verify model trains according to speficied steps"""
     tutils.reset_seed()
     model, _ = tutils.get_model()
-    
+
     trainer_options = dict(
         max_epochs=5,
         gpus=None,
         default_save_path=tmpdir,
         train_percent_check=0.05,
     )
-    
+
     trainer_options['max_epochs'] = 2
     trainer_options['max_steps'] = 100
     trainer = Trainer(**trainer_options)
@@ -430,7 +431,7 @@ def test_num_trainer_steps(tmpdir):
     assert result == 1
     # should stop at max_steps
     assert trainer.global_step == 100, "Model did not stop at max_steps"
-    
+
     trainer_options['max_epochs'] = 2
     trainer_options['max_steps'] = 500
     trainer = Trainer(**trainer_options)
@@ -451,7 +452,7 @@ def test_num_trainer_steps(tmpdir):
     # should run at least 1 epoch
     assert trainer.global_step >= 93 and \
         trainer.current_epoch > 0, "Model did not train for at least min_epochs"
-        
+
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['val_check_interval'] = 20
