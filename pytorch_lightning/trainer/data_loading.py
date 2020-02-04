@@ -14,6 +14,7 @@ except ImportError:
     EXIST_ITER_DATASET = False
 else:
     EXIST_ITER_DATASET = True
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -25,9 +26,14 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    from nvidia.dali.plugin.pytorch import DALIGenericIterator
+    DALI_AVAILABLE = True
+except ImportError:
+    DALI_AVAILABLE = False
+
 
 class TrainerDataLoadingMixin(ABC):
-
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
@@ -57,7 +63,9 @@ class TrainerDataLoadingMixin(ABC):
         self.get_train_dataloader = model.train_dataloader
 
         # determine number of training batches
-        if EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
+        if DALI_AVAILABLE and isinstance(self.get_train_dataloader(), DALIGenericIterator):
+            self.num_training_batches = self._get_dali_batch_count(self.get_train_dataloader())
+        elif EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
             self.num_training_batches = float('inf')
         else:
             self._percent_range_check('train_percent_check')
@@ -85,6 +93,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
+            isinstance(self.get_train_dataloader(), DataLoader) and
             EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
@@ -106,9 +115,13 @@ class TrainerDataLoadingMixin(ABC):
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.get_val_dataloaders() is not None:
-            self._percent_range_check('val_percent_check')
+            for dataloader in self.get_val_dataloaders():
+                if DALI_AVAILABLE and isinstance(dataloader, DALIGenericIterator):
+                    self.num_val_batches += self._get_dali_batch_count(dataloader)
+                else:
+                    self.num_val_batches += len(dataloader)
 
-            self.num_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
+            self._percent_range_check('val_percent_check')
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
@@ -123,15 +136,18 @@ class TrainerDataLoadingMixin(ABC):
 
         :param model:
         """
-
         self.get_test_dataloaders = model.test_dataloader
+        self.num_test_batches = 0
 
         # determine number of test batches
         if self.get_test_dataloaders() is not None:
-            self._percent_range_check('test_percent_check')
+            for dataloader in self.get_test_dataloaders():
+                if DALI_AVAILABLE and isinstance(dataloader, DALIGenericIterator):
+                    self.num_test_batches += self._get_dali_batch_count(dataloader)
+                else:
+                    self.num_test_batches += len(dataloader)
 
-            len_sum = sum(len(dataloader) for dataloader in self.get_test_dataloaders())
-            self.num_test_batches = len_sum
+            self._percent_range_check('test_percent_check')
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
@@ -186,9 +202,16 @@ class TrainerDataLoadingMixin(ABC):
             self.test_percent_check = overfit_pct
 
     def _check_ddp_loader(self, data_loader, mode="train"):
+        """
+        Check if sampler is used correctly in ddp mode
+        :param data_loader:
+        :param mode:
+        :return:
+        """
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and not isinstance(data_loader.sampler, DistributedSampler):
+        if needs_sampler and isinstance(data_loader, DataLoader) \
+                and not isinstance(data_loader.sampler, DistributedSampler):
             mode_msg = "Your '{}_loader(s)' don't use DistributedSampler.\n".format(mode)
             msg = """
             You're using multiple gpus and multiple nodes, or TPUs without using a
@@ -211,3 +234,12 @@ class TrainerDataLoadingMixin(ABC):
                 warnings.warn(mode_msg + msg)
             return True
         return False
+
+    def _get_dali_batch_count(self, data_loader):
+        """
+        Calculate the batch count in dali iterator
+        :param data_loader: DALIGenericIterator
+        :return:
+        """
+        last_batch = 1 if data_loader._fill_last_batch else 0
+        return int(data_loader._size / (data_loader._num_gpus * data_loader.batch_size)) + last_batch
