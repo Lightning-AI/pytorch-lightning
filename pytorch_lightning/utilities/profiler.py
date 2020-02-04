@@ -2,6 +2,7 @@
 Profiling your training run can help you understand if there are any bottlenecks in your code.
 
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
+
 - on_epoch_start
 - on_epoch_end
 - on_batch_start
@@ -18,14 +19,17 @@ If you only wish to profile the standard actions, you can construct a Profiler o
 pass it into the Trainer.
 
 .. code-block:: python
+
     profiler = Profiler()
     trainer = Trainer(..., profiler=profiler)
 
 You can also reference this profiler to profiler any arbitrary code.
 
 .. code-block:: python
+
     with profiler.profile('my_custom_action'):
         my_custom_action()
+
 """
 
 
