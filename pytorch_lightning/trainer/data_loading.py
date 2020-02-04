@@ -104,6 +104,17 @@ class TrainerDataLoadingMixin(ABC):
                 self.shown_warnings.add(msg)
                 warnings.warn(msg)
 
+        # support IterableDataset for train data
+        self.is_iterable_train_dataloader = (
+            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+            m = '''
+            When using an iterableDataset for `train_dataloader`,
+            `Trainer(val_check_interval)` must be an int.
+            An int k specifies checking validation every k training batches
+            '''
+            raise MisconfigurationException(m)
+
     def init_val_dataloader(self, model):
         """
         Dataloaders are provided by the model
@@ -201,7 +212,6 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-
         self.init_train_dataloader(model)
         self.init_test_dataloader(model)
         self.init_val_dataloader(model)
@@ -222,17 +232,6 @@ class TrainerDataLoadingMixin(ABC):
                 self.get_train_dataloader()
                 self.get_test_dataloaders()
                 self.get_val_dataloaders()
-
-        # support IterableDataset for train data
-        self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
-        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
-            m = '''
-            When using an iterableDataset for `train_dataloader`,
-            `Trainer(val_check_interval)` must be an int.
-            An int k specifies checking validation every k training batches
-            '''
-            raise MisconfigurationException(m)
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
