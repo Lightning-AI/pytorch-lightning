@@ -81,28 +81,7 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
 
-        on_ddp = self.use_ddp or self.use_ddp2
-        needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
-            msg = """
-            You're using multiple gpus and multiple nodes, or TPUs without using a
-            to assign a subset of your data to each process. To silence this warning, pass a
-            DistributedSampler to your DataLoader.
-
-            ie: this:
-            dataset = myDataset()
-            dataloader = Dataloader(dataset)
-
-            becomes:
-            dataset = myDataset()
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-            dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-            If you want each process to load the full dataset, ignore this warning.
-            """
-            if msg not in self.shown_warnings and self.proc_rank == 0:
-                self.shown_warnings.add(msg)
-                warnings.warn(msg)
+        self._check_ddp_loader(self.get_train_dataloader())
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
@@ -136,28 +115,7 @@ class TrainerDataLoadingMixin(ABC):
         needs_sampler = on_ddp or self.use_tpu
         if needs_sampler and self.get_val_dataloaders() is not None:
             for dataloader in self.get_val_dataloaders():
-                if not isinstance(dataloader.sampler, DistributedSampler):
-                    msg = """
-                    Your val_dataloader(s) don't use DistributedSampler.
-
-                    You're using multiple gpus and multiple nodes, or TPUs without using a
-                    DistributedSampler to assign a subset of your data to each process.
-                    To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                    ie: this:
-                    dataset = myDataset()
-                    dataloader = Dataloader(dataset)
-
-                    becomes:
-                    dataset = myDataset()
-                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                    dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                    If you want each process to load the full dataset, ignore this warning.
-                    """
-                    if msg not in self.shown_warnings and self.proc_rank == 0:
-                        self.shown_warnings.add(msg)
-                        warnings.warn(msg)
+                if self._check_ddp_loader(dataloader, "val"):
                     break
 
     def init_test_dataloader(self, model):
@@ -180,30 +138,7 @@ class TrainerDataLoadingMixin(ABC):
         needs_sampler = on_ddp or self.use_tpu
         if needs_sampler and self.get_test_dataloaders() is not None:
             for dataloader in self.get_test_dataloaders():
-                if not isinstance(dataloader.sampler, DistributedSampler):
-                    msg = """
-                    Your `test_dataloader(s)` don't use DistributedSampler.
-
-                    You're using multiple gpus and multiple nodes, or TPUs without using a
-                    DistributedSampler to assign a subset of your data to each process.
-                    To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                    ie: this::
-
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
-
-                    becomes::
-
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                    If you want each process to load the full dataset, ignore this warning.
-                    """
-                    if msg not in self.shown_warnings and self.proc_rank == 0:
-                        self.shown_warnings.add(msg)
-                        warnings.warn(msg)
+                if self._check_ddp_loader(dataloader, "test"):
                     break
 
     def get_dataloaders(self, model):
@@ -249,3 +184,30 @@ class TrainerDataLoadingMixin(ABC):
             self.train_percent_check = overfit_pct
             self.val_percent_check = overfit_pct
             self.test_percent_check = overfit_pct
+
+    def _check_ddp_loader(self, data_loader, mode="train"):
+        on_ddp = self.use_ddp or self.use_ddp2
+        needs_sampler = on_ddp or self.use_tpu
+        if needs_sampler and not isinstance(data_loader.sampler, DistributedSampler):
+            mode_msg = "Your '{}_loader(s)' don't use DistributedSampler.\n".format(mode)
+            msg = """
+            You're using multiple gpus and multiple nodes, or TPUs without using a
+            to assign a subset of your data to each process. To silence this warning, pass a
+            DistributedSampler to your DataLoader.
+
+            ie: this:
+            dataset = myDataset()
+            dataloader = Dataloader(dataset)
+
+            becomes:
+            dataset = myDataset()
+            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+            dataloader = Dataloader(dataset, sampler=dist_sampler)
+
+            If you want each process to load the full dataset, ignore this warning.
+            """
+            if msg not in self.shown_warnings and self.proc_rank == 0:
+                self.shown_warnings.add(msg)
+                warnings.warn(mode_msg + msg)
+            return True
+        return False
