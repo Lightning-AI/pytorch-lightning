@@ -434,7 +434,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
-                self.run_evaluation(test_mode=self.testing)
+                self.run_evaluation()
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch

@@ -139,6 +139,7 @@ from tqdm.auto import tqdm
 import warnings
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.state import TrainerMode
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -213,7 +214,6 @@ class TrainerEvaluationLoopMixin(ABC):
     def log_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-<<<<<<< HEAD
     @abstractmethod
     def reset_test_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
@@ -223,18 +223,11 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
-=======
-    def evaluate(self, model, dataloaders, max_batches):
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
         """Run evaluation code.
 
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
-<<<<<<< HEAD
-        :param test_mode
-=======
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
         :return:
         """
         # enable eval mode
@@ -271,14 +264,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-<<<<<<< HEAD
                 output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
-=======
-                output = self.evaluation_forward(model,
-                                                 batch,
-                                                 batch_idx,
-                                                 dataloader_idx,)
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
@@ -296,21 +282,17 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
-<<<<<<< HEAD
                 if batch_idx % self.progress_bar_refresh_rate == 0:
                     if test_mode:
                         self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
                         self.val_progress_bar.update(self.progress_bar_refresh_rate)
                         self.main_progress_bar.update(self.progress_bar_refresh_rate)
-=======
-                if self.mode == 'testing':
                     self.test_progress_bar.update(1)
                 else:
                     self.val_progress_bar.update(1)
-                    if not self.mode == 'validating':
+                    if self.mode is not TrainerMode.VALIDATING:
                         self.main_progress_bar.update(1)
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -349,7 +331,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self):
         # when testing make sure user defined a test step
-        if self.mode == 'testing' and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
+        if self.mode is TrainerMode.TESTING and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
             m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
                     Please define and try again'''
             raise MisconfigurationException(m)
@@ -385,12 +367,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # init validation or test progress bar
         # main progress bar will already be closed when testing so initial position is free
-        position = 2 * self.process_position + (not test_mode)
-        desc = 'Testing' if test_mode else 'Validating'
-        total = max_batches if max_batches != float('inf') else None
-        pbar = tqdm(desc=desc, total=total, leave=test_mode, position=position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True, file=sys.stdout)
-        setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
+
 
         # run evaluation
         eval_results = self.evaluate(self.model,
@@ -420,11 +397,12 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_post_performance_check()
 
         # add model specific metrics
-        if not test_mode:
-            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
+        tqdm_metrics = self.training_tqdm_dict
+        if self.mode is not TrainerMode.TESTING and self.mode is not TrainerMode.VALIDATING:
+            self.main_progress_bar.set_postfix(**tqdm_metrics)
 
         # close progress bar
-        if test_mode:
+        if self.mode is TrainerMode.TESTING:
             self.test_progress_bar.close()
         else:
             self.val_progress_bar.close()
@@ -462,8 +440,7 @@ class TrainerEvaluationLoopMixin(ABC):
             batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
-        # CPU, TPU or gpu step
-        if test_mode:
+
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)

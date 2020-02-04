@@ -391,7 +391,6 @@ class TrainerDPMixin(ABC):
         self.use_ddp2 = None
         self.use_ddp = None
         self.use_amp = None
-        self.mode = 'training'
         self.single_gpu = None
         self.root_gpu = None
         self.amp_level = None
@@ -577,11 +576,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-<<<<<<< HEAD
     if gpus is not None and type(gpus) not in (int, str, list):
-=======
-    if (gpus is not None and type(gpus) is not int and type(gpus) is not str and type(gpus) is not list):    # noqa E129
->>>>>>> Removed test variable into mode consisting of training/validating/testing.
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 

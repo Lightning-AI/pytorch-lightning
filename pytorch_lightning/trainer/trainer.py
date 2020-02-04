@@ -33,6 +33,7 @@ from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
+from pytorch_lightning.trainer.state import TrainerMode
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -341,7 +342,7 @@ class Trainer(
 
         # training state
         self.model = None
-        self.mode = 'training'
+        self.mode = TrainerMode.TRAINING
         self.disable_validation = False
         self.lr_schedulers = []
         self.optimizers = None
@@ -857,7 +858,7 @@ class Trainer(
             trainer = Trainer()
             trainer.validate(model)
         """
-        self.mode = 'validating'
+        self.mode = TrainerMode.VALIDATING
         if model is not None:
             self.fit(model)
         else:
@@ -887,7 +888,7 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model)
         """
-        self.mode = 'testing'
+        self.mode = TrainerMode.TESTING
         if model is not None:
             self.model = model
             self.fit(model)

@@ -38,14 +38,14 @@ def main(hparams):
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    if hparams.evaluate_val or hparams.evaluate_test:
+    if hparams.validating or hparams.testing:
         assert hparams.checkpoint != '', 'Please specify checkpoint for evaluation'
         model.load_from_checkpoint(hparams.checkpoint)
 
-        if hparams.evaluate_val:
+        if hparams.validating:
             trainer.validate(model)
 
-        if hparams.evaluate_test:
+        if hparams.testing:
             trainer.test(model)
     else:
         trainer.fit(model)
@@ -80,14 +80,14 @@ if __name__ == '__main__':
         help='if true uses 16 bit precision'
     )
     parent_parser.add_argument(
-        '--evaluate_val',
-        dest='evaluate_val',
+        '--validating',
+        dest='validating',
         action='store_true',
         help='evaluate on validation set'
     )
     parent_parser.add_argument(
-        '--evaluate_test',
-        dest='evaluate_test',
+        '--testing',
+        dest='testing',
         action='store_true',
         help='evaluate on test set'
     )
