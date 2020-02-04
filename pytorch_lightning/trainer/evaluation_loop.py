@@ -328,9 +328,6 @@ class TrainerEvaluationLoopMixin(ABC):
     def run_evaluation(self):
         # when testing make sure user defined a test step
 
-        if self.mode is TrainerMode.TESTING and not self.is_overriden('test_step'):
-            m = "You called `.test()` without defining model's `.test_step()`." \
-                " Please define and try again"
             raise MisconfigurationException(m)
 
         # Validation/Test begin callbacks
@@ -364,7 +361,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # init validation or test progress bar
         # main progress bar will already be closed when testing so initial position is free
-
         position = 2 * self.process_position + (self.mode is not TrainerMode.TESTING)
         desc = 'Testing' if self.mode is TrainerMode.TESTING else 'Validating'
         pbar = tqdm(desc=desc, total=max_batches, leave=self.mode is TrainerMode.TESTING, position=position,
@@ -401,8 +397,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_post_performance_check()
 
         # add model specific metrics
-        if self.mode is not TrainerMode.TESTING and self.mode is not TrainerMode.VALIDATING:
-            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
+
 
         # close progress bar
         if self.mode is TrainerMode.TESTING:

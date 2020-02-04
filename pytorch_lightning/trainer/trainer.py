@@ -845,7 +845,35 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
+    def validate(self, model=None):
+        r"""
 
+        Separates from fit to make sure you never run on your validation set until you want to.
+
+        Args:
+            model (LightningModule): The model to validate.
+
+        Example::
+
+            # Option 1
+            # run validation after fitting
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit()
+            trainer.validate()
+
+            # Option 2
+            # run validation from a loaded model
+            model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            trainer = Trainer()
+            trainer.validate(model)
+        """
+        self.mode = TrainerMode.VALIDATING
+        if model is not None:
+            self.fit(model)
+        else:
+            self.run_evaluation()
 
         r"""
 
@@ -870,7 +898,7 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model)
         """
-
+        self.mode = TrainerMode.TESTING
         if model is not None:
             self.model = model
             self.fit(model)
