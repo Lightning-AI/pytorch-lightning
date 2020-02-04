@@ -862,7 +862,7 @@ class Trainer(
             trainer = Trainer()
             trainer.validate(model)
         """
-        self.mode = 'validating'
+        self.mode = TrainerMode.VALIDATING
         if model is not None:
             self.fit(model)
         else:
