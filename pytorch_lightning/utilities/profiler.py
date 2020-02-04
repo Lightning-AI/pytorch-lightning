@@ -90,7 +90,7 @@ class BaseProfiler(ABC):
             with self.profile('load training data'):
                 # load training data code
 
-        The profiler will start once you've entered the context and will automatically 
+        The profiler will start once you've entered the context and will automatically
         stop once you exit the code block.
         """
         try:
