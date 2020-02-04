@@ -411,7 +411,7 @@ class GradientAccumulationScheduler(Callback):
     def on_epoch_begin(self, epoch, trainer):
         # indexing epochs from 1 (until v0.6.x)
         # In v0.8.0, `epoch += 1` should be removed.
-        epoch += 1 
+        epoch += 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
