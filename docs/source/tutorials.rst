@@ -12,7 +12,7 @@ Basic Lightning use
 
 9 key Lightning  tricks
 ========================
-`Tutorial <9 key speed features in Pytorch-Lightning>`_
+`Tutorial <https://towardsdatascience.com/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_
 
 Multi-node training on SLURM
 =============================
