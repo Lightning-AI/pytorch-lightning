@@ -23,12 +23,27 @@ pass it into the Trainer.
     profiler = Profiler()
     trainer = Trainer(..., profiler=profiler)
 
-You can also reference this profiler to profiler any arbitrary code.
+The profiler's results will be printed at the completion of a training `fit()`.
+
+You can also reference this profiler in your LightningModule to profile specific actions of interest.
 
 .. code-block:: python
 
-    with profiler.profile('my_custom_action'):
-        my_custom_action()
+    from pytorch_lightning.utilities.profiler import Profiler, PassThroughProfiler
+
+    class MyModel(LightningModule):
+        def __init__(self, hparams, profiler=None):
+            self.hparams = hparams
+            self.profiler = profiler or PassThroughProfiler()
+
+        def custom_processing_step(self, data):
+            with profiler.profile('my_custom_action'):
+                # custom processing step
+            return data
+
+    profiler = Profiler()
+    model = MyModel(hparams, profiler)
+    trainer = Trainer(profiler=profiler, max_epochs=1)
 
 """
 
@@ -47,30 +62,36 @@ logger = logging.getLogger(__name__)
 
 
 class BaseProfiler(ABC):
+    """
+    If you wish to write a custom profiler, you should inhereit from this class.
+    """
+
     @abstractmethod
     def start(self, action_name):
         """
-        defines how to start recording an action
+        Defines how to start recording an action.
         """
         pass
 
     @abstractmethod
     def stop(self, action_name):
         """
-        defines how to record the duration once an action is complete
+        Defines how to record the duration once an action is complete.
         """
         pass
 
     @contextmanager
     def profile(self, action_name):
         """
-        yields a context manager to encapsulate the scope of a profiled action
+        Yields a context manager to encapsulate the scope of a profiled action.
 
-        with self.profile('load training data'):
-            # load training data code
+        Example::
 
-        the profiler will start once you've entered the context and automatically stop
-        once you exit the code block
+            with self.profile('load training data'):
+                # load training data code
+
+        The profiler will start once you've entered the context and will automatically 
+        stop once you exit the code block.
         """
         try:
             self.start(action_name)
@@ -80,14 +101,15 @@ class BaseProfiler(ABC):
 
     def describe(self):
         """
-        prints a report after the conclusion of the profiled training run
+        Logs a profile report after the conclusion of the training run.
         """
         pass
 
 
 class PassThroughProfiler(BaseProfiler):
     """
-    this can be used when you don't want to profile your runs
+    This class should be used when you don't want the (small) overhead of profiling.
+    The Trainer uses this class by default.
     """
 
     def __init__(self):
@@ -102,8 +124,8 @@ class PassThroughProfiler(BaseProfiler):
 
 class Profiler(BaseProfiler):
     """
-    this profiler simply records the duration of actions (in seconds) and reports
-    the mean and standard deviation of each action duration over the entire training run
+    This profiler simply records the duration of actions (in seconds) and reports
+    the mean and standard deviation of each action duration over the entire training run.
     """
 
     def __init__(self):
@@ -128,19 +150,26 @@ class Profiler(BaseProfiler):
         self.recorded_durations[action_name].append(duration)
 
     def describe(self):
-        def log_row(action, mean, std_dev):
-            logger.info(f"{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}")
+        output_string = "\nProfiler Report\n"
 
-        log_row("Action", "Mean duration (s)", "Std dev.")
-        logger.info("-" * 60)
+        def log_row(action, mean, std_dev):
+            return f"\n{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}"
+
+        output_string += log_row("Action", "Mean duration (s)", "Std dev.")
+        output_string += f"\n{'-' * 60}"
         for action, durations in self.recorded_durations.items():
-            log_row(action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}")
+            output_string += log_row(
+                action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}"
+            )
+
+        logger.info(output_string)
 
 
 class AdvancedProfiler(BaseProfiler):
     """
-    this profiler uses Python's cProfiler to record more detailed information about
-    time spent in each function call recorded during a given action
+    This profiler uses Python's cProfiler to record more detailed information about
+    time spent in each function call recorded during a given action. The output is quite
+    verbose and you should only use this if you want very detailed reports.
     """
 
     def __init__(self, output_filename=None):
@@ -179,6 +208,8 @@ class AdvancedProfiler(BaseProfiler):
                     f.write(f"Profile stats for: {action}")
                     f.write(stats)
         else:
-            # print to standard out
+            # log to standard out
+            output_string = "\nProfiler Report\n"
             for action, stats in self.recorded_stats.items():
-                logger.info(f"Profile stats for: {action}\n{stats}")
+                output_string += f"\nProfile stats for: {action}\n{stats}"
+            logger.info(output_string)
