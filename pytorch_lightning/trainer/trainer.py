@@ -834,13 +834,13 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def validate(self, model=None):
+    def validate(self, model: Optional[LightningModule] = None):
         r"""
 
-        Separates from fit to make sure you never run on your validation set until you want to.
+        Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (LightningModule): The model to validate.
+            model: The model to test.
 
         Example::
 

@@ -264,7 +264,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx)
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
@@ -283,16 +283,12 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # batch done
                 if batch_idx % self.progress_bar_refresh_rate == 0:
-                    if test_mode:
+                    if self.mode is TrainerMode.TESTING:
                         self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
                         self.val_progress_bar.update(self.progress_bar_refresh_rate)
-                        self.main_progress_bar.update(self.progress_bar_refresh_rate)
-                    self.test_progress_bar.update(1)
-                else:
-                    self.val_progress_bar.update(1)
-                    if self.mode is not TrainerMode.VALIDATING:
-                        self.main_progress_bar.update(1)
+                        if self.mode is not TrainerMode.VALIDATING:
+                            self.main_progress_bar.update(self.progress_bar_refresh_rate)
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -331,9 +327,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self):
         # when testing make sure user defined a test step
-        if self.mode is TrainerMode.TESTING and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
-            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
-                    Please define and try again'''
+        if self.mode is TrainerMode.TESTING and not self.is_overriden('test_step'):
+            m = "You called `.test()` without defining model's `.test_step()`." \
+                " Please define and try again"
             raise MisconfigurationException(m)
 
         # Validation/Test begin callbacks
@@ -347,7 +343,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_pre_performance_check()
 
         # select dataloaders
-        if test_mode:
+        if self.mode is TrainerMode.TESTING:
             if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
                 self.reset_test_dataloader(model)
 
@@ -404,9 +400,8 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_post_performance_check()
 
         # add model specific metrics
-        tqdm_metrics = self.training_tqdm_dict
         if self.mode is not TrainerMode.TESTING and self.mode is not TrainerMode.VALIDATING:
-            self.main_progress_bar.set_postfix(**tqdm_metrics)
+            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # close progress bar
         if self.mode is TrainerMode.TESTING:
@@ -422,10 +417,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test_mode and len(self.test_dataloaders) > 1:
+        if self.mode is TrainerMode.TESTING and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif not test_mode and len(self.val_dataloaders) > 1:
+        elif self.mode is TrainerMode.VALIDATING and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
