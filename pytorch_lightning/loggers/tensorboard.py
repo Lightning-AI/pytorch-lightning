@@ -29,9 +29,10 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Args:
         save_dir (str): Save directory
-        name (str): Experiment name. Defaults to "default".
-        version (int): Experiment version. If version is not specified the logger inspects the save
+        name (str): Experiment name. Defaults to "default".  If it is '' then no per-experiment subdirectory is used.
+        version (int/str): Experiment version. If version is not specified the logger inspects the save
         directory for existing versions, then automatically assigns the next available version.
+        If it is a string then it is used as the run-specific subdirectory name, otherwise version_${version} is used.
         \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
