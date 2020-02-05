@@ -681,23 +681,9 @@ class Trainer(TrainerIOMixin,
         """Read-only for tqdm metrics.
         :return:
         """
-        tqdm_dict = {
-            'loss': '{0:.3f}'.format(self.avg_loss),
-            'batch_idx': '{}'.format(self.batch_idx),
-        }
+        ref_model = self.model if not self.data_parallel else self.model.module
 
-        if self.truncated_bptt_steps is not None:
-            tqdm_dict['split_idx'] = self.split_idx
-
-        if self.logger is not None and self.logger.version is not None:
-            tqdm_dict['v_num'] = self.logger.version
-
-        tqdm_dict.update(self.tqdm_metrics)
-
-        if self.on_gpu:
-            tqdm_dict['gpu'] = '{}'.format(torch.cuda.current_device())
-
-        return tqdm_dict
+        return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
 
     @property
     def tng_tqdm_dic(self):
@@ -855,7 +841,7 @@ class Trainer(TrainerIOMixin,
             pbar = tqdm(desc='Validation sanity check',
                              total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+                             disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
@@ -873,7 +859,7 @@ class Trainer(TrainerIOMixin,
 
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                    disable=not self.show_progress_bar, dynamic_ncols=True,
                     file=sys.stdout)
         self.main_progress_bar = pbar
 
