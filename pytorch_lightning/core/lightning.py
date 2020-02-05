@@ -1210,6 +1210,25 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
+    def get_tqdm_dict(self):
+        r"""
+        Additional items to be displayed in the progress bar.
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+        """
+        tqdm_dict = {
+            'loss': '{:.3f}'.format(self.trainer.avg_loss)
+        }
+
+        if self.trainer.truncated_bptt_steps is not None:
+            tqdm_dict['split_idx'] = self.trainer.split_idx
+
+        if self.trainer.logger is not None and self.trainer.logger.version is not None:
+            tqdm_dict['v_num'] = self.trainer.logger.version
+
+        return tqdm_dict
+
 
 def load_hparams_from_tags_csv(tags_csv):
     if not os.path.isfile(tags_csv):
