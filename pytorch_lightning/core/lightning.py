@@ -870,13 +870,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @data_loader
     def train_dataloader(self):
-        """Implement a PyTorch DataLoader
+        """
+        Called by lightning during training loop.
 
-        :return: PyTorch DataLoader
+        When using the @pl.data_loader decorator,
+         pl ensures that data_loader is not created multiple times.
+         If you want to change the data during every epoch, DON'T use the data_loader decorator.
 
-        Called by lightning during training loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        When returning a dali iterator and using @pl.data_loader decorator,
+         its corresponding percent_check will not work as expected.
+         The reason is that dali cannot be reset during a epoch.
+
+        Return: {PyTorch DataLoader, Nvidia Dali Iterator}
 
         Example
         -------
@@ -912,8 +917,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def test_dataloader(self):
         r"""
 
-        Called by lightning during test loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Called by lightning during test loop. Multiple dataloaders can be returned as a list.
+
+        For usage, refer to `train_dataloader`.
 
         Return:
             PyTorch DataLoader
@@ -937,8 +943,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you don't need a test dataset and a test_step, you don't need to implement this method.
 
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
-
         """
         return None
 
@@ -946,11 +950,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def val_dataloader(self):
         r"""
 
-        Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Called by lightning during validation loop. Multiple dataloaders can be returned as a list.
 
-        Return:
-            PyTorch DataLoader
+        For usage, refer to `train_dataloader`.
 
         Example
         -------
@@ -997,8 +999,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return [loader_a, loader_b, ..., loader_n]
 
         .. note:: If you don't need a validation dataset and a validation_step, you don't need to implement this method.
-
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
 
         .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
             will have an argument `dataset_idx` which matches the order here.
