@@ -281,6 +281,8 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     def train(self):
+        warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
+                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
         model = self.get_model()
         # run all epochs
         for epoch in range(self.current_epoch, self.max_epochs):
