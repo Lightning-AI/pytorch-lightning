@@ -294,6 +294,19 @@ def test_tensorboard_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
+def test_tensorboard_named_version(tmpdir):
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402' """
+
+    root_dir = tmpdir.mkdir("tb_versioning")
+    expected_version = "2020-02-05-162402"
+
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=expected_version)
+    logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
+
+    assert logger.version == expected_version
+    assert os.path.isdir(os.path.join(root_dir, expected_version))
+
+
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
