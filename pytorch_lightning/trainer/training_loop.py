@@ -376,7 +376,9 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_epoch_start()
 
         # run epoch
-        for batch_idx, batch in enumerate(self.get_train_dataloader()):
+        for batch_idx, batch in self.profiler.profile_iterable(
+            enumerate(self.get_train_dataloader()), "get_train_batch"
+        ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
                 break

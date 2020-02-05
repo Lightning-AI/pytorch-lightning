@@ -99,6 +99,18 @@ class BaseProfiler(ABC):
         finally:
             self.stop(action_name)
 
+    def profile_iterable(self, iterable, action_name):
+        iterator = iter(iterable)
+        while True:
+            try:
+                self.start(action_name)
+                value = next(iterator)
+                self.stop(action_name)
+                yield value
+            except StopIteration:
+                self.stop(action_name)
+                break
+
     def describe(self):
         """
         Logs a profile report after the conclusion of the training run.
@@ -125,7 +137,7 @@ class PassThroughProfiler(BaseProfiler):
 class Profiler(BaseProfiler):
     """
     This profiler simply records the duration of actions (in seconds) and reports
-    the mean and standard deviation of each action duration over the entire training run.
+    the mean duration of each action and the total time spent over the entire training run.
     """
 
     def __init__(self):
@@ -150,18 +162,22 @@ class Profiler(BaseProfiler):
         self.recorded_durations[action_name].append(duration)
 
     def describe(self):
-        output_string = "\nProfiler Report\n"
+        output_string = "\n\nProfiler Report\n"
 
-        def log_row(action, mean, std_dev):
-            return f"\n{action:<20s}\t|  {mean:<15}\t|  {std_dev:<15}"
+        def log_row(action, mean, total):
+            return f"\n{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
 
-        output_string += log_row("Action", "Mean duration (s)", "Std dev.")
-        output_string += f"\n{'-' * 60}"
+        output_string += log_row(
+            "Action", "Mean duration (s)", "Total time (s)"
+        )
+        output_string += f"\n{'-' * 65}"
         for action, durations in self.recorded_durations.items():
             output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.std(durations):.5}"
+                action,
+                f"{np.mean(durations):.5}",
+                f"{np.sum(durations):.5}",
             )
-
+        output_string += "\n"
         logger.info(output_string)
 
 
