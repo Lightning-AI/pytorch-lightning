@@ -212,7 +212,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # bookkeeping
         outputs = []
 
-        # run training
+        # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
             for batch_idx, batch in enumerate(dataloader):
