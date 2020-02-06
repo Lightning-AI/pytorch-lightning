@@ -1,7 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
-Profiler
+
+Profiling performance during training
 ===========
 .. automodule:: pytorch_lightning.utilities.profiler
    :exclude-members:
