@@ -45,15 +45,6 @@ class TrainerDataLoadingMixin(ABC):
         self.use_tpu = None
         self.tpu_local_core_rank = None
 
-    def _percent_range_check(self, name):
-        value = getattr(self, name)
-        msg = f"`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}."
-        if name == "val_check_interval":
-            msg += " If you want to disable validation set `val_percent_check` to 0.0 instead."
-
-        if not 0. <= value <= 1.:
-            raise ValueError(msg)
-
     def init_train_dataloader(self, model):
         """
         Dataloaders are provided by the model
@@ -61,15 +52,15 @@ class TrainerDataLoadingMixin(ABC):
         :return:
         """
         self.get_train_dataloader = model.train_dataloader
+        self._percent_range_check('train_percent_check')
 
         # determine number of training batches
         if DALI_AVAILABLE and isinstance(self.get_train_dataloader(), DALIGenericIterator):
+            self._dali_iterator_check(model, 'train')
             self.num_training_batches = self._get_dali_batch_count(self.get_train_dataloader())
         elif EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
             self.num_training_batches = float('inf')
         else:
-            self._percent_range_check('train_percent_check')
-
             self.num_training_batches = len(self.get_train_dataloader())
             self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
 
@@ -89,7 +80,7 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
 
-        self._check_ddp_loader(self.get_train_dataloader())
+        self._ddp_sampler_check(self.get_train_dataloader(), 'train')
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
@@ -111,24 +102,25 @@ class TrainerDataLoadingMixin(ABC):
         """
         self.get_val_dataloaders = model.val_dataloader
         self.num_val_batches = 0
+        self._percent_range_check('val_percent_check')
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.get_val_dataloaders() is not None:
             for dataloader in self.get_val_dataloaders():
                 if DALI_AVAILABLE and isinstance(dataloader, DALIGenericIterator):
+                    self._dali_iterator_check(model, 'val')
                     self.num_val_batches += self._get_dali_batch_count(dataloader)
                 else:
                     self.num_val_batches += len(dataloader)
 
-            self._percent_range_check('val_percent_check')
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
         if needs_sampler and self.get_val_dataloaders() is not None:
             for dataloader in self.get_val_dataloaders():
-                if self._check_ddp_loader(dataloader, "val"):
+                if self._check_ddp_loader(dataloader, 'val'):
                     break
 
     def init_test_dataloader(self, model):
@@ -138,23 +130,24 @@ class TrainerDataLoadingMixin(ABC):
         """
         self.get_test_dataloaders = model.test_dataloader
         self.num_test_batches = 0
+        self._percent_range_check('test_percent_check')
 
         # determine number of test batches
         if self.get_test_dataloaders() is not None:
             for dataloader in self.get_test_dataloaders():
                 if DALI_AVAILABLE and isinstance(dataloader, DALIGenericIterator):
+                    self._dali_iterator_check(model, 'test')
                     self.num_test_batches += self._get_dali_batch_count(dataloader)
                 else:
                     self.num_test_batches += len(dataloader)
 
-            self._percent_range_check('test_percent_check')
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
         if needs_sampler and self.get_test_dataloaders() is not None:
             for dataloader in self.get_test_dataloaders():
-                if self._check_ddp_loader(dataloader, "test"):
+                if self._check_ddp_loader(dataloader, 'test'):
                     break
 
     def get_dataloaders(self, model):
@@ -201,7 +194,16 @@ class TrainerDataLoadingMixin(ABC):
             self.val_percent_check = overfit_pct
             self.test_percent_check = overfit_pct
 
-    def _check_ddp_loader(self, data_loader, mode="train"):
+    def _percent_range_check(self, name):
+        value = getattr(self, name)
+        msg = f"`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}."
+        if name == "val_check_interval":
+            msg += " If you want to disable validation set `val_percent_check` to 0.0 instead."
+
+        if not 0. <= value <= 1.:
+            raise ValueError(msg)
+
+    def _ddp_sampler_check(self, data_loader, mode):
         """
         Check if sampler is used correctly in ddp mode
         :param data_loader:
@@ -229,6 +231,29 @@ class TrainerDataLoadingMixin(ABC):
 
             If you want each process to load the full dataset, ignore this warning.
             """
+            if msg not in self.shown_warnings and self.proc_rank == 0:
+                self.shown_warnings.add(msg)
+                warnings.warn(mode_msg + msg)
+            return True
+        return False
+
+    def _dali_iterator_check(self, model, mode):
+        """
+        Check if dali iterator is used with epoch percentage and decorator.
+        :param data_loader:
+        :param mode:
+        :return:
+        """
+        decorator_used = hasattr(model, "_lazy_{}_dataloader".format(mode))
+        percentage_name = "{}_percent_check".format(mode)
+        percentage = getattr(self, percentage_name)
+        if decorator_used and percentage != 1.0:
+            mode_msg = "Your '{}_loader(s)' has set {}.\n".format(mode, percentage_name)
+            msg = """
+            It will not work properly with your dali iterator becasuse dali cannot be reset during a epoch.
+            The value will be set to 1.
+            """
+            setattr(self, percentage_name, 1.0)
             if msg not in self.shown_warnings and self.proc_rank == 0:
                 self.shown_warnings.add(msg)
                 warnings.warn(mode_msg + msg)
