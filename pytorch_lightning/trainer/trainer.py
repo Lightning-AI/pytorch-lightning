@@ -469,9 +469,16 @@ class Trainer(TrainerIOMixin,
 
                     # default used by the Trainer
                     trainer = Trainer(profiler=None)
+                    
+                    # to profile using the defaults
+                    trainer = Trainer(profiler=True)
 
-                    # profile a training run and get a report on completion of the training job
+                    # profile main parts of a training run
                     profiler = utilities.Profiler()
+                    trainer = Trainer(profiler=profiler)
+
+                    # advanced profiler for function-level stats
+                    profiler = utilities.AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
