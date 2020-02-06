@@ -26,7 +26,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.utilities.profiler import PassThroughProfiler
+from pytorch_lightning.utilities.profiler import Profiler, PassThroughProfiler
 
 
 try:
@@ -578,6 +578,8 @@ class Trainer(TrainerIOMixin,
         self.configure_logger(logger)
 
         # configure profiler
+        if profiler is True:
+            profiler = Profiler()
         self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
