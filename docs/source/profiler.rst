@@ -4,7 +4,7 @@
 
 Profiling performance during training
 ===========
-.. automodule:: pytorch_lightning.utilities.profiler
+.. automodule:: pytorch_lightning.profiler
    :exclude-members:
         _abc_impl,
         summarize,

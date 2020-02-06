@@ -26,7 +26,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.utilities.profiler import Profiler, PassThroughProfiler
+from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 
 
 try:
@@ -463,22 +463,24 @@ class Trainer(TrainerIOMixin,
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
-            profiler (utilities.BaseProfiler):  To profile individual steps during training and assist in
+            profiler (BaseProfiler):  To profile individual steps during training and assist in
                 identifying bottlenecks.
                 Example::
 
+                    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+
                     # default used by the Trainer
                     trainer = Trainer(profiler=None)
-                    
-                    # to profile using the defaults
+
+                    # to profile standard training events
                     trainer = Trainer(profiler=True)
 
-                    # profile main parts of a training run
-                    profiler = utilities.Profiler()
+                    # equivalent to profiler=True
+                    profiler = Profiler()
                     trainer = Trainer(profiler=profiler)
 
                     # advanced profiler for function-level stats
-                    profiler = utilities.AdvancedProfiler()
+                    profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
