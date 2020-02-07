@@ -37,8 +37,12 @@ class ImageNetLightningModel(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def training_step(self, batch, batch_idx):
+    def split_batch(self, batch):
         images, target = batch
+        return images, target
+
+    def training_step(self, batch, batch_idx):
+        images, target = self.split_batch(batch)
         output = self.forward(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
@@ -61,7 +65,7 @@ class ImageNetLightningModel(pl.LightningModule):
         return output
 
     def validation_step(self, batch, batch_idx):
-        images, target = batch
+        images, target = self.split_batch(batch)
         output = self.forward(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
@@ -154,7 +158,7 @@ class ImageNetLightningModel(pl.LightningModule):
             dataset=train_dataset,
             batch_size=self.hparams.batch_size,
             shuffle=(train_sampler is None),
-            num_workers=0,
+            num_workers=2,
             sampler=train_sampler
         )
         return train_loader
@@ -175,7 +179,7 @@ class ImageNetLightningModel(pl.LightningModule):
             ])),
             batch_size=self.hparams.batch_size,
             shuffle=False,
-            num_workers=0,
+            num_workers=2,
         )
         return val_loader
 
@@ -226,8 +230,8 @@ def get_args():
     return parser.parse_args()
 
 
-def main(hparams):
-    model = ImageNetLightningModel(hparams)
+def main(hparams, pl_model=ImageNetLightningModel):
+    model = pl_model(hparams)
     if hparams.seed is not None:
         random.seed(hparams.seed)
         torch.manual_seed(hparams.seed)
