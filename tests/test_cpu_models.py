@@ -7,7 +7,7 @@ from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
-from pytorch_lightning.testing import (
+from tests.models import (
     LightningTestModel,
     LightningTestModelBase,
     LightningTestMixin,

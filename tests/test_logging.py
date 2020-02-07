@@ -15,7 +15,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
     NeptuneLogger
 )
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):

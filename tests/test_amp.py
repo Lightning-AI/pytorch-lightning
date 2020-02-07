@@ -4,7 +4,7 @@ import pytest
 
 import tests.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.testing import (
+from tests.models import (
     LightningTestModel,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException

@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_lightning.core import memory
-from pytorch_lightning.testing import (
+from tests.models import (
     LightningTestModel,
 )
 from pytorch_lightning.trainer.distrib_parts import (

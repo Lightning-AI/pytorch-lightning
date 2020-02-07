@@ -6,7 +6,7 @@ import torch
 import tests.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
