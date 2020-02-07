@@ -26,6 +26,8 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.profiler import Profiler, PassThroughProfiler
+
 
 try:
     from apex import amp
@@ -87,6 +89,7 @@ class Trainer(TrainerIOMixin,
             num_sanity_val_steps=5,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
+            profiler=None
     ):
         r"""
 
@@ -460,6 +463,25 @@ class Trainer(TrainerIOMixin,
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+            profiler (BaseProfiler):  To profile individual steps during training and assist in
+                identifying bottlenecks.
+                Example::
+
+                    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+
+                    # default used by the Trainer
+                    trainer = Trainer(profiler=None)
+
+                    # to profile standard training events
+                    trainer = Trainer(profiler=True)
+
+                    # equivalent to profiler=True
+                    profiler = Profiler()
+                    trainer = Trainer(profiler=profiler)
+
+                    # advanced profiler for function-level stats
+                    profiler = AdvancedProfiler()
+                    trainer = Trainer(profiler=profiler)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
@@ -563,6 +585,11 @@ class Trainer(TrainerIOMixin,
 
         # configure logger
         self.configure_logger(logger)
+
+        # configure profiler
+        if profiler is True:
+            profiler = Profiler()
+        self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
         # creates a default one if none passed in
@@ -869,6 +896,9 @@ class Trainer(TrainerIOMixin,
 
         # CORE TRAINING LOOP
         self.train()
+
+        # summarize profile results
+        self.profiler.describe()
 
     def test(self, model=None):
         r"""
