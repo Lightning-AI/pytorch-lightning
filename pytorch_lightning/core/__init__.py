@@ -101,4 +101,4 @@ from .decorators import data_loader
 from .lightning import LightningModule
 
 __all__ = ['LightningModule', 'data_loader']
-__call__ = __all__
+# __call__ = __all__

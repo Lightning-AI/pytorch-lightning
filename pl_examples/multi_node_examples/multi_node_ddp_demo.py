@@ -29,7 +29,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pt.Trainer(
+    trainer = pl.Trainer(
         gpus=2,
         num_nodes=2,
         distributed_backend='ddp'
