@@ -1,4 +1,4 @@
-from pytorch_lightning.utilities.profiler import Profiler, AdvancedProfiler
+from pytorch_lightning.profiler import Profiler, AdvancedProfiler
 import time
 import numpy as np
 
