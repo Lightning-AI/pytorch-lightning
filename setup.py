@@ -5,8 +5,10 @@ from io import open
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
-import builtins
-# import __builtin__ as builtins
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
