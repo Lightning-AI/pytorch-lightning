@@ -2,7 +2,7 @@ import warnings
 
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer, data_loader
 from pytorch_lightning.callbacks import (
     EarlyStopping,

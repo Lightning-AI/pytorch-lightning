@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from tests.models import (
     LightningTestModel,

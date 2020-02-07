@@ -4,7 +4,7 @@ import pickle
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     LightningLoggerBase,
