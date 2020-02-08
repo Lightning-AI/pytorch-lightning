@@ -206,8 +206,9 @@ class TrainerDataLoadingMixin(ABC):
     def _ddp_sampler_check(self, data_loader, mode):
         """
         Check if sampler is used correctly in ddp mode
-        :param data_loader:
-        :param mode:
+
+        :param data_loader: pytorch DataLoader
+        :param mode: str {train, val, test} specify the dataloader to check against
         :return:
         """
         on_ddp = self.use_ddp or self.use_ddp2
@@ -240,8 +241,8 @@ class TrainerDataLoadingMixin(ABC):
     def _dali_iterator_check(self, model, mode):
         """
         Check if dali iterator is used with epoch percentage and decorator.
-        :param data_loader:
-        :param mode:
+        :param model: pl module
+        :param mode: str {train, val, test} specify the dataloader to check against
         :return:
         """
         decorator_used = hasattr(model, "_lazy_{}_dataloader".format(mode))
