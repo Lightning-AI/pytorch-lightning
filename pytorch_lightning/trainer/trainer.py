@@ -122,7 +122,7 @@ class Trainer(TrainerIOMixin,
     ):
         r"""
 
-        Customize every aspect of training via flags
+        Customize every aspect of training via flags.
 
         Args:
             logger: Logger (or iterable collection of loggers) for experiment tracking.
@@ -197,30 +197,15 @@ class Trainer(TrainerIOMixin,
                     # default used by the Trainer
                     trainer = Trainer(default_save_path=os.getcwd())
 
-            gradient_clip_val: 0 means don't clip.
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(gradient_clip_val=0.0)
+            gradient_clip_val: 0 means don't clip.; default values is 0.
 
             gradient_clip:
                 .. warning: .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
-            process_position: orders the tqdm bar when running multiple models on same machine.
-                Example::
+            process_position: orders the tqdm bar when running multiple models on same machine; default values is 0.
 
-                    # default used by the Trainer
-                    trainer = Trainer(process_position=0)
-
-            num_nodes: number of GPU nodes for distributed training.
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(num_nodes=1)
-
-                    # to train on 8 nodes
-                    trainer = Trainer(num_nodes=8)
+            num_nodes: number of GPU nodes for distributed training; default value is 1.
 
             nb_gpu_nodes:
                 ..warning:: .. deprecated:: 0.5.0
@@ -289,61 +274,26 @@ class Trainer(TrainerIOMixin,
                     -- python your_trainer_file.py
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
-                because it uses the output of nvidia-smi.
-                Example::
+                because it uses the output of nvidia-smi. Default value is `None`.
+                The values meanings:
 
-                    # default used by the Trainer
-                    trainer = Trainer(log_gpu_memory=None)
+                - `all` - log all the GPUs (on master node only)
+                - `min_max` - log only the min and max memory on the master node
 
-                    # log all the GPUs (on master node only)
-                    trainer = Trainer(log_gpu_memory='all')
-
-                    # log only the min and max memory on the master node
-                    trainer = Trainer(log_gpu_memory='min_max')
-
-            show_progress_bar: If true shows tqdm progress bar
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(show_progress_bar=True)
+            show_progress_bar (bool): If true shows tqdm progress bar; default value is `True`.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
-            overfit_pct: uses this much data of all datasets.
-                Example::
+            overfit_pct: uses this much data of all datasets. Default value is 0.0
+                The values are in relative units, so set `0.01` use only 1% of the train, test, val datasets.
 
-                    # default used by the Trainer
-                    trainer = Trainer(overfit_pct=0.0)
+            track_grad_norm: Defines norms order. Moreover `-1` [default value] means no tracking].
 
-                    # use only 1% of the train, test, val datasets
-                    trainer = Trainer(overfit_pct=0.01)
+            check_val_every_n_epoch: Check val every n train epochs; default value is `1`.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that norm
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(track_grad_norm=-1)
-
-                    # track the 2-norm
-                    trainer = Trainer(track_grad_norm=2)
-
-            check_val_every_n_epoch: Check val every n train epochs.
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(check_val_every_n_epoch=1)
-
-                    # run val loop every 10 training epochs
-                    trainer = Trainer(check_val_every_n_epoch=10)
 
             fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(fast_dev_run=False)
-
-                    # runs 1 train, val, test  batch and program ends
-                    trainer = Trainer(fast_dev_run=True)
+                Default value is ``False``. If ``True```, it runs 1 train, val, test  batch and program ends.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
                 Example::
@@ -357,21 +307,13 @@ class Trainer(TrainerIOMixin,
                     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
                     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-            max_epochs: Stop training once this number of epochs is reached.
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(max_epochs=1000)
+            max_epochs: Stop training once this number of epochs is reached; efault values is 1000.
 
             max_nb_epochs:
                 .. warning:: .. deprecated:: 0.5.0
                     Use `max_epochs` instead. Will remove 0.8.0.
 
-            min_epochs: Force training for at least these many epochs
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(min_epochs=1)
+            min_epochs: Force training for at least these many epochs; default values is 1.
 
             min_nb_epochs:
                 .. warning:: .. deprecated:: 0.5.0
@@ -379,44 +321,30 @@ class Trainer(TrainerIOMixin,
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
                 Training will stop if max_steps or max_epochs have reached (earliest).
-                Example::
-
-                    # Stop after 100 steps
-                    trainer = Trainer(max_steps=100)
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
                 Trainer will train model for at least min_steps or min_epochs (latest).
-                Example::
-
-                    # Run at least for 100 steps (disable min_epochs)
-                    trainer = Trainer(min_steps=100, min_epochs=0)
 
             train_percent_check: How much of training dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
+                Default value is 1 meaning 100%.
                 Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(train_percent_check=1.0)
 
                     # run through only 25% of the training set each epoch
                     trainer = Trainer(train_percent_check=0.25)
 
             val_percent_check: How much of validation dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
+                Default value is 1 meaning 100%.
                 Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(val_percent_check=1.0)
 
                     # run through only 25% of the validation set each epoch
                     trainer = Trainer(val_percent_check=0.25)
 
             test_percent_check: How much of test dataset to check.
                 Useful when debugging or testing something that happens at the end of an epoch.
+                Default value is 1 meaning 100%.
                 Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(test_percent_check=1.0)
 
                     # run through only 25% of the test set each epoch
                     trainer = Trainer(test_percent_check=0.25)
@@ -436,17 +364,9 @@ class Trainer(TrainerIOMixin,
                     # (ie: production cases with streaming data)
                     trainer = Trainer(val_check_interval=1000)
 
-            log_save_interval: Writes logs to disk this often
-                Example::
+            log_save_interval: Writes logs to disk this often; default value is `100`.
 
-                    # default used by the Trainer
-                    trainer = Trainer(log_save_interval=100)
-
-            row_log_interval: How often to add logging rows (does not write to disk)
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(row_log_interval=10)
+            row_log_interval: How often to add logging rows (does not write to disk); default value is 10.
 
             add_row_log_interval:
                 .. warning:: .. deprecated:: 0.5.0
@@ -474,31 +394,15 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
             use_amp:
-                .. warning:: .. deprecated:: 0.6.1
-                    Use `precision` instead. Will remove 0.8.0.
+                .. warning:: .. deprecated:: 0.7.0
+                    Use `precision` instead. Will remove 0.9.0.
 
-            precision: Full precision (32), half precision (16).
+            precision: Full precision (32) [default], half precision (16).
                 Can be used on CPU, GPU or TPUs.
-
                 If used on TPU will use torch.bfloat16 but tensor printing
                 will still show torch.float32.
 
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(precision=32)
-
-                    # 16-bit precision
-                    trainer = Trainer(precision=16)
-
-                    # one day
-                    trainer = Trainer(precision=8|4|2)
-
-            print_nan_grads: Prints gradients with nan values
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(print_nan_grads=False)
+            print_nan_grads: Prints gradients with nan values; default value is `False`.
 
             weights_summary: Prints a summary of the weights when training begins.
                 Options: 'full', 'top', None.
@@ -530,20 +434,13 @@ class Trainer(TrainerIOMixin,
                         weights_save_path='my/path'
                     )
 
-            amp_level: The optimization level to use (O1, O2, etc...).
-                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
-                Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(amp_level='O1')
+            amp_level: The optimization level to use (O1, O2, etc...); default value is `'O1'`.
+                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels).
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
                 This catches any bugs in your validation without having to wait for the first validation check.
-                The Trainer uses 5 steps by default. Turn it off or modify it here.
+                The Trainer uses 5 steps by default. Turn it off or modify it here. Default values is `5`.
                 Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(num_sanity_val_steps=5)
 
                     # turn it off
                     trainer = Trainer(num_sanity_val_steps=0)
@@ -575,14 +472,13 @@ class Trainer(TrainerIOMixin,
                 .. note:: Using this feature requires updating your LightningModule's
                     :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.k
+            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
+                Default value is `None`.
                 Example::
-
-                    # default used by the Trainer
-                    trainer = Trainer(resume_from_checkpoint=None)
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+
             profiler:  To profile individual steps during training and assist in
                 identifying bottlenecks.
                 Example::
