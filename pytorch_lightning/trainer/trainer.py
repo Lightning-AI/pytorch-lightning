@@ -203,9 +203,9 @@ class Trainer(TrainerIOMixin,
                 .. warning: .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
-            process_position: orders the tqdm bar when running multiple models on same machine; default values is 0.
+            process_position: orders the tqdm bar when running multiple models on same machine; default values is ``0``.
 
-            num_nodes: number of GPU nodes for distributed training; default value is 1.
+            num_nodes: number of GPU nodes for distributed training; default value is ``1``.
 
             nb_gpu_nodes:
                 ..warning:: .. deprecated:: 0.5.0
@@ -239,7 +239,7 @@ class Trainer(TrainerIOMixin,
                 You MUST use DistributedDataSampler with your dataloader for this
                 to work. Your effective batch size is batch_size * total tpu cores.
 
-                This parameter can be either 1 or 8.
+                This parameter can be either ``1`` or ``8``.
 
                 Example::
 
@@ -268,26 +268,26 @@ class Trainer(TrainerIOMixin,
                 Example::
 
                     $ python -m torch_xla.distributed.xla_dist
-                    --tpu=$TPU_POD_NAME
-                    --conda-env=torch-xla-nightly
-                    --env=XLA_USE_BF16=1
-                    -- python your_trainer_file.py
+                        --tpu=$TPU_POD_NAME
+                        --conda-env=torch-xla-nightly
+                        --env=XLA_USE_BF16=1
+                        -- python your_trainer_file.py
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
-                because it uses the output of nvidia-smi. Default value is `None`.
+                because it uses the output of nvidia-smi. Default value is ``None``.
                 The values meanings:
 
-                - `all` - log all the GPUs (on master node only)
-                - `min_max` - log only the min and max memory on the master node
+                - ``all`` - log all the GPUs (on master node only)
+                - ``min_max`` - log only the min and max memory on the master node
 
-            show_progress_bar (bool): If true shows tqdm progress bar; default value is `True`.
+            show_progress_bar (bool): If true shows tqdm progress bar; default value is ``True``.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
-            overfit_pct: uses this much data of all datasets. Default value is 0.0
+            overfit_pct: uses this much data of all datasets. Default value is ``0.0``
                 The values are in relative units, so set `0.01` use only 1% of the train, test, val datasets.
 
-            track_grad_norm: Defines norms order. Moreover `-1` [default value] means no tracking].
+            track_grad_norm: Defines norms order. Moreover ``-1`` [default value] means no tracking].
 
             check_val_every_n_epoch: Check val every n train epochs; default value is `1`.
 
@@ -313,7 +313,7 @@ class Trainer(TrainerIOMixin,
                 .. warning:: .. deprecated:: 0.5.0
                     Use `max_epochs` instead. Will remove 0.8.0.
 
-            min_epochs: Force training for at least these many epochs; default values is 1.
+            min_epochs: Force training for at least these many epochs; default values is ``1``.
 
             min_nb_epochs:
                 .. warning:: .. deprecated:: 0.5.0
@@ -364,9 +364,9 @@ class Trainer(TrainerIOMixin,
                     # (ie: production cases with streaming data)
                     trainer = Trainer(val_check_interval=1000)
 
-            log_save_interval: Writes logs to disk this often; default value is `100`.
+            log_save_interval: Writes logs to disk this often; default value is ``100``.
 
-            row_log_interval: How often to add logging rows (does not write to disk); default value is 10.
+            row_log_interval: How often to add logging rows (does not write to disk); default value is ``10``.
 
             add_row_log_interval:
                 .. warning:: .. deprecated:: 0.5.0
@@ -434,12 +434,11 @@ class Trainer(TrainerIOMixin,
                         weights_save_path='my/path'
                     )
 
-            amp_level: The optimization level to use (O1, O2, etc...); default value is `'O1'`.
-                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels).
+            amp_level: The optimization level to use (O1, O2, etc...); default value is ``'O1'``.                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels).
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
                 This catches any bugs in your validation without having to wait for the first validation check.
-                The Trainer uses 5 steps by default. Turn it off or modify it here. Default values is `5`.
+                The Trainer uses 5 steps by default. Turn it off or modify it here. Default values is ``5``.
                 Example::
 
                     # turn it off
@@ -473,7 +472,7 @@ class Trainer(TrainerIOMixin,
                     :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                Default value is `None`.
+                Default value is ``None``.
                 Example::
 
                     # resume from a specific checkpoint
