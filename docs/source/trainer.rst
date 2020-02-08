@@ -4,7 +4,7 @@
 Trainer
 =======
 
-.. automodule:: pytorch_lightning.trainer
+.. automodule:: pytorch_lightning.train
    :members: fit, test
    :noindex:
    :exclude-members:

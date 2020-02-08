@@ -12,7 +12,7 @@ from pytorch_lightning.core import (  # noqa: E402
     decorators,
     grads,
     hooks,
-    root_module,
+    lightning as root_module,
     memory,
-    model_saving
+    saving as model_saving
 )
