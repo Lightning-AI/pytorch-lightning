@@ -89,7 +89,8 @@ class Trainer(TrainerIOMixin,
             num_sanity_val_steps=5,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
-            profiler=None
+            profiler=None,
+            enable_benchmarking=False
     ):
         r"""
 
@@ -483,11 +484,22 @@ class Trainer(TrainerIOMixin,
                     profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
 
+            enable_benchmarking (bool): If true enables benchmarking.
+                Example::
+
+                    # default disabled by the Trainer
+                    trainer = Trainer(enable_benchmarking=True)
+
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
             - `nb_sanity_val_steps`
 
         """
+
+        # benchmarking
+        self.enable_benchmarking = enable_benchmarking
+        if enable_benchmarking:
+            torch.backends.cudnn.benchmark = True
 
         # Transfer params
         # Backward compatibility
