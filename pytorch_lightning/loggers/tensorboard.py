@@ -29,8 +29,9 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Args:
         save_dir (str): Save directory
-        name (str): Experiment name. Defaults to "default".  If it is '' then no per-experiment subdirectory is used.
-        version (int/str): Experiment version. If version is not specified the logger inspects the save
+        name (str): Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
+        subdirectory is used.
+        version (int|str): Experiment version. If version is not specified the logger inspects the save
         directory for existing versions, then automatically assigns the next available version.
         If it is a string then it is used as the run-specific subdirectory name, otherwise version_${version} is used.
         \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
@@ -51,7 +52,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @property
     def root_dir(self):
         """ Parent directory for all tensorboard checkpoint subdirectories.
-            If the experiment name parameter is None or '', no experiment subdirectory is used
+            If the experiment name parameter is None or the empty string, no experiment subdirectory is used
             and checkpoint will be saved in save_dir/version_dir"""
         if self.name is None or len(self.name) == 0:
             return self.save_dir
@@ -64,8 +65,8 @@ class TensorBoardLogger(LightningLoggerBase):
             but it can be overridden by passing a string value for the constructor's version parameter
             instead of None or an int"""
         # create a pseudo standard path ala test-tube
-        log_dir = os.path.join(self.root_dir,
-                               self.version if isinstance(self.version, str) else 'version_%s' % self.version)
+        version = self.version if isinstance(self.version, str) else f"version_{self.version}"
+        log_dir = os.path.join(self.root_dir, version)
         return log_dir
 
     @property
