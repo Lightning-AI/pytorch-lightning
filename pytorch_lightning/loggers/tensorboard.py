@@ -30,10 +30,11 @@ class TensorBoardLogger(LightningLoggerBase):
     Args:
         save_dir (str): Save directory
         name (str): Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
-        subdirectory is used.
+            subdirectory is used.
         version (int|str): Experiment version. If version is not specified the logger inspects the save
-        directory for existing versions, then automatically assigns the next available version.
-        If it is a string then it is used as the run-specific subdirectory name, otherwise version_${version} is used.
+            directory for existing versions, then automatically assigns the next available version.
+            If it is a string then it is used as the run-specific subdirectory name,
+            otherwise version_${version} is used.
         \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -51,9 +52,11 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def root_dir(self):
-        """ Parent directory for all tensorboard checkpoint subdirectories.
-            If the experiment name parameter is None or the empty string, no experiment subdirectory is used
-            and checkpoint will be saved in save_dir/version_dir"""
+        """
+        Parent directory for all tensorboard checkpoint subdirectories.
+        If the experiment name parameter is None or the empty string, no experiment subdirectory is used
+        and checkpoint will be saved in save_dir/version_dir
+        """
         if self.name is None or len(self.name) == 0:
             return self.save_dir
         else:
@@ -61,9 +64,11 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def log_dir(self):
-        """ The directory for this run's tensorboard checkpoint.  By default, it is named 'version_${self.version}'
-            but it can be overridden by passing a string value for the constructor's version parameter
-            instead of None or an int"""
+        """
+        The directory for this run's tensorboard checkpoint.  By default, it is named 'version_${self.version}'
+        but it can be overridden by passing a string value for the constructor's version parameter
+        instead of None or an int
+        """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, version)
