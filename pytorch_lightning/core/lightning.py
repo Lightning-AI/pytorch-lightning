@@ -18,6 +18,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
@@ -115,6 +116,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         :param int batch_idx: Integer displaying which batch this is
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
+
             - loss -> tensor scalar [REQUIRED]
             - progress_bar -> Dict for progress bar display. Must have only tensors
             - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
@@ -1061,30 +1063,30 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it  stores  the hyperparameters in the checkpoint if you initialized your  LightningModule
         with an argument  called `hparams` which is a Namespace or dictionary of hyperparameters
 
-            Example
-            -------
-            .. code-block:: python
+        Example
+        -------
+        .. code-block:: python
 
-                # --------------
-                # Case 1
-                # when using Namespace (output of using Argparse to parse command line arguments)
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
+            # --------------
+            # Case 1
+            # when using Namespace (output of using Argparse to parse command line arguments)
+            from argparse import Namespace
+            hparams = Namespace(**{'learning_rate': 0.1})
 
-                model = MyModel(hparams)
+            model = MyModel(hparams)
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams.learning_rate
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams.learning_rate
 
-                # --------------
-                # Case 2
-                # when using a dict
-                model = MyModel({'learning_rate': 0.1})
+            # --------------
+            # Case 2
+            # when using a dict
+            model = MyModel({'learning_rate': 0.1})
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams['learning_rate']
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path (str): Path to checkpoint.

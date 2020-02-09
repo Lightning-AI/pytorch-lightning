@@ -7,8 +7,8 @@ from argparse import ArgumentParser
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
-from pytorch_lightning import Trainer
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -28,7 +28,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = Trainer(
+    trainer = pl.Trainer(
         gpus=hparams.gpus,
         distributed_backend=hparams.distributed_backend,
         use_amp=hparams.use_16bit

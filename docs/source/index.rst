@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 PyTorch-Lightning Documentation
-=============================
+===============================
 
 .. toctree::
    :maxdepth: 1

@@ -348,7 +348,11 @@ def linkcode_resolve(domain, info):
 
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
-autodoc_default_flags = [
-    'members', 'undoc-members', 'show-inheritance', 'private-members',
-    # 'special-members', 'inherited-members'
-]
+autodoc_default_options = {
+    'members': True,
+    'special-members': '__call__',
+    'undoc-members': True,
+    # 'exclude-members': '__weakref__',
+    'show-inheritance': True,
+    'private-members': True,
+}
