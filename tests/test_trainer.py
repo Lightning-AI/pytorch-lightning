@@ -413,60 +413,96 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
-def test_num_trainer_steps(tmpdir):
-    """Verify model trains according to speficied steps"""
+def test_trainer_max_steps_and_epochs(tmpdir):
+    """Verify model trains according to speficied max steps"""
     tutils.reset_seed()
     model, _ = tutils.get_model()
 
+    # define train epoch to 5% of data
     train_percent = 0.05
+    # get number of samples in 1 epoch
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
     trainer_options = dict(
-        gpus=None,
         default_save_path=tmpdir,
         train_percent_check=train_percent,
     )
 
+    # define less train steps than epochs
     trainer_options['max_epochs'] = 5
     trainer_options['max_steps'] = num_train_samples + 10
+
+    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+
+    # check training stopped at max_steps
     assert result == 1
-    # should stop at max_steps
     assert trainer.global_step == trainer_options['max_steps'], "Model did not stop at max_steps"
 
+    # define less train epochs than steps
     trainer_options['max_epochs'] = 2
     trainer_options['max_steps'] = trainer_options['max_epochs'] * 2 * num_train_samples
+
+    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
-    # should stop at max_epochs
+
+    # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer_options['max_epochs'] and \
         trainer.current_epoch == trainer_options['max_epochs'] - 1, "Model did not stop at max_epochs"
 
-    trainer_options.pop("max_steps", None)
+
+def test_trainer_min_steps_and_epochs(tmpdir):
+    """Verify model trains according to speficied min steps"""
+    tutils.reset_seed()
+    model, _ = tutils.get_model()
+
+    # define train epoch to 5% of data
+    train_percent = 0.05
+    # get number of samples in 1 epoch
+    num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        train_percent_check=train_percent,
+    )
+
+    # define callback for stopping the model
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
+    trainer_options['val_check_interval'] = 20
+
+    # define less min steps than 1 epoch
     trainer_options['min_epochs'] = 1
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)
     trainer_options['max_epochs'] = 10
+
+    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
-    # should run at least 1 epoch
+
+    # check model ran for at least min_epochs
     assert trainer.global_step >= num_train_samples and \
         trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=1.0)
     trainer_options['early_stop_callback'] = stopping
     trainer_options['val_check_interval'] = 20
+
+    # define less epochs than min_steps
     trainer_options['min_epochs'] = 1
     trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
     trainer_options['max_epochs'] = 10
+
+    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1
-    # should run at least 100 steps
+
+    # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
