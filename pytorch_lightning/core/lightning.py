@@ -409,7 +409,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         The outputs here are strictly for the progress bar.
          If you don't need to display anything, don't return anything.
          Any keys present in 'log', 'progress_bar' or the rest of the dictionary
-         are available for callbacks to access.
+         are available for callbacks to access. If you want to manually set current step, you can specify it with
+         'step' key in the 'log' Dict.
 
         Example
         -------
@@ -459,7 +460,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # show val_loss and val_acc in progress bar but only log val_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'val_loss': val_loss_mean.item()}
+                    'log': {'val_loss': val_loss_mean.item(), 'step': self.current_epoch}
                 }
                 return results
 
