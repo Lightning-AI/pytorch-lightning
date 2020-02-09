@@ -3,12 +3,11 @@ from functools import wraps
 
 
 def data_loader(fn):
-    """
-    Decorator to make any fx with this use the lazy property
+    """Decorator to make any fx with this use the lazy property.
+
     :param fn:
     :return:
     """
-
     wraps(fn)
     attr_name = '_lazy_' + fn.__name__
 

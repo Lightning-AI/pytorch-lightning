@@ -58,6 +58,12 @@ setup(
     setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
 
+    project_urls={
+        "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
+        "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
+        "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
+    },
+
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

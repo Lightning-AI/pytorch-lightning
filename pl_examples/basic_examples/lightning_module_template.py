@@ -16,10 +16,9 @@ from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 
 
-class LightningTemplateModel(LightningModule):
+class LightningTemplateModel(pl.LightningModule):
     """
     Sample model to show how to define a template
     """
