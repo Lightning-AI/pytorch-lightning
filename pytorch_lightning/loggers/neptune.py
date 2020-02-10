@@ -98,8 +98,8 @@ class NeptuneLogger(LightningLoggerBase):
                Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
                If None is passed, Python file from which experiment was created will be uploaded.
                Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
-               For example, you can pass '*.py' to upload all python source files from the current directory.
-               For recursion lookup use '**/*.py' (for Python 3.5 and later). For more information see glob library.
+               For example, you can pass '\*.py' to upload all python source files from the current directory.
+               For recursion lookup use '\**/\*.py' (for Python 3.5 and later). For more information see glob library.
             params (dict|None): Optional. Parameters of the experiment. After experiment creation params are read-only.
                Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
                viewed in experiments view as a column.
