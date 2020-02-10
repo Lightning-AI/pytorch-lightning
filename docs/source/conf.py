@@ -367,9 +367,4 @@ autodoc_default_options = {
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
 html_add_permalinks = True
-
-# True to prefix each section label with the name of the document it is in, followed by a colon.
-#  For example, index:Introduction for a section called Introduction that appears in document index.rst.
-#  Useful for avoiding ambiguity when the same section heading appears in different documents.
-# http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
 autosectionlabel_prefix_document = True
