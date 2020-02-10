@@ -484,7 +484,8 @@ class Trainer(TrainerIOMixin,
                     profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
 
-            benchmark (bool): If true enables benchmarking.
+            benchmark (bool): If true enables cudnn.benchmark. From PyTorchdocs: "This flag allows you to enable the inbuilt cudnn auto-tuner 
+                to find the best algorithm to use for your hardware."
                 Example::
 
                     # default disabled by the Trainer
