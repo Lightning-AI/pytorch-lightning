@@ -20,7 +20,7 @@ PyTorch-Lightning Documentation
 
    callbacks
    lightning-module
-   logging
+   loggers
    trainer
 
 .. toctree::
