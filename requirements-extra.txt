@@ -1,5 +1,5 @@
 neptune-client==0.4.103
 comet-ml==3.0.2 
 mlflow==1.6.0
-test_tube==0.7.5
+test_tube>=0.7.5
 wandb==0.8.21
