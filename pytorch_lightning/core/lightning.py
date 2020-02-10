@@ -337,7 +337,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def test_step(self, *args, **kwargs):
         """return whatever outputs will need to be aggregated in test_end
-
         :param batch: The output of your dataloader. A tensor, tuple or list
         :param int batch_idx: Integer displaying which batch this is
         :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
@@ -1008,7 +1007,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
         r"""
-
         You should use `load_from_checkpoint` instead!
         However, if your .ckpt weights don't have the hyperparameters saved, use this method  to pass
         in a .csv with the hparams you'd like to use. These will  be converted  into a argparse.Namespace
