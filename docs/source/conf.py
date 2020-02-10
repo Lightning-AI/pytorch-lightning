@@ -360,3 +360,4 @@ autodoc_default_options = {
 }
 
 html_add_permalinks = True
+autosectionlabel_prefix_document = True
