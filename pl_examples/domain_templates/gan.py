@@ -20,7 +20,8 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
-
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.core import data_loader
 
 class Generator(nn.Module):
     def __init__(self, latent_dim, img_shape):
@@ -69,7 +70,7 @@ class Discriminator(nn.Module):
         return validity
 
 
-class GAN(pl.LightningModule):
+class GAN(LightningModule):
 
     def __init__(self, hparams):
         super(GAN, self).__init__()
@@ -165,7 +166,7 @@ class GAN(pl.LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
-    @pl.data_loader
+    @data_loader
     def train_dataloader(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize([0.5], [0.5])])
