@@ -898,14 +898,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     @data_loader
-    def tng_dataloader(self):
+    def tng_dataloader(self):  # todo: remove in v0.8.0
         """Implement a PyTorch DataLoader.
 
         .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
         """
         output = self.train_dataloader()
-        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
-                      " and will be removed in v0.8.0", DeprecationWarning)
+        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+                      " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
     @data_loader

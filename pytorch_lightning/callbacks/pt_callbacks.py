@@ -376,7 +376,7 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
-        warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
+        .. warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
 
     Example::
 
