@@ -68,6 +68,7 @@ PyTorch-Lightning Documentation
    CODE_OF_CONDUCT.md
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
+   PULL_REQUEST_TEMPLATE.md
    governance.md
 
 Indices and tables
