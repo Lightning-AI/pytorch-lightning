@@ -90,7 +90,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
             profiler=None,
-            enable_benchmarking=False
+            benchmark=False
     ):
         r"""
 
@@ -484,11 +484,11 @@ class Trainer(TrainerIOMixin,
                     profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
 
-            enable_benchmarking (bool): If true enables benchmarking.
+            benchmark (bool): If true enables benchmarking.
                 Example::
 
                     # default disabled by the Trainer
-                    trainer = Trainer(enable_benchmarking=True)
+                    trainer = Trainer(benchmark=True)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
@@ -497,8 +497,8 @@ class Trainer(TrainerIOMixin,
         """
 
         # benchmarking
-        self.enable_benchmarking = enable_benchmarking
-        if enable_benchmarking:
+        self.benchmark = benchmark
+        if benchmark:
             torch.backends.cudnn.benchmark = True
 
         # Transfer params
