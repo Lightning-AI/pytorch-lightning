@@ -20,7 +20,7 @@ PyTorch-Lightning Documentation
 
    callbacks
    lightning-module
-   logging
+   loggers
    trainer
 
 .. toctree::
@@ -42,7 +42,22 @@ PyTorch-Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   common-cases
+   apex
+   checkpointing
+   slurm
+   debugging
+   experiment_logging
+   experiment_reporting
+   early_stopping
+   fast_training
+   hooks
+   multi_gpu
+   single_gpu
+   sequences
+   training_tricks
+   test_set
+   optimizers
+   profiler
 
 .. toctree::
    :maxdepth: 1
