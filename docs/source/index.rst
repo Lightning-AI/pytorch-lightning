@@ -42,6 +42,7 @@ PyTorch-Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
+   apex
    checkpointing
    distributed_training
    debugging
