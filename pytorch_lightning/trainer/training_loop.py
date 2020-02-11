@@ -114,7 +114,7 @@ Packed sequences as inputs
 
 When using PackedSequence, do 2 things:
 1. return either a padded tensor in dataset or a list of variable length tensors
- in the dataloader collate_fn (example above shows the list implementation).
+in the dataloader collate_fn (example above shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. code-block:: python
