@@ -77,10 +77,10 @@ of logging it to the output in your terminal. The output below shows the profili
     List reduced from 76 to 10 due to restriction <10>
     ncalls  tottime  percall  cumtime  percall filename:lineno(function)
     3752/1876    0.011    0.000   18.887    0.010 {built-in method builtins.next}
-        1876    0.008    0.000   18.877    0.010 dataloader.py:344(__next__)
-        1876    0.074    0.000   18.869    0.010 dataloader.py:383(_next_data)
-        1875    0.012    0.000   18.721    0.010 fetch.py:42(fetch)
-        1875    0.084    0.000   18.290    0.010 fetch.py:44(<listcomp>)
+        1876     0.008    0.000   18.877    0.010 dataloader.py:344(__next__)
+        1876     0.074    0.000   18.869    0.010 dataloader.py:383(_next_data)
+        1875     0.012    0.000   18.721    0.010 fetch.py:42(fetch)
+        1875     0.084    0.000   18.290    0.010 fetch.py:44(<listcomp>)
         60000    1.759    0.000   18.206    0.000 mnist.py:80(__getitem__)
         60000    0.267    0.000   13.022    0.000 transforms.py:68(__call__)
         60000    0.182    0.000    7.020    0.000 transforms.py:93(__call__)
