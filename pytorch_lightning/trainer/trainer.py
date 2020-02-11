@@ -452,9 +452,14 @@ class Trainer(TrainerIOMixin,
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
 
-                Using this feature requires updating your LightningModule's `training_step()` to include
-                a `hiddens` arg.
 
+                Lightning takes care to split your batch along the time-dimension.
+
+                .. note:: If you need to modify how the batch is split,
+                    override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
+
+                .. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
+                    a `hiddens` arg.
 
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::

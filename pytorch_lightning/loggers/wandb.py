@@ -1,3 +1,11 @@
+r"""
+
+.. _wandb:
+
+WandbLogger
+-------------
+"""
+
 import os
 
 try:
@@ -10,7 +18,7 @@ from .base import LightningLoggerBase, rank_zero_only
 
 class WandbLogger(LightningLoggerBase):
     """
-    Logger for W&B.
+    Logger for `W&B <https://www.wandb.com/>`_.
 
     Args:
         name (str): display name for the run.

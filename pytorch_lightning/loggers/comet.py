@@ -1,3 +1,11 @@
+r"""
+
+.. _comet:
+
+CometLogger
+-------------
+"""
+
 from logging import getLogger
 
 try:
@@ -20,11 +28,12 @@ logger = getLogger(__name__)
 
 
 class CometLogger(LightningLoggerBase):
+    r"""
+    Log using `comet.ml <https://www.comet.ml>`_.
+    """
     def __init__(self, api_key=None, save_dir=None, workspace=None,
                  rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
         r"""
-
-        Log using `comet <https://www.comet.ml>`_.
 
         Requires either an API Key (online mode) or a local directory path (offline mode)
 
@@ -32,7 +41,6 @@ class CometLogger(LightningLoggerBase):
 
             # ONLINE MODE
             from pytorch_lightning.loggers import CometLogger
-
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
                 api_key=os.environ["COMET_KEY"],
@@ -43,12 +51,10 @@ class CometLogger(LightningLoggerBase):
             )
             trainer = Trainer(logger=comet_logger)
 
-
         .. code-block:: python
 
             # OFFLINE MODE
             from pytorch_lightning.loggers import CometLogger
-
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
                 save_dir=".",
