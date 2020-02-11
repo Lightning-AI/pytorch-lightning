@@ -110,10 +110,17 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def training_step(self, *args, **kwargs):
-        """return loss, dict with metrics for tqdm
+        r"""return loss, dict with metrics for tqdm
 
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
+            batch_idx (int): Integer displaying index of this batch
+            optimizer_idx (int): If using multiple optimizers, this argument will also be present.
+            hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
+
+        :param
+
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
 
