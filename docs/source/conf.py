@@ -353,10 +353,10 @@ autoclass_content = 'both'
 autodoc_default_options = {
     'members': None,
     'special-members': '__call__',
-    'undoc-members': True,
     # 'exclude-members': '__weakref__',
     'show-inheritance': True,
     'private-members': True,
+    'noindex': True,
 }
 
 html_add_permalinks = True
