@@ -43,6 +43,9 @@ PyTorch-Lightning Documentation
    :caption: Common Use Cases
 
    common-cases
+   checkpointing
+   slurm
+   profiler
 
 .. toctree::
    :maxdepth: 1
