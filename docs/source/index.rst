@@ -44,11 +44,13 @@ PyTorch-Lightning Documentation
 
    apex
    checkpointing
-   distributed_training
    debugging
    experiment_logging
+   experiment_reporting
    early_stopping
    hooks
+   multi_gpu
+   single_gpu
    slurm
    sequences
    training_tricks
