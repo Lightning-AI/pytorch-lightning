@@ -17,7 +17,7 @@ To run the test set after training completes, use this method
 
 
 Test pre-trained model
------------------
+----------------------
 To run the test set on a pretrained model, use this method.
 
 .. code-block:: python
