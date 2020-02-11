@@ -6,6 +6,7 @@ Trainer
 
 .. automodule:: pytorch_lightning.trainer
    :members: fit, test
+   :noindex:
    :exclude-members: 
         run_pretrain_routine, 
         _abc_impl, 
