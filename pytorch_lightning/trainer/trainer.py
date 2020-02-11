@@ -128,7 +128,7 @@ class Trainer(TrainerIOMixin,
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-            early_stop_callback (:class:`.EarlyStopping`): Callback for early stopping. If
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`): Callback for early stopping. If
                 set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
                 If set to ``False``, then early stopping will be disabled.
@@ -912,7 +912,7 @@ class Trainer(TrainerIOMixin,
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (LightningModule): The model to test.
+            model (pytorch_lightning.core.LightningModule): The model to test.
 
         Example::
 
