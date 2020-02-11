@@ -358,3 +358,5 @@ autodoc_default_options = {
     'show-inheritance': True,
     'private-members': True,
 }
+
+html_add_permalinks = True
