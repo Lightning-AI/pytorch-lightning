@@ -348,8 +348,10 @@ def linkcode_resolve(domain, info):
 
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
+# the options are fixed and will be soon in release,
+#  see https://github.com/sphinx-doc/sphinx/issues/5459
 autodoc_default_options = {
-    'members': True,
+    'members': None,
     'special-members': '__call__',
     'undoc-members': True,
     # 'exclude-members': '__weakref__',

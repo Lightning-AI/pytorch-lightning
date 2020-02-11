@@ -499,7 +499,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not num_nodes:  # in case you did not set the proper value
                 num_nodes = nb_gpu_nodes
         self.num_gpu_nodes = num_nodes
@@ -509,7 +509,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if gradient_clip is not None:
             warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not gradient_clip_val:  # in case you did not set the proper value
                 gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
@@ -523,7 +523,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if max_nb_epochs is not None:
             warnings.warn("`max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not max_epochs:  # in case you did not set the proper value
                 max_epochs = max_nb_epochs
         self.max_epochs = max_epochs
@@ -531,7 +531,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if min_nb_epochs is not None:
             warnings.warn("`min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not min_epochs:  # in case you did not set the proper value
                 min_epochs = min_nb_epochs
         self.min_epochs = min_epochs
@@ -539,7 +539,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if nb_sanity_val_steps is not None:
             warnings.warn("`nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not num_sanity_val_steps:  # in case you did not set the proper value
                 num_sanity_val_steps = nb_sanity_val_steps
 
@@ -642,7 +642,7 @@ class Trainer(TrainerIOMixin,
         # backward compatibility
         if add_row_log_interval is not None:
             warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not row_log_interval:  # in case you did not set the proper value
                 row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
@@ -728,7 +728,7 @@ class Trainer(TrainerIOMixin,
                     Use `training_tqdm_dict` instead. Will remove 0.8.0.
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                      " and will be removed in v0.8.0", DeprecationWarning)
+                      " and this method will be removed in v0.8.0", DeprecationWarning)
         return self.training_tqdm_dict
 
     # -----------------------------

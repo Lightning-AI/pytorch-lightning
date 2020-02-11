@@ -2,7 +2,7 @@ Experiment Logging
 ===================
 
 Comet.ml
-^^^^^^^^^^
+^^^^^^^^
 
 `Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
 To use CometLogger as your logger do the following.
@@ -63,7 +63,7 @@ The Neptune.ai is available anywhere in your LightningModule
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
 Tensorboard
-^^^^^^^^^^^^^
+^^^^^^^^^^^
 
 To use `Tensorboard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
@@ -88,7 +88,7 @@ The TensorBoardLogger is available anywhere in your LightningModule
 
 
 Test Tube
-^^^^^^^^^^^^^
+^^^^^^^^^
 
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a tensorboard logger but with nicer file structure.
 To use TestTube as your logger do the following.
@@ -113,7 +113,7 @@ The TestTubeLogger is available anywhere in your LightningModule
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
 Wandb
-^^^^^^^^^^^^^
+^^^^^
 
 `Wandb <https://www.wandb.com/>`_ is a third-party logger.
 To use Wandb as your logger do the following.
