@@ -31,7 +31,7 @@ jobs:
         python -m pip install --upgrade --user pip
         pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html
         pip install -r ./tests/requirements.txt
-        pip install tox coverage
+        # pip install tox coverage
         python --version
         pip --version
         pip list
@@ -50,7 +50,9 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
-    #- name: Try install pkg
+
+    #- name: Try install package
+    #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
     #    virtualenv vEnv ; source vEnv/bin/activate
     #    pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
