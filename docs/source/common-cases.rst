@@ -873,6 +873,13 @@ Here we add a learning-rate warm up
         optimizer.step()
         optimizer.zero_grad()
 
+Profiling a training run
+========================
+.. toctree::
+    :maxdepth: 1
+
+    profiler
+
 Validation loop
 ================
 
@@ -984,10 +991,3 @@ Examples
 
    pl_examples
 
-
-profiling a training run
-========================
-.. toctree::
-    :maxdepth: 1
-
-    profiler
