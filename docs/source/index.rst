@@ -44,6 +44,9 @@ PyTorch-Lightning Documentation
 
    common-cases
    checkpointing
+   distributed_training
+   debugging
+   experiment_logging
    slurm
    profiler
 
