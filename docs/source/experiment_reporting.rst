@@ -7,7 +7,7 @@ used in each experiment.
 
 
 Control logging frequency
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It may slow training down to log every single batch. Trainer has an option to log every k batches instead.
 
@@ -17,7 +17,7 @@ It may slow training down to log every single batch. Trainer has an option to lo
    Trainer(row_log_interval=10)
 
 Control log writing frequency
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Writing to a logger  can be expensive. In Lightning you can set the interval at which you
 want to log using this trainer flag.
@@ -30,7 +30,7 @@ want to log using this trainer flag.
    Trainer(log_save_interval=k)
 
 Log metrics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^
 
 To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
 
@@ -90,7 +90,7 @@ For instance, here we log images using tensorboard.
       return results
 
 Modify progress bar
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 Each return dict from the training_end, validation_end, testing_end and training_step also has
 a key called "progress_bar".
@@ -108,7 +108,7 @@ Here we show the validation loss in the progress bar
       return results
 
 Snapshot hyperparameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 When training a model, it's useful to know what hyperparams went into that model.
 When Lightning creates a checkpoint, it stores a key "hparams" with the hyperparams.
 
@@ -122,7 +122,7 @@ when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will sho
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
 Snapshot code
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 Loggers  also allow you to snapshot a copy of the code used in this experiment.
 For example, TestTubeLogger does this with a flag:
 

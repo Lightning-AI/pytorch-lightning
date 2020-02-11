@@ -2,7 +2,7 @@
     :class: hidden-section
 
 Callbacks
-===========
+=========
 .. automodule:: pytorch_lightning.callbacks
    :exclude-members:
         _del_model,
