@@ -63,3 +63,13 @@ Prints the tensors with nan gradients.
 .. code-block:: python
 
     trainer = pl.Trainer(print_nan_grads=False)
+
+Set the number of validation sanity steps
+-------------------------------------
+Lightning runs a few steps of validation in the beginning of training.
+This avoids crashing in the validation loop sometime deep into a lengthy training loop.
+
+.. code-block:: python
+
+    # DEFAULT
+    trainer = Trainer(nb_sanity_val_steps=5)

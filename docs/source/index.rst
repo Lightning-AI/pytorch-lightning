@@ -42,12 +42,17 @@ PyTorch-Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   common-cases
    checkpointing
    distributed_training
    debugging
    experiment_logging
+   early_stopping
+   hooks
    slurm
+   sequences
+   training_tricks
+   test_set
+   optimizers
    profiler
 
 .. toctree::
