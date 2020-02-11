@@ -4,7 +4,7 @@ import pickle
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     LightningLoggerBase,
@@ -15,7 +15,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
     NeptuneLogger
 )
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):
