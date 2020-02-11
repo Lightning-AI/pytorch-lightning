@@ -352,11 +352,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 
         **OPTIONAL**
-        If you don't need to test you don't need to implement this method. In this step you'd normally
-         generate examples or calculate anything of interest such as accuracy.
+        If you don't need to test you don't need to implement this method. In this step you'd normally generate examples or calculate anything of interest such as accuracy.
 
-        When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-         have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+        When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
 
         The dict you return here will be available in the `test_end` method.
 
@@ -1016,10 +1014,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             weights_path (str): Path to a PyTorch checkpoint
             tags_csv (str): Path to a .csv with two columns (key, value) as in this
-                Example::
-                    key,value
-                    drop_prob,0.2
-                    batch_size,32
+
+            Example::
+                key,value
+                drop_prob,0.2
+                batch_size,32
 
             map_location (dict): A dictionary mapping saved weight GPU devices to new
                 GPU devices (example: {'cuda:1':'cuda:0'})
@@ -1080,7 +1079,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             model = MyModel(hparams)
 
-            class MyModel(pl.LightningModule):
+            class MyModel(LightningModule):
                 def __init__(self, hparams):
                     self.learning_rate = hparams.learning_rate
 
@@ -1089,7 +1088,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # when using a dict
             model = MyModel({'learning_rate': 0.1})
 
-            class MyModel(pl.LightningModule):
+            class MyModel(LightningModule):
                 def __init__(self, hparams):
                     self.learning_rate = hparams['learning_rate']
 
