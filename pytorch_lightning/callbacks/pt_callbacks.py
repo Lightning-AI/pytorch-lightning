@@ -171,6 +171,8 @@ class EarlyStopping(Callback):
 
     def on_train_end(self):
         if self.stopped_epoch > 0 and self.verbose > 0:
+            warnings.warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
+                          ' but will start from "0" in v0.8.0.', DeprecationWarning)
             log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
@@ -374,6 +376,7 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
+        .. warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
 
     Example::
 
@@ -396,6 +399,8 @@ class GradientAccumulationScheduler(Callback):
                 raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
+        warnings.warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
+                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
@@ -409,7 +414,9 @@ class GradientAccumulationScheduler(Callback):
         assert self._trainer is not None, _no_trainer_error_msg
 
         trainer = self._trainer
-        epoch = trainer.current_epoch + 1  # indexing epochs from 1
+        # indexing epochs from 1 (until v0.6.x)
+        # In v0.8.0, ` + 1` should be removed.
+        epoch = trainer.current_epoch + 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])

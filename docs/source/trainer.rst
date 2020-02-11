@@ -2,7 +2,8 @@
     :class: hidden-section
 
 Trainer
-===========
+=======
+
 .. automodule:: pytorch_lightning.trainer
    :members: fit, test
    :exclude-members: 

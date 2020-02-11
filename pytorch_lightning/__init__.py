@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.6.0.dev'
+__version__ = '0.6.1.dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -9,7 +9,6 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
-
 
 try:
     # This variable is injected in the __builtins__ by the build
@@ -28,12 +27,12 @@ else:
     import logging as log
     log.basicConfig(level=log.INFO)
 
-    from .trainer.trainer import Trainer
-    from .core.lightning import LightningModule
-    from .core.decorators import data_loader
+    from .core import data_loader, LightningModule
+    from .trainer import Trainer
 
     __all__ = [
         'Trainer',
         'LightningModule',
         'data_loader',
     ]
+    # __call__ = __all__

@@ -4,7 +4,7 @@ import pickle
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     LightningLoggerBase,
@@ -15,7 +15,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
     NeptuneLogger
 )
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):
@@ -292,6 +292,19 @@ def test_tensorboard_manual_versioning(tmpdir):
     logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=1)
 
     assert logger.version == 1
+
+
+def test_tensorboard_named_version(tmpdir):
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402' """
+
+    tmpdir.mkdir("tb_versioning")
+    expected_version = "2020-02-05-162402"
+
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=expected_version)
+    logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
+
+    assert logger.version == expected_version
+    # Could also test existence of the directory but this fails in the "minimum requirements" test setup
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
