@@ -1,6 +1,10 @@
 """
 Profiling your training run can help you understand if there are any bottlenecks in your code.
 
+
+Built-in checks
+----------------
+
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
 
 - on_epoch_start
@@ -14,6 +18,9 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_batch_end
 - training_end
 - on_training_end
+
+Enable simple profiling
+-------------------------
 
 If you only wish to profile the standard actions, you can set `profiler=True` when constructing
 your `Trainer` object.
@@ -41,6 +48,9 @@ The profiler's results will be printed at the completion of a training `fit()`.
     on_epoch_end            |  3.919e-06            |  3.919e-06
     on_train_end            |  5.449e-06            |  5.449e-06
 
+
+Advanced Profiling
+--------------------
 
 If you want more information on the functions called during each event, you can use the `AdvancedProfiler`.
 This option uses Python's cProfiler_ to provide a report of time spent on *each* function called within your code.
