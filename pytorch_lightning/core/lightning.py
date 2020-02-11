@@ -113,7 +113,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""return loss, dict with metrics for tqdm
 
         Args:
-            batch(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): The output of your dataloader. A tensor, tuple or list
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): If using multiple optimizers, this argument will also be present.
             hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.

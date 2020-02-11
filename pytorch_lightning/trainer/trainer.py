@@ -458,8 +458,8 @@ class Trainer(TrainerIOMixin,
                 .. note:: If you need to modify how the batch is split,
                     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
 
-                .. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
-                    a `hiddens` arg.
+                .. note:: Using this feature requires updating your LightningModule's
+                    :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
 
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
