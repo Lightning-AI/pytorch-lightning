@@ -24,6 +24,14 @@ references:
        py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 15m
 
+  install_pkg: &install_pkg
+    run:
+      name: Install package
+      command: |
+        virtualenv vEnv ; source vEnv/bin/activate
+        pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+        deactivate ; rm -rf vEnv
+
   format: &format
    run:
      name: Formatting
@@ -104,6 +112,14 @@ jobs:
       - TORCH_VERSION: "torch>=1.4, <1.5"
     steps: *steps
 
+  Install-pkg:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - *install_pkg
+
+
 workflows:
   version: 2
   build:
@@ -114,3 +130,4 @@ workflows:
       - PyTorch-v1.2
       - PyTorch-v1.3
       - PyTorch-v1.4
+      - Install-pkg
