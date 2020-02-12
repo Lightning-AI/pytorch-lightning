@@ -10,6 +10,7 @@ from pytorch_lightning.callbacks import (
 )
 from tests.models import (
     LightningTestModel,
+    LightningTestMixin,
     LightningTestModelBase,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
