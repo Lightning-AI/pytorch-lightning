@@ -212,7 +212,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # bookkeeping
         outputs = []
 
-        # run training
+        # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
             for batch_idx, batch in enumerate(dataloader):
@@ -296,7 +296,7 @@ class TrainerEvaluationLoopMixin(ABC):
         desc = 'Testing' if test else 'Validating'
         pbar = tqdm(desc=desc, total=max_batches, leave=test, position=position,
                     disable=not self.show_progress_bar, dynamic_ncols=True,
-                    unit='batch', file=sys.stdout)
+                    file=sys.stdout)
         setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
 
         # run evaluation
@@ -320,9 +320,8 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_post_performance_check()
 
         # add model specific metrics
-        tqdm_metrics = self.training_tqdm_dict
         if not test:
-            self.main_progress_bar.set_postfix(**tqdm_metrics)
+            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # close progress bar
         if test:

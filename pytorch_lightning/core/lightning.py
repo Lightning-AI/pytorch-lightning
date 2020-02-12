@@ -1,15 +1,14 @@
 import collections
-import logging
+import logging as log
+import csv
 import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 
-
-import pandas as pd
 import torch
 import torch.distributed as dist
-#
+
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
@@ -19,6 +18,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
@@ -110,12 +110,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def training_step(self, *args, **kwargs):
-        """return loss, dict with metrics for tqdm
+        r"""return loss, dict with metrics for tqdm
 
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
+            batch_idx (int): Integer displaying index of this batch
+            optimizer_idx (int): If using multiple optimizers, this argument will also be present.
+            hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
+
+        :param
+
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
+
             - loss -> tensor scalar [REQUIRED]
             - progress_bar -> Dict for progress bar display. Must have only tensors
             - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
@@ -169,6 +177,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # Truncated back-propagation through time
             def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hiddens from the previous truncated backprop step
+                ...
+                out, hiddens = self.lstm(data, hiddens)
+                ...
+
+                return {
+                    "loss": ...,
+                    "hiddens": hiddens  # remember to detach() this
+                }
 
         You can also return a -1 instead of a dict to stop the current loop. This is useful
          if you want to break out of the current training epoch early.
@@ -246,7 +262,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
         break out of the current training epoch early.
         """
-        pass
 
     def validation_step(self, *args, **kwargs):
         r"""
@@ -319,7 +334,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
-        pass
 
     def test_step(self, *args, **kwargs):
         """return whatever outputs will need to be aggregated in test_end
@@ -388,7 +402,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
-        pass
 
     def validation_end(self, outputs):
         """Outputs has the appended output after each validation step.
@@ -460,7 +473,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return results
 
         """
-        pass
 
     def test_end(self, outputs):
         """Outputs has the appended output after each test step.
@@ -525,7 +537,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return results
 
         """
-        pass
 
     def configure_ddp(self, model, device_ids):
         r"""
@@ -835,8 +846,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Each returned batch split is passed separately to training_step(...).
 
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(
-            x, torch.Tensor) or isinstance(x, collections.Sequence)]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
@@ -888,14 +898,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     @data_loader
-    def tng_dataloader(self):
+    def tng_dataloader(self):  # todo: remove in v0.8.0
         """Implement a PyTorch DataLoader.
 
         .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
         """
         output = self.train_dataloader()
-        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
-                      " and will be removed in v0.8.0", DeprecationWarning)
+        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+                      " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
     @data_loader
@@ -1060,30 +1070,30 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it  stores  the hyperparameters in the checkpoint if you initialized your  LightningModule
         with an argument  called `hparams` which is a Namespace or dictionary of hyperparameters
 
-            Example
-            -------
-            .. code-block:: python
+        Example
+        -------
+        .. code-block:: python
 
-                # --------------
-                # Case 1
-                # when using Namespace (output of using Argparse to parse command line arguments)
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
+            # --------------
+            # Case 1
+            # when using Namespace (output of using Argparse to parse command line arguments)
+            from argparse import Namespace
+            hparams = Namespace(**{'learning_rate': 0.1})
 
-                model = MyModel(hparams)
+            model = MyModel(hparams)
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams.learning_rate
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams.learning_rate
 
-                # --------------
-                # Case 2
-                # when using a dict
-                model = MyModel({'learning_rate': 0.1})
+            # --------------
+            # Case 2
+            # when using a dict
+            model = MyModel({'learning_rate': 0.1})
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams['learning_rate']
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path (str): Path to checkpoint.
@@ -1131,7 +1141,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def summarize(self, mode):
         model_summary = ModelSummary(self, mode=mode)
-        logging.info('\n' + model_summary.__str__())
+        log.info('\n' + model_summary.__str__())
 
     def freeze(self):
         r"""
@@ -1185,7 +1195,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
             No need for you to restore anything regarding training.
         """
-        pass
 
     def on_save_checkpoint(self, checkpoint):
         r"""
@@ -1209,25 +1218,45 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             for you to store anything about training.
 
         """
-        pass
+
+    def get_tqdm_dict(self):
+        r"""
+        Additional items to be displayed in the progress bar.
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+        """
+        tqdm_dict = {
+            'loss': '{:.3f}'.format(self.trainer.avg_loss)
+        }
+
+        if self.trainer.truncated_bptt_steps is not None:
+            tqdm_dict['split_idx'] = self.trainer.split_idx
+
+        if self.trainer.logger is not None and self.trainer.logger.version is not None:
+            tqdm_dict['v_num'] = self.trainer.logger.version
+
+        return tqdm_dict
 
 
 def load_hparams_from_tags_csv(tags_csv):
     if not os.path.isfile(tags_csv):
-        logging.warning(f'Missing Tags: {tags_csv}.')
+        log.warning(f'Missing Tags: {tags_csv}.')
         return Namespace()
 
-    tags_df = pd.read_csv(tags_csv)
-    dic = tags_df.to_dict(orient='records')
-    ns_dict = {row['key']: convert(row['value']) for row in dic}
-    ns = Namespace(**ns_dict)
+    tags = {}
+    with open(tags_csv) as f:
+        csv_reader = csv.reader(f, delimiter=',')
+        for row in list(csv_reader)[1:]:
+            tags[row[0]] = convert(row[1])
+    ns = Namespace(**tags)
     return ns
 
 
 def convert(val):
     constructors = [int, float, str]
 
-    if type(val) is str:
+    if isinstance(val, str):
         if val.lower() == 'true':
             return True
         if val.lower() == 'false':

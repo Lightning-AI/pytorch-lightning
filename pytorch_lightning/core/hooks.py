@@ -32,14 +32,12 @@ class ModelHooks(torch.nn.Module):
         .. warning:: will be deprecated.
         :return:
         """
-        pass
 
     def on_train_start(self):
         """Called at the beginning of training before sanity check
         :return:
         """
         # do something at the start of training
-        pass
 
     def on_train_end(self):
         """
@@ -47,7 +45,6 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         # do something at the end of training
-        pass
 
     def on_batch_start(self, batch):
         """Called in the training loop before anything happens for that batch.
@@ -56,32 +53,26 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         # do something when the batch starts
-        pass
 
     def on_batch_end(self):
         """Called in the training loop after the batch."""
         # do something when the batch ends
-        pass
 
     def on_epoch_start(self):
         """Called in the training loop at the very beginning of the epoch."""
         # do something when the epoch starts
-        pass
 
     def on_epoch_end(self):
         """Called in the training loop at the very end of the epoch."""
         # do something when the epoch ends
-        pass
 
     def on_pre_performance_check(self):
         """Called at the very beginning of the validation loop."""
         # do something before validation starts
-        pass
 
     def on_post_performance_check(self):
         """Called at the very end of the validation loop."""
         # do something before validation end
-        pass
 
     def on_before_zero_grad(self, optimizer):
         """Called after optimizer.step() and before optimizer.zero_grad()
@@ -99,7 +90,6 @@ class ModelHooks(torch.nn.Module):
         :return:
         """
         # do something with the optimizer or inspect it.
-        pass
 
     def on_after_backward(self):
         """Called after loss.backward() and before optimizers do anything.
@@ -122,7 +112,6 @@ class ModelHooks(torch.nn.Module):
                                                              global_step=self.trainer.global_step)
 
         """
-        pass
 
     def backward(self, use_amp, loss, optimizer, optimizer_idx):
         """Override backward with your own implementation if you need to

@@ -400,24 +400,24 @@ class TrainerDPMixin(ABC):
         if callable(getattr(batch, 'cuda', None)):
             return batch.cuda(gpu_id)
 
-        elif callable(getattr(batch, 'to', None)):
+        if callable(getattr(batch, 'to', None)):
             return batch.to(torch.device('cuda', gpu_id))
 
         # when list
-        elif isinstance(batch, list):
+        if isinstance(batch, list):
             for i, x in enumerate(batch):
                 batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
             return batch
 
         # when tuple
-        elif isinstance(batch, tuple):
+        if isinstance(batch, tuple):
             batch = list(batch)
             for i, x in enumerate(batch):
                 batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
             return tuple(batch)
 
         # when dict
-        elif isinstance(batch, dict):
+        if isinstance(batch, dict):
             for k, v in batch.items():
                 batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
 
@@ -463,7 +463,7 @@ class TrainerDPMixin(ABC):
 
         # create list of device ids
         device_ids = self.data_parallel_device_ids
-        if type(device_ids) is int:
+        if isinstance(device_ids, int):
             device_ids = list(range(device_ids))
 
         model = LightningDataParallel(model, device_ids=device_ids)
@@ -472,7 +472,7 @@ class TrainerDPMixin(ABC):
 
 
 def normalize_parse_gpu_string_input(s):
-    if type(s) is str:
+    if isinstance(s, str):
         if s == '-1':
             return -1
         else:
@@ -496,10 +496,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    if (gpus is not None and
-        type(gpus) is not int and
-        type(gpus) is not str and
-        type(gpus) is not list):    # noqa E129
+    if gpus is not None and type(gpus) not in (int, str, list):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
@@ -507,13 +504,14 @@ def normalize_parse_gpu_input_to_list(gpus):
     assert gpus is not None
     if isinstance(gpus, list):
         return gpus
-    else:  # must be an int
-        if not gpus:  # gpus==0
-            return None
-        elif gpus == -1:
-            return get_all_available_gpus()
-        else:
-            return list(range(gpus))
+
+    # must be an int
+    if not gpus:  # gpus==0
+        return None
+    if gpus == -1:
+        return get_all_available_gpus()
+
+    return list(range(gpus))
 
 
 def sanitize_gpu_ids(gpus):
@@ -552,7 +550,7 @@ def parse_gpu_ids(gpus):
     check_gpus_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or type(gpus) is int and gpus == 0:
+    if gpus is None or isinstance(gpus, int) and gpus == 0:
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -576,7 +574,7 @@ def determine_root_gpu_device(gpus):
         return None
 
     assert isinstance(gpus, list), "gpus should be a list"
-    assert len(gpus), "gpus should be a non empty list"
+    assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
     root_gpu = gpus[0]

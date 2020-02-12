@@ -3,13 +3,12 @@ Generates a summary of a model's layers and dimensionality
 '''
 
 import gc
-import logging
+import logging as log
 import os
 import subprocess
 from subprocess import PIPE
 
 import numpy as np
-import pandas as pd
 import torch
 
 
@@ -78,7 +77,7 @@ class ModelSummary(object):
                 if isinstance(input_, (list, tuple)):  # pragma: no cover
                     in_size = []
                     for x in input_:
-                        if type(x) is list:
+                        if isinstance(x, list):
                             in_size.append(len(x))
                         else:
                             in_size.append(x.size())
@@ -98,7 +97,6 @@ class ModelSummary(object):
         self.in_sizes = in_sizes
         self.out_sizes = out_sizes
         assert len(in_sizes) == len(out_sizes)
-        return
 
     def get_layer_names(self):
         '''Collect Layer Names'''
@@ -113,7 +111,6 @@ class ModelSummary(object):
 
         self.layer_names = names
         self.layer_types = layer_types
-        return
 
     def get_parameter_sizes(self):
         '''Get sizes of all parameters in `model`'''
@@ -121,13 +118,10 @@ class ModelSummary(object):
         sizes = []
         for _, m in mods:
             p = list(m.parameters())
-            modsz = []
-            for j in range(len(p)):
-                modsz.append(np.array(p[j].size()))
+            modsz = [np.array(param.size()) for param in p]
             sizes.append(modsz)
 
         self.param_sizes = sizes
-        return
 
     def get_parameter_nums(self):
         '''Get number of parameters in each layer'''
@@ -138,7 +132,6 @@ class ModelSummary(object):
                 all_params += np.prod(p)
             param_nums.append(all_params)
         self.param_nums = param_nums
-        return
 
     def make_summary(self):
         '''
@@ -146,24 +139,14 @@ class ModelSummary(object):
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         '''
-
-        cols = ['Name', 'Type', 'Params']
+        arrays = [['Name', self.layer_names],
+                  ['Type', self.layer_types],
+                  ['Params', list(map(get_human_readable_count, self.param_nums))]]
         if self.model.example_input_array is not None:
-            cols.extend(['In_sizes', 'Out_sizes'])
+            arrays.append(['In sizes', self.in_sizes])
+            arrays.append(['Out sizes', self.out_sizes])
 
-        df = pd.DataFrame(np.zeros((len(self.layer_names), len(cols))))
-        df.columns = cols
-
-        df['Name'] = self.layer_names
-        df['Type'] = self.layer_types
-        df['Params'] = self.param_nums
-        df['Params'] = df['Params'].map(get_human_readable_count)
-
-        if self.model.example_input_array is not None:
-            df['In_sizes'] = self.in_sizes
-            df['Out_sizes'] = self.out_sizes
-
-        self.summary = df
+        self.summary = _format_summary_table(*arrays)
         return
 
     def summarize(self):
@@ -176,11 +159,56 @@ class ModelSummary(object):
         self.make_summary()
 
 
+def _format_summary_table(*cols):
+    '''
+    Takes in a number of arrays, each specifying a column in
+    the summary table, and combines them all into one big
+    string defining the summary table that are nicely formatted.
+    '''
+    n_rows = len(cols[0][1])
+    n_cols = 1 + len(cols)
+
+    # Layer counter
+    counter = list(map(str, list(range(n_rows))))
+    counter_len = max([len(c) for c in counter])
+
+    # Get formatting length of each column
+    length = []
+    for c in cols:
+        str_l = len(c[0])  # default length is header length
+        for a in c[1]:
+            if isinstance(a, np.ndarray):
+                array_string = '[' + ', '.join([str(j) for j in a]) + ']'
+                str_l = max(len(array_string), str_l)
+            else:
+                str_l = max(len(a), str_l)
+        length.append(str_l)
+
+    # Formatting
+    s = '{:<{}}'
+    full_length = sum(length) + 3 * n_cols
+    header = [s.format(' ', counter_len)] + [s.format(c[0], l) for c, l in zip(cols, length)]
+
+    # Summary = header + divider + Rest of table
+    summary = ' | '.join(header) + '\n' + '-' * full_length
+    for i in range(n_rows):
+        line = s.format(counter[i], counter_len)
+        for c, l in zip(cols, length):
+            if isinstance(c[1][i], np.ndarray):
+                array_string = '[' + ', '.join([str(j) for j in c[1][i]]) + ']'
+                line += ' | ' + array_string + ' ' * (l - len(array_string))
+            else:
+                line += ' | ' + s.format(c[1][i], l)
+        summary += '\n' + line
+
+    return summary
+
+
 def print_mem_stack():  # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                logging.info(type(obj), obj.size())
+                log.info(type(obj), obj.size())
         except Exception:
             pass
 

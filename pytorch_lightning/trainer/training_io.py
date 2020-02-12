@@ -39,7 +39,7 @@ Lightning will restore the session if you pass a logger with the same version an
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.logging import TestTubeLogger
+    from pytorch_lightning.loggers import TestTubeLogger
 
     logger = TestTubeLogger(
         save_dir='./savepath',
@@ -89,7 +89,7 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 """
 
-import logging
+import logging as log
 import os
 import re
 import signal
@@ -203,7 +203,7 @@ class TrainerIOMixin(ABC):
         if last_ckpt_name is not None:
             last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
             self.restore(last_ckpt_path, self.on_gpu)
-            logging.info(f'model and trainer restored from checkpoint: {last_ckpt_path}')
+            log.info(f'Model and Trainer restored from checkpoint: {last_ckpt_path}')
             did_restore = True
 
         return did_restore
@@ -222,14 +222,14 @@ class TrainerIOMixin(ABC):
             pass
 
         if on_slurm:
-            logging.info('set slurm handle signals')
+            log.info('Set SLURM handle signals.')
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):
         if self.proc_rank == 0:
             # save weights
-            logging.info('handling SIGUSR1')
+            log.info('handling SIGUSR1')
             self.hpc_save(self.weights_save_path, self.logger)
 
             # find job id
@@ -237,21 +237,21 @@ class TrainerIOMixin(ABC):
             cmd = 'scontrol requeue {}'.format(job_id)
 
             # requeue job
-            logging.info('\nrequeing job {job_id}...')
+            log.info(f'requeing job {job_id}...')
             result = call(cmd, shell=True)
 
             # print result text
             if result == 0:
-                logging.info('requeued exp {job_id}')
+                log.info(f'requeued exp {job_id}')
             else:
-                logging.info('requeue failed...')
+                log.info('requeue failed...')
 
             # close experiment to avoid issues
             self.logger.close()
 
     def term_handler(self, signum, frame):
         # save
-        logging.info("bypassing sigterm")
+        log.info("bypassing sigterm")
 
     # --------------------
     # MODEL SAVE CHECKPOINT
@@ -461,7 +461,7 @@ class TrainerIOMixin(ABC):
         # call model hook
         model.on_hpc_load(checkpoint)
 
-        logging.info(f'restored hpc model from: {filepath}')
+        log.info(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         files = os.listdir(path)
