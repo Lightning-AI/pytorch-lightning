@@ -546,7 +546,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         3. On a testing batch, the call goes to model.test_step
 
         Args:
-            model (pytorch_lightning.core.LightningModule): the LightningModule currently being optimized
+            model (:class:`.LightningModule`): the LightningModule currently being optimized
             device_ids (list): the list of GPU ids
 
         Return:
@@ -660,7 +660,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             amp (object): pointer to amp library object
-            model (pytorch_lightning.core.LightningModule): pointer to current lightningModule
+            model (:class:`.LightningModule`): pointer to current lightningModule
             optimizers (list): list of optimizers passed in configure_optimizers()
             amp_level (str): AMP mode chosen ('O1', 'O2', etc...)
 
