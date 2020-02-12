@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
-import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core import data_loader
 
