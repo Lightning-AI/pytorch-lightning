@@ -937,4 +937,3 @@ class Trainer(TrainerIOMixin,
         eval_results = self.run_evaluation(test=True, model=model)
         self.testing = False
         return eval_results
-    
