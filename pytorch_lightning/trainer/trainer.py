@@ -32,6 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
+from pytorch_lightning.core import LightningModule
 
 
 try:
@@ -1082,11 +1083,7 @@ class Trainer(TrainerIOMixin,
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-<<<<<<< HEAD
-            model: The model to test.
-=======
-            model (pytorch_lightning.core.LightningModule): The model to test.
->>>>>>> 1a7ed5b... refer EarlyStopping explicitly
+            model (:class:`.LightningModule`): The model to test.
 
         Example::
 
