@@ -3,7 +3,7 @@ Log using `mlflow <https://mlflow.org>'_
 
 .. code-block:: python
 
-    from pytorch_lightning.logging import MLFlowLogger
+    from pytorch_lightning.loggers import MLFlowLogger
     mlf_logger = MLFlowLogger(
         experiment_name="default",
         tracking_uri="file:/."

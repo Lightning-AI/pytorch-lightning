@@ -1,9 +1,9 @@
 .. role:: hidden
     :class: hidden-section
 
-Logging
+Loggers
 ===========
-.. automodule:: pytorch_lightning.logging
+.. automodule:: pytorch_lightning.loggers
    :exclude-members:
         _abc_impl,
         _save_model,
