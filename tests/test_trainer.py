@@ -411,5 +411,51 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
+def test_test_method(tmpdir):
+    """Verify Trainer.test() is working properly."""
+
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightningTestMixin):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(default_save_path=tmpdir, max_epochs=1,
+                           val_percent_check=0.1,
+                           train_percent_check=0.2)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    # run the test method
+    test_result = trainer.test()
+
+    # verify test method returns what is returned by test_end
+    assert 'progress_bar' in test_result and 'test_acc' \
+        in test_result['progress_bar'] and 'test_loss' \
+        in test_result['progress_bar'], \
+        'test method does not return what is retured by test_end method'
+
+    # pass the model as an argument to test method
+    test_result = trainer.test(model)
+
+    # verify test method returns what is returned by test_end
+    assert 'progress_bar' in test_result and 'test_acc' \
+        in test_result['progress_bar'] and 'test_loss' \
+        in test_result['progress_bar'], \
+        'test method does not return what is retured by test_end method when '\
+        'model is passed as an argument'
+
+    # run fit method again to make sure it is working properly after running
+    # test method
+    result = trainer.fit(model)
+
+    assert result == 1, \
+        'fit method failed to behave properly after running test method'
+
 # if __name__ == '__main__':
 #     pytest.main([__file__])
