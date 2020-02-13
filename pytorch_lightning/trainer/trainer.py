@@ -977,7 +977,7 @@ def _set_dataloader(model, dataloader, attribute):
     r''' Check dataloaders passed to .fit() method if they are pytorch DataLoader
          objects and whether or not we should overright the corresponding dataloader
          in the model '''
-    
+
     # Check if attribute comes directly from base class or
     # derived in user subclass
     if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
@@ -1000,5 +1000,5 @@ def _set_dataloader(model, dataloader, attribute):
                              f'`{dataloader}`')
 
     else:
-        logging.info(f'Model has predefined `{attribute}`,'
-                     f'will skip `{attribute}` passed to fit method')
+        warnings.warn(f'Model has predefined `{attribute}`,'
+                      f'will skip `{attribute}` passed to fit method')
