@@ -29,7 +29,7 @@ def test_testtube_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -53,7 +53,7 @@ def test_testtube_pickle(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -76,7 +76,7 @@ def test_mlflow_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
     trainer = Trainer(**trainer_options)
@@ -132,7 +132,7 @@ def test_comet_logger(tmpdir, monkeypatch):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -182,7 +182,24 @@ def test_wandb_logger(tmpdir):
     tutils.reset_seed()
 
     wandb_dir = os.path.join(tmpdir, "wandb")
-    _ = WandbLogger(save_dir=wandb_dir, anonymous=True)
+    logger = WandbLogger(save_dir=wandb_dir, anonymous=True, offline=True)
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        train_percent_check=0.05,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    print('result finished')
+    assert result == 1, "Training failed"
 
 
 def test_wandb_pickle(tmpdir):
@@ -191,7 +208,16 @@ def test_wandb_pickle(tmpdir):
 
     wandb_dir = str(tmpdir)
     logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
-    assert logger is not None
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        logger=logger
+    )
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0})
 
 
 def test_neptune_logger(tmpdir):
@@ -205,7 +231,7 @@ def test_neptune_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
     trainer = Trainer(**trainer_options)
