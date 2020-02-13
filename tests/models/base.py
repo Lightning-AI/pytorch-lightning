@@ -16,7 +16,7 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning import data_loader
+from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
 
 

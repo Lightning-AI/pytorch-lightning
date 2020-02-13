@@ -42,7 +42,7 @@ matrix:
       #    # update: true
       #    packages: python3.7
       before_install:
-        - pip3 install virtualenv
+        - pip3 install virtualenv==16.0.0
         - virtualenv -p python3 ~/venv
         - source ~/venv/bin/activate
 #    - os: windows
@@ -57,7 +57,7 @@ cache: pip
 
 install:
   - pip install future  # needed for `builtins`
-  - sudo pip install tox
+  - pip install tox virtualenv==16.0.0
 
 before_script:
   # rewrite all minimal requirements as strict

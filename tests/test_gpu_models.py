@@ -3,13 +3,13 @@ import os
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_lightning.core import memory
-from pytorch_lightning.testing import (
+from tests.models import (
     LightningTestModel,
 )
 from pytorch_lightning.trainer.distrib_parts import (

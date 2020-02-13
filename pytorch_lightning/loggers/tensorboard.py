@@ -4,7 +4,7 @@ from argparse import Namespace
 from pkg_resources import parse_version
 
 import torch
-import pandas as pd
+import csv
 from torch.utils.tensorboard import SummaryWriter
 
 from .base import LightningLoggerBase, rank_zero_only
@@ -18,8 +18,10 @@ class TensorBoardLogger(LightningLoggerBase):
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     `os.path.join(save_dir, name, version)`
 
+    .. _tf-logger:
+
     Example
-    --------
+    ------------------
 
     .. code-block:: python
 
@@ -29,9 +31,12 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Args:
         save_dir (str): Save directory
-        name (str): Experiment name. Defaults to "default".
-        version (int): Experiment version. If version is not specified the logger inspects the save
-        directory for existing versions, then automatically assigns the next available version.
+        name (str): Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
+            subdirectory is used.
+        version (int|str): Experiment version. If version is not specified the logger inspects the save
+            directory for existing versions, then automatically assigns the next available version.
+            If it is a string then it is used as the run-specific subdirectory name,
+            otherwise version_${version} is used.
         \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -48,6 +53,30 @@ class TensorBoardLogger(LightningLoggerBase):
         self.kwargs = kwargs
 
     @property
+    def root_dir(self):
+        """
+        Parent directory for all tensorboard checkpoint subdirectories.
+        If the experiment name parameter is None or the empty string, no experiment subdirectory is used
+        and checkpoint will be saved in save_dir/version_dir
+        """
+        if self.name is None or len(self.name) == 0:
+            return self.save_dir
+        else:
+            return os.path.join(self.save_dir, self.name)
+
+    @property
+    def log_dir(self):
+        """
+        The directory for this run's tensorboard checkpoint.  By default, it is named 'version_${self.version}'
+        but it can be overridden by passing a string value for the constructor's version parameter
+        instead of None or an int
+        """
+        # create a pseudo standard path ala test-tube
+        version = self.version if isinstance(self.version, str) else f"version_{self.version}"
+        log_dir = os.path.join(self.root_dir, version)
+        return log_dir
+
+    @property
     def experiment(self):
         r"""
 
@@ -61,10 +90,8 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        root_dir = os.path.join(self.save_dir, self.name)
-        os.makedirs(root_dir, exist_ok=True)
-        log_dir = os.path.join(root_dir, "version_" + str(self.version))
-        self._experiment = SummaryWriter(log_dir=log_dir, **self.kwargs)
+        os.makedirs(self.root_dir, exist_ok=True)
+        self._experiment = SummaryWriter(log_dir=self.log_dir, **self.kwargs)
         return self._experiment
 
     @rank_zero_only
@@ -84,8 +111,12 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
-            # `add_hparams` requires both - hparams and metric
-            self.experiment.add_hparams(hparam_dict=params, metric_dict={})
+            from torch.utils.tensorboard.summary import hparams
+            exp, ssi, sei = hparams(params, {})
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
         # some alternative should be added
         self.tags.update(params)
 
@@ -104,16 +135,20 @@ class TensorBoardLogger(LightningLoggerBase):
             # you are using PT version (<v1.2) which does not have implemented flush
             self.experiment._get_file_writer().flush()
 
-        # create a preudo standard path ala test-tube
-        dir_path = os.path.join(self.save_dir, self.name, 'version_%s' % self.version)
+        dir_path = self.log_dir
         if not os.path.isdir(dir_path):
             dir_path = self.save_dir
+
         # prepare the file path
         meta_tags_path = os.path.join(dir_path, self.NAME_CSV_TAGS)
+
         # save the metatags file
-        df = pd.DataFrame({'key': list(self.tags.keys()),
-                           'value': list(self.tags.values())})
-        df.to_csv(meta_tags_path, index=False)
+        with open(meta_tags_path, 'w', newline='') as csvfile:
+            fieldnames = ['key', 'value']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writerow({'key': 'key', 'value': 'value'})
+            for k, v in self.tags.items():
+                writer.writerow({'key': k, 'value': v})
 
     @rank_zero_only
     def finalize(self, status):
@@ -138,5 +173,5 @@ class TensorBoardLogger(LightningLoggerBase):
 
         if len(existing_versions) == 0:
             return 0
-        else:
-            return max(existing_versions) + 1
+
+        return max(existing_versions) + 1

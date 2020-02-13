@@ -7,8 +7,9 @@ Callbacks supported by Lightning
 
 import os
 import shutil
-import logging
+import logging as log
 import warnings
+
 import numpy as np
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -26,7 +27,7 @@ class Callback(object):
         self.params = params
 
     def set_model(self, model):
-        if type(model) is LightningDistributedDataParallel:
+        if isinstance(model, LightningDistributedDataParallel):
             model = model.module
         self.model = model
 
@@ -42,7 +43,6 @@ class Callback(object):
 
                 on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
         """
-        pass
 
     def on_epoch_end(self, epoch, logs=None):
         pass
@@ -55,7 +55,6 @@ class Callback(object):
             batch (Tensor): current batch tensor
             logs (dict): key-value pairs of quantities to monitor
         """
-        pass
 
     def on_batch_end(self, batch, logs=None):
         pass
@@ -113,7 +112,7 @@ class EarlyStopping(Callback):
 
         if mode not in ['auto', 'min', 'max']:
             if self.verbose > 0:
-                logging.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
+                log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
         if mode == 'min':
@@ -142,7 +141,7 @@ class EarlyStopping(Callback):
         if monitor_val is None:
             if self.strict:
                 raise RuntimeError(error_msg)
-            elif self.verbose > 0:
+            if self.verbose > 0:
                 warnings.warn(error_msg, RuntimeWarning)
 
             return False
@@ -175,7 +174,9 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+            warnings.warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
+                          ' but will start from "0" in v0.8.0.', DeprecationWarning)
+            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
 
 
 class ModelCheckpoint(Callback):
@@ -351,7 +352,7 @@ class ModelCheckpoint(Callback):
                         else:
                             self.best = max(self.best_k_models.values())
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                                 f' {current:0.5f} (best {self.best:0.5f}), saving model to'
                                 f' {filepath} as top {self.save_top_k}')
@@ -359,13 +360,13 @@ class ModelCheckpoint(Callback):
 
                     else:
                         if self.verbose > 0:
-                            logging.info(
+                            log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor}'
                                 f' was not in top {self.save_top_k}')
 
             else:
                 if self.verbose > 0:
-                    logging.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+                    log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
                 self._save_model(filepath)
 
 
@@ -375,6 +376,7 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
+        .. warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
 
     Example::
 
@@ -395,17 +397,21 @@ class GradientAccumulationScheduler(Callback):
                 raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
+        warnings.warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
+                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
-        elif minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
+        if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
     def on_epoch_begin(self, epoch, trainer):
-        epoch += 1  # indexing epochs from 1
+        # indexing epochs from 1 (until v0.6.x)
+        # In v0.8.0, `epoch += 1` should be removed.
+        epoch += 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
@@ -417,6 +423,6 @@ class GradientAccumulationScheduler(Callback):
 #     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
 #     for i, loss in enumerate(losses):
 #         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-#         logging.info(loss)
+#         log.info(loss)
 #         if should_stop:
 #             break
