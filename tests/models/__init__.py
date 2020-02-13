@@ -2,7 +2,8 @@
 
 import torch
 
-from .base import LightningTestModelBase
+from .base import (LightningTestModelBase,
+                   LightningTestModelBaseWithoutDataloader)
 from .mixins import (
     LightningValidationStepMixin,
     LightningValidationMixin,
