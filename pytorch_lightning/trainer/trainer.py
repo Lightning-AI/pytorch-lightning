@@ -1,8 +1,7 @@
 import os
 import sys
 import warnings
-import logging
-
+import logging as log
 
 import torch
 import torch.distributed as dist
@@ -27,6 +26,8 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.profiler import Profiler, PassThroughProfiler
+
 
 try:
     from apex import amp
@@ -48,6 +49,7 @@ class Trainer(TrainerIOMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
               ):
+
     def __init__(
             self,
             logger=True,
@@ -90,6 +92,7 @@ class Trainer(TrainerIOMixin,
             num_sanity_val_steps=5,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
+            profiler=None
     ):
         r"""
 
@@ -99,7 +102,7 @@ class Trainer(TrainerIOMixin,
             logger (:class:`.Logger`): Logger for experiment tracking.
                 Example::
 
-                    from pytorch_lightning.logging import TensorBoardLogger
+                    from pytorch_lightning.loggers import TensorBoardLogger
 
                     # default logger used by trainer
                     logger = TensorBoardLogger(
@@ -471,6 +474,15 @@ class Trainer(TrainerIOMixin,
                     # backprop every 5 steps in a batch
                     trainer = Trainer(truncated_bptt_steps=5)
 
+
+                Lightning takes care to split your batch along the time-dimension.
+
+                .. note:: If you need to modify how the batch is split,
+                    override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
+
+                .. note:: Using this feature requires updating your LightningModule's
+                    :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
+
             resume_from_checkpoint (str): To resume training from a specific checkpoint pass in the path here.k
                 Example::
 
@@ -479,6 +491,25 @@ class Trainer(TrainerIOMixin,
 
                     # resume from a specific checkpoint
                     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+            profiler (BaseProfiler):  To profile individual steps during training and assist in
+                identifying bottlenecks.
+                Example::
+
+                    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+
+                    # default used by the Trainer
+                    trainer = Trainer(profiler=None)
+
+                    # to profile standard training events
+                    trainer = Trainer(profiler=True)
+
+                    # equivalent to profiler=True
+                    profiler = Profiler()
+                    trainer = Trainer(profiler=profiler)
+
+                    # advanced profiler for function-level stats
+                    profiler = AdvancedProfiler()
+                    trainer = Trainer(profiler=profiler)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
@@ -490,7 +521,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not num_nodes:  # in case you did not set the proper value
                 num_nodes = nb_gpu_nodes
         self.num_gpu_nodes = num_nodes
@@ -500,7 +531,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if gradient_clip is not None:
             warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not gradient_clip_val:  # in case you did not set the proper value
                 gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
@@ -514,7 +545,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if max_nb_epochs is not None:
             warnings.warn("`max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not max_epochs:  # in case you did not set the proper value
                 max_epochs = max_nb_epochs
         self.max_epochs = max_epochs
@@ -522,7 +553,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if min_nb_epochs is not None:
             warnings.warn("`min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not min_epochs:  # in case you did not set the proper value
                 min_epochs = min_nb_epochs
         self.min_epochs = min_epochs
@@ -533,7 +564,7 @@ class Trainer(TrainerIOMixin,
         # Backward compatibility
         if nb_sanity_val_steps is not None:
             warnings.warn("`nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not num_sanity_val_steps:  # in case you did not set the proper value
                 num_sanity_val_steps = nb_sanity_val_steps
 
@@ -551,7 +582,7 @@ class Trainer(TrainerIOMixin,
             Running in fast_dev_run mode: will run a full train,
             val loop using a single batch
             '''
-            logging.info(m)
+            log.info(m)
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -585,6 +616,11 @@ class Trainer(TrainerIOMixin,
 
         # configure logger
         self.configure_logger(logger)
+
+        # configure profiler
+        if profiler is True:
+            profiler = Profiler()
+        self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
         # creates a default one if none passed in
@@ -631,7 +667,7 @@ class Trainer(TrainerIOMixin,
         # backward compatibility
         if add_row_log_interval is not None:
             warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                          " and will be removed in v0.8.0", DeprecationWarning)
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
             if not row_log_interval:  # in case you did not set the proper value
                 row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
@@ -682,7 +718,7 @@ class Trainer(TrainerIOMixin,
 
         # set root gpu
         root_gpu = 0
-        if type(gpus) is list:
+        if isinstance(gpus, list):
             root_gpu = gpus[0]
 
         return root_gpu
@@ -692,8 +728,7 @@ class Trainer(TrainerIOMixin,
         gpus = self.data_parallel_device_ids
         if gpus is None:
             return 0
-        else:
-            return len(gpus)
+        return len(gpus)
 
     @property
     def data_parallel(self):
@@ -704,23 +739,9 @@ class Trainer(TrainerIOMixin,
         """Read-only for tqdm metrics.
         :return:
         """
-        tqdm_dict = {
-            'loss': '{0:.3f}'.format(self.avg_loss),
-            'batch_idx': '{}'.format(self.batch_idx),
-        }
+        ref_model = self.model if not self.data_parallel else self.model.module
 
-        if self.truncated_bptt_steps is not None:
-            tqdm_dict['split_idx'] = self.split_idx
-
-        if self.logger is not None and self.logger.version is not None:
-            tqdm_dict['v_num'] = self.logger.version
-
-        tqdm_dict.update(self.tqdm_metrics)
-
-        if self.on_gpu:
-            tqdm_dict['gpu'] = '{}'.format(torch.cuda.current_device())
-
-        return tqdm_dict
+        return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
 
     @property
     def tng_tqdm_dic(self):
@@ -732,7 +753,7 @@ class Trainer(TrainerIOMixin,
                     Use `training_tqdm_dict` instead. Will remove 0.8.0.
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                      " and will be removed in v0.8.0", DeprecationWarning)
+                      " and this method will be removed in v0.8.0", DeprecationWarning)
         return self.training_tqdm_dict
 
     # -----------------------------
@@ -791,13 +812,13 @@ class Trainer(TrainerIOMixin,
             return [optimizers], []
 
         # two lists
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
+        if len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
             lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple
-        elif isinstance(optimizers, list) or isinstance(optimizers, tuple):
+        if isinstance(optimizers, (list, tuple)):
             return optimizers, []
 
     def configure_schedulers(self, schedulers):
@@ -878,7 +899,7 @@ class Trainer(TrainerIOMixin,
             pbar = tqdm(desc='Validation sanity check',
                              total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
                              leave=False, position=2 * self.process_position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch')
+                             disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
@@ -896,7 +917,7 @@ class Trainer(TrainerIOMixin,
 
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True, unit='batch',
+                    disable=not self.show_progress_bar, dynamic_ncols=True,
                     file=sys.stdout)
         self.main_progress_bar = pbar
 
@@ -906,6 +927,9 @@ class Trainer(TrainerIOMixin,
 
         # CORE TRAINING LOOP
         self.train()
+
+        # summarize profile results
+        self.profiler.describe()
 
     def test(self, model=None):
         r"""

@@ -43,6 +43,7 @@ Normally, we want to let the `__main__` function start the training.
 
 The main function is your entry into the program. This is where you init your model, checkpoint directory,
  and launch the training. The main function should have 3 arguments:
+
 - hparams: a configuration of hyperparameters.
 - slurm_manager: Slurm cluster manager object (can be None)
 - dict: for you to return any values you want (useful in meta-learning, otherwise set to)

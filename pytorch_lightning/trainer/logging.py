@@ -3,7 +3,7 @@ from abc import ABC
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.logging import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 class TrainerLoggingMixin(ABC):
@@ -65,7 +65,7 @@ class TrainerLoggingMixin(ABC):
 
     def add_tqdm_metrics(self, metrics):
         for k, v in metrics.items():
-            if type(v) is torch.Tensor:
+            if isinstance(v, torch.Tensor):
                 v = v.item()
 
             self.tqdm_metrics[k] = v
@@ -76,7 +76,7 @@ class TrainerLoggingMixin(ABC):
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
-            if type(v) is dict:
+            if isinstance(v, dict):
                 v = self.metrics_to_scalars(v)
 
             new_metrics[k] = v
@@ -148,7 +148,7 @@ class TrainerLoggingMixin(ABC):
             try:
                 loss = output['loss']
             except Exception:
-                if type(output) is torch.Tensor:
+                if isinstance(output, torch.Tensor):
                     loss = output
                 else:
                     raise RuntimeError(
@@ -181,7 +181,7 @@ class TrainerLoggingMixin(ABC):
 
         # when using DP, we get one output per gpu
         # average outputs and return
-        if type(output) is torch.Tensor:
+        if isinstance(output, torch.Tensor):
             return output.mean()
 
         for k, v in output.items():

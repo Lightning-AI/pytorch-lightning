@@ -23,8 +23,11 @@ class TrainerCallbackConfigMixin(ABC):
         if self.checkpoint_callback is True:
             # init a default one
             if self.logger is not None:
+                save_dir = (getattr(self.logger, 'save_dir', None) or
+                            getattr(self.logger, '_save_dir', None) or
+                            self.default_save_path)
                 ckpt_path = os.path.join(
-                    self.default_save_path,
+                    save_dir,
                     self.logger.name,
                     f'version_{self.logger.version}',
                     "checkpoints"

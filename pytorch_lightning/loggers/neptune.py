@@ -1,41 +1,10 @@
 """
-Log using `neptune <https://www.neptune.ml>`_
+Log using `neptune-logger <https://www.neptune.ml>`_
 
-Neptune logger can be used in the online mode or offline (silent) mode.
-To log experiment data in online mode, NeptuneLogger requries an API key:
+.. _neptune:
 
-.. code-block:: python
-
-    from pytorch_lightning.logging import NeptuneLogger
-    # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-
-    neptune_logger = NeptuneLogger(
-        api_key=os.environ["NEPTUNE_API_TOKEN"],
-        project_name="USER_NAME/PROJECT_NAME",
-        experiment_name="default", # Optional,
-        params={"max_epochs": 10}, # Optional,
-        tags=["pytorch-lightning","mlp"] # Optional,
-    )
-    trainer = Trainer(max_epochs=10, logger=neptune_logger)
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.log_metric("acc_train", acc_train) # log metrics
-        self.logger.experiment.log_image("worse_predictions", prediction_image) # log images
-        self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
-        self.logger.experiment.whatever_neptune_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.log_metric("acc_train", acc_train) # log metrics
-        self.logger.experiment.log_image("worse_predictions", prediction_image) # log images
-        self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
-        self.logger.experiment.whatever_neptune_supports(...)
-
-
+NeptuneLogger
+--------------
 """
 
 from logging import getLogger
@@ -48,12 +17,16 @@ except ImportError:
 from torch import is_tensor
 
 # from .base import LightningLoggerBase, rank_zero_only
-from pytorch_lightning.logging.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 logger = getLogger(__name__)
 
 
 class NeptuneLogger(LightningLoggerBase):
+    r"""
+    Neptune logger can be used in the online mode or offline (silent) mode.
+    To log experiment data in online mode, NeptuneLogger requries an API key:
+    """
     def __init__(self, api_key=None, project_name=None, offline_mode=False,
                  experiment_name=None, upload_source_files=None,
                  params=None, properties=None, tags=None, **kwargs):
@@ -66,7 +39,7 @@ class NeptuneLogger(LightningLoggerBase):
         .. code-block:: python
 
             # ONLINE MODE
-            from pytorch_lightning.logging import NeptuneLogger
+            from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
 
             neptune_logger = NeptuneLogger(
@@ -81,7 +54,7 @@ class NeptuneLogger(LightningLoggerBase):
         .. code-block:: python
 
             # OFFLINE MODE
-            from pytorch_lightning.logging import NeptuneLogger
+            from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
 
             neptune_logger = NeptuneLogger(
@@ -91,6 +64,23 @@ class NeptuneLogger(LightningLoggerBase):
                 tags=["pytorch-lightning","mlp"] # Optional,
             )
             trainer = Trainer(max_epochs=10, logger=neptune_logger)
+
+        Use the logger anywhere in you LightningModule as follows:
+
+        .. code-block:: python
+
+            def train_step(...):
+                # example
+                self.logger.experiment.log_metric("acc_train", acc_train) # log metrics
+                self.logger.experiment.log_image("worse_predictions", prediction_image) # log images
+                self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
+                self.logger.experiment.whatever_neptune_supports(...)
+
+            def any_lightning_module_function_or_hook(...):
+                self.logger.experiment.log_metric("acc_train", acc_train) # log metrics
+                self.logger.experiment.log_image("worse_predictions", prediction_image) # log images
+                self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
+                self.logger.experiment.whatever_neptune_supports(...)
 
         Args:
             api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.

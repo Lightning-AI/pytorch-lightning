@@ -1,7 +1,7 @@
 """
 Example template for defining a system
 """
-import logging
+import logging as log
 import os
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -16,10 +16,9 @@ from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 
 
-class LightningTemplateModel(LightningModule):
+class LightningTemplateModel(pl.LightningModule):
     """
     Sample model to show how to define a template
     """
@@ -215,17 +214,17 @@ class LightningTemplateModel(LightningModule):
 
     @pl.data_loader
     def train_dataloader(self):
-        logging.info('training data loader called')
+        log.info('Training data loader called.')
         return self.__dataloader(train=True)
 
     @pl.data_loader
     def val_dataloader(self):
-        logging.info('val data loader called')
+        log.info('Validation data loader called.')
         return self.__dataloader(train=False)
 
     @pl.data_loader
     def test_dataloader(self):
-        logging.info('test data loader called')
+        log.info('Test data loader called.')
         return self.__dataloader(train=False)
 
     @staticmethod

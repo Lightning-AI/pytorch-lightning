@@ -7,14 +7,12 @@ class ModelIO(object):
         :param checkpoint:
         :return:
         """
-        pass
 
     def on_save_checkpoint(self, checkpoint):
         """
         Give the model a chance to add something to the checkpoint.
         state_dict is already there
         """
-        pass
 
     # -------------------------
     # OPTIONAL HOOKS
@@ -24,11 +22,9 @@ class ModelIO(object):
         Hook to do whatever you need right before Slurm manager saves the model
         :return:
         """
-        pass
 
     def on_hpc_load(self, checkpoint):
         """
         Hook to do whatever you need right before Slurm manager loads the model
         :return:
         """
-        pass

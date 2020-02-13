@@ -295,7 +295,7 @@ with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
             MOCK_REQUIRE_PACKAGES.append(pkg.rstrip())
 
 # TODO: better parse from package since the import name and package name may differ
-MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'sklearn', 'test_tube', 'mlflow', 'comet_ml', 'wandb', 'neptune']
+MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'test_tube', 'mlflow', 'comet_ml', 'wandb', 'neptune']
 autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 # for mod_name in MOCK_REQUIRE_PACKAGES:
 #     sys.modules[mod_name] = mock.Mock()
@@ -348,7 +348,15 @@ def linkcode_resolve(domain, info):
 
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
-autodoc_default_flags = [
-    'members', 'undoc-members', 'show-inheritance', 'private-members',
-    # 'special-members', 'inherited-members'
-]
+# the options are fixed and will be soon in release,
+#  see https://github.com/sphinx-doc/sphinx/issues/5459
+autodoc_default_options = {
+    'members': None,
+    'special-members': '__call__',
+    'undoc-members': True,
+    # 'exclude-members': '__weakref__',
+    'show-inheritance': True,
+    'private-members': True,
+}
+
+html_add_permalinks = True
