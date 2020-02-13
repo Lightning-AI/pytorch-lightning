@@ -36,7 +36,7 @@ class TestingMNIST(MNIST):
         self.targets = self.targets[:num_samples]
 
 
-class LightningTestModelBase(LightningModule):
+class _LightningTestModelBase(LightningModule):
     """
     Base LightningModule for testing. Implements only the required
     interface
@@ -48,7 +48,7 @@ class LightningTestModelBase(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTestModelBase, self).__init__()
+        super(_LightningTestModelBase, self).__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -178,10 +178,6 @@ class LightningTestModelBase(LightningModule):
 
         return loader
 
-    @data_loader
-    def train_dataloader(self):
-        return self._dataloader(train=True)
-
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
         """
@@ -218,3 +214,15 @@ class LightningTestModelBase(LightningModule):
                         options=[32, 64, 128, 256], tunable=False,
                         help='batch size will be divided over all gpus being used across all nodes')
         return parser
+
+
+class LightningTestModelBase(_LightningTestModelBase):
+    """ with pre-defined train dataloader """
+    @data_loader
+    def train_dataloader(self):
+        return self._dataloader(train=True)
+
+
+class LightningTestModelBaseWithoutDataloader(_LightningTestModelBase):
+    """ without pre-defined train dataloader """
+    pass

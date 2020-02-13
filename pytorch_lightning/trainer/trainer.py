@@ -719,11 +719,6 @@ class Trainer(TrainerIOMixin,
 
         Args:
             model (LightningModule): Model to fit.
-            Example::
-
-                trainer = Trainer()
-                model = LightningModule()
-                trainer.fit(model)
 
             train_dataloader (:class:`.torch.utils.data.DataLoader`): A Pytorch
                 DataLoader with training samples. If the model has
@@ -736,6 +731,26 @@ class Trainer(TrainerIOMixin,
             test_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples. If the model has
                 a predefined val_dataloader method this will be skipped
+
+        Example::
+
+            # Option 1,
+            # Basic usecase, dataloaders defined as part of the model
+            trainer = Trainer()
+            model = LightningModule()
+            trainer.fit(model)
+
+            # Option 2
+            # Dataloaders passed to fit method
+            train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+            trainer.fit(model, train_dataloader=train,
+                        val_dataloader=val, test_dataloader=test)
+
+            # Option 1 & 2 can be mixed, for example the training set can be
+            # defined as part of the model, and validation/test can then be
+            # feed to .fit()
 
         """
 
@@ -938,7 +953,7 @@ def _set_dataloader(model, dataloader, attribute):
     r''' Check dataloaders passed to .fit() method if they are pytorch DataLoader
          objects and whether or not we should overright the corresponding dataloader
          in the model '''
-
+    
     # Check if attribute comes directly from base class or
     # derived in user subclass
     if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
@@ -948,14 +963,14 @@ def _set_dataloader(model, dataloader, attribute):
 
         # Check if input is correct
         if isinstance(dataloader, torch.utils.data.DataLoader) or \
-           isinstance(dataloader, list) and all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader):
+           (isinstance(dataloader, list) and all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader)):
 
             # Overwrite abstract methods
             dl = lambda: dataloader
             dl.__name__ = attribute
             setattr(model, attribute, dl)
 
-        elif dataloader:
+        elif not dataloader and dataloader != [None]:
             raise ValueError(f'`{attribute}` needs to be an instance of'
                              '`torch.utils.data.DataLoader` or a list of, instead got'
                              f'`{dataloader}`')

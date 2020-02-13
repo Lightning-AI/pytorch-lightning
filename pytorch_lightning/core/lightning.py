@@ -858,7 +858,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return splits
 
     @data_loader
-    @abstractmethod
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -884,8 +883,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
                 return loader
 
-
         """
+        return None
 
     @data_loader
     def tng_dataloader(self):

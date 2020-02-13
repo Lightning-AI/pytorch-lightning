@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.testing import (
     LightningTestModel,
     LightningTestModelBase,
+    LightningTestModelBaseWithoutDataloader,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
@@ -367,7 +368,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # verify there are 2 val loaders
     assert len(trainer.get_val_dataloaders()) == 2, \
-        'Multiple val_dataloaders not initiated properly'
+        'Multiple val_dataloade not initiated properly'
 
     # make sure predictions are good for each val set
     for dataloader in trainer.get_val_dataloaders():
@@ -410,6 +411,104 @@ def test_multiple_test_dataloader(tmpdir):
     # run the test method
     trainer.test()
 
+
+def test_dataloaders_passed_to_fit(tmpdir):
+    """Verify that dataloaders can be passed to fit"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # fit model
+    # only train passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True))
+    results = trainer.fit(model, **fit_options)
+
+    # train, val passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        'val_dataloaders not initiated properly'
+
+    # train, val and test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=model._dataloader(train=False),
+                       test_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        'val_dataloaders not initiated properly'
+    assert len(trainer.get_test_dataloaders()) == 1, \
+        'test_dataloaders not initiated properly'
+
+    # train, multiple val and multiple test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=[model._dataloader(train=False),
+                                       model._dataloader(train=False)],
+                       test_dataloader=[model._dataloader(train=False),
+                                        model._dataloader(train=False)])
+    results = trainer.fit(model, **fit_options)
+
+    assert len(trainer.get_val_dataloaders()) == 2, \
+        'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.get_test_dataloaders()) == 2, \
+        'Multiple test_dataloaders not initiated properly'
+
+
+def test_mixing_of_dataloader_options(tmpdir):
+    """Verify that dataloaders can be passed to fit"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(val_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(val_dataloader=model._dataloader(train=False),
+                       test_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        'val_dataloaders not initiated properly'
+    assert len(trainer.get_test_dataloaders()) == 1, \
+        'test_dataloaders not initiated properly'
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
