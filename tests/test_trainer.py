@@ -417,7 +417,10 @@ def test_test_method(tmpdir):
 
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningTestMixin):
+    class CurrentTestModel(
+        LightningTestMixin, 
+        LightningTestModelBase
+    ):
         pass
 
     hparams = tutils.get_hparams()
