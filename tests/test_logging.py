@@ -187,7 +187,6 @@ def test_wandb_logger(tmpdir):
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
-
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
