@@ -185,6 +185,15 @@ def test_wandb_logger(tmpdir):
     _ = WandbLogger(save_dir=wandb_dir, anonymous=True)
 
 
+def test_wandb_pickle(tmpdir):
+    """Verify that pickling trainer with wandb logger works."""
+    tutils.reset_seed()
+
+    wandb_dir = str(tmpdir)
+    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
+    assert logger is not None
+
+
 def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
     tutils.reset_seed()
@@ -204,15 +213,6 @@ def test_neptune_logger(tmpdir):
 
     print('result finished')
     assert result == 1, "Training failed"
-
-
-def test_wandb_pickle(tmpdir):
-    """Verify that pickling trainer with wandb logger works."""
-    tutils.reset_seed()
-
-    wandb_dir = str(tmpdir)
-    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
-    assert logger is not None
 
 
 def test_neptune_pickle(tmpdir):
