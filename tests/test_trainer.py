@@ -464,10 +464,12 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
-    trainer_options['early_stop_callback'] = EarlyStopping(monitor='val_loss', min_delta=1.0)
-    trainer_options['val_check_interval'] = 20
-    trainer_options['min_epochs'] = 1
-    trainer_options['max_epochs'] = 10
+    trainer_options.update({
+        'early_stop_callback': EarlyStopping(monitor='val_loss', min_delta=1.0),
+        'val_check_interval': 20,
+        'min_epochs': 1,
+        'max_epochs': 10
+    })
 
     # define less min steps than 1 epoch
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)
