@@ -418,7 +418,7 @@ def test_test_method(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestMixin, 
+        LightningTestMixin,
         LightningTestModelBase
     ):
         pass
