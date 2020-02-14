@@ -90,7 +90,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps=None,
             resume_from_checkpoint=None,
             profiler=None,
-            benchmark=False
+            benchmark=False,
     ):
         r"""
 
