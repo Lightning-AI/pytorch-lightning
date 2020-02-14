@@ -488,7 +488,7 @@ class Trainer(TrainerIOMixin,
                 to find the best algorithm to use for your hardware."
                 Example::
 
-                    # default disabled by the Trainer
+                    # default disabled(false) by the Trainer
                     trainer = Trainer(benchmark=True)
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
