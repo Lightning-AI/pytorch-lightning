@@ -360,3 +360,5 @@ autodoc_default_options = {
 }
 
 html_add_permalinks = True
+# http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
+autosectionlabel_prefix_document = True
