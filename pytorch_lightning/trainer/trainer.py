@@ -974,10 +974,22 @@ class Trainer(TrainerIOMixin,
 
 
 def _set_dataloader(model, dataloader, attribute):
-    r''' Check dataloaders passed to .fit() method if they are pytorch DataLoader
-         objects and whether or not we should overright the corresponding dataloader
-         in the model '''
+    r'''
+    Check dataloaders passed to .fit() method if they are pytorch DataLoader
+    objects and whether or not we should overright the corresponding dataloader
+    in the model
 
+    Args:
+        model (LightningModule): The model to check
+
+        dataloader: If a pytorch dataloader (or a list of pytorch dataloaders)
+            is passed, it will be incorporate into the model as model.attribute.
+            If attribute alreay exist it will warn the userpass. If not a
+            dataloader will throw an error
+
+        attribute (str): The attribute to save the dataloader under
+
+    '''
     # Check if attribute comes directly from base class or
     # derived in user subclass
     if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
@@ -996,8 +1008,8 @@ def _set_dataloader(model, dataloader, attribute):
 
         elif not dataloader and dataloader != [None]:
             raise ValueError(f'`{attribute}` needs to be an instance of'
-                             '`torch.utils.data.DataLoader` or a list of, instead got'
-                             f'`{dataloader}`')
+                             '`torch.utils.data.DataLoader` or a list of'
+                             f'DataLoaders, instead got {dataloader}`')
 
     else:
         warnings.warn(f'Model has predefined `{attribute}`,'
