@@ -56,6 +56,14 @@ class Callback(object):
         """Called when the validation loop ends."""
         pass
 
+    def on_test_begin(self):
+        """Called when the test begins."""
+        pass
+
+    def on_test_end(self):
+        """Called when the test ends."""
+        pass
+
 
 _NO_TRAINER_ERROR_MSG = ".set_trainer() should be called after the callback initialization"
 
