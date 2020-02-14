@@ -412,8 +412,8 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
-def test_dataloaders_passed_to_fit(tmpdir):
-    """Verify that dataloaders can be passed to fit"""
+def test_train_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that train dataloader can be passed to fit """
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -431,12 +431,31 @@ def test_dataloaders_passed_to_fit(tmpdir):
         train_percent_check=0.2
     )
 
-    # fit model
     # only train passed to fit
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True))
     results = trainer.fit(model, **fit_options)
+
+
+def test_train_val_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that train & val dataloader can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
 
     # train, val passed to fit
     model = CurrentTestModel(hparams)
@@ -446,6 +465,26 @@ def test_dataloaders_passed_to_fit(tmpdir):
     results = trainer.fit(model, **fit_options)
     assert len(trainer.get_val_dataloaders()) == 1, \
         'val_dataloaders not initiated properly'
+
+
+def test_all_dataloaders_passed_to_fit(tmpdir):
+    """ Verify train, val & test dataloader can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
 
     # train, val and test passed to fit
     model = CurrentTestModel(hparams)
@@ -458,6 +497,26 @@ def test_dataloaders_passed_to_fit(tmpdir):
         'val_dataloaders not initiated properly'
     assert len(trainer.get_test_dataloaders()) == 1, \
         'test_dataloaders not initiated properly'
+
+
+def test_multiple_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that multiple val & test dataloaders can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
 
     # train, multiple val and multiple test passed to fit
     model = CurrentTestModel(hparams)
