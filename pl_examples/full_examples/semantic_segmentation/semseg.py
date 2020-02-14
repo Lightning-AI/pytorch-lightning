@@ -134,9 +134,7 @@ def main(hparams):
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    # trainer.fit(model)
-
-    trainer.test(model)
+    trainer.fit(model)
 
 
 if __name__ == '__main__':
