@@ -1,4 +1,6 @@
-name: "Pull Request Docs Check"
+name: "Docs Check"
+# https://github.com/marketplace/actions/sphinx-build
+
 on:
 - pull_request
 
