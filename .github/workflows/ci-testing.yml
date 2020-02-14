@@ -46,12 +46,11 @@ jobs:
         pip --version
         pip list
 
-    - name: Lint and Tests
+    - name: Testing
       # env:
       #   TOXENV: py${{ matrix.python-version }}
       run: |
         # tox --sitepackages
-        flake8 .
         coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
 
     - name: Upload pytest test results
