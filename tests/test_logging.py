@@ -368,7 +368,7 @@ def test_custom_logger(tmpdir):
 def test_adding_step_key(tmpdir):
     logged_step = 0
 
-    def validation_end(outputs):
+    def _validation_end(outputs):
         nonlocal logged_step
         logged_step += 1
         return {"log": {"step": logged_step, "val_acc": logged_step / 10}}
@@ -382,7 +382,7 @@ def test_adding_step_key(tmpdir):
         return decorated
 
     model, hparams = tutils.get_model()
-    model.validation_end = validation_end
+    model.validation_end = _validation_end
     trainer_options = dict(
         max_epochs=4,
         default_save_path=tmpdir,
