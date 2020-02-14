@@ -368,7 +368,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # verify there are 2 val loaders
     assert len(trainer.get_val_dataloaders()) == 2, \
-        'Multiple val_dataloade not initiated properly'
+        'Multiple val_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
     for dataloader in trainer.get_val_dataloaders():

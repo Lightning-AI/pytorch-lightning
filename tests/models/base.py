@@ -36,7 +36,7 @@ class TestingMNIST(MNIST):
         self.targets = self.targets[:num_samples]
 
 
-class _LightningTestModelBase(LightningModule):
+class TestModelBase(LightningModule):
     """
     Base LightningModule for testing. Implements only the required
     interface
@@ -48,7 +48,7 @@ class _LightningTestModelBase(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(_LightningTestModelBase, self).__init__()
+        super(TestModelBase, self).__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -216,13 +216,13 @@ class _LightningTestModelBase(LightningModule):
         return parser
 
 
-class LightningTestModelBase(_LightningTestModelBase):
+class LightningTestModelBase(TestModelBase):
     """ with pre-defined train dataloader """
     @data_loader
     def train_dataloader(self):
         return self._dataloader(train=True)
 
 
-class LightningTestModelBaseWithoutDataloader(_LightningTestModelBase):
+class LightningTestModelBaseWithoutDataloader(TestModelBase):
     """ without pre-defined train dataloader """
     pass
