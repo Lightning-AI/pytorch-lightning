@@ -376,7 +376,7 @@ def test_adding_step_key(tmpdir):
     def log_metrics_decorator(log_metrics_fn):
         def decorated(metrics, step):
             if "val_acc" in metrics:
-                assert metrics["step"] == logged_step
+                assert step == logged_step
             return log_metrics_fn(metrics, step)
 
         return decorated
