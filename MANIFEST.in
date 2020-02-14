@@ -30,6 +30,7 @@ exclude docs
 
 # Include the Requirements
 include requirements.txt
+include requirements-extra.txt
 
 # Exclude build configs
 exclude *.yml
