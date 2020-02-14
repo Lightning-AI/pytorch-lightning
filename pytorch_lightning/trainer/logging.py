@@ -38,11 +38,12 @@ class TrainerLoggingMixin(ABC):
             self.logger.rank = 0
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
-        """Logs the metric dict passed in. If 'step' parameter is None and
-        'step' key is presented is metrics, uses metrics['step'] as a step
-        :param metrics:
-        :param grad_norm_dic:
-        :param step:
+        """Logs the metric dict passed in.
+        If `step` parameter is None and `step` key is presented is metrics,
+        uses metrics["step"] as a step
+        :param metrics (dict): Metric values
+        :param grad_norm_dic (dict): Gradient norms
+        :param step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
