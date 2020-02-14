@@ -373,7 +373,7 @@ def test_adding_step_key(tmpdir):
         logged_step += 1
         return {"log": {"step": logged_step, "val_acc": logged_step / 10}}
 
-    def log_metrics_decorator(log_metrics_fn):
+    def _log_metrics_decorator(log_metrics_fn):
         def decorated(metrics, step):
             if "val_acc" in metrics:
                 assert step == logged_step
@@ -391,5 +391,5 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0
     )
     trainer = Trainer(**trainer_options)
-    trainer.logger.log_metrics = log_metrics_decorator(trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
     trainer.fit(model)
