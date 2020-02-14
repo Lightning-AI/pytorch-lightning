@@ -26,6 +26,9 @@ def test_simple_profiler():
     np.testing.assert_allclose(p.recorded_durations["b"], [2], rtol=0.2)
     np.testing.assert_allclose(p.recorded_durations["c"], [1], rtol=0.2)
 
+    # ensure this doesn't throw any errors
+    description = p.describe()
+
 
 def test_advanced_profiler():
     def _get_duration(profile):
@@ -53,3 +56,6 @@ def test_advanced_profiler():
     np.testing.assert_allclose(b_duration, [2], rtol=0.2)
     c_duration = _get_duration(p.profiled_actions["c"])
     np.testing.assert_allclose(c_duration, [1], rtol=0.2)
+
+    # ensure this doesn't throw any errors
+    description = p.describe()
