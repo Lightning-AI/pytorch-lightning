@@ -368,6 +368,13 @@ class TrainerEvaluationLoopMixin(ABC):
         # init validation or test progress bar
         # main progress bar will already be closed when testing so initial position is free
 
+        position = 2 * self.process_position + (self.mode is not TrainerMode.TESTING)
+        desc = 'Testing' if self.mode is TrainerMode.TESTING else 'Validating'
+        pbar = tqdm(desc=desc, total=max_batches, leave=self.mode is TrainerMode.TESTING, position=position,
+                    disable=not self.show_progress_bar, dynamic_ncols=True,
+                    file=sys.stdout)
+        mode = "test" if self.mode is TrainerMode.TESTING else "val"
+        setattr(self, f'{mode}_progress_bar', pbar)
 
         # run evaluation
         eval_results = self.evaluate(self.model,

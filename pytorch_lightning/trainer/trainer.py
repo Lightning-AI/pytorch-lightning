@@ -578,6 +578,12 @@ class Trainer(
         model.prepare_data()
 
         # route to appropriate start method
+=======
+        self.mode = TrainerMode.TRAINING
+        self._fit(model)
+
+    def _fit(self, model):
+>>>>>>> Fix training mode issue after testing is called.
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
@@ -860,7 +866,7 @@ class Trainer(
         """
         self.mode = TrainerMode.VALIDATING
         if model is not None:
-            self.fit(model)
+            self._fit(model)
         else:
             self.run_evaluation()
 
