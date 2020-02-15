@@ -2,7 +2,7 @@
 name: Typos and doc fixes
 about: Typos and doc fixes
 title: ''
-labels: typo
+labels: typo, documentation
 assignees: ''
 
 ---
