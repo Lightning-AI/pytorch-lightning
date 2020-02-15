@@ -838,6 +838,9 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
+        # summarize profile results
+        self.profiler.describe()
+
     def validate(self, model: Optional[LightningModule] = None):
         r"""
 
