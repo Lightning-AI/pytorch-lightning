@@ -412,7 +412,7 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
-def test_test_method(tmpdir):
+def test_trainer_test_method(tmpdir):
     """Verify Trainer.test() is working properly."""
 
     tutils.reset_seed()
@@ -439,18 +439,24 @@ def test_test_method(tmpdir):
     test_result = trainer.test()
 
     # verify test method returns what is returned by test_end
-    assert 'progress_bar' in test_result and 'test_acc' \
-        in test_result['progress_bar'] and 'test_loss' \
-        in test_result['progress_bar'], \
+    assert 'progress_bar' in test_result,\
+        'test method does not return what is retured by test_end method'
+    assert 'test_acc' in test_result['progress_bar'],\
+        'test method does not return what is retured by test_end method'
+    assert 'test_loss' in test_result['progress_bar'],\
         'test method does not return what is retured by test_end method'
 
     # pass the model as an argument to test method
     test_result = trainer.test(model)
 
     # verify test method returns what is returned by test_end
-    assert 'progress_bar' in test_result and 'test_acc' \
-        in test_result['progress_bar'] and 'test_loss' \
-        in test_result['progress_bar'], \
+    assert 'progress_bar' in test_result,\
+        'test method does not return what is retured by test_end method when '\
+        'model is passed as an argument'
+    assert 'test_acc' in test_result['progress_bar'],\
+        'test method does not return what is retured by test_end method when '\
+        'model is passed as an argument'
+    assert 'test_loss' in test_result['progress_bar'],\
         'test method does not return what is retured by test_end method when '\
         'model is passed as an argument'
 
