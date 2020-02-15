@@ -864,7 +864,7 @@ class Trainer(
         """
         self.mode = TrainerMode.VALIDATING
         if model is not None:
-            self.fit(model)
+            self._fit(model)
         else:
             self.run_evaluation()
 
