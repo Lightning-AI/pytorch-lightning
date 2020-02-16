@@ -167,6 +167,13 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla.core.xla_model as xm
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerTrainLoopMixin(ABC):
 
@@ -179,6 +186,7 @@ class TrainerTrainLoopMixin(ABC):
         self.use_dp = None
         self.use_ddp2 = None
         self.single_gpu = None
+        self.use_tpu = None
         self.data_parallel_device_ids = None
         self.check_val_every_n_epoch = None
         self.num_training_batches = None
@@ -549,8 +557,11 @@ class TrainerTrainLoopMixin(ABC):
                     # override function to modify this behavior
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
-                        model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx, optimizer_closure)
+                        if self.use_tpu:
+                            xm.optimizer_step(optimizer, barrier=True)
+                        else:
+                            model.optimizer_step(self.current_epoch, batch_idx,
+                                                 optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value)
