@@ -159,6 +159,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.callback_metrics = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
+        self.use_tpu = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -172,6 +173,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def is_overriden(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def transfer_batch_to_tpu(self, batch):
         # this is just empty shell for code from other class
         pass
 
@@ -354,6 +360,11 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(self.data_parallel_device_ids, list):
                 root_gpu = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
+            args[0] = batch
+
+        # TPU
+        if self.use_tpu:
+            batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
         # CPU
