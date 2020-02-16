@@ -39,13 +39,12 @@ class TrainerLoggingMixin(ABC):
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
-
-        :param metrics:
-        :param grad_norm_dic:
+        If `step` parameter is None and `step` key is presented is metrics,
+        uses metrics["step"] as a step
+        :param metrics (dict): Metric values
+        :param grad_norm_dic (dict): Gradient norms
+        :param step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
-        # added metrics by Lightning for convenience
-        metrics['epoch'] = self.current_epoch
-
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
@@ -57,7 +56,12 @@ class TrainerLoggingMixin(ABC):
         # turn all tensors to scalars
         scalar_metrics = self.metrics_to_scalars(metrics)
 
-        step = step if step is not None else self.global_step
+        if "step" in scalar_metrics and step is None:
+            step = scalar_metrics.pop("step")
+        else:
+            # added metrics by Lightning for convenience
+            metrics['epoch'] = self.current_epoch
+            step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
             self.logger.log_metrics(scalar_metrics, step=step)
