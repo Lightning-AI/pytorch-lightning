@@ -721,7 +721,8 @@ class Trainer(TrainerIOMixin,
 
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
-        if precision == 16:
+        self.precision = precision
+        if self.precision == 16:
             use_amp = True
         self.init_amp(use_amp)
 

@@ -374,6 +374,7 @@ class TrainerDPMixin(ABC):
         self.single_gpu = None
         self.root_gpu = None
         self.amp_level = None
+        self.precision = None
 
     @abstractmethod
     def run_pretrain_routine(self, model):
@@ -457,7 +458,7 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        if self.precision == '16':
+        if self.precision == 16:
             os.environ['XLA_USE_BF16'] = 1
 
         self.run_pretrain_routine(model)
