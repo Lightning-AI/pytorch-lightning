@@ -4,6 +4,7 @@ coverage
 codecov
 pytest>=3.0.5
 pytest-cov
+pytest-flake8
 flake8
 check-manifest
 test-tube>=0.7.5
