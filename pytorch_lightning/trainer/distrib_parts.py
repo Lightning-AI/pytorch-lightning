@@ -621,7 +621,8 @@ def determine_root_gpu_device(gpus):
     return root_gpu
 
 
-def tpu_train(tpu_core_idx, model, self):
+def tpu_train(tpu_core_idx, model):
+    self = None
     print(self, tpu_core_idx, model)
     # put model on tpu
     model.to(xm.xla_device())
