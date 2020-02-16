@@ -1000,9 +1000,12 @@ def _set_dataloader(model, dataloader, attribute):
         dataloader = dataloader if attribute == 'train_dataloader' or \
             (attribute != 'train_dataloader' and isinstance(dataloader, list)) else [dataloader]
 
-        # Check if input is correct
-        if isinstance(dataloader, torch.utils.data.DataLoader) or \
-           (isinstance(dataloader, list) and all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader)):
+        # Check we are given valid dataloaders
+        is_dataloader = isinstance(dataloader, torch.utils.data.DataLoader)
+        is_dataloader_list = (isinstance(dataloader, list)
+        if is_dataloader_list:
+            valid_loaders = all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader))
+        if  is_dataloader or is_dataloader_list and valid_loaders:
 
             # Overwrite abstract methods
             dl = lambda: dataloader
