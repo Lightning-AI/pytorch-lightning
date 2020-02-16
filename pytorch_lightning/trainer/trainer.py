@@ -746,17 +746,17 @@ class Trainer(TrainerIOMixin,
                 a predefined train_dataloader method this will be skipped.
 
             val_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples. If the model has
-                a predefined val_dataloader method this will be skipped
+                Pytorch Dataloader or a list of them, specifying validation samples. 
+                If the model has a predefined val_dataloader method this will be skipped
 
             test_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples. If the model has
-                a predefined val_dataloader method this will be skipped
+                Pytorch Dataloader or a list of them, specifying validation samples. 
+                If the model has a predefined val_dataloader method this will be skipped
 
         Example::
 
             # Option 1,
-            # Define the train_dataloader(), test_dataloader() and val_dataloader() functions
+            # Define the train_dataloader(), test_dataloader() and val_dataloader() fxs
             # in the lightningModule
             # RECOMMENDED FOR MOST RESEARCH AND APPLICATIONS TO MAINTAIN READABILITY
             trainer = Trainer()
@@ -764,7 +764,7 @@ class Trainer(TrainerIOMixin,
             trainer.fit(model)
 
             # Option 2
-            # in certain production cases we might want to pass different datasets to the same model
+            # in production cases we might want to pass different datasets to the same model
             # Recommended for PRODUCTION SYSTEMS
             train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
             trainer = Trainer()
