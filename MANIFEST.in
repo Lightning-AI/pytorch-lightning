@@ -25,6 +25,7 @@ exclude tests
 # Exclude the documentation files
 recursive-exclude docs *
 exclude docs
+recursive-include docs/source/_static/images/ lightning_logo* pl_overview* tf_*
 
 # Include the Requirements
 include requirements.txt
