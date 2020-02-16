@@ -62,6 +62,7 @@ class Trainer(TrainerIOMixin,
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             num_nodes=1,
             gpus=None,
+            tpus=None,
             log_gpu_memory=None,
             show_progress_bar=True,
             overfit_pct=0.0,
@@ -204,6 +205,23 @@ class Trainer(TrainerIOMixin,
 
                     # combine with num_nodes to train on multiple GPUs across nodes
                     trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
+
+            tpus (list|str|int): Which TPUs to train on.
+                Example::
+
+                    # default used by the Trainer (ie: train on CPU)
+                    trainer = Trainer(tpus=None)
+
+                    # int: train on 2 TPUs
+                    trainer = Trainer(tpus=2)
+
+                    # list: train on TPUs 1, 4 (by bus ordering)
+                    trainer = Trainer(tpus=[1, 4])
+                    trainer = Trainer(tpus='1, 4') # equivalent
+
+                    # -1: train on all TPUs
+                    trainer = Trainer(tpus=-1)
+                    trainer = Trainer(tpus='-1') # equivalent
 
             log_gpu_memory (str): None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
