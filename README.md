@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_static/images/lightning_logo.png" width="50" height="50">
+![Logo](docs/source/_static/images/lightning_logo.svg)
 
 # PyTorch Lightning
 
@@ -30,11 +30,11 @@ removed until codecov badge isn't empy. likely a config error showing nothing on
 | System / PyTorch Version | 1.1 | 1.2 | 1.3 | 1.4 |
 | :---: | :---: | :---: | :---: | :---: |
 | Linux py3.6 | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) |
-| Linux py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) |
-| OSX py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) |
-| OSX py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) |
-| Windows py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) |
-| Windows py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg) |
+| Linux py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| OSX py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| OSX py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| Windows py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| Windows py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
 
 </center>
 
@@ -65,7 +65,7 @@ To use Lightning, simply refactor your research code into the [LightningModule](
 Everything in Blue!   
 This is how lightning separates the science (red) from the engineering (blue).
 
-![Overview](docs/source/_static/images/pl.gif)
+![Overview](docs/source/_static/images/pl_overview.gif)
 
 ## How much effort is it to convert?
 You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
