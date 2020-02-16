@@ -27,7 +27,6 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.trainer.distrib_parts import tpu_train
 
 
 try:
@@ -842,7 +841,7 @@ class Trainer(TrainerIOMixin,
 
         elif self.use_tpu:
             log.info(f'training on {self.num_tpu_cores} TPU cores')
-            xmp.spawn(test_fit, nprocs=self.num_tpu_cores)
+            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method='fork')
 
         # ON CPU
         else:
@@ -1014,6 +1013,3 @@ class Trainer(TrainerIOMixin,
             self.fit(model)
         else:
             self.run_evaluation(test=True)
-
-def test_fit(index):
-    print(index)
