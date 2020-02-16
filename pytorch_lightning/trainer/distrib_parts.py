@@ -494,7 +494,7 @@ class TrainerDPMixin(ABC):
         if self.precision == 16:
             os.environ['XLA_USE_BF16'] = 1
 
-        log.info(f'running on TPU core: {tpu_core_idx}')
+        log.info(f'INIT TPU core: {tpu_core_idx}')
         self.run_pretrain_routine(model)
 
     def dp_train(self, model):
