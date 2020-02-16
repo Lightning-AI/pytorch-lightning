@@ -330,8 +330,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
-                                                  logs=self.callback_metrics)
+            self.checkpoint_callback.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
         # make dataloader_idx arg in validation_step optional
