@@ -451,8 +451,7 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, model):
         # put model on tpu
-        device = xm.xla_device()
-        model.to(device)
+        model.to(xm.xla_device())
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
