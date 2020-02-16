@@ -486,7 +486,9 @@ class Trainer(TrainerIOMixin,
 
             benchmark (bool): If true enables cudnn.benchmark.
                 From PyTorchdocs: "This flag allows you to enable the inbuilt cudnn auto-tuner
-                to find the best algorithm to use for your hardware."
+                to find the best algorithm to use for your hardware." However, make sure your 
+                input sizes to the network do not vary otherwise this will lead to worse 
+                runtime performance.
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
