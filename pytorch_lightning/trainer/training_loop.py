@@ -174,6 +174,14 @@ try:
 except ImportError:
     XLA_AVAILABLE = False
 
+try:
+    import torch_xla.distributed.parallel_loader as xla_pl
+
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerTrainLoopMixin(ABC):
 
@@ -220,6 +228,7 @@ class TrainerTrainLoopMixin(ABC):
         self.get_train_dataloader = None
         self.reduce_lr_on_plateau_scheduler = None
         self.profiler = None
+        self.batch_idx = None
 
     @property
     def max_nb_epochs(self):
@@ -301,7 +310,8 @@ class TrainerTrainLoopMixin(ABC):
         # run all epochs
         for epoch in range(self.current_epoch, self.max_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
+            if (self.use_ddp or self.use_tpu) \
+                    and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
                 self.get_train_dataloader().sampler.set_epoch(epoch)
 
             # get model
@@ -389,9 +399,18 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('on_epoch_start'):
                 model.on_epoch_start()
 
+        # request the dataloader
+        train_dataloader = self.get_train_dataloader()
+
+        # on TPU we have to wrap it under the ParallelLoader
+        if self.use_tpu:
+            device = xm.xla_device()
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
+
         # run epoch
         for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(self.get_train_dataloader()), "get_train_batch"
+            enumerate(train_dataloader), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
