@@ -404,6 +404,34 @@ class TrainerDPMixin(ABC):
             m.testing = self.testing
             m.single_gpu = self.single_gpu
 
+    def transfer_batch_to_tpu(self, batch):
+        # base case: object can be directly moved using `to`
+        if callable(getattr(batch, 'to', None)):
+            return batch.to(xm.xla_device())
+
+        # when list
+        if isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_tpu(x)
+            return batch
+
+        # when tuple
+        if isinstance(batch, tuple):
+            batch = list(batch)
+            for i, x in enumerate(batch):
+                batch[i] = self.transfer_batch_to_tpu(x)
+            return tuple(batch)
+
+        # when dict
+        if isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.transfer_batch_to_tpu(v)
+
+            return batch
+
+        # nothing matches, return the value as is without transform
+        return batch
+
     def transfer_batch_to_gpu(self, batch, gpu_id):
         # base case: object can be directly moved using `cuda` or `to`
         if callable(getattr(batch, 'cuda', None)):

@@ -260,6 +260,11 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
+    def transfer_batch_to_tpu(self, batch):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
     def clip_gradients(self):
         # this is just empty shell for code from other class
         pass
@@ -622,6 +627,12 @@ class TrainerTrainLoopMixin(ABC):
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
+            args[0] = batch
+            output = self.model.training_step(*args)
+
+        # TPU support
+        elif self.use_tpu:
+            batch = self.transfer_batch_to_tpu(copy.copy(batch))
             args[0] = batch
             output = self.model.training_step(*args)
 
