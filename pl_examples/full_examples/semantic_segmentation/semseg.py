@@ -111,6 +111,18 @@ class KITTI(Dataset):
 
 
 class SegModel(pl.LightningModule):
+    '''
+    Semantic Segmentation Module
+
+    This is a basic semantic segmentation module implemented with Lightning.
+    It uses CrossEntropyLoss as the default loss function. May be replaced with
+    other loss functions as required.
+    It is specific to KITTI dataset i.e. dataloaders are for KITTI
+    and Normalize transform uses the mean and standard deviation of this dataset.
+    It uses the FCN ResNet50 model as an example.
+
+    Adam optimizer is used along with Cosine Annealing learning rate scheduler.
+    '''
     def __init__(self, hparams):
         super(SegModel, self).__init__()
         self.root_path = hparams.root
@@ -160,9 +172,7 @@ def main(hparams):
     # 2 INIT TRAINER
     # ------------------------
     trainer = pl.Trainer(
-        gpus=hparams.gpus,
-        max_nb_epochs=5,
-        early_stop_callback=None
+        gpus=hparams.gpus
     )
 
     # ------------------------
