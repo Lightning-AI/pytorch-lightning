@@ -1,0 +1,22 @@
+# This is a sample .typo-ci.yml file, it's used to configure how Typo CI will behave.
+# Add it to the root of your project and push it to github.
+# https://typoci.com/documentation
+---
+
+dictionaries:
+  - en
+  - en_GB
+
+# Any files/folders we should ignore?
+excluded_files:
+  - "*.yml"
+  - "*.yaml"
+
+# Any typos we should ignore?
+excluded_words:
+  - typoci
+  - hasattr
+  - setattr
+  - getattr
+  - f'
+  - f"
