@@ -21,6 +21,8 @@ from torchvision.datasets import MNIST
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core import data_loader
+from pytorch_lightning.trainer import Trainer
+
 
 class Generator(nn.Module):
     def __init__(self, latent_dim, img_shape):
@@ -193,7 +195,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer()
+    trainer = Trainer()
 
     # ------------------------
     # 3 START TRAINING

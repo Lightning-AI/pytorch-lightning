@@ -352,10 +352,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 
         **OPTIONAL**
-        If you don't need to test you don't need to implement this method. 
-        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+        If you don't need to test you don't need to implement this method.
+        In this step you'd normally generate examples or 
+        calculate anything of interest such as accuracy.
 
-        When the validation_step is called, the model has been put in eval mode and PyTorch gradients have been disabled. 
+        When the validation_step is called, the model has been put in eval mode 
+        and PyTorch gradients have been disabled.
         At the end of validation, model goes back to training mode and gradients are enabled.
 
         The dict you return here will be available in the `test_end` method.
