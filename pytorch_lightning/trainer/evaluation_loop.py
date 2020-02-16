@@ -131,6 +131,14 @@ from tqdm.auto import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
+try:
+    import torch_xla.distributed.parallel_loader as xla_pl
+    import torch_xla.core.xla_model as xm
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerEvaluationLoopMixin(ABC):
 
@@ -221,6 +229,13 @@ class TrainerEvaluationLoopMixin(ABC):
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
+
+            # on TPU we have to wrap it under the ParallelLoader
+            if self.use_tpu:
+                device = xm.xla_device()
+                dataloader = xla_pl.ParallelLoader(dataloader, [device])
+                dataloader = dataloader.per_device_loader(device)
+
             for batch_idx, batch in enumerate(dataloader):
 
                 if batch is None:  # pragma: no cover
