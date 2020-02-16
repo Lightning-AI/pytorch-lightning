@@ -1002,9 +1002,9 @@ def _set_dataloader(model, dataloader, attribute):
 
         # Check we are given valid dataloaders
         is_dataloader = isinstance(dataloader, torch.utils.data.DataLoader)
-        is_dataloader_list = (isinstance(dataloader, list)
+        is_dataloader_list = isinstance(dataloader, list)
         if is_dataloader_list:
-            valid_loaders = all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader))
+            valid_loaders = all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader)
         if  is_dataloader or is_dataloader_list and valid_loaders:
 
             # Overwrite abstract methods
