@@ -15,8 +15,10 @@ excluded_files:
 # Any typos we should ignore?
 excluded_words:
   - typoci
+  # Python syntax
   - hasattr
   - setattr
   - getattr
   - f'
   - f"
+  # other
