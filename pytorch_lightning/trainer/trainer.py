@@ -90,7 +90,8 @@ class Trainer(TrainerIOMixin,
             row_log_interval=10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend=None,
-            use_amp=False,
+            use_amp=False,  # backward compatible, todo: remove in v0.8.0
+            precision=32,
             print_nan_grads=False,
             weights_summary='full',
             weights_save_path=None,
@@ -421,10 +422,21 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
             use_amp (bool): If true uses apex for 16bit precision
+                .. deprecated:: 0.6.1
+                    Use `precision` instead. Will remove 0.8.0.
+
+            precision (int): Full precision (32), half precision (16)
+
                 Example::
 
                     # default used by the Trainer
-                    trainer = Trainer(use_amp=False)
+                    trainer = Trainer(precision=32)
+
+                    # 16-bit precision
+                    trainer = Trainer(precision=16)
+
+                    # one day
+                    trainer = Trainer(precision=8|4|2)
 
             print_nan_grads (bool): Prints gradients with nan values
                 Example::
@@ -705,6 +717,8 @@ class Trainer(TrainerIOMixin,
 
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
+        if precision == 16:
+            use_amp = True
         self.init_amp(use_amp)
 
     @property

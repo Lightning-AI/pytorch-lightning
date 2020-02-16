@@ -457,7 +457,7 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-        if self.half_precions:
+        if self.precision == '16':
             os.environ['XLA_USE_BF16'] = 1
 
         self.run_pretrain_routine(model)
