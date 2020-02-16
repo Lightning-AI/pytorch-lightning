@@ -411,7 +411,7 @@ def test_multiple_val_dataloader(tmpdir):
 
 
 def test_resume_from_checkpoint_epoch_restored(tmpdir):
-    """Verify test() on pretrained model."""
+    """Verify resuming from checkpoint runs the right number of epochs"""
     import types
 
     tutils.reset_seed()
@@ -423,6 +423,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     def increment_epoch(self):
         self.num_epochs_seen += 1
 
+    # Bind the increment_epoch function on_epoch_end so that the model keeps track of the number of epochs it has seen
     model.on_epoch_end = types.MethodType(increment_epoch, model)
 
     trainer_options = dict(
@@ -446,6 +447,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     if not os.path.isfile(last_checkpoint):
         last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
 
+    # Resume training
     trainer_options['max_epochs'] = 4
     new_trainer = Trainer(**trainer_options, resume_from_checkpoint=last_checkpoint)
     new_trainer.fit(model)
