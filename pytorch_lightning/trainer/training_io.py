@@ -385,8 +385,8 @@ class TrainerIOMixin(ABC):
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
-        self.global_step = checkpoint['global_step']
-        self.current_epoch = checkpoint['epoch']
+        self.global_step = checkpoint['global_step'] + 1
+        self.current_epoch = checkpoint['epoch'] + 1
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
