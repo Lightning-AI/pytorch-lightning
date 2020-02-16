@@ -842,7 +842,7 @@ class Trainer(TrainerIOMixin,
 
         elif self.use_tpu:
             log.info(f'training on {self.num_tpu_cores} TPU cores')
-            xmp.spawn(tpu_train, args=(2,), nprocs=self.num_tpu_cores)
+            xmp.spawn(test_fit, nprocs=self.num_tpu_cores)
 
         # ON CPU
         else:
@@ -1014,3 +1014,6 @@ class Trainer(TrainerIOMixin,
             self.fit(model)
         else:
             self.run_evaluation(test=True)
+
+def test_fit(index):
+    print(index)
