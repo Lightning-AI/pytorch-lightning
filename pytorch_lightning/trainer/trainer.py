@@ -746,11 +746,11 @@ class Trainer(TrainerIOMixin,
                 a predefined train_dataloader method this will be skipped.
 
             val_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples. 
+                Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloader method this will be skipped
 
             test_dataloader (:class:`.torch.utils.data.DataLoader`): Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples. 
+                Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloader method this will be skipped
 
         Example::
