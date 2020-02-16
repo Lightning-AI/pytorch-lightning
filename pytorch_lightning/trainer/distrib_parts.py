@@ -479,25 +479,6 @@ class TrainerDPMixin(ABC):
 
         self.run_pretrain_routine(model)
 
-    def tpu_train(self, tpu_core_idx, model):
-        print(self, tpu_core_idx, model)
-        # put model on tpu
-        model.to(xm.xla_device())
-
-        # track current tpu
-        self.current_tpu_idx = tpu_core_idx
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
-
-        # init 16 bit for TPU
-        if self.precision == 16:
-            os.environ['XLA_USE_BF16'] = 1
-
-        log.info(f'INIT TPU core: {tpu_core_idx}')
-        self.run_pretrain_routine(model)
-
     def dp_train(self, model):
 
         # CHOOSE OPTIMIZER
@@ -638,3 +619,23 @@ def determine_root_gpu_device(gpus):
     root_gpu = gpus[0]
 
     return root_gpu
+
+
+def tpu_train(tpu_core_idx, model, self):
+    print(self, tpu_core_idx, model)
+    # put model on tpu
+    model.to(xm.xla_device())
+
+    # track current tpu
+    self.current_tpu_idx = tpu_core_idx
+
+    # CHOOSE OPTIMIZER
+    # allow for lr schedulers as well
+    self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
+    # init 16 bit for TPU
+    if self.precision == 16:
+        os.environ['XLA_USE_BF16'] = 1
+
+    log.info(f'INIT TPU core: {tpu_core_idx}')
+    self.run_pretrain_routine(model)
