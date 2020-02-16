@@ -756,13 +756,16 @@ class Trainer(TrainerIOMixin,
         Example::
 
             # Option 1,
-            # Basic usecase, dataloaders defined as part of the model
+            # Define the train_dataloader(), test_dataloader() and val_dataloader() functions
+            # in the lightningModule
+            # RECOMMENDED FOR MOST RESEARCH AND APPLICATIONS TO MAINTAIN READABILITY
             trainer = Trainer()
             model = LightningModule()
             trainer.fit(model)
 
             # Option 2
-            # Dataloaders passed to fit method
+            # in certain production cases we might want to pass different datasets to the same model
+            # Recommended for PRODUCTION SYSTEMS
             train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
