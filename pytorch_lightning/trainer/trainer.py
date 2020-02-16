@@ -535,6 +535,7 @@ class Trainer(TrainerIOMixin,
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
+        self.on_tpu = tpus is not None
         self.process_position = process_position
         self.weights_summary = weights_summary
 
@@ -637,8 +638,15 @@ class Trainer(TrainerIOMixin,
         self.use_ddp2 = False
         self.use_dp = False
         self.single_gpu = False
+        self.single_tpu = False
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend, num_nodes)
+
+        # override dist backend when using tpus
+        # TODO: enable multi-node TPUs
+        if self.on_tpu:
+            self.distributed_backend = None
+            self.single_tpu = True
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
