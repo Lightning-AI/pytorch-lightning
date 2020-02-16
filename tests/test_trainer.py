@@ -423,7 +423,8 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     def increment_epoch(self):
         self.num_epochs_seen += 1
 
-    # Bind the increment_epoch function on_epoch_end so that the model keeps track of the number of epochs it has seen
+    # Bind the increment_epoch function on_epoch_end so that the
+    # model keeps track of the number of epochs it has seen.
     model.on_epoch_end = types.MethodType(increment_epoch, model)
 
     trainer_options = dict(
