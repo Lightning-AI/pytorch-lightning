@@ -425,7 +425,11 @@ class Trainer(TrainerIOMixin,
                 .. deprecated:: 0.6.1
                     Use `precision` instead. Will remove 0.8.0.
 
-            precision (int): Full precision (32), half precision (16)
+            precision (int): Full precision (32), half precision (16).
+                Can be used on CPU, GPU or TPUs.
+
+                If used on TPU will use torch.bfloat16 but tensor printing
+                will still show torch.float32.
 
                 Example::
 
