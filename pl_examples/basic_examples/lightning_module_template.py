@@ -18,6 +18,7 @@ from torchvision.datasets import MNIST
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core import data_loader
 
+
 class LightningTemplateModel(LightningModule):
     """
     Sample model to show how to define a template
