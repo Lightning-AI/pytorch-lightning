@@ -307,8 +307,8 @@ class TrainerIOMixin(ABC):
     def dump_checkpoint(self):
 
         checkpoint = {
-            'epoch': self.current_epoch,
-            'global_step': self.global_step
+            'epoch': self.current_epoch + 1,
+            'global_step': self.global_step + 1
         }
 
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
@@ -385,8 +385,8 @@ class TrainerIOMixin(ABC):
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
-        self.global_step = checkpoint['global_step'] + 1
-        self.current_epoch = checkpoint['epoch'] + 1
+        self.global_step = checkpoint['global_step']
+        self.current_epoch = checkpoint['epoch']
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
