@@ -36,10 +36,8 @@ references:
     run:
       name: Create package
       command: |
-        sudo pip install twine==1.13.0
         python setup.py sdist
         twine check dist/*
-        python setup.py clean
 
   format: &format
    run:
