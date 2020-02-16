@@ -481,7 +481,7 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
-        model.to(xm.xla_device(tpu_core_idx))
+        model.to(xm.xla_device())
 
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
