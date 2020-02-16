@@ -298,18 +298,12 @@ class Trainer(TrainerIOMixin,
                 Training will stop if max_steps or max_epochs have reached (earliest).
                 Example::
 
-                    # default used by the Trainer (disabled)
-                    trainer = Trainer(max_steps=None)
-
                     # Stop after 100 steps
                     trainer = Trainer(max_steps=100)
 
-            min_steps(int): Force training for at least these number of steps.
+            min_steps(int): Force training for at least these number of steps. Disabled by default (None).
                 Trainer will train model for at least min_steps or min_epochs (latest).
                 Example::
-
-                    # default used by the Trainer (disabled)
-                    trainer = Trainer(min_steps=None)
 
                     # Run at least for 100 steps (disable min_epochs)
                     trainer = Trainer(min_steps=100, min_epochs=0)

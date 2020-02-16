@@ -430,20 +430,21 @@ def _init_steps_model():
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
-    """Verify model trains according to speficied max steps"""
+    """Verify model trains according to specified max steps"""
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define less train steps than epochs
-    trainer_options['max_epochs'] = 5
-    trainer_options['max_steps'] = num_train_samples + 10
+    trainer_options.update(dict(
+        max_epochs=5,
+        max_steps=num_train_samples + 10
+    ))
 
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # check training stopped at max_steps
-    assert result == 1
-    assert trainer.global_step == trainer_options['max_steps'], "Model did not stop at max_steps"
+    assert result == 1 and trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
     trainer_options['max_epochs'] = 2
@@ -452,15 +453,14 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    assert result == 1
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer_options['max_epochs'] 
-    assert trainer.current_epoch == trainer_options['max_epochs'] - 1, "Model did not stop at max_epochs"
+    assert result == 1 and trainer.global_step == num_train_samples * trainer.max_nb_epochs \
+        and trainer.current_epoch == trainer.max_nb_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
-    """Verify model trains according to speficied min steps"""
+    """Verify model trains according to specified min steps"""
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
@@ -477,10 +477,9 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    assert result == 1
 
     # check model ran for at least min_epochs
-    assert trainer.global_step >= num_train_samples and \
+    assert result == 1 and trainer.global_step >= num_train_samples and \
         trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
@@ -489,10 +488,9 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    assert result == 1
 
     # check model ran for at least num_train_samples*1.5
-    assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
+    assert result == 1 and trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 # if __name__ == '__main__':
