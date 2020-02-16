@@ -3,6 +3,76 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+### Added
+- Added a check to ensure that the metric used for early stopping exists before training commences
+- Added `optimizer_idx` argument to `backward` hook
+- Added `entity` argument to `WandbLogger` to be passed to `wandb.init`
+- Added a tool for profiling training runs
+- Improved flexibility for naming of TensorBoard logs, can now set `version` to a `str` to just save to that directory, and use `name=''` to prevent experiment-name directory
+- Added option to specify `step` key when logging metrics
+### Changed
+- Changed default TQDM to use `tqdm.auto` for prettier outputs in IPython notebooks
+- Changed `pytorch_lightning.logging` to `pytorch_lightning.loggers`
+- Moved the default `tqdm_dict` definition from Trainer to `LightningModule`, so it can be overridden by the user
+### Deprecated
+### Removed
+- Removed dependency on pandas
+- Removed dependency on torchvision
+- Removed dependency on scikit-learn
+### Fixed
+- Fixed a bug where early stopping `on_end_epoch` would be called inconsistently when `check_val_every_n_epoch == 0`
+- Fixed a bug where the model checkpointer didn't write to the same directory as the logger
+- Fixed a bug where the `TensorBoardLogger` class would create an additional empty log file during fitting
+- Fixed a bug where `global_step` was advanced incorrectly when using `accumulate_grad_batches > 1`
+
+## [0.6.0] - 2020-01-21
+### Added
+- Added support for resuming from a specific checkpoint via `resume_from_checkpoint` argument
+- Added support for `ReduceLROnPlateau` scheduler
+- Added support for Apex mode `O2` in conjunction with Data Parallel
+- Added option (`save_top_k`) to save the top k models in the `ModelCheckpoint` class
+- Added `on_train_start` and `on_train_end` hooks to `ModelHooks`
+- Added `TensorBoardLogger`
+- Added support for weight summary of model with multiple inputs
+- Added `map_location` argument to `load_from_metrics` and `load_from_checkpoint`
+- Added option to disable validation by setting `val_percent_check=0`
+- Added `NeptuneLogger` class
+- Added `WandbLogger` class
+### Changed
+- Changed the default progress bar to print to stdout instead of stderr
+- Renamed `step_idx` to `step`, `epoch_idx` to `epoch`, `max_num_epochs` to `max_epochs` and `min_num_epochs` to `min_epochs`
+- Renamed `total_batch_nb` to `total_batches`, `nb_val_batches` to `num_val_batches`, `nb_training_batches` to `num_training_batches`, `max_nb_epochs` to `max_epochs`, `min_nb_epochs` to `min_epochs`, `nb_test_batches` to `num_test_batches`, and `nb_val_batches` to `num_val_batches`
+- Changed gradient logging to use parameter names instead of indexes
+- Changed the default logger to `TensorBoardLogger`
+- Changed the directory for tensorboard logging to be the same as model checkpointing
+### Deprecated
+- Deprecated `max_nb_epochs` and `min_nb_epochs`
+- Deprecated the `on_sanity_check_start` hook in `ModelHooks`
+### Removed
+- Removed the `save_best_only` argument from `ModelCheckpoint`, use `save_top_k=1` instead
+### Fixed
+- Fixed a bug which ocurred when using Adagrad with cuda
+- Fixed a bug where training would be on the GPU despite setting `gpus=0` or `gpus=[]`
+- Fixed an error with `print_nan_gradients` when some parameters do not require gradient
+- Fixed a bug where the progress bar would show an incorrect number of total steps during the validation sanity check when using multiple validation data loaders
+- Fixed support for PyTorch 1.1.0
+- Fixed an issue with early stopping when using a `val_check_interval < 1.0` in `Trainer`
+- Fixed bugs relating to the `CometLogger` object that would cause it to not work properly
+- Fixed a bug that would occur when returning `-1` from `on_batch_start` following an early exit or when the batch was `None`
+- Fixed a potential race condition with several processes trying to create checkpoint directories
+- Fixed a bug where batch 'segments' would remain on the GPU when using `truncated_bptt > 1`
+- Fixed a bug when using `IterableDataset`
+- Fixed a bug where `.item` was called on non-tensor objects
+- Fixed a bug where `Trainer.train` would crash on an uninitialized variable if the trainer was run after resuming from a checkpoint that was already at `max_epochs`
+- Fixed a bug where early stopping would begin two epochs early
+- Fixed a bug where `num_training_batches` and `num_test_batches` would sometimes be rounded down to zero
+- Fixed a bug where an additional batch would be processed when manually setting `num_training_batches`
+- Fixed a bug when batches did not have a `.copy` method
+- Fixed a bug when using `log_gpu_memory=True` in Python 3.6
+- Fixed a bug where checkpoint writing could exit before completion, giving incomplete checkpoints
+- Fixed a bug where `on_train_end` was not called when ealy stopping
+
 ## [0.5.3] - 2019-11-06
 ### Added
 - Added option to disable default logger, checkpointer, and early stopping by passing `logger=False`, `checkpoint_callback=False` and `early_stop_callback=False` respectively
@@ -96,7 +166,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 memory utilization
 - Added SLURM resubmit functionality (port from test-tube)
 - Added optional weight_save_path to trainer to remove the need for a checkpoint_callback when using cluster training
-- Added option to use single gpu per node with `DistributedDataParrallel`
+- Added option to use single gpu per node with `DistributedDataParallel`
 ### Changed
 - Changed functionality of `validation_end` and `test_end` with multiple dataloaders to be given all of the dataloaders at once rather than in seperate calls
 - Changed print_nan_grads to only print the parameter value and gradients when they contain NaN
@@ -164,7 +234,7 @@ memory utilization
 ### Removed
 ### Fixed
 - Fixed a bug where a warning would show when using `lr_scheduler` in `torch>1.1.0`
-- Fixed a bug where an `Exception` would be thrown if using `torch.DistributedDataParrallel` without using a `DistributedSampler`, this now throws a `Warning` instead 
+- Fixed a bug where an `Exception` would be thrown if using `torch.DistributedDataParallel` without using a `DistributedSampler`, this now throws a `Warning` instead 
 
 ## [0.4.3] - 2019-08-10
 ### Added
