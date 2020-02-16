@@ -691,6 +691,7 @@ class Trainer(TrainerIOMixin,
         # override dist backend when using tpus
         if self.on_tpu:
             self.init_tpu()
+            self.current_tpu_idx = None
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -839,6 +840,7 @@ class Trainer(TrainerIOMixin,
             self.single_gpu_train(model)
 
         elif self.use_tpu:
+            log.info(f'training on {self.num_tpu_cores} TPU cores')
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores)
 
         # ON CPU

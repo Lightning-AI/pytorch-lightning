@@ -335,6 +335,7 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 """
 
 from abc import ABC, abstractmethod
+import logging as log
 import os
 
 import torch
@@ -375,6 +376,7 @@ class TrainerDPMixin(ABC):
         self.root_gpu = None
         self.amp_level = None
         self.precision = None
+        self.current_tpu_idx = None
 
     @abstractmethod
     def run_pretrain_routine(self, model):
@@ -477,17 +479,22 @@ class TrainerDPMixin(ABC):
 
         self.run_pretrain_routine(model)
 
-    def tpu_train(self, model):
+    def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
-        model.to(xm.xla_device())
+        model.to(xm.xla_device(tpu_core_idx))
+
+        # track current tpu
+        self.current_tpu_idx = tpu_core_idx
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
+        # init 16 bit for TPU
         if self.precision == 16:
             os.environ['XLA_USE_BF16'] = 1
 
+        log.info(f'running on TPU core: {tpu_core_idx}')
         self.run_pretrain_routine(model)
 
     def dp_train(self, model):
