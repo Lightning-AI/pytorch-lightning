@@ -4,6 +4,7 @@
 - [ ] Did you read the [contributor guideline](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)?
 - [ ] Did you make sure to update the docs?   
 - [ ] Did you write any new necessary tests?  
+- [ ] Did you update the [CHANGELOG](../CHANGELOG.md)?
 
 ## What does this PR do?
 Fixes # (issue).
