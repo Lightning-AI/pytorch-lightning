@@ -116,10 +116,13 @@ class SegModel(pl.LightningModule):
         self.root_path = hparams.root
         self.batch_size = hparams.batch_size
         self.learning_rate = hparams.lr
-        self.net = torchvision.models.segmentation.fcn_resnet50(pretrained=False, progress=True, num_classes=19)
+        self.net = torchvision.models.segmentation.fcn_resnet50(pretrained=False,
+                                                                progress=True,
+                                                                num_classes=19)
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324])
+            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
+                                 std=[0.32064945, 0.32098866, 0.32325324])
         ])
         self.trainset = KITTI(self.root_path, split='train', transform=self.transform)
         self.testset = KITTI(self.root_path, split='test', transform=self.transform)
