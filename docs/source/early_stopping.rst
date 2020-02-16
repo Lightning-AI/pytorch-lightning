@@ -5,7 +5,7 @@ Default behavior
 ----------------------
 By default training will go with early stopping if there is
 `'val_loss'` in `validation_end()` return dict. Otherwise
-training will go with disabled early stopping.
+training will proceed with early stopping disabled.
 
 .. code-block:: python
 
