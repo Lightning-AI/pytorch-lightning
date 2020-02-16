@@ -335,6 +335,7 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 """
 
 from abc import ABC, abstractmethod
+import os
 
 import torch
 
@@ -350,6 +351,13 @@ try:
     APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
 
 
 class TrainerDPMixin(ABC):
@@ -437,6 +445,20 @@ class TrainerDPMixin(ABC):
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
+
+        self.run_pretrain_routine(model)
+
+    def tpu_train(self, model):
+        # put model on tpu
+        device = xm.xla_device()
+        model.to(device)
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
+        if self.half_precions:
+            os.environ['XLA_USE_BF16'] = 1
 
         self.run_pretrain_routine(model)
 

@@ -36,6 +36,14 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class Trainer(TrainerIOMixin,
               TrainerDPMixin,
@@ -62,7 +70,7 @@ class Trainer(TrainerIOMixin,
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             num_nodes=1,
             gpus=None,
-            tpus=None,
+            tpu_cores=None,
             log_gpu_memory=None,
             show_progress_bar=True,
             overfit_pct=0.0,
@@ -206,22 +214,42 @@ class Trainer(TrainerIOMixin,
                     # combine with num_nodes to train on multiple GPUs across nodes
                     trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
 
-            tpus (list|str|int): Which TPUs to train on.
+            tpu_cores (int): How many TPU cores to train on [1 - 8].
+                A single TPU v2 or v3 has 8 cores. A TPU pod has
+                up to 2048 cores. A slice of a POD means you get as many cores
+                as you request.
+
+                This parameter range is [1, 8] inclusive.
+
                 Example::
 
+                    # your_trainer_file.py
+
                     # default used by the Trainer (ie: train on CPU)
-                    trainer = Trainer(tpus=None)
+                    trainer = Trainer(tpu_cores=None)
 
-                    # int: train on 2 TPUs
-                    trainer = Trainer(tpus=2)
+                    # int: train on a single core
+                    trainer = Trainer(tpu_cores=1)
 
-                    # list: train on TPUs 1, 4 (by bus ordering)
-                    trainer = Trainer(tpus=[1, 4])
-                    trainer = Trainer(tpus='1, 4') # equivalent
+                    # int: train on all cores few cores
+                    trainer = Trainer(tpu_cores=8)
 
-                    # -1: train on all TPUs
+                    # int: train on a full pod
+                    trainer = Trainer(tpu_cores=2048)
+
+                    # -1: train on all available TPUs
                     trainer = Trainer(tpus=-1)
-                    trainer = Trainer(tpus='-1') # equivalent
+
+            To train on more than 8 cores (ie: a POD),
+            submit this script using the xla_dist script.
+
+            Example::
+
+                $ python -m torch_xla.distributed.xla_dist
+                --tpu=$TPU_POD_NAME
+                --conda-env=torch-xla-nightly
+                --env=XLA_USE_BF16=1
+                -- python your_trainer_file.py
 
             log_gpu_memory (str): None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
@@ -535,7 +563,7 @@ class Trainer(TrainerIOMixin,
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
-        self.on_tpu = tpus is not None
+        self.on_tpu = tpu_cores is not None
         self.process_position = process_position
         self.weights_summary = weights_summary
 
@@ -638,15 +666,13 @@ class Trainer(TrainerIOMixin,
         self.use_ddp2 = False
         self.use_dp = False
         self.single_gpu = False
-        self.single_tpu = False
+        self.use_tpu = False
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend, num_nodes)
 
         # override dist backend when using tpus
-        # TODO: enable multi-node TPUs
         if self.on_tpu:
-            self.distributed_backend = None
-            self.single_tpu = True
+            self.init_tpu()
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -790,6 +816,9 @@ class Trainer(TrainerIOMixin,
 
         elif self.single_gpu:
             self.single_gpu_train(model)
+
+        elif self.use_tpu:
+            self.tpu_train(model)
 
         # ON CPU
         else:
