@@ -31,6 +31,7 @@ class CometLogger(LightningLoggerBase):
     r"""
     Log using `comet.ml <https://www.comet.ml>`_.
     """
+
     def __init__(self, api_key=None, save_dir=None, workspace=None,
                  rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
         r"""

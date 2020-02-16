@@ -163,8 +163,7 @@ class AdvancedProfiler(BaseProfiler):
         self.recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()
-            sortby = pstats.SortKey.CUMULATIVE
-            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats(sortby)
+            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
             ps.print_stats(self.line_count_restriction)
             self.recorded_stats[action_name] = s.getvalue()
         if self.output_filename is not None:

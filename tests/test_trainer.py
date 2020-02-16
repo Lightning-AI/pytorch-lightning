@@ -231,10 +231,16 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=-1  (all)
-    w = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
-    w.save_function = mock_save_function
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = i
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
 
@@ -249,10 +255,16 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=0 (none)
-    w = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
-    w.save_function = mock_save_function
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = i
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = os.listdir(save_dir)
 
@@ -263,10 +275,16 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
-    w = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
-    w.save_function = mock_save_function
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = i
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
 
@@ -280,11 +298,17 @@ def test_model_checkpoint_options(tmp_path):
     # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
     # make sure other files don't get deleted
 
-    w = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
     open(f'{save_dir}/other_file.ckpt', 'a').close()
-    w.save_function = mock_save_function
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        w.on_epoch_end(i, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = i
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
 
@@ -300,10 +324,16 @@ def test_model_checkpoint_options(tmp_path):
     # CASE K=4 (save all 4 models)
     # multiple checkpoints within same epoch
 
-    w = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
-    w.save_function = mock_save_function
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for loss in losses:
-        w.on_epoch_end(0, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = 0
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
 
@@ -316,10 +346,16 @@ def test_model_checkpoint_options(tmp_path):
     # CASE K=3 (save the 2nd, 3rd, 4th model)
     # multiple checkpoints within same epoch
 
-    w = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
-    w.save_function = mock_save_function
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
+    checkpoint_callback.save_function = mock_save_function
+    trainer = Trainer()
+    checkpoint_callback.set_trainer(trainer)
+
+    # emulate callback's calls during the training
     for loss in losses:
-        w.on_epoch_end(0, logs={'val_loss': loss})
+        checkpoint_callback._trainer.current_epoch = 0
+        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end()
 
     file_lists = set(os.listdir(save_dir))
 

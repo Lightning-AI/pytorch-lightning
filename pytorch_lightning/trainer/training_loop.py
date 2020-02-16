@@ -328,7 +328,7 @@ class TrainerTrainLoopMixin(ABC):
             self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_begin(epoch, self)
+            self.accumulation_scheduler.on_epoch_begin()
 
             # -----------------
             # RUN TNG EPOCH
@@ -359,8 +359,7 @@ class TrainerTrainLoopMixin(ABC):
 
             if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
                     ((met_min_epochs and met_min_steps) or self.fast_dev_run)):
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
-                                                                    logs=self.callback_metrics)
+                should_stop = self.early_stop_callback.on_epoch_end()
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
@@ -433,7 +432,9 @@ class TrainerTrainLoopMixin(ABC):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
-            self.global_step += 1
+            # progress global step according to grads progress
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                self.global_step += 1
             self.total_batch_idx += 1
 
             # max steps reached, end training
