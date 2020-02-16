@@ -426,7 +426,9 @@ class TrainerTrainLoopMixin(ABC):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
-            self.global_step += 1
+            # progress global step according to grads progress
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                self.global_step += 1
             self.total_batch_idx += 1
 
             # end epoch early
