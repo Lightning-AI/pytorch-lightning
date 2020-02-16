@@ -410,6 +410,48 @@ def test_multiple_val_dataloader(tmpdir):
         tutils.run_prediction(dataloader, trainer.model)
 
 
+def test_resume_from_checkpoint_epoch_restored(tmpdir):
+    """Verify test() on pretrained model."""
+    import types
+
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+    model.num_epochs_seen = 0
+
+    def increment_epoch(self):
+        self.num_epochs_seen += 1
+
+    model.on_epoch_end = types.MethodType(increment_epoch, model)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=2,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        logger=False,
+        default_save_path=tmpdir,
+        early_stop_callback=False,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+    assert model.num_epochs_seen == 2
+
+    # Find last checkpoint
+    last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
+    if not os.path.isfile(last_checkpoint):
+        last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+
+    trainer_options['max_epochs'] = 4
+    new_trainer = Trainer(**trainer_options, resume_from_checkpoint=last_checkpoint)
+    new_trainer.fit(model)
+    assert model.num_epochs_seen == 4
+
+
 def test_multiple_test_dataloader(tmpdir):
     """Verify multiple test_dataloader."""
     tutils.reset_seed()
