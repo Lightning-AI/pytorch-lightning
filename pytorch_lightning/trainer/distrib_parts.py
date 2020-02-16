@@ -480,6 +480,7 @@ class TrainerDPMixin(ABC):
         self.run_pretrain_routine(model)
 
     def tpu_train(self, tpu_core_idx, model):
+        print(self, tpu_core_idx, model)
         # put model on tpu
         model.to(xm.xla_device())
 
