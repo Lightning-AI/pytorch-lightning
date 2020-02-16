@@ -2,14 +2,16 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: bug
+labels: bug, help wanted
 assignees: ''
 
 ---
 
+<!-- 
 ### Common bugs:
 1. Tensorboard not showing in Jupyter-notebook see [issue 79](https://github.com/PyTorchLightning/pytorch-lightning/issues/79).    
 2. PyTorch 1.1.0 vs 1.2.0 support [see FAQ](https://github.com/PyTorchLightning/pytorch-lightning#faq)    
+-->
 
 ## 🐛 Bug
 

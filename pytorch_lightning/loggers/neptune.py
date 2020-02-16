@@ -27,6 +27,7 @@ class NeptuneLogger(LightningLoggerBase):
     Neptune logger can be used in the online mode or offline (silent) mode.
     To log experiment data in online mode, NeptuneLogger requries an API key:
     """
+
     def __init__(self, api_key=None, project_name=None, offline_mode=False,
                  experiment_name=None, upload_source_files=None,
                  params=None, properties=None, tags=None, **kwargs):
