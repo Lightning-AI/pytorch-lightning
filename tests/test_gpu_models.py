@@ -271,11 +271,10 @@ def test_running_test_after_fitting_gpu(tmpdir):
 
     # test should work when complete a .fit() session
     results = trainer.test()
-    assert isinstance(results, dict), '.test() should return a dict of results'
+    assert results == 1, '.test() should return a dict of results'
     assert 'test_loss' in results['progress_bar']
 
     # test should work when started from a new trainer
-    import pdb; pdb.set_trace()
     trainer = Trainer(**trainer_options)
     trainer.test(model)
     assert isinstance(results, dict), '.test(model) should return a dict of results'
