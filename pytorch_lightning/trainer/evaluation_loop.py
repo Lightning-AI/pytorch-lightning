@@ -278,6 +278,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # select dataloaders
         if test:
+            import pdb; pdb.set_trace()
             dataloaders = self.get_test_dataloaders()
             max_batches = self.num_test_batches
         else:
