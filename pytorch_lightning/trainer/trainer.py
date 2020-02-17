@@ -817,7 +817,7 @@ class Trainer(TrainerIOMixin,
         :param model:
         """
         ref_model = model
-        if self.data_parallel:
+        if self.data_parallel and not self.testing:
             ref_model = model.module
 
         # give model convenience properties
