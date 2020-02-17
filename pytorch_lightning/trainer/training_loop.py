@@ -229,6 +229,7 @@ class TrainerTrainLoopMixin(ABC):
         self.reduce_lr_on_plateau_scheduler = None
         self.profiler = None
         self.batch_idx = None
+        self.precision = None
 
     @property
     def max_nb_epochs(self):
@@ -537,7 +538,7 @@ class TrainerTrainLoopMixin(ABC):
                     # backward pass
                     model_ref = self.get_model()
                     with self.profiler.profile('model_backward'):
-                        model_ref.backward(self.use_amp, closure_loss, optimizer, opt_idx)
+                        model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)
