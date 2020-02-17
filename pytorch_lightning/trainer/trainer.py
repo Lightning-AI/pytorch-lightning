@@ -854,7 +854,9 @@ class Trainer(TrainerIOMixin,
 
         elif self.use_tpu:
             log.info(f'training on {self.num_tpu_cores} TPU cores')
-            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method='fork')
+            #  COLAB_GPU is an env var available by default in Colab environments.
+            start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
 
         # ON CPU
         else:
