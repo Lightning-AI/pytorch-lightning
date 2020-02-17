@@ -237,7 +237,54 @@ def test_ddp_sampler_error(tmpdir):
         trainer.get_dataloaders(model)
 
 
-def test_running_test_after_fitting_gpu(tmpdir):
+def test_running_test_after_fitting_dp(tmpdir):
+    """Verify test() on fitted model."""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # logger file to get meta
+    logger = tutils.get_test_tube_logger(tmpdir, False)
+
+    # logger file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        show_progress_bar=False,
+        max_epochs=4,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        gpus=2,
+        distributed_backend='dp',
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert isinstance(result, dict), 'training failed to complete'
+    assert 'test_loss' in result['progress_bar'], 'test_loss not in result dict'
+
+    # test should work when complete a .fit() session
+    results = trainer.test()
+    assert results == 1, '.test() should return a dict of results'
+
+    # test should work when started from a new trainer
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
+    assert isinstance(result, dict), 'training failed to complete'
+    assert 'test_loss' in result['progress_bar'], 'test_loss not in result dict'
+
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(trainer)
+
+
+def test_running_test_after_fitting_ddp(tmpdir):
     """Verify test() on fitted model."""
     tutils.reset_seed()
 
