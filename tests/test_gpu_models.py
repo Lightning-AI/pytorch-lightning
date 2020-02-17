@@ -272,7 +272,6 @@ def test_running_test_after_fitting_gpu(tmpdir):
     # test should work when complete a .fit() session
     results = trainer.test()
     assert results == 1, '.test() should return a dict of results'
-    assert 'test_loss' in results['progress_bar']
 
     # test should work when started from a new trainer
     trainer = Trainer(**trainer_options)
