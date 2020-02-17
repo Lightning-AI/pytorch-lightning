@@ -276,6 +276,7 @@ def test_running_test_after_fitting_gpu(tmpdir):
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)
 
+
 def test_running_test_after_fitting_gpu(tmpdir):
     """Verify test() on fitted model."""
     tutils.reset_seed()
@@ -501,5 +502,10 @@ def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_coun
         parse_gpu_ids(gpus)
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    import pdb; pdb.set_trace()
+    path = os.path.join(os.getcwd(), 'debug_test')
+    os.makedirs(path, exist_ok=True)
+
+    test_running_test_after_fitting_gpu(path)
 #     pytest.main([__file__])
