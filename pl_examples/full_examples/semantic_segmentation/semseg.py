@@ -10,9 +10,9 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
-from torchvision.models.segmentation import fcn_resnet50
 
 import pytorch_lightning as pl
+from models.unet.model import UNet
 
 
 class KITTI(Dataset):
@@ -128,9 +128,7 @@ class SegModel(pl.LightningModule):
         self.root_path = hparams.root
         self.batch_size = hparams.batch_size
         self.learning_rate = hparams.lr
-        self.net = torchvision.models.segmentation.fcn_resnet50(pretrained=False,
-                                                                progress=True,
-                                                                num_classes=19)
+        self.net = UNet(num_classes=19)
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
@@ -147,7 +145,7 @@ class SegModel(pl.LightningModule):
         img = img.float()
         mask = mask.long()
         out = self.forward(img)
-        loss_val = F.cross_entropy(out['out'], mask, ignore_index=250)
+        loss_val = F.cross_entropy(out, mask, ignore_index=250)
         return {'loss': loss_val}
 
     def configure_optimizers(self):
