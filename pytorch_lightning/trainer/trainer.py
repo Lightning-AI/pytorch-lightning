@@ -915,6 +915,8 @@ class Trainer(TrainerIOMixin,
         # summarize profile results
         self.profiler.describe()
 
+        return 1
+
     def test(self, model=None):
         r"""
 
