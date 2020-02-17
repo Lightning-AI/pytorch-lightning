@@ -13,7 +13,8 @@ To run the test set after training completes, use this method
     trainer.fit(model)
 
     # run test set
-    trainer.test()
+    results = trainer.test()
+    print(results)
 
 
 Test pre-trained model
@@ -33,7 +34,10 @@ To run the test set on a pretrained model, use this method.
     trainer = Trainer(...)
 
     # test (pass in the model)
-    trainer.test(model)
+    results = trainer.test(model)
+    print(results)
 
 In this  case, the options you pass to trainer will be used when
-running the test set (ie: 16-bit, dp, ddp, etc...
+running the test set (ie: 16-bit, dp, ddp, etc...).
+
+.. note:: .test() also prints the results dict when it completes.
