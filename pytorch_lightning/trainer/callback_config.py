@@ -48,6 +48,9 @@ class TrainerCallbackConfigMixin(ABC):
             # if checkpoint callback used, then override the weights path
             self.weights_save_path = self.checkpoint_callback.filepath
 
+            # link to the trainer
+            self.checkpoint_callback.set_trainer(self)
+
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
             self.weights_save_path = self.default_save_path
@@ -77,3 +80,6 @@ class TrainerCallbackConfigMixin(ABC):
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
+
+        if self.early_stop_callback is not None:
+            self.early_stop_callback.set_trainer(self)

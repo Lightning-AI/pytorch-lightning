@@ -1,8 +1,10 @@
+torchvision>=0.4.0, < 0.5  # the 0.5. has some issues with torch JIT
 tox
 coverage
 codecov
 pytest>=3.0.5
 pytest-cov
+pytest-flake8
 flake8
 check-manifest
 sacred

@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning import data_loader
+from pytorch_lightning.core.decorators import data_loader
 
 
 class LightningValidationStepMixin:

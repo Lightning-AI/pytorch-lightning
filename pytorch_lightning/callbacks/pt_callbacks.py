@@ -12,58 +12,60 @@ import warnings
 
 import numpy as np
 
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-
 
 class Callback(object):
-    r"""Abstract base class used to build new callbacks.
-    """
+    """Abstract base class used to build new callbacks."""
 
     def __init__(self):
-        self.validation_data = None
-        self.model = None
+        self._trainer = None
 
-    def set_params(self, params):
-        self.params = params
+    def set_trainer(self, trainer):
+        """Make a link to the trainer, so different things like `trainer.current_epoch`,
+        `trainer.batch_idx`, `trainer.global_step` can be used."""
+        self._trainer = trainer
 
-    def set_model(self, model):
-        if isinstance(model, LightningDistributedDataParallel):
-            model = model.module
-        self.model = model
-
-    def on_epoch_begin(self, epoch, logs=None):
-        """
-        called when the epoch begins
-
-        Args:
-            epoch (int): current epoch
-            logs (dict): key-value pairs of quantities to monitor
-
-            Example:
-
-                on_epoch_begin(epoch=2, logs={'val_loss': 0.2})
-        """
-
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_begin(self):
+        """Called when the epoch begins."""
         pass
 
-    def on_batch_begin(self, batch, logs=None):
-        """
-        called when the batch starts.
-
-        Args:
-            batch (Tensor): current batch tensor
-            logs (dict): key-value pairs of quantities to monitor
-        """
-
-    def on_batch_end(self, batch, logs=None):
+    def on_epoch_end(self):
+        """Called when the epoch ends."""
         pass
 
-    def on_train_begin(self, logs=None):
+    def on_batch_begin(self):
+        """Called when the training batch begins."""
         pass
 
-    def on_train_end(self, logs=None):
+    def on_batch_end(self):
+        """Called when the training batch ends."""
         pass
+
+    def on_train_begin(self):
+        """Called when the train begins."""
+        pass
+
+    def on_train_end(self):
+        """Called when the train ends."""
+        pass
+
+    def on_validation_begin(self):
+        """Called when the validation loop begins."""
+        pass
+
+    def on_validation_end(self):
+        """Called when the validation loop ends."""
+        pass
+
+    def on_test_begin(self):
+        """Called when the test begins."""
+        pass
+
+    def on_test_end(self):
+        """Called when the test ends."""
+        pass
+
+
+_NO_TRAINER_ERROR_MSG = ".set_trainer() should be called after the callback initialization"
 
 
 class EarlyStopping(Callback):
@@ -148,13 +150,16 @@ class EarlyStopping(Callback):
 
         return True
 
-    def on_train_begin(self, logs=None):
+    def on_train_begin(self):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self):
+        assert self._trainer is not None, _NO_TRAINER_ERROR_MSG
+
+        logs = self._trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):
             return stop_training
@@ -166,13 +171,13 @@ class EarlyStopping(Callback):
         else:
             self.wait += 1
             if self.wait >= self.patience:
-                self.stopped_epoch = epoch
+                self.stopped_epoch = self._trainer.current_epoch
                 stop_training = True
                 self.on_train_end()
 
         return stop_training
 
-    def on_train_end(self, logs=None):
+    def on_train_end(self):
         if self.stopped_epoch > 0 and self.verbose > 0:
             warnings.warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
@@ -306,8 +311,11 @@ class ModelCheckpoint(Callback):
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
+    def on_validation_end(self):
+        assert self._trainer is not None, _NO_TRAINER_ERROR_MSG
+
+        logs = self._trainer.callback_metrics
+        epoch = self._trainer.current_epoch
         self.epochs_since_last_check += 1
 
         if self.save_top_k == 0:
@@ -376,7 +384,7 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling (dict): scheduling in format {epoch: accumulation_factor}
-        warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
+        .. warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in v0.8.0.
 
     Example::
 
@@ -389,6 +397,8 @@ class GradientAccumulationScheduler(Callback):
     """
 
     def __init__(self, scheduling: dict):
+        super().__init__()
+
         if scheduling == {}:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
 
@@ -408,21 +418,14 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def on_epoch_begin(self, epoch, trainer):
+    def on_epoch_begin(self):
+        assert self._trainer is not None, _NO_TRAINER_ERROR_MSG
+
+        trainer = self._trainer
         # indexing epochs from 1 (until v0.6.x)
-        # In v0.8.0, `epoch += 1` should be removed.
-        epoch += 1
+        # In v0.8.0, ` + 1` should be removed.
+        epoch = trainer.current_epoch + 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
                 break
-
-
-# if __name__ == '__main__':
-#     c = EarlyStopping(min_delta=0.9, patience=2, verbose=True)
-#     losses = [10, 9, 8, 8, 6, 4.3, 5, 4.4, 2.8, 2.5]
-#     for i, loss in enumerate(losses):
-#         should_stop = c.on_epoch_end(i, logs={'val_loss': loss})
-#         log.info(loss)
-#         if should_stop:
-#             break
