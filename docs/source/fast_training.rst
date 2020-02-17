@@ -21,7 +21,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(min_nb_epochs=1, max_nb_epochs=1000)
+    trainer = Trainer(min_epochs=1, max_epochs=1000)
 
 
 Set validation check frequency within 1 training epoch
