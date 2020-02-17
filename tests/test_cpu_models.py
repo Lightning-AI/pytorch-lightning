@@ -111,7 +111,16 @@ def test_running_test_after_fitting(tmpdir):
 
     assert result == 1, 'training failed to complete'
 
-    trainer.test()
+    # test should work when complete a .fit() session
+    results = trainer.test()
+    assert isinstance(results, dict), '.test() should return a dict of results'
+    assert 'test_loss' in results
+
+    # test should work when started from a new trainer
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
+    assert isinstance(results, dict), '.test(model) should return a dict of results'
+    assert 'test_loss' in results
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)

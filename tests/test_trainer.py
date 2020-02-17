@@ -446,6 +446,5 @@ def test_multiple_test_dataloader(tmpdir):
     # run the test method
     trainer.test()
 
-
 # if __name__ == '__main__':
 #     pytest.main([__file__])

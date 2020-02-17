@@ -237,6 +237,92 @@ def test_ddp_sampler_error(tmpdir):
         trainer.get_dataloaders(model)
 
 
+def test_running_test_after_fitting_gpu(tmpdir):
+    """Verify test() on fitted model."""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # logger file to get meta
+    logger = tutils.get_test_tube_logger(tmpdir, False)
+
+    # logger file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        show_progress_bar=False,
+        max_epochs=4,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        gpus=2,
+        distributed_backend='ddp',
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    results = trainer.test()
+    assert isinstance(results, dict), '.test() should return a dict of results'
+    assert 'test_loss' in results
+
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(trainer)
+
+def test_running_test_after_fitting_gpu(tmpdir):
+    """Verify test() on fitted model."""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    # logger file to get meta
+    logger = tutils.get_test_tube_logger(tmpdir, False)
+
+    # logger file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        show_progress_bar=False,
+        max_epochs=4,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        test_percent_check=0.2,
+        checkpoint_callback=checkpoint,
+        gpus=2,
+        distributed_backend='ddp',
+        logger=logger
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+    # test should work when complete a .fit() session
+    results = trainer.test()
+    assert isinstance(results, dict), '.test() should return a dict of results'
+    assert 'test_loss' in results
+
+    # test should work when started from a new trainer
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
+    assert isinstance(results, dict), '.test(model) should return a dict of results'
+    assert 'test_loss' in results
+
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(trainer)
+
+
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
