@@ -323,8 +323,7 @@ def test_running_test_after_fitting_ddp(tmpdir):
     # test should work when started from a new trainer
     trainer = Trainer(**trainer_options)
     trainer.test(model)
-    assert isinstance(results, dict), '.test(model) should return a dict of results'
-    assert 'test_loss' in results['progress_bar']
+    assert results == 1, '.test() should return a dict of results'
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)
