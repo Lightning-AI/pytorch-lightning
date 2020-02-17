@@ -285,7 +285,7 @@ def test_cpu_restore_training(tmpdir):
     real_global_epoch = trainer.current_epoch
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'model failed to complete'
 
     # wipe-out trainer and model
     # retrain with not much data... this simulates picking training back up after slurm
@@ -295,7 +295,7 @@ def test_cpu_restore_training(tmpdir):
         max_epochs=2,
         val_check_interval=0.50,
         val_percent_check=0.2,
-        train_percent_check=0.2,
+        train_percent_check=0.5,
         logger=new_logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
