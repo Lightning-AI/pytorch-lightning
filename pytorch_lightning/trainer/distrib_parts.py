@@ -420,7 +420,7 @@ class TrainerDPMixin(ABC):
         return self.__transfer_data_to_device(batch, device='gpu', gpu_id=gpu_id)
 
     def __transfer_data_to_device(self, batch, device, gpu_id=None):
-        if device == 'tpu':
+        if device == 'tpu' and XLA_AVAILABLE:
             # base case: object can be directly moved using `to`
             if callable(getattr(batch, 'to', None)):
                 return batch.to(xm.xla_device())
