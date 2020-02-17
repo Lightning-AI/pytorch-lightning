@@ -7,11 +7,12 @@ GPU 16-bit
 Lightning uses NVIDIA apex to handle 16-bit precision training.
 
 To use 16-bit precision, do two things:
+
 1. Install Apex
 2. Set the "precision" trainer flag.
 
 Install apex
-----------------------------------------------
+^^^^^^^^^^^^
 .. code-block:: bash
 
     $ git clone https://github.com/NVIDIA/apex
@@ -35,7 +36,7 @@ Install apex
 
 
 Enable 16-bit
---------------
+^^^^^^^^^^^^^
 
 .. code-block:: python
 
