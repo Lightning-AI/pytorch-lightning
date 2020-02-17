@@ -4,7 +4,7 @@ import pytest
 
 from pytorch_lightning.profiler import Profiler, AdvancedProfiler
 
-PROFILER_OVERHEAD_MAX_TOLERANCE = 1e-4  # 0.1 milliseconds
+PROFILER_OVERHEAD_MAX_TOLERANCE = 0.001
 
 
 @pytest.fixture
