@@ -321,8 +321,8 @@ def test_running_test_after_fitting_ddp(tmpdir):
     assert results == 1, '.test() should return a dict of results'
 
     # test should work when started from a new trainer
-    trainer = Trainer(**trainer_options)
-    trainer.test(model)
+    trainer2 = Trainer(**trainer_options)
+    trainer2.test(model)
     assert results == 1, '.test() should return a dict of results'
 
     # test we have good test accuracy
