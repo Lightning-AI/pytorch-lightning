@@ -449,7 +449,7 @@ class TrainerDPMixin(ABC):
         # when dict
         if isinstance(batch, dict):
             for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(x, device, gpu_id)
+                batch[k] = self.__transfer_data_to_device(v, device, gpu_id)
 
             return batch
 
