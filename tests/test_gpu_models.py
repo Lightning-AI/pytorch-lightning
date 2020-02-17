@@ -236,6 +236,7 @@ def test_ddp_sampler_error(tmpdir):
     with pytest.warns(UserWarning):
         trainer.get_dataloaders(model)
 
+
 def test_running_test_after_fitting_gpu(tmpdir):
     """Verify test() on fitted model."""
     tutils.reset_seed()
