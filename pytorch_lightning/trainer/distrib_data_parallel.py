@@ -328,7 +328,8 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        self.run_pretrain_routine(model)
+        output = self.run_pretrain_routine(model)
+        return output
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
