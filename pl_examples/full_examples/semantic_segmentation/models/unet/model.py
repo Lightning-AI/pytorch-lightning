@@ -7,7 +7,7 @@ from .parts import DoubleConv, Down, Up
 
 class UNet(nn.Module):
     '''
-    Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation 
+    Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation
     Link - https://arxiv.org/abs/1505.04597
     '''
     def __init__(self, num_classes=19, bilinear=False):
