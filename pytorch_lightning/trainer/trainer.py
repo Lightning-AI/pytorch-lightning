@@ -945,10 +945,9 @@ class Trainer(TrainerIOMixin,
             Dict of results from testing. Also prints the outputs.
 
         """
-        print(self.use_ddp)
 
         self.testing = True
-        if model is not None:
+        if model is not None or self.model is not None:
             eval_results = self.fit(model)
         else:
             if self.get_test_dataloaders is None:

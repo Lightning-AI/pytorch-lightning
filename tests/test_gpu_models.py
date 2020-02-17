@@ -270,7 +270,6 @@ def test_running_test_after_fitting_gpu(tmpdir):
     assert result == 1, 'training failed to complete'
 
     # test should work when complete a .fit() session
-    print(model)
     results = trainer.test()
     assert isinstance(results, dict), '.test() should return a dict of results'
     assert 'test_loss' in results['progress_bar']
