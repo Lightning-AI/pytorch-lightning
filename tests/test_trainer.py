@@ -475,7 +475,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         trainer_options['max_epochs'] = 4
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
-        assert state['global_step']+next_model.num_batches_seen == training_batches*4
+        assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
 
 
 def test_multiple_test_dataloader(tmpdir):
