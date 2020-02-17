@@ -147,6 +147,7 @@ To train on more than 8 cores, your code actually doesn't change!
 All you need to do is submit the following command:
 
 .. code-block:: bash
+
     $ python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
