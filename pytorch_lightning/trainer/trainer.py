@@ -580,6 +580,8 @@ class Trainer(TrainerIOMixin,
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
+
+        # tpu config
         self.on_tpu = num_tpu_cores is not None
         self.num_tpu_cores = num_tpu_cores
         assert num_tpu_cores in [1, 8], 'num_tpu_cores can only be 1 or 8'
