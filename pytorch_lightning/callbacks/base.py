@@ -5,10 +5,13 @@ Callbacks
 Callbacks supported by Lightning
 """
 
+import abc
+
+
 _NO_TRAINER_ERROR_MSG = ".set_trainer() should be called after the callback initialization"
 
 
-class Callback(object):
+class Callback(abc.ABC):
     """Abstract base class used to build new callbacks."""
 
     def __init__(self):

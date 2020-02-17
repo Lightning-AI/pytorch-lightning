@@ -3,7 +3,7 @@ import warnings
 
 import numpy as np
 
-from .callback import Callback
+from .base import Callback
 
 
 class EarlyStopping(Callback):
@@ -38,9 +38,8 @@ class EarlyStopping(Callback):
         Trainer(early_stop_callback=early_stopping)
     """
 
-    def __init__(self, monitor='val_loss',
-                 min_delta=0.0, patience=0, verbose=0, mode='auto', strict=True):
-        super(EarlyStopping, self).__init__()
+    def __init__(self, monitor='val_loss', min_delta=0.0, patience=0, verbose=0, mode='auto', strict=True):
+        super().__init__()
 
         self.monitor = monitor
         self.patience = patience
@@ -55,20 +54,13 @@ class EarlyStopping(Callback):
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
 
-        if mode == 'min':
-            self.monitor_op = np.less
-        elif mode == 'max':
-            self.monitor_op = np.greater
-        else:
-            if 'acc' in self.monitor:
-                self.monitor_op = np.greater
-            else:
-                self.monitor_op = np.less
-
-        if self.monitor_op == np.greater:
-            self.min_delta *= 1
-        else:
-            self.min_delta *= -1
+        mode_dict = {
+            'min': np.less,
+            'max': np.greater,
+            'auto': np.greater if 'acc' in self.monitor else np.less
+        }
+        self.monitor_op = mode_dict[mode]
+        self.min_delta *= 1 if self.monitor_op == np.greater else -1
 
         self.on_train_begin()
 
@@ -95,7 +87,6 @@ class EarlyStopping(Callback):
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self):
-
         logs = self.trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):

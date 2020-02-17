@@ -5,12 +5,11 @@ import warnings
 
 import numpy as np
 
-from .callback import Callback
+from .base import Callback
 
 
 class ModelCheckpoint(Callback):
     r"""
-
     Save the model after every epoch.
 
     Args:
@@ -27,14 +26,14 @@ class ModelCheckpoint(Callback):
         save_top_k (int): if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
-            if `save_top_k == 0`, no models are saved.
-            if `save_top_k == -1`, all models are saved.
+            if ``save_top_k == 0``, no models are saved.
+            if ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every `period` epochs.
-            if `save_top_k >= 2` and the callback is called multiple
+            if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with `v0`.
         mode (str): one of {auto, min, max}.
-            If `save_top_k != 0`, the decision
+            If ``save_top_k != 0``, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,
@@ -60,11 +59,11 @@ class ModelCheckpoint(Callback):
     def __init__(self, filepath, monitor='val_loss', verbose=0,
                  save_top_k=1, save_weights_only=False,
                  mode='auto', period=1, prefix=''):
-        super(ModelCheckpoint, self).__init__()
+        super().__init__()
         if (
-            save_top_k and
-            os.path.isdir(filepath) and
-            len(os.listdir(filepath)) > 0
+            save_top_k
+            and os.path.isdir(filepath)
+            and len(os.listdir(filepath)) > 0
         ):
             warnings.warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
@@ -111,34 +110,26 @@ class ModelCheckpoint(Callback):
                 self.mode = 'min'
 
     def _del_model(self, filepath):
-        dirpath = os.path.dirname(filepath)
-
-        # make paths
-        os.makedirs(dirpath, exist_ok=True)
-
         try:
             shutil.rmtree(filepath)
         except OSError:
             os.remove(filepath)
 
     def _save_model(self, filepath):
-        dirpath = os.path.dirname(filepath)
-
         # make paths
-        os.makedirs(dirpath, exist_ok=True)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the model
         assert self.save_function is not None, ".save_function() not set"
         self.save_function(filepath)
 
     def check_monitor_top_k(self, current):
-        less_than_k_models = len(self.best_k_models.keys()) < self.save_top_k
+        less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def on_validation_end(self):
-
         logs = self.trainer.callback_metrics
         epoch = self.trainer.current_epoch
         self.epochs_since_last_check += 1
@@ -174,18 +165,13 @@ class ModelCheckpoint(Callback):
                         self.best_k_models[filepath] = current
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
-                            if self.mode == 'min':
-                                self.kth_best_model = max(
-                                    self.best_k_models, key=self.best_k_models.get)
-                            else:
-                                self.kth_best_model = min(
-                                    self.best_k_models, key=self.best_k_models.get)
+                            _op = min if self.mode == 'min' else max
+                            self.kth_best_model = _op(self.best_k_models, key=self.best_k_models.get)
                             self.kth_value = self.best_k_models[self.kth_best_model]
 
-                        if self.mode == 'min':
-                            self.best = min(self.best_k_models.values())
-                        else:
-                            self.best = max(self.best_k_models.values())
+                        _op = min if self.mode == 'min' else max
+                        self.best = _op(self.best_k_models.values())
+
                         if self.verbose > 0:
                             log.info(
                                 f'\nEpoch {epoch:05d}: {self.monitor} reached'

@@ -1,6 +1,6 @@
 import warnings
 
-from .callback import Callback
+from .base import Callback
 
 
 class GradientAccumulationScheduler(Callback):
@@ -25,10 +25,10 @@ class GradientAccumulationScheduler(Callback):
     def __init__(self, scheduling: dict):
         super().__init__()
 
-        if scheduling == {}:  # empty dict error
+        if not scheduling:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
 
-        for key in scheduling.keys():
+        for key in scheduling:
             if not isinstance(key, int) or not isinstance(scheduling[key], int):
                 raise TypeError("All epoches and accumulation factor must be integers")
 
@@ -45,7 +45,6 @@ class GradientAccumulationScheduler(Callback):
         self.epochs = sorted(scheduling.keys())
 
     def on_epoch_begin(self):
-
         trainer = self.trainer
         # indexing epochs from 1 (until v0.6.x)
         # In v0.8.0, ` + 1` should be removed.
