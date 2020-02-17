@@ -2,7 +2,8 @@ TPU support
 ===========
 
 Lightning supports running on TPUs. At this moment, TPUs are only available
-on Google Cloud (GCP).
+on Google Cloud (GCP). For more information on TPUs
+`watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
 
 Live demo
 ----------
