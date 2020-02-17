@@ -962,7 +962,11 @@ class Trainer(TrainerIOMixin,
         # had a model from .fit()
         elif self.model is not None and model is None:
             model = self.get_model()
-            self.copy_trainer_model_properties(model)
+            try:
+                model.trainer
+            except Exception as e:
+                self.copy_trainer_model_properties(model)
+
             eval_results = self.fit(model)
 
         else:
