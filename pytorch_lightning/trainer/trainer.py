@@ -744,6 +744,9 @@ class Trainer(TrainerIOMixin,
             model = LightningModule()
 
             trainer.fit()
+
+        Return:
+            1 if successful.
         """
         # when using multi-node or DDP within a node start each module in a separate process
         output = 1
