@@ -37,6 +37,7 @@ class TrainerDataLoadingMixin(ABC):
         self.shown_warnings = None
         self.val_check_interval = None
         self.use_tpu = None
+        self.tpu_local_core_rank = None
 
     def _percent_range_check(self, name):
         value = getattr(self, name)
@@ -217,7 +218,7 @@ class TrainerDataLoadingMixin(ABC):
         # on TPUs load each dataloader only on process 0
         # this will trigger the data downloads
         if self.use_tpu:
-            if self.proc_rank == 0:
+            if self.tpu_local_core_rank == 0:
                 self.get_train_dataloader()
                 self.get_test_dataloaders()
                 self.get_val_dataloaders()
