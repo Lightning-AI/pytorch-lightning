@@ -949,6 +949,8 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             eval_results = self.fit(model)
         else:
+            if self.get_test_dataloaders is None:
+                self.get_dataloaders(self.get_model())
             eval_results = self.run_evaluation(test=True)
 
         return eval_results
