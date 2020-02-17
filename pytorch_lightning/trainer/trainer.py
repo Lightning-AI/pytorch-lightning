@@ -27,7 +27,10 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-
+from pytorch_lightning.overrides.data_parallel import (
+    LightningDistributedDataParallel,
+    LightningDataParallel,
+)
 
 try:
     from apex import amp
@@ -714,7 +717,11 @@ class Trainer(TrainerIOMixin,
         """Read-only for tqdm metrics.
         :return:
         """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.model
+        if isinstance(self.model, LightningDistributedDataParallel):
+            ref_model = ref_model.module
+        if isinstance(self.model, LightningDataParallel):
+            ref_model = ref_model.module
 
         return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
 
@@ -817,7 +824,7 @@ class Trainer(TrainerIOMixin,
         :param model:
         """
         ref_model = model
-        if self.data_parallel and not self.testing:
+        if self.data_parallel:
             ref_model = model.module
 
         # give model convenience properties
