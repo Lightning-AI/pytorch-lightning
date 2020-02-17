@@ -316,7 +316,6 @@ def test_running_test_after_fitting_ddp(tmpdir):
     assert result == 1, 'training failed to complete'
 
     # test should work when complete a .fit() session
-    import pdb; pdb.set_trace()
     results = trainer.test()
     # TODO: this should be a dict... but can't bc of ddp and processes
     assert results == 1, '.test() should return a dict of results'
