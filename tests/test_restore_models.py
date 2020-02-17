@@ -274,7 +274,7 @@ def test_cpu_restore_training(tmpdir):
         max_epochs=8,
         val_check_interval=0.50,
         val_percent_check=0.2,
-        train_percent_check=0.2,
+        train_percent_check=0.6,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1)
     )
