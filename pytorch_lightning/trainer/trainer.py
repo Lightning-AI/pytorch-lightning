@@ -954,13 +954,14 @@ class Trainer(TrainerIOMixin,
         """
 
         self.testing = True
+
         # model given
         if model is not None:
             eval_results = self.fit(model)
 
         # had a model from .fit()
         elif self.model is not None and model is None:
-            eval_results = self.fit(self.model)
+            eval_results = self.fit(self.get_model())
 
         else:
             if self.get_test_dataloaders is None:
