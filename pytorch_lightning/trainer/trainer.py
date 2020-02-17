@@ -1012,11 +1012,11 @@ def _set_dataloader(model, dataloader, attribute):
             dl.__name__ = attribute
             setattr(model, attribute, dl)
 
-        elif not dataloader and dataloader != [None]:
-            raise ValueError(f'`{attribute}` needs to be an instance of'
-                             '`torch.utils.data.DataLoader` or a list of'
-                             f'DataLoaders, instead got {dataloader}`')
+        elif dataloader and dataloader != [None]:
+            raise ValueError(f'`{attribute}` needs to be an instance of '
+                             '`torch.utils.data.DataLoader` or a list of '
+                             'DataLoaders, instead got %r`' % dataloader)
 
-    else:
+    elif dataloader:  # if default (None) is passed, do not warn the user
         warnings.warn(f'Model has predefined `{attribute}`,'
-                      f'will skip `{attribute}` passed to fit method')
+                      f'will skip `{attribute}={dataloader}` passed to fit method')

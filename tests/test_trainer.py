@@ -464,7 +464,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
                        val_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
     assert len(trainer.get_val_dataloaders()) == 1, \
-        'val_dataloaders not initiated properly'
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
@@ -493,10 +493,11 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
                        val_dataloader=model._dataloader(train=False),
                        test_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
+
     assert len(trainer.get_val_dataloaders()) == 1, \
-        'val_dataloaders not initiated properly'
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
     assert len(trainer.get_test_dataloaders()) == 1, \
-        'test_dataloaders not initiated properly'
+        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -529,9 +530,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     results = trainer.fit(model, **fit_options)
 
     assert len(trainer.get_val_dataloaders()) == 2, \
-        'Multiple val_dataloaders not initiated properly'
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
     assert len(trainer.get_test_dataloaders()) == 2, \
-        'Multiple test_dataloaders not initiated properly'
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -565,9 +566,9 @@ def test_mixing_of_dataloader_options(tmpdir):
                        test_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
     assert len(trainer.get_val_dataloaders()) == 1, \
-        'val_dataloaders not initiated properly'
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
     assert len(trainer.get_test_dataloaders()) == 1, \
-        'test_dataloaders not initiated properly'
+        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
