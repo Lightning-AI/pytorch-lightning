@@ -144,7 +144,7 @@ def test_running_test_without_val(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=False,
-        max_epochs=1,
+        max_epochs=2,
         train_percent_check=0.8,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -159,7 +159,6 @@ def test_running_test_without_val(tmpdir):
 
     assert result == 1, 'training failed to complete'
 
-    import pdb; pdb.set_trace()
     trainer.test()
 
     # test we have good test accuracy
