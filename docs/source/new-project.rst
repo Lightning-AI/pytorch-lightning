@@ -60,7 +60,7 @@ Then you could do rapid research by switching between these two and using the sa
     else:
         model = CoolerNotBERT()
 
-    trainer = Trainer(gpus=4, use_amp=True)
+    trainer = Trainer(gpus=4, precision=16)
     trainer.fit(model)
 
 
