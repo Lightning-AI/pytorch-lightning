@@ -56,8 +56,8 @@ class TrainerDataLoadingMixin(ABC):
 
         # determine number of training batches
         self.is_iterable_train_dataloader = (
-                EXIST_ITER_DATASET and hasattr(self.get_train_dataloader(), 'dataset')
-                and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+            EXIST_ITER_DATASET and hasattr(self.get_train_dataloader(), 'dataset') and
+            isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader:
             self.num_training_batches = float('inf')
         else:
@@ -65,7 +65,8 @@ class TrainerDataLoadingMixin(ABC):
 
             try:
                 self.num_training_batches = len(self.get_train_dataloader())
-                self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+                self.num_training_batches = int(self.num_training_batches *
+                                                self.train_percent_check)
             except TypeError as e:
                 # Assume infinite data loading if the dataloader doesn't implement __len__
                 if 'has no len' in str(e):
