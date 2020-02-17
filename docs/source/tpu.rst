@@ -4,25 +4,34 @@ TPU support
 Lightning supports running on TPUs. At this moment, TPUs are only available
 on Google Cloud (GCP).
 
-What is a TPU
-=============
+TPU Terminology
+---------------
 A TPU is a Tensor processing unit. Each TPU has 8 cores where each
 core is optimized for 128x128 matrix multiplies. In general, a single
 TPU is about as fast as 5 V100 GPUs!
 
+A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
+You can request a full pod from Google cloud or a "slice" which gives you
+some subset of those 2048 cores.
+
 How to access TPUs
-==================
+-------------------
 To access TPUs there are two main ways.
 
 1. Using google colab.
 2. Using Google Cloud (GCP).
 
 Colab TPUs
-==========
+-----------
+Colab is like a jupyter notebook with a free GPU or TPU
+hosted on GCP.
+
 To get a TPU on colab, follow these steps:
 
 1. Go to https://colab.research.google.com/.
+
 2. Click "new notebook" (bottom right of pop-up).
+
 3. Click runtime > change runtime settings. Select Python 3,
 and hardware accelerator "TPU". This will give you a TPU with
 8 cores.
@@ -82,8 +91,8 @@ the TPU.
 
 6. Then set up your LightningModule as normal.
 
-7. TPUs require a DataSampler. That means you should change your
-DataLoader code as follows
+7. TPUs require a DistributedSampler. That means you should change your
+train_dataloader (and val, train) code as follows
 
 .. code-block:: python
 
@@ -99,12 +108,14 @@ DataLoader code as follows
         )
 
         # required for TPU support
-        sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset,
-            num_replicas=xm.xrt_world_size(),
-            rank=xm.get_ordinal(),
-            shuffle=True
-        )
+        sampler = None
+        if use_tpu:
+            sampler = torch.utils.data.distributed.DistributedSampler(
+                dataset,
+                num_replicas=xm.xrt_world_size(),
+                rank=xm.get_ordinal(),
+                shuffle=True
+            )
 
         loader = DataLoader(
             dataset,
@@ -114,7 +125,8 @@ DataLoader code as follows
 
         return loader
 
-and in the Trainer use:
+8. Configure the number of TPU cores in the trainer. You can only choose
+1 or 8. To use a full TPU pod skip to the TPU pod section.
 
 .. code-block:: python
 
@@ -126,13 +138,30 @@ and in the Trainer use:
 
 That's it! Your model will train on all 8 TPU cores.
 
-[WIP] notes.
+TPU Pod
+--------
+To train on more than 8 cores, your code actually doesn't change!
+All you need to do is submit the following command:
 
-TPU vs pod
-- v2, v3 has 4 cores
-- pod has 2048 cores
-- no intra-pod connections currently supported
+.. code-block:: bash
+    $ python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
 
-- default is 32 bit
-- has option for 16 bit
-- if user uses 16 bit and has CPU calls it will fail
+16 bit precision
+-----------------
+Lightning also supports training in 16-bit precision with TPUs.
+By default, TPU training will use 32-bit precision. To enable 16-bit, also
+set the 16-bit flag.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    my_model = MyLightningModule()
+    trainer = pl.Trainer(num_tpu_cores=8, precision=16)
+    trainer.fit(my_model)
+
+Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
+
