@@ -288,6 +288,7 @@ def test_running_test_after_fitting_dp(tmpdir):
 
 def test_running_test_after_fitting_ddp(tmpdir):
     """Verify test() on fitted model."""
+
     if not tutils.can_run_gpu_test():
         return
 
