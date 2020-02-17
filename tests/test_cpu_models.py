@@ -162,7 +162,7 @@ def test_running_test_without_val(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer)
+    tutils.assert_ok_model_acc(trainer, thr=0.1)
 
 
 def test_single_gpu_batch_parse():
