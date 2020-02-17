@@ -12,6 +12,9 @@ import logging as log
 
 class TrainerAMPMixin(ABC):
 
+    def __init__(self):
+        self.use_amp = None
+
     def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE
         if self.use_amp:
