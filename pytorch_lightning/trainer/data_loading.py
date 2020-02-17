@@ -55,13 +55,17 @@ class TrainerDataLoadingMixin(ABC):
         self.get_train_dataloader = model.train_dataloader
 
         # determine number of training batches
-        if EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
+        self.is_iterable_train_dataloader = (
+                EXIST_ITER_DATASET and hasattr(self.get_train_dataloader(), 'dataset')
+                and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+        if self.is_iterable_train_dataloader:
             self.num_training_batches = float('inf')
         else:
             self._percent_range_check('train_percent_check')
 
             self.num_training_batches = len(self.get_train_dataloader())
-            self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+            if self.num_training_batches != float('inf'):
+                self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -74,6 +78,14 @@ class TrainerDataLoadingMixin(ABC):
                     f"to the number of the training batches ({self.num_training_batches}). "
                     f"If you want to disable validation set `val_percent_check` to 0.0 instead.")
         else:
+            if self.num_training_batches == float('inf'):
+                # support IterableDataset for train data
+                m = '''
+                        When using an infinite DataLoader (e.g. with an IterableDataset) for
+                        `train_dataloader`, `Trainer(val_check_interval)` must be an int.
+                        An int k specifies checking validation every k training batches
+                        '''
+                raise MisconfigurationException(m)
             self._percent_range_check('val_check_interval')
 
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
@@ -209,17 +221,6 @@ class TrainerDataLoadingMixin(ABC):
             self.get_train_dataloader()
             self.get_test_dataloaders()
             self.get_val_dataloaders()
-
-        # support IterableDataset for train data
-        self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
-        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
-            m = '''
-            When using an iterableDataset for `train_dataloader`,
-            `Trainer(val_check_interval)` must be an int.
-            An int k specifies checking validation every k training batches
-            '''
-            raise MisconfigurationException(m)
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
