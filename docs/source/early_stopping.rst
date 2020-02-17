@@ -1,20 +1,14 @@
 Early stopping
-==================
+==============
 
 Default behavior
-----------------------
-By default training will go with early stopping if there is
-`'val_loss'` in `validation_end()` return dict. Otherwise
+----------------
+By default early stopping will be enabled if `'val_loss'`
+is found in `validation_end()` return dict. Otherwise
 training will proceed with early stopping disabled.
 
-.. code-block:: python
-
-    # set None for default behavior
-    trainer = Trainer(early_stop_callback=None)
-
-
 Enable Early Stopping
-----------------------
+---------------------
 There are two ways to enable early stopping.
 
 .. note:: See: :ref:`trainer`
@@ -36,11 +30,9 @@ There are two ways to enable early stopping.
     trainer = Trainer(early_stop_callback=early_stop_callback)
 
 Disable Early Stopping
--------------------------------------
+----------------------
 To disable early stopping pass ``False`` to the `early_stop_callback`.
+Note that ``None`` will not disable early stopping but will lead to the
+default behaviour.
 
 .. note:: See: :ref:`trainer`
-
-.. code-block:: python
-
-    trainer = Trainer(early_stop_callback=False)
