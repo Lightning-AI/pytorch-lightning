@@ -174,7 +174,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(gradient_clip_val=0.0)
 
             gradient_clip (int):
-                .. deprecated:: 0.5.0
+                .. warning: .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position (int): orders the tqdm bar when running multiple models on same machine.
@@ -193,7 +193,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(num_nodes=8)
 
             nb_gpu_nodes (int):
-                .. deprecated:: 0.5.0
+                ..warning:: .. deprecated:: 0.5.0
                     Use `num_nodes` instead. Will remove 0.8.0.
 
             gpus (list|str|int): Which GPUs to train on.
@@ -327,7 +327,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(max_epochs=1000)
 
             max_nb_epochs (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `max_epochs` instead. Will remove 0.8.0.
 
             min_epochs (int): Force training for at least these many epochs
@@ -337,7 +337,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(min_epochs=1)
 
             min_nb_epochs (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `min_nb_epochs` instead. Will remove 0.8.0.
 
             train_percent_check (int): How much of training dataset to check.
@@ -398,7 +398,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(row_log_interval=10)
 
             add_row_log_interval (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `row_log_interval` instead. Will remove 0.8.0.
 
             distributed_backend (str): The distributed backend to use.
@@ -422,8 +422,8 @@ class Trainer(TrainerIOMixin,
                     # useful for things like increasing the number of negative samples
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
-            use_amp (bool): If true uses apex for 16bit precision
-                .. deprecated:: 0.6.1
+            use_amp (bool):
+                .. warning:: .. deprecated:: 0.6.1
                     Use `precision` instead. Will remove 0.8.0.
 
             precision (int): Full precision (32), half precision (16).
@@ -498,7 +498,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(num_sanity_val_steps=0)
 
             nb_sanity_val_steps (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
             truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of
@@ -802,7 +802,7 @@ class Trainer(TrainerIOMixin,
 
         :return: dictionary
 
-        .. deprecated:: 0.5.0
+        .. warning:: .. deprecated:: 0.5.0
                     Use `training_tqdm_dict` instead. Will remove 0.8.0.
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
