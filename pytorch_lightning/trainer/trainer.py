@@ -679,12 +679,16 @@ class Trainer(TrainerIOMixin,
         self.data_parallel_device_ids = parse_gpu_ids(gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
+        # tpu state flags
+        self.use_tpu = False
+        self.tpu_local_core_rank = None
+        self.tpu_global_core_rank = None
+
         # distributed backend choice
         self.use_ddp = False
         self.use_ddp2 = False
         self.use_dp = False
         self.single_gpu = False
-        self.use_tpu = False
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend, num_nodes)
 
