@@ -221,6 +221,9 @@ class Trainer(TrainerIOMixin,
                 up to 2048 cores. A slice of a POD means you get as many cores
                 as you request.
 
+                You MUST use DistributedDataSampler with your dataloader for this
+                to work. Your effective batch size is batch_size * total tpu cores.
+
                 This parameter can be either 1 or 8.
 
                 Example::
@@ -236,8 +239,10 @@ class Trainer(TrainerIOMixin,
                     # int: train on all cores few cores
                     trainer = Trainer(num_tpu_cores=8)
 
-                    # int: train on a full pod
-                    trainer = Trainer(num_tpu_cores=2048)
+                    # for 8+ cores must submit via xla script with
+                    # a max of 8 cores specified. The XLA script
+                    # will duplicate script onto each TPU in the POD
+                    trainer = Trainer(num_tpu_cores=8)
 
                     # -1: train on all available TPUs
                     trainer = Trainer(num_tpu_cores=-1)
