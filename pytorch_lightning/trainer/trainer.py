@@ -947,7 +947,7 @@ class Trainer(TrainerIOMixin,
         """
         self.testing = True
         if model is not None:
-            self.fit(model)
+            eval_results = self.fit(model)
         else:
             eval_results = self.run_evaluation(test=True)
 
