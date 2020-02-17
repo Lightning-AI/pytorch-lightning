@@ -113,10 +113,10 @@ class ModelHooks(torch.nn.Module):
 
         """
 
-    def backward(self, use_amp, loss, optimizer, optimizer_idx):
+    def backward(self, trainer, loss, optimizer, optimizer_idx):
         """Override backward with your own implementation if you need to
 
-        :param use_amp: Whether amp was requested or not
+        :param trainer: Pointer to the trainer
         :param loss: Loss is already scaled by accumulated grads
         :param optimizer: Current optimizer being used
         :param optimizer_idx: Index of the current optimizer being used
@@ -137,8 +137,11 @@ class ModelHooks(torch.nn.Module):
                     loss.backward()
 
         """
-        if use_amp:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
+        if trainer.precision == 16:
+
+            # .backward is not special on 16-bit with TPUs
+            if not trainer.on_tpu:
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
         else:
             loss.backward()

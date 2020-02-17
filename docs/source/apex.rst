@@ -1,13 +1,18 @@
 16-bit training
 =================
+Lightning offers 16-bit training for CPUs, GPUs and TPUs.
+
+GPU 16-bit
+-----------
 Lightning uses NVIDIA apex to handle 16-bit precision training.
 
 To use 16-bit precision, do two things:
+
 1. Install Apex
-2. Set the amp trainer flag.
+2. Set the "precision" trainer flag.
 
 Install apex
-----------------------------------------------
+^^^^^^^^^^^^
 .. code-block:: bash
 
     $ git clone https://github.com/NVIDIA/apex
@@ -31,12 +36,25 @@ Install apex
 
 
 Enable 16-bit
---------------
+^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    # turn on 16-bit
+    trainer = Trainer(amp_level='O1', precision=16)
+
+If you need to configure the apex init for your particular use case or want to use a different way of doing
+16-bit training, override   :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+
+TPU 16-bit
+----------
+16-bit on TPus is much simpler. To use 16-bit with TPUs set precision to 16 when using the tpu flag
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(amp_level='O1', use_amp=False)
+    trainer = Trainer(num_tpu_cores=8, precision=32)
 
-If you need to configure the apex init for your particular use case or want to use a different way of doing
-16-bit training, override   :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+    # turn on 16-bit
+    trainer = Trainer(num_tpu_cores=8, precision=16)
+

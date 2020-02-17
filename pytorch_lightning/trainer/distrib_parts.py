@@ -335,6 +335,8 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 """
 
 from abc import ABC, abstractmethod
+import logging as log
+import os
 
 import torch
 
@@ -351,6 +353,13 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerDPMixin(ABC):
 
@@ -366,6 +375,12 @@ class TrainerDPMixin(ABC):
         self.single_gpu = None
         self.root_gpu = None
         self.amp_level = None
+        self.precision = None
+        self.current_tpu_idx = None
+        self.proc_rank = None
+        self.tpu_local_core_rank = None
+        self.tpu_global_core_rank = None
+        self.use_tpu = None
 
     @abstractmethod
     def run_pretrain_routine(self, model):
@@ -394,32 +409,47 @@ class TrainerDPMixin(ABC):
             m.use_amp = self.use_amp
             m.testing = self.testing
             m.single_gpu = self.single_gpu
+            m.use_tpu = self.use_tpu
+            m.tpu_local_core_rank = self.tpu_local_core_rank
+            m.tpu_global_core_rank = self.tpu_global_core_rank
+
+    def transfer_batch_to_tpu(self, batch):
+        return self.__transfer_data_to_device(batch, device='tpu')
 
     def transfer_batch_to_gpu(self, batch, gpu_id):
-        # base case: object can be directly moved using `cuda` or `to`
-        if callable(getattr(batch, 'cuda', None)):
-            return batch.cuda(gpu_id)
+        return self.__transfer_data_to_device(batch, device='gpu', gpu_id=gpu_id)
 
-        if callable(getattr(batch, 'to', None)):
-            return batch.to(torch.device('cuda', gpu_id))
+    def __transfer_data_to_device(self, batch, device, gpu_id=None):
+        if device == 'tpu' and XLA_AVAILABLE:
+            # base case: object can be directly moved using `to`
+            if callable(getattr(batch, 'to', None)):
+                return batch.to(xm.xla_device())
+
+        if device == 'gpu':
+            # base case: object can be directly moved using `cuda` or `to`
+            if callable(getattr(batch, 'cuda', None)):
+                return batch.cuda(gpu_id)
+
+            if callable(getattr(batch, 'to', None)):
+                return batch.to(torch.device('cuda', gpu_id))
 
         # when list
         if isinstance(batch, list):
             for i, x in enumerate(batch):
-                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+                batch[i] = self.transfer_batch_to_tpu(x)
             return batch
 
         # when tuple
         if isinstance(batch, tuple):
             batch = list(batch)
             for i, x in enumerate(batch):
-                batch[i] = self.transfer_batch_to_gpu(x, gpu_id)
+                batch[i] = self.transfer_batch_to_tpu(x)
             return tuple(batch)
 
         # when dict
         if isinstance(batch, dict):
             for k, v in batch.items():
-                batch[k] = self.transfer_batch_to_gpu(v, gpu_id)
+                batch[k] = self.transfer_batch_to_tpu(v)
 
             return batch
 
@@ -438,6 +468,34 @@ class TrainerDPMixin(ABC):
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
+        self.run_pretrain_routine(model)
+
+    def tpu_train(self, tpu_core_idx, model):
+        # put model on tpu
+        model.to(xm.xla_device())
+
+        # get the appropriate tpu ranks
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
+
+        # avoid duplicating progress bar
+        self.show_progress_bar = self.show_progress_bar and self.tpu_global_core_rank == 0
+
+        # track current tpu
+        self.current_tpu_idx = tpu_core_idx
+        self.proc_rank = self.tpu_local_core_rank
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+
+        # init 16 bit for TPU
+        if self.precision == 16:
+            os.environ['XLA_USE_BF16'] = 1
+
+        m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
+            f'global rank: {self.tpu_global_core_rank}'
+        log.info(m)
         self.run_pretrain_routine(model)
 
     def dp_train(self, model):
