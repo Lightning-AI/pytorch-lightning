@@ -746,24 +746,29 @@ class Trainer(TrainerIOMixin,
             trainer.fit()
         """
         # when using multi-node or DDP within a node start each module in a separate process
+        output = 1
         if self.use_ddp2:
+            self.model = model
             task = int(os.environ['SLURM_LOCALID'])
-            self.ddp_train(task, model)
+            output = self.ddp_train(task, model)
 
         elif self.use_ddp:
+            self.model = model
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, model)
+                output = self.ddp_train(task, model)
             else:
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            self.model = model
+            output = self.dp_train(model)
 
         elif self.single_gpu:
-            self.single_gpu_train(model)
+            self.model = model
+            output = self.single_gpu_train(model)
 
         # ON CPU
         else:
@@ -775,11 +780,11 @@ class Trainer(TrainerIOMixin,
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
-            self.run_pretrain_routine(model)
+            output = self.run_pretrain_routine(model)
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        return 1
+        return output
 
     def init_optimizers(self, optimizers):
         # single optimizer
@@ -857,8 +862,9 @@ class Trainer(TrainerIOMixin,
 
         # when testing requested only run test and return
         if self.testing:
-            self.run_evaluation(test=True)
-            return
+            eval_results = self.run_evaluation(test=True)
+            log.info(eval_results)
+            return eval_results
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or
@@ -906,6 +912,8 @@ class Trainer(TrainerIOMixin,
         # summarize profile results
         self.profiler.describe()
 
+        return None
+
     def test(self, model=None):
         r"""
 
@@ -934,4 +942,6 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             self.fit(model)
         else:
-            self.run_evaluation(test=True)
+            eval_results = self.run_evaluation(test=True)
+
+        return eval_results

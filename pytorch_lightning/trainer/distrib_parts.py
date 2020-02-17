@@ -438,7 +438,8 @@ class TrainerDPMixin(ABC):
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
-        self.run_pretrain_routine(model)
+        output = self.run_pretrain_routine(model)
+        return output
 
     def dp_train(self, model):
 
@@ -468,7 +469,8 @@ class TrainerDPMixin(ABC):
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
-        self.run_pretrain_routine(model)
+        output = self.run_pretrain_routine(model)
+        return output
 
 
 def normalize_parse_gpu_string_input(s):
