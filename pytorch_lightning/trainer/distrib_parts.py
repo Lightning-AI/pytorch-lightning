@@ -276,7 +276,7 @@ in a `HyperOptArgumentParser
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
 The full examples are
-`here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/new_project_templates/multi_node_examples>`_.
+`here <https://git.io/Jv87p>`_.
 
 .. code-block:: python
 
