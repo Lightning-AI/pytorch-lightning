@@ -4,6 +4,10 @@ TPU support
 Lightning supports running on TPUs. At this moment, TPUs are only available
 on Google Cloud (GCP).
 
+Live demo
+----------
+Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
+
 TPU Terminology
 ---------------
 A TPU is a Tensor processing unit. Each TPU has 8 cores where each
@@ -33,8 +37,7 @@ To get a TPU on colab, follow these steps:
 2. Click "new notebook" (bottom right of pop-up).
 
 3. Click runtime > change runtime settings. Select Python 3,
-and hardware accelerator "TPU". This will give you a TPU with
-8 cores.
+and hardware accelerator "TPU". This will give you a TPU with 8 cores.
 
 4. Next, insert this code into the first cell and execute. This
 will install the xla library that interfaces between PyTorch and
@@ -82,7 +85,6 @@ the TPU.
     !pip install "$TORCHVISION_WHEEL"
     !sudo apt-get install libomp5
     update.join()
-
 5. Once the above is done, install PyTorch Lightning (v 0.6.1+).
 
 .. code-block::
@@ -92,7 +94,7 @@ the TPU.
 6. Then set up your LightningModule as normal.
 
 7. TPUs require a DistributedSampler. That means you should change your
-train_dataloader (and val, train) code as follows
+train_dataloader (and val, train) code as follows.
 
 .. code-block:: python
 
@@ -165,3 +167,8 @@ set the 16-bit flag.
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
+
+About XLA
+----------
+XLA is the library that interfaces PyTorch with the TPUs.
+For more information check out `XLA <https://github.com/pytorch/xla>`_.
