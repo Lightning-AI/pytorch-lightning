@@ -424,7 +424,8 @@ class TrainerDPMixin(ABC):
             # base case: object can be directly moved using `to`
             if callable(getattr(batch, 'to', None)):
                 return batch.to(xm.xla_device())
-        elif device == 'gpu':
+
+        if device == 'gpu':
             # base case: object can be directly moved using `cuda` or `to`
             if callable(getattr(batch, 'cuda', None)):
                 return batch.cuda(gpu_id)
