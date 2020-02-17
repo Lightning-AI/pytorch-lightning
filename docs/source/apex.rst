@@ -40,7 +40,7 @@ Enable 16-bit
 
 .. code-block:: python
 
-    # DEFAULT
+    # turn on 16-bit
     trainer = Trainer(amp_level='O1', precision=16)
 
 If you need to configure the apex init for your particular use case or want to use a different way of doing
@@ -53,5 +53,8 @@ TPU 16-bit
 .. code-block:: python
 
     # DEFAULT
+    trainer = Trainer(num_tpu_cores=8, precision=32)
+
+    # turn on 16-bit
     trainer = Trainer(num_tpu_cores=8, precision=16)
 
