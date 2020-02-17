@@ -214,6 +214,14 @@ class TrainerDataLoadingMixin(ABC):
             self.get_test_dataloaders()
             self.get_val_dataloaders()
 
+        # on TPUs load each dataloader only on process 0
+        # this will trigger the data downloads
+        if self.use_tpu:
+            if self.proc_rank == 0:
+                self.get_train_dataloader()
+                self.get_test_dataloaders()
+                self.get_val_dataloaders()
+
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
             EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))

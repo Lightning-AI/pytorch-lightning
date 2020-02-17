@@ -377,6 +377,7 @@ class TrainerDPMixin(ABC):
         self.amp_level = None
         self.precision = None
         self.current_tpu_idx = None
+        self.proc_rank = None
 
     @abstractmethod
     def run_pretrain_routine(self, model):
@@ -486,6 +487,7 @@ class TrainerDPMixin(ABC):
 
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
+        self.proc_rank = tpu_core_idx
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
