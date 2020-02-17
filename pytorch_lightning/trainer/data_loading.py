@@ -63,9 +63,15 @@ class TrainerDataLoadingMixin(ABC):
         else:
             self._percent_range_check('train_percent_check')
 
-            self.num_training_batches = len(self.get_train_dataloader())
-            if self.num_training_batches != float('inf'):
+            try:
+                self.num_training_batches = len(self.get_train_dataloader())
                 self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+            except TypeError as e:
+                # Assume infinite data loading if the dataloader doesn't implement __len__
+                if 'has no len' in str(e):
+                    self.num_training_batches = float('inf')
+                else:
+                    raise e
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -80,12 +86,12 @@ class TrainerDataLoadingMixin(ABC):
         else:
             if self.num_training_batches == float('inf'):
                 # support IterableDataset for train data
-                m = '''
-                        When using an infinite DataLoader (e.g. with an IterableDataset) for
-                        `train_dataloader`, `Trainer(val_check_interval)` must be an int.
-                        An int k specifies checking validation every k training batches
-                        '''
-                raise MisconfigurationException(m)
+                msg = """
+                When using an infinite DataLoader (e.g. with an IterableDataset or when DataLoader
+                does not implement `__len__`) for `train_dataloader`, `Trainer(val_check_interval)`
+                must be an int. An int k specifies checking validation every k training batches.
+                """
+                raise MisconfigurationException(msg)
             self._percent_range_check('val_check_interval')
 
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)

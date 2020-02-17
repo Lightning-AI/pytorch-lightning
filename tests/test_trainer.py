@@ -16,7 +16,9 @@ from tests.models import (
     LightningTestMultipleDataloadersMixin,
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
+from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 def test_no_val_module(tmpdir):
@@ -371,6 +373,64 @@ def test_model_freeze_unfreeze():
 
     model.freeze()
     model.unfreeze()
+
+
+def test_inf_train_dataloader(tmpdir):
+    """Test inf train data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBase
+    ):
+
+        @data_loader
+        def train_dataloader(self):
+            dataloader = self._dataloader(train=True)
+
+            class CustomInfDataLoader:
+                def __init__(self, dataloader):
+                    self.dataloader = dataloader
+                    self.iter = iter(dataloader)
+                    self.count = 0
+
+                def __iter__(self):
+                    self.count = 0
+                    return self
+
+                def __next__(self):
+                    if self.count >= 500:
+                        raise StopIteration
+                    self.count = self.count + 1
+                    try:
+                        return next(self.iter)
+                    except StopIteration:
+                        self.iter = iter(self.dataloader)
+                        return next(self.iter)
+
+            return CustomInfDataLoader(dataloader)
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            val_check_interval=0.5
+        )
+        trainer.fit(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_check_interval=50,
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
 
 
 def test_multiple_val_dataloader(tmpdir):
