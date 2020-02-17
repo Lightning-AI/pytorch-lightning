@@ -380,7 +380,7 @@ class TrainerDPMixin(ABC):
         self.proc_rank = None
         self.tpu_local_core_rank = None
         self.tpu_global_core_rank = None
-
+        self.use_tpu = None
 
     @abstractmethod
     def run_pretrain_routine(self, model):
@@ -409,6 +409,9 @@ class TrainerDPMixin(ABC):
             m.use_amp = self.use_amp
             m.testing = self.testing
             m.single_gpu = self.single_gpu
+            m.use_tpu = self.use_tpu
+            m.tpu_local_core_rank = self.tpu_local_core_rank
+            m.tpu_global_core_rank = self.tpu_global_core_rank
 
     def transfer_batch_to_tpu(self, batch):
         # base case: object can be directly moved using `to`
