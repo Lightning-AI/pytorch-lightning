@@ -292,8 +292,8 @@ def test_cpu_restore_training(tmpdir):
     # we want to see if the weights come back correctly
     new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
     trainer_options = dict(
-        max_epochs=2,
-        val_check_interval=0.50,
+        max_epochs=5,
+        val_check_interval=0.80,
         val_percent_check=0.2,
         train_percent_check=0.5,
         logger=new_logger,
