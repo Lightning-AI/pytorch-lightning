@@ -216,12 +216,12 @@ class Trainer(TrainerIOMixin,
                     # combine with num_nodes to train on multiple GPUs across nodes
                     trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
 
-            num_tpu_cores (int): How many TPU cores to train on [1 - 8].
+            num_tpu_cores (int): How many TPU cores to train on (1 or 8).
                 A single TPU v2 or v3 has 8 cores. A TPU pod has
                 up to 2048 cores. A slice of a POD means you get as many cores
                 as you request.
 
-                This parameter range is [1, 8] inclusive.
+                This parameter can be either 1 or 8.
 
                 Example::
 
