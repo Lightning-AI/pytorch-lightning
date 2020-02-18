@@ -478,9 +478,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
 
     # check training stopped at max_steps
-    assert result == 1 and trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
+    assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
     trainer_options['max_epochs'] = 2
@@ -489,9 +490,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert result == 1 and trainer.global_step == num_train_samples * trainer.max_nb_epochs \
+    assert trainer.global_step == num_train_samples * trainer.max_nb_epochs \
         and trainer.current_epoch == trainer.max_nb_epochs - 1, "Model did not stop at max_epochs"
 
 
@@ -513,9 +515,10 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
 
     # check model ran for at least min_epochs
-    assert result == 1 and trainer.global_step >= num_train_samples and \
+    assert trainer.global_step >= num_train_samples and \
         trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
@@ -524,9 +527,10 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
 
     # check model ran for at least num_train_samples*1.5
-    assert result == 1 and trainer.global_step >= math.floor(num_train_samples * 1.5) and \
+    assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 # if __name__ == '__main__':
