@@ -1,9 +1,28 @@
+"""
+The following pipelines are modified from NVIDIA/DALI/docs/examples/pytorch/resnet50/main.py.
+The HybridTrainPipe will have a pre-process similar to:
+    transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        normalize,
+    ])
+The HybridValPipe will have a pre-process similar to:
+    datasets.ImageFolder(val_dir, transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ])
+For further details,
+please refer to [nvidia-dali document](https://docs.nvidia.com/deeplearning/sdk/dali-developer-guide/docs/index.html)
+"""
+
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.ops as ops
 import nvidia.dali.types as types
 
 
-# modified from NVIDIA/DALI/docs/examples/pytorch/resnet50/main.py
 class HybridTrainPipe(Pipeline):
     def __init__(self, batch_size, num_threads, local_rank, world_size, data_dir, crop=224, dali_cpu=False):
         super(HybridTrainPipe, self).__init__(batch_size=batch_size, num_threads=num_threads, device_id=local_rank,

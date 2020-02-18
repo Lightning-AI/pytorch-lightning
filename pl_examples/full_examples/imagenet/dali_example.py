@@ -1,3 +1,9 @@
+"""
+This example is to demonstrate the usage of a nvidia-dali pipeline inside pl.
+For further details,
+please refer to [nvidia-dali document](https://docs.nvidia.com/deeplearning/sdk/dali-developer-guide/docs/index.html)
+"""
+
 import os
 import pytorch_lightning as pl
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator
