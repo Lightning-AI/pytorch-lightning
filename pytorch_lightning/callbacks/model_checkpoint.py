@@ -61,9 +61,9 @@ class ModelCheckpoint(Callback):
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
         if (
-            save_top_k and
-            os.path.isdir(filepath) and
-            len(os.listdir(filepath)) > 0
+            save_top_k
+            and os.path.isdir(filepath)
+            and len(os.listdir(filepath)) > 0
         ):
             warnings.warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
@@ -166,7 +166,8 @@ class ModelCheckpoint(Callback):
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
                             _op = max if self.mode == 'min' else min
-                            self.kth_best_model = _op(self.best_k_models, key=self.best_k_models.get)
+                            self.kth_best_model = _op(self.best_k_models,
+                                                      key=self.best_k_models.get)
                             self.kth_value = self.best_k_models[self.kth_best_model]
 
                         _op = min if self.mode == 'min' else max
