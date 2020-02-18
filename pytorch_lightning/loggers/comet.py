@@ -10,6 +10,7 @@ from logging import getLogger
 
 try:
     from comet_ml import Experiment as CometExperiment
+    from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     try:
         from comet_ml.api import API
@@ -33,7 +34,8 @@ class CometLogger(LightningLoggerBase):
     """
 
     def __init__(self, api_key=None, save_dir=None, workspace=None,
-                 rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
+                 rest_api_key=None, project_name=None, experiment_name=None,
+                 experiment_key=None, **kwargs):
         r"""
 
         Requires either an API Key (online mode) or a local directory path (offline mode)
@@ -100,6 +102,7 @@ class CometLogger(LightningLoggerBase):
 
         self.workspace = workspace
         self.project_name = project_name
+        self.experiment_key = experiment_key
         self._kwargs = kwargs
 
         if rest_api_key is not None:
@@ -131,12 +134,22 @@ class CometLogger(LightningLoggerBase):
             return self._experiment
 
         if self.mode == "online":
-            self._experiment = CometExperiment(
-                api_key=self.api_key,
-                workspace=self.workspace,
-                project_name=self.project_name,
-                **self._kwargs
-            )
+            if self.experiment_key is None:
+                self._experiment = CometExperiment(
+                    api_key=self.api_key,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self._kwargs
+                )
+                self.experiment_key = self._experiment.get_key()
+            else:
+                self._experiment = CometExistingExperiment(
+                    api_key=self.api_key,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    previous_experiment=self.experiment_key,
+                    **self._kwargs
+                )
         else:
             self._experiment = CometOfflineExperiment(
                 offline_directory=self.save_dir,
@@ -160,9 +173,13 @@ class CometLogger(LightningLoggerBase):
 
         self.experiment.log_metrics(metrics, step=step)
 
+    def reset_experiment(self):
+        self._experiment = None
+
     @rank_zero_only
     def finalize(self, status):
         self.experiment.end()
+        self.reset_experiment()
 
     @property
     def name(self):
