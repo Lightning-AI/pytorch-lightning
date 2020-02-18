@@ -3,6 +3,9 @@ name: CI testing
 on: [push, pull_request]
 
 jobs:
+  # https://stackoverflow.com/a/59076067/4521646
+  timeout-minutes: 20
+
   build:
 
     runs-on: ${{ matrix.os }}
