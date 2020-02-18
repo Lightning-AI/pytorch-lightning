@@ -1,23 +1,6 @@
-import urllib.request
-import zipfile
-import os
-
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.ops as ops
 import nvidia.dali.types as types
-
-url = 'https://s3.amazonaws.com/pytorch-tutorial-assets/imagenet_1k.zip'
-filename = './imagenet_1k.zip'
-dataset_root = './imagenet_1k'
-
-
-def prepare_imagenet_1k():
-    if not os.path.exists(dataset_root):
-        if not os.path.exists(filename):
-            urllib.request.urlretrieve(url, filename)
-
-        with zipfile.ZipFile(filename, 'r') as zip_ref:
-            zip_ref.extractall(".")
 
 
 # modified from NVIDIA/DALI/docs/examples/pytorch/resnet50/main.py

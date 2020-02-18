@@ -11,9 +11,9 @@ except ImportError:
     import torch
     warnings.warn('Your version of pyTorch %s does not support `IterableDataset`,'
                   ' please upgrade to 1.2+' % torch.__version__, ImportWarning)
-    EXIST_ITER_DATASET = False
+    ITER_DATASET_AVAILABLE = False
 else:
-    EXIST_ITER_DATASET = True
+    ITER_DATASET_AVAILABLE = True
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
@@ -58,7 +58,7 @@ class TrainerDataLoadingMixin(ABC):
         if DALI_AVAILABLE and isinstance(self.get_train_dataloader(), DALIGenericIterator):
             self._dali_iterator_check(model, 'train')
             self.num_training_batches = self._get_dali_batch_count(self.get_train_dataloader())
-        elif EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
+        elif ITER_DATASET_AVAILABLE and isinstance(self.get_train_dataloader().dataset, IterableDataset):
             self.num_training_batches = float('inf')
         else:
             self.num_training_batches = len(self.get_train_dataloader())
@@ -85,7 +85,7 @@ class TrainerDataLoadingMixin(ABC):
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
             isinstance(self.get_train_dataloader(), DataLoader) and
-            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+            ITER_DATASET_AVAILABLE and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for `train_dataloader`,
@@ -200,7 +200,7 @@ class TrainerDataLoadingMixin(ABC):
         if name == "val_check_interval":
             msg += " If you want to disable validation set `val_percent_check` to 0.0 instead."
 
-        if not 0. <= value <= 1.:
+        if not (0. <= value <= 1.):
             raise ValueError(msg)
 
     def _ddp_sampler_check(self, data_loader, mode):
@@ -267,5 +267,6 @@ class TrainerDataLoadingMixin(ABC):
         :param data_loader: DALIGenericIterator
         :return:
         """
+        batch_count = int(data_loader._size / (data_loader._num_gpus * data_loader.batch_size))
         last_batch = 1 if data_loader._fill_last_batch else 0
-        return int(data_loader._size / (data_loader._num_gpus * data_loader.batch_size)) + last_batch
+        return batch_count + last_batch

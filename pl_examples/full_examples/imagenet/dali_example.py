@@ -2,7 +2,7 @@ import os
 import pytorch_lightning as pl
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 from imagenet_example import ImageNetLightningModel, get_args, main
-from dali_utils import HybridTrainPipe, HybridValPipe, prepare_imagenet_1k
+from dali_utils import HybridTrainPipe, HybridValPipe
 
 
 class DaliImageNetLightningModel(ImageNetLightningModel):
