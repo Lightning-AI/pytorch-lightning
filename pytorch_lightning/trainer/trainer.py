@@ -490,7 +490,7 @@ class Trainer(TrainerIOMixin,
                 make your system slower.
 
                 The speedup comes from allowing the cudnn auto-tuner to find the best
-                algorithm for the hardware `[see discussion here] 
+                algorithm for the hardware `[see discussion here]
                 <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
