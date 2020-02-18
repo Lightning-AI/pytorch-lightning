@@ -166,7 +166,7 @@ class ModelCheckpoint(Callback):
                         if len(self.best_k_models.keys()) == self.save_top_k:
                             # monitor dict has reached k elements
                             _op = max if self.mode == 'min' else min
-                            self.: str = _op(self.best_k_models, key=self.best_k_models.get)
+                            self.kth_best_model = _op(self.best_k_models, key=self.best_k_models.get)
                             self.kth_value = self.best_k_models[self.kth_best_model]
 
                         _op = min if self.mode == 'min' else max
