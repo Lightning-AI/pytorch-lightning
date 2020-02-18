@@ -230,7 +230,7 @@ def test_ddp_sampler_error(tmpdir):
         max_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
-        use_amp=True
+        precision=16
     )
 
     with pytest.warns(UserWarning):

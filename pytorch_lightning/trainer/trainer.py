@@ -36,6 +36,15 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class Trainer(TrainerIOMixin,
               TrainerDPMixin,
@@ -62,6 +71,7 @@ class Trainer(TrainerIOMixin,
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             num_nodes=1,
             gpus=None,
+            num_tpu_cores=None,
             log_gpu_memory=None,
             show_progress_bar=True,
             overfit_pct=0.0,
@@ -81,7 +91,8 @@ class Trainer(TrainerIOMixin,
             row_log_interval=10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend=None,
-            use_amp=False,
+            use_amp=False,  # backward compatible, todo: remove in v0.8.0
+            precision=32,
             print_nan_grads=False,
             weights_summary='full',
             weights_save_path=None,
@@ -163,7 +174,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(gradient_clip_val=0.0)
 
             gradient_clip (int):
-                .. deprecated:: 0.5.0
+                .. warning: .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position (int): orders the tqdm bar when running multiple models on same machine.
@@ -182,7 +193,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(num_nodes=8)
 
             nb_gpu_nodes (int):
-                .. deprecated:: 0.5.0
+                ..warning:: .. deprecated:: 0.5.0
                     Use `num_nodes` instead. Will remove 0.8.0.
 
             gpus (list|str|int): Which GPUs to train on.
@@ -204,6 +215,48 @@ class Trainer(TrainerIOMixin,
 
                     # combine with num_nodes to train on multiple GPUs across nodes
                     trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
+
+            num_tpu_cores (int): How many TPU cores to train on (1 or 8).
+                A single TPU v2 or v3 has 8 cores. A TPU pod has
+                up to 2048 cores. A slice of a POD means you get as many cores
+                as you request.
+
+                You MUST use DistributedDataSampler with your dataloader for this
+                to work. Your effective batch size is batch_size * total tpu cores.
+
+                This parameter can be either 1 or 8.
+
+                Example::
+
+                    # your_trainer_file.py
+
+                    # default used by the Trainer (ie: train on CPU)
+                    trainer = Trainer(num_tpu_cores=None)
+
+                    # int: train on a single core
+                    trainer = Trainer(num_tpu_cores=1)
+
+                    # int: train on all cores few cores
+                    trainer = Trainer(num_tpu_cores=8)
+
+                    # for 8+ cores must submit via xla script with
+                    # a max of 8 cores specified. The XLA script
+                    # will duplicate script onto each TPU in the POD
+                    trainer = Trainer(num_tpu_cores=8)
+
+                    # -1: train on all available TPUs
+                    trainer = Trainer(num_tpu_cores=-1)
+
+            To train on more than 8 cores (ie: a POD),
+            submit this script using the xla_dist script.
+
+            Example::
+
+                $ python -m torch_xla.distributed.xla_dist
+                --tpu=$TPU_POD_NAME
+                --conda-env=torch-xla-nightly
+                --env=XLA_USE_BF16=1
+                -- python your_trainer_file.py
 
             log_gpu_memory (str): None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
@@ -279,7 +332,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(max_epochs=1000)
 
             max_nb_epochs (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `max_epochs` instead. Will remove 0.8.0.
 
             min_epochs (int): Force training for at least these many epochs
@@ -289,7 +342,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(min_epochs=1)
 
             min_nb_epochs (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `min_nb_epochs` instead. Will remove 0.8.0.
 
             train_percent_check (int): How much of training dataset to check.
@@ -350,7 +403,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(row_log_interval=10)
 
             add_row_log_interval (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `row_log_interval` instead. Will remove 0.8.0.
 
             distributed_backend (str): The distributed backend to use.
@@ -374,11 +427,26 @@ class Trainer(TrainerIOMixin,
                     # useful for things like increasing the number of negative samples
                     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
-            use_amp (bool): If true uses apex for 16bit precision
+            use_amp (bool):
+                .. warning:: .. deprecated:: 0.6.1
+                    Use `precision` instead. Will remove 0.8.0.
+
+            precision (int): Full precision (32), half precision (16).
+                Can be used on CPU, GPU or TPUs.
+
+                If used on TPU will use torch.bfloat16 but tensor printing
+                will still show torch.float32.
+
                 Example::
 
                     # default used by the Trainer
-                    trainer = Trainer(use_amp=False)
+                    trainer = Trainer(precision=32)
+
+                    # 16-bit precision
+                    trainer = Trainer(precision=16)
+
+                    # one day
+                    trainer = Trainer(precision=8|4|2)
 
             print_nan_grads (bool): Prints gradients with nan values
                 Example::
@@ -435,7 +503,7 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(num_sanity_val_steps=0)
 
             nb_sanity_val_steps (int):
-                .. deprecated:: 0.5.0
+                .. warning:: .. deprecated:: 0.5.0
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
             truncated_bptt_steps (int): Truncated back prop breaks performs backprop every k steps of
@@ -517,6 +585,12 @@ class Trainer(TrainerIOMixin,
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
+
+        # tpu config
+        self.on_tpu = num_tpu_cores is not None
+        self.num_tpu_cores = num_tpu_cores
+        assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
+
         self.process_position = process_position
         self.weights_summary = weights_summary
 
@@ -614,6 +688,11 @@ class Trainer(TrainerIOMixin,
         self.data_parallel_device_ids = parse_gpu_ids(gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
+        # tpu state flags
+        self.use_tpu = False
+        self.tpu_local_core_rank = None
+        self.tpu_global_core_rank = None
+
         # distributed backend choice
         self.use_ddp = False
         self.use_ddp2 = False
@@ -621,6 +700,11 @@ class Trainer(TrainerIOMixin,
         self.single_gpu = False
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend, num_nodes)
+
+        # override dist backend when using tpus
+        if self.on_tpu:
+            self.init_tpu()
+            self.current_tpu_idx = None
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -653,6 +737,9 @@ class Trainer(TrainerIOMixin,
 
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
+        self.precision = precision
+        if self.precision == 16:
+            use_amp = True
         self.init_amp(use_amp)
 
     @property
@@ -724,7 +811,7 @@ class Trainer(TrainerIOMixin,
 
         :return: dictionary
 
-        .. deprecated:: 0.5.0
+        .. warning:: .. deprecated:: 0.5.0
                     Use `training_tqdm_dict` instead. Will remove 0.8.0.
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
@@ -803,6 +890,13 @@ class Trainer(TrainerIOMixin,
 
         elif self.single_gpu:
             self.single_gpu_train(model)
+
+        elif self.use_tpu:
+            log.info(f'training on {self.num_tpu_cores} TPU cores')
+
+            #  COLAB_GPU is an env var available by default in Colab environments.
+            start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
 
         # ON CPU
         else:
@@ -901,7 +995,7 @@ class Trainer(TrainerIOMixin,
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or
-                                   not self.is_overriden('validation_step')) and
+                                    not self.is_overriden('validation_step')) and
                                    not self.fast_dev_run)
 
         # run tiny validation (if validation defined)

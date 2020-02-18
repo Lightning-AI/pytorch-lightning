@@ -144,6 +144,7 @@ class TrainerDDPMixin(ABC):
         self.distributed_backend = None
         self.use_amp = None
         self.amp_level = None
+        self.use_tpu = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -159,6 +160,13 @@ class TrainerDDPMixin(ABC):
     def init_optimizers(self, optimizers):
         # this is just empty shell for code from other class
         pass
+
+    def init_tpu(self):
+        # turn off all the GPU stuff
+        self.distributed_backend = None
+
+        # enable tpu
+        self.use_tpu = True
 
     def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
         # skip for CPU
