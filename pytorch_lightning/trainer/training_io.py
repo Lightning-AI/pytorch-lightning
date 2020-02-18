@@ -126,6 +126,7 @@ class TrainerIOMixin(ABC):
         self.lr_schedulers = None
         self.optimizers = None
         self.num_training_batches = None
+        self.accumulate_grad_batches = None
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
