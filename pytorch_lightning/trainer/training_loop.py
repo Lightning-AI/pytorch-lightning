@@ -351,7 +351,10 @@ class TrainerTrainLoopMixin(ABC):
         # update LR schedulers
         if self.lr_schedulers is not None:
             for lr_scheduler in self.lr_schedulers:
+                # while lr_scheduler.last_epoch < self.current_epoch:
+                #     lr_scheduler.step()
                 lr_scheduler.step()
+
         if self.reduce_lr_on_plateau_scheduler is not None:
             val_loss = self.callback_metrics.get('val_loss')
             if val_loss is None:
@@ -359,6 +362,8 @@ class TrainerTrainLoopMixin(ABC):
                 m = "ReduceLROnPlateau conditioned on metric val_loss" \
                     f" which is not available. Available metrics are: {avail_metrics}"
                 raise MisconfigurationException(m)
+            # while self.reduce_lr_on_plateau_scheduler.last_epoch < self.current_epoch:
+            #     self.reduce_lr_on_plateau_scheduler.step(val_loss)
             self.reduce_lr_on_plateau_scheduler.step(val_loss)
 
         if self.max_steps and self.max_steps == self.global_step:
