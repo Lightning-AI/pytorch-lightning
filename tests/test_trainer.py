@@ -411,5 +411,33 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
+def test_benchmark_option(tmpdir):
+    """Verify benchmark option."""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningValidationMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        benchmark=True,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
 # if __name__ == '__main__':
 #     pytest.main([__file__])
