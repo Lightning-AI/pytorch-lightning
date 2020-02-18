@@ -359,7 +359,7 @@ class TrainerTrainLoopMixin(ABC):
                 m = "ReduceLROnPlateau conditioned on metric val_loss" \
                     f" which is not available. Available metrics are: {avail_metrics}"
                 raise MisconfigurationException(m)
-            self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
+            self.reduce_lr_on_plateau_scheduler.step(val_loss)
 
         if self.max_steps and self.max_steps == self.global_step:
             self.main_progress_bar.close()
