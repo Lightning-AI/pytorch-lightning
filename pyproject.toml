@@ -6,4 +6,4 @@ requires = [
 
 [tool.autopep8]
 max_line_length = 100
-ignore = [W504, W504, E402, E731, C40, E741, F40, F841]
+ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
