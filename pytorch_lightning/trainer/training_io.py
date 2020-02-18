@@ -390,9 +390,9 @@ class TrainerIOMixin(ABC):
         self.current_epoch = checkpoint['epoch']
 
         # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with peculiarity of different global step for odd vs even num_training_batches
-        acc_batches = self.accumulate_grad_batches if self.accumulate_grad_batches is not None else 1
-        if self.global_step % (self.num_training_batches / acc_batches) > 1:
+        # Inequality deals with different global step for odd vs even num_training_batches
+        n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
+        if self.global_step % (self.num_training_batches / n_accum) > 1:
             warnings.warn(
                 "You're resuming from a checkpoint that ended mid-epoch. "
                 "This can cause unreliable results if further training is done, "
