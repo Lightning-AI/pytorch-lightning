@@ -162,18 +162,18 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerTrainLoopMixin(ABC):
@@ -349,7 +349,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_training_epoch()
 
         # update LR schedulers
-        if self.lr_schedulers:
+        if self.lr_schedulers is not None:
             for lr_scheduler in self.lr_schedulers:
                 lr_scheduler.step()
         if self.reduce_lr_on_plateau_scheduler is not None:
