@@ -1,3 +1,4 @@
+import math
 import os
 
 import pytest
@@ -6,6 +7,7 @@ import torch
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
+    EarlyStopping,
     ModelCheckpoint,
 )
 from tests.models import (
@@ -446,6 +448,90 @@ def test_multiple_test_dataloader(tmpdir):
     # run the test method
     trainer.test()
 
+
+def _init_steps_model():
+    """private method for initializing a model with 5% train epochs"""
+    tutils.reset_seed()
+    model, _ = tutils.get_model()
+
+    # define train epoch to 5% of data
+    train_percent = 0.05
+    # get number of samples in 1 epoch
+    num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
+
+    trainer_options = dict(
+        train_percent_check=train_percent,
+    )
+    return model, trainer_options, num_train_samples
+
+
+def test_trainer_max_steps_and_epochs(tmpdir):
+    """Verify model trains according to specified max steps"""
+    model, trainer_options, num_train_samples = _init_steps_model()
+
+    # define less train steps than epochs
+    trainer_options.update(dict(
+        max_epochs=5,
+        max_steps=num_train_samples + 10
+    ))
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
+
+    # check training stopped at max_steps
+    assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
+
+    # define less train epochs than steps
+    trainer_options['max_epochs'] = 2
+    trainer_options['max_steps'] = trainer_options['max_epochs'] * 2 * num_train_samples
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
+
+    # check training stopped at max_epochs
+    assert trainer.global_step == num_train_samples * trainer.max_nb_epochs \
+        and trainer.current_epoch == trainer.max_nb_epochs - 1, "Model did not stop at max_epochs"
+
+
+def test_trainer_min_steps_and_epochs(tmpdir):
+    """Verify model trains according to specified min steps"""
+    model, trainer_options, num_train_samples = _init_steps_model()
+
+    # define callback for stopping the model and default epochs
+    trainer_options.update({
+        'early_stop_callback': EarlyStopping(monitor='val_loss', min_delta=1.0),
+        'val_check_interval': 20,
+        'min_epochs': 1,
+        'max_epochs': 10
+    })
+
+    # define less min steps than 1 epoch
+    trainer_options['min_steps'] = math.floor(num_train_samples / 2)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
+
+    # check model ran for at least min_epochs
+    assert trainer.global_step >= num_train_samples and \
+        trainer.current_epoch > 0, "Model did not train for at least min_epochs"
+
+    # define less epochs than min_steps
+    trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
+
+    # check model ran for at least num_train_samples*1.5
+    assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
+        trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
