@@ -3,9 +3,6 @@ name: CI testing
 on: [push, pull_request]
 
 jobs:
-  # https://stackoverflow.com/a/59076067/4521646
-  timeout-minutes: 20
-
   build:
 
     runs-on: ${{ matrix.os }}
@@ -17,6 +14,8 @@ jobs:
         python-version: [3.6, 3.7]
         requires: ['minimal', 'latest']
 
+    # https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 20
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
