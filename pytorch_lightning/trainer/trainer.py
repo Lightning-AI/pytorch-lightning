@@ -1019,4 +1019,4 @@ def _set_dataloader(model, dataloader, attribute):
 
     elif dataloader:  # if default (None) is passed, do not warn the user
         warnings.warn(f'Model has predefined `{attribute}`,'
-                      f'will skip `{attribute}={dataloader}` passed to fit method')
+                      f' will skip `{attribute}={dataloader}` passed to fit method.')
