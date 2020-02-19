@@ -11,5 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master
       with:
+        # git is requried to clone the docs theme
+        pre-build-command: "apt-get update -y && apt-get install -y git"
         docs-folder: "docs/"
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
