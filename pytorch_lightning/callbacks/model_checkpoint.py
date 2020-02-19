@@ -79,30 +79,21 @@ class ModelCheckpoint(Callback):
         self.kth_best_model = ''
         self.best = 0
         self.save_function = lambda x: None
+        
+        mode_dict = {
+            'min': (np.less, np.Inf, 'min'),
+            'max': (np.greater, -np.Inf, 'max'),
+            'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure') \
+                else (np.less, np.Inf, 'min'),
+        }
 
-        if mode not in ['auto', 'min', 'max']:
+        if mode not in mode_dict:
             warnings.warn(
                 f'ModelCheckpoint mode {mode} is unknown, '
                 'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
-        if mode == 'min':
-            self.monitor_op = np.less
-            self.kth_value = np.Inf
-            self.mode = 'min'
-        elif mode == 'max':
-            self.monitor_op = np.greater
-            self.kth_value = -np.Inf
-            self.mode = 'max'
-        else:
-            if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
-                self.monitor_op = np.greater
-                self.kth_value = -np.Inf
-                self.mode = 'max'
-            else:
-                self.monitor_op = np.less
-                self.kth_value = np.Inf
-                self.mode = 'min'
+        self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
         try:
