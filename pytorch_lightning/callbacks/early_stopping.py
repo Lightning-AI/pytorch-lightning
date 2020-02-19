@@ -50,7 +50,7 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
 
-        if mode not in ['auto', 'min', 'max']:
+        if mode not in mode_dict:
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             mode = 'auto'
