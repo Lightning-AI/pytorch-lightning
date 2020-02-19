@@ -362,7 +362,6 @@ memory utilization
 
 - None
 
-
 ## [0.4.4] - 2019-08-12
 
 ### Added
@@ -410,7 +409,6 @@ memory utilization
 
 - Fixed a bug where accumulate gradients would scale the loss incorrectly
 
-
 ## [0.4.2] - 2019-08-08
 
 ### Added
@@ -455,7 +453,6 @@ memory utilization
 
 - None
 
-
 ## [0.4.0] - 2019-08-08
 
 ### Added
@@ -478,7 +475,6 @@ memory utilization
 ### Fixed
 
 - Fixed issues with reducing outputs from generative models (such as images and text)
-
 
 ## [0.3.6.1] - 2019-07-27
 
