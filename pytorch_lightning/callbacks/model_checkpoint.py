@@ -152,7 +152,7 @@ class ModelCheckpoint(Callback):
                     if self.check_monitor_top_k(current):
 
                         # remove kth
-                        if len(self.best_k_models.keys()) == self.save_top_k:
+                        if len(self.best_k_models) == self.save_top_k:
                             delpath = self.kth_best_model
                             self.best_k_models.pop(self.kth_best_model)
                             self._del_model(delpath)
