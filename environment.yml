@@ -28,7 +28,7 @@ dependencies:
 
     - pip:
         - test-tube>=0.7.5
-        - mlflow
+        - mlflow>=1.0.0
         - comet_ml
         - wandb
         - sacred
