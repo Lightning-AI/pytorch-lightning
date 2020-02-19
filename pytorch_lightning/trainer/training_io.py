@@ -393,7 +393,7 @@ class TrainerIOMixin(ABC):
         # Inequality deals with different global step for odd vs even num_training_batches
         n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
         expected_steps = self.num_training_batches / n_accum
-        if self.num_training_batches and self.global_step % expected_steps > 1:
+        if self.num_training_batches != 0 and self.global_step % expected_steps > 1:
             warnings.warn(
                 "You're resuming from a checkpoint that ended mid-epoch. "
                 "This can cause unreliable results if further training is done, "
