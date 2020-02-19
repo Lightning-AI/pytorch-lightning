@@ -5,7 +5,8 @@ Leads
 -----
 - William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 - Jirka Borovek (`Borda <https://github.com/Borda>`_)
-- Ethan Harris `ethanwharris <https://github.com/ethanwharris>`_ (Torchbearer founder)
+- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
+- Matthew Painter (`MattPainter01 <https://github.com/MattPainter01>`_) (Torchbearer founder)
 
 Core Maintainers
 ----------------
