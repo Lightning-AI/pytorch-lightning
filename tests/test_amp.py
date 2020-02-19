@@ -26,7 +26,7 @@ def test_amp_single_gpu(tmpdir):
         max_epochs=1,
         gpus=1,
         distributed_backend='ddp',
-        use_amp=True
+        precision=16
     )
 
     tutils.run_model_test(trainer_options, model)
@@ -49,7 +49,7 @@ def test_no_amp_single_gpu(tmpdir):
         max_epochs=1,
         gpus=1,
         distributed_backend='dp',
-        use_amp=True
+        precision=16
     )
 
     trainer = Trainer(**trainer_options)
@@ -75,7 +75,7 @@ def test_amp_gpu_ddp(tmpdir):
         max_epochs=1,
         gpus=2,
         distributed_backend='ddp',
-        use_amp=True
+        precision=16
     )
 
     tutils.run_model_test(trainer_options, model)
@@ -101,7 +101,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         max_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
-        use_amp=True
+        precision=16
     )
 
     # exp file to get meta
@@ -140,7 +140,7 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
-        use_amp=True
+        precision=16
     )
 
     model, hparams = tutils.get_model()
@@ -163,7 +163,7 @@ def test_amp_gpu_dp(tmpdir):
         max_epochs=1,
         gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',
-        use_amp=True
+        precision=16
     )
 
     trainer = Trainer(**trainer_options)

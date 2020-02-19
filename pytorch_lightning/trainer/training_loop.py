@@ -167,6 +167,21 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla.core.xla_model as xm
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
+try:
+    import torch_xla.distributed.parallel_loader as xla_pl
+
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerTrainLoopMixin(ABC):
 
@@ -179,6 +194,7 @@ class TrainerTrainLoopMixin(ABC):
         self.use_dp = None
         self.use_ddp2 = None
         self.single_gpu = None
+        self.use_tpu = None
         self.data_parallel_device_ids = None
         self.check_val_every_n_epoch = None
         self.num_training_batches = None
@@ -212,6 +228,8 @@ class TrainerTrainLoopMixin(ABC):
         self.get_train_dataloader = None
         self.reduce_lr_on_plateau_scheduler = None
         self.profiler = None
+        self.batch_idx = None
+        self.precision = None
 
     @property
     def max_nb_epochs(self):
@@ -252,6 +270,11 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
+    def transfer_batch_to_tpu(self, batch):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
     def clip_gradients(self):
         # this is just empty shell for code from other class
         pass
@@ -288,7 +311,8 @@ class TrainerTrainLoopMixin(ABC):
         # run all epochs
         for epoch in range(self.current_epoch, self.max_epochs):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            if self.use_ddp and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
+            if (self.use_ddp or self.use_tpu) \
+                    and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
                 self.get_train_dataloader().sampler.set_epoch(epoch)
 
             # get model
@@ -328,7 +352,7 @@ class TrainerTrainLoopMixin(ABC):
             self.main_progress_bar.set_description(desc)
 
             # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_begin(epoch, self)
+            self.accumulation_scheduler.on_epoch_begin()
 
             # -----------------
             # RUN TNG EPOCH
@@ -348,12 +372,18 @@ class TrainerTrainLoopMixin(ABC):
                     raise MisconfigurationException(m)
                 self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
 
+            if self.max_steps and self.max_steps == self.global_step:
+                self.main_progress_bar.close()
+                model.on_train_end()
+                return
+
             # early stopping
             met_min_epochs = epoch >= self.min_epochs - 1
+            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
             if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
-                    (met_min_epochs or self.fast_dev_run)):
-                should_stop = self.early_stop_callback.on_epoch_end(epoch=epoch,
-                                                                    logs=self.callback_metrics)
+                    ((met_min_epochs and met_min_steps) or self.fast_dev_run)):
+                should_stop = self.early_stop_callback.on_epoch_end()
                 # stop training
                 stop = should_stop and met_min_epochs
                 if stop:
@@ -377,9 +407,18 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('on_epoch_start'):
                 model.on_epoch_start()
 
+        # request the dataloader
+        train_dataloader = self.get_train_dataloader()
+
+        # on TPU we have to wrap it under the ParallelLoader
+        if self.use_tpu:
+            device = xm.xla_device()
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
+
         # run epoch
         for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(self.get_train_dataloader()), "get_train_batch"
+            enumerate(train_dataloader), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
@@ -426,8 +465,14 @@ class TrainerTrainLoopMixin(ABC):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
-            self.global_step += 1
+            # progress global step according to grads progress
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                self.global_step += 1
             self.total_batch_idx += 1
+
+            # max steps reached, end training
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
@@ -504,7 +549,7 @@ class TrainerTrainLoopMixin(ABC):
                     # backward pass
                     model_ref = self.get_model()
                     with self.profiler.profile('model_backward'):
-                        model_ref.backward(self.use_amp, closure_loss, optimizer, opt_idx)
+                        model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
                     all_callback_metrics.append(callback_metrics)
@@ -548,8 +593,11 @@ class TrainerTrainLoopMixin(ABC):
                     # override function to modify this behavior
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
-                        model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx, optimizer_closure)
+                        if self.use_tpu:
+                            xm.optimizer_step(optimizer, barrier=True)
+                        else:
+                            model.optimizer_step(self.current_epoch, batch_idx,
+                                                 optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value)
@@ -610,6 +658,12 @@ class TrainerTrainLoopMixin(ABC):
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
+            args[0] = batch
+            output = self.model.training_step(*args)
+
+        # TPU support
+        elif self.use_tpu:
+            batch = self.transfer_batch_to_tpu(copy.copy(batch))
             args[0] = batch
             output = self.model.training_step(*args)
 

@@ -38,7 +38,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
 
 .. code-block:: python
 
-   def training_end(self, batch, batch_idx):
+   def training_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -46,7 +46,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-   def validation_end(self, batch, batch_idx):
+   def validation_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -54,7 +54,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-   def test_end(self, batch, batch_idx):
+   def test_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -99,7 +99,7 @@ Here we show the validation loss in the progress bar
 
 .. code-block:: python
 
-   def validation_end(self, batch, batch_idx):
+   def validation_end(self, outputs):
       loss = some_loss()
       ...
 

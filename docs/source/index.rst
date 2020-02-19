@@ -55,6 +55,7 @@ PyTorch-Lightning Documentation
    single_gpu
    sequences
    training_tricks
+   tpu
    test_set
    optimizers
    profiler

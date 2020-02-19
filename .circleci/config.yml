@@ -32,6 +32,15 @@ references:
         pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
         deactivate ; rm -rf vEnv
 
+  create_pkg: &create_pkg
+    run:
+      name: Create package
+      command: |
+        sudo pip install twine==1.13.0
+        python setup.py sdist
+        twine check dist/*
+        python setup.py clean
+
   format: &format
    run:
      name: Formatting
@@ -117,6 +126,7 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
+      - *create_pkg
       - *install_pkg
 
 
