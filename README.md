@@ -394,6 +394,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
 - Jirka Borovek [(Borda)](https://github.com/Borda)
 - Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
+- Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
 
 #### Core Maintainers
 
