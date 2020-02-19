@@ -30,5 +30,5 @@ dependencies:
         - test-tube>=0.7.5
         - mlflow>=1.0.0
         - comet_ml>=1.0.56
-        - wandb
+        - wandb>=0.8.21
         - neptune-client>=0.4.4
