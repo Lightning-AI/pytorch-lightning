@@ -158,7 +158,7 @@ class ModelCheckpoint(Callback):
                             self._del_model(delpath)
 
                         self.best_k_models[filepath] = current
-                        if len(self.best_k_models.keys()) == self.save_top_k:
+                        if len(self.best_k_models) == self.save_top_k:
                             # monitor dict has reached k elements
                             _op = max if self.mode == 'min' else min
                             self.kth_best_model = _op(self.best_k_models,
