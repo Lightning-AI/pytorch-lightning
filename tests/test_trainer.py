@@ -13,6 +13,7 @@ from pytorch_lightning.callbacks import (
 from tests.models import (
     LightningTestModel,
     LightningTestModelBase,
+    LightningTestModelBaseWithoutDataloader,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
@@ -449,6 +450,165 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
+def test_train_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that train dataloader can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # only train passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True))
+    results = trainer.fit(model, **fit_options)
+
+
+def test_train_val_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that train & val dataloader can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # train, val passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+
+
+def test_all_dataloaders_passed_to_fit(tmpdir):
+    """ Verify train, val & test dataloader can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # train, val and test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=model._dataloader(train=False),
+                       test_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.get_test_dataloaders()) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+
+
+def test_multiple_dataloaders_passed_to_fit(tmpdir):
+    """ Verify that multiple val & test dataloaders can be passed to fit """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBaseWithoutDataloader
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # train, multiple val and multiple test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloader=[model._dataloader(train=False),
+                                       model._dataloader(train=False)],
+                       test_dataloader=[model._dataloader(train=False),
+                                        model._dataloader(train=False)])
+    results = trainer.fit(model, **fit_options)
+
+    assert len(trainer.get_val_dataloaders()) == 2, \
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.get_test_dataloaders()) == 2, \
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+
+
+def test_mixing_of_dataloader_options(tmpdir):
+    """Verify that dataloaders can be passed to fit"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningTestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(val_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    fit_options = dict(val_dataloader=model._dataloader(train=False),
+                       test_dataloader=model._dataloader(train=False))
+    results = trainer.fit(model, **fit_options)
+    assert len(trainer.get_val_dataloaders()) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.get_test_dataloaders()) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+
+
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
     tutils.reset_seed()
@@ -532,6 +692,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
+
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
