@@ -79,12 +79,12 @@ class ModelCheckpoint(Callback):
         self.kth_best_model = ''
         self.best = 0
         self.save_function = lambda x: None
-        
+
         mode_dict = {
             'min': (np.less, np.Inf, 'min'),
             'max': (np.greater, -np.Inf, 'max'),
-            'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure') \
-                else (np.less, np.Inf, 'min'),
+            'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (np.less, np.Inf, 'min'),
         }
 
         if mode not in mode_dict:
