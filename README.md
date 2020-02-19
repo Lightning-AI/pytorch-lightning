@@ -87,10 +87,11 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)    
 - [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
 - [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
 - [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)   
 - [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)   
-- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
 - [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)    
 
 ---
@@ -386,6 +387,19 @@ You can also install any past release `0.X.Y` from this repository:
 ```bash
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
+
+### Lightning team
+
+#### Leads
+- William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
+- Jirka Borovek [(Borda)](https://github.com/Borda)
+- Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
+
+#### Core Maintainers
+
+- Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeff Ling [(jeffling)](https://github.com/jeffling)
+- Tullie Murrell [(tullie)](https://github.com/tullie)
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
