@@ -13,7 +13,7 @@ class ModelCheckpoint(Callback):
     Save the model after every epoch.
 
     Args:
-        filepath (str): path to save the model file.
+        filepath: path to save the model file.
             Can contain named formatting options to be auto-filled.
 
             Example::
