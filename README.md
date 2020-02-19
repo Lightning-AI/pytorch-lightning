@@ -295,7 +295,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 - [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_data_parallel.html)  
 - [Fast dev run](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.utilities.debugging.html)
-- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.logging.html)
+- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.loggers.html)
 - [Implement Your Own Distributed (DDP) training](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
 - [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_parts.html)
 - [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_loop.html)
