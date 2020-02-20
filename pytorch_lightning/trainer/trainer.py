@@ -581,6 +581,15 @@ class Trainer(
         self._fit(model)
 
     def _fit(self, model, train_dataloader=None, val_dataloader=None, test_dataloader=None):
+<<<<<<< HEAD
+=======
+        # Update the dataloader attributes of the model with the ones supplied here,
+        # if they are not already defined in model
+        _set_dataloader(model, train_dataloader, 'train_dataloader')
+        _set_dataloader(model, val_dataloader, 'val_dataloader')
+        _set_dataloader(model, test_dataloader, 'test_dataloader')
+
+>>>>>>> f7d67d0... Update trainer.py
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
