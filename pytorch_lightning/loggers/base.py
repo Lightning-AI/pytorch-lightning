@@ -54,17 +54,6 @@ class LightningLoggerBase(ABC):
         """Do any cleanup that is necessary to close an experiment."""
 
     @property
-    def priority(self):
-        return self._priority
-
-    @priority.setter
-    def priority(self, value):
-        self._priority = value
-
-    def as_main_logger(self):
-        self.priority = 1000
-
-    @property
     def rank(self):
         """Process rank. In general, metrics should only be logged by the process with rank 0."""
         return self._rank
