@@ -36,9 +36,11 @@ class TrainerLoggingMixin(ABC):
         else:
             try:
                 _ = iter(logger)
-                self.logger = LightningLoggerList(logger)  # can call iter on logger, make it a logger list
+                # can call iter on logger, make it a logger list
+                self.logger = LightningLoggerList(logger)
             except TypeError:
-                self.logger = logger  # can't call iter, must just be a regular logger
+                # can't call iter, must just be a regular logger
+                self.logger = logger
             self.logger.rank = 0
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
