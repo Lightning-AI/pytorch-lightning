@@ -19,8 +19,9 @@ def rank_zero_only(fn):
 class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
-    def __init__(self):
+    def __init__(self, priority=1000):
         self._rank = 0
+        self._priority = priority
 
     @property
     def experiment(self):
@@ -29,7 +30,7 @@ class LightningLoggerBase(ABC):
     def log_metrics(self, metrics, step):
         """Record metrics.
 
-        :param float metric: Dictionary with metric names as keys and measured quanties as values
+        :param float metrics: Dictionary with metric names as keys and measured quantities as values
         :param int|None step: Step number at which the metrics should be recorded
         """
         raise NotImplementedError()
@@ -54,6 +55,17 @@ class LightningLoggerBase(ABC):
         """Do any cleanup that is necessary to close an experiment."""
 
     @property
+    def priority(self):
+        return self._priority
+
+    @priority.setter
+    def priority(self, value):
+        self._priority = value
+
+    def as_main_logger(self):
+        self.priority = 1000
+
+    @property
     def rank(self):
         """Process rank. In general, metrics should only be logged by the process with rank 0."""
         return self._rank
@@ -72,3 +84,51 @@ class LightningLoggerBase(ABC):
     def version(self):
         """Return the experiment version."""
         raise NotImplementedError("Sub-classes must provide a version property")
+
+
+class LightningLoggerList(LightningLoggerBase):
+    """The `LoggerList` class is used to iterate all logging actions over the given `logger_list`.
+
+    :param logger_list: An iterable collection of loggers
+    """
+
+    def __init__(self, logger_list):
+        super().__init__()
+        self._logger_list = logger_list
+
+    @property
+    def experiment(self):
+        return [logger.experiment() for logger in self._logger_list]
+
+    def log_metrics(self, metrics, step):
+        return [logger.log_metrics(metrics, step) for logger in self._logger_list]
+
+    def log_hyperparams(self, params):
+        return [logger.log_hyperparams(params) for logger in self._logger_list]
+
+    def save(self):
+        return [logger.save() for logger in self._logger_list]
+
+    def finalize(self, status):
+        return [logger.finalize(status) for logger in self._logger_list]
+
+    def close(self):
+        return [logger.close() for logger in self._logger_list]
+
+    @property
+    def rank(self):
+        return self._rank
+
+    @rank.setter
+    def rank(self, value):
+        self._rank = value
+        for logger in self._logger_list:
+            logger.rank = value
+
+    @property
+    def name(self):
+        return '_'.join([str(logger.name) for logger in self._logger_list])
+
+    @property
+    def version(self):
+        return '_'.join([str(logger.version) for logger in self._logger_list])

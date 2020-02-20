@@ -3,7 +3,7 @@ from abc import ABC
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerList
 
 
 class TrainerLoggingMixin(ABC):
@@ -34,7 +34,11 @@ class TrainerLoggingMixin(ABC):
         elif logger is False:
             self.logger = None
         else:
-            self.logger = logger
+            try:
+                _ = iter(logger)
+                self.logger = LightningLoggerList(logger)  # can call iter on logger, make it a logger list
+            except TypeError:
+                self.logger = logger  # can't call iter, must just be a regular logger
             self.logger.rank = 0
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
