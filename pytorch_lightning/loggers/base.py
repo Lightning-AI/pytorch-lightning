@@ -19,9 +19,8 @@ def rank_zero_only(fn):
 class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
-    def __init__(self, priority=1000):
+    def __init__(self):
         self._rank = 0
-        self._priority = priority
 
     @property
     def experiment(self):
