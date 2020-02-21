@@ -7,11 +7,6 @@ pytest-cov
 pytest-flake8
 flake8
 check-manifest
-test-tube>=0.7.5
-mlflow
-comet_ml
-wandb
-sacred
-neptune-client
 twine==1.13.0
 pillow<7.0.0
+-r ../requirements-extra.txt
