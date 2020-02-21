@@ -53,7 +53,7 @@ jobs:
       run: |
         # tox --sitepackages
         flake8 .
-        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples --ignore-glob='pl_examples/full_examples/imagenet/dali*.py' -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
