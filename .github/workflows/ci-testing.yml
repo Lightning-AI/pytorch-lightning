@@ -25,6 +25,7 @@ jobs:
       if: matrix.requires == 'minimal'
       run: |
         python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements-extra.txt').read().replace('>', '=') ; open('requirements-extra.txt', 'w').write(req)"
 
     - name: Cache pip
       uses: actions/cache@v1
