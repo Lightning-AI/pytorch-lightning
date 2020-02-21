@@ -983,6 +983,11 @@ class Trainer(TrainerIOMixin,
         if self.use_ddp or self.use_ddp2:
             dist.barrier()
 
+        # wait for all models to restore weights
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous()
+
         # set up checkpoint callback
         self.configure_checkpoint_callback()
 
