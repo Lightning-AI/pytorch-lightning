@@ -178,6 +178,14 @@ class CometLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status):
+        r"""
+        When calling self.experiment.end(), that experiment won't log any more data to Comet. That's why, if you need
+        to log any more data you need to create an ExistingCometExperiment. For example, to log data when testing your
+        model after training, because when training is finalized CometLogger.finalize is called.
+
+        This happens automatically in the CometLogger.experiment property, when self._experiment is set to None
+        i.e. self.reset_experiment().
+        """
         self.experiment.end()
         self.reset_experiment()
 
