@@ -11,7 +11,8 @@ import os
 try:
     import wandb
 except ImportError:
-    raise ImportError('Missing wandb package.')
+    raise ImportError('You want to use `wandb` logger which is not installed yet,'
+                      ' please install it e.g. `pip install wandb`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
