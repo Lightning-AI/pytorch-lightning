@@ -413,6 +413,74 @@ def test_multiple_val_dataloader(tmpdir):
         tutils.run_prediction(dataloader, trainer.model)
 
 
+def test_resume_from_checkpoint_epoch_restored(tmpdir):
+    """Verify resuming from checkpoint runs the right number of epochs"""
+    import types
+
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+
+    def new_model():
+        # Create a model that tracks epochs and batches seen
+        model = LightningTestModel(hparams)
+        model.num_epochs_seen = 0
+        model.num_batches_seen = 0
+
+        def increment_epoch(self):
+            self.num_epochs_seen += 1
+
+        def increment_batch(self, _):
+            self.num_batches_seen += 1
+
+        # Bind the increment_epoch function on_epoch_end so that the
+        # model keeps track of the number of epochs it has seen.
+        model.on_epoch_end = types.MethodType(increment_epoch, model)
+        model.on_batch_start = types.MethodType(increment_batch, model)
+        return model
+
+    model = new_model()
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=2,
+        train_percent_check=0.65,
+        val_percent_check=1,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        logger=False,
+        default_save_path=tmpdir,
+        early_stop_callback=False,
+        val_check_interval=0.5,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    training_batches = trainer.num_training_batches
+
+    assert model.num_epochs_seen == 2
+    assert model.num_batches_seen == training_batches * 2
+
+    # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
+    checkpoints = [
+        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt"),
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0_v0.ckpt"),
+        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt"),
+        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1_v0.ckpt"),
+    ]
+
+    for check in checkpoints:
+        next_model = new_model()
+        state = torch.load(check)
+
+        # Resume training
+        trainer_options['max_epochs'] = 4
+        new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
+        new_trainer.fit(next_model)
+        assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
+
+
 def test_multiple_test_dataloader(tmpdir):
     """Verify multiple test_dataloader."""
     tutils.reset_seed()
