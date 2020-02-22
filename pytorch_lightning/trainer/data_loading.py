@@ -42,7 +42,6 @@ except ImportError:
     XLA_AVAILABLE = False
 
 
-
 class TrainerDataLoadingMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
@@ -192,7 +191,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+            ITER_DATASET_AVAILABLE and isinstance(self.get_train_dataloader().dataset, IterableDataset))
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for `train_dataloader`,
