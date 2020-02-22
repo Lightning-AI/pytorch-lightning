@@ -106,6 +106,15 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerIOMixin(ABC):
 
@@ -125,6 +134,7 @@ class TrainerIOMixin(ABC):
         self.early_stop_callback = None
         self.lr_schedulers = None
         self.optimizers = None
+        self.on_tpu = None
         self.num_training_batches = None
         self.accumulate_grad_batches = None
 
@@ -169,6 +179,11 @@ class TrainerIOMixin(ABC):
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
             dist.barrier()
+
+        # wait for all models to restore weights
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous()
 
         # clear cache after restore
         if self.on_gpu:
