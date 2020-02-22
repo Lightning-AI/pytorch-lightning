@@ -57,4 +57,3 @@ TPU 16-bit
 
     # turn on 16-bit
     trainer = Trainer(num_tpu_cores=8, precision=16)
-
