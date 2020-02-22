@@ -1,0 +1,34 @@
+# Usage: `conda env update -f environment.yml`
+channels:
+    - conda-forge
+    - pytorch
+
+dependencies:
+    - python==3.7.6
+    - pip==20.0.2
+    - tqdm>=4.35.0
+    - numpy>=1.16.4
+    - pytorch>=1.1
+    - tensorboard>=1.14
+    - future>=0.17.1
+
+    # For dev and testing
+    - torchvision>=0.4.0
+    - tox
+    - coverage
+    - codecov
+    - pytest>=3.0.5
+    - pytest-cov
+    - pytest-flake8
+    - flake8
+    - autopep8
+    - check-manifest
+    - twine==1.13.0
+    - pillow<7.0.0
+
+    - pip:
+        - test-tube>=0.7.5
+        - mlflow>=1.0.0
+        - comet_ml>=1.0.56
+        - wandb>=0.8.21
+        - neptune-client>=0.4.4

@@ -310,7 +310,6 @@ class TrainerTrainLoopMixin(ABC):
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
         # get model
         model = self.get_model()
-
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
@@ -318,6 +317,9 @@ class TrainerTrainLoopMixin(ABC):
                 if (self.use_ddp or self.use_tpu) \
                         and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
                     self.get_train_dataloader().sampler.set_epoch(epoch)
+
+                # get model
+                model = self.get_model()
 
                 # update training progress in trainer and model
                 model.current_epoch = epoch
@@ -363,7 +365,7 @@ class TrainerTrainLoopMixin(ABC):
                 # update LR schedulers
                 if self.lr_schedulers is not None:
                     for lr_scheduler in self.lr_schedulers:
-                        lr_scheduler.step(epoch=self.current_epoch)
+                        lr_scheduler.step()
                 if self.reduce_lr_on_plateau_scheduler is not None:
                     val_loss = self.callback_metrics.get('val_loss')
                     if val_loss is None:
@@ -371,12 +373,19 @@ class TrainerTrainLoopMixin(ABC):
                         m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
                             f'which is not available. Available metrics are: {avail_metrics}'
                         raise MisconfigurationException(m)
-                    self.reduce_lr_on_plateau_scheduler.step(val_loss, epoch=self.current_epoch)
+                    self.reduce_lr_on_plateau_scheduler.step(val_loss)
+
+                if self.max_steps and self.max_steps == self.global_step:
+                    self.main_progress_bar.close()
+                    model.on_train_end()
+                    return
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
                 if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
-                        (met_min_epochs or self.fast_dev_run)):
+                        ((met_min_epochs and met_min_steps) or self.fast_dev_run)):
                     should_stop = self.early_stop_callback.on_epoch_end()
                     # stop training
                     stop = should_stop and met_min_epochs
@@ -458,6 +467,10 @@ class TrainerTrainLoopMixin(ABC):
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
                 self.global_step += 1
             self.total_batch_idx += 1
+
+            # max steps reached, end training
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount

@@ -12,7 +12,8 @@ from logging import getLogger
 try:
     import neptune
 except ImportError:
-    raise ImportError('Missing neptune package. Run `pip install neptune-client`')
+    raise ImportError('You want to use `neptune` logger which is not installed yet,'
+                      ' please install it e.g. `pip install neptune-client`.')
 
 from torch import is_tensor
 
