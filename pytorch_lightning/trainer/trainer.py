@@ -32,7 +32,6 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.core import LightningModule
 
 
 try:
