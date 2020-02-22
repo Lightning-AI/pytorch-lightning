@@ -594,7 +594,7 @@ class TrainerTrainLoopMixin(ABC):
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
                         if self.use_tpu:
-                            xm.optimizer_step(optimizer, barrier=True)
+                            xm.optimizer_step(optimizer)
                         else:
                             model.optimizer_step(self.current_epoch, batch_idx,
                                                  optimizer, opt_idx, optimizer_closure)
