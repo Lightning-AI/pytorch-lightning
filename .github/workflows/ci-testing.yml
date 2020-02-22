@@ -20,7 +20,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-18.04, windows-2016, macOS-10.15]
-        python-version: [3.6, 3.7]
+        python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
