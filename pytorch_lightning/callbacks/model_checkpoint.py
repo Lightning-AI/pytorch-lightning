@@ -78,7 +78,7 @@ class ModelCheckpoint(Callback):
         # {filename: monitor}
         self.kth_best_model = ''
         self.best = 0
-        self.save_function = lambda x: None
+        self.save_function = None
 
         mode_dict = {
             'min': (np.less, np.Inf, 'min'),
