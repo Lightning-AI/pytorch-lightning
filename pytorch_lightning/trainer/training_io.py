@@ -125,6 +125,8 @@ class TrainerIOMixin(ABC):
         self.early_stop_callback = None
         self.lr_schedulers = None
         self.optimizers = None
+        self.num_training_batches = None
+        self.accumulate_grad_batches = None
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
@@ -305,10 +307,9 @@ class TrainerIOMixin(ABC):
         self.restore_training_state(checkpoint)
 
     def dump_checkpoint(self):
-
         checkpoint = {
-            'epoch': self.current_epoch,
-            'global_step': self.global_step
+            'epoch': self.current_epoch + 1,
+            'global_step': self.global_step + 1,
         }
 
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
@@ -387,6 +388,17 @@ class TrainerIOMixin(ABC):
 
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']
+
+        # Division deals with global step stepping once per accumulated batch
+        # Inequality deals with different global step for odd vs even num_training_batches
+        n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
+        expected_steps = self.num_training_batches / n_accum
+        if self.num_training_batches != 0 and self.global_step % expected_steps > 1:
+            warnings.warn(
+                "You're resuming from a checkpoint that ended mid-epoch. "
+                "This can cause unreliable results if further training is done, "
+                "consider using an end of epoch checkpoint. "
+            )
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
