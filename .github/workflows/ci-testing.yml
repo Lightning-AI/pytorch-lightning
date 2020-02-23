@@ -25,6 +25,7 @@ jobs:
       if: matrix.requires == 'minimal'
       run: |
         python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
+
     - name: Cache pip
       uses: actions/cache@v1
       with:
@@ -34,15 +35,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
           ${{ runner.os }}-${{ matrix.python-version }}-
-          
+
     - name: Cache datasets
       uses: actions/cache@v1
       with:
         path: tests/models/mnist # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
-        key: ${{ runner.os }}-${{ hashFiles('tests/models/mnist/MNIST/processed/test.pt') }}
-        restore-keys: |
-          ${{ runner.os }}-${{ hashFiles('tests/models/mnist/MNIST/raw/train-images-idx3-ubyte') }}
+        key: mnist-dataset
 
     - name: Install dependencies
       run: |
