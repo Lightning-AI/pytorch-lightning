@@ -72,7 +72,7 @@ class Trainer(TrainerIOMixin,
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
-            callbacks: list = [],
+            callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -175,7 +175,7 @@ class Trainer(TrainerIOMixin,
 
                     trainer = Trainer(early_stop_callback=early_stop_callback)
 
-            callback (:class:`.Callback`): Add a list of callbacks.
+            callback: Add a list of callbacks.
                 Example::
                     from pytorch_lightning.callbacks import Callback
                     class PrintCallback(Callback):
