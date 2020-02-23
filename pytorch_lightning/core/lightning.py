@@ -5,11 +5,14 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Optional, Union, Dict, Callable
+from typing import Any, Union, Tuple, List, Optional, Callable, Dict
 
 import torch
 import torch.distributed as dist
-from torch.optim import Adam
+from torch import Tensor
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
@@ -89,7 +92,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             log.info(*args, **kwargs)
 
     @abstractmethod
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
         Same as torch.nn.Module.forward(), however in Lightning you want this to define
         the  operations you want to use for prediction (ie: on a server or as a feature extractor).
@@ -138,7 +141,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> dict:
         r"""return loss, dict with metrics for tqdm
 
         Args:
@@ -219,7 +222,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
          if you want to break out of the current training epoch early.
         """
 
-    def training_end(self, *args, **kwargs):
+    def training_end(self, outputs: dict) -> dict:
         """return loss, dict with metrics for tqdm
 
         :param outputs: What you return in `training_step`.
@@ -292,7 +295,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         break out of the current training epoch early.
         """
 
-    def validation_step(self, *args, **kwargs):
+    def validation_step(self, *args, **kwargs) -> dict:
         r"""
 
         This is the validation loop. It is called for each batch of the validation set.
@@ -364,7 +367,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
 
-    def test_step(self, *args, **kwargs):
+    def test_step(self, *args, **kwargs) -> dict:
         """return whatever outputs will need to be aggregated in test_end
         :param batch: The output of your dataloader. A tensor, tuple or list
         :param int batch_idx: Integer displaying which batch this is
@@ -433,7 +436,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
 
-    def validation_end(self, outputs):
+    def validation_end(self, outputs: list) -> dict:
         """Outputs has the appended output after each validation step.
 
         :param outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
@@ -505,7 +508,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def test_end(self, outputs):
+    def test_end(self, outputs: list) -> dict:
         """Outputs has the appended output after each test step.
 
         :param outputs:  List of outputs you defined in test_step, or if there are multiple dataloaders,
@@ -569,7 +572,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def configure_ddp(self, model, device_ids):
+    def configure_ddp(self, model: 'LightningModule', device_ids: list) -> Module:
         r"""
 
         Override to init DDP in your own way or with your own wrapper.
@@ -580,8 +583,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         3. On a testing batch, the call goes to model.test_step
 
         Args:
-            model (:class:`.LightningModule`): the LightningModule currently being optimized
-            device_ids (list): the list of GPU ids
+            model: the LightningModule currently being optimized
+            device_ids: the list of GPU ids
 
         Return:
             DDP wrapped model
@@ -609,7 +612,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         )
         return model
 
-    def init_ddp_connection(self, proc_rank, world_size):
+    def init_ddp_connection(self, proc_rank: int, world_size: int):
         r"""
 
         Override to define your custom way of setting up a distributed environment.
@@ -617,8 +620,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Lightning's implementation uses env:// init by default and sets the first node as root.
 
         Args:
-            proc_rank (int): The current process rank within the node.
-            world_size (int): Number of GPUs being use across all nodes. (num_nodes*nb_gpu_nodes).
+            proc_rank: The current process rank within the node.
+            world_size: Number of GPUs being use across all nodes. (num_nodes*nb_gpu_nodes).
         Example
         -------
         .. code-block:: python
@@ -687,16 +690,22 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         os.environ['MASTER_ADDR'] = root_node
         dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
-    def configure_apex(self, amp, model, optimizers, amp_level):
+    def configure_apex(
+            self,
+            amp: object,
+            model: 'LightningModule',
+            optimizers: List[Optimizer],
+            amp_level: str
+    ):
         r"""
         Override to init AMP your own way
         Must return a model and list of optimizers
 
         Args:
-            amp (object): pointer to amp library object
-            model (:class:`.LightningModule`): pointer to current lightningModule
-            optimizers (list): list of optimizers passed in configure_optimizers()
-            amp_level (str): AMP mode chosen ('O1', 'O2', etc...)
+            amp: pointer to amp library object
+            model: pointer to current lightningModule
+            optimizers: list of optimizers passed in configure_optimizers()
+            amp_level: AMP mode chosen ('O1', 'O2', etc...)
 
         Return:
             Apex wrapped model and optimizers
@@ -719,7 +728,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Union[
+        Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], list]
+    ]:
         r"""
         This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
@@ -773,18 +784,25 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return Adam(self.parameters(), lr=1e-3)
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def optimizer_step(
+            self,
+            epoch: int,
+            batch_idx: int,
+            optimizer: Optimizer,
+            optimizer_idx: int,
+            second_order_closure: Optional[Callable] = None,
+    ):
         r"""
 
         Override this method to adjust the default way the Trainer calls each optimizer. By default, Lightning
         calls .step() and zero_grad() as shown in the example once per optimizer.
 
         Args:
-            epoch (int): Current epoch
-            batch_idx (int): Index of current batch
-            optimizer (torch.nn.Optimizer): A PyTorch optimizer
-            optimizer_idx (int): If you used multiple optimizers this indexes into that list
-            second_order_closure (int): closure for second order methods
+            epoch: Current epoch
+            batch_idx: Index of current batch
+            optimizer: A PyTorch optimizer
+            optimizer_idx: If you used multiple optimizers this indexes into that list
+            second_order_closure: closure for second order methods
 
         Example
         -------
@@ -840,15 +858,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         # clear gradients
         optimizer.zero_grad()
 
-    def tbptt_split_batch(self, batch, split_size):
+    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> List[Tensor]:
         r"""
 
         When using truncated backpropagation through time, each batch must be split along the time dimension.
         Lightning handles this by default, but  for custom behavior override this function.
 
         Args:
-            batch (torch.nn.Tensor): Current batch
-            split_size (int): How big the split  is
+            batch: Current batch
+            split_size: How big the split  is
 
         Return:
             list of batch splits. Each split will be passed to forward_step to enable truncated
@@ -929,7 +947,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         """Implement a PyTorch DataLoader
 
         :return: PyTorch DataLoader
@@ -962,7 +980,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return loader
 
         """
-        return None
 
     @data_loader
     def tng_dataloader(self):  # todo: remove in v0.8.0
@@ -975,7 +992,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
 
         Return a dataloader. It will not be called every epoch unless you set
@@ -993,7 +1010,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
 
         Return:
-            PyTorch DataLoader
+            Single or multiple PyTorch DataLoader
 
         Example
         -------
@@ -1016,9 +1033,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
 
         """
-        return None
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
 
         Return a dataloader. It will not be called every epoch unless you set
@@ -1035,7 +1051,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware No need to set yourself.
 
         Return:
-            PyTorch DataLoader
+            Single or multiple PyTorch DataLoader
 
         Example
         -------
@@ -1086,10 +1102,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
             will have an argument `dataset_idx` which matches the order here.
         """
-        return None
 
     @classmethod
-    def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
+    def load_from_metrics(
+            cls,
+            weights_path: str,
+            tags_csv: str,
+            map_location: Optional[Dict[str, str]] = None
+    ) -> 'LightningModule':
         r"""
         Warning:
             Deprecated in version 0.7.0.
@@ -1226,7 +1246,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model
 
-    def summarize(self, mode):
+    def summarize(self, mode: str):
         model_summary = ModelSummary(self, mode=mode)
         log.info('\n' + model_summary.__str__())
 
@@ -1261,13 +1281,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.train()
 
-    def on_load_checkpoint(self, checkpoint):
+    def on_load_checkpoint(self, checkpoint: dict):
         r"""
         Called by lightning to restore your model.
         If you saved something with **on_save_checkpoint** this is your chance to restore this.
 
         Args:
-            checkpoint (dict): Loaded checkpoint
+            checkpoint: Loaded checkpoint
 
 
         Example
@@ -1283,14 +1303,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             No need for you to restore anything regarding training.
         """
 
-    def on_save_checkpoint(self, checkpoint):
+    def on_save_checkpoint(self, checkpoint: dict):
         r"""
 
         Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
         might want to  save
 
         Args:
-            checkpoint (dic): Checkpoint to be saved
+            checkpoint: Checkpoint to be saved
 
         Example
         -------
@@ -1306,7 +1326,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def get_tqdm_dict(self):
+    def get_tqdm_dict(self) -> dict:
         r"""
         Additional items to be displayed in the progress bar.
 
