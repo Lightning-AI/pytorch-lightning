@@ -696,7 +696,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             model: 'LightningModule',
             optimizers: List[Optimizer],
             amp_level: str
-    ):
+    ) -> Tuple['LightningModule', List[Optimizer]]:
         r"""
         Override to init AMP your own way
         Must return a model and list of optimizers
@@ -858,7 +858,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         # clear gradients
         optimizer.zero_grad()
 
-    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> List[Tensor]:
+    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
         r"""
 
         When using truncated backpropagation through time, each batch must be split along the time dimension.
