@@ -34,7 +34,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
           ${{ runner.os }}-${{ matrix.python-version }}-
-          
+          3
     - name: Cache datasets
       uses: actions/cache@v1
       with:
