@@ -183,7 +183,7 @@ class TrainerIOMixin(ABC):
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous()
+            torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
 
         # clear cache after restore
         if self.on_gpu:
