@@ -377,7 +377,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test_mode:
-            self.checkpoint_callback.on_validation_end()
+            self.checkpoint_callback.on_validation_end(self, self.get_model())
 
         # Validation/Test end callbacks
         if test_mode:

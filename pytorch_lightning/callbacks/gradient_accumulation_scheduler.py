@@ -44,8 +44,7 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def on_epoch_begin(self):
-        trainer = self.trainer
+    def on_epoch_begin(self, trainer, pl_module):
         # indexing epochs from 1 (until v0.6.x)
         # In v0.8.0, ` + 1` should be removed.
         epoch = trainer.current_epoch + 1

@@ -1,3 +1,4 @@
+from typing import Callable
 from abc import ABC
 
 from pytorch_lightning.callbacks import Callback
@@ -9,74 +10,74 @@ class TrainerCallbackHookMixin(ABC):
         # this is just a summary on variables used in this abstract class,
         # the proper values/initialisation should be done in child class
         self.callbacks: list[Callback] = []
+        self.get_model: Callable = None
 
     def on_init_begin(self):
         """Called when the trainer initialization begins."""
         for callback in self.callbacks:
-            callback.set_trainer(self)
-            callback.on_init_begin()
+            callback.on_init_begin(self, None)
 
     def on_init_end(self):
         """Called when the trainer initialization ends."""
         for callback in self.callbacks:
-            callback.on_init_end()
+            callback.on_init_end(self, self.get_model())
 
     def on_fit_begin(self):
         """Called when the fit begins."""
         for callback in self.callbacks:
-            callback.on_fit_begin()
+            callback.on_fit_begin(self, self.get_model())
 
     def on_fit_end(self):
         """Called when the fit ends."""
         for callback in self.callbacks:
-            callback.on_fit_end()
+            callback.on_fit_end(self, self.get_model())
 
     def on_epoch_begin(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
-            callback.on_epoch_begin()
+            callback.on_epoch_begin(self, self.get_model())
 
     def on_epoch_end(self):
         """Called when the epoch ends."""
         for callback in self.callbacks:
-            callback.on_epoch_end()
+            callback.on_epoch_end(self, self.get_model())
 
     def on_train_begin(self):
         """Called when the train begins."""
         for callback in self.callbacks:
-            callback.on_train_begin()
+            callback.on_train_begin(self, self.get_model())
 
     def on_train_end(self):
         """Called when the train ends."""
         for callback in self.callbacks:
-            callback.on_train_end()
+            callback.on_train_end(self, self.get_model())
 
     def on_batch_begin(self):
         """Called when the training batch begins."""
         for callback in self.callbacks:
-            callback.on_batch_begin()
+            callback.on_batch_begin(self, self.get_model())
 
     def on_batch_end(self):
         """Called when the training batch ends."""
         for callback in self.callbacks:
-            callback.on_batch_end()
+            callback.on_batch_end(self, self.get_model())
 
     def on_validation_begin(self):
         """Called when the validation loop begins."""
         for callback in self.callbacks:
-            callback.on_validation_begin()
+            callback.on_validation_begin(self, self.get_model())
 
     def on_validation_end(self):
         """Called when the validation loop ends."""
         for callback in self.callbacks:
-            callback.on_validation_end()
+            callback.on_validation_end(self, self.get_model())
 
     def on_test_begin(self):
         """Called when the test begins."""
         for callback in self.callbacks:
-            callback.on_test_begin()
+            callback.on_test_begin(self, self.get_model())
 
     def on_test_end(self):
         """Called when the test ends."""
         for callback in self.callbacks:
-            callback.on_test_end()
+            callback.on_test_end(self, self.get_model())
