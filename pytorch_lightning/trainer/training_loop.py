@@ -152,6 +152,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 """
 
+from typing import Callable
+
 import copy
 import warnings
 from abc import ABC, abstractmethod
@@ -160,6 +162,7 @@ import logging as log
 import numpy as np
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.callbacks.base import Callback
 
 try:
     from apex import amp
@@ -228,6 +231,16 @@ class TrainerTrainLoopMixin(ABC):
         self.progress_bar_refresh_rate = None
         self.max_steps = ...
         self.max_steps = ...
+
+        # Callback system
+        self.callbacks: list[Callback] = []
+        self.max_steps = None
+        self.on_train_begin: Callable = None
+        self.on_train_end: Callable = None
+        self.on_batch_begin: Callable = None
+        self.on_batch_end: Callable = None
+        self.on_epoch_begin: Callable = None
+        self.on_epoch_end: Callable = None
 
     @property
     def max_nb_epochs(self):
@@ -320,6 +333,10 @@ class TrainerTrainLoopMixin(ABC):
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
+
+        # Train begin callbacks
+        self.on_train_begin()
+
         # get model
         model = self.get_model()
         try:
@@ -390,20 +407,22 @@ class TrainerTrainLoopMixin(ABC):
                 if self.max_steps and self.max_steps == self.global_step:
                     self.main_progress_bar.close()
                     model.on_train_end()
+                    self.on_train_end()
                     return
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-                if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
-                        ((met_min_epochs and met_min_steps) or self.fast_dev_run)):
-                    should_stop = self.early_stop_callback.on_epoch_end()
-                    # stop training
-                    stop = should_stop and met_min_epochs
-                    if stop:
-                        self.run_training_teardown()
-                        return
+                if self.enable_early_stop and not self.disable_validation and is_val_epoch:
+                    if ((met_min_epochs and met_min_steps) or self.fast_dev_run):
+                        should_stop = self.early_stop_callback.on_epoch_end()
+                        # stop training
+                        stop = should_stop and met_min_epochs
+                        if stop:
+                            self.run_training_teardown()
+                            self.on_train_end()
+                            return
 
             self.run_training_teardown()
 
@@ -411,7 +430,14 @@ class TrainerTrainLoopMixin(ABC):
             log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.run_training_teardown()
 
+        # Train end callbacks
+        self.on_train_end()
+
     def run_training_epoch(self):
+
+        # Epoch begin callbacks
+        self.on_epoch_begin()
+
         # before epoch hook
         if self.is_function_implemented('on_epoch_start'):
             model = self.get_model()
@@ -455,8 +481,8 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            should_check_val = (not self.disable_validation and can_check_epoch and
-                                (is_val_check_batch or early_stop_epoch))
+            should_check_val = not self.disable_validation and can_check_epoch
+            should_check_val = should_check_val and (is_val_check_batch or early_stop_epoch)
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
@@ -498,6 +524,9 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('on_epoch_end'):
                 model.on_epoch_end()
 
+        # Epoch begin callbacks
+        self.on_epoch_end()
+
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
         grad_norm_dic = {}
@@ -510,6 +539,9 @@ class TrainerTrainLoopMixin(ABC):
 
         if batch is None:
             return 0, grad_norm_dic, {}
+
+        # Batch begin callbacks
+        self.on_batch_begin()
 
         # hook
         if self.is_function_implemented('on_batch_start'):
@@ -618,6 +650,9 @@ class TrainerTrainLoopMixin(ABC):
             model = self.get_model()
             with self.profiler.profile('on_batch_end'):
                 model.on_batch_end()
+
+        # Batch end callbacks
+        self.on_batch_end()
 
         # update progress bar
         if batch_idx % self.progress_bar_refresh_rate == 0:

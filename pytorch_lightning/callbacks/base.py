@@ -22,10 +22,42 @@ class Callback(abc.ABC):
         assert self._trainer is not None, _NO_TRAINER_ERROR_MSG
         return self._trainer
 
+    @property
+    def module(self):
+        return self._trainer.get_model()
+
+    @property
+    def default_save_path(self):
+        """Trainer default save path.
+        """
+        return self._trainer.default_save_path
+
+    @property
+    def rank(self):
+        """Current trainer rank.
+        """
+        return self._trainer.proc_rank
+
     def set_trainer(self, trainer):
         """Make a link to the trainer, so different things like `trainer.current_epoch`,
         `trainer.batch_idx`, `trainer.global_step` can be used."""
         self._trainer = trainer
+
+    def on_init_begin(self):
+        """Called when the trainer initialization begins."""
+        pass
+
+    def on_init_end(self):
+        """Called when the trainer initialization ends."""
+        pass
+
+    def on_fit_begin(self):
+        """Called when the fit begins."""
+        pass
+
+    def on_fit_end(self):
+        """Called when the fit ends."""
+        pass
 
     def on_epoch_begin(self):
         """Called when the epoch begins."""
