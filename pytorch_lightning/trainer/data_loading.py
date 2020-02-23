@@ -233,7 +233,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.get_val_dataloaders()
 
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous()
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
