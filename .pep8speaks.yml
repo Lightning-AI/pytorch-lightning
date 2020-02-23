@@ -5,7 +5,7 @@ scanner:
     linter: pycodestyle  # Other option is flake8
 
 pycodestyle:  # Same as scanner.linter value. Other option is flake8
-    max-line-length: 100  # Default is 79 in PEP 8
+    max-line-length: 120  # Default is 79 in PEP 8
     ignore:  # Errors and warnings to ignore
         - W504  # line break after binary operator
         - E402  # module level import not at top of file
