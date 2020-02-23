@@ -762,5 +762,39 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
+def test_testpass_overrides(tmpdir):
+    hparams = tutils.get_hparams()
+    from pytorch_lightning.utilities.debugging import MisconfigurationException
+
+    class TestModelNoEnd(LightningTestModelBase):
+        def test_step(self, *args, **kwargs):
+            return {}
+
+        def test_dataloader(self):
+            return self.train_dataloader()
+
+    class TestModelNoStep(LightningTestModelBase):
+        def test_end(self, outputs):
+            return {}
+
+        def test_dataloader(self):
+            return self.train_dataloader()
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LightningTestModelBase(hparams)
+        Trainer().test(model)
+
+    # No exceptions when one or both of test_step or test_end are implemented
+    model = TestModelNoStep(hparams)
+    Trainer().test(model)
+
+    model = TestModelNoEnd(hparams)
+    Trainer().test(model)
+
+    model = LightningTestModel(hparams)
+    Trainer().test(model)
+
+
 # if __name__ == '__main__':
 #     pytest.main([__file__])
