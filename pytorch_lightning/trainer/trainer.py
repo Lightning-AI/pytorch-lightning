@@ -103,7 +103,7 @@ class Trainer(TrainerIOMixin,
             print_nan_grads: bool = False,
             weights_summary: str = 'full',
             weights_save_path: Optional[str] = None,
-            amp_level: str = '01',
+            amp_level: str = 'O1',
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
