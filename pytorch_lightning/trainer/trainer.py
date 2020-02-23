@@ -175,7 +175,7 @@ class Trainer(TrainerIOMixin,
 
                     trainer = Trainer(early_stop_callback=early_stop_callback)
 
-            callback: Add a list of callbacks.
+            callbacks: Add a list of callbacks.
                 Example::
                     from pytorch_lightning.callbacks import Callback
                     class PrintCallback(Callback):
