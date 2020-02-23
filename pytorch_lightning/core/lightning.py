@@ -1031,7 +1031,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
-            LightningModule with loaded weights
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------
@@ -1109,7 +1109,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
-            LightningModule with loaded weights.
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------
