@@ -1023,8 +1023,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     drop_prob,0.2
                     batch_size,32
 
-            map_location (dict): A dictionary mapping saved weight GPU devices to new
-                GPU devices (example: {'cuda:1':'cuda:0'})
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup
+                (example: {'cuda:1':'cuda:0'}).
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
+
         Return:
             LightningModule with loaded weights
 
@@ -1097,8 +1102,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path (str): Path to checkpoint.
-            map_location (dic): If your checkpoint saved from a GPU model and you now load on CPUs
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
             LightningModule with loaded weights.
