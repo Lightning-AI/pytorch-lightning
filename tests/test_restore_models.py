@@ -1,12 +1,18 @@
 import logging as log
 import os
 
+import pytest
 import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.models import LightningTestModel
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+from tests.models import (
+    LightningTestModel,
+    LightningTestModelWithoutHyperparametersArg,
+    LightningTestModelWithUnusedHyperparametersArg
+)
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
@@ -379,6 +385,40 @@ def test_model_saving_loading(tmpdir):
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+
+def test_load_model_with_missing_hparams(tmpdir):
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=1,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        logger=False,
+        default_save_path=tmpdir,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    model = LightningTestModelWithoutHyperparametersArg()
+    trainer.fit(model)
+    last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+
+    # try to load a checkpoint that has hparams but model is missing hparams arg
+    with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
+        LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # create a checkpoint without hyperparameters
+    # if the model does not take a hparams argument, it should not throw an error
+    ckpt = torch.load(last_checkpoint)
+    del(ckpt['hparams'])
+    torch.save(ckpt, last_checkpoint)
+    LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # load checkpoint without hparams again
+    # warn if user's model has hparams argument
+    with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
+        LightningTestModelWithUnusedHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])
