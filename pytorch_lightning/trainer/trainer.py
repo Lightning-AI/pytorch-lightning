@@ -1002,7 +1002,7 @@ class Trainer(TrainerIOMixin,
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous()
+            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
         # set up checkpoint callback
         self.configure_checkpoint_callback()
