@@ -47,6 +47,13 @@ class TrainerDataLoadingMixin(ABC):
         self.val_check_interval = None
         self.use_tpu = None
         self.tpu_local_core_rank = None
+        self.train_dataloader = None
+        self.num_training_batches = None
+        self.val_check_batch = None
+        self.val_dataloaders = None
+        self.num_val_batches = None
+        self.test_dataloaders = None
+        self.num_test_batches = None
 
     def _percent_range_check(self, name):
         value = getattr(self, name)
@@ -63,15 +70,15 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-        self.get_train_dataloader = model.train_dataloader
+        self.trigger_data_downloads(model.train_dataloader, 'train_dataloader')
 
         # determine number of training batches
-        if EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset):
+        if EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset):
             self.num_training_batches = float('inf')
         else:
             self._percent_range_check('train_percent_check')
 
-            self.num_training_batches = len(self.get_train_dataloader())
+            self.num_training_batches = len(self.train_dataloader)
             self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
 
         # determine when to check validation
@@ -92,7 +99,7 @@ class TrainerDataLoadingMixin(ABC):
 
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
+        if needs_sampler and not isinstance(self.train_dataloader.sampler, DistributedSampler):
             msg = """
             You're using multiple gpus and multiple nodes, or TPUs without using a
             to assign a subset of your data to each process. To silence this warning, pass a
@@ -119,21 +126,21 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-        self.get_val_dataloaders = model.val_dataloader
+        self.trigger_data_downloads(model.val_dataloader, 'val_dataloaders')
         self.num_val_batches = 0
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
-        if self.get_val_dataloaders() is not None:
+        if self.val_dataloaders is not None:
             self._percent_range_check('val_percent_check')
 
-            self.num_val_batches = sum(len(dataloader) for dataloader in self.get_val_dataloaders())
+            self.num_val_batches = sum(len(dataloader) for dataloader in self.val_dataloaders)
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and self.get_val_dataloaders() is not None:
-            for dataloader in self.get_val_dataloaders():
+        if needs_sampler and self.val_dataloaders is not None:
+            for dataloader in self.val_dataloaders:
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your val_dataloader(s) don't use DistributedSampler.
@@ -164,20 +171,21 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         """
 
-        self.get_test_dataloaders = model.test_dataloader
+        self.trigger_data_downloads(model.test_dataloader, 'test_dataloaders')
+        self.num_test_batches = 0
 
         # determine number of test batches
-        if self.get_test_dataloaders() is not None:
+        if self.test_dataloaders is not None:
             self._percent_range_check('test_percent_check')
 
-            len_sum = sum(len(dataloader) for dataloader in self.get_test_dataloaders())
+            len_sum = sum(len(dataloader) for dataloader in self.test_dataloaders)
             self.num_test_batches = len_sum
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
         needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and self.get_test_dataloaders() is not None:
-            for dataloader in self.get_test_dataloaders():
+        if needs_sampler and self.test_dataloaders is not None:
+            for dataloader in self.test_dataloaders:
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your `test_dataloader(s)` don't use DistributedSampler.
@@ -204,6 +212,55 @@ class TrainerDataLoadingMixin(ABC):
                         warnings.warn(msg)
                     break
 
+    def trigger_data_downloads(self, dataloader_fx, dataloader_name):
+        """
+        Handles downloading data in the GPU or TPU case.
+
+        :param dataloader_fx:
+        :param dataloader_name:
+        :return:
+        """
+        # get the function we'll use to get data
+
+        # data download/load on GPU
+        if self.use_ddp or self.use_ddp2:
+            if self.proc_rank == 0:
+                dataloader = dataloader_fx()
+                self.__setattr__(dataloader_name, dataloader)
+
+            # all processes wait until data download has happened
+            dist.barrier()
+
+            # get data from all other processes
+            if self.proc_rank != 0:
+                dataloader = dataloader_fx()
+                self.__setattr__(dataloader_name, dataloader)
+
+            # all processes wait until data download has happened
+            dist.barrier()
+
+        # data download/load on TPU
+        elif self.use_tpu and XLA_AVAILABLE:
+            if self.tpu_local_core_rank == 0:
+                dataloader = dataloader_fx()
+                self.__setattr__(dataloader_name, dataloader)
+
+            # all processes wait until data download has happened
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
+
+            # get data from all other processes
+            if self.proc_rank != 0:
+                dataloader = dataloader_fx()
+                self.__setattr__(dataloader_name, dataloader)
+
+            # all processes wait until data download has happened
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
+
+        # regular start
+        else:
+            dataloader = dataloader_fx()
+            self.__setattr__(dataloader_name, dataloader)
+
     def get_dataloaders(self, model):
         """
         Dataloaders are provided by the model
@@ -212,28 +269,8 @@ class TrainerDataLoadingMixin(ABC):
         """
 
         self.init_train_dataloader(model)
-        self.init_test_dataloader(model)
         self.init_val_dataloader(model)
-
-        if self.use_ddp or self.use_ddp2:
-            # wait for all processes to catch up
-            dist.barrier()
-
-            # load each dataloader
-            self.get_train_dataloader()
-            self.get_test_dataloaders()
-            self.get_val_dataloaders()
-
-        # on TPUs load each dataloader only on process 0
-        # this will trigger the data downloads
-        if self.use_tpu and XLA_AVAILABLE:
-            if self.tpu_local_core_rank == 0:
-                self.get_train_dataloader()
-                self.get_test_dataloaders()
-                self.get_val_dataloaders()
-
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
+        self.init_test_dataloader(model)
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
