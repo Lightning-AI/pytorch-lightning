@@ -64,7 +64,7 @@ class EarlyStopping(Callback):
         self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
 
-        self.on_train_begin(None, None)
+        self.on_train_start(None, None)
 
     def check_metrics(self, logs):
         monitor_val = logs.get(self.monitor)
@@ -82,7 +82,7 @@ class EarlyStopping(Callback):
 
         return True
 
-    def on_train_begin(self, trainer, pl_module):
+    def on_train_start(self, trainer, pl_module):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0

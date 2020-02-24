@@ -179,7 +179,7 @@ class Trainer(TrainerIOMixin,
                 Example::
                     from pytorch_lightning.callbacks import Callback
                     class PrintCallback(Callback):
-                        def on_train_begin(self):
+                        def on_train_start(self):
                             print("Training is started!")
                         def on_train_end(self):
                             print(f"Training is done. The logs are: {self.trainer.logs}")
@@ -617,7 +617,7 @@ class Trainer(TrainerIOMixin,
 
         # Init callbacks
         self.callbacks = callbacks
-        self.on_init_begin()
+        self.on_init_start()
 
         # benchmarking
         self.benchmark = benchmark
@@ -938,7 +938,7 @@ class Trainer(TrainerIOMixin,
 
         """
         # Fit begin callbacks
-        self.on_fit_begin()
+        self.on_fit_start()
 
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)

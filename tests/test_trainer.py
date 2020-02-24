@@ -824,59 +824,59 @@ def test_benchmark_option(tmpdir):
     class TestCallback(Callback):
         def __init__(self):
             super().__init__()
-            self.on_init_begin_called = False
+            self.on_init_start_called = False
             self.on_init_end_called = False
-            self.on_fit_begin_called = False
+            self.on_fit_start_called = False
             self.on_fit_end_called = False
-            self.on_epoch_begin_called = False
+            self.on_epoch_start_called = False
             self.on_epoch_end_called = False
-            self.on_batch_begin_called = False
+            self.on_batch_start_called = False
             self.on_batch_end_called = False
-            self.on_train_begin_called = False
+            self.on_train_start_called = False
             self.on_train_end_called = False
-            self.on_validation_begin_called = False
+            self.on_validation_start_called = False
             self.on_validation_end_called = False
-            self.on_test_begin_called = False
+            self.on_test_start_called = False
             self.on_test_end_called = False
 
-        def on_init_begin(self, trainer, pl_module):
-            self.on_init_begin_called = True
+        def on_init_start(self, trainer, pl_module):
+            self.on_init_start_called = True
 
         def on_init_end(self, trainer, pl_module):
             self.on_init_end_called = True
 
-        def on_fit_begin(self, trainer, pl_module):
-            self.on_fit_begin_called = True
+        def on_fit_start(self, trainer, pl_module):
+            self.on_fit_start_called = True
 
         def on_fit_end(self, trainer, pl_module):
             self.on_fit_end_called = True
 
-        def on_epoch_begin(self, trainer, pl_module):
-            self.on_epoch_begin_called = True
+        def on_epoch_start(self, trainer, pl_module):
+            self.on_epoch_start_called = True
 
         def on_epoch_end(self, trainer, pl_module):
             self.on_epoch_end_called = True
 
-        def on_batch_begin(self, trainer, pl_module):
-            self.on_batch_begin_called = True
+        def on_batch_start(self, trainer, pl_module):
+            self.on_batch_start_called = True
 
         def on_batch_end(self, trainer, pl_module):
             self.on_batch_end_called = True
 
-        def on_train_begin(self, trainer, pl_module):
-            self.on_train_begin_called = True
+        def on_train_start(self, trainer, pl_module):
+            self.on_train_start_called = True
 
         def on_train_end(self, trainer, pl_module):
             self.on_train_end_called = True
 
-        def on_validation_begin(self, trainer, pl_module):
-            self.on_validation_begin_called = True
+        def on_validation_start(self, trainer, pl_module):
+            self.on_validation_start_called = True
 
         def on_validation_end(self, trainer, pl_module):
             self.on_validation_end_called = True
 
-        def on_test_begin(self, trainer, pl_module):
-            self.on_test_begin_called = True
+        def on_test_start(self, trainer, pl_module):
+            self.on_test_start_called = True
 
         def on_test_end(self, trainer, pl_module):
             self.on_test_end_called = True
@@ -886,32 +886,65 @@ def test_benchmark_option(tmpdir):
 def test_testpass_overrides(tmpdir):
     hparams = tutils.get_hparams()
 
+<<<<<<< HEAD
     class LocalModel(LightTrainDataloader, TestModelBase):
         pass
+=======
+    assert not test_callback.on_init_start_called
+    assert not test_callback.on_init_end_called
+>>>>>>> Switch to on_.*_start()
 
     class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
         pass
 
+<<<<<<< HEAD
     class LocalModelNoStep(LightTrainDataloader, TestModelBase):
         def test_end(self, outputs):
             return {}
+=======
+    assert trainer.callbacks[0] == test_callback
+    assert test_callback.on_init_start_called
+    assert test_callback.on_init_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_start_called
+>>>>>>> Switch to on_.*_start()
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
         model = LocalModel(hparams)
         Trainer().test(model)
 
+<<<<<<< HEAD
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
         model = LocalModelNoStep(hparams)
         Trainer().test(model)
+=======
+    assert test_callback.on_fit_start_called
+    assert test_callback.on_fit_end_called
+    assert test_callback.on_epoch_start_called
+    assert test_callback.on_epoch_start_called
+    assert test_callback.on_batch_start_called
+    assert test_callback.on_batch_end_called
+    assert test_callback.on_train_start_called
+    assert test_callback.on_train_end_called
+    assert test_callback.on_validation_start_called
+    assert test_callback.on_validation_end_called
+    assert not test_callback.on_test_start_called
+    assert not test_callback.on_test_end_called
+>>>>>>> Switch to on_.*_start()
 
     # No exceptions when one or both of test_step or test_end are implemented
     model = LocalModelNoEnd(hparams)
     Trainer().test(model)
 
+<<<<<<< HEAD
     model = LightningTestModel(hparams)
     Trainer().test(model)
+=======
+    assert test_callback.on_test_start_called
+    assert test_callback.on_test_end_called
+>>>>>>> Switch to on_.*_start()
 
 
 # if __name__ == '__main__':

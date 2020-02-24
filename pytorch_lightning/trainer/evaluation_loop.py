@@ -174,9 +174,9 @@ class TrainerEvaluationLoopMixin(ABC):
         self.progress_bar_refresh_rate = None
 
         # Callback system
-        self.on_validation_begin: Callable = None
+        self.on_validation_start: Callable = None
         self.on_validation_end: Callable = None
-        self.on_test_begin: Callable = None
+        self.on_test_start: Callable = None
         self.on_test_end: Callable = None
 
     @abstractmethod
@@ -314,7 +314,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if test_mode:
             self.on_test_begin()
         else:
-            self.on_validation_begin()
+            self.on_validation_start()
 
         # hook
         model = self.get_model()

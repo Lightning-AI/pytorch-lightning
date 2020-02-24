@@ -235,11 +235,11 @@ class TrainerTrainLoopMixin(ABC):
         # Callback system
         self.callbacks: list[Callback] = []
         self.max_steps = None
-        self.on_train_begin: Callable = None
+        self.on_train_start: Callable = None
         self.on_train_end: Callable = None
-        self.on_batch_begin: Callable = None
+        self.on_batch_start: Callable = None
         self.on_batch_end: Callable = None
-        self.on_epoch_begin: Callable = None
+        self.on_epoch_start: Callable = None
         self.on_epoch_end: Callable = None
 
     @property
@@ -335,7 +335,7 @@ class TrainerTrainLoopMixin(ABC):
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
 
         # Train begin callbacks
-        self.on_train_begin()
+        self.on_train_start()
 
         # get model
         model = self.get_model()
@@ -384,7 +384,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.main_progress_bar.set_description(desc)
 
                 # changing gradient according accumulation_scheduler
-                self.accumulation_scheduler.on_epoch_begin(self, self.get_model())
+                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
                 # -----------------
                 # RUN TNG EPOCH
@@ -436,7 +436,7 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_epoch(self):
 
         # Epoch begin callbacks
-        self.on_epoch_begin()
+        self.on_epoch_start()
 
         # before epoch hook
         if self.is_function_implemented('on_epoch_start'):
@@ -541,7 +541,7 @@ class TrainerTrainLoopMixin(ABC):
             return 0, grad_norm_dic, {}
 
         # Batch begin callbacks
-        self.on_batch_begin()
+        self.on_batch_start()
 
         # hook
         if self.is_function_implemented('on_batch_start'):
