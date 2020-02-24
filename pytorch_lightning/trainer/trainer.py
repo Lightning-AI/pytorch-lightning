@@ -1037,13 +1037,13 @@ class Trainer(TrainerIOMixin,
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
-            self.reset_test_dataloader(model)
+            self.reset_test_dataloader(ref_model)
             self.run_evaluation(test=True)
             return
 
         # load the dataloaders
-        self.reset_train_dataloader(model)
-        self.reset_val_dataloader(model)
+        self.reset_train_dataloader(ref_model)
+        self.reset_val_dataloader(ref_model)
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or
