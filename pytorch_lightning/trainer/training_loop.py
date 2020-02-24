@@ -321,7 +321,7 @@ class TrainerTrainLoopMixin(ABC):
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_tpu) \
+                if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
