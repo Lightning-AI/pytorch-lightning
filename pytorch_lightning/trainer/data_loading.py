@@ -94,7 +94,7 @@ class TrainerDataLoadingMixin(ABC):
         dl_args = {
             'dataset': dataloader.dataset,
             'batch_size': dataloader.batch_size,
-            'shuffle': dataloader.shuffle,
+            'shuffle': True,
             'batch_sampler': dataloader.batch_sampler,
             'num_workers': dataloader.num_workers,
             'collate_fn': dataloader.collate_fn,
