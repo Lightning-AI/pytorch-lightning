@@ -272,10 +272,10 @@ class TrainerEvaluationLoopMixin(ABC):
                 # batch done
                 if batch_idx % self.progress_bar_refresh_rate == 0:
                     if test:
-                        self.test_progress_bar.update(1)
+                        self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
-                        self.val_progress_bar.update(1)
-                        self.main_progress_bar.update(1)
+                        self.val_progress_bar.update(self.progress_bar_refresh_rate)
+                        self.main_progress_bar.update(self.progress_bar_refresh_rate)
             outputs.append(dl_outputs)
 
         eval_results = {}
