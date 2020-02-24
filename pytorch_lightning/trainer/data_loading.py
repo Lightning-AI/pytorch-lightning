@@ -141,7 +141,7 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-        self.train_dataloader = self.request_data_loader(model.train_dataloader)
+        self.train_dataloader = self.request_data_loader(model.train_dataloader())
         self.num_training_batches = 0
 
         # automatically add samplers
@@ -190,7 +190,7 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-        self.val_dataloaders = self.request_data_loader(model.val_dataloader)
+        self.val_dataloaders = self.request_data_loader(model.val_dataloader())
         if not isinstance(self.val_dataloaders, list):
             self.val_dataloaders = [self.val_dataloaders]
         self.num_val_batches = 0
@@ -214,7 +214,7 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         """
         # get actual loader
-        self.test_dataloaders = self.request_data_loader(model.test_dataloader)
+        self.test_dataloaders = self.request_data_loader(model.test_dataloader())
         if not isinstance(self.test_dataloaders, list):
             self.test_dataloaders = [self.test_dataloaders]
         self.num_test_batches = 0
