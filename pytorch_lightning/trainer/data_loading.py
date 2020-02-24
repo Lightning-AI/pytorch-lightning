@@ -92,7 +92,8 @@ class TrainerDataLoadingMixin(ABC):
     def auto_add_sampler(self, dataloader, train):
         # do nothing when user gives a sampler
         if dataloader.sampler is not None:
-            return
+            print('returning', dataloader.sampler)
+            return dataloader
 
         dl_args = {
             'dataset': dataloader.dataset,
