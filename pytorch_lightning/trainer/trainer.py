@@ -1119,6 +1119,7 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             self.fit(model)
         else:
+            self.reset_test_dataloader(self.get_model())
             self.run_evaluation(test=True)
 
 
