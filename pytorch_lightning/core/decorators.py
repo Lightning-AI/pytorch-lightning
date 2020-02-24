@@ -1,5 +1,6 @@
 import traceback
 from functools import wraps
+import warnings
 
 
 def data_loader(fn):
@@ -8,6 +9,9 @@ def data_loader(fn):
     :param fn:
     :return:
     """
+    w = 'data_loader decorator deprecated in 0.6.1. Will remove 0.8.0'
+    warnings.warn(w)
+
     def inner_fx(self):
         return fn(self)
     return inner_fx
