@@ -124,7 +124,11 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # predict with trained model before saving
     # make a prediction
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         for batch in dataloader:
             break
 
