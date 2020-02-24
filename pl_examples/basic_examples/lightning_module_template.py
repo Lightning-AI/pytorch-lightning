@@ -195,18 +195,11 @@ class LightningTemplateModel(pl.LightningModule):
                         transform=transform, download=False)
 
         # when using multi-node (ddp) we need to add the  datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        if self.use_ddp:
-            train_sampler = DistributedSampler(dataset)
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler,
             num_workers=0
         )
 
