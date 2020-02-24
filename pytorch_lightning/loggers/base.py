@@ -1,7 +1,7 @@
 import argparse
 from abc import ABC
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
 
 def rank_zero_only(fn: Callable):
@@ -92,10 +92,10 @@ class LoggerCollection(LightningLoggerBase):
         self._logger_iterable = logger_iterable
 
     @property
-    def experiment(self) -> Iterable[Any]:
+    def experiment(self) -> List[Any]:
         return [logger.experiment() for logger in self._logger_iterable]
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int]):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
 
     def log_hyperparams(self, params: argparse.Namespace):
