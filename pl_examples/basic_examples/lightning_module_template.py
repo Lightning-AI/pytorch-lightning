@@ -192,7 +192,7 @@ class LightningTemplateModel(pl.LightningModule):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+                        transform=transform, download=False)
 
         # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
@@ -211,6 +211,14 @@ class LightningTemplateModel(pl.LightningModule):
         )
 
         return loader
+
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = MNIST(root=self.hparams.data_root, train=True,
+                        transform=transform, download=True)
+        dataset = MNIST(root=self.hparams.data_root, train=False,
+                        transform=transform, download=True)
 
     def train_dataloader(self):
         log.info('Training data loader called.')
