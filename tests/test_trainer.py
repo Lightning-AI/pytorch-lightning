@@ -774,9 +774,9 @@ def test_benchmark_option(tmpdir):
 
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
-    
+
     # verify torch.backends.cudnn.benchmark is not turned on
-    assert torch.backends.cudnn.benchmark == False
+    assert not torch.backends.cudnn.benchmark
 
     # logger file to get meta
     trainer_options = dict(
@@ -791,9 +791,9 @@ def test_benchmark_option(tmpdir):
 
     # verify training completed
     assert result == 1
-    
+
     # verify torch.backends.cudnn.benchmark is not turned off
-    assert torch.backends.cudnn.benchmark == True
+    assert torch.backends.cudnn.benchmark
 
 
 # if __name__ == '__main__':
