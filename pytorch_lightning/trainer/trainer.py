@@ -79,6 +79,7 @@ class Trainer(TrainerIOMixin,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             show_progress_bar: bool = True,
+            progress_bar_refresh_rate: int = 100,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
@@ -109,7 +110,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
-            reload_dataloaders_every_epoch: bool = False
+            reload_dataloaders_every_epoch: bool = False,
     ):
         r"""
 
@@ -284,6 +285,8 @@ class Trainer(TrainerIOMixin,
 
                     # default used by the Trainer
                     trainer = Trainer(show_progress_bar=True)
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
             overfit_pct: uses this much data of all datasets.
                 Example::
@@ -605,6 +608,7 @@ class Trainer(TrainerIOMixin,
         self.gradient_clip_val = gradient_clip_val
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False

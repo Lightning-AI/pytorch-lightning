@@ -169,6 +169,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.val_dataloaders = None
         self.use_tpu = None
         self.reload_dataloaders_every_epoch = None
+        self.progress_bar_refresh_rate = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -269,11 +270,12 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
-                if test:
-                    self.test_progress_bar.update(1)
-                else:
-                    self.val_progress_bar.update(1)
-                    self.main_progress_bar.update(1)
+                if batch_idx % self.progress_bar_refresh_rate == 0:
+                    if test:
+                        self.test_progress_bar.update(1)
+                    else:
+                        self.val_progress_bar.update(1)
+                        self.main_progress_bar.update(1)
             outputs.append(dl_outputs)
 
         eval_results = {}

@@ -232,6 +232,7 @@ class TrainerTrainLoopMixin(ABC):
         self.precision = None
         self.train_dataloader = None
         self.reload_dataloaders_every_epoch = None
+        self.progress_bar_refresh_rate = None
 
     @property
     def max_nb_epochs(self):
@@ -617,7 +618,8 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_batch_end()
 
         # update progress bar
-        self.main_progress_bar.update(1)
+        if batch_idx % self.progress_bar_refresh_rate == 0:
+            self.main_progress_bar.update(1)
         self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # collapse all metrics into one dict
