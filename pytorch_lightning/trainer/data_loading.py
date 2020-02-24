@@ -95,7 +95,6 @@ class TrainerDataLoadingMixin(ABC):
             'dataset': dataloader.dataset,
             'batch_size': dataloader.batch_size,
             'shuffle': True,
-            'batch_sampler': dataloader.batch_sampler,
             'num_workers': dataloader.num_workers,
             'collate_fn': dataloader.collate_fn,
             'pin_memory': dataloader.pin_memory,
@@ -131,10 +130,7 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 sampler = SequentialSampler(dataloader.dataset)
 
-        batch_sampler = BatchSampler(sampler, dl_args['batch_size'], dl_args['drop_last'])
-
         dl_args['sampler'] = sampler
-        dl_args['batch_sampler'] = batch_sampler
 
         new_dataloader = DataLoader(**dl_args)
         return new_dataloader
