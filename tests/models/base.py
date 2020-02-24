@@ -150,12 +150,20 @@ class TestModelBase(LightningModule):
         # test returning only 1 list instead of 2
         return optimizer
 
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = TestingMNIST(root=self.hparams.data_root, train=True,
+                               transform=transform, download=True, num_samples=2000)
+        dataset = TestingMNIST(root=self.hparams.data_root, train=False,
+                               transform=transform, download=True, num_samples=2000)
+
     def _dataloader(self, train):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=True, num_samples=2000)
+                               transform=transform, download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         train_sampler = None
