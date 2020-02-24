@@ -176,6 +176,8 @@ class TrainerDataLoadingMixin(ABC):
         :return:
         """
         self.val_dataloaders = self.request_data_loader(model.val_dataloader)
+        if not isinstance(self.val_dataloaders, list):
+            self.val_dataloaders = [self.val_dataloaders]
         self.num_val_batches = 0
 
         # determine number of validation batches
@@ -197,6 +199,8 @@ class TrainerDataLoadingMixin(ABC):
         """
         # get actual loader
         self.test_dataloaders = self.request_data_loader(model.test_dataloader)
+        if not isinstance(self.test_dataloaders, list):
+            self.test_dataloaders = [self.test_dataloaders]
         self.num_test_batches = 0
 
         # determine number of test batches
