@@ -109,6 +109,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
+            reload_dataloaders_every_epoch: bool = False
     ):
         r"""
 
@@ -577,6 +578,7 @@ class Trainer(TrainerIOMixin,
                     # advanced profiler for function-level stats
                     profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
@@ -592,7 +594,6 @@ class Trainer(TrainerIOMixin,
             if not num_nodes:  # in case you did not set the proper value
                 num_nodes = nb_gpu_nodes
         self.num_gpu_nodes = num_nodes
-
         self.log_gpu_memory = log_gpu_memory
 
         # Backward compatibility
@@ -603,6 +604,7 @@ class Trainer(TrainerIOMixin,
                 gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
 
+        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False

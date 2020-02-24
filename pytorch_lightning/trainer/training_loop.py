@@ -232,6 +232,7 @@ class TrainerTrainLoopMixin(ABC):
         self.batch_idx = None
         self.precision = None
         self.train_dataloader = None
+        self.reload_dataloaders_every_epoch = None
 
     @property
     def max_nb_epochs(self):
@@ -306,6 +307,11 @@ class TrainerTrainLoopMixin(ABC):
         # this is just empty shell for code from other class
         pass
 
+    @abstractmethod
+    def reset_train_dataloader(self, model):
+        # this is just empty shell for code from other class
+        pass
+
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
@@ -313,7 +319,6 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
         try:
             # run all epochs
-            # TODO: finish replacing train_dataloader
             for epoch in range(self.current_epoch, self.max_epochs):
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if (self.use_ddp or self.use_tpu) \
@@ -396,6 +401,7 @@ class TrainerTrainLoopMixin(ABC):
                         return
 
             self.run_training_teardown()
+
         except KeyboardInterrupt:
             log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.run_training_teardown()
@@ -407,18 +413,20 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('on_epoch_start'):
                 model.on_epoch_start()
 
-        # request the dataloader
-        train_dataloader = self.get_train_dataloader()
+        # reset train dataloader
+        if self.reload_dataloaders_every_epoch:
+            self.reset_train_dataloader(self.get_model())
+            self.train_dataloader = self.train_dataloader
 
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
             device = xm.xla_device()
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
+            self.train_dataloader = xla_pl.ParallelLoader(self.train_dataloader, [device])
+            self.train_dataloader = self.train_dataloader.per_device_loader(device)
 
         # run epoch
         for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(train_dataloader), "get_train_batch"
+            enumerate(self.train_dataloader), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
