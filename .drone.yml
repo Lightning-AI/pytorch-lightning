@@ -1,0 +1,15 @@
+# https://docs.drone.io/pipeline/docker/examples/languages/python/#python-example
+
+kind: pipeline
+name: torch-last
+
+steps:
+- name: test
+  image: python:3
+  commands:
+  - pip install -r requirements.txt --user
+  #- pip install pytest pytest-cov pytest-flake8
+  - pip install -r ./tests/requirements.txt --user
+  - python --version ; pip --version ; pip list
+  - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules
+  - coverage report
