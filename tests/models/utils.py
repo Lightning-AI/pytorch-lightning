@@ -73,7 +73,11 @@ def run_model_test(trainer_options, model, on_gpu=True):
     pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
-    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
 
     if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
