@@ -109,7 +109,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
-            benchmark: bool = False，
+            benchmark: bool = False,
     ):
         r"""
 
