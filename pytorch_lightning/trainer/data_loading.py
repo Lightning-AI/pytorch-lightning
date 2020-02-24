@@ -3,7 +3,7 @@ from abc import ABC
 
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import RandomSampler, SequentialSampler
+from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -90,23 +90,37 @@ class TrainerDataLoadingMixin(ABC):
             model.prepare_data()
 
     def auto_add_sampler(self, dataloader, train):
-        # TODO: verify
         # do nothing when user gives a sampler
         if dataloader.sampler is not None:
             return
 
+        dl_args = {
+            'dataset': dataloader.dataset,
+            'batch_size': dataloader.batch_size,
+            'shuffle': dataloader.shuffle,
+            'batch_sampler': dataloader.batch_sampler,
+            'num_workers': dataloader.num_workers,
+            'collate_fn': dataloader.collate_fn,
+            'pin_memory': dataloader.pin_memory,
+            'drop_last': dataloader.drop_last,
+            'timeout': dataloader.timeout,
+            'worker_init_fn': None
+        }
+
         if train:
             if self.use_ddp or self.use_ddp2:
-                self.train_dataloader.sampler = DistributedSampler(self.train_dataloader.dataset)
+                sampler = DistributedSampler(self.train_dataloader.dataset)
+                dl_args['shuffle'] = False
+
             elif self.use_tpu:
                 sampler = DistributedSampler(
                     self.train_dataloader.dataset,
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal()
                 )
-                self.train_dataloader.sampler = sampler
+                dl_args['shuffle'] = False
             else:
-                self.train_dataloader.sampler = RandomSampler(self.train_dataloader.dataset)
+                sampler = RandomSampler(self.train_dataloader.dataset)
 
         # on not train
         else:
@@ -116,9 +130,15 @@ class TrainerDataLoadingMixin(ABC):
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal()
                 )
-                self.train_dataloader.sampler = sampler
+                dl_args['shuffle'] = False
             else:
-                self.train_dataloader.sampler = SequentialSampler(self.train_dataloader.dataset)
+                sampler = SequentialSampler(self.train_dataloader.dataset)
+
+        dl_args['sampler'] = sampler
+        dl_args['dataset']
+
+        new_dataloader = DataLoader(**dl_args)
+        return new_dataloader
 
     def reset_train_dataloader(self, model):
         """
@@ -128,6 +148,9 @@ class TrainerDataLoadingMixin(ABC):
         """
         self.train_dataloader = self.request_data_loader(model.train_dataloader)
         self.num_training_batches = 0
+
+        # automatically add samplers
+        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         # determine number of training batches
         if EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset):
@@ -154,9 +177,6 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
 
-        # automatically add samplers
-        self.auto_add_sampler(self.train_dataloader, train=True)
-
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
             EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
@@ -180,6 +200,11 @@ class TrainerDataLoadingMixin(ABC):
             self.val_dataloaders = [self.val_dataloaders]
         self.num_val_batches = 0
 
+        # add samplers
+        for i, dataloader in enumerate(self.val_dataloaders):
+            dl = self.auto_add_sampler(dataloader, train=False)
+            self.val_dataloaders[i] = dl
+
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.val_dataloaders is not None:
@@ -187,10 +212,6 @@ class TrainerDataLoadingMixin(ABC):
 
             self.num_val_batches = sum(len(dataloader) for dataloader in self.val_dataloaders)
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
-
-        # add samplers
-        for dataloader in self.val_dataloaders:
-            self.auto_add_sampler(dataloader, train=False)
 
     def reset_test_dataloader(self, model):
         """Dataloaders are provided by the model.
@@ -203,6 +224,11 @@ class TrainerDataLoadingMixin(ABC):
             self.test_dataloaders = [self.test_dataloaders]
         self.num_test_batches = 0
 
+        # add samplers
+        for i, dataloader in enumerate(self.test_dataloaders):
+            dl = self.auto_add_sampler(dataloader, train=False)
+            self.test_dataloaders[i] = dl
+
         # determine number of test batches
         if self.test_dataloaders is not None:
             self._percent_range_check('test_percent_check')
@@ -210,10 +236,6 @@ class TrainerDataLoadingMixin(ABC):
             len_sum = sum(len(dataloader) for dataloader in self.test_dataloaders)
             self.num_test_batches = len_sum
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
-
-        # add samplers
-        for dataloader in self.test_dataloaders:
-            self.auto_add_sampler(dataloader, train=False)
 
     def request_data_loader(self, data_loader_fx):
         """
