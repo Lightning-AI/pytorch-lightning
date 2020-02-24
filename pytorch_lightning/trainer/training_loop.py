@@ -226,7 +226,6 @@ class TrainerTrainLoopMixin(ABC):
         self.model = None
         self.running_loss = None
         self.training_tqdm_dict = None
-        self.get_train_dataloader = None
         self.reduce_lr_on_plateau_scheduler = None
         self.profiler = None
         self.batch_idx = None

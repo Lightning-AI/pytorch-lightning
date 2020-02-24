@@ -405,11 +405,11 @@ def test_multiple_val_dataloader(tmpdir):
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.get_val_dataloaders()) == 2, \
+    assert len(trainer.val_dataloaders) == 2, \
         'Multiple val_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
-    for dataloader in trainer.get_val_dataloaders():
+    for dataloader in trainer.val_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
 
@@ -569,8 +569,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
@@ -600,10 +600,10 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
                        test_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
 
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -635,10 +635,10 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
                                         model._dataloader(train=False)])
     results = trainer.fit(model, **fit_options)
 
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 2, \
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 2, \
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -671,9 +671,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     fit_options = dict(val_dataloader=model._dataloader(train=False),
                        test_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
+    assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
+    assert len(trainer.test_dataloaders) == 1, \
         f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
 
 

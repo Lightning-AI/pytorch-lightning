@@ -372,10 +372,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test and len(self.get_test_dataloaders()) > 1:
+        if test and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif not test and len(self.get_val_dataloaders()) > 1:
+        elif not test and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
