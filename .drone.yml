@@ -5,12 +5,15 @@ name: torch-1.3
 
 steps:
 - name: testing
-  image: python:3
+  image: python:3.7
   commands:
+    - python --version
+    - pip install pip -U
+    - pip --version
     - pip install torch==1.3
     - pip install -r requirements.txt --user
-    #- pip install pytest pytest-cov pytest-flake8
+    - pip install coverage pytest pytest-cov pytest-flake8
     - pip install -r ./tests/requirements.txt --user
-    - python --version ; pip --version ; pip list
-    - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules
+    - pip list
+    - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
     - coverage report
