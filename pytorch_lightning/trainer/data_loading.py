@@ -104,38 +104,37 @@ class TrainerDataLoadingMixin(ABC):
             'pin_memory': dataloader.pin_memory,
             'drop_last': dataloader.drop_last,
             'timeout': dataloader.timeout,
-            'worker_init_fn': None
+            'worker_init_fn': dataloader.worker_init_fn
         }
 
         if train:
             if self.use_ddp or self.use_ddp2:
-                sampler = DistributedSampler(self.train_dataloader.dataset)
+                sampler = DistributedSampler(dataloader.dataset)
                 dl_args['shuffle'] = False
 
             elif self.use_tpu:
                 sampler = DistributedSampler(
-                    self.train_dataloader.dataset,
+                    dataloader.dataset,
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal()
                 )
                 dl_args['shuffle'] = False
             else:
-                sampler = RandomSampler(self.train_dataloader.dataset)
+                sampler = RandomSampler(dataloader.dataset)
 
         # on not train
         else:
             if self.use_tpu:
                 sampler = DistributedSampler(
-                    self.train_dataloader.dataset,
+                    dataloader.dataset,
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal()
                 )
                 dl_args['shuffle'] = False
             else:
-                sampler = SequentialSampler(self.train_dataloader.dataset)
+                sampler = SequentialSampler(dataloader.dataset)
 
         dl_args['sampler'] = sampler
-        dl_args['dataset']
 
         new_dataloader = DataLoader(**dl_args)
         return new_dataloader
