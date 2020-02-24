@@ -1032,7 +1032,7 @@ class Trainer(TrainerIOMixin,
         self.restore_weights(model)
 
         # download the data and do whatever transforms we need
-        self.call_prepare_data(model)
+        self.call_prepare_data(ref_model)
 
         # when testing requested only run test and return
         if self.testing:
