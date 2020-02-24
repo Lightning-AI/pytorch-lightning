@@ -1010,9 +1010,6 @@ class Trainer(TrainerIOMixin,
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
-        # transfer data loaders from model
-        self.setup_dataloaders(ref_model)
-
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
@@ -1028,10 +1025,19 @@ class Trainer(TrainerIOMixin,
         # restore training and model before hpc call
         self.restore_weights(model)
 
+        # download the data and do whatever transforms we need
+        self.call_prepare_data(model)
+
         # when testing requested only run test and return
         if self.testing:
+            # only load test dataloader for testing
+            self.reset_test_dataloader(model)
             self.run_evaluation(test=True)
             return
+
+        # load the dataloaders
+        self.reset_train_dataloader(model)
+        self.reset_val_dataloader(model)
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or

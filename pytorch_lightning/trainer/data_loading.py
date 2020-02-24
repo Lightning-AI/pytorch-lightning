@@ -157,6 +157,18 @@ class TrainerDataLoadingMixin(ABC):
         # automatically add samplers
         self.auto_add_sampler(self.train_dataloader, train=True)
 
+        # support IterableDataset for train data
+        self.is_iterable_train_dataloader = (
+            EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
+        )
+        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+            m = '''
+            When using an iterableDataset for `train_dataloader`,
+            `Trainer(val_check_interval)` must be an int.
+            An int k specifies checking validation every k training batches
+            '''
+            raise MisconfigurationException(m)
+
     def reset_val_dataloader(self, model):
         """
         Dataloaders are provided by the model
@@ -225,33 +237,6 @@ class TrainerDataLoadingMixin(ABC):
             data_loader = data_loader_fx()
 
         return data_loader
-
-    def setup_dataloaders(self, model):
-        """
-        Give the model a chance to provide the dataloaders and get data
-        :param model:
-        :return:
-        """
-
-        # download the data
-        self.call_prepare_data(model)
-
-        # load the dataloaders
-        self.reset_train_dataloader(model)
-        self.reset_val_dataloader(model)
-        self.reset_test_dataloader(model)
-
-        # support IterableDataset for train data
-        self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
-        )
-        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
-            m = '''
-            When using an iterableDataset for `train_dataloader`,
-            `Trainer(val_check_interval)` must be an int.
-            An int k specifies checking validation every k training batches
-            '''
-            raise MisconfigurationException(m)
 
     def determine_data_use_amount(self, train_percent_check, val_percent_check,
                                   test_percent_check, overfit_pct):
