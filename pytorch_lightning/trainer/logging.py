@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Iterable
 
 import torch
 
@@ -34,12 +35,9 @@ class TrainerLoggingMixin(ABC):
         elif logger is False:
             self.logger = None
         else:
-            try:
-                _ = iter(logger)
-                # can call iter on logger, make it a logger list
+            if isinstance(logger, Iterable):
                 self.logger = LoggerCollection(logger)
-            except TypeError:
-                # can't call iter, must just be a regular logger
+            else:
                 self.logger = logger
             self.logger.rank = 0
 
