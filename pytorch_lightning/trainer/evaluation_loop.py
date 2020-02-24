@@ -207,12 +207,12 @@ class TrainerEvaluationLoopMixin(ABC):
         pass
 
     @abstractmethod
-    def reset_test_dataloader(self):
+    def reset_test_dataloader(self, model):
         # this is just empty shell for code from other class
         pass
 
     @abstractmethod
-    def reset_val_dataloader(self):
+    def reset_val_dataloader(self, model):
         # this is just empty shell for code from other class
         pass
 
