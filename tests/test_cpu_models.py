@@ -304,7 +304,6 @@ def test_tbptt_cpu_model(tmpdir):
                 'hiddens': self.test_hidden,
             }
 
-        @data_loader
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
                 dataset=MockSeq2SeqDataset(),

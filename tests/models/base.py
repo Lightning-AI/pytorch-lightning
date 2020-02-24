@@ -218,7 +218,6 @@ class TestModelBase(LightningModule):
 
 class LightningTestModelBase(TestModelBase):
     """ with pre-defined train dataloader """
-    @data_loader
     def train_dataloader(self):
         return self._dataloader(train=True)
 

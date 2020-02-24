@@ -11,7 +11,6 @@ class LightningValidationStepMixin:
     when val_dataloader returns a single dataloader
     """
 
-    @data_loader
     def val_dataloader(self):
         return self._dataloader(train=False)
 
@@ -105,7 +104,6 @@ class LightningValidationStepMultipleDataloadersMixin:
     when val_dataloader returns multiple dataloaders
     """
 
-    @data_loader
     def val_dataloader(self):
         return [self._dataloader(train=False), self._dataloader(train=False)]
 
@@ -204,7 +202,6 @@ class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipl
 
 class LightningTestStepMixin:
 
-    @data_loader
     def test_dataloader(self):
         return self._dataloader(train=False)
 
@@ -289,7 +286,6 @@ class LightningTestMixin(LightningTestStepMixin):
 
 class LightningTestStepMultipleDataloadersMixin:
 
-    @data_loader
     def test_dataloader(self):
         return [self._dataloader(train=False), self._dataloader(train=False)]
 
