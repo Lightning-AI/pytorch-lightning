@@ -1,16 +1,25 @@
+r"""
+
+.. _wandb:
+
+WandbLogger
+-------------
+"""
+
 import os
 
 try:
     import wandb
 except ImportError:
-    raise ImportError('Missing wandb package.')
+    raise ImportError('You want to use `wandb` logger which is not installed yet,'
+                      ' please install it e.g. `pip install wandb`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
 
 class WandbLogger(LightningLoggerBase):
     """
-    Logger for W&B.
+    Logger for `W&B <https://www.wandb.com/>`_.
 
     Args:
         name (str): display name for the run.

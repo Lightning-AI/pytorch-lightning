@@ -131,6 +131,14 @@ from tqdm.auto import tqdm
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
+try:
+    import torch_xla.distributed.parallel_loader as xla_pl
+    import torch_xla.core.xla_model as xm
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerEvaluationLoopMixin(ABC):
 
@@ -159,6 +167,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.callback_metrics = None
         self.get_test_dataloaders = None
         self.get_val_dataloaders = None
+        self.use_tpu = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -172,6 +181,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def is_overriden(self, m):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def transfer_batch_to_tpu(self, batch):
         # this is just empty shell for code from other class
         pass
 
@@ -215,6 +229,13 @@ class TrainerEvaluationLoopMixin(ABC):
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
+
+            # on TPU we have to wrap it under the ParallelLoader
+            if self.use_tpu:
+                device = xm.xla_device()
+                dataloader = xla_pl.ParallelLoader(dataloader, [device])
+                dataloader = dataloader.per_device_loader(device)
+
             for batch_idx, batch in enumerate(dataloader):
 
                 if batch is None:  # pragma: no cover
@@ -330,8 +351,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            self.checkpoint_callback.on_epoch_end(epoch=self.current_epoch,
-                                                  logs=self.callback_metrics)
+            self.checkpoint_callback.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
         # make dataloader_idx arg in validation_step optional
@@ -355,6 +375,11 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(self.data_parallel_device_ids, list):
                 root_gpu = self.data_parallel_device_ids[0]
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
+            args[0] = batch
+
+        # TPU
+        if self.use_tpu:
+            batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
         # CPU

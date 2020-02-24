@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_static/images/lightning_logo.png" width="50" height="50">
+![Logo](docs/source/_static/images/lightning_logo.svg)
 
 # PyTorch Lightning
 
@@ -9,22 +9,34 @@
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
-[![Build Status](https://travis-ci.org/PytorchLightning/pytorch-lightning.svg?branch=master)](https://travis-ci.org/PytorchLightning/pytorch-lightning)
-[![Build status](https://ci.appveyor.com/api/projects/status/nwr730s1qd9199g3/branch/master?svg=true)](https://ci.appveyor.com/project/PyTorchLightning/pytorch-lightning/branch/master)
 [![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
-[![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)  
+[![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.6.0)](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Mar%2021-<COLOR>.svg)](https://shields.io/)
+[![Next Release](https://img.shields.io/badge/Next%20Release-Feb%2021-<COLOR>.svg)](https://shields.io/)
 
 <!-- 
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
 [![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
 -->
-
 </div>
+
+---
+## Continuous Integration
+<center>
+
+| System / PyTorch Version | 1.1 | 1.2 | 1.3 | 1.4 |
+| :---: | :---: | :---: | :---: | :---: |
+| Linux py3.6 | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) |
+| Linux py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| OSX py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| OSX py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| Windows py3.6 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| Windows py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+
+</center>
 
 Simple installation from PyPI
 ```bash
@@ -53,7 +65,7 @@ To use Lightning, simply refactor your research code into the [LightningModule](
 Everything in Blue!   
 This is how lightning separates the science (red) from the engineering (blue).
 
-![Overview](docs/source/_static/images/pl.gif)
+![Overview](docs/source/_static/images/pl_overview.gif)
 
 ## How much effort is it to convert?
 You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
@@ -75,10 +87,11 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)    
 - [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
 - [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
 - [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)   
 - [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)   
-- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
 - [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)    
 
 ---
@@ -282,7 +295,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 - [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_data_parallel.html)  
 - [Fast dev run](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.utilities.debugging.html)
-- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.logging.html)
+- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.loggers.html)
 - [Implement Your Own Distributed (DDP) training](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
 - [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_parts.html)
 - [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_loop.html)
@@ -374,6 +387,20 @@ You can also install any past release `0.X.Y` from this repository:
 ```bash
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
+
+### Lightning team
+
+#### Leads
+- William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
+- Jirka Borovec [(Borda)](https://github.com/Borda)
+- Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
+- Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
+
+#### Core Maintainers
+
+- Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeff Ling [(jeffling)](https://github.com/jeffling)
+- Tullie Murrell [(tullie)](https://github.com/tullie)
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):

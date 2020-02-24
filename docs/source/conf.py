@@ -86,6 +86,7 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     # 'm2r',
     'nbsphinx',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -97,6 +98,7 @@ templates_path = ['_templates']
 # they should be run at build time.
 nbsphinx_execute = 'never'
 nbsphinx_allow_errors = True
+nbsphinx_requirejs_path = ''
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -295,7 +297,7 @@ with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
             MOCK_REQUIRE_PACKAGES.append(pkg.rstrip())
 
 # TODO: better parse from package since the import name and package name may differ
-MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'sklearn', 'test_tube', 'mlflow', 'comet_ml', 'wandb', 'neptune']
+MOCK_MANUAL_PACKAGES = ['torch', 'torchvision', 'test_tube', 'mlflow', 'comet_ml', 'wandb', 'neptune']
 autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 # for mod_name in MOCK_REQUIRE_PACKAGES:
 #     sys.modules[mod_name] = mock.Mock()
@@ -348,7 +350,26 @@ def linkcode_resolve(domain, info):
 
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
-autodoc_default_flags = [
-    'members', 'undoc-members', 'show-inheritance', 'private-members',
-    # 'special-members', 'inherited-members'
-]
+# the options are fixed and will be soon in release,
+#  see https://github.com/sphinx-doc/sphinx/issues/5459
+autodoc_default_options = {
+    'members': None,
+    'special-members': '__call__',
+    'undoc-members': True,
+    # 'exclude-members': '__weakref__',
+    'show-inheritance': True,
+    'private-members': True,
+}
+
+# Sphinx will add “permalinks” for each heading and description environment as paragraph signs that
+#  become visible when the mouse hovers over them.
+# This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
+#  string to disable permalinks.
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
+html_add_permalinks = True
+
+# True to prefix each section label with the name of the document it is in, followed by a colon.
+#  For example, index:Introduction for a section called Introduction that appears in document index.rst.
+#  Useful for avoiding ambiguity when the same section heading appears in different documents.
+# http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
+autosectionlabel_prefix_document = True

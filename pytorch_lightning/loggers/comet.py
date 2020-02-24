@@ -1,7 +1,16 @@
+r"""
+
+.. _comet:
+
+CometLogger
+-------------
+"""
+
 from logging import getLogger
 
 try:
     from comet_ml import Experiment as CometExperiment
+    from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     try:
         from comet_ml.api import API
@@ -20,11 +29,14 @@ logger = getLogger(__name__)
 
 
 class CometLogger(LightningLoggerBase):
-    def __init__(self, api_key=None, save_dir=None, workspace=None,
-                 rest_api_key=None, project_name=None, experiment_name=None, **kwargs):
-        r"""
+    r"""
+    Log using `comet.ml <https://www.comet.ml>`_.
+    """
 
-        Log using `comet <https://www.comet.ml>`_.
+    def __init__(self, api_key=None, save_dir=None, workspace=None,
+                 rest_api_key=None, project_name=None, experiment_name=None,
+                 experiment_key=None, **kwargs):
+        r"""
 
         Requires either an API Key (online mode) or a local directory path (offline mode)
 
@@ -32,29 +44,26 @@ class CometLogger(LightningLoggerBase):
 
             # ONLINE MODE
             from pytorch_lightning.loggers import CometLogger
-
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
-                api_key=os.environ["COMET_KEY"],
+                api_key=os.environ["COMET_API_KEY"],
                 workspace=os.environ["COMET_WORKSPACE"], # Optional
                 project_name="default_project", # Optional
-                rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+                rest_api_key=os.environ["COMET_REST_API_KEY"], # Optional
                 experiment_name="default" # Optional
             )
             trainer = Trainer(logger=comet_logger)
-
 
         .. code-block:: python
 
             # OFFLINE MODE
             from pytorch_lightning.loggers import CometLogger
-
             # arguments made to CometLogger are passed on to the comet_ml.Experiment class
             comet_logger = CometLogger(
                 save_dir=".",
                 workspace=os.environ["COMET_WORKSPACE"], # Optional
                 project_name="default_project", # Optional
-                rest_api_key=os.environ["COMET_REST_KEY"], # Optional
+                rest_api_key=os.environ["COMET_REST_API_KEY"], # Optional
                 experiment_name="default" # Optional
             )
             trainer = Trainer(logger=comet_logger)
@@ -93,6 +102,7 @@ class CometLogger(LightningLoggerBase):
 
         self.workspace = workspace
         self.project_name = project_name
+        self.experiment_key = experiment_key
         self._kwargs = kwargs
 
         if rest_api_key is not None:
@@ -124,12 +134,22 @@ class CometLogger(LightningLoggerBase):
             return self._experiment
 
         if self.mode == "online":
-            self._experiment = CometExperiment(
-                api_key=self.api_key,
-                workspace=self.workspace,
-                project_name=self.project_name,
-                **self._kwargs
-            )
+            if self.experiment_key is None:
+                self._experiment = CometExperiment(
+                    api_key=self.api_key,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self._kwargs
+                )
+                self.experiment_key = self._experiment.get_key()
+            else:
+                self._experiment = CometExistingExperiment(
+                    api_key=self.api_key,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    previous_experiment=self.experiment_key,
+                    **self._kwargs
+                )
         else:
             self._experiment = CometOfflineExperiment(
                 offline_directory=self.save_dir,
@@ -153,9 +173,21 @@ class CometLogger(LightningLoggerBase):
 
         self.experiment.log_metrics(metrics, step=step)
 
+    def reset_experiment(self):
+        self._experiment = None
+
     @rank_zero_only
     def finalize(self, status):
+        r"""
+        When calling self.experiment.end(), that experiment won't log any more data to Comet. That's why, if you need
+        to log any more data you need to create an ExistingCometExperiment. For example, to log data when testing your
+        model after training, because when training is finalized CometLogger.finalize is called.
+
+        This happens automatically in the CometLogger.experiment property, when self._experiment is set to None
+        i.e. self.reset_experiment().
+        """
         self.experiment.end()
+        self.reset_experiment()
 
     @property
     def name(self):

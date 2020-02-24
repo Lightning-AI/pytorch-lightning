@@ -1,10 +1,11 @@
-sphinx>=1.8.3
+sphinx>=2.0
 recommonmark  # fails with badges
 m2r  # fails with multi-line text
 nbsphinx
 pandoc
 docutils
-git+https://github.com/PytorchLightning/lightning_sphinx_theme.git
 sphinxcontrib-fulltoc
 sphinxcontrib-mockautodoc
-pip_shims
+git+https://github.com/PytorchLightning/lightning_sphinx_theme.git
+# pip_shims
+sphinx-autodoc-typehints

@@ -15,9 +15,7 @@ exclude *.svg
 recursive-include pytorch_lightning *.py
 
 # include examples
-recursive-include pl_examples *.py
-recursive-include pl_examples *.md
-recursive-include pl_examples *.sh
+recursive-include pl_examples *.py *.md *.sh *.txt
 
 # exclude tests from package
 recursive-exclude tests *
@@ -27,9 +25,11 @@ exclude tests
 # Exclude the documentation files
 recursive-exclude docs *
 exclude docs
+recursive-include docs/source/_static/images/ lightning_logo* pl_overview* tf_*
 
 # Include the Requirements
 include requirements.txt
+include requirements-extra.txt
 
 # Exclude build configs
 exclude *.yml

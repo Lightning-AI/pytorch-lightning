@@ -1,0 +1,83 @@
+name: CI testing
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 6
+      matrix:
+        os: [ubuntu-18.04, windows-2016, macOS-10.15]
+        python-version: [3.6, 3.7]
+        requires: ['minimal', 'latest']
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set min. dependencies
+      if: matrix.requires == 'minimal'
+      run: |
+        python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements-extra.txt').read().replace('>', '=') ; open('requirements-extra.txt', 'w').write(req)"
+
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip # This path is specific to Ubuntu
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-${{ matrix.python-version }}-
+
+    - name: Install dependencies
+      run: |
+        # python -m pip install --upgrade --user pip
+        pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html
+        pip install -r ./tests/requirements.txt
+        # pip install tox coverage
+        python --version
+        pip --version
+        pip list
+
+    - name: Lint and Tests
+      # env:
+      #   TOXENV: py${{ matrix.python-version }}
+      run: |
+        # tox --sitepackages
+        flake8 .
+        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+
+    - name: Upload pytest test results
+      uses: actions/upload-artifact@master
+      with:
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+      # Use always() to always run this step to publish test results when there are test failures
+      if: always()
+
+    - name: Package Setup
+      run: |
+        check-manifest
+        python setup.py check --metadata --strict
+        python setup.py sdist
+        twine check dist/*
+
+    #- name: Try install package
+    #  if: ! startsWith(matrix.os, 'windows')
+    #  run: |
+    #    virtualenv vEnv ; source vEnv/bin/activate
+    #    pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+    #    deactivate ; rm -rf vEnv
+
+    - name: Statistics
+      if: success()
+      run: |
+         coverage report

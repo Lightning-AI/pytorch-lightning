@@ -2,7 +2,7 @@
     :class: hidden-section
 
 
-Profiling performance during training
+Performance and Bottleneck Profiler
 ===========
 .. automodule:: pytorch_lightning.profiler
    :exclude-members:

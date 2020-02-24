@@ -1,34 +1,3 @@
-"""
-Log using `test tube <https://williamfalcon.github.io/test-tube>'_. Test tube logger is
-a strict subclass of `PyTorch SummaryWriter <https://pytorch.org/docs/stable/tensorboard.html>`_, refer to their
-documentation for all supported operations. The TestTubeLogger adds a nicer folder structure
-to manage experiments and snapshots all hyperparameters you pass to a LightningModule.
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TestTubeLogger
-    tt_logger = TestTubeLogger(
-        save_dir=".",
-        name="default",
-        debug=False,
-        create_git_tag=False
-    )
-    trainer = Trainer(logger=tt_logger)
-
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.whatever_method_summary_writer_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.add_histogram(...)
-
-"""
-
 try:
     from test_tube import Experiment
 except ImportError:
@@ -39,30 +8,8 @@ from .base import LightningLoggerBase, rank_zero_only
 
 class TestTubeLogger(LightningLoggerBase):
     r"""
-
     Log to local file system in TensorBoard format but using a nicer folder structure.
-
-    Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
-    `os.path.join(save_dir, name, version)`
-
-    Example
-    -------
-
-    .. code-block:: python
-
-        logger = TestTubeLogger("tt_logs", name="my_exp_name")
-        trainer = Trainer(logger=logger)
-        trainer.train(model)
-
-    Args:
-        save_dir (str): Save directory
-        name (str): Experiment name. Defaults to "default".
-        description (str): A short snippet about this experiment
-        debug (bool): If True, it doesn't log anything
-        version (int): Experiment version. If version is not specified the logger inspects the save
-        directory for existing versions, then automatically assigns the next available version.
-        create_git_tag (bool): If True creates a git tag to save the code used in this experiment
-
+    (see `full docs <https://williamfalcon.github.io/test-tube>`_).
     """
 
     __test__ = False
@@ -71,6 +18,40 @@ class TestTubeLogger(LightningLoggerBase):
             self, save_dir, name="default", description=None, debug=False,
             version=None, create_git_tag=False
     ):
+        r"""
+
+        .. _testTube:
+
+        Example
+        ----------
+
+        .. code-block:: python
+
+            logger = TestTubeLogger("tt_logs", name="my_exp_name")
+            trainer = Trainer(logger=logger)
+            trainer.train(model)
+
+        Use the logger anywhere in you LightningModule as follows:
+
+        .. code-block:: python
+
+            def train_step(...):
+                # example
+                self.logger.experiment.whatever_method_summary_writer_supports(...)
+
+            def any_lightning_module_function_or_hook(...):
+                self.logger.experiment.add_histogram(...)
+
+        Args:
+            save_dir (str): Save directory
+            name (str): Experiment name. Defaults to "default".
+            description (str): A short snippet about this experiment
+            debug (bool): If True, it doesn't log anything
+            version (int): Experiment version. If version is not specified the logger inspects the save
+            directory for existing versions, then automatically assigns the next available version.
+            create_git_tag (bool): If True creates a git tag to save the code used in this experiment
+
+        """
         super().__init__()
         self.save_dir = save_dir
         self._name = name

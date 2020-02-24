@@ -3,10 +3,10 @@ import os
 
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
@@ -214,8 +214,8 @@ def test_dp_resume(tmpdir):
     trainer.is_slurm_managing_tasks = True
     result = trainer.fit(model)
 
-    # track epoch before saving
-    real_global_epoch = trainer.current_epoch
+    # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
+    real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
     assert result == 1, 'amp + dp model failed to complete'
@@ -282,7 +282,8 @@ def test_cpu_restore_training(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    real_global_epoch = trainer.current_epoch
+    # Increment since we've finished the current epoch, don't want to rerun
+    real_global_epoch = trainer.current_epoch + 1
 
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'

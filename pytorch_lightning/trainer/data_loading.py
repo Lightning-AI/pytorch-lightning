@@ -25,6 +25,15 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerDataLoadingMixin(ABC):
 
@@ -36,6 +45,8 @@ class TrainerDataLoadingMixin(ABC):
         self.use_ddp2 = None
         self.shown_warnings = None
         self.val_check_interval = None
+        self.use_tpu = None
+        self.tpu_local_core_rank = None
 
     def _percent_range_check(self, name):
         value = getattr(self, name)
@@ -80,9 +91,10 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = max(1, self.val_check_batch)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
+        needs_sampler = on_ddp or self.use_tpu
+        if needs_sampler and not isinstance(self.get_train_dataloader().sampler, DistributedSampler):
             msg = """
-            You're using multiple gpus and multiple nodes without using a DistributedSampler
+            You're using multiple gpus and multiple nodes, or TPUs without using a
             to assign a subset of your data to each process. To silence this warning, pass a
             DistributedSampler to your DataLoader.
 
@@ -119,13 +131,14 @@ class TrainerDataLoadingMixin(ABC):
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and self.get_val_dataloaders() is not None:
+        needs_sampler = on_ddp or self.use_tpu
+        if needs_sampler and self.get_val_dataloaders() is not None:
             for dataloader in self.get_val_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your val_dataloader(s) don't use DistributedSampler.
 
-                    You're using multiple gpus and multiple nodes without using a
+                    You're using multiple gpus and multiple nodes, or TPUs without using a
                     DistributedSampler to assign a subset of your data to each process.
                     To silence this warning, pass a DistributedSampler to your DataLoader.
 
@@ -162,13 +175,14 @@ class TrainerDataLoadingMixin(ABC):
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
 
         on_ddp = self.use_ddp or self.use_ddp2
-        if on_ddp and self.get_test_dataloaders() is not None:
+        needs_sampler = on_ddp or self.use_tpu
+        if needs_sampler and self.get_test_dataloaders() is not None:
             for dataloader in self.get_test_dataloaders():
                 if not isinstance(dataloader.sampler, DistributedSampler):
                     msg = """
                     Your `test_dataloader(s)` don't use DistributedSampler.
 
-                    You're using multiple gpus and multiple nodes without using a
+                    You're using multiple gpus and multiple nodes, or TPUs without using a
                     DistributedSampler to assign a subset of your data to each process.
                     To silence this warning, pass a DistributedSampler to your DataLoader.
 
@@ -209,6 +223,17 @@ class TrainerDataLoadingMixin(ABC):
             self.get_train_dataloader()
             self.get_test_dataloaders()
             self.get_val_dataloaders()
+
+        # on TPUs load each dataloader only on process 0
+        # this will trigger the data downloads
+        if self.use_tpu and XLA_AVAILABLE:
+            if self.tpu_local_core_rank == 0:
+                self.get_train_dataloader()
+                self.get_test_dataloaders()
+                self.get_val_dataloaders()
+
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (

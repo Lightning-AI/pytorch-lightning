@@ -1,6 +1,10 @@
 """
 Profiling your training run can help you understand if there are any bottlenecks in your code.
 
+
+Built-in checks
+----------------
+
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
 
 - on_epoch_start
@@ -14,6 +18,9 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_batch_end
 - training_end
 - on_training_end
+
+Enable simple profiling
+-------------------------
 
 If you only wish to profile the standard actions, you can set `profiler=True` when constructing
 your `Trainer` object.
@@ -42,6 +49,9 @@ The profiler's results will be printed at the completion of a training `fit()`.
     on_train_end            |  5.449e-06            |  5.449e-06
 
 
+Advanced Profiling
+--------------------
+
 If you want more information on the functions called during each event, you can use the `AdvancedProfiler`.
 This option uses Python's cProfiler_ to provide a report of time spent on *each* function called within your code.
 
@@ -67,10 +77,10 @@ of logging it to the output in your terminal. The output below shows the profili
     List reduced from 76 to 10 due to restriction <10>
     ncalls  tottime  percall  cumtime  percall filename:lineno(function)
     3752/1876    0.011    0.000   18.887    0.010 {built-in method builtins.next}
-        1876    0.008    0.000   18.877    0.010 dataloader.py:344(__next__)
-        1876    0.074    0.000   18.869    0.010 dataloader.py:383(_next_data)
-        1875    0.012    0.000   18.721    0.010 fetch.py:42(fetch)
-        1875    0.084    0.000   18.290    0.010 fetch.py:44(<listcomp>)
+        1876     0.008    0.000   18.877    0.010 dataloader.py:344(__next__)
+        1876     0.074    0.000   18.869    0.010 dataloader.py:383(_next_data)
+        1875     0.012    0.000   18.721    0.010 fetch.py:42(fetch)
+        1875     0.084    0.000   18.290    0.010 fetch.py:44(<listcomp>)
         60000    1.759    0.000   18.206    0.000 mnist.py:80(__getitem__)
         60000    0.267    0.000   13.022    0.000 transforms.py:68(__call__)
         60000    0.182    0.000    7.020    0.000 transforms.py:93(__call__)

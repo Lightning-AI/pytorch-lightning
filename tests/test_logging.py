@@ -4,7 +4,7 @@ import pickle
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     LightningLoggerBase,
@@ -15,7 +15,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
     NeptuneLogger
 )
-from pytorch_lightning.testing import LightningTestModel
+from tests.models import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):
@@ -29,7 +29,7 @@ def test_testtube_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -53,7 +53,7 @@ def test_testtube_pickle(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -76,7 +76,7 @@ def test_mlflow_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
     trainer = Trainer(**trainer_options)
@@ -132,7 +132,7 @@ def test_comet_logger(tmpdir, monkeypatch):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
 
@@ -182,7 +182,16 @@ def test_wandb_logger(tmpdir):
     tutils.reset_seed()
 
     wandb_dir = os.path.join(tmpdir, "wandb")
-    _ = WandbLogger(save_dir=wandb_dir, anonymous=True)
+    _ = WandbLogger(save_dir=wandb_dir, anonymous=True, offline=True)
+
+
+def test_wandb_pickle(tmpdir):
+    """Verify that pickling trainer with wandb logger works."""
+    tutils.reset_seed()
+
+    wandb_dir = str(tmpdir)
+    logger = WandbLogger(save_dir=wandb_dir, anonymous=True, offline=True)
+    assert logger is not None
 
 
 def test_neptune_logger(tmpdir):
@@ -196,7 +205,7 @@ def test_neptune_logger(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
-        train_percent_check=0.01,
+        train_percent_check=0.05,
         logger=logger
     )
     trainer = Trainer(**trainer_options)
@@ -204,15 +213,6 @@ def test_neptune_logger(tmpdir):
 
     print('result finished')
     assert result == 1, "Training failed"
-
-
-def test_wandb_pickle(tmpdir):
-    """Verify that pickling trainer with wandb logger works."""
-    tutils.reset_seed()
-
-    wandb_dir = str(tmpdir)
-    logger = WandbLogger(save_dir=wandb_dir, anonymous=True)
-    assert logger is not None
 
 
 def test_neptune_pickle(tmpdir):
@@ -294,6 +294,19 @@ def test_tensorboard_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
+def test_tensorboard_named_version(tmpdir):
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402' """
+
+    tmpdir.mkdir("tb_versioning")
+    expected_version = "2020-02-05-162402"
+
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=expected_version)
+    logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
+
+    assert logger.version == expected_version
+    # Could also test existence of the directory but this fails in the "minimum requirements" test setup
+
+
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
@@ -363,3 +376,33 @@ def test_custom_logger(tmpdir):
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
+
+
+def test_adding_step_key(tmpdir):
+    logged_step = 0
+
+    def _validation_end(outputs):
+        nonlocal logged_step
+        logged_step += 1
+        return {"log": {"step": logged_step, "val_acc": logged_step / 10}}
+
+    def _log_metrics_decorator(log_metrics_fn):
+        def decorated(metrics, step):
+            if "val_acc" in metrics:
+                assert step == logged_step
+            return log_metrics_fn(metrics, step)
+
+        return decorated
+
+    model, hparams = tutils.get_model()
+    model.validation_end = _validation_end
+    trainer_options = dict(
+        max_epochs=4,
+        default_save_path=tmpdir,
+        train_percent_check=0.001,
+        val_percent_check=0.01,
+        num_sanity_val_steps=0
+    )
+    trainer = Trainer(**trainer_options)
+    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
+    trainer.fit(model)

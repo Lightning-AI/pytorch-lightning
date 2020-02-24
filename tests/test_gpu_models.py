@@ -3,13 +3,13 @@ import os
 import pytest
 import torch
 
-import tests.utils as tutils
+import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_lightning.core import memory
-from pytorch_lightning.testing import (
+from tests.models import (
     LightningTestModel,
 )
 from pytorch_lightning.trainer.distrib_parts import (
@@ -230,7 +230,7 @@ def test_ddp_sampler_error(tmpdir):
         max_epochs=1,
         gpus=[0, 1],
         distributed_backend='ddp',
-        use_amp=True
+        precision=16
     )
 
     with pytest.warns(UserWarning):

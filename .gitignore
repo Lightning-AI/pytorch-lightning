@@ -5,7 +5,7 @@ model_weights/
 app/models/
 pip-wheel-metadata/
 lightning_logs/
-
+.vscode/
 
 # Test-tube
 test_tube_logs/
@@ -15,6 +15,8 @@ test_tube_exp/
 # Documentations
 docs/source/pl_examples*.rst
 docs/source/pytorch_lightning*.rst
+docs/source/tests*.rst
+docs/source/*.md
 tests/tests/
 
 # Byte-compiled / optimized / DLL files

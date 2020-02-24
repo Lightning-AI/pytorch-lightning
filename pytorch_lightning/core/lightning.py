@@ -18,6 +18,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+
     def __init__(self, *args, **kwargs):
         super(LightningModule, self).__init__(*args, **kwargs)
 
@@ -109,12 +110,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     @abstractmethod
     def training_step(self, *args, **kwargs):
-        """return loss, dict with metrics for tqdm
+        r"""return loss, dict with metrics for tqdm
 
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
+            batch_idx (int): Integer displaying index of this batch
+            optimizer_idx (int): If using multiple optimizers, this argument will also be present.
+            hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
+
+        :param
+
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
+
             - loss -> tensor scalar [REQUIRED]
             - progress_bar -> Dict for progress bar display. Must have only tensors
             - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
@@ -409,7 +418,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         The outputs here are strictly for the progress bar.
          If you don't need to display anything, don't return anything.
          Any keys present in 'log', 'progress_bar' or the rest of the dictionary
-         are available for callbacks to access.
+         are available for callbacks to access. If you want to manually set current step, you can specify it with
+         'step' key in the 'log' Dict.
 
         Example
         -------
@@ -459,7 +469,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # show val_loss and val_acc in progress bar but only log val_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'val_loss': val_loss_mean.item()}
+                    'log': {'val_loss': val_loss_mean.item(), 'step': self.current_epoch}
                 }
                 return results
 
@@ -859,7 +869,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return splits
 
     @data_loader
-    @abstractmethod
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -885,18 +894,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
                 return loader
 
-
         """
+        return None
 
     @data_loader
-    def tng_dataloader(self):
+    def tng_dataloader(self):  # todo: remove in v0.8.0
         """Implement a PyTorch DataLoader.
 
         .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
         """
         output = self.train_dataloader()
-        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0"
-                      " and will be removed in v0.8.0", DeprecationWarning)
+        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+                      " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
     @data_loader
@@ -1014,10 +1023,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     drop_prob,0.2
                     batch_size,32
 
-            map_location (dict): A dictionary mapping saved weight GPU devices to new
-                GPU devices (example: {'cuda:1':'cuda:0'})
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup
+                (example: {'cuda:1':'cuda:0'}).
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
+
         Return:
-            LightningModule with loaded weights
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------
@@ -1061,38 +1075,41 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it  stores  the hyperparameters in the checkpoint if you initialized your  LightningModule
         with an argument  called `hparams` which is a Namespace or dictionary of hyperparameters
 
-            Example
-            -------
-            .. code-block:: python
+        Example
+        -------
+        .. code-block:: python
 
-                # --------------
-                # Case 1
-                # when using Namespace (output of using Argparse to parse command line arguments)
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
+            # --------------
+            # Case 1
+            # when using Namespace (output of using Argparse to parse command line arguments)
+            from argparse import Namespace
+            hparams = Namespace(**{'learning_rate': 0.1})
 
-                model = MyModel(hparams)
+            model = MyModel(hparams)
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams.learning_rate
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams.learning_rate
 
-                # --------------
-                # Case 2
-                # when using a dict
-                model = MyModel({'learning_rate': 0.1})
+            # --------------
+            # Case 2
+            # when using a dict
+            model = MyModel({'learning_rate': 0.1})
 
-                class MyModel(pl.LightningModule):
-                    def __init__(self, hparams):
-                        self.learning_rate = hparams['learning_rate']
+            class MyModel(pl.LightningModule):
+                def __init__(self, hparams):
+                    self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path (str): Path to checkpoint.
-            map_location (dic): If your checkpoint saved from a GPU model and you now load on CPUs
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
-            LightningModule with loaded weights.
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------
