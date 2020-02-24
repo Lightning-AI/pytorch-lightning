@@ -166,22 +166,11 @@ class TestModelBase(LightningModule):
                                transform=transform, download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        try:
-            if self.use_ddp and not self.force_remove_distributed_sampler:
-                train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-                batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception:
-            pass
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler
         )
 
         return loader
