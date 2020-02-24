@@ -903,9 +903,12 @@ class Trainer(TrainerIOMixin,
 
         # Update the dataloader attributes of the model with the ones supplied here,
         # if they are not already defined in model
-        _set_dataloader(model, train_dataloader, 'train_dataloader')
-        _set_dataloader(model, val_dataloader, 'val_dataloader')
-        _set_dataloader(model, test_dataloader, 'test_dataloader')
+        if train_dataloader is not None:
+            _set_dataloader(model, train_dataloader, 'train_dataloader')
+        if val_dataloader is not None:
+            _set_dataloader(model, val_dataloader, 'val_dataloader')
+        if test_dataloader is not None:
+            _set_dataloader(model, test_dataloader, 'test_dataloader')
 
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
