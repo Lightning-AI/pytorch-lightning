@@ -233,7 +233,6 @@ class TrainerTrainLoopMixin(ABC):
         self.train_dataloader = None
         self.reload_dataloaders_every_epoch = None
 
-
     @property
     def max_nb_epochs(self):
         """
