@@ -55,6 +55,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
+    import pdb; pdb.set_trace()
     tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
