@@ -80,3 +80,15 @@ val_percent_check will be overwritten by overfit_pct if overfit_pct > 0
 
     # check 10% only
     trainer = Trainer(val_percent_check=0.1)
+
+Use nvidia-dali
+--------------------------------------------
+If your network has a bottleneck on data loaders, you can use nvidia-dali.
+Which speeds up data loading via pipeline and gpu acceleration.
+You can check out dali's documentation here_.
+
+Notice that dali will not work together with the subset method if you applied the pl.dataloader decorator.
+
+An example on image-net is provided.
+
+.. _here: https://docs.nvidia.com/deeplearning/sdk/dali-developer-guide/docs/installation.html
