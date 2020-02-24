@@ -507,11 +507,11 @@ def test_multiple_test_dataloader(tmpdir):
     result = trainer.fit(model)
 
     # verify there are 2 val loaders
-    assert len(trainer.get_test_dataloaders()) == 2, \
+    assert len(trainer.test_dataloaders) == 2, \
         'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
-    for dataloader in trainer.get_test_dataloaders():
+    for dataloader in trainer.test_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
@@ -602,7 +602,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
+    assert len(trainer.test_dataloaders) == 1, \
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
@@ -672,9 +672,9 @@ def test_mixing_of_dataloader_options(tmpdir):
                        test_dataloader=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
     assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def _init_steps_model():
