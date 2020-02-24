@@ -231,6 +231,7 @@ class TrainerTrainLoopMixin(ABC):
         self.profiler = None
         self.batch_idx = None
         self.precision = None
+        self.train_dataloader = None
 
     @property
     def max_nb_epochs(self):
@@ -312,11 +313,12 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
         try:
             # run all epochs
+            # TODO: finish replacing train_dataloader
             for epoch in range(self.current_epoch, self.max_epochs):
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if (self.use_ddp or self.use_tpu) \
-                        and hasattr(self.get_train_dataloader().sampler, 'set_epoch'):
-                    self.get_train_dataloader().sampler.set_epoch(epoch)
+                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
+                    self.train_dataloader.sampler.set_epoch(epoch)
 
                 # get model
                 model = self.get_model()
