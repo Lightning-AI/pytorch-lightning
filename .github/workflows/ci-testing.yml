@@ -59,6 +59,7 @@ jobs:
         # tox --sitepackages
         flake8 .
         coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
@@ -73,6 +74,7 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
+
     #- name: Try install package
     #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
