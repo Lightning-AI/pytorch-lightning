@@ -3,7 +3,7 @@ from abc import ABC
 
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
+from torch.utils.data import RandomSampler, SequentialSampler, DataLoader, BatchSampler
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -91,10 +91,6 @@ class TrainerDataLoadingMixin(ABC):
 
     def auto_add_sampler(self, dataloader, train):
         # do nothing when user gives a sampler
-        if dataloader.sampler is not None:
-            print('returning', dataloader.sampler)
-            return dataloader
-
         dl_args = {
             'dataset': dataloader.dataset,
             'batch_size': dataloader.batch_size,
@@ -135,7 +131,10 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 sampler = SequentialSampler(dataloader.dataset)
 
+        batch_sampler = BatchSampler(sampler, dl_args['batch_size'], dl_args['drop_last'])
+
         dl_args['sampler'] = sampler
+        dl_args['batch_sampler'] = batch_sampler
 
         new_dataloader = DataLoader(**dl_args)
         return new_dataloader
