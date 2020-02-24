@@ -234,6 +234,7 @@ class TrainerTrainLoopMixin(ABC):
         self.train_dataloader = None
         self.reload_dataloaders_every_epoch = None
 
+
     @property
     def max_nb_epochs(self):
         """
@@ -416,7 +417,6 @@ class TrainerTrainLoopMixin(ABC):
         # reset train dataloader
         if self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(self.get_model())
-            self.train_dataloader = self.train_dataloader
 
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
