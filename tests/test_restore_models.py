@@ -53,7 +53,11 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         tutils.run_prediction(dataloader, pretrained_model)
 
 
@@ -345,7 +349,11 @@ def test_model_saving_loading(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # make a prediction
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         for batch in dataloader:
             break
 
