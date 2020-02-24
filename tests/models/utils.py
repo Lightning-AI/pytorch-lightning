@@ -36,7 +36,11 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
                                   path_expt=trainer_options.get('default_save_path'))
 
     # test new model accuracy
-    for dataloader in model.test_dataloader():
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
     if trainer.use_ddp:
