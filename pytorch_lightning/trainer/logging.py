@@ -3,7 +3,7 @@ from abc import ABC
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerList
+from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 
 
 class TrainerLoggingMixin(ABC):
@@ -37,7 +37,7 @@ class TrainerLoggingMixin(ABC):
             try:
                 _ = iter(logger)
                 # can call iter on logger, make it a logger list
-                self.logger = LightningLoggerList(logger)
+                self.logger = LoggerCollection(logger)
             except TypeError:
                 # can't call iter, must just be a regular logger
                 self.logger = logger
@@ -47,9 +47,11 @@ class TrainerLoggingMixin(ABC):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
-        :param metrics (dict): Metric values
-        :param grad_norm_dic (dict): Gradient norms
-        :param step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
+
+        Args:
+            metrics (dict): Metric values
+            grad_norm_dic (dict): Gradient norms
+            step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
@@ -97,8 +99,6 @@ class TrainerLoggingMixin(ABC):
         """Reduces output according to the training mode.
 
         Separates loss from logging and tqdm metrics
-        :param output:
-        :return:
         """
         # ---------------
         # EXTRACT CALLBACK KEYS

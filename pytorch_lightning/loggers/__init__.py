@@ -74,10 +74,10 @@ Supported Loggers
 """
 from os import environ
 
-from .base import LightningLoggerBase, LightningLoggerList, rank_zero_only
+from .base import LightningLoggerBase, LoggerCollection, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-__all__ = ['TensorBoardLogger']
+__all__ = ['TensorBoardLogger', 'LoggerCollection']
 
 try:
     # needed to prevent ImportError and duplicated logs.

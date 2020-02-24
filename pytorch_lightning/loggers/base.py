@@ -1,11 +1,14 @@
+import argparse
 from abc import ABC
 from functools import wraps
+from typing import Union, Optional, Dict, Iterable, Any, Callable
 
 
-def rank_zero_only(fn):
+def rank_zero_only(fn: Callable):
     """Decorate a logger method to run it only on the process with rank 0.
 
-    :param fn: Function to decorate
+    Args:
+        fn: Function to decorate
     """
 
     @wraps(fn)
@@ -23,100 +26,104 @@ class LightningLoggerBase(ABC):
         self._rank = 0
 
     @property
-    def experiment(self):
+    def experiment(self) -> Any:
         raise NotImplementedError()
 
-    def log_metrics(self, metrics, step):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Record metrics.
 
-        :param float metrics: Dictionary with metric names as keys and measured quantities as values
-        :param int|None step: Step number at which the metrics should be recorded
+        Args:
+            metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Step number at which the metrics should be recorded
         """
         raise NotImplementedError()
 
-    def log_hyperparams(self, params):
+    def log_hyperparams(self, params: argparse.Namespace):
         """Record hyperparameters.
 
-        :param params: argparse.Namespace containing the hyperparameters
+        Args:
+            params: argparse.Namespace containing the hyperparameters
         """
         raise NotImplementedError()
 
     def save(self):
         """Save log data."""
 
-    def finalize(self, status):
+    def finalize(self, status: str):
         """Do any processing that is necessary to finalize an experiment.
 
-        :param status: Status that the experiment finished with (e.g. success, failed, aborted)
+        Args:
+            status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
 
     def close(self):
         """Do any cleanup that is necessary to close an experiment."""
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         """Process rank. In general, metrics should only be logged by the process with rank 0."""
         return self._rank
 
     @rank.setter
-    def rank(self, value):
+    def rank(self, value: int):
         """Set the process rank."""
         self._rank = value
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the experiment name."""
         raise NotImplementedError("Sub-classes must provide a name property")
 
     @property
-    def version(self):
+    def version(self) -> Union[int, str]:
         """Return the experiment version."""
         raise NotImplementedError("Sub-classes must provide a version property")
 
 
-class LightningLoggerList(LightningLoggerBase):
-    """The `LoggerList` class is used to iterate all logging actions over the given `logger_list`.
+class LoggerCollection(LightningLoggerBase):
+    """The `LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
 
-    :param logger_list: An iterable collection of loggers
+    Args:
+        logger_iterable: An iterable collection of loggers
     """
 
-    def __init__(self, logger_list):
+    def __init__(self, logger_iterable: Iterable[LightningLoggerBase]):
         super().__init__()
-        self._logger_list = logger_list
+        self._logger_iterable = logger_iterable
 
     @property
-    def experiment(self):
-        return [logger.experiment() for logger in self._logger_list]
+    def experiment(self) -> Iterable[Any]:
+        return [logger.experiment() for logger in self._logger_iterable]
 
-    def log_metrics(self, metrics, step):
-        return [logger.log_metrics(metrics, step) for logger in self._logger_list]
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int]):
+        [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
 
-    def log_hyperparams(self, params):
-        return [logger.log_hyperparams(params) for logger in self._logger_list]
+    def log_hyperparams(self, params: argparse.Namespace):
+        [logger.log_hyperparams(params) for logger in self._logger_iterable]
 
     def save(self):
-        return [logger.save() for logger in self._logger_list]
+        [logger.save() for logger in self._logger_iterable]
 
-    def finalize(self, status):
-        return [logger.finalize(status) for logger in self._logger_list]
+    def finalize(self, status: str):
+        [logger.finalize(status) for logger in self._logger_iterable]
 
     def close(self):
-        return [logger.close() for logger in self._logger_list]
+        [logger.close() for logger in self._logger_iterable]
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         return self._rank
 
     @rank.setter
-    def rank(self, value):
+    def rank(self, value: int):
         self._rank = value
-        for logger in self._logger_list:
+        for logger in self._logger_iterable:
             logger.rank = value
 
     @property
-    def name(self):
-        return '_'.join([str(logger.name) for logger in self._logger_list])
+    def name(self) -> str:
+        return '_'.join([str(logger.name) for logger in self._logger_iterable])
 
     @property
-    def version(self):
-        return '_'.join([str(logger.version) for logger in self._logger_list])
+    def version(self) -> str:
+        return '_'.join([str(logger.version) for logger in self._logger_iterable])
