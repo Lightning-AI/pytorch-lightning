@@ -620,7 +620,7 @@ class TrainerTrainLoopMixin(ABC):
         # update progress bar
         if batch_idx % self.progress_bar_refresh_rate == 0:
             self.main_progress_bar.update(1)
-        self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
+            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
