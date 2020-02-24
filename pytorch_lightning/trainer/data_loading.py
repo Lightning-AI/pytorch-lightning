@@ -149,7 +149,6 @@ class TrainerDataLoadingMixin(ABC):
         self.num_training_batches = 0
 
         # automatically add samplers
-        import pdb; pdb.set_trace()
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         # determine number of training batches
