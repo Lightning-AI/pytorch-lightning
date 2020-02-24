@@ -672,9 +672,9 @@ class Trainer(TrainerIOMixin,
         self.num_val_batches = 0
         self.num_training_batches = 0
         self.num_test_batches = 0
-        self.get_train_dataloader = None
-        self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.train_dataloader = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
         self.is_iterable_train_dataloader = False
 
         # training state
@@ -1011,7 +1011,7 @@ class Trainer(TrainerIOMixin,
         self.register_slurm_signal_handlers()
 
         # transfer data loaders from model
-        self.get_dataloaders(ref_model)
+        self.setup_dataloaders(ref_model)
 
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:

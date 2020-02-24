@@ -2,6 +2,9 @@ import warnings
 from abc import ABC
 
 import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import RandomSampler, SequentialSampler
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     # loading for pyTorch 1.3
@@ -14,9 +17,6 @@ except ImportError:
     EXIST_ITER_DATASET = False
 else:
     EXIST_ITER_DATASET = True
-from torch.utils.data.distributed import DistributedSampler
-
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -64,13 +64,70 @@ class TrainerDataLoadingMixin(ABC):
         if not 0. <= value <= 1.:
             raise ValueError(msg)
 
-    def init_train_dataloader(self, model):
+    def call_prepare_data(self, model):
+        """
+        Let model download the data on proc==0 only
+        :param model:
+        """
+        # download data on DDP+
+        if self.use_ddp or self.use_ddp2:
+            if self.proc_rank == 0:
+                model.prepare_data()
+
+            # all processes wait until data download has happened
+            dist.barrier()
+
+        # data download/load on TPU
+        elif self.use_tpu and XLA_AVAILABLE:
+            if self.tpu_local_core_rank == 0:
+                model.prepare_data()
+
+            # all processes wait until data download has happened
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
+
+        else:
+            # regular download
+            model.prepare_data()
+
+    def auto_add_sampler(self, dataloader, train):
+        # TODO: verify
+        # do nothing when user gives a sampler
+        if dataloader.sampler is not None:
+            return
+
+        if train:
+            if self.use_ddp or self.use_ddp2:
+                self.train_dataloader.sampler = DistributedSampler(self.train_dataloader.dataset)
+            elif self.use_tpu:
+                sampler = DistributedSampler(
+                    self.train_dataloader.dataset,
+                    num_replicas=xm.xrt_world_size(),
+                    rank=xm.get_ordinal()
+                )
+                self.train_dataloader.sampler = sampler
+            else:
+                self.train_dataloader.sampler = RandomSampler(self.train_dataloader.dataset)
+
+        # on not train
+        else:
+            if self.use_tpu:
+                sampler = DistributedSampler(
+                    self.train_dataloader.dataset,
+                    num_replicas=xm.xrt_world_size(),
+                    rank=xm.get_ordinal()
+                )
+                self.train_dataloader.sampler = sampler
+            else:
+                self.train_dataloader.sampler = SequentialSampler(self.train_dataloader.dataset)
+
+    def reset_train_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
         :return:
         """
-        self.trigger_data_downloads(model.train_dataloader, 'train_dataloader')
+        self.train_dataloader = self.request_data_loader(model.train_dataloader)
+        self.num_training_batches = 0
 
         # determine number of training batches
         if EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset):
@@ -97,36 +154,16 @@ class TrainerDataLoadingMixin(ABC):
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
 
-        on_ddp = self.use_ddp or self.use_ddp2
-        needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and not isinstance(self.train_dataloader.sampler, DistributedSampler):
-            msg = """
-            You're using multiple gpus and multiple nodes, or TPUs without using a
-            to assign a subset of your data to each process. To silence this warning, pass a
-            DistributedSampler to your DataLoader.
+        # automatically add samplers
+        self.auto_add_sampler(self.train_dataloader, train=True)
 
-            ie: this:
-            dataset = myDataset()
-            dataloader = Dataloader(dataset)
-
-            becomes:
-            dataset = myDataset()
-            dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-            dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-            If you want each process to load the full dataset, ignore this warning.
-            """
-            if msg not in self.shown_warnings and self.proc_rank == 0:
-                self.shown_warnings.add(msg)
-                warnings.warn(msg)
-
-    def init_val_dataloader(self, model):
+    def reset_val_dataloader(self, model):
         """
         Dataloaders are provided by the model
         :param model:
         :return:
         """
-        self.trigger_data_downloads(model.val_dataloader, 'val_dataloaders')
+        self.val_dataloaders = self.request_data_loader(model.val_dataloader)
         self.num_val_batches = 0
 
         # determine number of validation batches
@@ -137,41 +174,17 @@ class TrainerDataLoadingMixin(ABC):
             self.num_val_batches = sum(len(dataloader) for dataloader in self.val_dataloaders)
             self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
 
-        on_ddp = self.use_ddp or self.use_ddp2
-        needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and self.val_dataloaders is not None:
-            for dataloader in self.val_dataloaders:
-                if not isinstance(dataloader.sampler, DistributedSampler):
-                    msg = """
-                    Your val_dataloader(s) don't use DistributedSampler.
+        # add samplers
+        for dataloader in self.val_dataloaders:
+            self.auto_add_sampler(dataloader, train=False)
 
-                    You're using multiple gpus and multiple nodes, or TPUs without using a
-                    DistributedSampler to assign a subset of your data to each process.
-                    To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                    ie: this:
-                    dataset = myDataset()
-                    dataloader = Dataloader(dataset)
-
-                    becomes:
-                    dataset = myDataset()
-                    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                    dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                    If you want each process to load the full dataset, ignore this warning.
-                    """
-                    if msg not in self.shown_warnings and self.proc_rank == 0:
-                        self.shown_warnings.add(msg)
-                        warnings.warn(msg)
-                    break
-
-    def init_test_dataloader(self, model):
+    def reset_test_dataloader(self, model):
         """Dataloaders are provided by the model.
 
         :param model:
         """
-
-        self.trigger_data_downloads(model.test_dataloader, 'test_dataloaders')
+        # get actual loader
+        self.test_dataloaders = self.request_data_loader(model.test_dataloader)
         self.num_test_batches = 0
 
         # determine number of test batches
@@ -182,99 +195,56 @@ class TrainerDataLoadingMixin(ABC):
             self.num_test_batches = len_sum
             self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
 
-        on_ddp = self.use_ddp or self.use_ddp2
-        needs_sampler = on_ddp or self.use_tpu
-        if needs_sampler and self.test_dataloaders is not None:
-            for dataloader in self.test_dataloaders:
-                if not isinstance(dataloader.sampler, DistributedSampler):
-                    msg = """
-                    Your `test_dataloader(s)` don't use DistributedSampler.
+        # add samplers
+        for dataloader in self.test_dataloaders:
+            self.auto_add_sampler(dataloader, train=False)
 
-                    You're using multiple gpus and multiple nodes, or TPUs without using a
-                    DistributedSampler to assign a subset of your data to each process.
-                    To silence this warning, pass a DistributedSampler to your DataLoader.
-
-                    ie: this::
-
-                        dataset = myDataset()
-                        dataloader = Dataloader(dataset)
-
-                    becomes::
-
-                        dataset = myDataset()
-                        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-                        dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-                    If you want each process to load the full dataset, ignore this warning.
-                    """
-                    if msg not in self.shown_warnings and self.proc_rank == 0:
-                        self.shown_warnings.add(msg)
-                        warnings.warn(msg)
-                    break
-
-    def trigger_data_downloads(self, dataloader_fx, dataloader_name):
+    def request_data_loader(self, data_loader_fx):
         """
         Handles downloading data in the GPU or TPU case.
 
-        :param dataloader_fx:
-        :param dataloader_name:
+        :param data_loader_fx:
         :return:
         """
         # get the function we'll use to get data
-
-        # data download/load on GPU
         if self.use_ddp or self.use_ddp2:
-            if self.proc_rank == 0:
-                dataloader = dataloader_fx()
-                self.__setattr__(dataloader_name, dataloader)
-
-            # all processes wait until data download has happened
-            dist.barrier()
-
-            # get data from all other processes
-            if self.proc_rank != 0:
-                dataloader = dataloader_fx()
-                self.__setattr__(dataloader_name, dataloader)
+            data_loader = data_loader_fx()
 
             # all processes wait until data download has happened
             dist.barrier()
 
         # data download/load on TPU
         elif self.use_tpu and XLA_AVAILABLE:
-            if self.tpu_local_core_rank == 0:
-                dataloader = dataloader_fx()
-                self.__setattr__(dataloader_name, dataloader)
-
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
-
-            # get data from all other processes
-            if self.proc_rank != 0:
-                dataloader = dataloader_fx()
-                self.__setattr__(dataloader_name, dataloader)
+            data_loader = data_loader_fx()
 
             # all processes wait until data download has happened
             torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
 
         # regular start
         else:
-            dataloader = dataloader_fx()
-            self.__setattr__(dataloader_name, dataloader)
+            data_loader = data_loader_fx()
 
-    def get_dataloaders(self, model):
+        return data_loader
+
+    def setup_dataloaders(self, model):
         """
-        Dataloaders are provided by the model
+        Give the model a chance to provide the dataloaders and get data
         :param model:
         :return:
         """
 
-        self.init_train_dataloader(model)
-        self.init_val_dataloader(model)
-        self.init_test_dataloader(model)
+        # download the data
+        self.call_prepare_data(model)
+
+        # load the dataloaders
+        self.reset_train_dataloader(model)
+        self.reset_val_dataloader(model)
+        self.reset_test_dataloader(model)
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.get_train_dataloader().dataset, IterableDataset))
+            EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
+        )
         if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for `train_dataloader`,
