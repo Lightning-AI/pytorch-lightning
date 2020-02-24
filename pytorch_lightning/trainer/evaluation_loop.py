@@ -165,9 +165,10 @@ class TrainerEvaluationLoopMixin(ABC):
         self.checkpoint_callback = None
         self.current_epoch = None
         self.callback_metrics = None
-        self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
         self.use_tpu = None
+        self.reload_dataloaders_every_epoch = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -201,6 +202,16 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def log_metrics(self, metrics, grad_norm_dic):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def reset_test_dataloader(self):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def reset_val_dataloader(self):
         # this is just empty shell for code from other class
         pass
 
@@ -299,11 +310,15 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # select dataloaders
         if test:
-            dataloaders = self.get_test_dataloaders()
+            if self.reload_dataloaders_every_epoch:
+                self.reset_test_dataloader(model)
+            dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
         else:
             # val
-            dataloaders = self.get_val_dataloaders()
+            if self.reload_dataloaders_every_epoch:
+                self.reset_val_dataloader(model)
+            dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
         # cap max batches to 1 when using fast_dev_run
