@@ -25,6 +25,15 @@ try:
 except ImportError:
     APEX_AVAILABLE = False
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    XLA_AVAILABLE = True
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class TrainerDataLoadingMixin(ABC):
 
@@ -217,11 +226,14 @@ class TrainerDataLoadingMixin(ABC):
 
         # on TPUs load each dataloader only on process 0
         # this will trigger the data downloads
-        if self.use_tpu:
+        if self.use_tpu and XLA_AVAILABLE:
             if self.tpu_local_core_rank == 0:
                 self.get_train_dataloader()
                 self.get_test_dataloaders()
                 self.get_val_dataloaders()
+
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
 
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
