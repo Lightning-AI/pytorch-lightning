@@ -211,32 +211,6 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-def test_ddp_sampler_error(tmpdir):
-    """Make sure DDP + AMP work."""
-    if not tutils.can_run_gpu_test():
-        return
-
-    tutils.reset_seed()
-    tutils.set_random_master_port()
-
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
-
-    logger = tutils.get_test_tube_logger(tmpdir, True)
-
-    trainer = Trainer(
-        logger=logger,
-        show_progress_bar=False,
-        max_epochs=1,
-        gpus=[0, 1],
-        distributed_backend='ddp',
-        precision=16
-    )
-
-    with pytest.warns(UserWarning):
-        trainer.get_dataloaders(model)
-
-
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
