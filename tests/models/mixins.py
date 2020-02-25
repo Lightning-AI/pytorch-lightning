@@ -434,6 +434,7 @@ class LightningTestFitMultipleTestDataloadersMixin:
             })
             return output
 
+
 class LightningValStepFitSingleDataloaderMixin:
     def validation_step(self, batch, batch_idx):
         """

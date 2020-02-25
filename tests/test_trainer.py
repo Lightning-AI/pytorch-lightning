@@ -608,6 +608,8 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False),
                        test_dataloaders=model._dataloader(train=False))
+
+    import pdb; pdb.set_trace()
     results = trainer.fit(model, **fit_options)
 
     assert len(trainer.val_dataloaders) == 1, \
