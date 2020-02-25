@@ -32,6 +32,7 @@ def main(hparams):
         gpus=hparams.gpus,
         distributed_backend=hparams.distributed_backend,
         use_amp=hparams.use_16bit
+        max_epochs=hparams.epochs
     )
 
     # ------------------------
