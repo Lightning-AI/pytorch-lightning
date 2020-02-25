@@ -1,4 +1,5 @@
 import collections
+import inspect
 import logging as log
 import csv
 import os
@@ -15,6 +16,14 @@ from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
@@ -57,6 +66,26 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         #: True if using amp
         self.use_amp = False
+
+    def print(self, *args, **kwargs):
+        r"""
+        Prints only from process 0. Use this in any distributed mode to log only once
+
+        Args:
+            x (object): The thing to print
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                self.print(x, 'in loader')
+
+        """
+        if self.trainer.proc_rank == 0:
+            print(*args, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
@@ -798,7 +827,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 optimizer.zero_grad()
 
         """
-        if isinstance(optimizer, torch.optim.LBFGS):
+        if self.trainer.use_tpu and XLA_AVAILABLE:
+            xm.optimizer_step(optimizer)
+        elif isinstance(optimizer, torch.optim.LBFGS):
             optimizer.step(second_order_closure)
         else:
             optimizer.step()
@@ -868,7 +899,33 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return splits
 
-    @data_loader
+    def prepare_data(self):
+        """Use this to download and prepare data.
+        In distributed (GPU, TPU), this will only be called once
+
+        :return: PyTorch DataLoader
+
+        This is called before requesting the dataloaders
+
+        .. code-block:: python
+
+            model.prepare_data()
+            model.train_dataloader()
+            model.val_dataloader()
+            model.test_dataloader()
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            def prepare_data(self):
+                download_imagenet()
+                clean_imagenet()
+                cache_imagenet()
+        """
+        return None
+
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -908,7 +965,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
-    @data_loader
     def test_dataloader(self):
         r"""
 
@@ -942,7 +998,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-    @data_loader
     def val_dataloader(self):
         r"""
 
@@ -1058,13 +1113,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
 
-        # load the state_dict on the model automatically
-        model = cls(hparams)
-        model.load_state_dict(checkpoint['state_dict'])
+        # add the hparams from csv file to checkpoint
+        checkpoint['hparams'] = vars(hparams)
 
-        # give model a chance to load something
-        model.on_load_checkpoint(checkpoint)
-
+        model = cls._load_model_state(checkpoint)
         return model
 
     @classmethod
@@ -1129,17 +1181,36 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
-        try:
-            ckpt_hparams = checkpoint['hparams']
-        except KeyError:
-            raise IOError(
-                "Checkpoint does not contain hyperparameters. Are your model hyperparameters stored"
-                "in self.hparams?"
-            )
-        hparams = Namespace(**ckpt_hparams)
+        model = cls._load_model_state(checkpoint)
+        return model
+
+    @classmethod
+    def _load_model_state(cls, checkpoint):
+        cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
+        ckpt_hparams = checkpoint.get('hparams')
+
+        if cls_takes_hparams:
+            if ckpt_hparams is not None:
+                hparams = Namespace(**ckpt_hparams)
+            else:
+                warnings.warn(
+                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
+                    " argument 'hparams'. Will pass in an empty Namespace instead."
+                    " Did you forget to store your model hyperparameters in self.hparams?"
+                )
+                hparams = Namespace()
+        else:  # The user's LightningModule does not define a hparams argument
+            if ckpt_hparams is None:
+                hparams = None
+            else:
+                raise MisconfigurationException(
+                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ is missing the"
+                    " argument 'hparams'. Are you loading the correct checkpoint?"
+                )
 
         # load the state_dict on the model automatically
-        model = cls(hparams)
+        model_args = [hparams] if hparams else []
+        model = cls(*model_args)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something

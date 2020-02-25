@@ -17,6 +17,10 @@ from tests.models import (
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
+    LightningTestFitSingleTestDataloadersMixin,
+    LightningTestFitMultipleTestDataloadersMixin,
+    LightningValStepFitMultipleDataloadersMixin,
+    LightningValStepFitSingleDataloaderMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -405,11 +409,11 @@ def test_multiple_val_dataloader(tmpdir):
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.get_val_dataloaders()) == 2, \
+    assert len(trainer.val_dataloaders) == 2, \
         'Multiple val_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
-    for dataloader in trainer.get_val_dataloaders():
+    for dataloader in trainer.val_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
 
@@ -506,12 +510,14 @@ def test_multiple_test_dataloader(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
+    trainer.test()
+
     # verify there are 2 val loaders
-    assert len(trainer.get_test_dataloaders()) == 2, \
+    assert len(trainer.test_dataloaders) == 2, \
         'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
-    for dataloader in trainer.get_test_dataloaders():
+    for dataloader in trainer.test_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
@@ -523,7 +529,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
@@ -549,7 +555,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningValStepFitSingleDataloaderMixin,
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
@@ -567,10 +574,11 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False))
+
     results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
@@ -578,7 +586,9 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningValStepFitSingleDataloaderMixin,
+        LightningTestFitSingleTestDataloadersMixin,
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
@@ -596,14 +606,17 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False),
+                       test_dataloaders=model._dataloader(train=False))
+
     results = trainer.fit(model, **fit_options)
 
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    trainer.test()
+
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -611,7 +624,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningValStepFitMultipleDataloadersMixin,
+        LightningTestFitMultipleTestDataloadersMixin,
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
@@ -629,16 +644,17 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=[model._dataloader(train=False),
-                                       model._dataloader(train=False)],
-                       test_dataloader=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
+                       val_dataloaders=[model._dataloader(train=False),
+                                        model._dataloader(train=False)],
+                       test_dataloaders=[model._dataloader(train=False),
+                                         model._dataloader(train=False)])
     results = trainer.fit(model, **fit_options)
+    trainer.test()
 
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 2, \
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 2, \
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -646,7 +662,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBase
+        LightningValStepFitSingleDataloaderMixin,
+        LightningTestFitSingleTestDataloadersMixin,
+        LightningTestModelBase,
     ):
         pass
 
@@ -663,18 +681,20 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False),
+                       test_dataloaders=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    trainer.test()
+
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def _init_steps_model():
@@ -760,6 +780,30 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
+
+
+def test_testpass_overrides(tmpdir):
+    hparams = tutils.get_hparams()
+    from pytorch_lightning.utilities.debugging import MisconfigurationException
+
+    class TestModelNoEnd(LightningTestModelBase):
+        def test_step(self, *args, **kwargs):
+            return {}
+
+        def test_dataloader(self):
+            return self.train_dataloader()
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LightningTestModelBase(hparams)
+        Trainer().test(model)
+
+    # No exceptions when one or both of test_step or test_end are implemented
+    model = TestModelNoEnd(hparams)
+    Trainer().test(model)
+
+    model = LightningTestModel(hparams)
+    Trainer().test(model)
 
 
 # if __name__ == '__main__':
