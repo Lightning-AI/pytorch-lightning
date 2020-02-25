@@ -248,7 +248,7 @@ def test_dp_resume(tmpdir):
         dp_model = new_trainer.model
         dp_model.eval()
 
-        dataloader = trainer.get_train_dataloader()
+        dataloader = trainer.train_dataloader
         tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
