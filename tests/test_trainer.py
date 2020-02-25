@@ -793,6 +793,40 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
+def test_benchmark_option(tmpdir):
+    """Verify benchmark option."""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightningValidationMultipleDataloadersMixin,
+        LightningTestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # verify torch.backends.cudnn.benchmark is not turned on
+    assert not torch.backends.cudnn.benchmark
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        benchmark=True,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    # verify torch.backends.cudnn.benchmark is not turned off
+    assert torch.backends.cudnn.benchmark
+
+
 def test_testpass_overrides(tmpdir):
     hparams = tutils.get_hparams()
 
