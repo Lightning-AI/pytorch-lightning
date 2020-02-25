@@ -122,7 +122,7 @@ def test_running_test_without_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
-    class CurrentTestModel(TestModelBase, LightTrainDataloader, LightTestMixin):
+    class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
         pass
 
     hparams = tutils.get_hparams()
@@ -282,7 +282,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(TestModelBase, LightTrainDataloader):
+    class BpttTestModel(LightTrainDataloader, TestModelBase):
         def __init__(self, hparams):
             super().__init__(hparams)
             self.test_hidden = None
