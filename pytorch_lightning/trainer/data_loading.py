@@ -221,9 +221,8 @@ class TrainerDataLoadingMixin(ABC):
 
         :param model:
         """
-        # this violate test on `step_end`
-        # if not self.is_overriden('test_step'):
-        #     return
+        if not self.is_overriden('test_step'):
+            return
 
         # get actual loader
         self.test_dataloaders = self.request_data_loader(model.test_dataloader)
