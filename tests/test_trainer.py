@@ -17,8 +17,10 @@ from tests.models import (
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
-    LightningTestStepNoDataloadersMixin,
-    LightningValStepNoDataloadersMixin
+    LightningTestFitSingleTestDataloadersMixin,
+    LightningTestFitMultipleTestDataloadersMixin,
+    LightningValStepFitMultipleDataloadersMixin,
+    LightningValStepFitSingleDataloaderMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -553,7 +555,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningValStepNoDataloadersMixin,
+        LightningValStepFitSingleDataloaderMixin,
         LightningTestModelBaseWithoutDataloader,
     ):
         pass
@@ -584,8 +586,8 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningValStepNoDataloadersMixin,
-        LightningTestStepNoDataloadersMixin,
+        LightningValStepFitSingleDataloaderMixin,
+        LightningTestFitSingleTestDataloadersMixin,
         LightningTestModelBaseWithoutDataloader,
     ):
         pass
@@ -619,8 +621,8 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningValStepNoDataloadersMixin,
-        LightningTestStepNoDataloadersMixin,
+        LightningValStepFitMultipleDataloadersMixin,
+        LightningTestFitMultipleTestDataloadersMixin,
         LightningTestModelBaseWithoutDataloader,
     ):
         pass
@@ -657,8 +659,8 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     class CurrentTestModel(
         LightningTestModelBase,
-        LightningValStepNoDataloadersMixin,
-        LightningTestStepNoDataloadersMixin
+        LightningValStepFitSingleDataloaderMixin,
+        LightningTestFitSingleTestDataloadersMixin
     ):
         pass
 
@@ -675,7 +677,7 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
 
     # fit model

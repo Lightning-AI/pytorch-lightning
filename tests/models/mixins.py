@@ -339,8 +339,53 @@ class LightningTestStepMultipleDataloadersMixin:
             return output
 
 
-class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
+class LightningTestFitSingleTestDataloadersMixin:
     def test_step(self, batch, batch_idx):
+        """
+        Lightning calls this inside the validation loop
+        :param batch:
+        :return:
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self.forward(x)
+
+        loss_test = self.loss(y, y_hat)
+
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        test_acc = torch.tensor(test_acc)
+
+        if self.on_gpu:
+            test_acc = test_acc.cuda(loss_test.device.index)
+
+        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
+        if self.trainer.use_dp:
+            loss_test = loss_test.unsqueeze(0)
+            test_acc = test_acc.unsqueeze(0)
+
+        # alternate possible outputs to test
+        if batch_idx % 1 == 0:
+            output = OrderedDict({
+                'test_loss': loss_test,
+                'test_acc': test_acc,
+            })
+            return output
+        if batch_idx % 2 == 0:
+            return test_acc
+
+        if batch_idx % 3 == 0:
+            output = OrderedDict({
+                'test_loss': loss_test,
+                'test_acc': test_acc,
+                'test_dic': {'test_loss_a': loss_test}
+            })
+            return output
+
+
+class LightningTestFitMultipleTestDataloadersMixin:
+    def test_step(self, batch, batch_idx, dataloader_idx):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -389,9 +434,53 @@ class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMi
             })
             return output
 
-
-class LightningValStepNoDataloadersMixin:
+class LightningValStepFitSingleDataloaderMixin:
     def validation_step(self, batch, batch_idx):
+        """
+        Lightning calls this inside the validation loop
+        :param batch:
+        :return:
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self.forward(x)
+
+        loss_val = self.loss(y, y_hat)
+
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        val_acc = torch.tensor(val_acc)
+
+        if self.on_gpu:
+            val_acc = val_acc.cuda(loss_val.device.index)
+
+        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
+        if self.trainer.use_dp:
+            loss_val = loss_val.unsqueeze(0)
+            val_acc = val_acc.unsqueeze(0)
+
+        # alternate possible outputs to test
+        if batch_idx % 1 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            })
+            return output
+        if batch_idx % 2 == 0:
+            return val_acc
+
+        if batch_idx % 3 == 0:
+            output = OrderedDict({
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+                'test_dic': {'val_loss_a': loss_val}
+            })
+            return output
+
+
+class LightningValStepFitMultipleDataloadersMixin:
+    def validation_step(self, batch, batch_idx, dataloader_idx):
         """
         Lightning calls this inside the validation loop
         :param batch:
