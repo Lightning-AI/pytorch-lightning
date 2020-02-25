@@ -5,7 +5,7 @@ import torch
 from pytorch_lightning.core.decorators import data_loader
 
 
-class LightningValidationStepMixin:
+class LightValidationStepMixin:
     """
     Add val_dataloader and validation_step methods for the case
     when val_dataloader returns a single dataloader
@@ -14,7 +14,7 @@ class LightningValidationStepMixin:
     def val_dataloader(self):
         return self._dataloader(train=False)
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -58,7 +58,7 @@ class LightningValidationStepMixin:
             return output
 
 
-class LightningValidationMixin(LightningValidationStepMixin):
+class LightValidationMixin(LightValidationStepMixin):
     """
     Add val_dataloader, validation_step, and validation_end methods for the case
     when val_dataloader returns a single dataloader
@@ -76,7 +76,7 @@ class LightningValidationMixin(LightningValidationStepMixin):
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
-            val_loss = output['val_loss']
+            val_loss = _get_output_metric(output, 'val_loss')
 
             # reduce manually when using dp
             if self.trainer.use_dp or self.trainer.use_ddp2:
@@ -84,7 +84,7 @@ class LightningValidationMixin(LightningValidationStepMixin):
             val_loss_mean += val_loss
 
             # reduce manually when using dp
-            val_acc = output['val_acc']
+            val_acc = _get_output_metric(output, 'val_acc')
             if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_acc = torch.mean(val_acc)
 
@@ -98,7 +98,7 @@ class LightningValidationMixin(LightningValidationStepMixin):
         return results
 
 
-class LightningValidationStepMultipleDataloadersMixin:
+class LightValidationStepMultipleDataloadersMixin:
     """
     Add val_dataloader and validation_step methods for the case
     when val_dataloader returns multiple dataloaders
@@ -107,7 +107,7 @@ class LightningValidationStepMultipleDataloadersMixin:
     def val_dataloader(self):
         return [self._dataloader(train=False), self._dataloader(train=False)]
 
-    def validation_step(self, batch, batch_idx, dataloader_idx):
+    def validation_step(self, batch, batch_idx, dataloader_idx, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -157,7 +157,7 @@ class LightningValidationStepMultipleDataloadersMixin:
             return output
 
 
-class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipleDataloadersMixin):
+class LightValidationMultipleDataloadersMixin(LightValidationStepMultipleDataloadersMixin):
     """
     Add val_dataloader, validation_step, and validation_end methods for the case
     when val_dataloader returns multiple dataloaders
@@ -200,12 +200,31 @@ class LightningValidationMultipleDataloadersMixin(LightningValidationStepMultipl
         return result
 
 
-class LightningTestStepMixin:
+class LightTrainDataloader:
+    """Simple train dataloader."""
+
+    def train_dataloader(self):
+        return self._dataloader(train=True)
+
+
+class LightTestDataloader:
+    """Simple test dataloader."""
 
     def test_dataloader(self):
         return self._dataloader(train=False)
 
-    def test_step(self, batch, batch_idx):
+
+class LightEmptyTestStep:
+    """Empty test step."""
+
+    def test_step(self, *args, **kwargs):
+        return dict()
+
+
+class LightTestStepMixin(LightTestDataloader):
+    """Test step mixin."""
+
+    def test_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -249,7 +268,9 @@ class LightningTestStepMixin:
             return output
 
 
-class LightningTestMixin(LightningTestStepMixin):
+class LightTestMixin(LightTestStepMixin):
+    """Ritch test mixin."""
+
     def test_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
@@ -262,7 +283,7 @@ class LightningTestMixin(LightningTestStepMixin):
         test_loss_mean = 0
         test_acc_mean = 0
         for output in outputs:
-            test_loss = output['test_loss']
+            test_loss = _get_output_metric(output, 'test_loss')
 
             # reduce manually when using dp
             if self.trainer.use_dp:
@@ -270,7 +291,7 @@ class LightningTestMixin(LightningTestStepMixin):
             test_loss_mean += test_loss
 
             # reduce manually when using dp
-            test_acc = output['test_acc']
+            test_acc = _get_output_metric(output, 'test_acc')
             if self.trainer.use_dp:
                 test_acc = torch.mean(test_acc)
 
@@ -284,12 +305,13 @@ class LightningTestMixin(LightningTestStepMixin):
         return result
 
 
-class LightningTestStepMultipleDataloadersMixin:
+class LightTestStepMultipleDataloadersMixin:
+    """Test step multiple dataloaders mixin."""
 
     def test_dataloader(self):
         return [self._dataloader(train=False), self._dataloader(train=False)]
 
-    def test_step(self, batch, batch_idx, dataloader_idx):
+    def test_step(self, batch, batch_idx, dataloader_idx, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -339,8 +361,10 @@ class LightningTestStepMultipleDataloadersMixin:
             return output
 
 
-class LightningTestFitSingleTestDataloadersMixin:
-    def test_step(self, batch, batch_idx):
+class LightTestFitSingleTestDataloadersMixin:
+    """Test fit single test dataloaders mixin."""
+
+    def test_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -384,8 +408,10 @@ class LightningTestFitSingleTestDataloadersMixin:
             return output
 
 
-class LightningTestFitMultipleTestDataloadersMixin:
-    def test_step(self, batch, batch_idx, dataloader_idx):
+class LightTestFitMultipleTestDataloadersMixin:
+    """Test fit multiple test dataloaders mixin."""
+
+    def test_step(self, batch, batch_idx, dataloader_idx, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -435,8 +461,9 @@ class LightningTestFitMultipleTestDataloadersMixin:
             return output
 
 
-class LightningValStepFitSingleDataloaderMixin:
-    def validation_step(self, batch, batch_idx):
+class LightValStepFitSingleDataloaderMixin:
+
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -480,8 +507,9 @@ class LightningValStepFitSingleDataloaderMixin:
             return output
 
 
-class LightningValStepFitMultipleDataloadersMixin:
-    def validation_step(self, batch, batch_idx, dataloader_idx):
+class LightValStepFitMultipleDataloadersMixin:
+
+    def validation_step(self, batch, batch_idx, dataloader_idx, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -531,7 +559,8 @@ class LightningValStepFitMultipleDataloadersMixin:
             return output
 
 
-class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
+class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
+
     def test_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
@@ -567,3 +596,11 @@ class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloaders
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
         result = {'progress_bar': tqdm_dict}
         return result
+
+
+def _get_output_metric(output, name):
+    if isinstance(output, dict):
+        val = output[name]
+    else:  # if it is 2level deep -> per dataloader and per batch
+        val = sum(out[name] for out in output) / len(output)
+    return val

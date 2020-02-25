@@ -84,7 +84,7 @@ class Trainer(TrainerIOMixin,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
-            accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
+            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             max_epochs: int = 1000,
@@ -681,7 +681,6 @@ class Trainer(TrainerIOMixin,
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
-        self.is_iterable_train_dataloader = False
 
         # training state
         self.model = None
@@ -1068,7 +1067,7 @@ class Trainer(TrainerIOMixin,
         if self.testing:
             # only load test dataloader for testing
             self.reset_test_dataloader(ref_model)
-            self.run_evaluation(test=True)
+            self.run_evaluation(test_mode=True)
             return
 
         # load the dataloaders
@@ -1087,15 +1086,17 @@ class Trainer(TrainerIOMixin,
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
-                             total=self.num_sanity_val_steps * len(self.val_dataloaders),
-                             leave=False, position=2 * self.process_position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True)
+                        total=self.num_sanity_val_steps * len(self.val_dataloaders),
+                        leave=False, position=2 * self.process_position,
+                        disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model, self.val_dataloaders,
-                                         self.num_sanity_val_steps, False)
+            eval_results = self.evaluate(model,
+                                         self.val_dataloaders,
+                                         self.num_sanity_val_steps,
+                                         False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
@@ -1145,5 +1146,4 @@ class Trainer(TrainerIOMixin,
         self.testing = True
         if model is not None:
             self.fit(model)
-        else:
-            self.run_evaluation(test=True)
+        self.run_evaluation(test_mode=True)
