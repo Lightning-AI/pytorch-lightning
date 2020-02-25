@@ -344,7 +344,7 @@ class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMi
         return None
 
 
-class LightningValStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
+class LightningValStepNoDataloadersMixin(LightningValidationStepMultipleDataloadersMixin):
     def val_dataloader(self):
         return None
 
