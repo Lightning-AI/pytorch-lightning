@@ -29,6 +29,7 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
+        pass
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -38,6 +39,7 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
+        pass
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
@@ -46,9 +48,11 @@ class LightningLoggerBase(ABC):
         Args:
             params: argparse.Namespace containing the hyperparameters
         """
+        pass
 
     def save(self):
         """Save log data."""
+        pass
 
     def finalize(self, status: str):
         """Do any processing that is necessary to finalize an experiment.
@@ -56,9 +60,11 @@ class LightningLoggerBase(ABC):
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
+        pass
 
     def close(self):
         """Do any cleanup that is necessary to close an experiment."""
+        pass
 
     @property
     def rank(self) -> int:
@@ -74,11 +80,13 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
+        pass
 
     @property
     @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
+        pass
 
 
 class LoggerCollection(LightningLoggerBase):
