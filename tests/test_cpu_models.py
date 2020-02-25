@@ -111,7 +111,6 @@ def test_running_test_after_fitting(tmpdir):
 
     assert result == 1, 'training failed to complete'
 
-    import pdb; pdb.set_trace()
     trainer.test()
 
     # test we have good test accuracy
