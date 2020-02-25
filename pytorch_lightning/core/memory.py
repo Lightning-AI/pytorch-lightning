@@ -18,9 +18,7 @@ from pytorch_lightning import LightningModule
 class ModelSummary(object):
 
     def __init__(self, model: LightningModule, mode: str = 'full'):
-        '''
-        Generates summaries of model layers and dimensions.
-        '''
+        """ Generates summaries of model layers and dimensions. """
         self.model = model
         self.mode = mode
         self.in_sizes = []
@@ -46,7 +44,7 @@ class ModelSummary(object):
         return list(mods)
 
     def get_variable_sizes(self):
-        '''Run sample input through each layer to get output sizes'''
+        """ Run sample input through each layer to get output sizes """
         mods = self.named_modules()
         in_sizes = []
         out_sizes = []
@@ -102,7 +100,7 @@ class ModelSummary(object):
         assert len(in_sizes) == len(out_sizes)
 
     def get_layer_names(self):
-        '''Collect Layer Names'''
+        """ Collect Layer Names """
         mods = self.named_modules()
         names = []
         layers = []
@@ -116,7 +114,7 @@ class ModelSummary(object):
         self.layer_types = layer_types
 
     def get_parameter_sizes(self):
-        '''Get sizes of all parameters in `model`'''
+        """ Get sizes of all parameters in `model` """
         mods = self.named_modules()
         sizes = []
         for _, m in mods:
@@ -127,7 +125,7 @@ class ModelSummary(object):
         self.param_sizes = sizes
 
     def get_parameter_nums(self):
-        '''Get number of parameters in each layer'''
+        """ Get number of parameters in each layer """
         param_nums = []
         for mod in self.param_sizes:
             all_params = 0
@@ -137,11 +135,11 @@ class ModelSummary(object):
         self.param_nums = param_nums
 
     def make_summary(self):
-        '''
+        """
         Makes a summary listing with:
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
-        '''
+        """
         arrays = [['Name', self.layer_names],
                   ['Type', self.layer_types],
                   ['Params', list(map(get_human_readable_count, self.param_nums))]]
@@ -150,7 +148,6 @@ class ModelSummary(object):
             arrays.append(['Out sizes', self.out_sizes])
 
         self.summary = _format_summary_table(*arrays)
-        return
 
     def summarize(self):
         self.get_layer_names()
@@ -163,11 +160,11 @@ class ModelSummary(object):
 
 
 def _format_summary_table(*cols) -> str:
-    '''
+    """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
     string defining the summary table that are nicely formatted.
-    '''
+    """
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
