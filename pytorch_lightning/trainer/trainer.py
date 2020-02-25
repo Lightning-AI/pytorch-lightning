@@ -876,25 +876,46 @@ class Trainer(TrainerIOMixin,
         return 1
 
     def init_optimizers(self, optimizers):
-        # single optimizer
+        # single output, single optimizer
         if isinstance(optimizers, Optimizer):
             return [optimizers], []
 
-        # two lists
-        if len(optimizers) == 2 and isinstance(optimizers[0], list):
+        # two lists, optimizer + lr schedulers
+        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
             lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
-
-        # single list or tuple
-        if isinstance(optimizers, (list, tuple)):
+      
+        # single list or tuple, multiple optimizer
+        elif isinstance(optimizers, (list, tuple)):
             return optimizers, []
-
+        
+        # unknown configuration
+        else:
+            raise ValueError('Unknown configuration for model optimizers. Output'
+                             'from model.configure_optimizers() should either be:'
+                             '* single output, single torch.optim.Optimizer'
+                             '* single output, list of torch.optim.Optimizer'
+                             '* two outputs, first being a list of torch.optim.Optimizer',
+                             'second being a list of torch.optim.lr_scheduler')
+            
     def configure_schedulers(self, schedulers):
+        # Determine number of steps for each scheduler
+        self.lr_steps = [ ]
+        for i, scheduler in enumerate(schedulers):
+            if isinstance(scheduler, (list, tuple)):
+                self.lr_steps.append(scheduler[1])
+                schedulers[i] = scheduler[0]
+            else:
+                self.lr_steps.append(None)
+
+        # Special case if scheduler is ReduceLROnPlateau
         for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 reduce_lr_on_plateau_scheduler = schedulers.pop(i)
+                self.lr_step_reduce_on_plateau = self.lr_steps.pop(i)
                 return schedulers, reduce_lr_on_plateau_scheduler
+
         return schedulers, None
 
     def run_pretrain_routine(self, model):

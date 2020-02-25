@@ -358,20 +358,10 @@ class TrainerTrainLoopMixin(ABC):
             # RUN TNG EPOCH
             # -----------------
             self.run_training_epoch()
-
-            # update LR schedulers
-            if self.lr_schedulers is not None:
-                for lr_scheduler in self.lr_schedulers:
-                    lr_scheduler.step()
-            if self.reduce_lr_on_plateau_scheduler is not None:
-                val_loss = self.callback_metrics.get('val_loss')
-                if val_loss is None:
-                    avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                    m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
-                        f'which is not available. Available metrics are: {avail_metrics}'
-                    raise MisconfigurationException(m)
-                self.reduce_lr_on_plateau_scheduler.step(val_loss)
-
+            
+            # update lr
+            self.update_lr()
+            
             # early stopping
             met_min_epochs = epoch >= self.min_epochs - 1
             if (self.enable_early_stop and not self.disable_validation and is_val_epoch and
@@ -430,7 +420,10 @@ class TrainerTrainLoopMixin(ABC):
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
-
+            
+            # update lr
+            self.update_lr(current_step=self.total_batch_idx)
+            
             # ---------------
             # RUN VAL STEP
             # ---------------
@@ -670,3 +663,30 @@ class TrainerTrainLoopMixin(ABC):
         output = self.process_output(output, train=True)
 
         return output
+    
+    def update_lr(self, current_step=None):
+        # update LR schedulers
+        if self.lr_schedulers is not None:
+            for lr_scheduler, lr_step in zip(self.lr_schedulers, self.lr_steps):
+                if current_step and lr_step:
+                    if current_step % lr_step == 0:
+                        lr_scheduler.step()
+                # if user did not supply lr_step, then this is invoked after after each epoch
+                elif current_step==None and lr_step==None:
+                    lr_scheduler.step()
+                    
+        if self.reduce_lr_on_plateau_scheduler is not None:
+            val_loss = self.callback_metrics.get('val_loss')
+            if val_loss is None:
+                avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
+                    f'which is not available. Available metrics are: {avail_metrics}'
+                raise MisconfigurationException(m)
+            
+            if current_step and self.lr_step_reduce_on_plateau:
+                if current_step % self.lr_step_reduce_on_plateau == 0:
+                    self.reduce_lr_on_plateau_scheduler.step(val_loss)
+                    print('LR UPDATE')
+            elif current_step==None and lr_step==None:
+                self.reduce_lr_on_plateau_scheduler.step(val_loss)
+                print('LR UPDATE')
