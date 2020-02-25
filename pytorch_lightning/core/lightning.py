@@ -16,6 +16,13 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
@@ -798,7 +805,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 optimizer.zero_grad()
 
         """
-        if isinstance(optimizer, torch.optim.LBFGS):
+        if self.trainer.use_tpu and XLA_AVAILABLE:
+            xm.optimizer_step(optimizer)
+        elif isinstance(optimizer, torch.optim.LBFGS):
             optimizer.step(second_order_closure)
         else:
             optimizer.step()
