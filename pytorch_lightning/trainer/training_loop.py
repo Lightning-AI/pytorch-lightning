@@ -197,7 +197,6 @@ class TrainerTrainLoopMixin(ABC):
         self.num_val_batches = None
         self.disable_validation = None
         self.fast_dev_run = None
-        self.is_iterable_train_dataloader = None
         self.main_progress_bar = None
         self.accumulation_scheduler = None
         self.lr_schedulers = None
@@ -227,6 +226,8 @@ class TrainerTrainLoopMixin(ABC):
         self.train_dataloader = None
         self.reload_dataloaders_every_epoch = None
         self.progress_bar_refresh_rate = None
+        self.max_steps = ...
+        self.max_steps = ...
 
     @property
     def max_nb_epochs(self):
@@ -257,7 +258,12 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
-    def run_evaluation(self, test):
+    def is_iterable_dataloader(self, dataloader):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def run_evaluation(self, test_mode):
         # this is just empty shell for code from other class
         pass
 
@@ -306,6 +312,11 @@ class TrainerTrainLoopMixin(ABC):
         # this is just empty shell for code from other class
         pass
 
+    @abstractmethod
+    def has_arg(self, f_name, arg_name):
+        # this is just empty shell for code from other class
+        pass
+
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
@@ -342,7 +353,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.fast_dev_run:
                     # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
                     num_iterations = 2
-                elif self.is_iterable_train_dataloader:
+                elif self.is_iterable_dataloader(self.train_dataloader):
                     # for iterable train loader, the progress bar never ends
                     num_iterations = None
                 else:
@@ -352,7 +363,7 @@ class TrainerTrainLoopMixin(ABC):
                 # .reset() doesn't work on disabled progress bar so we should check
                 if not self.main_progress_bar.disable:
                     self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}' if not self.is_iterable_train_dataloader else ''
+                desc = f'Epoch {epoch + 1}' if not self.is_iterable_dataloader(self.train_dataloader) else ''
                 self.main_progress_bar.set_description(desc)
 
                 # changing gradient according accumulation_scheduler
@@ -449,7 +460,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
-                self.run_evaluation(test=self.testing)
+                self.run_evaluation(test_mode=self.testing)
 
                 if self.enable_early_stop:
                     self.early_stop_callback.check_metrics(self.callback_metrics)
