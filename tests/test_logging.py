@@ -337,6 +337,10 @@ class CustomLogger(LightningLoggerBase):
         self.metrics_logged = None
         self.finalized = False
 
+    @property
+    def experiment(self):
+        return 'test'
+
     @rank_zero_only
     def log_hyperparams(self, params):
         self.hparams_logged = params
