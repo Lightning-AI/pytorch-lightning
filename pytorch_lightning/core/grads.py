@@ -7,7 +7,7 @@ from torch import nn
 
 class GradInformation(nn.Module):
 
-    def grad_norm(self, norm_type):
+    def grad_norm(self, norm_type: float) -> dict:
         results = {}
         total_norm = 0
         for name, p in self.named_parameters():
