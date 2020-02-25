@@ -260,11 +260,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model,
-                                                 batch,
-                                                 batch_idx,
-                                                 dataloader_idx,
-                                                 test_mode)
+                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
                 # track outputs for collation
                 dl_outputs.append(output)
@@ -301,9 +297,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self, test_mode: bool = False):
         # when testing make sure user defined a test step
-        if test_mode and self.is_overriden('test_step'):
-            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
-                    Please define and try again'''
+        if test_mode and not self.is_overriden('test_step'):
+            m = "You called `.test()` without defining model's `.test_step()`." \
+                " Please define and try again"
             raise MisconfigurationException(m)
 
         # hook
@@ -339,10 +335,7 @@ class TrainerEvaluationLoopMixin(ABC):
         setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation
-        eval_results = self.evaluate(self.model,
-                                     dataloaders,
-                                     max_batches,
-                                     test_mode)
+        eval_results = self.evaluate(self.model, dataloaders, max_batches, test_mode)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
             eval_results)
 

@@ -1086,15 +1086,17 @@ class Trainer(TrainerIOMixin,
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
-                             total=self.num_sanity_val_steps * len(self.val_dataloaders),
-                             leave=False, position=2 * self.process_position,
-                             disable=not self.show_progress_bar, dynamic_ncols=True)
+                        total=self.num_sanity_val_steps * len(self.val_dataloaders),
+                        leave=False, position=2 * self.process_position,
+                        disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model, self.val_dataloaders,
-                                         self.num_sanity_val_steps, False)
+            eval_results = self.evaluate(model,
+                                         self.val_dataloaders,
+                                         self.num_sanity_val_steps,
+                                         False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
