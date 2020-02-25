@@ -340,7 +340,7 @@ class LightningTestStepMultipleDataloadersMixin:
 
 
 class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
-    def test_step(self, batch, batch_idx, dataloader_idx):
+    def test_step(self, batch, batch_idx):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -391,7 +391,7 @@ class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMi
 
 
 class LightningValStepNoDataloadersMixin:
-    def validation_step(self, batch, batch_idx, dataloader_idx):
+    def validation_step(self, batch, batch_idx):
         """
         Lightning calls this inside the validation loop
         :param batch:
