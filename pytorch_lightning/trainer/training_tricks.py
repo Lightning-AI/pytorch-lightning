@@ -11,7 +11,7 @@ class TrainerTrainingTricksMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.gradient_clip_val = None
+        self.gradient_clip_val = ...
 
     @abstractmethod
     def get_model(self):

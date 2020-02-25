@@ -8,19 +8,19 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -28,20 +28,20 @@ class TrainerDataLoadingMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.proc_rank = None
-        self.use_ddp = None
-        self.use_ddp2 = None
-        self.shown_warnings = None
-        self.val_check_interval = None
-        self.use_tpu = None
-        self.tpu_local_core_rank = None
-        self.train_dataloader = None
-        self.num_training_batches = None
-        self.val_check_batch = None
-        self.val_dataloaders = None
-        self.num_val_batches = None
-        self.test_dataloaders = None
-        self.num_test_batches = None
+        self.proc_rank = ...
+        self.use_ddp = ...
+        self.use_ddp2 = ...
+        self.shown_warnings = ...
+        self.val_check_interval = ...
+        self.use_tpu = ...
+        self.tpu_local_core_rank = ...
+        self.train_dataloader = ...
+        self.num_training_batches = ...
+        self.val_check_batch = ...
+        self.val_dataloaders = ...
+        self.num_val_batches = ...
+        self.test_dataloaders = ...
+        self.num_test_batches = ...
 
     def _percent_range_check(self, name):
         value = getattr(self, name)

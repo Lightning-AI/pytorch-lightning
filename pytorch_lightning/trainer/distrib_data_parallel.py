@@ -125,10 +125,10 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerDDPMixin(ABC):
@@ -136,15 +136,15 @@ class TrainerDDPMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.num_gpus = None
-        self.on_gpu = None
-        self.num_gpu_nodes = None
-        self.logger = None
-        self.data_parallel_device_ids = None
-        self.distributed_backend = None
-        self.use_amp = None
-        self.amp_level = None
-        self.use_tpu = None
+        self.num_gpus = ...
+        self.on_gpu = ...
+        self.num_gpu_nodes = ...
+        self.logger = ...
+        self.data_parallel_device_ids = ...
+        self.distributed_backend = ...
+        self.use_amp = ...
+        self.amp_level = ...
+        self.use_tpu = ...
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):

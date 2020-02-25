@@ -348,17 +348,17 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla.core.xla_model as xm
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerDPMixin(ABC):
@@ -366,21 +366,21 @@ class TrainerDPMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.on_gpu = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.use_ddp = None
-        self.use_amp = None
-        self.testing = None
-        self.single_gpu = None
-        self.root_gpu = None
-        self.amp_level = None
-        self.precision = None
-        self.current_tpu_idx = None
-        self.proc_rank = None
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-        self.use_tpu = None
+        self.on_gpu = ...
+        self.use_dp = ...
+        self.use_ddp2 = ...
+        self.use_ddp = ...
+        self.use_amp = ...
+        self.testing = ...
+        self.single_gpu = ...
+        self.root_gpu = ...
+        self.amp_level = ...
+        self.precision = ...
+        self.current_tpu_idx = ...
+        self.proc_rank = ...
+        self.tpu_local_core_rank = ...
+        self.tpu_global_core_rank = ...
+        self.use_tpu = ...
 
     @abstractmethod
     def run_pretrain_routine(self, model):

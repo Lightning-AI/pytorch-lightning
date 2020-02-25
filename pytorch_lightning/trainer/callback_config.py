@@ -9,9 +9,10 @@ class TrainerCallbackConfigMixin(ABC):
     def __init__(self):
         # this is just a summary on variables used in this abstract class,
         #  the proper values/initialisation should be done in child class
-        self.default_save_path = None
-        self.save_checkpoint = None
-        self.slurm_job_id = None
+        self.default_save_path = ...
+        self.save_checkpoint = ...
+        self.slurm_job_id = ...
+        self.logger = ...
 
     def configure_checkpoint_callback(self):
         """
