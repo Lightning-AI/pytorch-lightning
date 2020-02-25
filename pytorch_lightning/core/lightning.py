@@ -65,6 +65,26 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         #: True if using amp
         self.use_amp = False
 
+    def print(self, *args, **kwargs):
+        r"""
+        Prints only from process 0. Use this in any distributed mode to log only once
+
+        Args:
+            x (object): The thing to print
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                self.print(x, 'in loader')
+
+        """
+        if self.trainer.proc_rank == 0:
+            print(*args, **kwargs)
+
     @abstractmethod
     def forward(self, *args, **kwargs):
         r"""
