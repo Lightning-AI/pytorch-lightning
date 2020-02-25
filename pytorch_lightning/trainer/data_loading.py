@@ -141,6 +141,7 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
+
         self.train_dataloader = self.request_data_loader(model.train_dataloader)
         self.num_training_batches = 0
 
@@ -190,6 +191,9 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
+        if not (self.is_overriden('validation_step') and self.is_overriden('validation_end')):
+            return
+
         self.val_dataloaders = self.request_data_loader(model.val_dataloader)
         if not isinstance(self.val_dataloaders, list):
             self.val_dataloaders = [self.val_dataloaders]
@@ -213,6 +217,9 @@ class TrainerDataLoadingMixin(ABC):
 
         :param model:
         """
+        if not (self.is_overriden('test_step') and self.is_overriden('test_end')):
+            return
+
         # get actual loader
         self.test_dataloaders = self.request_data_loader(model.test_dataloader)
         if not isinstance(self.test_dataloaders, list):
