@@ -20,7 +20,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import Trainer
+import pytorch_lightning as pl
 
 try:
     from apex import amp
@@ -119,7 +119,7 @@ class ModelHooks(torch.nn.Module):
 
         """
 
-    def backward(self, trainer: Trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int):
+    def backward(self, trainer: 'pl.Trainer', loss: Tensor, optimizer: Optimizer, optimizer_idx: int):
         """Override backward with your own implementation if you need to
 
         :param trainer: Pointer to the trainer
