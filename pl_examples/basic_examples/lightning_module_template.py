@@ -192,37 +192,35 @@ class LightningTemplateModel(pl.LightningModule):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+                        transform=transform, download=False)
 
         # when using multi-node (ddp) we need to add the  datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        if self.use_ddp:
-            train_sampler = DistributedSampler(dataset)
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler,
             num_workers=0
         )
 
         return loader
 
-    @pl.data_loader
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = MNIST(root=self.hparams.data_root, train=True,
+                        transform=transform, download=True)
+        dataset = MNIST(root=self.hparams.data_root, train=False,
+                        transform=transform, download=True)
+
     def train_dataloader(self):
         log.info('Training data loader called.')
         return self.__dataloader(train=True)
 
-    @pl.data_loader
     def val_dataloader(self):
         log.info('Validation data loader called.')
         return self.__dataloader(train=False)
 
-    @pl.data_loader
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)

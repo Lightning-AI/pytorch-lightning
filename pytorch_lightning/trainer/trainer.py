@@ -79,6 +79,7 @@ class Trainer(TrainerIOMixin,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             show_progress_bar: bool = True,
+            progress_bar_refresh_rate: int = 50,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
@@ -110,6 +111,7 @@ class Trainer(TrainerIOMixin,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
+            reload_dataloaders_every_epoch: bool = False,
     ):
         r"""
 
@@ -284,6 +286,8 @@ class Trainer(TrainerIOMixin,
 
                     # default used by the Trainer
                     trainer = Trainer(show_progress_bar=True)
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
             overfit_pct: uses this much data of all datasets.
                 Example::
@@ -578,6 +582,7 @@ class Trainer(TrainerIOMixin,
                     # advanced profiler for function-level stats
                     profiler = AdvancedProfiler()
                     trainer = Trainer(profiler=profiler)
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
             benchmark (bool): If true enables cudnn.benchmark.
                 This flag is likely to increase the speed of your system if your
@@ -607,7 +612,6 @@ class Trainer(TrainerIOMixin,
             if not num_nodes:  # in case you did not set the proper value
                 num_nodes = nb_gpu_nodes
         self.num_gpu_nodes = num_nodes
-
         self.log_gpu_memory = log_gpu_memory
 
         # Backward compatibility
@@ -618,6 +622,8 @@ class Trainer(TrainerIOMixin,
                 gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
 
+        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
@@ -687,9 +693,9 @@ class Trainer(TrainerIOMixin,
         self.num_val_batches = 0
         self.num_training_batches = 0
         self.num_test_batches = 0
-        self.get_train_dataloader = None
-        self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.train_dataloader = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
         self.is_iterable_train_dataloader = False
 
         # training state
@@ -864,8 +870,8 @@ class Trainer(TrainerIOMixin,
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloader: Optional[DataLoader] = None,
-            test_dataloader: Optional[DataLoader] = None
+            val_dataloaders: Optional[DataLoader] = None,
+            test_dataloaders: Optional[DataLoader] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -877,13 +883,13 @@ class Trainer(TrainerIOMixin,
                 DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
 
-            val_dataloader: Either a single
+            val_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloader method this will be skipped
+                If the model has a predefined val_dataloaders method this will be skipped
 
-            test_dataloader: Either a single
+            test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloader method this will be skipped
+                If the model has a predefined test_dataloaders method this will be skipped
 
         Example::
 
@@ -909,13 +915,10 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
+        # set up the passed in dataloaders (if needed)
+        self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
 
-        # Update the dataloader attributes of the model with the ones supplied here,
-        # if they are not already defined in model
-        _set_dataloader(model, train_dataloader, 'train_dataloader')
-        _set_dataloader(model, val_dataloader, 'val_dataloader')
-        _set_dataloader(model, test_dataloader, 'test_dataloader')
-
+        # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
@@ -958,6 +961,39 @@ class Trainer(TrainerIOMixin,
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def __set_fit_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
+        # when dataloader is passed via fit, patch the train_dataloader
+        # functions to overwrite with these implementations
+        if train_dataloader is not None:
+            if not self.is_overriden('training_step', model):
+                m = 'You called .fit() with a train_dataloader but did not define training_step()'
+                raise MisconfigurationException(m)
+
+            def patch_train_dataloader():
+                return train_dataloader
+
+            model.train_dataloader = patch_train_dataloader
+
+        if val_dataloaders is not None:
+            if not self.is_overriden('validation_step', model):
+                m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
+                raise MisconfigurationException(m)
+
+            def patch_val_dataloader():
+                return val_dataloaders
+
+            model.val_dataloader = patch_val_dataloader
+
+        if test_dataloaders is not None:
+            if not self.is_overriden('test_step', model):
+                m = 'You called .fit() with a test_dataloaders but did not define test_step()'
+                raise MisconfigurationException(m)
+
+            def patch_test_dataloader():
+                return test_dataloaders
+
+            model.test_dataloader = patch_test_dataloader
 
     def init_optimizers(
             self,
@@ -1025,9 +1061,6 @@ class Trainer(TrainerIOMixin,
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
-        # transfer data loaders from model
-        self.get_dataloaders(ref_model)
-
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None:
             if self.weights_summary in ['full', 'top']:
@@ -1043,10 +1076,19 @@ class Trainer(TrainerIOMixin,
         # restore training and model before hpc call
         self.restore_weights(model)
 
+        # download the data and do whatever transforms we need
+        self.call_prepare_data(ref_model)
+
         # when testing requested only run test and return
         if self.testing:
+            # only load test dataloader for testing
+            self.reset_test_dataloader(ref_model)
             self.run_evaluation(test=True)
             return
+
+        # load the dataloaders
+        self.reset_train_dataloader(ref_model)
+        self.reset_val_dataloader(ref_model)
 
         # check if we should run validation during training
         self.disable_validation = ((self.num_val_batches == 0 or
@@ -1060,14 +1102,14 @@ class Trainer(TrainerIOMixin,
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
-                             total=self.num_sanity_val_steps * len(self.get_val_dataloaders()),
+                             total=self.num_sanity_val_steps * len(self.val_dataloaders),
                              leave=False, position=2 * self.process_position,
                              disable=not self.show_progress_bar, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model, self.get_val_dataloaders(),
+            eval_results = self.evaluate(model, self.val_dataloaders,
                                          self.num_sanity_val_steps, False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
@@ -1120,49 +1162,3 @@ class Trainer(TrainerIOMixin,
             self.fit(model)
         else:
             self.run_evaluation(test=True)
-
-
-def _set_dataloader(model, dataloader, attribute):
-    r'''
-    Check dataloaders passed to .fit() method if they are pytorch DataLoader
-    objects and whether or not we should overright the corresponding dataloader
-    in the model
-
-    Args:
-        model (LightningModule): The model to check
-
-        dataloader: If a pytorch dataloader (or a list of pytorch dataloaders)
-            is passed, it will be incorporate into the model as model.attribute.
-            If attribute alreay exist it will warn the userpass. If not a
-            dataloader will throw an error
-
-        attribute (str): The attribute to save the dataloader under
-
-    '''
-    # Check if attribute comes directly from base class or
-    # derived in user subclass
-    if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
-        # Val and test should be list of dataloaders
-        dataloader = dataloader if attribute == 'train_dataloader' or \
-            (attribute != 'train_dataloader' and isinstance(dataloader, list)) else [dataloader]
-
-        # Check we are given valid dataloaders
-        is_dataloader = isinstance(dataloader, torch.utils.data.DataLoader)
-        is_dataloader_list = isinstance(dataloader, list)
-        if is_dataloader_list:
-            valid_loaders = all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader)
-        if is_dataloader or is_dataloader_list and valid_loaders:
-
-            # Overwrite abstract methods
-            dl = lambda: dataloader
-            dl.__name__ = attribute
-            setattr(model, attribute, dl)
-
-        elif dataloader and dataloader != [None]:
-            raise ValueError(f'`{attribute}` needs to be an instance of '
-                             '`torch.utils.data.DataLoader` or a list of '
-                             'DataLoaders, instead got %r`' % dataloader)
-
-    elif dataloader:  # if default (None) is passed, do not warn the user
-        warnings.warn(f'Model has predefined `{attribute}`,'
-                      f' will skip `{attribute}={dataloader}` passed to fit method.')
