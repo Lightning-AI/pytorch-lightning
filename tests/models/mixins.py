@@ -568,25 +568,17 @@ class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloaders
         result = {'progress_bar': tqdm_dict}
         return result
 
+
 class LightningTestOptimizerWithSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         else:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        lr_scheduling = optim.lr_scheduling.CosineAnnealingLR(optimizer, 10)
-        return [optimizer], [lr_scheduling]
+        lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
+        return [optimizer], [lr_scheduler]
 
-class LightningTestMultipleOptimizersMixin:
-     def configure_optimizers(self):
-        if self.hparams.optimizer_name == 'lbfgs':
-            optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
-            optimizer2 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
-        else:
-            optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-            optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return [optimizer1, optimizer2]
-    
+
 class LightningTestMultipleOptimizersWithSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
@@ -595,11 +587,12 @@ class LightningTestMultipleOptimizersWithSchedulingMixin:
         else:
             optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
             optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        lr_scheduling1 = optim.lr_scheduling.CosineAnnealingLR(optimizer1, 10)
-        lr_scheduling2 = optim.lr_scheduling.CosineAnnealingLR(optimizer2, 10)
-            
-        return [optimizer1, optimizer2], [lr_scheduling1, lr_scheduling2]
-    
+        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+        lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+        return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+
 class LightningTestOptimizersWithSchedulingAndStepsMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
@@ -608,8 +601,7 @@ class LightningTestOptimizersWithSchedulingAndStepsMixin:
         else:
             optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
             optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        lr_scheduling1 = optim.lr_scheduling.CosineAnnealingLR(optimizer1, 10)
-        lr_scheduling2 = optim.lr_scheduling.CosineAnnealingLR(optimizer2, 10)
-            
-        return [optimizer1, optimizer2], [lr_scheduling1, [lr_scheduling2, 10]]
-    
+        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+        lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+        return [optimizer1, optimizer2], [lr_scheduler1, [lr_scheduler2, 3]]

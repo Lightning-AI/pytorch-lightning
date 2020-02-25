@@ -15,7 +15,10 @@ from .mixins import (
     LightningTestFitSingleTestDataloadersMixin,
     LightningTestFitMultipleTestDataloadersMixin,
     LightningValStepFitSingleDataloaderMixin,
-    LightningValStepFitMultipleDataloadersMixin
+    LightningValStepFitMultipleDataloadersMixin,
+    LightningTestOptimizerWithSchedulingMixin,
+    LightningTestMultipleOptimizersWithSchedulingMixin,
+    LightningTestOptimizersWithSchedulingAndStepsMixin
 )
 
 
