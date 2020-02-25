@@ -339,6 +339,16 @@ class LightningTestStepMultipleDataloadersMixin:
             return output
 
 
+class LightningTestStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
+    def test_dataloader(self):
+        return None
+
+
+class LightningValStepNoDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
+    def val_dataloader(self):
+        return None
+
+
 class LightningTestMultipleDataloadersMixin(LightningTestStepMultipleDataloadersMixin):
     def test_end(self, outputs):
         """

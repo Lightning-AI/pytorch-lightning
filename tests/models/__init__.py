@@ -12,6 +12,8 @@ from .mixins import (
     LightningTestMixin,
     LightningTestStepMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
+    LightningTestStepNoDataloadersMixin,
+    LightningValStepNoDataloadersMixin
 )
 
 

@@ -17,6 +17,8 @@ from tests.models import (
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
+    LightningTestStepNoDataloadersMixin,
+    LightningValStepNoDataloadersMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -525,7 +527,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
@@ -551,7 +553,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModelBaseWithoutDataloader,
+        LightningValStepNoDataloadersMixin
     ):
         pass
 
@@ -571,7 +574,6 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False))
 
-    import pdb; pdb.set_trace()
     results = trainer.fit(model, **fit_options)
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -582,7 +584,9 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModelBaseWithoutDataloader,
+        LightningValStepNoDataloadersMixin,
+        LightningTestStepNoDataloadersMixin
     ):
         pass
 
@@ -615,7 +619,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModelBaseWithoutDataloader,
+        LightningValStepNoDataloadersMixin,
+        LightningTestStepNoDataloadersMixin
     ):
         pass
 
@@ -650,7 +656,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBase
+        LightningTestModelBase,
+        LightningValStepNoDataloadersMixin,
+        LightningTestStepNoDataloadersMixin
     ):
         pass
 
