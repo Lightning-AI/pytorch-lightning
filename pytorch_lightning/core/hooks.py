@@ -14,10 +14,13 @@ There are cases when you might want to do something different at different parts
 3. Add the correct place in the :py:mod:`pytorch_lightning.models.trainer` where it should be called.
 
 """
-
+from typing import Any
 
 import torch
+from torch import Tensor
+from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning import Trainer
 
 try:
     from apex import amp
@@ -49,7 +52,7 @@ class ModelHooks(torch.nn.Module):
         """
         # do something at the end of training
 
-    def on_batch_start(self, batch):
+    def on_batch_start(self, batch: Any):
         """Called in the training loop before anything happens for that batch.
 
         :param batch:
@@ -77,7 +80,7 @@ class ModelHooks(torch.nn.Module):
         """Called at the very end of the validation loop."""
         # do something before validation end
 
-    def on_before_zero_grad(self, optimizer):
+    def on_before_zero_grad(self, optimizer: Optimizer):
         """Called after optimizer.step() and before optimizer.zero_grad()
 
         Called in the training loop after taking an optimizer step and before zeroing grads.
@@ -116,7 +119,7 @@ class ModelHooks(torch.nn.Module):
 
         """
 
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
+    def backward(self, trainer: Trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int):
         """Override backward with your own implementation if you need to
 
         :param trainer: Pointer to the trainer
