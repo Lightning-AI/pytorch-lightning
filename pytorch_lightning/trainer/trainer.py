@@ -2,7 +2,7 @@ import os
 import sys
 import warnings
 import logging as log
-from typing import Union, Optional, List, Dict, Tuple
+from typing import Union, Optional, List, Dict, Tuple, Iterable
 
 import torch
 import torch.distributed as dist
@@ -66,7 +66,7 @@ class Trainer(TrainerIOMixin,
 
     def __init__(
             self,
-            logger: Union[LightningLoggerBase, bool] = True,
+            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
             default_save_path: Optional[str] = None,
@@ -117,7 +117,7 @@ class Trainer(TrainerIOMixin,
         Customize every aspect of training via flags
 
         Args:
-            logger: Logger for experiment tracking.
+            logger: Logger (or iterable collection of loggers) for experiment tracking.
                 Example::
 
                     from pytorch_lightning.loggers import TensorBoardLogger
