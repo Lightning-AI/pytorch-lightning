@@ -645,9 +645,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=[model._dataloader(train=False),
-                                       model._dataloader(train=False)],
+                                        model._dataloader(train=False)],
                        test_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
+                                         model._dataloader(train=False)])
     results = trainer.fit(model, **fit_options)
     trainer.test()
 
@@ -662,9 +662,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBase,
         LightningValStepFitSingleDataloaderMixin,
-        LightningTestFitSingleTestDataloadersMixin
+        LightningTestFitSingleTestDataloadersMixin,
+        LightningTestModelBase,
     ):
         pass
 
