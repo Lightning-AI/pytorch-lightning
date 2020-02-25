@@ -174,3 +174,5 @@ About XLA
 ----------
 XLA is the library that interfaces PyTorch with the TPUs.
 For more information check out `XLA <https://github.com/pytorch/xla>`_.
+
+Guide for `troubleshooting XLA <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md>`_
