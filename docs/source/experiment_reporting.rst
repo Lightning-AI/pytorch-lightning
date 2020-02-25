@@ -32,7 +32,7 @@ want to log using this trainer flag.
 Log metrics
 ^^^^^^^^^^^
 
-To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
+To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, TRAINS, etc...)
 
 1. Training_end, validation_end, test_end will all log anything in the "log" key of the return dict.
 

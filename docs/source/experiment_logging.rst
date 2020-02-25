@@ -62,6 +62,34 @@ The Neptune.ai is available anywhere in your LightningModule
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
+allegro.ai TRAINS
+^^^^^^^^^^^^^^^^^
+
+`allegro.ai <https://github.com/allegroai/trains/>`_ is a third-party logger.
+To use TRAINS as your logger do the following.
+
+.. note:: See: :ref:`trains` docs.
+
+.. code-block:: python
+
+   from pytorch_lightning.loggers import TrainsLogger
+
+    trains_logger = TrainsLogger(
+        project_name="examples",
+        task_name="pytorch lightning test"
+    )
+   trainer = Trainer(logger=trains_logger)
+
+The TrainsLogger is available anywhere in your LightningModule
+
+.. code-block:: python
+
+   class MyModule(pl.LightningModule):
+
+      def __init__(self, ...):
+         some_img = fake_image()
+         self.logger.log_image('debug', 'generated_image_0', some_img, 0)
+
 Tensorboard
 ^^^^^^^^^^^
 
