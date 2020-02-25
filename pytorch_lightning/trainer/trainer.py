@@ -874,7 +874,6 @@ class Trainer(TrainerIOMixin,
     @classmethod
     def from_default_args(cls, args):
 
-        print(args.max_epochs)
         return Trainer(logger=args.logger,
                        checkpoint_callback=args.checkpoint_callback,
                        early_stop_callback=args.early_stop_callback,
