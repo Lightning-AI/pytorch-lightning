@@ -191,7 +191,7 @@ class TrainerDataLoadingMixin(ABC):
         :param model:
         :return:
         """
-        if not (self.is_overriden('validation_step') and self.is_overriden('validation_end')):
+        if not self.is_overriden('validation_step'):
             return
 
         self.val_dataloaders = self.request_data_loader(model.val_dataloader)
@@ -217,7 +217,7 @@ class TrainerDataLoadingMixin(ABC):
 
         :param model:
         """
-        if not (self.is_overriden('test_step') and self.is_overriden('test_end')):
+        if not self.is_overriden('test_step'):
             return
 
         # get actual loader
