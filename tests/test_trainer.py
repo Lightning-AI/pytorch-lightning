@@ -574,6 +574,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False))
 
+    import pdb; pdb.set_trace()
     results = trainer.fit(model, **fit_options)
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
