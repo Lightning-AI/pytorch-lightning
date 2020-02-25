@@ -994,11 +994,11 @@ class Trainer(TrainerIOMixin,
             optimizers, lr_schedulers = optimizers
             lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
-      
+
         # single list or tuple, multiple optimizer
         elif isinstance(optimizers, (list, tuple)):
             return optimizers, []
-        
+
         # unknown configuration
         else:
             raise ValueError('Unknown configuration for model optimizers. Output'
@@ -1007,17 +1007,17 @@ class Trainer(TrainerIOMixin,
                              '* single output, list of torch.optim.Optimizer'
                              '* two outputs, first being a list of torch.optim.Optimizer',
                              'second being a list of torch.optim.lr_scheduler')
-            
+
     def configure_schedulers(self, schedulers: list):
         # Determine number of steps for each scheduler
-        self.lr_steps = [ ]
+        self.lr_steps = []
         for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, (list, tuple)):
                 self.lr_steps.append(scheduler[1])
                 schedulers[i] = scheduler[0]
             else:
                 self.lr_steps.append(None)
-        
+
         # Special case if scheduler is ReduceLROnPlateau
         for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
