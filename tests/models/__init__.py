@@ -2,7 +2,7 @@
 
 import torch
 
-from .base import LightningTestModelBase, LightningTestModelBaseWithoutDataloader
+from .base import TestModelWithDataloader, TestModelWithoutDataloader
 from .mixins import (
     LightningValidationStepMixin,
     LightningValidationMixin,
@@ -19,7 +19,7 @@ from .mixins import (
 )
 
 
-class LightningTestModel(LightningValidationMixin, LightningTestMixin, LightningTestModelBase):
+class LightningTestModel(LightningValidationMixin, LightningTestMixin, TestModelWithDataloader):
     """
     Most common test case. Validation and test dataloaders.
     """

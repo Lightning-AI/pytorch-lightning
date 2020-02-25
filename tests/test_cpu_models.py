@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import (
 )
 from tests.models import (
     LightningTestModel,
-    LightningTestModelBase,
+    TestModelWithDataloader,
     LightningTestMixin,
 )
 
@@ -121,7 +121,7 @@ def test_running_test_without_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningTestMixin, LightningTestModelBase):
+    class CurrentTestModel(LightningTestMixin, TestModelWithDataloader):
         pass
 
     hparams = tutils.get_hparams()
@@ -281,7 +281,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(LightningTestModelBase):
+    class BpttTestModel(TestModelWithDataloader):
         def __init__(self, hparams):
             super().__init__(hparams)
             self.test_hidden = None

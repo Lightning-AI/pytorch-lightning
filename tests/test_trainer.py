@@ -12,8 +12,8 @@ from pytorch_lightning.callbacks import (
 )
 from tests.models import (
     LightningTestModel,
-    LightningTestModelBase,
-    LightningTestModelBaseWithoutDataloader,
+    TestModelWithDataloader,
+    TestModelWithoutDataloader,
     LightningValidationStepMixin,
     LightningValidationMultipleDataloadersMixin,
     LightningTestMultipleDataloadersMixin,
@@ -24,6 +24,7 @@ from tests.models import (
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 def test_no_val_module(tmpdir):
@@ -32,7 +33,7 @@ def test_no_val_module(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    class CurrentTestModel(LightningTestModelBase):
+    class CurrentTestModel(TestModelWithDataloader):
         pass
 
     model = CurrentTestModel(hparams)
@@ -69,7 +70,7 @@ def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+    class CurrentTestModel(LightningValidationStepMixin, TestModelWithDataloader):
         pass
 
     hparams = tutils.get_hparams()
@@ -386,7 +387,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     class CurrentTestModel(
         LightningValidationMultipleDataloadersMixin,
-        LightningTestModelBase
+        TestModelWithDataloader
     ):
         pass
 
@@ -491,7 +492,7 @@ def test_multiple_test_dataloader(tmpdir):
 
     class CurrentTestModel(
         LightningTestMultipleDataloadersMixin,
-        LightningTestModelBase
+        TestModelWithDataloader
     ):
         pass
 
@@ -529,7 +530,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader,
+        TestModelWithoutDataloader,
     ):
         pass
 
@@ -556,7 +557,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
     class CurrentTestModel(
         LightningValStepFitSingleDataloaderMixin,
-        LightningTestModelBaseWithoutDataloader,
+        TestModelWithoutDataloader,
     ):
         pass
 
@@ -588,7 +589,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     class CurrentTestModel(
         LightningValStepFitSingleDataloaderMixin,
         LightningTestFitSingleTestDataloadersMixin,
-        LightningTestModelBaseWithoutDataloader,
+        TestModelWithoutDataloader,
     ):
         pass
 
@@ -626,7 +627,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     class CurrentTestModel(
         LightningValStepFitMultipleDataloadersMixin,
         LightningTestFitMultipleTestDataloadersMixin,
-        LightningTestModelBaseWithoutDataloader,
+        TestModelWithoutDataloader,
     ):
         pass
 
@@ -664,7 +665,7 @@ def test_mixing_of_dataloader_options(tmpdir):
     class CurrentTestModel(
         LightningValStepFitSingleDataloaderMixin,
         LightningTestFitSingleTestDataloadersMixin,
-        LightningTestModelBase,
+        TestModelWithDataloader,
     ):
         pass
 
@@ -784,21 +785,30 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
 def test_testpass_overrides(tmpdir):
     hparams = tutils.get_hparams()
-    from pytorch_lightning.utilities.debugging import MisconfigurationException
 
-    class TestModelNoEnd(LightningTestModelBase):
+    class TestModelNoEnd(TestModelWithDataloader):
         def test_step(self, *args, **kwargs):
             return {}
 
         def test_dataloader(self):
-            return self.train_dataloader()
+            return self._dataloader(train=False)
+
+    class TestModelNoStep(TestModelWithDataloader):
+        def test_end(self, outputs):
+            return {}
+
+        def test_dataloader(self):
+            return self._dataloader(train=False)
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
-        model = LightningTestModelBase(hparams)
+        model = TestModelWithDataloader(hparams)
         Trainer().test(model)
 
     # No exceptions when one or both of test_step or test_end are implemented
+    model = TestModelNoStep(hparams)
+    Trainer().test(model)
+
     model = TestModelNoEnd(hparams)
     Trainer().test(model)
 

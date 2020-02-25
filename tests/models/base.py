@@ -213,12 +213,12 @@ class TestModelBase(LightningModule):
         return parser
 
 
-class LightningTestModelBase(TestModelBase):
+class TestModelWithDataloader(TestModelBase):
     """ with pre-defined train dataloader """
     def train_dataloader(self):
         return self._dataloader(train=True)
 
 
-class LightningTestModelBaseWithoutDataloader(TestModelBase):
+class TestModelWithoutDataloader(TestModelBase):
     """ without pre-defined train dataloader """
     pass
