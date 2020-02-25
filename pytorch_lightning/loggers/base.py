@@ -1,5 +1,5 @@
 import argparse
-from abc import ABC
+from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
@@ -26,9 +26,11 @@ class LightningLoggerBase(ABC):
         self._rank = 0
 
     @property
+    @abstractmethod
     def experiment(self) -> Any:
-        raise NotImplementedError()
+        """Return the experiment object associated with this logger"""
 
+    @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Record metrics.
 
@@ -36,15 +38,14 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
         """Record hyperparameters.
 
         Args:
             params: argparse.Namespace containing the hyperparameters
         """
-        raise NotImplementedError()
 
     def save(self):
         """Save log data."""
@@ -70,14 +71,14 @@ class LightningLoggerBase(ABC):
         self._rank = value
 
     @property
+    @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
-        raise NotImplementedError("Sub-classes must provide a name property")
 
     @property
+    @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
-        raise NotImplementedError("Sub-classes must provide a version property")
 
 
 class LoggerCollection(LightningLoggerBase):

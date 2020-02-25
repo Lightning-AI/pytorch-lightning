@@ -13,6 +13,7 @@ try:
     from comet_ml import Experiment as CometExperiment
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
+    from comet_ml import BaseExperiment as CometBaseExperiment
     try:
         from comet_ml.api import API
     except ImportError:
@@ -122,7 +123,7 @@ class CometLogger(LightningLoggerBase):
                 logger.exception("Failed to set experiment name for comet.ml logger")
 
     @property
-    def experiment(self) -> Union[CometOfflineExperiment, CometExistingExperiment, CometExperiment]:
+    def experiment(self) -> CometBaseExperiment:
         r"""
 
         Actual comet object. To use comet features do the following.
