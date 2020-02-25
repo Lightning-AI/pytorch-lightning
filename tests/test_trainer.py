@@ -504,8 +504,9 @@ def test_multiple_test_dataloader(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    import pdb; pdb.set_trace()
     result = trainer.fit(model)
+
+    trainer.test()
 
     # verify there are 2 val loaders
     assert len(trainer.test_dataloaders) == 2, \
