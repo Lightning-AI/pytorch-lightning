@@ -855,8 +855,8 @@ class Trainer(TrainerIOMixin,
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloader: Optional[DataLoader] = None,
-            test_dataloader: Optional[DataLoader] = None
+            val_dataloaders: Optional[DataLoader] = None,
+            test_dataloaders: Optional[DataLoader] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -868,13 +868,13 @@ class Trainer(TrainerIOMixin,
                 DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
 
-            val_dataloader: Either a single
+            val_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloader method this will be skipped
+                If the model has a predefined val_dataloaders method this will be skipped
 
-            test_dataloader: Either a single
+            test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloader method this will be skipped
+                If the model has a predefined test_dataloaders method this will be skipped
 
         Example::
 
@@ -906,16 +906,19 @@ class Trainer(TrainerIOMixin,
         if train_dataloader is not None:
             def patch_train_dataloader():
                 return train_dataloader
+
             model.train_dataloader = patch_train_dataloader
 
-        if val_dataloader is not None:
+        if val_dataloaders is not None:
             def patch_val_dataloader():
-                return val_dataloader
+                return val_dataloaders
+
             model.val_dataloader = patch_val_dataloader
 
-        if test_dataloader is not None:
+        if test_dataloaders is not None:
             def patch_test_dataloader():
-                return test_dataloader
+                return test_dataloaders
+
             model.test_dataloader = patch_test_dataloader
 
         # when using multi-node or DDP within a node start each module in a separate process
