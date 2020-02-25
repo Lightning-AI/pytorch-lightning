@@ -254,4 +254,5 @@ class LightningTemplateModel(pl.LightningModule):
         # training params (opt)
         parser.add_argument('--optimizer_name', default='adam', type=str)
         parser.add_argument('--batch_size', default=64, type=int)
+        parser.add_argument('--epochs', default=90, type=int)
         return parser
