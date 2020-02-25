@@ -750,6 +750,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
                 return [generator_opt, disriminator_opt], [discriminator_sched]
 
+            # example with learning_rate schedulers with step-frequency
+            def configure_optimizers(self):
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                gen_sched = [ExponentialLR(gen_opt, 0.99), 100] # called every 100 training step
+                dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
+                return [gen_opt, dis_opt], [gen_sched, dis_sched]
+
         .. note:: Lightning calls .backward() and .step() on each optimizer and learning rate scheduler as needed.
 
         .. note:: If you use 16-bit precision (use_amp=True), Lightning will automatically
@@ -765,6 +773,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
             override the `optimizer_step` hook.
 
+        .. note:: If you need to control how often each learning rate scheduler is called, you can return
+            them as [[scheduler1, freq1], [scheduler2, freq2], ...], where freq is then number of training
+            steps between each update
 
         """
 
