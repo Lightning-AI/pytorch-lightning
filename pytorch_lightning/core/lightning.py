@@ -1,6 +1,5 @@
 import collections
 import logging as log
-import csv
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -12,7 +11,7 @@ import torch.distributed as dist
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
-from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -1298,34 +1297,3 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             tqdm_dict['v_num'] = self.trainer.logger.version
 
         return tqdm_dict
-
-
-def load_hparams_from_tags_csv(tags_csv):
-    if not os.path.isfile(tags_csv):
-        log.warning(f'Missing Tags: {tags_csv}.')
-        return Namespace()
-
-    tags = {}
-    with open(tags_csv) as f:
-        csv_reader = csv.reader(f, delimiter=',')
-        for row in list(csv_reader)[1:]:
-            tags[row[0]] = convert(row[1])
-    ns = Namespace(**tags)
-    return ns
-
-
-def convert(val):
-    constructors = [int, float, str]
-
-    if isinstance(val, str):
-        if val.lower() == 'true':
-            return True
-        if val.lower() == 'false':
-            return False
-
-    for c in constructors:
-        try:
-            return c(val)
-        except ValueError:
-            pass
-    return val
