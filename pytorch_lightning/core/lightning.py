@@ -1213,7 +1213,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint):
+    def _load_model_state(cls, checkpoint: dict) -> 'LightningModule':
         cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
         ckpt_hparams = checkpoint.get('hparams')
 
