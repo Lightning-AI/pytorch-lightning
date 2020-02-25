@@ -46,7 +46,7 @@ def test_lbfgs_cpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_epochs=1,
+        max_epochs=2,
         print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
@@ -304,7 +304,6 @@ def test_tbptt_cpu_model(tmpdir):
                 'hiddens': self.test_hidden,
             }
 
-        @data_loader
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
                 dataset=MockSeq2SeqDataset(),

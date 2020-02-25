@@ -165,9 +165,11 @@ class TrainerEvaluationLoopMixin(ABC):
         self.checkpoint_callback = None
         self.current_epoch = None
         self.callback_metrics = None
-        self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
         self.use_tpu = None
+        self.reload_dataloaders_every_epoch = None
+        self.progress_bar_refresh_rate = None
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -201,6 +203,16 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def log_metrics(self, metrics, grad_norm_dic):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def reset_test_dataloader(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
+    def reset_val_dataloader(self, model):
         # this is just empty shell for code from other class
         pass
 
@@ -258,11 +270,12 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
-                if test:
-                    self.test_progress_bar.update(1)
-                else:
-                    self.val_progress_bar.update(1)
-                    self.main_progress_bar.update(1)
+                if batch_idx % self.progress_bar_refresh_rate == 0:
+                    if test:
+                        self.test_progress_bar.update(self.progress_bar_refresh_rate)
+                    else:
+                        self.val_progress_bar.update(self.progress_bar_refresh_rate)
+                        self.main_progress_bar.update(self.progress_bar_refresh_rate)
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -299,11 +312,17 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # select dataloaders
         if test:
-            dataloaders = self.get_test_dataloaders()
+            if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
+                self.reset_test_dataloader(model)
+
+            dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
         else:
             # val
-            dataloaders = self.get_val_dataloaders()
+            if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
+                self.reset_val_dataloader(model)
+
+            dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
         # cap max batches to 1 when using fast_dev_run
@@ -357,10 +376,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test and len(self.get_test_dataloaders()) > 1:
+        if test and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif not test and len(self.get_val_dataloaders()) > 1:
+        elif not test and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
