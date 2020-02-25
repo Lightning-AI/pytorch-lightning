@@ -931,16 +931,23 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         :return: PyTorch DataLoader
 
-        Called by lightning during training loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
 
         Example
         -------
 
         .. code-block:: python
 
-            @pl.data_loader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
@@ -968,8 +975,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def test_dataloader(self):
         r"""
 
-        Called by lightning during test loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
+        - val_dataloader
+        - test_dataloader
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -979,7 +997,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            @pl.data_loader
             def test_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
@@ -1001,8 +1018,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def val_dataloader(self):
         r"""
 
-        Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
+        - val_dataloader
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -1012,7 +1039,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            @pl.data_loader
             def val_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
@@ -1025,7 +1051,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return loader
 
             # can also return multiple dataloaders
-            @pl.data_loader
             def val_dataloader(self):
                 return [loader_a, loader_b, ..., loader_n]
 
