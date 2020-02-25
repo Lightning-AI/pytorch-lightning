@@ -2,27 +2,31 @@
 
 import torch
 
-from .base import TestModelWithDataloader, TestModelWithoutDataloader
+from .base import TestModelBase
 from .mixins import (
-    LightningValidationStepMixin,
-    LightningValidationMixin,
-    LightningValidationStepMultipleDataloadersMixin,
-    LightningValidationMultipleDataloadersMixin,
-    LightningTestStepMixin,
-    LightningTestMixin,
-    LightningTestStepMultipleDataloadersMixin,
-    LightningTestMultipleDataloadersMixin,
-    LightningTestFitSingleTestDataloadersMixin,
-    LightningTestFitMultipleTestDataloadersMixin,
-    LightningValStepFitSingleDataloaderMixin,
-    LightningValStepFitMultipleDataloadersMixin
+    LightEmptyTestStep,
+    LightValidationStepMixin,
+    LightValidationMixin,
+    LightValidationStepMultipleDataloadersMixin,
+    LightValidationMultipleDataloadersMixin,
+    LightTestStepMixin,
+    LightTestMixin,
+    LightTestStepMultipleDataloadersMixin,
+    LightTestMultipleDataloadersMixin,
+    LightTestFitSingleTestDataloadersMixin,
+    LightTestFitMultipleTestDataloadersMixin,
+    LightValStepFitSingleDataloaderMixin,
+    LightValStepFitMultipleDataloadersMixin,
+    LightTrainDataloader,
+    LightTestDataloader,
 )
 
 
-class LightningTestModel(LightningValidationMixin, LightningTestMixin, TestModelWithDataloader):
-    """
-    Most common test case. Validation and test dataloaders.
-    """
+class LightningTestModel(LightTrainDataloader,
+                         LightValidationMixin,
+                         LightTestMixin,
+                         TestModelBase):
+    """Most common test case. Validation and test dataloaders."""
 
     def on_training_metrics(self, logs):
         logs['some_tensor_to_test'] = torch.rand(1)

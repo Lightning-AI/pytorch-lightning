@@ -48,7 +48,7 @@ class TestModelBase(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(TestModelBase, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -87,7 +87,6 @@ class TestModelBase(LightningModule):
         :param x:
         :return:
         """
-
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
@@ -153,10 +152,8 @@ class TestModelBase(LightningModule):
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        dataset = TestingMNIST(root=self.hparams.data_root, train=True,
-                               transform=transform, download=True, num_samples=2000)
-        dataset = TestingMNIST(root=self.hparams.data_root, train=False,
-                               transform=transform, download=True, num_samples=2000)
+        _ = TestingMNIST(root=self.hparams.data_root, train=True,
+                         transform=transform, download=True, num_samples=2000)
 
     def _dataloader(self, train):
         # init data generators
@@ -194,31 +191,17 @@ class TestModelBase(LightningModule):
         parser.add_argument('--out_features', default=10, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
         parser.add_argument('--hidden_dim', default=50000, type=int)
-
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
                         options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str,
                         options=['adam'], tunable=False)
-
         # if using 2 nodes with 4 gpus each the batch size here
         #  (256) will be 256 / (2*8) = 16 per gpu
         parser.opt_list('--batch_size', default=256 * 8, type=int,
                         options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all gpus being used across all nodes')
+                        help='batch size will be divided over all GPUs being used across all nodes')
         return parser
-
-
-class TestModelWithDataloader(TestModelBase):
-    """ with pre-defined train dataloader """
-    def train_dataloader(self):
-        return self._dataloader(train=True)
-
-
-class TestModelWithoutDataloader(TestModelBase):
-    """ without pre-defined train dataloader """
-    pass

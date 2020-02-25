@@ -8,9 +8,10 @@ from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
 from tests.models import (
+    TestModelBase,
+    LightTrainDataloader,
     LightningTestModel,
-    TestModelWithDataloader,
-    LightningTestMixin,
+    LightTestMixin,
 )
 
 
@@ -121,7 +122,7 @@ def test_running_test_without_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningTestMixin, TestModelWithDataloader):
+    class CurrentTestModel(TestModelBase, LightTrainDataloader, LightTestMixin):
         pass
 
     hparams = tutils.get_hparams()
@@ -281,7 +282,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(TestModelWithDataloader):
+    class BpttTestModel(TestModelBase, LightTrainDataloader):
         def __init__(self, hparams):
             super().__init__(hparams)
             self.test_hidden = None
