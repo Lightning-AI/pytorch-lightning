@@ -503,8 +503,8 @@ def test_multiple_test_dataloader(tmpdir):
     )
 
     # fit model
-    trainer = Trainer(**trainer_options)
     import pdb; pdb.set_trace()
+    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # verify there are 2 val loaders
