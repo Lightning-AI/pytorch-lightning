@@ -22,8 +22,8 @@ except ImportError:
 
 from torch import is_tensor
 
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from .base import LightningLoggerBase, rank_zero_only
-from ..utilities.debugging import MisconfigurationException
 
 logger = getLogger(__name__)
 
