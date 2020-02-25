@@ -65,6 +65,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         #: True if using amp
         self.use_amp = False
 
+    def print(self, m):
+        """
+        Process-safe way of printing. Prints only from proc_rank==0
+        :param m:
+        :return:
+        """
+        if self.trainer.proc_rank == 0:
+            print(m)
+
     @abstractmethod
     def forward(self, *args, **kwargs):
         r"""
