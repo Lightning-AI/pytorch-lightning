@@ -110,6 +110,7 @@ class Trainer(TrainerIOMixin,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
+            benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
     ):
         r"""
@@ -583,11 +584,25 @@ class Trainer(TrainerIOMixin,
                     trainer = Trainer(profiler=profiler)
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
+            benchmark (bool): If true enables cudnn.benchmark.
+                This flag is likely to increase the speed of your system if your
+                input sizes don't change. However, if it does, then it will likely
+                make your system slower.
+
+                The speedup comes from allowing the cudnn auto-tuner to find the best
+                algorithm for the hardware `[see discussion here]
+                <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
             - `nb_sanity_val_steps`
 
         """
+
+        # benchmarking
+        self.benchmark = benchmark
+        if benchmark:
+            torch.backends.cudnn.benchmark = True
 
         # Transfer params
         # Backward compatibility
