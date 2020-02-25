@@ -14,6 +14,7 @@ import torch
 
 import pytorch_lightning as pl
 
+
 class ModelSummary(object):
 
     def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
