@@ -36,7 +36,7 @@ class TestingMNIST(MNIST):
         self.targets = self.targets[:num_samples]
 
 
-class LightningTestModelBase(LightningModule):
+class TestModelBase(LightningModule):
     """
     Base LightningModule for testing. Implements only the required
     interface
@@ -48,7 +48,7 @@ class LightningTestModelBase(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTestModelBase, self).__init__()
+        super(TestModelBase, self).__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -150,37 +150,30 @@ class LightningTestModelBase(LightningModule):
         # test returning only 1 list instead of 2
         return optimizer
 
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = TestingMNIST(root=self.hparams.data_root, train=True,
+                               transform=transform, download=True, num_samples=2000)
+        dataset = TestingMNIST(root=self.hparams.data_root, train=False,
+                               transform=transform, download=True, num_samples=2000)
+
     def _dataloader(self, train):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=True, num_samples=2000)
+                               transform=transform, download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        try:
-            if self.use_ddp and not self.force_remove_distributed_sampler:
-                train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-                batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception:
-            pass
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler
         )
 
         return loader
-
-    @data_loader
-    def train_dataloader(self):
-        return self._dataloader(train=True)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
@@ -218,3 +211,14 @@ class LightningTestModelBase(LightningModule):
                         options=[32, 64, 128, 256], tunable=False,
                         help='batch size will be divided over all gpus being used across all nodes')
         return parser
+
+
+class LightningTestModelBase(TestModelBase):
+    """ with pre-defined train dataloader """
+    def train_dataloader(self):
+        return self._dataloader(train=True)
+
+
+class LightningTestModelBaseWithoutDataloader(TestModelBase):
+    """ without pre-defined train dataloader """
+    pass

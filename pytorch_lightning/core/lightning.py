@@ -16,6 +16,13 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
@@ -57,6 +64,26 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         #: True if using amp
         self.use_amp = False
+
+    def print(self, *args, **kwargs):
+        r"""
+        Prints only from process 0. Use this in any distributed mode to log only once
+
+        Args:
+            x (object): The thing to print
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                self.print(x, 'in loader')
+
+        """
+        if self.trainer.proc_rank == 0:
+            print(*args, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
@@ -798,7 +825,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 optimizer.zero_grad()
 
         """
-        if isinstance(optimizer, torch.optim.LBFGS):
+        if self.trainer.use_tpu and XLA_AVAILABLE:
+            xm.optimizer_step(optimizer)
+        elif isinstance(optimizer, torch.optim.LBFGS):
             optimizer.step(second_order_closure)
         else:
             optimizer.step()
@@ -868,8 +897,33 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return splits
 
-    @data_loader
-    @abstractmethod
+    def prepare_data(self):
+        """Use this to download and prepare data.
+        In distributed (GPU, TPU), this will only be called once
+
+        :return: PyTorch DataLoader
+
+        This is called before requesting the dataloaders
+
+        .. code-block:: python
+
+            model.prepare_data()
+            model.train_dataloader()
+            model.val_dataloader()
+            model.test_dataloader()
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            def prepare_data(self):
+                download_imagenet()
+                clean_imagenet()
+                cache_imagenet()
+        """
+        return None
+
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -895,8 +949,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
                 return loader
 
-
         """
+        return None
 
     @data_loader
     def tng_dataloader(self):  # todo: remove in v0.8.0
@@ -909,7 +963,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
-    @data_loader
     def test_dataloader(self):
         r"""
 
@@ -943,7 +996,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-    @data_loader
     def val_dataloader(self):
         r"""
 
@@ -1024,10 +1076,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     drop_prob,0.2
                     batch_size,32
 
-            map_location (dict): A dictionary mapping saved weight GPU devices to new
-                GPU devices (example: {'cuda:1':'cuda:0'})
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup
+                (example: {'cuda:1':'cuda:0'}).
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
+
         Return:
-            LightningModule with loaded weights
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------
@@ -1098,11 +1155,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path (str): Path to checkpoint.
-            map_location (dic): If your checkpoint saved from a GPU model and you now load on CPUs
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
-            LightningModule with loaded weights.
+            LightningModule with loaded weights and hyperparameters (if available).
 
         Example
         -------

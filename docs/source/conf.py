@@ -86,6 +86,7 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     # 'm2r',
     'nbsphinx',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -97,6 +98,7 @@ templates_path = ['_templates']
 # they should be run at build time.
 nbsphinx_execute = 'never'
 nbsphinx_allow_errors = True
+nbsphinx_requirejs_path = ''
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:

@@ -87,10 +87,11 @@ Lightning sets up all the boilerplate state-of-the-art training for you so you c
 - [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
 - [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)    
 - [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
 - [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
 - [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)   
 - [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)   
-- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
 - [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)    
 
 ---
@@ -294,7 +295,7 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 - [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_data_parallel.html)  
 - [Fast dev run](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.utilities.debugging.html)
-- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.logging.html)
+- [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.loggers.html)
 - [Implement Your Own Distributed (DDP) training](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
 - [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_parts.html)
 - [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_loop.html)
@@ -386,6 +387,20 @@ You can also install any past release `0.X.Y` from this repository:
 ```bash
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
+
+### Lightning team
+
+#### Leads
+- William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
+- Jirka Borovec [(Borda)](https://github.com/Borda)
+- Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
+- Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
+
+#### Core Maintainers
+
+- Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeff Ling [(jeffling)](https://github.com/jeffling)
+- Tullie Murrell [(tullie)](https://github.com/tullie)
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):

@@ -1,5 +1,6 @@
 import traceback
 from functools import wraps
+import warnings
 
 
 def data_loader(fn):
@@ -8,27 +9,9 @@ def data_loader(fn):
     :param fn:
     :return:
     """
-    wraps(fn)
-    attr_name = '_lazy_' + fn.__name__
+    w = 'data_loader decorator deprecated in 0.6.1. Will remove 0.8.0'
+    warnings.warn(w)
 
-    def _get_data_loader(self):
-        try:
-            value = getattr(self, attr_name)
-        except AttributeError:
-            try:
-                value = fn(self)  # Lazy evaluation, done only once.
-                if (
-                        value is not None and
-                        not isinstance(value, list) and
-                        fn.__name__ in ['test_dataloader', 'val_dataloader']
-                ):
-                    value = [value]
-            except AttributeError as e:
-                # Guard against AttributeError suppression. (Issue #142)
-                traceback.print_exc()
-                error = f'{fn.__name__}: An AttributeError was encountered: ' + str(e)
-                raise RuntimeError(error) from e
-            setattr(self, attr_name, value)  # Memoize evaluation.
-        return value
-
-    return _get_data_loader
+    def inner_fx(self):
+        return fn(self)
+    return inner_fx

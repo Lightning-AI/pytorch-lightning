@@ -3,3 +3,7 @@ requires = [
     "setuptools",
     "wheel",
 ]
+
+[tool.autopep8]
+max_line_length = 120
+ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
