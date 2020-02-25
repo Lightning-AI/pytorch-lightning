@@ -503,7 +503,6 @@ def test_multiple_test_dataloader(tmpdir):
     )
 
     # fit model
-    import pdb; pdb.set_trace()
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
