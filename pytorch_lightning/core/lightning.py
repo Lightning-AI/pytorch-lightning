@@ -16,6 +16,13 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
+try:
+    import torch_xla.core.xla_model as xm
+    XLA_AVAILABLE = True
+
+except ImportError:
+    XLA_AVAILABLE = False
+
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
@@ -798,7 +805,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 optimizer.zero_grad()
 
         """
-        if isinstance(optimizer, torch.optim.LBFGS):
+        if self.trainer.use_tpu and XLA_AVAILABLE:
+            xm.optimizer_step(optimizer)
+        elif isinstance(optimizer, torch.optim.LBFGS):
             optimizer.step(second_order_closure)
         else:
             optimizer.step()
@@ -868,7 +877,33 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return splits
 
-    @data_loader
+    def prepare_data(self):
+        """Use this to download and prepare data.
+        In distributed (GPU, TPU), this will only be called once
+
+        :return: PyTorch DataLoader
+
+        This is called before requesting the dataloaders
+
+        .. code-block:: python
+
+            model.prepare_data()
+            model.train_dataloader()
+            model.val_dataloader()
+            model.test_dataloader()
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            def prepare_data(self):
+                download_imagenet()
+                clean_imagenet()
+                cache_imagenet()
+        """
+        return None
+
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
@@ -908,7 +943,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return output
 
-    @data_loader
     def test_dataloader(self):
         r"""
 
@@ -942,7 +976,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-    @data_loader
     def val_dataloader(self):
         r"""
 
