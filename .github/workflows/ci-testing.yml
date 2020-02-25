@@ -40,7 +40,7 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v1
       with:
-        path: tests/models/mnist # This path is specific to Ubuntu
+        path: tests/datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
         key: mnist-dataset
 
