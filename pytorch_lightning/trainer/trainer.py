@@ -705,7 +705,10 @@ class Trainer(TrainerIOMixin,
         # creates a default one if none passed in
         self.configure_early_stopping(early_stop_callback)
 
+        # configure variables for learning rate scheduling
+        self.lr_steps = []
         self.reduce_lr_on_plateau_scheduler = None
+        self.lr_step_reduce_on_plateau = None
 
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
@@ -987,7 +990,7 @@ class Trainer(TrainerIOMixin,
 
         # single output, single optimizer
         if isinstance(optimizers, Optimizer):
-            return [optimizers], []
+            return [optimizers], None
 
         # two lists, optimizer + lr schedulers
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
@@ -997,7 +1000,7 @@ class Trainer(TrainerIOMixin,
 
         # single list or tuple, multiple optimizer
         elif isinstance(optimizers, (list, tuple)):
-            return optimizers, []
+            return optimizers, None
 
         # unknown configuration
         else:
@@ -1010,7 +1013,6 @@ class Trainer(TrainerIOMixin,
 
     def configure_schedulers(self, schedulers: list):
         # Determine number of steps for each scheduler
-        self.lr_steps = []
         for i, scheduler in enumerate(schedulers):
             if isinstance(scheduler, (list, tuple)):
                 self.lr_steps.append(scheduler[1])
