@@ -904,18 +904,30 @@ class Trainer(TrainerIOMixin,
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
+            if not self.is_overriden('training_step', model):
+                m = 'You called .fit() with a train_dataloader but did not define training_step()'
+                raise MisconfigurationException(m)
+
             def patch_train_dataloader():
                 return train_dataloader
 
             model.train_dataloader = patch_train_dataloader
 
         if val_dataloaders is not None:
+            if not self.is_overriden('validation_step', model):
+                m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
+                raise MisconfigurationException(m)
+
             def patch_val_dataloader():
                 return val_dataloaders
 
             model.val_dataloader = patch_val_dataloader
 
         if test_dataloaders is not None:
+            if not self.is_overriden('test_step', model):
+                m = 'You called .fit() with a test_dataloaders but did not define test_step()'
+                raise MisconfigurationException(m)
+
             def patch_test_dataloader():
                 return test_dataloaders
 
