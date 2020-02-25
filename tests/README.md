@@ -35,7 +35,7 @@ Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex 
 ```bash
 cd pytorch-lightning
 
-# generate coverage (coverage is also installed as part of dev requirements under tests/requirements.txt)
+# generate coverage (coverage is also installed as part of dev dependencies under tests/requirements.txt)
 pip install coverage
 coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
 
