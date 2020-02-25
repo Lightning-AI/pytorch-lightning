@@ -814,6 +814,8 @@ def test_benchmark_option(tmpdir):
 
     # verify torch.backends.cudnn.benchmark is not turned off
     assert torch.backends.cudnn.benchmark
+
+
 def test_testpass_overrides(tmpdir):
     hparams = tutils.get_hparams()
     from pytorch_lightning.utilities.debugging import MisconfigurationException
