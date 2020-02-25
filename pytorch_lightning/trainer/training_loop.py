@@ -231,6 +231,7 @@ class TrainerTrainLoopMixin(ABC):
         self.progress_bar_refresh_rate = ...
         self.max_steps = ...
         self.max_steps = ...
+        self.total_batch_idx = ...
 
         # Callback system
         self.callbacks: list[Callback] = []
@@ -263,67 +264,67 @@ class TrainerTrainLoopMixin(ABC):
     @abstractmethod
     def get_model(self):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def is_function_implemented(self, m):
+    def is_function_implemented(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def is_infinite_dataloader(self, dataloader):
+    def is_infinite_dataloader(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def run_evaluation(self, test_mode):
+    def run_evaluation(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def transfer_batch_to_gpu(self, batch, gpu):
+    def transfer_batch_to_gpu(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, batch):
+    def transfer_batch_to_tpu(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
     def clip_gradients(self):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
     def print_nan_gradients(self):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def is_overriden(self, m):
+    def is_overriden(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def add_tqdm_metrics(self, metrics):
+    def add_tqdm_metrics(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def log_metrics(self, metrics, grad_norm_dic):
+    def log_metrics(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def process_output(self, output, train):
+    def process_output(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def reset_train_dataloader(self, model):
+    def reset_train_dataloader(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
     def reset_val_dataloader(self, model):
@@ -331,9 +332,9 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
-    def has_arg(self, f_name, arg_name):
+    def has_arg(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'

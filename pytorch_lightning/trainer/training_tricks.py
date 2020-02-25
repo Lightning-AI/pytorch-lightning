@@ -16,7 +16,7 @@ class TrainerTrainingTricksMixin(ABC):
     @abstractmethod
     def get_model(self):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     def clip_gradients(self):
         if self.gradient_clip_val > 0:

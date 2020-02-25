@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import torch.distributed as dist
 from torch.utils.data import SequentialSampler, DataLoader
@@ -42,6 +42,11 @@ class TrainerDataLoadingMixin(ABC):
         self.num_val_batches = ...
         self.test_dataloaders = ...
         self.num_test_batches = ...
+
+    @abstractmethod
+    def is_overriden(self, *args):
+        # this is just empty shell for code from other class
+        ...
 
     def _percent_range_check(self, name):
         value = getattr(self, name)

@@ -381,16 +381,17 @@ class TrainerDPMixin(ABC):
         self.tpu_local_core_rank = ...
         self.tpu_global_core_rank = ...
         self.use_tpu = ...
+        self.data_parallel_device_ids = ...
 
     @abstractmethod
-    def run_pretrain_routine(self, model):
+    def run_pretrain_routine(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def init_optimizers(self, optimizers):
+    def init_optimizers(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):

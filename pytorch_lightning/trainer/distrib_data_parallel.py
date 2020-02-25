@@ -147,19 +147,19 @@ class TrainerDDPMixin(ABC):
         self.use_tpu = ...
 
     @abstractmethod
-    def copy_trainer_model_properties(self, model):
+    def copy_trainer_model_properties(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def run_pretrain_routine(self, model):
+    def run_pretrain_routine(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     @abstractmethod
-    def init_optimizers(self, optimizers):
+    def init_optimizers(self, *args):
         # this is just empty shell for code from other class
-        pass
+        ...
 
     def init_tpu(self):
         # turn off all the GPU stuff

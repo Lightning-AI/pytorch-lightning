@@ -28,4 +28,4 @@ class TrainerModelHooksMixin(ABC):
     @abstractmethod
     def get_model(self):
         # this is just empty shell for code from other class
-        pass
+        ...
