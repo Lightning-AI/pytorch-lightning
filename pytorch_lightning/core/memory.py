@@ -7,14 +7,17 @@ import logging as log
 import os
 import subprocess
 from subprocess import PIPE
+from typing import Tuple, Dict, Union
 
 import numpy as np
 import torch
 
+from pytorch_lightning import LightningModule
+
 
 class ModelSummary(object):
 
-    def __init__(self, model, mode='full'):
+    def __init__(self, model: LightningModule, mode: str = 'full'):
         '''
         Generates summaries of model layers and dimensions.
         '''
@@ -31,7 +34,7 @@ class ModelSummary(object):
     def __repr__(self):
         return self.summary.__str__()
 
-    def named_modules(self):
+    def named_modules(self) -> list:
         if self.mode == 'full':
             mods = self.model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
@@ -159,7 +162,7 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def _format_summary_table(*cols):
+def _format_summary_table(*cols) -> str:
     '''
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -213,7 +216,7 @@ def print_mem_stack():  # pragma: no cover
             pass
 
 
-def count_mem_items():  # pragma: no cover
+def count_mem_items() -> Tuple[int, int]:  # pragma: no cover
     num_params = 0
     num_tensors = 0
     for obj in gc.get_objects():
@@ -230,7 +233,7 @@ def count_mem_items():  # pragma: no cover
     return num_params, num_tensors
 
 
-def get_memory_profile(mode):
+def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """
     'all' means return memory for all gpus
     'min_max' means return memory for max and min
@@ -248,7 +251,7 @@ def get_memory_profile(mode):
     return memory_map
 
 
-def get_gpu_memory_map():
+def get_gpu_memory_map() -> Dict[str, int]:
     """Get the current gpu usage.
 
     Returns
@@ -273,7 +276,7 @@ def get_gpu_memory_map():
     return gpu_memory_map
 
 
-def get_human_readable_count(number):
+def get_human_readable_count(number: int) -> str:
     """
     Abbreviates an integer number with K, M, B, T for thousands, millions,
     billions and trillions, respectively.
