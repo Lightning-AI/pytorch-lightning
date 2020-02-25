@@ -793,22 +793,12 @@ def test_testpass_overrides(tmpdir):
         def test_dataloader(self):
             return self.train_dataloader()
 
-    class TestModelNoStep(LightningTestModelBase):
-        def test_end(self, outputs):
-            return {}
-
-        def test_dataloader(self):
-            return self.train_dataloader()
-
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
         model = LightningTestModelBase(hparams)
         Trainer().test(model)
 
     # No exceptions when one or both of test_step or test_end are implemented
-    model = TestModelNoStep(hparams)
-    Trainer().test(model)
-
     model = TestModelNoEnd(hparams)
     Trainer().test(model)
 
