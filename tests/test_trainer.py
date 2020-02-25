@@ -619,9 +619,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader,
         LightningValStepNoDataloadersMixin,
-        LightningTestStepNoDataloadersMixin
+        LightningTestStepNoDataloadersMixin,
+        LightningTestModelBaseWithoutDataloader,
     ):
         pass
 
