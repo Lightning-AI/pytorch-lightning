@@ -12,12 +12,11 @@ from typing import Tuple, Dict, Union
 import numpy as np
 import torch
 
-from pytorch_lightning import LightningModule
-
+import pytorch_lightning as pl
 
 class ModelSummary(object):
 
-    def __init__(self, model: LightningModule, mode: str = 'full'):
+    def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
         """ Generates summaries of model layers and dimensions. """
         self.model = model
         self.mode = mode
