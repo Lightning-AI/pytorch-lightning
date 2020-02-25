@@ -98,7 +98,7 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
         'in_features': 28 * 28,
         'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
-        'data_root': os.path.join(root_dir, 'mnist'),
+        'data_root': os.path.join(root_dir, 'datasets'),
         'out_features': 10,
         'hidden_dim': 1000,
     }

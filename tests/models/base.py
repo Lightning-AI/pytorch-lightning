@@ -24,7 +24,7 @@ class TestingMNIST(MNIST):
 
     def __init__(self, root, train=True, transform=None, target_transform=None,
                  download=False, num_samples=8000):
-        super(TestingMNIST, self).__init__(
+        super().__init__(
             root,
             train=train,
             transform=transform,
