@@ -27,7 +27,7 @@ from tests.models import (
     LightTestMixin,
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
-    LightTestOptimizersWithSchedulingAndStepsMixin
+    LightTestOptimizersWithMixedSchedulingMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -1061,7 +1061,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-            LightTestOptimizersWithSchedulingAndStepsMixin,
+            LightTestOptimizersWithMixedSchedulingMixin,
             LightTrainDataloader,
             TestModelBase):
         pass
@@ -1097,10 +1097,10 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1 == adjusted_lr1, \
+    assert init_lr * (0.1)**3 == adjusted_lr1, \
         'lr for optimizer 1 not adjusted correctly'
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
-    assert init_lr * (0.1)**3 == adjusted_lr2, \
+    assert init_lr * 0.1 == adjusted_lr2, \
         'lr for optimizer 2 not adjusted correctly'
 
 

@@ -622,7 +622,7 @@ class LightTestMultipleOptimizersWithSchedulingMixin:
         return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
 
-class LightTestOptimizersWithSchedulingAndStepsMixin:
+class LightTestOptimizersWithMixedSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
@@ -630,10 +630,11 @@ class LightTestOptimizersWithSchedulingAndStepsMixin:
         else:
             optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
             optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 4, gamma=0.1)
         lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
 
-        return [optimizer1, optimizer2], [lr_scheduler1, [lr_scheduler2, 3]]
+        return [optimizer1, optimizer2], \
+            [{'scheduler': lr_scheduler1, 'interval': 'batch'}, lr_scheduler2]
 
 
 def _get_output_metric(output, name):
