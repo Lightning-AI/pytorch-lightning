@@ -118,8 +118,10 @@ import os
 import re
 import warnings
 from abc import ABC, abstractmethod
+from typing import Union
 
 import torch
+from pytorch_lightning.loggers import LightningLoggerBase
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -135,15 +137,19 @@ class TrainerDDPMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    num_gpus = ...
-    on_gpu = ...
-    num_gpu_nodes = ...
-    logger = ...
-    data_parallel_device_ids = ...
-    distributed_backend = ...
-    use_amp = ...
-    amp_level = ...
-    use_tpu = ...
+    on_gpu: bool
+    num_gpu_nodes: int
+    logger: Union[LightningLoggerBase, bool]
+    data_parallel_device_ids: ...
+    distributed_backend: str
+    use_amp: bool
+    amp_level: str
+    use_tpu: bool
+
+    @property
+    @abstractmethod
+    def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):

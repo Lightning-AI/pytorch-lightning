@@ -1,28 +1,36 @@
-from abc import ABC
-from typing import Iterable
+from abc import ABC, abstractmethod
+from typing import Union, Iterable
 
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
+from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
 
 
 class TrainerLoggingMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    current_epoch = ...
-    on_gpu = ...
-    log_gpu_memory = ...
-    logger = ...
-    tqdm_metrics = ...
-    global_step = ...
-    proc_rank = ...
-    use_dp = ...
-    use_ddp2 = ...
-    num_gpus = ...
-    default_save_path = ...
-    slurm_job_id = ...
+    current_epoch: int
+    on_gpu: bool
+    log_gpu_memory: ...
+    logger: Union[LightningLoggerBase, bool]
+    tqdm_metrics: ...
+    global_step: int
+    proc_rank: int
+    use_dp: bool
+    use_ddp2: bool
+    default_save_path: str
+
+    @property
+    @abstractmethod
+    def slurm_job_id(self):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @property
+    @abstractmethod
+    def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def configure_logger(self, logger):
         if logger is True:

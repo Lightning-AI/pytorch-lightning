@@ -98,7 +98,7 @@ class Trainer(TrainerIOMixin,
             train_percent_check: float = 1.0,
             val_percent_check: float = 1.0,
             test_percent_check: float = 1.0,
-            val_check_interval: Union[float] = 1.0,
+            val_check_interval: float = 1.0,
             log_save_interval: int = 100,
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0

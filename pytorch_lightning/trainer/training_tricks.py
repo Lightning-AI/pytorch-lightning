@@ -10,7 +10,7 @@ class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    gradient_clip_val = ...
+    gradient_clip_val: ...
 
     @abstractmethod
     def get_model(self):

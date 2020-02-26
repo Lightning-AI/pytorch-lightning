@@ -1,17 +1,26 @@
 import os
-from abc import ABC
+from abc import ABC, abstractmethod
+from typing import Union
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.loggers import LightningLoggerBase
 
 
 class TrainerCallbackConfigMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    default_save_path = ...
-    save_checkpoint = ...
-    slurm_job_id = ...
-    logger = ...
+    default_save_path: str
+    logger: Union[LightningLoggerBase, bool]
+
+    @property
+    @abstractmethod
+    def slurm_job_id(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def configure_checkpoint_callback(self):
         """
