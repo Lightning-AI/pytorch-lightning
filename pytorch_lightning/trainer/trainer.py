@@ -578,7 +578,7 @@ class Trainer(
         model.prepare_data()
 
         self.mode = TrainerMode.TRAINING
-        self._fit(model)
+        return self._fit(model)
 
     def _fit(self, model, train_dataloader=None, val_dataloader=None, test_dataloader=None):
         # route to appropriate start method
