@@ -312,7 +312,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # Validation/Test begin callbacks
         if test_mode:
-            self.on_test_begin()
+            self.on_test_start()
         else:
             self.on_validation_start()
 
