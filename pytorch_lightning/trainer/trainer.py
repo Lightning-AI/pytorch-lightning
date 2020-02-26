@@ -1034,7 +1034,7 @@ class Trainer(TrainerIOMixin,
 
         # single output, single optimizer
         if isinstance(optimizers, Optimizer):
-            return [optimizers], None
+            return [optimizers], []
 
         # two lists, optimizer + lr schedulers
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
@@ -1044,7 +1044,7 @@ class Trainer(TrainerIOMixin,
 
         # single list or tuple, multiple optimizer
         elif isinstance(optimizers, (list, tuple)):
-            return optimizers, None
+            return optimizers, []
 
         # unknown configuration
         else:

@@ -82,7 +82,7 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
     # restore the lr schedulers
     lr_schedulers = checkpoint['lr_schedulers']
     for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
-        scheduler.load_state_dict(lrs_state)
+        scheduler['scheduler'].load_state_dict(lrs_state)
 
     # uses the model you passed into trainer
     model.load_state_dict(checkpoint['state_dict'])
@@ -344,7 +344,7 @@ class TrainerIOMixin(ABC):
         # save lr schedulers
         lr_schedulers = []
         for i, scheduler in enumerate(self.lr_schedulers):
-            lr_schedulers.append(scheduler.state_dict())
+            lr_schedulers.append(scheduler['scheduler'].state_dict())
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
@@ -431,7 +431,7 @@ class TrainerIOMixin(ABC):
         # restore the lr schedulers
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
-            scheduler.load_state_dict(lrs_state)
+            scheduler['scheduler'].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
