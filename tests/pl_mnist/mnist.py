@@ -1,5 +1,5 @@
 """
-Customized MNIST Code for testing Pytorch Lightning without the torchvision
+Customized MNIST Dataset for testing Pytorch Lightning without the torchvision
 dependency.
 
 Copied from
@@ -17,7 +17,7 @@ import torch
 import codecs
 from torch.utils.data import Dataset
 
-from tests.datasets.pl_mnist.utils import download_and_extract_archive
+from tests.pl_mnist.utils import download_and_extract_archive
 
 
 class MNIST(Dataset):

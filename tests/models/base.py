@@ -6,8 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from tests.datasets.pl_mnist import MNIST
-from tests.datasets import transforms
+from tests.pl_mnist import MNIST, transforms
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -15,7 +14,6 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
 
 
