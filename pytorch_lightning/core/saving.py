@@ -7,7 +7,7 @@ from typing import Union
 
 class ModelIO(object):
 
-    def on_load_checkpoint(self, checkpoint: dict):
+    def on_load_checkpoint(self, checkpoint: dict) -> None:
         """
         Do something with the checkpoint
         Gives model a chance to load something before state_dict is restored
@@ -15,7 +15,7 @@ class ModelIO(object):
         :return:
         """
 
-    def on_save_checkpoint(self, checkpoint: dict):
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
         """
         Give the model a chance to add something to the checkpoint.
         state_dict is already there
@@ -24,16 +24,14 @@ class ModelIO(object):
     # -------------------------
     # OPTIONAL HOOKS
     # -------------------------
-    def on_hpc_save(self, checkpoint: dict):
+    def on_hpc_save(self, checkpoint: dict) -> None:
         """
         Hook to do whatever you need right before Slurm manager saves the model
-        :return:
         """
 
-    def on_hpc_load(self, checkpoint: dict):
+    def on_hpc_load(self, checkpoint: dict) -> None:
         """
         Hook to do whatever you need right before Slurm manager loads the model
-        :return:
         """
 
 

@@ -1,6 +1,6 @@
-'''
+"""
 Generates a summary of a model's layers and dimensionality
-'''
+"""
 
 import gc
 import logging as log
@@ -43,7 +43,7 @@ class ModelSummary(object):
             mods = []
         return list(mods)
 
-    def get_variable_sizes(self):
+    def get_variable_sizes(self) -> None:
         """ Run sample input through each layer to get output sizes """
         mods = self.named_modules()
         in_sizes = []
@@ -99,7 +99,7 @@ class ModelSummary(object):
         self.out_sizes = out_sizes
         assert len(in_sizes) == len(out_sizes)
 
-    def get_layer_names(self):
+    def get_layer_names(self) -> None:
         """ Collect Layer Names """
         mods = self.named_modules()
         names = []
@@ -113,7 +113,7 @@ class ModelSummary(object):
         self.layer_names = names
         self.layer_types = layer_types
 
-    def get_parameter_sizes(self):
+    def get_parameter_sizes(self) -> None:
         """ Get sizes of all parameters in `model` """
         mods = self.named_modules()
         sizes = []
@@ -124,7 +124,7 @@ class ModelSummary(object):
 
         self.param_sizes = sizes
 
-    def get_parameter_nums(self):
+    def get_parameter_nums(self) -> None:
         """ Get number of parameters in each layer """
         param_nums = []
         for mod in self.param_sizes:
@@ -134,7 +134,7 @@ class ModelSummary(object):
             param_nums.append(all_params)
         self.param_nums = param_nums
 
-    def make_summary(self):
+    def make_summary(self) -> None:
         """
         Makes a summary listing with:
 
@@ -149,7 +149,7 @@ class ModelSummary(object):
 
         self.summary = _format_summary_table(*arrays)
 
-    def summarize(self):
+    def summarize(self) -> None:
         self.get_layer_names()
         self.get_parameter_sizes()
         self.get_parameter_nums()
@@ -204,7 +204,7 @@ def _format_summary_table(*cols) -> str:
     return summary
 
 
-def print_mem_stack():  # pragma: no cover
+def print_mem_stack() -> None:  # pragma: no cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):

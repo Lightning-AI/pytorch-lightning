@@ -71,7 +71,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         #: True if using amp
         self.use_amp = False
 
-    def print(self, *args, **kwargs):
+    def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once
 
@@ -612,7 +612,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         )
         return model
 
-    def init_ddp_connection(self, proc_rank: int, world_size: int):
+    def init_ddp_connection(self, proc_rank: int, world_size: int) -> None:
         r"""
 
         Override to define your custom way of setting up a distributed environment.
@@ -791,7 +791,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
-    ):
+    ) -> None:
         r"""
 
         Override this method to adjust the default way the Trainer calls each optimizer. By default, Lightning
@@ -920,7 +920,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return splits
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         """Use this to download and prepare data.
         In distributed (GPU, TPU), this will only be called once
 
@@ -943,7 +943,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 clean_imagenet()
                 cache_imagenet()
         """
-        return None
 
     def train_dataloader(self) -> DataLoader:
         """Implement a PyTorch DataLoader
@@ -1244,11 +1243,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model
 
-    def summarize(self, mode: str):
+    def summarize(self, mode: str) -> None:
         model_summary = ModelSummary(self, mode=mode)
         log.info('\n' + model_summary.__str__())
 
-    def freeze(self):
+    def freeze(self) -> None:
         r"""
         Freeze all params for inference
 
@@ -1265,7 +1264,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.eval()
 
-    def unfreeze(self):
+    def unfreeze(self) -> None:
         """Unfreeze all params for inference.
 
         .. code-block:: python
@@ -1279,7 +1278,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.train()
 
-    def on_load_checkpoint(self, checkpoint: dict):
+    def on_load_checkpoint(self, checkpoint: dict) -> None:
         r"""
         Called by lightning to restore your model.
         If you saved something with **on_save_checkpoint** this is your chance to restore this.
@@ -1301,7 +1300,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             No need for you to restore anything regarding training.
         """
 
-    def on_save_checkpoint(self, checkpoint: dict):
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
         r"""
 
         Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
