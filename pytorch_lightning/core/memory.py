@@ -231,10 +231,11 @@ def count_mem_items() -> Tuple[int, int]:  # pragma: no cover
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
-    """
-    'all' means return memory for all gpus
-    'min_max' means return memory for max and min
-    :param mode:
+    """ Get a profile of the current memory usage.
+
+    :param mode: There are two modes:
+        - 'all' means return memory for all gpus
+        - 'min_max' means return memory for max and min
     :return:
     """
     memory_map = get_gpu_memory_map()
@@ -251,11 +252,9 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 def get_gpu_memory_map() -> Dict[str, int]:
     """Get the current gpu usage.
 
-    Returns
-    -------
-    usage: dict
-        Keys are device ids as integers.
-        Values are memory usage as integers in MB.
+    Return:
+        A dictionary in which the keys are device ids as integers and
+        values are memory usage as integers in MB.
     """
     result = subprocess.run(
         [
