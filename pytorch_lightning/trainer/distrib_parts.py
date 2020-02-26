@@ -576,7 +576,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    if not isinstance(gpus, (int, str, list)):
+    if gpus is not None and type(gpus) not in (int, str, list):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
