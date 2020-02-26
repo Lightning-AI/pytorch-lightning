@@ -333,7 +333,7 @@ class TrainerEvaluationLoopMixin(ABC):
             raise MisconfigurationException(m)
 
         # Validation/Test begin callbacks
-        if test_mode:
+        if self.mode is TrainerMode.TESTING:
             self.on_test_start()
         else:
             self.on_validation_start()
