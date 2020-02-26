@@ -326,6 +326,11 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
+    def reset_val_dataloader(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
     def has_arg(self, f_name, arg_name):
         # this is just empty shell for code from other class
         pass
@@ -334,14 +339,15 @@ class TrainerTrainLoopMixin(ABC):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
 
-        # Train begin callbacks
-        self.on_train_start()
-
         # get model
         model = self.get_model()
 
         # load data
         self.reset_train_dataloader(model)
+        self.reset_val_dataloader(model)
+
+        # Train begin callbacks
+        self.on_train_start()
 
         try:
             # run all epochs
