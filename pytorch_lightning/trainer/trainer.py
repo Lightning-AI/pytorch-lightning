@@ -926,8 +926,4 @@ class _PatchDataLoader(object):
     Args:
         dataloader: Dataloader object to return when called.
     '''
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
-        self.dataloader = dataloader
 
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
-        return self.dataloader
