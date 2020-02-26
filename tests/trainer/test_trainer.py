@@ -253,7 +253,7 @@ def test_model_checkpoint_options(tmp_path):
 
     # verify correct naming
     for i in range(0, len(losses)):
-        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
+        assert f"_ckpt_epoch_{i}.ckpt" in file_lists
 
     save_dir = tmp_path / "2"
     save_dir.mkdir()
@@ -302,7 +302,7 @@ def test_model_checkpoint_options(tmp_path):
     # make sure other files don't get deleted
 
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
-    open(f'{save_dir}/other_file.ckpt', 'a').close()
+    open(f"{save_dir}/other_file.ckpt", 'a').close()
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
