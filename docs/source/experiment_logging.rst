@@ -137,3 +137,26 @@ The Wandb logger is available anywhere in your LightningModule
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
+
+Multiple Loggers
+^^^^^^^^^^^^^^^^^
+
+PyTorch-Lightning supports use of multiple loggers, just pass a list to the `Trainer`.
+
+.. code-block:: python
+
+   from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+   
+   logger1 = TensorBoardLogger("tb_logs", name="my_model")
+   logger2 = TestTubeLogger("tt_logs", name="my_model")
+   trainer = Trainer(logger=[logger1, logger2])
+   
+The loggers are available as a list anywhere in your LightningModule
+
+.. code-block:: python
+
+   class MyModule(pl.LightningModule):
+
+      def __init__(self, ...):
+         some_img = fake_image()
+         self.logger.experiment[0].add_image('generated_images', some_img, 0)

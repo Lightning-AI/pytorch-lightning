@@ -11,15 +11,25 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from tests.models import (
+    TestModelBase,
     LightningTestModel,
-    LightningTestModelBase,
-    LightningTestModelBaseWithoutDataloader,
-    LightningValidationStepMixin,
-    LightningValidationMultipleDataloadersMixin,
-    LightningTestMultipleDataloadersMixin,
+    LightEmptyTestStep,
+    LightValidationStepMixin,
+    LightValidationMultipleDataloadersMixin,
+    LightTestMultipleDataloadersMixin,
+    LightTestFitSingleTestDataloadersMixin,
+    LightTestFitMultipleTestDataloadersMixin,
+    LightValStepFitMultipleDataloadersMixin,
+    LightValStepFitSingleDataloaderMixin,
+    LightTrainDataloader,
+    LightTestDataloader,
+    LightValidationMixin,
+    LightTestMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Callback
 
 
 def test_no_val_module(tmpdir):
@@ -28,7 +38,7 @@ def test_no_val_module(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    class CurrentTestModel(LightningTestModelBase):
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
 
     model = CurrentTestModel(hparams)
@@ -65,7 +75,7 @@ def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+    class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
 
     hparams = tutils.get_hparams()
@@ -235,13 +245,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -259,13 +268,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = os.listdir(save_dir)
 
@@ -279,13 +287,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -303,13 +310,12 @@ def test_model_checkpoint_options(tmp_path):
     open(f'{save_dir}/other_file.ckpt', 'a').close()
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -328,13 +334,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for loss in losses:
-        checkpoint_callback._trainer.current_epoch = 0
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = 0
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -350,13 +355,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for loss in losses:
-        checkpoint_callback._trainer.current_epoch = 0
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = 0
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -381,8 +385,9 @@ def test_multiple_val_dataloader(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningValidationMultipleDataloadersMixin,
-        LightningTestModelBase
+        LightTrainDataloader,
+        LightValidationMultipleDataloadersMixin,
+        TestModelBase,
     ):
         pass
 
@@ -405,11 +410,11 @@ def test_multiple_val_dataloader(tmpdir):
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.get_val_dataloaders()) == 2, \
+    assert len(trainer.val_dataloaders) == 2, \
         'Multiple val_dataloaders not initiated properly'
 
     # make sure predictions are good for each val set
-    for dataloader in trainer.get_val_dataloaders():
+    for dataloader in trainer.val_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
 
@@ -486,8 +491,10 @@ def test_multiple_test_dataloader(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestMultipleDataloadersMixin,
-        LightningTestModelBase
+        LightTrainDataloader,
+        LightTestMultipleDataloadersMixin,
+        LightEmptyTestStep,
+        TestModelBase,
     ):
         pass
 
@@ -504,14 +511,15 @@ def test_multiple_test_dataloader(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
+    trainer.test()
 
     # verify there are 2 val loaders
-    assert len(trainer.get_test_dataloaders()) == 2, \
+    assert len(trainer.test_dataloaders) == 2, \
         'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
-    for dataloader in trainer.get_test_dataloaders():
+    for dataloader in trainer.test_dataloaders:
         tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
@@ -522,9 +530,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     """ Verify that train dataloader can be passed to fit """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
-    ):
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
 
     hparams = tutils.get_hparams()
@@ -549,7 +555,9 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightTrainDataloader,
+        LightValStepFitSingleDataloaderMixin,
+        TestModelBase,
     ):
         pass
 
@@ -567,10 +575,11 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False))
+
     results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
@@ -578,7 +587,11 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightTrainDataloader,
+        LightValStepFitSingleDataloaderMixin,
+        LightTestFitSingleTestDataloadersMixin,
+        LightEmptyTestStep,
+        TestModelBase,
     ):
         pass
 
@@ -596,14 +609,17 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False),
+                       test_dataloaders=model._dataloader(train=False))
+
     results = trainer.fit(model, **fit_options)
 
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    trainer.test()
+
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -611,7 +627,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
+        LightningTestModel,
+        LightValStepFitMultipleDataloadersMixin,
+        LightTestFitMultipleTestDataloadersMixin,
     ):
         pass
 
@@ -629,16 +647,17 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=[model._dataloader(train=False),
-                                       model._dataloader(train=False)],
-                       test_dataloader=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
+                       val_dataloaders=[model._dataloader(train=False),
+                                        model._dataloader(train=False)],
+                       test_dataloaders=[model._dataloader(train=False),
+                                         model._dataloader(train=False)])
     results = trainer.fit(model, **fit_options)
+    trainer.test()
 
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    assert len(trainer.val_dataloaders) == 2, \
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 2, \
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -646,7 +665,10 @@ def test_mixing_of_dataloader_options(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningTestModelBase
+        LightTrainDataloader,
+        LightValStepFitSingleDataloaderMixin,
+        LightTestFitSingleTestDataloadersMixin,
+        TestModelBase,
     ):
         pass
 
@@ -663,18 +685,20 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
+    fit_options = dict(val_dataloaders=model._dataloader(train=False),
+                       test_dataloaders=model._dataloader(train=False))
+    _ = trainer.fit(model, **fit_options)
+    trainer.test()
+
+    assert len(trainer.val_dataloaders) == 1, \
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 1, \
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def _init_steps_model():
@@ -699,6 +723,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # define less train steps than epochs
     trainer_options.update(dict(
+        default_save_path=tmpdir,
         max_epochs=5,
         max_steps=num_train_samples + 10
     ))
@@ -712,8 +737,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
-    trainer_options['max_epochs'] = 2
-    trainer_options['max_steps'] = trainer_options['max_epochs'] * 2 * num_train_samples
+    trainer_options.update(dict(
+        max_epochs=2,
+        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
+    ))
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -721,8 +748,8 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer.max_nb_epochs \
-        and trainer.current_epoch == trainer.max_nb_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.global_step == num_train_samples * trainer.max_epochs \
+        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -730,12 +757,13 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
-    trainer_options.update({
-        'early_stop_callback': EarlyStopping(monitor='val_loss', min_delta=1.0),
-        'val_check_interval': 20,
-        'min_epochs': 1,
-        'max_epochs': 10
-    })
+    trainer_options.update(dict(
+        default_save_path=tmpdir,
+        early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
+        val_check_interval=20,
+        min_epochs=1,
+        max_epochs=10
+    ))
 
     # define less min steps than 1 epoch
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)
@@ -761,6 +789,187 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
+
+def test_benchmark_option(tmpdir):
+    """Verify benchmark option."""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightValidationMultipleDataloadersMixin,
+        LightTrainDataloader,
+        TestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # verify torch.backends.cudnn.benchmark is not turned on
+    assert not torch.backends.cudnn.benchmark
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        benchmark=True,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    # verify torch.backends.cudnn.benchmark is not turned off
+    assert torch.backends.cudnn.benchmark
+
+
+def test_testpass_overrides(tmpdir):
+    hparams = tutils.get_hparams()
+
+    class LocalModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
+        pass
+
+    class LocalModelNoStep(LightTrainDataloader, TestModelBase):
+        def test_end(self, outputs):
+            return {}
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModel(hparams)
+        Trainer().test(model)
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModelNoStep(hparams)
+        Trainer().test(model)
+
+    # No exceptions when one or both of test_step or test_end are implemented
+    model = LocalModelNoEnd(hparams)
+    Trainer().test(model)
+
+    model = LightningTestModel(hparams)
+    Trainer().test(model)
+
+
+def test_trainer_callback_system(tmpdir):
+    """Test the callback system."""
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightTestMixin,
+        LightValidationMixin,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    class TestCallback(Callback):
+        def __init__(self):
+            super().__init__()
+            self.on_init_start_called = False
+            self.on_init_end_called = False
+            self.on_fit_start_called = False
+            self.on_fit_end_called = False
+            self.on_epoch_start_called = False
+            self.on_epoch_end_called = False
+            self.on_batch_start_called = False
+            self.on_batch_end_called = False
+            self.on_train_start_called = False
+            self.on_train_end_called = False
+            self.on_validation_start_called = False
+            self.on_validation_end_called = False
+            self.on_test_start_called = False
+            self.on_test_end_called = False
+
+        def on_init_start(self, trainer, pl_module):
+            self.on_init_start_called = True
+
+        def on_init_end(self, trainer, pl_module):
+            self.on_init_end_called = True
+
+        def on_fit_start(self, trainer, pl_module):
+            self.on_fit_start_called = True
+
+        def on_fit_end(self, trainer, pl_module):
+            self.on_fit_end_called = True
+
+        def on_epoch_start(self, trainer, pl_module):
+            self.on_epoch_start_called = True
+
+        def on_epoch_end(self, trainer, pl_module):
+            self.on_epoch_end_called = True
+
+        def on_batch_start(self, trainer, pl_module):
+            self.on_batch_start_called = True
+
+        def on_batch_end(self, trainer, pl_module):
+            self.on_batch_end_called = True
+
+        def on_train_start(self, trainer, pl_module):
+            self.on_train_start_called = True
+
+        def on_train_end(self, trainer, pl_module):
+            self.on_train_end_called = True
+
+        def on_validation_start(self, trainer, pl_module):
+            self.on_validation_start_called = True
+
+        def on_validation_end(self, trainer, pl_module):
+            self.on_validation_end_called = True
+
+        def on_test_start(self, trainer, pl_module):
+            self.on_test_start_called = True
+
+        def on_test_end(self, trainer, pl_module):
+            self.on_test_end_called = True
+
+    test_callback = TestCallback()
+
+    trainer_options = {}
+    trainer_options['callbacks'] = [test_callback]
+    trainer_options['max_epochs'] = 1
+    trainer_options['val_percent_check'] = 0.1
+    trainer_options['train_percent_check'] = 0.2
+    trainer_options['show_progress_bar'] = False
+
+    assert not test_callback.on_init_start_called
+    assert not test_callback.on_init_end_called
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    assert trainer.callbacks[0] == test_callback
+    assert test_callback.on_init_start_called
+    assert test_callback.on_init_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_start_called
+
+    trainer.fit(model)
+
+    assert test_callback.on_fit_start_called
+    assert test_callback.on_fit_end_called
+    assert test_callback.on_epoch_start_called
+    assert test_callback.on_epoch_start_called
+    assert test_callback.on_batch_start_called
+    assert test_callback.on_batch_end_called
+    assert test_callback.on_train_start_called
+    assert test_callback.on_train_end_called
+    assert test_callback.on_validation_start_called
+    assert test_callback.on_validation_end_called
+    assert not test_callback.on_test_start_called
+    assert not test_callback.on_test_end_called
+
+    trainer.test()
+
+    assert test_callback.on_test_start_called
+    assert test_callback.on_test_end_called
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])

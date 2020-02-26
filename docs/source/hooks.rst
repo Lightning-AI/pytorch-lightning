@@ -8,9 +8,9 @@ Training set-up
 - init_optimizers
 - configure_apex
 - configure_ddp
-- get_train_dataloader
-- get_test_dataloaders
-- get_val_dataloaders
+- train_dataloader
+- test_dataloaders
+- val_dataloaders
 - summarize
 - restore_weights
 

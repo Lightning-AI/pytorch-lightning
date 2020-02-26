@@ -23,9 +23,10 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
-
+import argparse
 from logging import getLogger
 from time import time
+from typing import Optional, Dict, Any
 
 try:
     import mlflow
@@ -38,7 +39,8 @@ logger = getLogger(__name__)
 
 
 class MLFlowLogger(LightningLoggerBase):
-    def __init__(self, experiment_name, tracking_uri=None, tags=None):
+    def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
+                 tags: Dict[str, Any] = None):
         r"""
 
         Logs using MLFlow
@@ -55,7 +57,7 @@ class MLFlowLogger(LightningLoggerBase):
         self.tags = tags
 
     @property
-    def experiment(self):
+    def experiment(self) -> mlflow.tracking.MlflowClient:
         r"""
 
         Actual mlflow object. To use mlflow features do the following.
@@ -85,12 +87,12 @@ class MLFlowLogger(LightningLoggerBase):
         return self._run_id
 
     @rank_zero_only
-    def log_hyperparams(self, params):
+    def log_hyperparams(self, params: argparse.Namespace):
         for k, v in vars(params).items():
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
@@ -104,15 +106,15 @@ class MLFlowLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status="FINISHED"):
+    def finalize(self, status: str = "FINISHED"):
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.experiment_name
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self._run_id

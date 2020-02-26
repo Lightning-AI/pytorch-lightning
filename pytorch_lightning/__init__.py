@@ -29,10 +29,12 @@ else:
 
     from .core import data_loader, LightningModule
     from .trainer import Trainer
+    from .callbacks import Callback
 
     __all__ = [
         'Trainer',
         'LightningModule',
+        'Callback',
         'data_loader',
     ]
     # __call__ = __all__

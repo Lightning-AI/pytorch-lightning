@@ -189,41 +189,39 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def __dataloader(self, train):
+        # this is neede when you want some info about dataset before binding to trainer
+        self.prepare_data()
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+                        transform=transform, download=False)
 
         # when using multi-node (ddp) we need to add the  datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        if self.use_ddp:
-            train_sampler = DistributedSampler(dataset)
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler,
             num_workers=0
         )
 
         return loader
 
-    @data_loader
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        _ = MNIST(root=self.hparams.data_root, train=True,
+                  transform=transform, download=True)
+
     def train_dataloader(self):
         log.info('Training data loader called.')
         return self.__dataloader(train=True)
 
-    @data_loader
     def val_dataloader(self):
         log.info('Validation data loader called.')
         return self.__dataloader(train=False)
 
-    @data_loader
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
@@ -253,6 +251,7 @@ class LightningTemplateModel(LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
+        parser.add_argument('--epochs', default=20, type=int)
         parser.add_argument('--optimizer_name', default='adam', type=str)
         parser.add_argument('--batch_size', default=64, type=int)
         return parser

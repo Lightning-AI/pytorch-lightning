@@ -1,12 +1,18 @@
 import logging as log
 import os
 
+import pytest
 import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.models import LightningTestModel
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+from tests.models import (
+    LightningTestModel,
+    LightningTestModelWithoutHyperparametersArg,
+    LightningTestModelWithUnusedHyperparametersArg
+)
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
@@ -53,7 +59,11 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         tutils.run_prediction(dataloader, pretrained_model)
 
 
@@ -244,7 +254,7 @@ def test_dp_resume(tmpdir):
         dp_model = new_trainer.model
         dp_model.eval()
 
-        dataloader = trainer.get_train_dataloader()
+        dataloader = trainer.train_dataloader
         tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
@@ -311,7 +321,7 @@ def test_cpu_restore_training(tmpdir):
         # if model and state loaded correctly, predictions will be good even though we
         # haven't trained with the new loaded model
         trainer.model.eval()
-        for dataloader in trainer.get_val_dataloaders():
+        for dataloader in trainer.val_dataloaders:
             tutils.run_prediction(dataloader, trainer.model)
 
     model.on_train_start = assert_good_acc
@@ -345,7 +355,11 @@ def test_model_saving_loading(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # make a prediction
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         for batch in dataloader:
             break
 
@@ -371,6 +385,40 @@ def test_model_saving_loading(tmpdir):
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+
+def test_load_model_with_missing_hparams(tmpdir):
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=1,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        logger=False,
+        default_save_path=tmpdir,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    model = LightningTestModelWithoutHyperparametersArg()
+    trainer.fit(model)
+    last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+
+    # try to load a checkpoint that has hparams but model is missing hparams arg
+    with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
+        LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # create a checkpoint without hyperparameters
+    # if the model does not take a hparams argument, it should not throw an error
+    ckpt = torch.load(last_checkpoint)
+    del(ckpt['hparams'])
+    torch.save(ckpt, last_checkpoint)
+    LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # load checkpoint without hparams again
+    # warn if user's model has hparams argument
+    with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
+        LightningTestModelWithUnusedHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])

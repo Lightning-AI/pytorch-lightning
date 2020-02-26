@@ -36,7 +36,11 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
                                   path_expt=trainer_options.get('default_save_path'))
 
     # test new model accuracy
-    for dataloader in model.test_dataloader():
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
     if trainer.use_ddp:
@@ -69,7 +73,11 @@ def run_model_test(trainer_options, model, on_gpu=True):
     pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
 
     # test new model accuracy
-    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
 
     if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
@@ -82,7 +90,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
 
 
 def get_hparams(continue_training=False, hpc_exp_number=0):
-    root_dir = os.path.dirname(os.path.realpath(__file__))
+    tests_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
     args = {
         'drop_prob': 0.2,
@@ -90,7 +98,7 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
         'in_features': 28 * 28,
         'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
-        'data_root': os.path.join(root_dir, 'mnist'),
+        'data_root': os.path.join(tests_dir, 'datasets'),
         'out_features': 10,
         'hidden_dim': 1000,
     }
