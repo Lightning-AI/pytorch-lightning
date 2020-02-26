@@ -375,14 +375,14 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.val_progress_bar.close()
 
-        # model checkpointing
-        if self.proc_rank == 0 and self.checkpoint_callback is not None and not test_mode:
-            self.checkpoint_callback.on_validation_end(self, self.get_model())
-
         # Validation/Test end callbacks
         if test_mode:
             self.on_test_end()
         else:
+            # model checkpointing
+            # TODO wrap this logic into the callback
+            if self.proc_rank == 0 and self.checkpoint_callback is not None:
+                self.checkpoint_callback.on_validation_end(self, self.get_model())
             self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
