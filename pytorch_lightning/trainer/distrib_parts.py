@@ -385,13 +385,11 @@ class TrainerDPMixin(ABC):
 
     @abstractmethod
     def run_pretrain_routine(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def init_optimizers(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):

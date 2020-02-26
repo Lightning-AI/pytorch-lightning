@@ -181,48 +181,39 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def is_overriden(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def transfer_batch_to_tpu(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def transfer_batch_to_gpu(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def add_tqdm_metrics(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def log_metrics(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def reset_test_dataloader(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def reset_val_dataloader(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
         """Run evaluation code.

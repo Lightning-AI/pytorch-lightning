@@ -45,8 +45,7 @@ class TrainerDataLoadingMixin(ABC):
 
     @abstractmethod
     def is_overriden(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def _percent_range_check(self, name):
         value = getattr(self, name)

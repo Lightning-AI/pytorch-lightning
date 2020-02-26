@@ -148,18 +148,15 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def run_pretrain_routine(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def init_optimizers(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
         # turn off all the GPU stuff

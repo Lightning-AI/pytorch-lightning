@@ -263,78 +263,63 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def is_function_implemented(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def is_infinite_dataloader(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def run_evaluation(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def transfer_batch_to_gpu(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def transfer_batch_to_tpu(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def clip_gradients(self):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def print_nan_gradients(self):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def is_overriden(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def add_tqdm_metrics(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def log_metrics(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def process_output(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def reset_train_dataloader(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def reset_val_dataloader(self, model):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def has_arg(self, *args):
-        # this is just empty shell for code from other class
-        ...
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
