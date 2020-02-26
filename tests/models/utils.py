@@ -166,7 +166,7 @@ def load_model(exp, root_weights_dir, module_class=LightningTemplateModel, path_
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.45):
     # run prediction on 1 batch
     for batch in dataloader:
         break
