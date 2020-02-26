@@ -1108,7 +1108,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             cls,
             weights_path: str,
             tags_csv: str,
-            map_location: Optional[Dict[str, str]] = None
+            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None
     ) -> 'LightningModule':
         r"""
         Warning:
