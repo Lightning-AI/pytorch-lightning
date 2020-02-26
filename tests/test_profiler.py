@@ -21,9 +21,7 @@ def advanced_profiler():
 
 @pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action, expected):
-    """
-    ensure the reported durations are reasonably accurate
-    """
+    """Ensure the reported durations are reasonably accurate."""
 
     for duration in expected:
         with simple_profiler.profile(action):
@@ -37,9 +35,7 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
 
 
 def test_simple_profiler_overhead(simple_profiler, n_iter=5):
-    """
-    ensure that the profiler doesn't introduce too much overhead during training
-    """
+    """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with simple_profiler.profile("no-op"):
             pass
@@ -49,9 +45,7 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 
 def test_simple_profiler_describe(simple_profiler):
-    """
-    ensure the profiler won't fail when reporting the summary
-    """
+    """Ensure the profiler won't fail when reporting the summary."""
     simple_profiler.describe()
 
 
