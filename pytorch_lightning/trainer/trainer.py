@@ -30,8 +30,10 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
+from pytorch_lightning.callbacks import Callback
 
 
 try:
@@ -62,6 +64,7 @@ class Trainer(TrainerIOMixin,
               TrainerEvaluationLoopMixin,
               TrainerTrainLoopMixin,
               TrainerCallbackConfigMixin,
+              TrainerCallbackHookMixin
               ):
 
     def __init__(
@@ -69,6 +72,7 @@ class Trainer(TrainerIOMixin,
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
+            callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -170,6 +174,18 @@ class Trainer(TrainerIOMixin,
                     )
 
                     trainer = Trainer(early_stop_callback=early_stop_callback)
+
+            callbacks: Add a list of callbacks.
+                Example::
+                    from pytorch_lightning.callbacks import Callback
+                    class PrintCallback(Callback):
+                        def on_train_start(self):
+                            print("Training is started!")
+                        def on_train_end(self):
+                            print(f"Training is done. The logs are: {self.trainer.logs}")
+                    # a list of callbacks
+                    callbacks = [PrintCallback()]
+                    trainer = Trainer(callbacks=callbacks)
 
             default_save_path: Default path for logs and weights when no logger/ckpt_callback passed
                 Example::
@@ -599,6 +615,10 @@ class Trainer(TrainerIOMixin,
 
         """
 
+        # Init callbacks
+        self.callbacks = callbacks
+        self.on_init_start()
+
         # benchmarking
         self.benchmark = benchmark
         if benchmark:
@@ -786,6 +806,9 @@ class Trainer(TrainerIOMixin,
             use_amp = True
         self.init_amp(use_amp)
 
+        # Callback system
+        self.on_init_end()
+
     @property
     def slurm_job_id(self) -> int:
         try:
@@ -914,6 +937,9 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
+        # Fit begin callbacks
+        self.on_fit_start()
+
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
 
@@ -956,6 +982,9 @@ class Trainer(TrainerIOMixin,
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
+
+        # Fit end callbacks
+        self.on_fit_end()
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -1090,9 +1119,8 @@ class Trainer(TrainerIOMixin,
         self.reset_val_dataloader(ref_model)
 
         # check if we should run validation during training
-        self.disable_validation = ((self.num_val_batches == 0 or
-                                    not self.is_overriden('validation_step')) and
-                                   not self.fast_dev_run)
+        self.disable_validation = self.num_val_batches == 0 or not self.is_overriden('validation_step')
+        self.disable_validation = self.disable_validation and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1162,3 +1190,51 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             self.fit(model)
         self.run_evaluation(test_mode=True)
+
+
+def _set_dataloader(model, dataloader, attribute):
+    r'''
+    Check dataloaders passed to .fit() method if they are pytorch DataLoader
+    objects and whether or not we should overright the corresponding dataloader
+    in the model
+
+    Args:
+        model (LightningModule): The model to check
+
+        dataloader: If a pytorch dataloader (or a list of pytorch dataloaders)
+            is passed, it will be incorporate into the model as model.attribute.
+            If attribute alreay exist it will warn the userpass. If not a
+            dataloader will throw an error
+
+        attribute (str): The attribute to save the dataloader under
+
+    '''
+    # Check if attribute comes directly from base class or
+    # derived in user subclass
+    if LightningModule.__qualname__ in getattr(model, attribute).__qualname__:
+        # Val and test should be list of dataloaders
+        dataloader = dataloader if attribute == 'train_dataloader' or \
+            (attribute != 'train_dataloader' and isinstance(dataloader, list)) else [dataloader]
+
+        # Check we are given valid dataloaders
+        is_dataloader = isinstance(dataloader, torch.utils.data.DataLoader)
+        is_dataloader_list = isinstance(dataloader, list)
+        valid_loaders = None
+        if is_dataloader_list:
+            valid_loaders = all(isinstance(d, torch.utils.data.DataLoader) for d in dataloader)
+        if is_dataloader or is_dataloader_list and valid_loaders:
+
+            # Overwrite abstract methods
+            def dl():
+                return dataloader
+            dl.__name__ = attribute
+            setattr(model, attribute, dl)
+
+        elif dataloader and dataloader != [None]:
+            raise ValueError(f'`{attribute}` needs to be an instance of '
+                             '`torch.utils.data.DataLoader` or a list of '
+                             'DataLoaders, instead got %r`' % dataloader)
+
+    elif dataloader:  # if default (None) is passed, do not warn the user
+        warnings.warn(f'Model has predefined `{attribute}`,'
+                      f' will skip `{attribute}={dataloader}` passed to fit method.')

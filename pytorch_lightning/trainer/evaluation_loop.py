@@ -123,6 +123,8 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
+from typing import Callable
+
 import sys
 from abc import ABC, abstractmethod
 
@@ -170,6 +172,12 @@ class TrainerEvaluationLoopMixin(ABC):
         self.use_tpu = None
         self.reload_dataloaders_every_epoch = None
         self.progress_bar_refresh_rate = None
+
+        # Callback system
+        self.on_validation_start: Callable = ...
+        self.on_validation_end: Callable = ...
+        self.on_test_start: Callable = ...
+        self.on_test_end: Callable = ...
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):
@@ -302,6 +310,12 @@ class TrainerEvaluationLoopMixin(ABC):
                 " Please define and try again"
             raise MisconfigurationException(m)
 
+        # Validation/Test begin callbacks
+        if test_mode:
+            self.on_test_start()
+        else:
+            self.on_validation_start()
+
         # hook
         model = self.get_model()
         model.on_pre_performance_check()
@@ -363,7 +377,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # model checkpointing
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test_mode:
-            self.checkpoint_callback.on_validation_end()
+            self.checkpoint_callback.on_validation_end(self, self.get_model())
+
+        # Validation/Test end callbacks
+        if test_mode:
+            self.on_test_end()
+        else:
+            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
