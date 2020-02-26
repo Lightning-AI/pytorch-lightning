@@ -330,34 +330,39 @@ def test_tensorboard_log_hyperparams(tmpdir):
     logger.log_hyperparams(hparams)
 
 
+class CustomLogger(LightningLoggerBase):
+    def __init__(self):
+        super().__init__()
+        self.hparams_logged = None
+        self.metrics_logged = None
+        self.finalized = False
+
+    @property
+    def experiment(self):
+        return 'test'
+
+    @rank_zero_only
+    def log_hyperparams(self, params):
+        self.hparams_logged = params
+
+    @rank_zero_only
+    def log_metrics(self, metrics, step):
+        self.metrics_logged = metrics
+
+    @rank_zero_only
+    def finalize(self, status):
+        self.finalized_status = status
+
+    @property
+    def name(self):
+        return "name"
+
+    @property
+    def version(self):
+        return "1"
+
+
 def test_custom_logger(tmpdir):
-    class CustomLogger(LightningLoggerBase):
-        def __init__(self):
-            super().__init__()
-            self.hparams_logged = None
-            self.metrics_logged = None
-            self.finalized = False
-
-        @rank_zero_only
-        def log_hyperparams(self, params):
-            self.hparams_logged = params
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            self.metrics_logged = metrics
-
-        @rank_zero_only
-        def finalize(self, status):
-            self.finalized_status = status
-
-        @property
-        def name(self):
-            return "name"
-
-        @property
-        def version(self):
-            return "1"
-
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
@@ -376,6 +381,50 @@ def test_custom_logger(tmpdir):
     assert logger.hparams_logged == hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
+
+
+def test_multiple_loggers(tmpdir):
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    logger1 = CustomLogger()
+    logger2 = CustomLogger()
+
+    trainer_options = dict(
+        max_epochs=1,
+        train_percent_check=0.05,
+        logger=[logger1, logger2],
+        default_save_path=tmpdir
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training failed"
+
+    assert logger1.hparams_logged == hparams
+    assert logger1.metrics_logged != {}
+    assert logger1.finalized_status == "success"
+
+    assert logger2.hparams_logged == hparams
+    assert logger2.metrics_logged != {}
+    assert logger2.finalized_status == "success"
+
+
+def test_multiple_loggers_pickle(tmpdir):
+    """Verify that pickling trainer with multiple loggers works."""
+
+    logger1 = CustomLogger()
+    logger2 = CustomLogger()
+
+    trainer_options = dict(max_epochs=1, logger=[logger1, logger2])
+
+    trainer = Trainer(**trainer_options)
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({"acc": 1.0}, 0)
+
+    assert logger1.metrics_logged != {}
+    assert logger2.metrics_logged != {}
 
 
 def test_adding_step_key(tmpdir):

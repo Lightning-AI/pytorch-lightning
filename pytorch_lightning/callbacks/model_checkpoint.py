@@ -117,9 +117,9 @@ class ModelCheckpoint(Callback):
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def on_validation_end(self):
-        logs = self.trainer.callback_metrics
-        epoch = self.trainer.current_epoch
+    def on_validation_end(self, trainer, pl_module):
+        logs = trainer.callback_metrics
+        epoch = trainer.current_epoch
         self.epochs_since_last_check += 1
 
         if self.save_top_k == 0:
