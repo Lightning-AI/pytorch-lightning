@@ -908,7 +908,7 @@ def test_default_args(tmpdir):
     trainer = Trainer.from_default_args(args)
 
     assert isinstance(trainer, Trainer)
-    assert Trainer.max_epochs == 5
+    assert trainer.max_epochs == 5
 
 
 def test_trainer_callback_system(tmpdir):
