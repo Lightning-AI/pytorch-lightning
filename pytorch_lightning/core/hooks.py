@@ -39,14 +39,12 @@ class ModelHooks(torch.nn.Module):
 
     def on_train_start(self):
         """Called at the beginning of training before sanity check
-        :return:
         """
         # do something at the start of training
 
     def on_train_end(self):
         """
         Called at the end of training before logger experiment is closed
-        :return:
         """
         # do something at the end of training
 
@@ -54,7 +52,6 @@ class ModelHooks(torch.nn.Module):
         """Called in the training loop before anything happens for that batch.
 
         :param batch:
-        :return:
         """
         # do something when the batch starts
 
@@ -90,17 +87,13 @@ class ModelHooks(torch.nn.Module):
             model.on_before_zero_grad(optimizer) # < ---- called here
             optimizer.zero_grad
 
-        :param optimizer:
-        :return:
+        :param optimizer: The optimizer optimizer for which grads should be zeroed.
         """
         # do something with the optimizer or inspect it.
 
     def on_after_backward(self):
-        """Called after loss.backward() and before optimizers do anything.
+        """Called in the training loop after loss.backward() and before optimizers do anything.
 
-        :return:
-
-        Called in the training loop after model.backward()
         This is the ideal place to inspect or log gradient information
 
         .. code-block:: python
@@ -124,7 +117,6 @@ class ModelHooks(torch.nn.Module):
         :param loss: Loss is already scaled by accumulated grads
         :param optimizer: Current optimizer being used
         :param optimizer_idx: Index of the current optimizer being used
-        :return:
 
         Called to perform backward step.
         Feel free to override as needed.
