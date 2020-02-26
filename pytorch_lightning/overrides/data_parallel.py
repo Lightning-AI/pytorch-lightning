@@ -58,7 +58,7 @@ class LightningDataParallel(DataParallel):
             # lightning
             if self.module.training:
                 return self.module.training_step(*inputs[0], **kwargs[0])
-            elif self.module.mode is TrainerMode.TESTING:
+            if self.module.mode is TrainerMode.TESTING:
                 return self.module.test_step(*inputs[0], **kwargs[0])
 
             return self.module.validation_step(*inputs[0], **kwargs[0])

@@ -410,10 +410,10 @@ class TrainerEvaluationLoopMixin(ABC):
             self.val_progress_bar.close()
 
         # Validation/Test end callbacks
-        if test_mode:
+        if self.mode is TrainerMode.TESTING:
             self.on_test_end()
 
-    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
+    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
