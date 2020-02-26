@@ -1060,24 +1060,24 @@ class Trainer(TrainerIOMixin,
         lr_schedulers = []
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
-                if not 'scheduler' in scheduler:
+                if 'scheduler' not in scheduler:
                     raise ValueError(f'Lr scheduler should have key `scheduler`',
                                      'with item being a lr scheduler')
-                if not 'interval' in scheduler:
-                    scheduler['interval'] = 'epoch' # default every epoch
-                if not 'frequency' in scheduler:
-                    scheduler['frequency'] = 1 # default every step
+                if 'interval' not in scheduler:
+                    scheduler['interval'] = 'epoch'  # default every epoch
+                if 'frequency' not in scheduler:
+                    scheduler['frequency'] = 1  # default every step
                 scheduler['reduce_on_plateau'] = \
                     isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
 
                 lr_schedulers.append(scheduler)
-                
+
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                 lr_schedulers.append({'scheduler': scheduler,
                                       'interval': 'epoch',
                                       'frequency': 1,
                                       'reduce_on_plateau': True})
-    
+
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
                 lr_schedulers.append({'scheduler': scheduler,
                                       'interval': 'epoch',

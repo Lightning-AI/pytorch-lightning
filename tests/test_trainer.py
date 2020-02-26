@@ -974,6 +974,7 @@ def test_trainer_callback_system(tmpdir):
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
 
+
 def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
     tutils.reset_seed()
@@ -983,7 +984,7 @@ def test_optimizer_with_scheduling(tmpdir):
             LightTrainDataloader,
             TestModelBase):
         pass
-    
+
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 

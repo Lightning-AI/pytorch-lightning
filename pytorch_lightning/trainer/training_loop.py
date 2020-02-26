@@ -739,7 +739,7 @@ class TrainerTrainLoopMixin(ABC):
         ''' Update lr '''
         if self.lr_schedulers is not None:
             for lr_scheduler in self.lr_schedulers:
-                current_step_idx = self.batch_idx if interval=='batch' else self.current_epoch
+                current_step_idx = self.batch_idx if interval == 'batch' else self.current_epoch
                 # Take step if call to update_lr matches the interval key and
                 # the current step modulo the schedulers frequency is zero
                 if lr_scheduler['interval'] == interval and current_step_idx % lr_scheduler['frequency'] == 0:

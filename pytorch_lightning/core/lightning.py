@@ -751,11 +751,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
                 return [generator_opt, disriminator_opt], [discriminator_sched]
 
-            # example with step-based learning_rate schedulers 
+            # example with step-based learning_rate schedulers
             def configure_optimizers(self):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
                 dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99), 
+                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
                              'interval': 'batch'] # called after each step
                 dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
                 return [gen_opt, dis_opt], [gen_sched, dis_sched]
