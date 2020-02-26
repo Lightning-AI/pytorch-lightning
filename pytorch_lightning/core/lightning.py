@@ -226,7 +226,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """return loss, dict with metrics for tqdm
 
         :param outputs: What you return in `training_step`.
-        :return dict: dictionary with loss key and optional log, progress keys:
+        :return: Dictionary with loss key and optional log, progress keys:
             - loss -> tensor scalar [REQUIRED]
             - progress_bar -> Dict for progress bar display. Must have only tensors
             - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
@@ -441,7 +441,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         :param outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
          a list containing a list of outputs for each dataloader
-        :return dict: Dictionary or OrderedDict with optional:
+        :return: Dictionary or OrderedDict with optional:
             progress_bar -> Dict for progress bar display. Must have only tensors
             log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
@@ -513,7 +513,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         :param outputs:  List of outputs you defined in test_step, or if there are multiple dataloaders,
          a list containing a list of outputs for each dataloader
-        :return dict: Dict of OrderedDict with metrics to display in progress bar
+        :return: Dict of OrderedDict with metrics to display in progress bar
 
         If you didn't define a test_step, this won't be called.
          Called at the end of the test step with the output of each test_step.
