@@ -188,7 +188,7 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.tensor(acc)
         acc = acc.item()
 
-    assert acc > min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
+    assert acc >= min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
 
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
