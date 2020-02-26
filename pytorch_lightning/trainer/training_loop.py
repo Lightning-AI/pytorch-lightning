@@ -158,7 +158,7 @@ import copy
 import warnings
 import logging as log
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -235,15 +235,14 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     total_batch_idx: int
 
-        # Callback system
-        self.callbacks: list[Callback] = []
-        self.max_steps = None
-        self.on_train_start: Callable = ...
-        self.on_train_end: Callable = ...
-        self.on_batch_start: Callable = ...
-        self.on_batch_end: Callable = ...
-        self.on_epoch_start: Callable = ...
-        self.on_epoch_end: Callable = ...
+    # Callback system
+    callbacks: List[Callback]
+    on_train_start: Callable
+    on_train_end: Callable
+    on_batch_start: Callable
+    on_batch_end: Callable
+    on_epoch_start: Callable
+    on_epoch_end: Callable
 
     @property
     def max_nb_epochs(self):
