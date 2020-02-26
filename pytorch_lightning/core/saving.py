@@ -2,12 +2,12 @@ import os
 import csv
 import logging as log
 from argparse import Namespace
-from typing import Union
+from typing import Union, Dict, Any
 
 
 class ModelIO(object):
 
-    def on_load_checkpoint(self, checkpoint: dict) -> None:
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """
         Do something with the checkpoint
         Gives model a chance to load something before state_dict is restored
@@ -15,7 +15,7 @@ class ModelIO(object):
         :return:
         """
 
-    def on_save_checkpoint(self, checkpoint: dict) -> None:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """
         Give the model a chance to add something to the checkpoint.
         state_dict is already there
@@ -24,12 +24,12 @@ class ModelIO(object):
     # -------------------------
     # OPTIONAL HOOKS
     # -------------------------
-    def on_hpc_save(self, checkpoint: dict) -> None:
+    def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
         """
         Hook to do whatever you need right before Slurm manager saves the model
         """
 
-    def on_hpc_load(self, checkpoint: dict) -> None:
+    def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
         """
         Hook to do whatever you need right before Slurm manager loads the model
         """

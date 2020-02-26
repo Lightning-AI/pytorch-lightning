@@ -5,12 +5,12 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Union, Tuple, List, Optional, Callable, Dict
+from typing import Union, Tuple, List, Optional, Callable, Dict, Any
 
 import torch
 import torch.distributed as dist
 from torch import Tensor
-from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
@@ -141,7 +141,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def training_step(self, *args, **kwargs) -> dict:
+    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
         r"""return loss, dict with metrics for tqdm
 
         Args:
@@ -150,8 +150,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): If using multiple optimizers, this argument will also be present.
             hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
-
-        :param
 
         :return: dict with loss key and optional log, progress keys
          if implementing training_step, return whatever you need in that step:
@@ -222,7 +220,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
          if you want to break out of the current training epoch early.
         """
 
-    def training_end(self, outputs: dict) -> dict:
+    def training_end(self, outputs: dict) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
         """return loss, dict with metrics for tqdm
 
         :param outputs: What you return in `training_step`.
@@ -295,7 +293,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         break out of the current training epoch early.
         """
 
-    def validation_step(self, *args, **kwargs) -> dict:
+    def validation_step(self, *args, **kwargs) -> Union[Tensor, Dict[str, Tensor]]:
         r"""
 
         This is the validation loop. It is called for each batch of the validation set.
@@ -367,12 +365,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
 
-    def test_step(self, *args, **kwargs) -> dict:
+    def test_step(self, *args, **kwargs) -> Union[Tensor, Dict[str, Tensor]]:
         """return whatever outputs will need to be aggregated in test_end
         :param batch: The output of your dataloader. A tensor, tuple or list
         :param int batch_idx: Integer displaying which batch this is
         :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
-        :return dict: Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors.
+        :return: Single tensor or dict with metrics to display in progress bar. All values must be tensors.
 
         .. code-block:: python
 
@@ -436,7 +434,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
 
-    def validation_end(self, outputs: list) -> dict:
+    def validation_end(self, outputs: list) -> Dict[
+        str, Union[Dict[str, Union[float, Tensor]], float, Tensor]
+    ]:
         """Outputs has the appended output after each validation step.
 
         :param outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
@@ -508,7 +508,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def test_end(self, outputs: list) -> dict:
+    def test_end(self, outputs: list) -> Dict[
+        str, Union[Dict[str, Union[float, Tensor]], float, Tensor]
+    ]:
         """Outputs has the appended output after each test step.
 
         :param outputs:  List of outputs you defined in test_step, or if there are multiple dataloaders,
@@ -572,7 +574,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def configure_ddp(self, model: 'LightningModule', device_ids: list) -> Module:
+    def configure_ddp(self, model: 'LightningModule', device_ids: List[int]) -> DistributedDataParallel:
         r"""
 
         Override to init DDP in your own way or with your own wrapper.
@@ -1210,7 +1212,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: dict) -> 'LightningModule':
+    def _load_model_state(cls, checkpoint: Dict[str, Any]) -> 'LightningModule':
         cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
         ckpt_hparams = checkpoint.get('hparams')
 
@@ -1278,7 +1280,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.train()
 
-    def on_load_checkpoint(self, checkpoint: dict) -> None:
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by lightning to restore your model.
         If you saved something with **on_save_checkpoint** this is your chance to restore this.
@@ -1300,7 +1302,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             No need for you to restore anything regarding training.
         """
 
-    def on_save_checkpoint(self, checkpoint: dict) -> None:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
 
         Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
@@ -1323,7 +1325,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def get_tqdm_dict(self) -> dict:
+    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
         r"""
         Additional items to be displayed in the progress bar.
 

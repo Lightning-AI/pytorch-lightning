@@ -7,10 +7,11 @@ import logging as log
 import os
 import subprocess
 from subprocess import PIPE
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict, Union, List
 
 import numpy as np
 import torch
+from torch.nn import Module
 
 import pytorch_lightning as pl
 
@@ -32,7 +33,7 @@ class ModelSummary(object):
     def __repr__(self):
         return self.summary.__str__()
 
-    def named_modules(self) -> list:
+    def named_modules(self) -> List[Tuple[str, Module]]:
         if self.mode == 'full':
             mods = self.model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
