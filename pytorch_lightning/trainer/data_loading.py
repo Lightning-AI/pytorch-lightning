@@ -176,8 +176,8 @@ class TrainerDataLoadingMixin(ABC):
         # support IterableDataset for train data
         self.is_iterable_train_dataloader = (
             EXIST_ITER_DATASET
-            and hasattr(self.train_dataloader, "dataset")
-            and isinstance(self.train_dataloader.dataset, IterableDataset)
+            and (not hasattr(self.train_dataloader, "dataset") or
+                 isinstance(self.train_dataloader.dataset, IterableDataset))
         )
         if self.is_iterable_dataloader(self.train_dataloader) and not isinstance(self.val_check_interval, int):
             m = '''
@@ -190,8 +190,8 @@ class TrainerDataLoadingMixin(ABC):
     def is_iterable_dataloader(self, dataloader):
         return (
             EXIST_ITER_DATASET
-            and hasattr(self.train_dataloader, "dataset")
-            and isinstance(dataloader.dataset, IterableDataset)
+            and (not hasattr(self.train_dataloader, "dataset")
+            or isinstance(dataloader.dataset, IterableDataset))
         )
 
     def reset_val_dataloader(self, model):
