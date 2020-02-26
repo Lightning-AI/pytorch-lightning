@@ -870,6 +870,5 @@ def test_default_args(tmpdir):
     assert isinstance(trainer, Trainer)
     assert Trainer.max_epochs == 5
 
-
 # if __name__ == '__main__':
 #     pytest.main([__file__])
