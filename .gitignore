@@ -17,7 +17,6 @@ docs/source/pl_examples*.rst
 docs/source/pytorch_lightning*.rst
 docs/source/tests*.rst
 docs/source/*.md
-tests/tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -131,4 +130,5 @@ ENV/
 # data
 .data/
 datasets/
+!tests/datasets
 mnist/

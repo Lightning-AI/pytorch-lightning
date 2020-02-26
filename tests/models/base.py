@@ -6,9 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from torchvision import transforms
-from torchvision.datasets import MNIST
+from tests.datasets.pl_mnist import MNIST
+from tests.datasets import transforms
 
 try:
     from test_tube import HyperOptArgumentParser

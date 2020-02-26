@@ -1,4 +1,3 @@
-torchvision>=0.4.0, < 0.5  # the 0.5. has some issues with torch JIT
 tox
 coverage
 codecov
