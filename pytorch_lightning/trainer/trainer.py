@@ -2,7 +2,6 @@ import os
 import sys
 import warnings
 import logging as log
-from typing import Union, Optional, List, Dict, Tuple
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable
 

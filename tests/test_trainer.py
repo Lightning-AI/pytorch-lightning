@@ -856,7 +856,7 @@ def test_testpass_overrides(tmpdir):
     model = LightningTestModel(hparams)
     Trainer().test(model)
 
-  
+
 @mock.patch('argparse.ArgumentParser.parse_args',
             return_value=argparse.Namespace(max_epochs=5,
                                             checkpoint_callback=True,
@@ -910,7 +910,7 @@ def test_default_args(tmpdir):
     assert isinstance(trainer, Trainer)
     assert Trainer.max_epochs == 5
 
-    
+
 def test_trainer_callback_system(tmpdir):
     """Test the callback system."""
 
