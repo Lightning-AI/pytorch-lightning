@@ -5,6 +5,7 @@ import logging as log
 from typing import Union, Optional, List, Dict, Tuple, Iterable
 
 import torch
+from torch import optim
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
@@ -1038,7 +1039,7 @@ class Trainer(TrainerIOMixin,
         # two lists, optimizer + lr schedulers
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
+            lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple, multiple optimizer
@@ -1055,22 +1056,37 @@ class Trainer(TrainerIOMixin,
                              'second being a list of torch.optim.lr_scheduler')
 
     def configure_schedulers(self, schedulers: list):
-        # Determine number of steps for each scheduler
-        for i, scheduler in enumerate(schedulers):
-            if isinstance(scheduler, (list, tuple)):
-                self.lr_steps.append(scheduler[1])
-                schedulers[i] = scheduler[0]
+        # Convert each scheduler into dict sturcture with relevant information
+        lr_schedulers = []
+        for scheduler in schedulers:
+            if isinstance(scheduler, dict):
+                if not 'scheduler' in scheduler:
+                    raise ValueError(f'Lr scheduler should have key `scheduler`',
+                                     'with item being a lr scheduler')
+                if not 'interval' in scheduler:
+                    scheduler['interval'] = 'epoch' # default every epoch
+                if not 'frequency' in scheduler:
+                    scheduler['frequency'] = 1 # default every step
+                scheduler['reduce_on_plateau'] = \
+                    isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
+
+                lr_schedulers.append(scheduler)
+                
+            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                lr_schedulers.append({'scheduler': scheduler,
+                                      'interval': 'epoch',
+                                      'frequency': 1,
+                                      'reduce_on_plateau': True})
+    
+            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
+                lr_schedulers.append({'scheduler': scheduler,
+                                      'interval': 'epoch',
+                                      'frequency': 1,
+                                      'reduce_on_plateau': False})
             else:
-                self.lr_steps.append(None)
-
-        # Special case if scheduler is ReduceLROnPlateau
-        for i, scheduler in enumerate(schedulers):
-            if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                reduce_lr_on_plateau_scheduler = schedulers.pop(i)
-                self.lr_step_reduce_on_plateau = self.lr_steps.pop(i)
-                return schedulers, reduce_lr_on_plateau_scheduler
-
-        return schedulers, None
+                raise ValueError(f'Input {scheduler} to lr schedulers '
+                                 'is a invalid input.')
+        return lr_schedulers
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
