@@ -1120,7 +1120,6 @@ class Trainer(TrainerIOMixin,
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        ref_model.on_train_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             self.reset_val_dataloader(ref_model)
             # init progress bars for validation sanity check

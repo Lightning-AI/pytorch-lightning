@@ -347,6 +347,7 @@ class TrainerTrainLoopMixin(ABC):
         self.reset_val_dataloader(model)
 
         # Train begin callbacks
+        model.on_train_start()
         self.on_train_start()
 
         try:
