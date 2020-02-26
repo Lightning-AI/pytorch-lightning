@@ -177,13 +177,18 @@ class TrainerDataLoadingMixin(ABC):
         self.is_iterable_train_dataloader = (
             EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
         )
-        if self.is_iterable_train_dataloader and not isinstance(self.val_check_interval, int):
+        if self.is_iterable_dataloader(self.train_dataloader) and not isinstance(self.val_check_interval, int):
             m = '''
             When using an iterableDataset for `train_dataloader`,
             `Trainer(val_check_interval)` must be an int.
             An int k specifies checking validation every k training batches
             '''
             raise MisconfigurationException(m)
+
+    def is_iterable_dataloader(self, dataloader):
+        return (
+            EXIST_ITER_DATASET and isinstance(dataloader.dataset, IterableDataset)
+        )
 
     def reset_val_dataloader(self, model):
         """
@@ -200,9 +205,8 @@ class TrainerDataLoadingMixin(ABC):
         self.num_val_batches = 0
 
         # add samplers
-        for i, dataloader in enumerate(self.val_dataloaders):
-            dl = self.auto_add_sampler(dataloader, train=False)
-            self.val_dataloaders[i] = dl
+        self.val_dataloaders = [self.auto_add_sampler(dl, train=False)
+                                for dl in self.val_dataloaders if dl]
 
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
@@ -227,9 +231,8 @@ class TrainerDataLoadingMixin(ABC):
         self.num_test_batches = 0
 
         # add samplers
-        for i, dataloader in enumerate(self.test_dataloaders):
-            dl = self.auto_add_sampler(dataloader, train=False)
-            self.test_dataloaders[i] = dl
+        self.test_dataloaders = [self.auto_add_sampler(dl, train=False)
+                                 for dl in self.test_dataloaders if dl]
 
         # determine number of test batches
         if self.test_dataloaders is not None:

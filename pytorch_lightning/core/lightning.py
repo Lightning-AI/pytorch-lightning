@@ -1,6 +1,6 @@
 import collections
+import inspect
 import logging as log
-import csv
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -12,9 +12,10 @@ import torch.distributed as dist
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
-from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
@@ -83,7 +84,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
         if self.trainer.proc_rank == 0:
-            print(*args, **kwargs)
+            log.info(*args, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
@@ -929,16 +930,23 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         :return: PyTorch DataLoader
 
-        Called by lightning during training loop. Make sure to use the @pl.data_loader decorator,
-         this ensures not calling this function until the data are needed.
-         If you want to change the data during every epoch DON'T use the data_loader decorator.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
 
         Example
         -------
 
         .. code-block:: python
 
-            @pl.data_loader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
@@ -966,8 +974,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def test_dataloader(self):
         r"""
 
-        Called by lightning during test loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
+        - val_dataloader
+        - test_dataloader
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -977,7 +996,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            @pl.data_loader
             def test_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
@@ -999,8 +1017,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def val_dataloader(self):
         r"""
 
-        Called by lightning during validation loop. Make sure to use the @pl.data_loader decorator,
-        this ensures not calling this function until the data are needed.
+        Return a dataloader. It will not be called every epoch unless you set
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
+
+        It's recommended that all data downloads and preparation happen in prepare_data().
+
+        - .fit()
+        - ...
+        - prepare_data()
+        - train_dataloader
+        - val_dataloader
+
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -1010,7 +1038,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            @pl.data_loader
             def val_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
                 dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
@@ -1023,7 +1050,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return loader
 
             # can also return multiple dataloaders
-            @pl.data_loader
             def val_dataloader(self):
                 return [loader_a, loader_b, ..., loader_n]
 
@@ -1111,13 +1137,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
 
-        # load the state_dict on the model automatically
-        model = cls(hparams)
-        model.load_state_dict(checkpoint['state_dict'])
+        # add the hparams from csv file to checkpoint
+        checkpoint['hparams'] = vars(hparams)
 
-        # give model a chance to load something
-        model.on_load_checkpoint(checkpoint)
-
+        model = cls._load_model_state(checkpoint)
         return model
 
     @classmethod
@@ -1182,17 +1205,36 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
-        try:
-            ckpt_hparams = checkpoint['hparams']
-        except KeyError:
-            raise IOError(
-                "Checkpoint does not contain hyperparameters. Are your model hyperparameters stored"
-                "in self.hparams?"
-            )
-        hparams = Namespace(**ckpt_hparams)
+        model = cls._load_model_state(checkpoint)
+        return model
+
+    @classmethod
+    def _load_model_state(cls, checkpoint):
+        cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
+        ckpt_hparams = checkpoint.get('hparams')
+
+        if cls_takes_hparams:
+            if ckpt_hparams is not None:
+                hparams = Namespace(**ckpt_hparams)
+            else:
+                warnings.warn(
+                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
+                    " argument 'hparams'. Will pass in an empty Namespace instead."
+                    " Did you forget to store your model hyperparameters in self.hparams?"
+                )
+                hparams = Namespace()
+        else:  # The user's LightningModule does not define a hparams argument
+            if ckpt_hparams is None:
+                hparams = None
+            else:
+                raise MisconfigurationException(
+                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ is missing the"
+                    " argument 'hparams'. Are you loading the correct checkpoint?"
+                )
 
         # load the state_dict on the model automatically
-        model = cls(hparams)
+        model_args = [hparams] if hparams else []
+        model = cls(*model_args)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
@@ -1298,34 +1340,3 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             tqdm_dict['v_num'] = self.trainer.logger.version
 
         return tqdm_dict
-
-
-def load_hparams_from_tags_csv(tags_csv):
-    if not os.path.isfile(tags_csv):
-        log.warning(f'Missing Tags: {tags_csv}.')
-        return Namespace()
-
-    tags = {}
-    with open(tags_csv) as f:
-        csv_reader = csv.reader(f, delimiter=',')
-        for row in list(csv_reader)[1:]:
-            tags[row[0]] = convert(row[1])
-    ns = Namespace(**tags)
-    return ns
-
-
-def convert(val):
-    constructors = [int, float, str]
-
-    if isinstance(val, str):
-        if val.lower() == 'true':
-            return True
-        if val.lower() == 'false':
-            return False
-
-    for c in constructors:
-        try:
-            return c(val)
-        except ValueError:
-            pass
-    return val

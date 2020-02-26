@@ -188,6 +188,8 @@ class LightningTemplateModel(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def __dataloader(self, train):
+        # this is neede when you want some info about dataset before binding to trainer
+        self.prepare_data()
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
@@ -208,10 +210,8 @@ class LightningTemplateModel(pl.LightningModule):
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=True,
-                        transform=transform, download=True)
-        dataset = MNIST(root=self.hparams.data_root, train=False,
-                        transform=transform, download=True)
+        _ = MNIST(root=self.hparams.data_root, train=True,
+                  transform=transform, download=True)
 
     def train_dataloader(self):
         log.info('Training data loader called.')
@@ -250,6 +250,7 @@ class LightningTemplateModel(pl.LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
+        parser.add_argument('--epochs', default=20, type=int)
         parser.add_argument('--optimizer_name', default='adam', type=str)
         parser.add_argument('--batch_size', default=64, type=int)
         return parser

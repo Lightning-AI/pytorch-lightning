@@ -5,11 +5,13 @@ r"""
 WandbLogger
 -------------
 """
-
+import argparse
 import os
+from typing import Optional, List, Dict
 
 try:
     import wandb
+    from wandb.wandb_run import Run
 except ImportError:
     raise ImportError('You want to use `wandb` logger which is not installed yet,'
                       ' please install it e.g. `pip install wandb`.')
@@ -41,8 +43,10 @@ class WandbLogger(LightningLoggerBase):
         trainer = Trainer(logger=wandb_logger)
     """
 
-    def __init__(self, name=None, save_dir=None, offline=False, id=None, anonymous=False,
-                 version=None, project=None, tags=None, experiment=None, entity=None):
+    def __init__(self, name: Optional[str] = None, save_dir: Optional[str] = None,
+                 offline: bool = False, id: Optional[str] = None, anonymous: bool = False,
+                 version: Optional[str] = None, project: Optional[str] = None,
+                 tags: Optional[List[str]] = None, experiment=None, entity=None):
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -63,7 +67,7 @@ class WandbLogger(LightningLoggerBase):
         return state
 
     @property
-    def experiment(self):
+    def experiment(self) -> Run:
         r"""
 
           Actual wandb object. To use wandb features do the following.
@@ -85,11 +89,11 @@ class WandbLogger(LightningLoggerBase):
         wandb.watch(model, log, log_freq)
 
     @rank_zero_only
-    def log_hyperparams(self, params):
+    def log_hyperparams(self, params: argparse.Namespace):
         self.experiment.config.update(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         metrics["global_step"] = step
         self.experiment.log(metrics)
 
@@ -97,7 +101,7 @@ class WandbLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status='success'):
+    def finalize(self, status: str = 'success'):
         try:
             exit_code = 0 if status == 'success' else 1
             wandb.join(exit_code)
@@ -105,9 +109,9 @@ class WandbLogger(LightningLoggerBase):
             wandb.join()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.experiment.project_name()
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self.experiment.id
