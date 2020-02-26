@@ -186,13 +186,13 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     trainer.test()
 
     assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+        f'"val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+        f'"test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that multiple val & test dataloaders can be passed to fit """
+    """Verify that multiple val & test dataloaders can be passed to fit."""
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -265,9 +265,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     trainer.test()
 
     assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+        f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+        f'"test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
 
 
 def test_inf_train_dataloader(tmpdir):
