@@ -174,10 +174,10 @@ class TrainerEvaluationLoopMixin(ABC):
         self.progress_bar_refresh_rate = None
 
         # Callback system
-        self.on_validation_start: Callable = None
-        self.on_validation_end: Callable = None
-        self.on_test_start: Callable = None
-        self.on_test_end: Callable = None
+        self.on_validation_start: Callable = ...
+        self.on_validation_end: Callable = ...
+        self.on_test_start: Callable = ...
+        self.on_test_end: Callable = ...
 
     @abstractmethod
     def copy_trainer_model_properties(self, model):

@@ -23,10 +23,13 @@ from tests.models import (
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
     LightTestDataloader,
+    LightValidationMixin,
+    LightTestMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning import Callback
 
 
 def test_no_val_module(tmpdir):
@@ -792,15 +795,15 @@ def test_benchmark_option(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
-        LightningValidationMultipleDataloadersMixin,
-        LightningTestModelBase
+        LightValidationMultipleDataloadersMixin,
+        LightTrainDataloader,
+        TestModelBase
     ):
         pass
 
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
-<<<<<<< HEAD
     # verify torch.backends.cudnn.benchmark is not turned on
     assert not torch.backends.cudnn.benchmark
 
@@ -820,7 +823,53 @@ def test_benchmark_option(tmpdir):
 
     # verify torch.backends.cudnn.benchmark is not turned off
     assert torch.backends.cudnn.benchmark
-=======
+
+
+def test_testpass_overrides(tmpdir):
+    hparams = tutils.get_hparams()
+
+    class LocalModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
+        pass
+
+    class LocalModelNoStep(LightTrainDataloader, TestModelBase):
+        def test_end(self, outputs):
+            return {}
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModel(hparams)
+        Trainer().test(model)
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModelNoStep(hparams)
+        Trainer().test(model)
+
+    # No exceptions when one or both of test_step or test_end are implemented
+    model = LocalModelNoEnd(hparams)
+    Trainer().test(model)
+
+    model = LightningTestModel(hparams)
+    Trainer().test(model)
+
+
+def test_trainer_callback_system(tmpdir):
+    """Test the callback system."""
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightTestMixin,
+        LightValidationMixin,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
     class TestCallback(Callback):
         def __init__(self):
             super().__init__()
@@ -880,46 +929,30 @@ def test_benchmark_option(tmpdir):
 
         def on_test_end(self, trainer, pl_module):
             self.on_test_end_called = True
->>>>>>> Add trainer and pl_module args to callback methods
 
+    test_callback = TestCallback()
 
-def test_testpass_overrides(tmpdir):
-    hparams = tutils.get_hparams()
+    trainer_options = {}
+    trainer_options['callbacks'] = [test_callback]
+    trainer_options['max_epochs'] = 1
+    trainer_options['val_percent_check'] = 0.1
+    trainer_options['train_percent_check'] = 0.2
+    trainer_options['show_progress_bar'] = False
 
-<<<<<<< HEAD
-    class LocalModel(LightTrainDataloader, TestModelBase):
-        pass
-=======
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
->>>>>>> Switch to on_.*_start()
 
-    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
-        pass
+    # fit model
+    trainer = Trainer(**trainer_options)
 
-<<<<<<< HEAD
-    class LocalModelNoStep(LightTrainDataloader, TestModelBase):
-        def test_end(self, outputs):
-            return {}
-=======
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
     assert not test_callback.on_fit_start_called
     assert not test_callback.on_fit_start_called
->>>>>>> Switch to on_.*_start()
 
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = LocalModel(hparams)
-        Trainer().test(model)
+    trainer.fit(model)
 
-<<<<<<< HEAD
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = LocalModelNoStep(hparams)
-        Trainer().test(model)
-=======
     assert test_callback.on_fit_start_called
     assert test_callback.on_fit_end_called
     assert test_callback.on_epoch_start_called
@@ -932,20 +965,11 @@ def test_testpass_overrides(tmpdir):
     assert test_callback.on_validation_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
->>>>>>> Switch to on_.*_start()
 
-    # No exceptions when one or both of test_step or test_end are implemented
-    model = LocalModelNoEnd(hparams)
-    Trainer().test(model)
+    trainer.test()
 
-<<<<<<< HEAD
-    model = LightningTestModel(hparams)
-    Trainer().test(model)
-=======
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
->>>>>>> Switch to on_.*_start()
-
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])

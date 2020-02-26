@@ -10,7 +10,7 @@ class TrainerCallbackHookMixin(ABC):
         # this is just a summary on variables used in this abstract class,
         # the proper values/initialisation should be done in child class
         self.callbacks: list[Callback] = []
-        self.get_model: Callable = None
+        self.get_model: Callable = ...
 
     def on_init_start(self):
         """Called when the trainer initialization begins."""
