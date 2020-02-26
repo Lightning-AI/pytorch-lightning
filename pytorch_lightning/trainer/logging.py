@@ -21,16 +21,8 @@ class TrainerLoggingMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     default_save_path: str
-
-    @property
-    @abstractmethod
-    def slurm_job_id(self):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @property
-    @abstractmethod
-    def num_gpus(self) -> int:
-        """Warning: this is just empty shell for code implemented in other class."""
+    slurm_job_id: int
+    num_gpus: int
 
     def configure_logger(self, logger):
         if logger is True:
