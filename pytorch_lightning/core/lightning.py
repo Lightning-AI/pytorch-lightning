@@ -924,8 +924,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """Use this to download and prepare data.
         In distributed (GPU, TPU), this will only be called once
 
-        :return: PyTorch DataLoader
-
         This is called before requesting the dataloaders
 
         .. code-block:: python
