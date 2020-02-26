@@ -271,7 +271,7 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
-    def is_iterable_dataloader(self, dataloader):
+    def is_infinite_dataloader(self, dataloader):
         # this is just empty shell for code from other class
         pass
 
@@ -326,6 +326,11 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
+    def reset_val_dataloader(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
     def has_arg(self, f_name, arg_name):
         # this is just empty shell for code from other class
         pass
@@ -334,11 +339,17 @@ class TrainerTrainLoopMixin(ABC):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
 
-        # Train begin callbacks
-        self.on_train_start()
-
         # get model
         model = self.get_model()
+
+        # load data
+        self.reset_train_dataloader(model)
+        self.reset_val_dataloader(model)
+
+        # Train begin callbacks
+        model.on_train_start()
+        self.on_train_start()
+
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
@@ -346,9 +357,6 @@ class TrainerTrainLoopMixin(ABC):
                 if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
-
-                # get model
-                model = self.get_model()
 
                 # update training progress in trainer and model
                 model.current_epoch = epoch
@@ -370,8 +378,8 @@ class TrainerTrainLoopMixin(ABC):
                 if self.fast_dev_run:
                     # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
                     num_iterations = 2
-                elif self.is_iterable_dataloader(self.train_dataloader):
-                    # for iterable train loader, the progress bar never ends
+                elif self.is_infinite_dataloader(self.train_dataloader):
+                    # for infinite train loader, the progress bar never ends
                     num_iterations = None
                 else:
                     num_iterations = self.total_batches
@@ -380,7 +388,7 @@ class TrainerTrainLoopMixin(ABC):
                 # .reset() doesn't work on disabled progress bar so we should check
                 if not self.main_progress_bar.disable:
                     self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}' if not self.is_iterable_dataloader(self.train_dataloader) else ''
+                desc = f'Epoch {epoch + 1}' if not self.is_infinite_dataloader(self.train_dataloader) else ''
                 self.main_progress_bar.set_description(desc)
 
                 # changing gradient according accumulation_scheduler

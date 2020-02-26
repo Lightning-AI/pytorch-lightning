@@ -380,6 +380,60 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+def test_inf_train_dataloader(tmpdir):
+    """Test inf train data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightningTestModel):
+        def train_dataloader(self):
+            dataloader = self._dataloader(train=True)
+
+            class CustomInfDataLoader:
+                def __init__(self, dataloader):
+                    self.dataloader = dataloader
+                    self.iter = iter(dataloader)
+                    self.count = 0
+
+                def __iter__(self):
+                    self.count = 0
+                    return self
+
+                def __next__(self):
+                    if self.count >= 5:
+                        raise StopIteration
+                    self.count = self.count + 1
+                    try:
+                        return next(self.iter)
+                    except StopIteration:
+                        self.iter = iter(self.dataloader)
+                        return next(self.iter)
+
+            return CustomInfDataLoader(dataloader)
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            val_check_interval=0.5
+        )
+        trainer.fit(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_check_interval=50,
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
 def test_multiple_val_dataloader(tmpdir):
     """Verify multiple val_dataloader."""
     tutils.reset_seed()

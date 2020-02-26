@@ -1,22 +1,10 @@
-import warnings
 from abc import ABC
 
 import torch.distributed as dist
+from torch.utils.data import SequentialSampler, DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader, BatchSampler
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
-try:
-    # loading for pyTorch 1.3
-    from torch.utils.data import IterableDataset
-except ImportError:
-    # loading for pyTorch 1.1
-    import torch
-    warnings.warn('Your version of pyTorch %s does not support `IterableDataset`,'
-                  ' please upgrade to 1.2+' % torch.__version__, ImportWarning)
-    EXIST_ITER_DATASET = False
-else:
-    EXIST_ITER_DATASET = True
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
@@ -90,36 +78,19 @@ class TrainerDataLoadingMixin(ABC):
             model.prepare_data()
 
     def auto_add_sampler(self, dataloader, train):
-        # do nothing when user gives a sampler
-        dl_args = {
-            'dataset': dataloader.dataset,
-            'batch_size': dataloader.batch_size,
-            'shuffle': False,
-            'num_workers': dataloader.num_workers,
-            'collate_fn': dataloader.collate_fn,
-            'pin_memory': dataloader.pin_memory,
-            'drop_last': dataloader.drop_last,
-            'timeout': dataloader.timeout,
-            'worker_init_fn': dataloader.worker_init_fn
-        }
+        if self.use_ddp or self.use_ddp2 or self.use_tpu:
+            dl_args = {
+                'dataset': dataloader.dataset,
+                'batch_size': dataloader.batch_size,
+                'shuffle': False,
+                'num_workers': dataloader.num_workers,
+                'collate_fn': dataloader.collate_fn,
+                'pin_memory': dataloader.pin_memory,
+                'drop_last': dataloader.drop_last,
+                'timeout': dataloader.timeout,
+                'worker_init_fn': dataloader.worker_init_fn
+            }
 
-        if train:
-            if self.use_ddp or self.use_ddp2:
-                sampler = DistributedSampler(dataloader.dataset)
-                dl_args['shuffle'] = False
-
-            elif self.use_tpu:
-                sampler = DistributedSampler(
-                    dataloader.dataset,
-                    num_replicas=xm.xrt_world_size(),
-                    rank=xm.get_ordinal()
-                )
-                dl_args['shuffle'] = False
-            else:
-                sampler = RandomSampler(dataloader.dataset)
-
-        # on not train
-        else:
             if self.use_tpu:
                 sampler = DistributedSampler(
                     dataloader.dataset,
@@ -128,12 +99,16 @@ class TrainerDataLoadingMixin(ABC):
                 )
                 dl_args['shuffle'] = False
             else:
-                sampler = SequentialSampler(dataloader.dataset)
+                if train:
+                    sampler = DistributedSampler(dataloader.dataset)
+                    dl_args['shuffle'] = False
+                else:
+                    sampler = SequentialSampler(dataloader.dataset)
 
-        dl_args['sampler'] = sampler
+            dl_args['sampler'] = sampler
 
-        new_dataloader = DataLoader(**dl_args)
-        return new_dataloader
+            dataloader = DataLoader(**dl_args)
+        return dataloader
 
     def reset_train_dataloader(self, model):
         """
@@ -148,12 +123,12 @@ class TrainerDataLoadingMixin(ABC):
         # automatically add samplers
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
-        # determine number of training batches
-        if EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset):
+        self._percent_range_check('train_percent_check')
+
+        if self.is_infinite_dataloader(self.train_dataloader):
             self.num_training_batches = float('inf')
         else:
-            self._percent_range_check('train_percent_check')
-
+            # try getting the length
             self.num_training_batches = len(self.train_dataloader)
             self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
 
@@ -168,27 +143,26 @@ class TrainerDataLoadingMixin(ABC):
                     f"to the number of the training batches ({self.num_training_batches}). "
                     f"If you want to disable validation set `val_percent_check` to 0.0 instead.")
         else:
+            if self.is_infinite_dataloader(self.train_dataloader):
+                m = '''
+                When using an infinite DataLoader (e.g. with an IterableDataset or when DataLoader
+                does not implement `__len__`) for `train_dataloader`, `Trainer(val_check_interval)`
+                must be an int. An int k specifies checking validation every k training batches.
+                '''
+                raise MisconfigurationException(m)
+
             self._percent_range_check('val_check_interval')
 
             self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
             self.val_check_batch = max(1, self.val_check_batch)
 
-        # support IterableDataset for train data
-        self.is_iterable_train_dataloader = (
-            EXIST_ITER_DATASET and isinstance(self.train_dataloader.dataset, IterableDataset)
-        )
-        if self.is_iterable_dataloader(self.train_dataloader) and not isinstance(self.val_check_interval, int):
-            m = '''
-            When using an iterableDataset for `train_dataloader`,
-            `Trainer(val_check_interval)` must be an int.
-            An int k specifies checking validation every k training batches
-            '''
-            raise MisconfigurationException(m)
-
-    def is_iterable_dataloader(self, dataloader):
-        return (
-            EXIST_ITER_DATASET and isinstance(dataloader.dataset, IterableDataset)
-        )
+    def is_infinite_dataloader(self, dataloader):
+        try:
+            # try getting the length
+            _ = len(dataloader)
+            return False
+        except TypeError as e:
+            return True
 
     def reset_val_dataloader(self, model):
         """
