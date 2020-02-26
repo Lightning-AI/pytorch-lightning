@@ -92,7 +92,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             log.info(*args, **kwargs)
 
     @abstractmethod
-    def forward(self, *args: Any, **kwargs: Any) -> Any:
+    def forward(self, *args, **kwargs):
         r"""
         Same as torch.nn.Module.forward(), however in Lightning you want this to define
         the  operations you want to use for prediction (ie: on a server or as a feature extractor).
