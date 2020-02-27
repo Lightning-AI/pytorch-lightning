@@ -168,6 +168,7 @@ class TestModelBase(LightningModule):
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
+            shuffle=True
         )
 
         return loader

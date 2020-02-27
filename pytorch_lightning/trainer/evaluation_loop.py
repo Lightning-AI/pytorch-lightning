@@ -257,7 +257,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = dataloader.per_device_loader(device)
 
             for batch_idx, batch in enumerate(dataloader):
-
                 if batch is None:  # pragma: no cover
                     continue
 

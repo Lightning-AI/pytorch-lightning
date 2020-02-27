@@ -1153,19 +1153,14 @@ class Trainer(TrainerIOMixin,
             self.run_evaluation(test_mode=True)
             return
 
-        # load the dataloaders
-        self.reset_train_dataloader(ref_model)
-        self.reset_val_dataloader(ref_model)
-
         # check if we should run validation during training
-        self.disable_validation = self.num_val_batches == 0 or not self.is_overriden('validation_step')
-        self.disable_validation = self.disable_validation and not self.fast_dev_run
+        self.disable_validation = not self.is_overriden('validation_step') and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        ref_model.on_train_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
+            self.reset_val_dataloader(ref_model)
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
                         total=self.num_sanity_val_steps * len(self.val_dataloaders),
