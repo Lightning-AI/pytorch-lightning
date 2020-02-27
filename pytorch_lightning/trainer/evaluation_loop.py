@@ -256,6 +256,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
+            import pdb; pdb.set_trace()
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:  # pragma: no cover
                     continue
@@ -320,7 +321,6 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_pre_performance_check()
 
         # select dataloaders
-        import pdb; pdb.set_trace()
         if test_mode:
             if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
                 self.reset_test_dataloader(model)
