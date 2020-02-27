@@ -16,11 +16,6 @@ from tests.models import (
     LightEmptyTestStep,
     LightValidationStepMixin,
     LightValidationMultipleDataloadersMixin,
-    LightTestMultipleDataloadersMixin,
-    LightTestFitSingleTestDataloadersMixin,
-    LightTestFitMultipleTestDataloadersMixin,
-    LightValStepFitMultipleDataloadersMixin,
-    LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
     LightTestDataloader,
     LightValidationMixin,
@@ -258,7 +253,7 @@ def test_model_checkpoint_options(tmp_path):
 
     # verify correct naming
     for i in range(0, len(losses)):
-        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
+        assert f"_ckpt_epoch_{i}.ckpt" in file_lists
 
     save_dir = tmp_path / "2"
     save_dir.mkdir()
@@ -307,7 +302,7 @@ def test_model_checkpoint_options(tmp_path):
     # make sure other files don't get deleted
 
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
-    open(f'{save_dir}/other_file.ckpt', 'a').close()
+    open(f"{save_dir}/other_file.ckpt", 'a').close()
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
@@ -380,44 +375,6 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_multiple_val_dataloader(tmpdir):
-    """Verify multiple val_dataloader."""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValidationMultipleDataloadersMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=1.0,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # verify training completed
-    assert result == 1
-
-    # verify there are 2 val loaders
-    assert len(trainer.val_dataloaders) == 2, \
-        'Multiple val_dataloaders not initiated properly'
-
-    # make sure predictions are good for each val set
-    for dataloader in trainer.val_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
-
-
 def test_resume_from_checkpoint_epoch_restored(tmpdir):
     """Verify resuming from checkpoint runs the right number of epochs"""
     import types
@@ -484,221 +441,6 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
         assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
-
-
-def test_multiple_test_dataloader(tmpdir):
-    """Verify multiple test_dataloader."""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMultipleDataloadersMixin,
-        LightEmptyTestStep,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-    trainer.test()
-
-    # verify there are 2 val loaders
-    assert len(trainer.test_dataloaders) == 2, \
-        'Multiple test_dataloaders not initiated properly'
-
-    # make sure predictions are good for each test set
-    for dataloader in trainer.test_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
-
-    # run the test method
-    trainer.test()
-
-
-def test_train_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that train dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # only train passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True))
-    results = trainer.fit(model, **fit_options)
-
-
-def test_train_val_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that train & val dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValStepFitSingleDataloaderMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, val passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
-
-    results = trainer.fit(model, **fit_options)
-    assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-
-
-def test_all_dataloaders_passed_to_fit(tmpdir):
-    """ Verify train, val & test dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValStepFitSingleDataloaderMixin,
-        LightTestFitSingleTestDataloadersMixin,
-        LightEmptyTestStep,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, val and test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
-
-    results = trainer.fit(model, **fit_options)
-
-    trainer.test()
-
-    assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
-
-
-def test_multiple_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that multiple val & test dataloaders can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModel,
-        LightValStepFitMultipleDataloadersMixin,
-        LightTestFitMultipleTestDataloadersMixin,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, multiple val and multiple test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)],
-                       test_dataloaders=[model._dataloader(train=False),
-                                         model._dataloader(train=False)])
-    results = trainer.fit(model, **fit_options)
-    trainer.test()
-
-    assert len(trainer.val_dataloaders) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
-
-
-def test_mixing_of_dataloader_options(tmpdir):
-    """Verify that dataloaders can be passed to fit"""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValStepFitSingleDataloaderMixin,
-        LightTestFitSingleTestDataloadersMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
-    _ = trainer.fit(model, **fit_options)
-    trainer.test()
-
-    assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def _init_steps_model():

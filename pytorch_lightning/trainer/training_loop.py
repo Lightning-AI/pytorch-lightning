@@ -271,7 +271,7 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
-    def is_iterable_dataloader(self, dataloader):
+    def is_infinite_dataloader(self, dataloader):
         # this is just empty shell for code from other class
         pass
 
@@ -326,6 +326,11 @@ class TrainerTrainLoopMixin(ABC):
         pass
 
     @abstractmethod
+    def reset_val_dataloader(self, model):
+        # this is just empty shell for code from other class
+        pass
+
+    @abstractmethod
     def has_arg(self, f_name, arg_name):
         # this is just empty shell for code from other class
         pass
@@ -337,6 +342,10 @@ class TrainerTrainLoopMixin(ABC):
         # get model
         model = self.get_model()
 
+        # load data
+        self.reset_train_dataloader(model)
+        self.reset_val_dataloader(model)
+
         # Train start events
         with self.profiler.profile('on_train_start'):
             # callbacks
@@ -344,9 +353,7 @@ class TrainerTrainLoopMixin(ABC):
             # initialize early stop callback
             self.early_stop_callback.on_train_start(self, self.get_model())
             # model hooks
-            if self.is_function_implemented('on_train_start'):
-                model = self.get_model()
-                model.on_train_start()
+            model.on_train_start()
 
         try:
             # run all epochs
@@ -355,9 +362,6 @@ class TrainerTrainLoopMixin(ABC):
                 if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
-
-                # get model
-                model = self.get_model()
 
                 # update training progress in trainer and model
                 model.current_epoch = epoch
@@ -379,8 +383,8 @@ class TrainerTrainLoopMixin(ABC):
                 if self.fast_dev_run:
                     # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
                     num_iterations = 2
-                elif self.is_iterable_dataloader(self.train_dataloader):
-                    # for iterable train loader, the progress bar never ends
+                elif self.is_infinite_dataloader(self.train_dataloader):
+                    # for infinite train loader, the progress bar never ends
                     num_iterations = None
                 else:
                     num_iterations = self.total_batches
@@ -389,7 +393,7 @@ class TrainerTrainLoopMixin(ABC):
                 # .reset() doesn't work on disabled progress bar so we should check
                 if not self.main_progress_bar.disable:
                     self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}' if not self.is_iterable_dataloader(self.train_dataloader) else ''
+                desc = f'Epoch {epoch + 1}' if not self.is_infinite_dataloader(self.train_dataloader) else ''
                 self.main_progress_bar.set_description(desc)
 
                 # -----------------
@@ -451,15 +455,18 @@ class TrainerTrainLoopMixin(ABC):
         if self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(self.get_model())
 
+        # track local dataloader so TPU can wrap each epoch
+        train_dataloader = self.train_dataloader
+
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
             device = xm.xla_device()
-            self.train_dataloader = xla_pl.ParallelLoader(self.train_dataloader, [device])
-            self.train_dataloader = self.train_dataloader.per_device_loader(device)
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
 
         # run epoch
         for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(self.train_dataloader), "get_train_batch"
+            enumerate(train_dataloader), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
