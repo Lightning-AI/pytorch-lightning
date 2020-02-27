@@ -1053,9 +1053,9 @@ class Trainer(TrainerIOMixin,
     def configure_schedulers(self, schedulers: list):
         # Convert each scheduler into dict sturcture with relevant information
         lr_schedulers = []
-        default_config = {'interval': 'epoch', # default every epoch
-                          'frequency': 1, # default every epoch/batch
-                          'reduce_on_plateau': False} # most often not ReduceLROnPlateau scheduler}
+        default_config = {'interval': 'epoch',  # default every epoch
+                          'frequency': 1,  # default every epoch/batch
+                          'reduce_on_plateau': False}  # most often not ReduceLROnPlateau scheduler
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:
