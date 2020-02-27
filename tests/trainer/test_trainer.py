@@ -630,10 +630,10 @@ def test_trainer_callback_system(tmpdir):
             self.on_test_start_called = False
             self.on_test_end_called = False
 
-        def on_init_start(self, trainer, pl_module):
+        def on_init_start(self, trainer):
             self.on_init_start_called = True
 
-        def on_init_end(self, trainer, pl_module):
+        def on_init_end(self, trainer):
             self.on_init_end_called = True
 
         def on_fit_start(self, trainer, pl_module):
