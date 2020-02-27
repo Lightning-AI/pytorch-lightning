@@ -53,9 +53,9 @@ Lightning will call each optimizer sequentially:
 
 
 Step optimizers at arbitrary intervals
--------------------------------------
+----------------------------------------
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
-override the :meth:`optimizer_step' function.
+override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 

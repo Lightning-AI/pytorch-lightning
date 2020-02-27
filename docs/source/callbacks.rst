@@ -4,6 +4,7 @@
 Callbacks
 =========
 .. automodule:: pytorch_lightning.callbacks
+   :noindex:
    :exclude-members:
         _del_model,
         _save_model,

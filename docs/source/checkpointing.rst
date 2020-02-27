@@ -71,7 +71,7 @@ If you want to pick up training from where you left off, you have a few options.
    trainer = Trainer(logger=logger)
    trainer.fit(model)
 
-2. A second option is to pass in a path to a checkpoint (see: :ref:`pytorch_lightning.trainer`).
+2. A second option is to pass in a path to a checkpoint (see: :ref:`pytorch_lightning.trainer.trainer.Trainer`).
 
 .. code-block:: python
 
