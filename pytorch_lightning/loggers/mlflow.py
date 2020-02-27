@@ -1,5 +1,5 @@
 """
-Log using `mlflow <https://mlflow.org>'_
+Log using `mlflow <https://mlflow.org>`_
 
 .. code-block:: python
 

@@ -114,7 +114,7 @@ Packed sequences as inputs
 
 When using PackedSequence, do 2 things:
 1. return either a padded tensor in dataset or a list of variable length tensors
- in the dataloader collate_fn (example above shows the list implementation).
+in the dataloader collate_fn (example above shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. code-block:: python
@@ -156,91 +156,93 @@ from typing import Callable
 
 import copy
 import warnings
-from abc import ABC, abstractmethod
 import logging as log
+from abc import ABC, abstractmethod
+from typing import Union, List
 
 import numpy as np
+from torch.utils.data import DataLoader
 
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.callbacks.base import Callback
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
-
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerTrainLoopMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.max_epochs = None
-        self.min_epochs = None
-        self.use_ddp = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.single_gpu = None
-        self.use_tpu = None
-        self.data_parallel_device_ids = None
-        self.check_val_every_n_epoch = None
-        self.num_training_batches = None
-        self.val_check_batch = None
-        self.num_val_batches = None
-        self.disable_validation = None
-        self.fast_dev_run = None
-        self.main_progress_bar = None
-        self.accumulation_scheduler = None
-        self.lr_schedulers = None
-        self.enable_early_stop = None
-        self.early_stop_callback = None
-        self.callback_metrics = None
-        self.logger = None
-        self.global_step = None
-        self.testing = None
-        self.log_save_interval = None
-        self.proc_rank = None
-        self.row_log_interval = None
-        self.total_batches = None
-        self.truncated_bptt_steps = None
-        self.optimizers = None
-        self.accumulate_grad_batches = None
-        self.use_amp = None
-        self.print_nan_grads = None
-        self.track_grad_norm = None
-        self.model = None
-        self.running_loss = None
-        self.training_tqdm_dict = None
-        self.reduce_lr_on_plateau_scheduler = None
-        self.profiler = None
-        self.batch_idx = None
-        self.precision = None
-        self.train_dataloader = None
-        self.reload_dataloaders_every_epoch = None
-        self.progress_bar_refresh_rate = None
-        self.max_steps = ...
-        self.max_steps = ...
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    max_epochs: int
+    min_epochs: int
+    use_ddp: bool
+    use_dp: bool
+    use_ddp2: bool
+    single_gpu: bool
+    use_tpu: bool
+    data_parallel_device_ids: ...
+    check_val_every_n_epoch: ...
+    num_training_batches: int
+    val_check_batch: ...
+    num_val_batches: int
+    disable_validation: bool
+    fast_dev_run: ...
+    main_progress_bar: ...
+    accumulation_scheduler: ...
+    lr_schedulers: ...
+    enable_early_stop: ...
+    early_stop_callback: ...
+    callback_metrics: ...
+    logger: Union[LightningLoggerBase, bool]
+    global_step: int
+    testing: bool
+    log_save_interval: float
+    proc_rank: int
+    row_log_interval: float
+    total_batches: int
+    truncated_bptt_steps: ...
+    optimizers: ...
+    accumulate_grad_batches: int
+    use_amp: bool
+    print_nan_grads: ...
+    track_grad_norm: ...
+    model: LightningModule
+    running_loss: ...
+    training_tqdm_dict: ...
+    reduce_lr_on_plateau_scheduler: ...
+    profiler: ...
+    batch_idx: int
+    precision: ...
+    train_dataloader: DataLoader
+    reload_dataloaders_every_epoch: bool
+    progress_bar_refresh_rate: ...
+    max_steps: int
+    max_steps: int
+    total_batch_idx: int
 
-        # Callback system
-        self.callbacks: list[Callback] = []
-        self.max_steps = None
-        self.on_train_start: Callable = ...
-        self.on_train_end: Callable = ...
-        self.on_batch_start: Callable = ...
-        self.on_batch_end: Callable = ...
-        self.on_epoch_start: Callable = ...
-        self.on_epoch_end: Callable = ...
+    # Callback system
+    callbacks: List[Callback]
+    on_train_start: Callable
+    on_train_end: Callable
+    on_batch_start: Callable
+    on_batch_end: Callable
+    on_epoch_start: Callable
+    on_epoch_end: Callable
 
     @property
     def max_nb_epochs(self):
@@ -262,78 +264,63 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_function_implemented(self, m):
-        # this is just empty shell for code from other class
-        pass
+    def is_function_implemented(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_infinite_dataloader(self, dataloader):
-        # this is just empty shell for code from other class
-        pass
+    def is_infinite_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_evaluation(self, test_mode):
-        # this is just empty shell for code from other class
-        pass
+    def run_evaluation(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_gpu(self, batch, gpu):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_gpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, batch):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_tpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def clip_gradients(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def print_nan_gradients(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overriden(self, m):
-        # this is just empty shell for code from other class
-        pass
+    def is_overriden(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_tqdm_metrics(self, metrics):
-        # this is just empty shell for code from other class
-        pass
+    def add_tqdm_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, metrics, grad_norm_dic):
-        # this is just empty shell for code from other class
-        pass
+    def log_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def process_output(self, output, train):
-        # this is just empty shell for code from other class
-        pass
+    def process_output(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def reset_train_dataloader(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def reset_train_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def reset_val_dataloader(self, model):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def has_arg(self, f_name, arg_name):
-        # this is just empty shell for code from other class
-        pass
+    def has_arg(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'

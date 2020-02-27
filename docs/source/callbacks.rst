@@ -39,6 +39,7 @@ Callback Class
 --------------
 
 .. automodule:: pytorch_lightning.callbacks
+   :noindex:
    :exclude-members:
         _del_model,
         _save_model,
@@ -48,4 +49,3 @@ Callback Class
         on_epoch_start,
         check_monitor_top_k,
         on_train_start,
-

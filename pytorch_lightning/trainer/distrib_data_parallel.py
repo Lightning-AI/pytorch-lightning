@@ -118,48 +118,50 @@ import os
 import re
 import warnings
 from abc import ABC, abstractmethod
+from typing import Union
 
 import torch
+from pytorch_lightning.loggers import LightningLoggerBase
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerDDPMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.num_gpus = None
-        self.on_gpu = None
-        self.num_gpu_nodes = None
-        self.logger = None
-        self.data_parallel_device_ids = None
-        self.distributed_backend = None
-        self.use_amp = None
-        self.amp_level = None
-        self.use_tpu = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    on_gpu: bool
+    num_gpu_nodes: int
+    logger: Union[LightningLoggerBase, bool]
+    data_parallel_device_ids: ...
+    distributed_backend: str
+    use_amp: bool
+    amp_level: str
+    use_tpu: bool
+
+    @property
+    @abstractmethod
+    def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def copy_trainer_model_properties(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def copy_trainer_model_properties(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_pretrain_routine(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def run_pretrain_routine(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def init_optimizers(self, optimizers):
-        # this is just empty shell for code from other class
-        pass
+    def init_optimizers(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
         # turn off all the GPU stuff

@@ -365,7 +365,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def test_step(self, *args, **kwargs):
         """return whatever outputs will need to be aggregated in test_end
-
         :param batch: The output of your dataloader. A tensor, tuple or list
         :param int batch_idx: Integer displaying which batch this is
         :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
@@ -381,11 +380,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 
         **OPTIONAL**
-        If you don't need to test you don't need to implement this method. In this step you'd normally
-         generate examples or calculate anything of interest such as accuracy.
+        If you don't need to test you don't need to implement this method.
+        In this step you'd normally generate examples or
+        calculate anything of interest such as accuracy.
 
-        When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-         have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+        When the validation_step is called, the model has been put in eval mode
+        and PyTorch gradients have been disabled.
+        At the end of validation, model goes back to training mode and gradients are enabled.
 
         The dict you return here will be available in the `test_end` method.
 
@@ -578,7 +579,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         3. On a testing batch, the call goes to model.test_step
 
         Args:
-            model (LightningModule): the LightningModule currently being optimized
+            model (:class:`.LightningModule`): the LightningModule currently being optimized
             device_ids (list): the list of GPU ids
 
         Return:
@@ -692,7 +693,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             amp (object): pointer to amp library object
-            model (LightningModule): pointer to current lightningModule
+            model (:class:`.LightningModule`): pointer to current lightningModule
             optimizers (list): list of optimizers passed in configure_optimizers()
             amp_level (str): AMP mode chosen ('O1', 'O2', etc...)
 
@@ -1087,7 +1088,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
         r"""
-
         You should use `load_from_checkpoint` instead!
         However, if your .ckpt weights don't have the hyperparameters saved, use this method  to pass
         in a .csv with the hparams you'd like to use. These will  be converted  into a argparse.Namespace
@@ -1097,10 +1097,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             weights_path (str): Path to a PyTorch checkpoint
             tags_csv (str): Path to a .csv with two columns (key, value) as in this
-                Example::
-                    key,value
-                    drop_prob,0.2
-                    batch_size,32
+
+            Example::
+                key,value
+                drop_prob,0.2
+                batch_size,32
 
             map_location (dict | str | torch.device | function):
                 If your checkpoint saved a GPU model and you now load on CPUs
@@ -1163,7 +1164,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             model = MyModel(hparams)
 
-            class MyModel(pl.LightningModule):
+            class MyModel(LightningModule):
                 def __init__(self, hparams):
                     self.learning_rate = hparams.learning_rate
 
@@ -1172,7 +1173,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # when using a dict
             model = MyModel({'learning_rate': 0.1})
 
-            class MyModel(pl.LightningModule):
+            class MyModel(LightningModule):
                 def __init__(self, hparams):
                     self.learning_rate = hparams['learning_rate']
 

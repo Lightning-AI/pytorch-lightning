@@ -1,6 +1,7 @@
 """
 Lightning supports most popular logging frameworks (Tensorboard, comet, weights and biases, etc...).
-To use a logger, simply pass it into the trainer.
+To use a logger, simply pass it into the trainer. To use multiple loggers, simply pass in a ``list``
+or ``tuple`` of loggers.
 
 .. code-block:: python
 
@@ -14,14 +15,19 @@ To use a logger, simply pass it into the trainer.
     comet_logger = loggers.CometLogger()
     trainer = Trainer(logger=comet_logger)
 
-.. note:: All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
+    # or pass a list
+    tb_logger = loggers.TensorBoardLogger()
+    comet_logger = loggers.CometLogger()
+    trainer = Trainer(logger=[tb_logger, comet_logger])
+
+.. note:: All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
+    ``Trainer(default_save_path='/your/path/to/save/checkpoints')``
 
 Custom logger
 -------------
 
 You can implement your own logger by writing a class that inherits from
-`LightningLoggerBase`. Use the `rank_zero_only` decorator to make sure that
+``LightningLoggerBase``. Use the ``rank_zero_only`` decorator to make sure that
 only the first process in DDP training logs data.
 
 .. code-block:: python
@@ -52,13 +58,13 @@ only the first process in DDP training logs data.
             # finishes goes here
 
 
-If you write a logger than may be useful to others, please send
+If you write a logger that may be useful to others, please send
 a pull request to add it to Lighting!
 
 Using loggers
 -------------
 
-Call the logger anywhere from your LightningModule by doing:
+Call the logger anywhere except ``__init__`` in your LightningModule by doing:
 
 .. code-block:: python
 
@@ -69,6 +75,8 @@ Call the logger anywhere from your LightningModule by doing:
     def any_lightning_module_function_or_hook(...):
         self.logger.experiment.add_histogram(...)
 
+Read more in the `Experiment Logging use case <./experiment_logging.html>`_.
+
 Supported Loggers
 -----------------
 """
@@ -77,7 +85,7 @@ from os import environ
 from .base import LightningLoggerBase, LoggerCollection, rank_zero_only
 from .tensorboard import TensorBoardLogger
 
-__all__ = ['TensorBoardLogger', 'LoggerCollection']
+__all__ = ['TensorBoardLogger']
 
 try:
     # needed to prevent ImportError and duplicated logs.
