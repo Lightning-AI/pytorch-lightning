@@ -320,6 +320,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_pre_performance_check()
 
         # select dataloaders
+        import pdb; pdb.set_trace()
         if test_mode:
             if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
                 self.reset_test_dataloader(model)
