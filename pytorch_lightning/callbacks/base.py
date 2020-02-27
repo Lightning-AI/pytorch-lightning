@@ -11,11 +11,11 @@ import abc
 class Callback(abc.ABC):
     """Abstract base class used to build new callbacks."""
 
-    def on_init_start(self, trainer, pl_module):
+    def on_init_start(self, trainer):
         """Called when the trainer initialization begins, model has not yet been set."""
         pass
 
-    def on_init_end(self, trainer, pl_module):
+    def on_init_end(self, trainer):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
