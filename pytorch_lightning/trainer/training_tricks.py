@@ -30,8 +30,6 @@ class TrainerTrainingTricksMixin(ABC):
             if isinstance(parameters, torch.Tensor):
                 parameters = [parameters]
             parameters = list(filter(lambda p: p.grad is not None, parameters))
-            max_norm = float(max_norm)
-            norm_type = float(norm_type)
             if norm_type == math.inf:
                 total_norm = max(p.grad.data.abs().max() for p in parameters)
             else:
