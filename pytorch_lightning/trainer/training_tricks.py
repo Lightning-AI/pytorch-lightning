@@ -12,15 +12,13 @@ EPSILON_FP16 = 1e-5
 
 class TrainerTrainingTricksMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.gradient_clip_val = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    gradient_clip_val: ...
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def clip_gradients(self):
         # this code is a modification of torch.nn.utils.clip_grad_norm_
