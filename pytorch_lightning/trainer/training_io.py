@@ -343,7 +343,7 @@ class TrainerIOMixin(ABC):
 
         # save lr schedulers
         lr_schedulers = []
-        for i, scheduler in enumerate(self.lr_schedulers):
+        for scheduler in self.lr_schedulers:
             lr_schedulers.append(scheduler['scheduler'].state_dict())
 
         checkpoint['lr_schedulers'] = lr_schedulers

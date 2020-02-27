@@ -740,11 +740,6 @@ class Trainer(TrainerIOMixin,
         # creates a default one if none passed in
         self.configure_early_stopping(early_stop_callback)
 
-        # configure variables for learning rate scheduling
-        self.lr_steps = []
-        self.reduce_lr_on_plateau_scheduler = None
-        self.lr_step_reduce_on_plateau = None
-
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
@@ -1058,31 +1053,25 @@ class Trainer(TrainerIOMixin,
     def configure_schedulers(self, schedulers: list):
         # Convert each scheduler into dict sturcture with relevant information
         lr_schedulers = []
+        default_config = {'interval': 'epoch', # default every epoch
+                          'frequency': 1, # default every epoch/batch
+                          'reduce_on_plateau': False} # most often not ReduceLROnPlateau scheduler}
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:
                     raise ValueError(f'Lr scheduler should have key `scheduler`',
-                                     'with item being a lr scheduler')
-                if 'interval' not in scheduler:
-                    scheduler['interval'] = 'epoch'  # default every epoch
-                if 'frequency' not in scheduler:
-                    scheduler['frequency'] = 1  # default every step
+                                     ' with item being a lr scheduler')
                 scheduler['reduce_on_plateau'] = \
                     isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
 
-                lr_schedulers.append(scheduler)
+                lr_schedulers.append({**default_config, **scheduler})
 
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                lr_schedulers.append({'scheduler': scheduler,
-                                      'interval': 'epoch',
-                                      'frequency': 1,
+                lr_schedulers.append({**default_config, 'scheduler': scheduler,
                                       'reduce_on_plateau': True})
 
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                lr_schedulers.append({'scheduler': scheduler,
-                                      'interval': 'epoch',
-                                      'frequency': 1,
-                                      'reduce_on_plateau': False})
+                lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
                 raise ValueError(f'Input {scheduler} to lr schedulers '
                                  'is a invalid input.')

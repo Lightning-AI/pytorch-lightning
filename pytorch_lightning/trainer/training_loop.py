@@ -400,7 +400,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.run_training_epoch()
 
                 # update LR schedulers
-                self.update_lr(interval='epoch')
+                self.update_learning_rates(interval='epoch')
 
                 if self.max_steps and self.max_steps == self.global_step:
                     self.main_progress_bar.close()
@@ -478,7 +478,7 @@ class TrainerTrainLoopMixin(ABC):
             early_stop_epoch = batch_result == -1
 
             # update lr
-            self.update_lr(interval='batch')
+            self.update_learning_rates(interval='batch')
 
             # ---------------
             # RUN VAL STEP
@@ -745,12 +745,12 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def update_lr(self, interval):
+    def update_learning_rates(self, interval):
         ''' Update lr '''
         if self.lr_schedulers is not None:
             for lr_scheduler in self.lr_schedulers:
                 current_step_idx = self.batch_idx if interval == 'batch' else self.current_epoch
-                # Take step if call to update_lr matches the interval key and
+                # Take step if call to update_learning_rates matches the interval key and
                 # the current step modulo the schedulers frequency is zero
                 if lr_scheduler['interval'] == interval and current_step_idx % lr_scheduler['frequency'] == 0:
                     # If instance of ReduceLROnPlateau, we need to pass validation loss
