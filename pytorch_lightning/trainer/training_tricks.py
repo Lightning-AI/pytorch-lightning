@@ -61,5 +61,3 @@ class TrainerTrainingTricksMixin(ABC):
             self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
-
-        self.accumulation_scheduler.set_trainer(self)
