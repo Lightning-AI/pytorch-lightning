@@ -937,8 +937,6 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
-        # Fit begin callbacks
-        self.on_fit_start()
 
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
@@ -982,9 +980,6 @@ class Trainer(TrainerIOMixin,
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
-
-        # Fit end callbacks
-        self.on_fit_end()
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded

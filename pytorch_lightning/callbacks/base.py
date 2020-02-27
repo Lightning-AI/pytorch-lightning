@@ -19,14 +19,6 @@ class Callback(abc.ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
-    def on_fit_start(self, trainer, pl_module):
-        """Called when the fit begins."""
-        pass
-
-    def on_fit_end(self, trainer, pl_module):
-        """Called when the fit ends."""
-        pass
-
     def on_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         pass

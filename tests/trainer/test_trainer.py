@@ -617,8 +617,6 @@ def test_trainer_callback_system(tmpdir):
             super().__init__()
             self.on_init_start_called = False
             self.on_init_end_called = False
-            self.on_fit_start_called = False
-            self.on_fit_end_called = False
             self.on_epoch_start_called = False
             self.on_epoch_end_called = False
             self.on_batch_start_called = False
@@ -637,16 +635,6 @@ def test_trainer_callback_system(tmpdir):
         def on_init_end(self, trainer):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
-            self.on_fit_start_called = True
-
-        def on_fit_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
-            self.on_fit_end_called = True
 
         def on_epoch_start(self, trainer, pl_module):
             assert isinstance(trainer, Trainer)
@@ -716,13 +704,10 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
-    assert not test_callback.on_fit_start_called
-    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_train_start_called
 
     trainer.fit(model)
 
-    assert test_callback.on_fit_start_called
-    assert test_callback.on_fit_end_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_batch_start_called

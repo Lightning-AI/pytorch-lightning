@@ -22,16 +22,6 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_init_end(self)
 
-    def on_fit_start(self):
-        """Called when the fit begins."""
-        for callback in self.callbacks:
-            callback.on_fit_start(self, self.get_model())
-
-    def on_fit_end(self):
-        """Called when the fit ends."""
-        for callback in self.callbacks:
-            callback.on_fit_end(self, self.get_model())
-
     def on_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
