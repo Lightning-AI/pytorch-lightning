@@ -25,8 +25,8 @@ class TrainerTrainingTricksMixin(ABC):
         if self.gradient_clip_val > 0:
             model = self.get_model()
             parameters = model.parameters()
-            max_norm = self.gradient_clip_val
-            norm_type = 2
+            max_norm = float(self.gradient_clip_val)
+            norm_type = float(2.0)
             if isinstance(parameters, torch.Tensor):
                 parameters = [parameters]
             parameters = list(filter(lambda p: p.grad is not None, parameters))
