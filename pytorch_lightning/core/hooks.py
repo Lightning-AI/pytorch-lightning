@@ -6,8 +6,11 @@ There are cases when you might want to do something different at different parts
  To enable a hook, simply override the method in your LightningModule and the trainer will call it at the correct time.
 
 **Contributing** If there's a hook you'd like to add, simply:
+
 1. Fork PyTorchLightning.
+
 2. Add the hook :py:mod:`pytorch_lightning.base_module.hooks.py`.
+
 3. Add the correct place in the :py:mod:`pytorch_lightning.models.trainer` where it should be called.
 
 """

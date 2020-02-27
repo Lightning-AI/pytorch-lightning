@@ -1,9 +1,10 @@
-Hooks
-=======
-This is the order in which lightning calls the hooks. You can override each for custom behavior.
+.. automodule:: pytorch_lightning.core.hooks
+
+Full list of hooks
+------------------
 
 Training set-up
---------------------
+===============
 - init_ddp_connection
 - init_optimizers
 - configure_apex
@@ -15,7 +16,7 @@ Training set-up
 - restore_weights
 
 Training loop
---------------------
+=============
 
 - on_epoch_start
 - on_batch_start
@@ -29,7 +30,7 @@ Training loop
 - on_epoch_end
 
 Validation loop
---------------------
+===============
 
 - model.zero_grad()
 - model.eval()
@@ -41,7 +42,7 @@ Validation loop
 - on_post_performance_check
 
 Test loop
-------------
+=========
 
 - model.zero_grad()
 - model.eval()
