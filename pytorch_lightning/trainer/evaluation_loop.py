@@ -134,6 +134,7 @@ from tqdm.auto import tqdm
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
+    import torch_xla
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
 
