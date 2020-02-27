@@ -100,6 +100,9 @@ class LoggerCollection(LightningLoggerBase):
         super().__init__()
         self._logger_iterable = logger_iterable
 
+    def __getitem__(self, index: int) -> LightningLoggerBase:
+        return [logger for logger in self._logger_iterable][index]
+
     @property
     def experiment(self) -> List[Any]:
         return [logger.experiment() for logger in self._logger_iterable]
