@@ -100,7 +100,7 @@ from argparse import Namespace
 
 import torch
 import torch.distributed as dist
-
+import gc
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -287,7 +287,9 @@ class TrainerIOMixin(ABC):
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
+        gc.collect()
         torch.save(checkpoint, tmp_path)
+        gc.collect()
         os.replace(tmp_path, filepath)
 
     def save_checkpoint(self, filepath):
