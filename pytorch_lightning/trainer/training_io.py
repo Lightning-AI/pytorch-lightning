@@ -96,11 +96,13 @@ import signal
 import warnings
 from abc import ABC
 from subprocess import call
-from argparse import Namespace
+from typing import Union
 
 import torch
 import torch.distributed as dist
 
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -110,33 +112,32 @@ try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerIOMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.model = None
-        self.on_gpu = None
-        self.root_gpu = None
-        self.resume_from_checkpoint = None
-        self.use_ddp = None
-        self.use_ddp2 = None
-        self.checkpoint_callback = None
-        self.proc_rank = None
-        self.weights_save_path = None
-        self.logger = None
-        self.early_stop_callback = None
-        self.lr_schedulers = None
-        self.optimizers = None
-        self.on_tpu = None
-        self.num_training_batches = None
-        self.accumulate_grad_batches = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    model: LightningModule
+    on_gpu: bool
+    root_gpu: ...
+    resume_from_checkpoint: ...
+    use_ddp: bool
+    use_ddp2: bool
+    checkpoint_callback: ...
+    proc_rank: int
+    weights_save_path: str
+    logger: Union[LightningLoggerBase, bool]
+    early_stop_callback: ...
+    lr_schedulers: ...
+    optimizers: ...
+    on_tpu: bool
+    num_training_batches: int
+    accumulate_grad_batches: int
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
