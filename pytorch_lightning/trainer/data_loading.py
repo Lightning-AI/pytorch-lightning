@@ -182,6 +182,12 @@ class TrainerDataLoadingMixin(ABC):
         import pdb;
         pdb.set_trace()
 
+        val_loaders = []
+        for dl in self.val_dataloaders:
+                val_loaders.append(self.auto_add_sampler(dl, train=False))
+
+        self.val_dataloaders = val_loaders
+
         self.val_dataloaders = [self.auto_add_sampler(dl, train=False)
                                 for dl in self.val_dataloaders if dl]
 
