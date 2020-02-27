@@ -6,6 +6,8 @@ import math
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
+EPSILON = 1e-6
+
 
 class TrainerTrainingTricksMixin(ABC):
 
@@ -39,7 +41,7 @@ class TrainerTrainingTricksMixin(ABC):
                     param_norm = p.grad.data.norm(norm_type) ** norm_type
                 total_norm.add_(param_norm)
                 total_norm = (total_norm ** (1. / norm_type))
-            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + 1e-6)
+            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
             for p in parameters:
                 p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
