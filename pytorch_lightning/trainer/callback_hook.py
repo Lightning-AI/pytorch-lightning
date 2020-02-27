@@ -15,12 +15,12 @@ class TrainerCallbackHookMixin(ABC):
     def on_init_start(self):
         """Called when the trainer initialization begins."""
         for callback in self.callbacks:
-            callback.on_init_start(self, None)
+            callback.on_init_start(self)
 
     def on_init_end(self):
         """Called when the trainer initialization ends."""
         for callback in self.callbacks:
-            callback.on_init_end(self)
+            callback.on_init_end()
 
     def on_fit_start(self):
         """Called when the fit begins."""

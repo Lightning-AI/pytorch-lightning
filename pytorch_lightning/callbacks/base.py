@@ -11,11 +11,11 @@ import abc
 class Callback(abc.ABC):
     """Abstract base class used to build new callbacks."""
 
-    def on_init_start(self, trainer):
+    def on_init_start(self):
         """Called when the trainer initialization begins."""
         pass
 
-    def on_init_end(self, trainer):
+    def on_init_end(self):
         """Called when the trainer initialization ends."""
         pass
 

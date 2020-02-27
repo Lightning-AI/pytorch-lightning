@@ -14,6 +14,7 @@ An overall Lightning system should have:
 3. Callbacks for non-essential code.
 
 Example
+
 .. code-block:: python
 
     import pytorch_lightning as pl
@@ -33,6 +34,9 @@ Example
     trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
 
 We successfully extended functionality without polluting our super clean LightningModule research code
+
+Callback Class
+--------------
 
 .. automodule:: pytorch_lightning.callbacks
    :exclude-members:
