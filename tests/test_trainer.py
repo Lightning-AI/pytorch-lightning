@@ -5,7 +5,7 @@ import pytest
 import torch
 
 import tests.models.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
@@ -889,45 +889,73 @@ def test_trainer_callback_system(tmpdir):
             self.on_test_end_called = False
 
         def on_init_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert pl_module is None
             self.on_init_start_called = True
 
         def on_init_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert pl_module is None
             self.on_init_end_called = True
 
         def on_fit_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_fit_start_called = True
 
         def on_fit_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_fit_end_called = True
 
         def on_epoch_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_epoch_start_called = True
 
         def on_epoch_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_epoch_end_called = True
 
         def on_batch_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_batch_start_called = True
 
         def on_batch_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_batch_end_called = True
 
         def on_train_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_train_start_called = True
 
         def on_train_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_train_end_called = True
 
         def on_validation_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_validation_start_called = True
 
         def on_validation_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_validation_end_called = True
 
         def on_test_start(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_test_start_called = True
 
         def on_test_end(self, trainer, pl_module):
+            assert isinstance(trainer, Trainer)
+            assert isinstance(pl_module, LightningModule)
             self.on_test_end_called = True
 
     test_callback = TestCallback()
@@ -970,6 +998,3 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])
