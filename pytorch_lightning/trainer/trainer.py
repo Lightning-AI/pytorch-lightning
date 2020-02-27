@@ -937,6 +937,9 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
+        # bind logger
+        model.logger = self.logger
+
         # Fit begin callbacks
         self.on_fit_start()
 
@@ -1065,10 +1068,8 @@ class Trainer(TrainerIOMixin,
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
 
-        # link up experiment object
+        # log hyper-parameters
         if self.logger is not None:
-            ref_model.logger = self.logger
-
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
