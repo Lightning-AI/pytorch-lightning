@@ -456,15 +456,18 @@ class TrainerTrainLoopMixin(ABC):
         if self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(self.get_model())
 
+        # track local dataloader so TPU can wrap each epoch
+        train_dataloader = self.train_dataloader
+
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu:
             device = xm.xla_device()
-            self.train_dataloader = xla_pl.ParallelLoader(self.train_dataloader, [device])
-            self.train_dataloader = self.train_dataloader.per_device_loader(device)
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
 
         # run epoch
         for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(self.train_dataloader), "get_train_batch"
+            enumerate(train_dataloader), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
