@@ -184,7 +184,7 @@ class TrainerDataLoadingMixin(ABC):
 
         val_loaders = []
         for dl in self.val_dataloaders:
-                val_loaders.append(self.auto_add_sampler(dl, train=False))
+            val_loaders.append(self.auto_add_sampler(dl, train=False))
 
         self.val_dataloaders = val_loaders
 
