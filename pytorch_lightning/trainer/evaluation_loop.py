@@ -126,6 +126,7 @@ In this second case, the options you pass to trainer will be used when running
 from typing import Callable
 
 import sys
+import gc
 from abc import ABC, abstractmethod
 
 import torch
@@ -376,8 +377,11 @@ class TrainerEvaluationLoopMixin(ABC):
             self.val_progress_bar.close()
 
         # model checkpointing
+        gc.collect()
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test_mode:
+            print("checkpointing")
             self.checkpoint_callback.on_validation_end(self, self.get_model())
+            print("done checkpointing")
 
         # wait for all models to checkpoint
         if self.on_tpu and XLA_AVAILABLE:
