@@ -378,6 +378,11 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.proc_rank == 0 and self.checkpoint_callback is not None and not test_mode:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
 
+        # wait for all models to checkpoint
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous("pl.TrainerEvaluationLoopMixin.run_evaluation")
+            
         # Validation/Test end callbacks
         if test_mode:
             self.on_test_end()
