@@ -2,8 +2,12 @@ import logging as log
 from abc import ABC, abstractmethod
 
 import torch
+import math
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+
+EPSILON = 1e-6
+EPSILON_FP16 = 1e-5
 
 
 class TrainerTrainingTricksMixin(ABC):
@@ -19,9 +23,29 @@ class TrainerTrainingTricksMixin(ABC):
         pass
 
     def clip_gradients(self):
+        # this code is a modification of torch.nn.utils.clip_grad_norm_
+        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if self.gradient_clip_val > 0:
             model = self.get_model()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
+            parameters = model.parameters()
+            max_norm = float(self.gradient_clip_val)
+            norm_type = float(2.0)
+            if isinstance(parameters, torch.Tensor):
+                parameters = [parameters]
+            parameters = list(filter(lambda p: p.grad is not None, parameters))
+            if norm_type == math.inf:
+                total_norm = max(p.grad.data.abs().max() for p in parameters)
+            else:
+                device = parameters[0].device
+                total_norm = torch.zeros([], device=device if parameters else None)
+                for p in parameters:
+                    param_norm = p.grad.data.norm(norm_type) ** norm_type
+                total_norm.add_(param_norm)
+                total_norm = (total_norm ** (1. / norm_type))
+            eps = EPSILON_FP16 if self.precision == 16 else EPSILON
+            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+            for p in parameters:
+                p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
     def print_nan_gradients(self):
         model = self.get_model()
