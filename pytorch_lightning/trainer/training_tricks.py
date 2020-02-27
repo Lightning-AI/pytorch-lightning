@@ -43,9 +43,6 @@ class TrainerTrainingTricksMixin(ABC):
             for p in parameters:
                 p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
-            # return total_norm
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), self.gradient_clip_val)
-
     def print_nan_gradients(self):
         model = self.get_model()
         for param in model.parameters():
