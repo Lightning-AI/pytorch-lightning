@@ -188,13 +188,13 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.tensor(acc)
         acc = acc.item()
 
-    assert acc >= min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
+    assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
     # this model should get 0.80+ acc
     acc = trainer.training_tqdm_dict[key]
-    assert acc > thr, f'Model failed to get expected {thr} accuracy. {key} = {acc}'
+    assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
 def can_run_gpu_test():
