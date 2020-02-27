@@ -1,10 +1,13 @@
+Hooks
+-----
+
 .. automodule:: pytorch_lightning.core.hooks
 
 Full list of hooks
-------------------
+
 
 Training set-up
-===============
+================
 - init_ddp_connection
 - init_optimizers
 - configure_apex
