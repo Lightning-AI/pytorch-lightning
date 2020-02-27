@@ -256,7 +256,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
-            import pdb; pdb.set_trace()
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:  # pragma: no cover
                     continue
