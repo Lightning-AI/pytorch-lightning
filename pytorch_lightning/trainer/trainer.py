@@ -1068,7 +1068,7 @@ class Trainer(TrainerIOMixin,
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
 
-        # link up experiment object
+        # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
             if hasattr(ref_model, "hparams"):
