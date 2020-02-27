@@ -334,11 +334,20 @@ class TrainerTrainLoopMixin(ABC):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
 
-        # Train begin callbacks
-        self.on_train_start()
-
         # get model
         model = self.get_model()
+
+        # Train start events
+        with self.profiler.profile('on_train_start'):
+            # callbacks
+            self.on_train_start()
+            # initialize early stop callback
+            self.early_stop_callback.on_train_start(self, self.get_model())
+            # model hooks
+            if self.is_function_implemented('on_train_start'):
+                model = self.get_model()
+                model.on_train_start()
+
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
