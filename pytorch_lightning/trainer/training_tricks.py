@@ -42,10 +42,8 @@ class TrainerTrainingTricksMixin(ABC):
                     param_norm = p.grad.data.norm(norm_type) ** norm_type
                 total_norm.add_(param_norm)
                 total_norm = (total_norm ** (1. / norm_type))
-            if self.precision == 16:
-                clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON_FP16)
-            else:
-                clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
+            eps = EPSILON_FP16 if self.precision == 16 else EPSILON
+            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
             for p in parameters:
                 p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
