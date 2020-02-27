@@ -141,7 +141,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
+    def training_step(self, *args, **kwargs) -> Union[
+        int, Dict[str, Union[Tensor, Dict[str, Tensor]]]
+    ]:
         r"""return loss, dict with metrics for tqdm
 
         Args:
@@ -220,7 +222,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
          if you want to break out of the current training epoch early.
         """
 
-    def training_end(self, outputs: dict) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
+    def training_end(self, outputs: dict) -> Union[
+        int, Dict[str, Union[Tensor, Dict[str, Tensor]]]
+    ]:
         """return loss, dict with metrics for tqdm
 
         :param outputs: What you return in `training_step`.
@@ -369,8 +373,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """return whatever outputs will need to be aggregated in test_end
         :param batch: The output of your dataloader. A tensor, tuple or list
         :param int batch_idx: Integer displaying which batch this is
-        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
-        :return: Single tensor or dict with metrics to display in progress bar. All values must be tensors.
+        :param int dataloader_idx: Integer displaying which dataloader this is
+            (only if multiple test datasets used)
+        :return: Single tensor or dict with metrics to display in progress bar.
+            All values must be tensors.
 
         .. code-block:: python
 
@@ -574,7 +580,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def configure_ddp(self, model: 'LightningModule', device_ids: List[int]) -> DistributedDataParallel:
+    def configure_ddp(
+            self,
+            model: 'LightningModule',
+            device_ids: List[int]
+    ) -> DistributedDataParallel:
         r"""
 
         Override to init DDP in your own way or with your own wrapper.
