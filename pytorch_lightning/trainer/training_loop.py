@@ -163,8 +163,8 @@ from typing import Union, List
 import numpy as np
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.callbacks.base import Callback
 
