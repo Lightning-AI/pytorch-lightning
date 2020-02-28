@@ -116,6 +116,7 @@ class Trainer(TrainerIOMixin,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            auto_restore: bool = True,
     ):
         r"""
 
@@ -609,6 +610,8 @@ class Trainer(TrainerIOMixin,
                 The speedup comes from allowing the cudnn auto-tuner to find the best
                 algorithm for the hardware `[see discussion here]
                 <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+
+            auto_restore (bool): If true will restore training and model.
 
         .. warning:: Following arguments become deprecated and they will be removed in v0.8.0:
 
@@ -1104,7 +1107,8 @@ class Trainer(TrainerIOMixin,
         self.model = model
 
         # restore training and model before hpc call
-        self.restore_weights(model)
+        if self.auto_restore:
+            self.restore_weights(model)
 
         # download the data and do whatever transforms we need
         self.call_prepare_data(ref_model)
