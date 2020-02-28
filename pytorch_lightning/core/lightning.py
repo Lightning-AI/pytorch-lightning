@@ -756,7 +756,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
                 dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
                 gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                             'interval': 'step'] # called after each training step
+                             'interval': 'step'}  # called after each training step
                 dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
                 return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
