@@ -1,12 +1,28 @@
 import pickle
 
+from unittest.mock import MagicMock
+
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import (
-    LightningLoggerBase,
-    rank_zero_only
-)
+from pytorch_lightning.loggers import LightningLoggerBase, rank_zero_only, LoggerCollection
 from tests.models import LightningTestModel
+
+
+def test_logger_collection():
+    mock1 = MagicMock()
+    mock2 = MagicMock()
+
+    logger = LoggerCollection([mock1, mock2])
+
+    assert logger[0] == mock1
+    assert logger[1] == mock2
+
+    assert logger.experiment[0] == mock1.experiment
+    assert logger.experiment[1] == mock2.experiment
+
+    logger.close()
+    mock1.close.assert_called_once()
+    mock2.close.assert_called_once()
 
 
 class CustomLogger(LightningLoggerBase):
