@@ -756,7 +756,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
                 dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
                 gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                             'interval': 'batch'] # called after each step
+                             'interval': 'step'] # called after each training step
                 dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
                 return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
@@ -775,8 +775,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
             override the `optimizer_step` hook.
 
-        .. note:: If you only want to call a learning rate schduler every `x` batch or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_schudler, interval='batch' or 'epoch', frequency=x)
+        .. note:: If you only want to call a learning rate schduler every `x` step or epoch,
+            you can input this as 'frequency' key: dict(scheduler=lr_schudler, interval='step' or 'epoch', frequency=x)
 
         """
 
