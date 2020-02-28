@@ -132,7 +132,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
