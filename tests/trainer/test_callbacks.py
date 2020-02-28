@@ -24,6 +24,10 @@ def test_trainer_callback_system(tmpdir):
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
 
+    def _check_args(trainer, pl_module):
+        assert isinstance(trainer, Trainer)
+        assert isinstance(pl_module, LightningModule)
+
     class TestCallback(Callback):
         def __init__(self):
             super().__init__()
@@ -49,53 +53,43 @@ def test_trainer_callback_system(tmpdir):
             self.on_init_end_called = True
 
         def on_epoch_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_epoch_start_called = True
 
         def on_epoch_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_epoch_end_called = True
 
         def on_batch_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_batch_start_called = True
 
         def on_batch_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_batch_end_called = True
 
         def on_train_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_train_start_called = True
 
         def on_train_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_train_end_called = True
 
         def on_validation_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_validation_start_called = True
 
         def on_validation_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_validation_end_called = True
 
         def on_test_start(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_test_start_called = True
 
         def on_test_end(self, trainer, pl_module):
-            assert isinstance(trainer, Trainer)
-            assert isinstance(pl_module, LightningModule)
+            _check_args(trainer, pl_module)
             self.on_test_end_called = True
 
     test_callback = TestCallback()
