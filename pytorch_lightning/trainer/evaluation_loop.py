@@ -129,100 +129,92 @@ import sys
 from abc import ABC, abstractmethod
 
 import torch
+from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerEvaluationLoopMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.test_progress_bar = None
-        self.val_progress_bar = None
-        self.main_progress_bar = None
-        self.use_ddp = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.single_gpu = None
-        self.data_parallel_device_ids = None
-        self.model = None
-        self.num_test_batches = None
-        self.num_val_batches = None
-        self.fast_dev_run = None
-        self.process_position = None
-        self.show_progress_bar = None
-        self.process_output = None
-        self.training_tqdm_dict = None
-        self.proc_rank = None
-        self.checkpoint_callback = None
-        self.current_epoch = None
-        self.callback_metrics = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-        self.use_tpu = None
-        self.reload_dataloaders_every_epoch = None
-        self.progress_bar_refresh_rate = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    test_progress_bar: ...
+    val_progress_bar: ...
+    main_progress_bar: ...
+    use_ddp: bool
+    use_dp: bool
+    use_ddp2: bool
+    single_gpu: bool
+    data_parallel_device_ids: ...
+    model: LightningModule
+    num_test_batches: int
+    num_val_batches: int
+    fast_dev_run: ...
+    process_position: ...
+    show_progress_bar: ...
+    process_output: ...
+    training_tqdm_dict: ...
+    proc_rank: int
+    checkpoint_callback: ...
+    current_epoch: int
+    callback_metrics: ...
+    test_dataloaders: DataLoader
+    val_dataloaders: DataLoader
+    use_tpu: bool
+    reload_dataloaders_every_epoch: ...
+    progress_bar_refresh_rate: ...
 
-        # Callback system
-        self.on_validation_start: Callable = ...
-        self.on_validation_end: Callable = ...
-        self.on_test_start: Callable = ...
-        self.on_test_end: Callable = ...
+    # Callback system
+    on_validation_start: Callable
+    on_validation_end: Callable
+    on_test_start: Callable
+    on_test_end: Callable
 
     @abstractmethod
-    def copy_trainer_model_properties(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def copy_trainer_model_properties(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overriden(self, m):
-        # this is just empty shell for code from other class
-        pass
+    def is_overriden(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, batch):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_tpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_gpu(self, batch, gpu):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_gpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_tqdm_metrics(self, metrics):
-        # this is just empty shell for code from other class
-        pass
+    def add_tqdm_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, metrics, grad_norm_dic):
-        # this is just empty shell for code from other class
-        pass
+    def log_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def reset_test_dataloader(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def reset_test_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def reset_val_dataloader(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def reset_val_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
         """Run evaluation code.

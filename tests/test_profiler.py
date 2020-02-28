@@ -4,19 +4,17 @@ import pytest
 
 from pytorch_lightning.profiler import Profiler, AdvancedProfiler
 
-PROFILER_OVERHEAD_MAX_TOLERANCE = 0.001
+PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
 
 
 @pytest.fixture
 def simple_profiler():
-    """Creates a new profiler for every test with `simple_profiler` as an arg."""
     profiler = Profiler()
     return profiler
 
 
 @pytest.fixture
 def advanced_profiler():
-    """Creates a new profiler for every test with `advanced_profiler` as an arg."""
     profiler = AdvancedProfiler()
     return profiler
 
@@ -51,13 +49,10 @@ def test_simple_profiler_describe(simple_profiler):
     simple_profiler.describe()
 
 
-def _get_total_cprofile_duration(profile):
-    return sum([x.totaltime for x in profile.getstats()])
-
-
 @pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action, expected):
-    """Ensure the reported durations are reasonably accurate."""
+    def _get_total_duration(profile):
+        return sum([x.totaltime for x in profile.getstats()])
 
     for duration in expected:
         with advanced_profiler.profile(action):
@@ -65,7 +60,7 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    recored_total_duration = _get_total_cprofile_duration(
+    recored_total_duration = _get_total_duration(
         advanced_profiler.profiled_actions[action]
     )
     expected_total_duration = np.sum(expected)
@@ -75,17 +70,21 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
 
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
-    """Ensure that the profiler doesn't introduce too much overhead during training."""
+    """
+    ensure that the profiler doesn't introduce too much overhead during training
+    """
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
 
     action_profile = advanced_profiler.profiled_actions["no-op"]
-    total_duration = _get_total_cprofile_duration(action_profile)
+    total_duration = sum([x.totaltime for x in action_profile.getstats()])
     average_duration = total_duration / n_iter
     assert average_duration < PROFILER_OVERHEAD_MAX_TOLERANCE
 
 
 def test_advanced_profiler_describe(advanced_profiler):
-    """Ensure the profiler won't fail when reporting the summary."""
+    """
+    ensure the profiler won't fail when reporting the summary
+    """
     advanced_profiler.describe()

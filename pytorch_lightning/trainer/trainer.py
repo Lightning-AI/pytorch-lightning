@@ -38,19 +38,19 @@ from pytorch_lightning.callbacks import Callback
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class Trainer(TrainerIOMixin,
@@ -98,7 +98,7 @@ class Trainer(TrainerIOMixin,
             train_percent_check: float = 1.0,
             val_percent_check: float = 1.0,
             test_percent_check: float = 1.0,
-            val_check_interval: Union[float] = 1.0,
+            val_check_interval: float = 1.0,
             log_save_interval: int = 100,
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
@@ -153,8 +153,9 @@ class Trainer(TrainerIOMixin,
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-            early_stop_callback: Callback for early stopping. If
-                set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
+                Callback for early stopping.
+                If set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
                 If set to ``False``, then early stopping will be disabled.
                 If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
@@ -617,7 +618,7 @@ class Trainer(TrainerIOMixin,
 
         # Init callbacks
         self.callbacks = callbacks
-        self.on_init_start()
+        self.on_init_start(self)
 
         # benchmarking
         self.benchmark = benchmark
@@ -807,7 +808,7 @@ class Trainer(TrainerIOMixin,
         self.init_amp(use_amp)
 
         # Callback system
-        self.on_init_end()
+        self.on_init_end(self)
 
     @property
     def slurm_job_id(self) -> int:
@@ -937,6 +938,8 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
+        # bind logger
+        model.logger = self.logger
 
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
@@ -1060,10 +1063,8 @@ class Trainer(TrainerIOMixin,
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
 
-        # link up experiment object
+        # log hyper-parameters
         if self.logger is not None:
-            ref_model.logger = self.logger
-
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
@@ -1158,7 +1159,7 @@ class Trainer(TrainerIOMixin,
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model: The model to test.
+            model (:class:`.LightningModule`): The model to test.
 
         Example::
 

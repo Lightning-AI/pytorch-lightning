@@ -4,6 +4,7 @@
 Loggers
 ===========
 .. automodule:: pytorch_lightning.loggers
+   :noindex:
    :exclude-members:
         _abc_impl,
         _save_model,
