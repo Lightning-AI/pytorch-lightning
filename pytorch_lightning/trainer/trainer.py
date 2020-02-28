@@ -623,6 +623,9 @@ class Trainer(TrainerIOMixin,
         self.callbacks = callbacks
         self.on_init_start(self)
 
+        # auto restore option
+        self.auto_restore = auto_restore
+
         # benchmarking
         self.benchmark = benchmark
         if benchmark:
