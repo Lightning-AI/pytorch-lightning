@@ -118,6 +118,10 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def on_validation_end(self, trainer, pl_module):
+        # only run on main process
+        if self.proc_rank != 0:
+            return
+
         logs = trainer.callback_metrics
         epoch = trainer.current_epoch
         self.epochs_since_last_check += 1
