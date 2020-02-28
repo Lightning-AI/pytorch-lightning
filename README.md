@@ -48,7 +48,6 @@ pip install pytorch-lightning
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
-
 ## Demo  
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
@@ -68,7 +67,10 @@ This is how lightning separates the science (red) from the engineering (blue).
 ![Overview](docs/source/_static/images/pl_overview.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538).
+
+## What are the differences with PyTorch?    
+If you're wondering what you gain out of refactoring your PyTorch code, [read this comparison!](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/PytorchLightning/pytorch-lightning-conference-seed)     
