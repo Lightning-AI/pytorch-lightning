@@ -101,8 +101,8 @@ from typing import Union
 import torch
 import torch.distributed as dist
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
