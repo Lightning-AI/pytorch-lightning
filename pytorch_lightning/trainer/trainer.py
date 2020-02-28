@@ -618,7 +618,7 @@ class Trainer(TrainerIOMixin,
 
         # Init callbacks
         self.callbacks = callbacks
-        self.on_init_start(self)
+        self.on_init_start()
 
         # benchmarking
         self.benchmark = benchmark
@@ -808,7 +808,7 @@ class Trainer(TrainerIOMixin,
         self.init_amp(use_amp)
 
         # Callback system
-        self.on_init_end(self)
+        self.on_init_end()
 
     @property
     def slurm_job_id(self) -> int:
