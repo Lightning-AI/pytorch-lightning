@@ -746,10 +746,10 @@ class TrainerTrainLoopMixin(ABC):
         return output
 
     def update_learning_rates(self, interval):
-        ''' Update learning rates 
+        ''' Update learning rates
         Args:
             interval (str): either 'epoch' or 'step'.
-        '''        
+        '''
         if not self.lr_schedulers:
             return
 

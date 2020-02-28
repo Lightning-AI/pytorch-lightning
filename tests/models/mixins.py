@@ -634,7 +634,7 @@ class LightTestOptimizersWithMixedSchedulingMixin:
         lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
 
         return [optimizer1, optimizer2], \
-            [{'scheduler': lr_scheduler1, 'interval': 'batch'}, lr_scheduler2]
+            [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
 
 
 def _get_output_metric(output, name):
