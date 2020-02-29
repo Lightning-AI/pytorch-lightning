@@ -17,7 +17,7 @@ import torch
 import codecs
 from torch.utils.data import Dataset
 
-from tests.pl_mnist.utils import download_and_extract_archive
+from tests.mocks.torchvision.utils import download_and_extract_archive
 
 
 class MNIST(Dataset):

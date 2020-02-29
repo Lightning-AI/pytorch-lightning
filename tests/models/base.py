@@ -6,7 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from tests.pl_mnist import MNIST, transforms
+
+from tests.mocks.torchvision.mnist import MNIST
+from tests.mocks.torchvision import transforms
 
 try:
     from test_tube import HyperOptArgumentParser
