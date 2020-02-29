@@ -445,7 +445,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
 
             output = model.test_step(*args)
-        else:
+        elif self.mode is TrainerMode.VALIDATING or self.mode is TrainerMode.TRAINING:
             output = model.validation_step(*args)
 
         return output
