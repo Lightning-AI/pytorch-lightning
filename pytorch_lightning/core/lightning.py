@@ -1168,15 +1168,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 def __init__(self, hparams):
                     self.learning_rate = hparams.learning_rate
 
-            # --------------
-            # Case 2
-            # when using a dict
-            model = MyModel({'learning_rate': 0.1})
-
-            class MyModel(LightningModule):
-                def __init__(self, hparams):
-                    self.learning_rate = hparams['learning_rate']
-
         Args:
             checkpoint_path (str): Path to checkpoint.
             map_location (dict | str | torch.device | function):
