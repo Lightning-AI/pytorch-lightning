@@ -172,9 +172,6 @@ class TrainerIOMixin(ABC):
         if not did_restore_hpc_weights:
             if self.resume_from_checkpoint is not None:
                 self.restore(self.resume_from_checkpoint, on_gpu=self.on_gpu)
-            else:
-                # restore weights if same exp version
-                self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
@@ -189,42 +186,6 @@ class TrainerIOMixin(ABC):
         # clear cache after restore
         if self.on_gpu:
             torch.cuda.empty_cache()
-
-    def restore_state_if_checkpoint_exists(self, model):
-        did_restore = False
-
-        # do nothing if there's not dir or callback
-        no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
-        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return did_restore
-
-        # restore trainer state and model if there is a weight for this experiment
-        last_epoch = -1
-        last_ckpt_name = None
-
-        # find last epoch
-        checkpoints = os.listdir(self.checkpoint_callback.filepath)
-        for name in checkpoints:
-            # ignore hpc ckpts
-            if 'hpc_' in name:
-                continue
-
-            if '.ckpt' in name:
-                epoch = name.split('epoch_')[1]
-                epoch = int(re.sub('[^0-9]', '', epoch))
-
-                if epoch > last_epoch:
-                    last_epoch = epoch
-                    last_ckpt_name = name
-
-        # restore last checkpoint
-        if last_ckpt_name is not None:
-            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
-            self.restore(last_ckpt_path, self.on_gpu)
-            log.info(f'Model and Trainer restored from checkpoint: {last_ckpt_path}')
-            did_restore = True
-
-        return did_restore
 
     # --------------------
     # HPC SIGNAL HANDLING
