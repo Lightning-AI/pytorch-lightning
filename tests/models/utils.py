@@ -6,6 +6,11 @@ from argparse import Namespace
 import numpy as np
 import torch
 
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
+from tests.models import LightningTestModel
+
 # the PL examples use torchvision, which is not installed in the test environment
 # we redirect the torchvision imports in the examples to our custom MNIST
 sys.modules['torchvision'] = __import__(
@@ -16,12 +21,8 @@ sys.modules['torchvision.transforms'] = __import__(
 sys.modules['torchvision.datasets'] = __import__(
     'tests.mocks.torchvision.mnist', fromlist=['mnist']
 )
-from pl_examples import LightningTemplateModel
+from pl_examples import LightningTemplateModel  # noqa
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
-from tests.models import LightningTestModel
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
