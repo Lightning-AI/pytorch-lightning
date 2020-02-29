@@ -7,5 +7,4 @@ pytest-flake8
 flake8
 check-manifest
 twine==1.13.0
-pillow<7.0.0
 -r ../requirements-extra.txt
