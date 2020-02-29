@@ -318,7 +318,6 @@ class TrainerEvaluationLoopMixin(ABC):
             warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
-        self.mode = TrainerMode.TRAINING
         model.train()
 
         # enable gradients to save memory
@@ -328,6 +327,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self):
         # when testing make sure user defined a test step
+
         if self.mode is TrainerMode.TESTING and not self.is_overriden('test_step'):
             m = "You called `.test()` without defining model's `.test_step()`." \
                 " Please define and try again"
