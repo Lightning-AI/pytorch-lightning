@@ -318,6 +318,7 @@ class TrainerEvaluationLoopMixin(ABC):
             warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
+        self.mode = TrainerMode.TRAINING
         model.train()
 
         # enable gradients to save memory

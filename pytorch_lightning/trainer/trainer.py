@@ -804,7 +804,9 @@ class Trainer(
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
+            self.mode = TrainerMode.VALIDATING
             self.reset_val_dataloader(ref_model)
+
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
                         total=self.num_sanity_val_steps * len(self.val_dataloaders),
