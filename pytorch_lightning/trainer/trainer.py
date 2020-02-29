@@ -868,7 +868,7 @@ class Trainer(
         else:
             self.run_evaluation()
 
-    def test(self, model=None):
+    def test(self, model: Optional[LightningModule] = None):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
