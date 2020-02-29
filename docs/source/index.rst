@@ -54,6 +54,7 @@ PyTorch-Lightning Documentation
    fast_training
    hooks
    multi_gpu
+   weights_loading
    single_gpu
    sequences
    training_tricks
