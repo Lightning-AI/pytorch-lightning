@@ -8,9 +8,14 @@ import torch
 
 # the PL examples use torchvision, which is not installed in the test environment
 # we redirect the torchvision imports in the examples to our custom MNIST
-sys.modules['torchvision'] = __import__('tests.mocks.torchvision', fromlist=['torchvision'])
-sys.modules['torchvision.transforms'] = __import__('tests.mocks.torchvision.transforms', fromlist=['transforms'])
-sys.modules['torchvision.datasets'] = __import__('tests.mocks.torchvision.mnist', fromlist=['mnist'])
+sys.modules['torchvision'] = __import__(
+    'tests.mocks.torchvision', fromlist=['torchvision'])
+sys.modules['torchvision.transforms'] = __import__(
+    'tests.mocks.torchvision.transforms', fromlist=['transforms']
+)
+sys.modules['torchvision.datasets'] = __import__(
+    'tests.mocks.torchvision.mnist', fromlist=['mnist']
+)
 from pl_examples import LightningTemplateModel
 
 from pytorch_lightning import Trainer

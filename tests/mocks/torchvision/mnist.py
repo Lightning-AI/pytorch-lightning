@@ -126,7 +126,9 @@ class MNIST(Dataset):
         # download files
         for url, md5 in self.resources:
             filename = url.rpartition('/')[2]
-            download_and_extract_archive(url, download_root=self.raw_folder, filename=filename, md5=md5)
+            download_and_extract_archive(
+                url, download_root=self.raw_folder, filename=filename, md5=md5
+            )
 
         # process and save as torch files
         print('Processing...')
