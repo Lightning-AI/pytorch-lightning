@@ -421,7 +421,8 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.mode is TrainerMode.TESTING and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif self.mode is TrainerMode.VALIDATING and len(self.val_dataloaders) > 1:
+        elif self.mode is TrainerMode.VALIDATING or self.mode is TrainerMode.TRAINING \
+                and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
