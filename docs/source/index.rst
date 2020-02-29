@@ -45,7 +45,6 @@ PyTorch-Lightning Documentation
    :caption: Common Use Cases
 
    apex
-   checkpointing
    slurm
    debugging
    experiment_logging

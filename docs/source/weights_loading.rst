@@ -38,6 +38,27 @@ Or disable it by passing
 
         trainer = Trainer(checkpoint_callback=False)
 
+
+The Lightning checkpoint also saves the hparams (hyperparams) passed into the LightningModule init.
+
+.. note:: hparams is a `Namespace <https://docs.python.org/2/library/argparse.html#argparse.Namespace>`_.
+
+.. code-block:: python
+   :emphasize-lines: 8
+
+   from argparse import Namespace
+
+   # usually these come from command line args
+   args = Namespace(**{'learning_rate':0.001})
+
+   # define you module to have hparams as the first arg
+   # this means your checkpoint will have everything that went into making
+   # this model (in this case, learning rate)
+   class MyLightningModule(pl.LightningModule):
+
+       def __init__(self, hparams, ...):
+           self.hparams = hparams
+
 Checkpoint Loading
 ------------------
 
