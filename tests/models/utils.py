@@ -5,12 +5,11 @@ from argparse import Namespace
 import numpy as np
 import torch
 
+from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
 from tests.models import LightningTestModel
-from pl_examples import LightningTemplateModel 
-
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
