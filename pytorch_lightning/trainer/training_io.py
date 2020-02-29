@@ -150,11 +150,11 @@ class TrainerIOMixin(ABC):
     # --------------------
     def restore_weights(self, model):
         """
-        To restore weights we have two cases.
-        First, attempt to restore hpc weights. If successful, don't restore
-        other weights.
+        We attempt to restore weights in this order:
+        1. HPC weights.
+        2. if no HPC weights restore checkpoint_path weights
+        3. otherwise don't restore weights
 
-        Otherwise, try to restore actual weights
         :param model:
         :return:
         """
