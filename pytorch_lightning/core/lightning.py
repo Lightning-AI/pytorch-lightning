@@ -327,7 +327,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 # implement your own
                 out = self.forward(x)
-                loss = self.loss(out, y)
+                val_loss = self.loss(out, y)
 
                 # log 6 example images
                 # or generated text... or whatever
