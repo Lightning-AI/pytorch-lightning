@@ -7,8 +7,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from tests.mocks.torchvision.mnist import MNIST
-from tests.mocks.torchvision import transforms
+from tests.models.mnist import MNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -21,13 +20,11 @@ from pytorch_lightning.core.lightning import LightningModule
 
 class TestingMNIST(MNIST):
 
-    def __init__(self, root, train=True, transform=None, target_transform=None,
-                 download=False, num_samples=8000):
+    def __init__(self, root, train=True, normalize=None, download=False, num_samples=8000):
         super().__init__(
             root,
             train=train,
-            transform=transform,
-            target_transform=target_transform,
+            normalize=normalize,
             download=download
         )
         # take just a subset of MNIST dataset
@@ -149,17 +146,13 @@ class TestModelBase(LightningModule):
         return optimizer
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         _ = TestingMNIST(root=self.hparams.data_root, train=True,
-                         transform=transform, download=True, num_samples=2000)
+                         normalize=(0.5, 1.0), download=True, num_samples=2000)
 
     def _dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=False, num_samples=2000)
+                               normalize=(0.5, 1.0), download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size
