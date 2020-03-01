@@ -84,6 +84,11 @@ You shall be able to test your work locally which may speed up your work since i
 pip install -r requirements.txt
 pip install -r tests/requirements.txt
 ``` 
+You can run the full test-case in your terminal via prepared bash script: 
+```bash
+bash .run_local_tests.sh
+```
+Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
 ### Pull Request
 
