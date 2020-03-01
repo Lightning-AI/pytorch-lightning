@@ -11,7 +11,6 @@ references:
       name: Install Dependences
       command: |
         pip install "$TORCH_VERSION" --user
-        # this is temporal fix til test-tube is not merged and released
         pip install -r requirements.txt --user
         sudo pip install pytest pytest-cov pytest-flake8
         pip install -r ./tests/requirements.txt --user
@@ -131,6 +130,8 @@ jobs:
   Examples:
     docker:
       - image: circleci/python:3.7
+    environment:
+        - TORCH_VERSION: "torch"
     steps:
       - checkout
       - *install_deps
