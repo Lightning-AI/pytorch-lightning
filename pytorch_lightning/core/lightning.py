@@ -1121,9 +1121,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path (str): Path to checkpoint.
-            tags_csv (str): Optional path to a .csv file with two columns (key, value) as in this
+            tags_csv (str): Optional path to a .csv file with two columns (key, value) as in this example::
 
-                Example::
                     key,value
                     drop_prob,0.2
                     batch_size,32
