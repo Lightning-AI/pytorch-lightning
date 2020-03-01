@@ -63,7 +63,7 @@ class MNIST(Dataset):
 
     @property
     def processed_folder(self):
-        return os.path.join(self.root, 'mnist', 'processed')
+        return os.path.join(self.root, 'MNIST', 'processed')
 
     def _check_exists(self):
         train_file = os.path.join(self.processed_folder, self.training_file)
