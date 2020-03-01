@@ -8,7 +8,6 @@ Every research project requires the same core ingredients:
 2. Train/val/test data
 3. Optimizer(s)
 4. Training step computations
-5. Validation step computations
 
 PyTorch Lightning does nothing more than organize and structure pure PyTorch code.
 
@@ -24,6 +23,7 @@ a 3-layer neural network.
 .. code-block:: default
 
     import torch
+    from torch.nn import functional as F
     from torch import nn
     import pytorch_lightning as pl
 
@@ -127,7 +127,8 @@ In PyTorch we do it as follows:
 
 .. code-block:: python
 
-    optimizer = Adam(self.parameters(), lr=1e-3)
+    from torch.optim import Adam
+    optimizer = Adam(CoolMNIST().parameters(), lr=1e-3)
 
 
 In Lightning we do the same but organize it under the configure_optimizers method.
@@ -140,7 +141,136 @@ If you don't define this, Lightning will automatically use `Adam(self.parameters
       def configure_optimizers(self):
         return Adam(self.parameters(), lr=1e-3)
 
+Training step
+-------------
 
+The training step is what happens inside the training loop.
+
+.. code-block:: python
+
+    for epoch in epochs:
+        for batch in data:
+            # TRAINING STEP
+            # ....
+            # TRAINING STEP
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+In the case of MNIST we do the following
+
+.. code-block:: python
+
+    for epoch in epochs:
+        for batch in data:
+            # TRAINING STEP START
+            x, y = batch
+            logits = model(x)
+            loss = F.nll_loss(logits, x)
+            # TRAINING STEP END
+
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+In Lightning, everything that is in the training step gets organized under the `training_step` function
+in the LightningModule
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, x)
+        return {'loss': loss}
+        # return loss (also works)
+
+Again, this is the same PyTorch code except that it has been organized by the LightningModule.
+This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
+
+Training
+--------
+So far we defined 4 key ingredients in pure PyTorch but organized the code inside the LightningModule.
+
+1. Model.
+2. Training data.
+3. Optimizer.
+4. What happens in the training loop.
+
+For clarity, we'll recall that the full LightningModule now looks like this.
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+      def __init__(self):
+        super(CoolMNIST, self).__init__()
+        self.layer_1 = torch.nn.Linear(28 * 28, 128)
+        self.layer_2 = torch.nn.Linear(128, 256)
+        self.layer_3 = torch.nn.Linear(256, 10)
+
+      def forward(self, x):
+        batch_size, channels, width, height = x.size()
+        x = x.view(batch_size, -1)
+        x = self.layer_1(x)
+        x = torch.relu(x)
+        x = self.layer_2(x)
+        x = torch.relu(x)
+        x = self.layer_3(x)
+        x = torch.log_softmax(x, dim=1)
+        return x
+
+      def train_dataloader(self):
+        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        return DataLoader(mnist_train, batch_size=64)
+
+      def configure_optimizers(self):
+        return Adam(self.parameters(), lr=1e-3)
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, x)
+        return {'loss': loss}
+
+Again, this is the same PyTorch code, except that it's organized
+by the LightningModule. This organization now lets us train this model
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = CoolMNIST()
+    trainer = Trainer()
+    trainer.fit(model)
+
+But the beauty is all the magic you can do with the trainer flags. For instance, run this model on a TPU
+without changing the code (make sure to change to the TPU runtime on Colab.
+
+.. code-block:: python
+
+    model = CoolMNIST()
+    trainer = Trainer(num_tpu_cores=8)
+    trainer.fit(model)
+
+Or you can also train on multiple GPUs
+
+.. code-block:: python
+
+    model = CoolMNIST()
+    trainer = Trainer(gpus=1)
+    trainer.fit(model)
+
+Or multiple nodes
+
+.. code-block:: python
+
+    # (32 GPUs)
+    model = CoolMNIST()
+    trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+    trainer.fit(model)
 
 
 
