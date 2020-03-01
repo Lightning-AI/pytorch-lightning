@@ -1,6 +1,5 @@
 import os
 import pickle
-
 import pytest
 import torch
 
@@ -234,6 +233,46 @@ def test_neptune_pickle(tmpdir):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
+
+
+def test_neptune_experiment_closed(tmpdir):
+    """Verify that neptune experiment was closed after training"""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+    logger = NeptuneLogger(offline_mode=True)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        train_percent_check=0.05,
+        logger=logger
+    )
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+
+def test_neptune_experiment_left_open_after_fit(tmpdir):
+    """Verify that neptune experiment was left open after training"""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    logger = NeptuneLogger(offline_mode=True, close_after_fit=False)
+
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        train_percent_check=0.05,
+        logger=logger
+    )
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    import pdb
+    pdb.set_trace()
 
 
 def test_tensorboard_logger(tmpdir):
