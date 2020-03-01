@@ -377,8 +377,10 @@ def test_model_saving_loading(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path)
+    model_2 = LightningTestModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        tags_csv=tags_path
+    )
     model_2.eval()
 
     # make prediction
