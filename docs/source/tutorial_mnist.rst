@@ -233,7 +233,10 @@ For clarity, we'll recall that the full LightningModule now looks like this.
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, x)
-        return {'loss': loss}
+
+        # add logging
+        logs = {'loss': loss}
+        return {'loss': loss, 'log': logs}
 
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
@@ -245,6 +248,28 @@ by the LightningModule. This organization now lets us train this model
     model = CoolMNIST()
     trainer = Trainer()
     trainer.fit(model)
+
+You should see the following weights summary and progress bar
+
+.. figure:: /img/mnist/mnist_cpu_bar.png
+   :alt: mnist CPU bar
+
+When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
+But you could have also logged by calling:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        # ...
+        loss = ...
+        self.logger.summary.scalar('loss', loss)
+
+Which will generate automatic tensorboard logs.
+
+.. figure:: /img/mnist/mnist_tb.png
+   :alt: mnist CPU bar
+
+
 
 But the beauty is all the magic you can do with the trainer flags. For instance, run this model on a TPU
 without changing the code (make sure to change to the TPU runtime on Colab.
@@ -286,10 +311,6 @@ Now we can train the LightningModule without doing anything else!
     trainer = pl.Trainer()
     trainer.fit()
 
-You should see the following weights summary and progress bar
-
-.. figure:: /img/mnist_cpu_bar.png
-   :alt: mnist CPU bar
 
 Neural networks can be constructed using the ``torch.nn`` package.
 
