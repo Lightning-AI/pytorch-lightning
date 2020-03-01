@@ -24,14 +24,14 @@ references:
        py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 15m
 
-   examples: &examples
-     run:
-       name: PL Examples
-       command: |
-         pip install -r ./pl_examples/requirements.txt --user
-         python --version ; pip --version ; pip list
-         py.test pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-       no_output_timeout: 15m
+  examples: &examples
+   run:
+     name: PL Examples
+     command: |
+       pip install -r ./pl_examples/requirements.txt --user
+       python --version ; pip --version ; pip list
+       py.test pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+     no_output_timeout: 15m
 
   install_pkg: &install_pkg
     run:
