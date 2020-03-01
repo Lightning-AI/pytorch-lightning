@@ -286,7 +286,10 @@ Now we can train the LightningModule without doing anything else!
     trainer = pl.Trainer()
     trainer.fit()
 
+You should see the following weights summary and progress bar
 
+.. figure:: /img/mnist_cpu_bar.png
+   :alt: mnist CPU bar
 
 Neural networks can be constructed using the ``torch.nn`` package.
 
