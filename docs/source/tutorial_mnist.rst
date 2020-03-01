@@ -279,7 +279,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 
 
 .. figure:: /img/mnist/mnist_gpu.png
-:alt: mnist GPU bar
+    :alt: mnist GPU bar
 
 Or you can also train on multiple GPUs (not on colab though)
 
@@ -303,10 +303,10 @@ And even TPUs. Let's do it on the colab!
 First, change the runtime to TPU (and reinstall lightning).
 
 .. figure:: /img/mnist/runtime_tpu.png
-:alt: mnist GPU bar
+    :alt: mnist GPU bar
 
 .. figure:: /img/mnist/restart_runtime.png
-:alt: mnist GPU bar
+    :alt: mnist GPU bar
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
@@ -386,12 +386,12 @@ Now we can train the LightningModule on a TPU wihout doing anything else!
 You'll now see the TPU cores booting up.
 
 .. figure:: /img/mnist/tpu_start.png
-:alt: TPU start
+    :alt: TPU start
 
 Notice the epoch is MUCH faster!
 
 .. figure:: /img/mnist/tpu_fast.png
-:alt: TPU speed
+    :alt: TPU speed
 
 
 Neural networks can be constructed using the ``torch.nn`` package.
