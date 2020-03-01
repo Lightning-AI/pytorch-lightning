@@ -61,7 +61,7 @@ def test_no_val_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_epochs=1,
@@ -101,7 +101,7 @@ def test_no_val_end_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_epochs=1,
@@ -212,7 +212,7 @@ def test_loading_meta_tags(tmpdir):
     hparams = tutils.get_hparams()
 
     # save tags
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -474,7 +474,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
     tutils.reset_seed()
-    model, _ = tutils.get_model()
+    model, _ = tutils.get_default_model()
 
     # define train epoch to 5% of data
     train_percent = 0.05
@@ -530,7 +530,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer_options.update(dict(
         default_save_path=tmpdir,
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
-        val_check_interval=20,
+        val_check_interval=2,
         min_epochs=1,
         max_epochs=10
     ))

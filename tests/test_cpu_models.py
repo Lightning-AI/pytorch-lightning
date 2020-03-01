@@ -29,12 +29,12 @@ def test_early_stopping_cpu_model(tmpdir):
         overfit_pct=0.20,
         track_grad_norm=2,
         show_progress_bar=True,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1,
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -55,7 +55,7 @@ def test_lbfgs_cpu_model(tmpdir):
         val_percent_check=0.2,
     )
 
-    model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
+    model, hparams = tutils.get_default_model(lbfgs=True)
     tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
@@ -73,7 +73,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         val_percent_check=0.01,
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test_no_loggers(trainer_options, model)
 
     # test freeze on cpu
@@ -89,7 +89,7 @@ def test_running_test_after_fitting(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -128,7 +128,7 @@ def test_running_test_without_val(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -230,13 +230,13 @@ def test_cpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
@@ -251,14 +251,14 @@ def test_all_features_cpu_model(tmpdir):
         overfit_pct=0.20,
         track_grad_norm=2,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -343,7 +343,7 @@ def test_single_gpu_model(tmpdir):
         warnings.warn('test_single_gpu_model cannot run.'
                       ' Rerun on a GPU node to run this test')
         return
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     trainer_options = dict(
         default_save_path=tmpdir,

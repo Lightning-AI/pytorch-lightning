@@ -5,7 +5,7 @@ from argparse import Namespace
 import numpy as np
 import torch
 
-from pl_examples import LightningTemplateModel
+# from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
@@ -21,7 +21,7 @@ ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
-    save_dir = trainer_options['default_save_path']
+    # save_dir = trainer_options['default_save_path']
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -53,7 +53,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     save_dir = trainer_options['default_save_path']
 
     # logger file to get meta
-    logger = get_test_tube_logger(save_dir, False)
+    logger = get_default_testtube_logger(save_dir, False)
 
     # logger file to get weights
     checkpoint = init_checkpoint_callback(logger)
@@ -111,22 +111,19 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
     return hparams
 
 
-def get_model(use_test_model=False, lbfgs=False):
+def get_default_model(lbfgs=False):
     # set up model with these hyperparams
     hparams = get_hparams()
     if lbfgs:
         setattr(hparams, 'optimizer_name', 'lbfgs')
         setattr(hparams, 'learning_rate', 0.002)
 
-    if use_test_model:
-        model = LightningTestModel(hparams)
-    else:
-        model = LightningTemplateModel(hparams)
+    model = LightningTestModel(hparams)
 
     return model, hparams
 
 
-def get_test_tube_logger(save_dir, debug=True, version=None):
+def get_default_testtube_logger(save_dir, debug=True, version=None):
     # set up logger object without actually saving logs
     logger = TestTubeLogger(save_dir, name='lightning_logs', debug=debug, version=version)
     return logger
@@ -150,7 +147,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model(exp, root_weights_dir, module_class=LightningTemplateModel, path_expt=None):
+def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt=None):
     # load trained model
     path_expt_dir = get_data_path(exp, path_dir=path_expt)
     tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
