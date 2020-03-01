@@ -386,12 +386,12 @@ Now we can train the LightningModule on a TPU wihout doing anything else!
 You'll now see the TPU cores booting up.
 
 .. figure:: /img/mnist/tpu_start.png
-:alt: mnist GPU bar
+:alt: TPU start
 
 Notice the epoch is MUCH faster!
 
 .. figure:: /img/mnist/tpu_fast.png
-:alt: mnist GPU bar
+:alt: TPU speed
 
 
 Neural networks can be constructed using the ``torch.nn`` package.
