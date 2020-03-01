@@ -1,4 +1,5 @@
 import os
+import logging
 import urllib.request
 
 import torch
@@ -78,8 +79,7 @@ class MNIST(Dataset):
         os.makedirs(self.processed_folder, exist_ok=True)
 
         for url in self.resources:
-            # TODO: use logging
-            print('Downloading ' + url)
+            logging.info(f'Downloading {url}')
             fpath = os.path.join(self.processed_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
 
