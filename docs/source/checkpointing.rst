@@ -9,7 +9,7 @@ To save a LightningModule, provide a :meth:`pytorch_lightning.callbacks.ModelChe
 
 The Lightning checkpoint also saves the hparams (hyperparams) passed into the LightningModule init.
 
-.. note:: hparams is a `Namespace <https://docs.python.org/2/library/argparse.html#argparse.Namespace>`_ or dictionary.
+.. note:: hparams is a `Namespace <https://docs.python.org/2/library/argparse.html#argparse.Namespace>`_.
 
 .. code-block:: python
    :emphasize-lines: 8
