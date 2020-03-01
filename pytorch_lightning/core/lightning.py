@@ -136,7 +136,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    @abstractmethod
     def training_step(self, *args, **kwargs):
         r"""return loss, dict with metrics for tqdm
 
@@ -718,7 +717,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    @abstractmethod
     def configure_optimizers(self):
         r"""
         This is where you choose what optimizers and learning-rate schedulers to use in your optimization.

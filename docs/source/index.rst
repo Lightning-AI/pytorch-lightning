@@ -38,6 +38,7 @@ PyTorch-Lightning Documentation
    :caption: Tutorials
 
    tutorials
+   tutorial_mnist
 
 .. toctree::
    :maxdepth: 1
