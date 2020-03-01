@@ -90,6 +90,10 @@ bash .run_local_tests.sh
 ```
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
+For convenience, you can use also your own CircleCI building which will be triggered witch each your commit.
+ This is useful if you do not border yourself with testing against all required dependencies version.
+ To do you, just login to [CircleCI](https://app.circleci.com/) and enable your forked project in dashboard, all rest is ready...
+
 ### Pull Request
 
 We are welcoming any useful contribution. For the convinece we draw a recommended workflow:
