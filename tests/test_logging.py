@@ -2,6 +2,7 @@ import os
 import pickle
 import pytest
 import torch
+from unittest.mock import MagicMock
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
@@ -235,44 +236,32 @@ def test_neptune_pickle(tmpdir):
     trainer2.logger.log_metrics({"acc": 1.0})
 
 
-def test_neptune_experiment_closed(tmpdir):
+def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-    logger = NeptuneLogger(offline_mode=True)
 
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger
-    )
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    def _run_training(logger):
+        logger._experiment = MagicMock()
 
+        trainer_options = dict(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            train_percent_check=0.05,
+            logger=logger
+        )
+        trainer = Trainer(**trainer_options)
+        trainer.fit(model)
+        return logger
 
-def test_neptune_experiment_left_open_after_fit(tmpdir):
-    """Verify that neptune experiment was left open after training"""
-    tutils.reset_seed()
+    logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))
+    assert logger_close_after_fit._experiment.stop.call_count == 1
 
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
+    logger_open_after_fit = _run_training(NeptuneLogger(offline_mode=True, close_after_fit=False))
+    assert logger_open_after_fit._experiment.stop.call_count == 0
 
-    logger = NeptuneLogger(offline_mode=True, close_after_fit=False)
-
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger
-    )
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    import pdb
-    pdb.set_trace()
 
 
 def test_tensorboard_logger(tmpdir):

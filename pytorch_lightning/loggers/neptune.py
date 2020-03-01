@@ -42,10 +42,11 @@ class NeptuneLogger(LightningLoggerBase):
             # ONLINE MODE
             from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+            # We are using an api_key for the anonymous user "neptuner" but you can use your own.
 
             neptune_logger = NeptuneLogger(
-                api_key=os.environ["NEPTUNE_API_TOKEN"],
-                project_name="USER_NAME/PROJECT_NAME",
+                api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ=="
+                project_name="shared/pytorch-lightning-integration",
                 experiment_name="default", # Optional,
                 params={"max_epochs": 10}, # Optional,
                 tags=["pytorch-lightning","mlp"] # Optional,
@@ -92,6 +93,10 @@ class NeptuneLogger(LightningLoggerBase):
                 close_after_fit=False,
                 ...)
             trainer = Trainer(logger=neptune_logger)
+            trainer.fit()
+
+            # Log test metrics
+            trainer.test(model)
 
             # Log additional metrics
             from sklearn.metrics import accuracy_score
@@ -125,6 +130,7 @@ class NeptuneLogger(LightningLoggerBase):
                Usually used for debug purposes.
             close_after_fit (bool): Optional default True. If close_after_fit=False the experiment
                will not be closed after training and additional metrics, images or artifacts can be logged.
+               Also, remember to close the experiment explicitly by running neptune_logger.experiment.stop().
             experiment_name (str|None): Optional. Editable name of the experiment.
                Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
             upload_source_files (list|None): Optional. List of source files to be uploaded.
@@ -153,25 +159,23 @@ class NeptuneLogger(LightningLoggerBase):
         self.params = params
         self.properties = properties
         self.tags = tags
-        self._project = None
         self._experiment = None
         self._kwargs = kwargs
 
         if offline_mode:
             self.mode = "offline"
-            self._project = neptune.init(project_qualified_name='dry-run/project',
-                                         backend=neptune.OfflineBackend())
+            neptune.init(project_qualified_name='dry-run/project',
+                         backend=neptune.OfflineBackend())
         else:
             self.mode = "online"
-            self._project = neptune.init(api_token=self.api_key,
-                                         project_qualified_name=self.project_name)
+            neptune.init(api_token=self.api_key,
+                         project_qualified_name=self.project_name)
 
         logger.info(f"NeptuneLogger was initialized in {self.mode} mode")
 
     def __getstate__(self):
         state = self.__dict__.copy()
         # cannot be pickled
-        state['_project'] = None
         state['_experiment'] = None
         return state
 
@@ -188,7 +192,7 @@ class NeptuneLogger(LightningLoggerBase):
         """
 
         if self._experiment is None:
-            self._experiment = self._project.create_experiment(
+            self._experiment = neptune.create_experiment(
                 name=self.experiment_name,
                 params=self.params,
                 properties=self.properties,
