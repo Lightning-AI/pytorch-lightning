@@ -120,6 +120,34 @@ Notice the code is exactly the same, except now the training dataloading has bee
 under the `train_dataloader` method. This is great because if you run into a project that uses Lightning and want
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
 
+Optimizer
+---------
+Next we choose what optimizer to use for training our system.
+In PyTorch we do it as follows:
+
+.. code-block:: python
+
+    optimizer = Adam(self.parameters(), lr=1e-3)
+
+
+In Lightning we do the same but organize it under the configure_optimizers method.
+If you don't define this, Lightning will automatically use `Adam(self.parameters(), lr=1e-3)`.
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+      def configure_optimizers(self):
+        return Adam(self.parameters(), lr=1e-3)
+
+
+
+
+
+
+
+
+
 Now we can train the LightningModule without doing anything else!
 
 .. code-block:: python
