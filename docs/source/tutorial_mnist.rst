@@ -166,7 +166,7 @@ In the case of MNIST we do the following
             # TRAINING STEP START
             x, y = batch
             logits = model(x)
-            loss = F.nll_loss(logits, x)
+            loss = F.nll_loss(logits, y)
             # TRAINING STEP END
 
             loss.backward()
@@ -183,7 +183,7 @@ in the LightningModule
       def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        loss = F.nll_loss(logits, x)
+        loss = F.nll_loss(logits, y)
         return {'loss': loss}
         # return loss (also works)
 
