@@ -23,7 +23,7 @@ jobs:
         python-version: [3.6, 3.7]
         requires: ['minimal', 'latest']
 
-    # https://stackoverflow.com/a/59076067/4521646
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
@@ -31,6 +31,12 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+
+    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
+    - name: Setup macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
