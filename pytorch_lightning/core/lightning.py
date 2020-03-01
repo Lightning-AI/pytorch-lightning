@@ -1121,7 +1121,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path (str): Path to checkpoint.
-            tags_csv (str): Optional path to a .csv file with two columns (key, value) as in this example::
+            tags_csv (str): Optional path to a .csv file with two columns (key, value)
+                as in this example::
 
                     key,value
                     drop_prob,0.2
@@ -1152,10 +1153,16 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             # or load weights mapping all weights from GPU 1 to GPU 0 ...
             map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt', map_location=map_location)
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
 
             # or load weights and hyperparameters from separate files.
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt', tags_csv='/path/to/hparams_file.csv')
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                tags_csv='/path/to/hparams_file.csv'
+            )
 
             # predict
             pretrained_model.eval()
