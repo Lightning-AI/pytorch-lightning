@@ -1129,9 +1129,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 You most likely won't need this since Lightning will always save the hyperparameters
                 to the checkpoint.
-                However, if your checkpoint weights don't have the hyperparameters saved, use this method to pass
-                in a .csv file with the hparams you'd like to use. These will be converted into a argparse.Namespace
-                and passed into your LightningModule for use.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a .csv file with the hparams you'd like to use.
+                These will be converted into a argparse.Namespace and passed into your
+                LightningModule for use.
 
             map_location (dict | str | torch.device | function):
                 If your checkpoint saved a GPU model and you now load on CPUs
