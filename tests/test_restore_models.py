@@ -126,6 +126,8 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    trainer.test()
+    import pdb; pdb.set_trace()
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
