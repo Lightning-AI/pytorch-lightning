@@ -1100,7 +1100,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
-    def load_from_checkpoint(cls, checkpoint_path, tags_csv=None, map_location=None):
+    def load_from_checkpoint(cls, checkpoint_path, map_location=None, tags_csv=None):
         r"""
 
         Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
@@ -1123,6 +1123,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path (str): Path to checkpoint.
+            map_location (dict | str | torch.device | function):
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in
+                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
             tags_csv (str): Optional path to a .csv file with two columns (key, value)
                 as in this example::
 
@@ -1136,12 +1141,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 use this method to pass in a .csv file with the hparams you'd like to use.
                 These will be converted into a argparse.Namespace and passed into your
                 LightningModule for use.
-
-            map_location (dict | str | torch.device | function):
-                If your checkpoint saved a GPU model and you now load on CPUs
-                or a different number of GPUs, use this to map to the new setup.
-                The behaviour is the same as in
-                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
 
         Return:
             LightningModule with loaded weights and hyperparameters (if available).
