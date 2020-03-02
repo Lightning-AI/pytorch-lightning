@@ -1,10 +1,59 @@
-MNIST
-===============
-Although Lightning can support any kind of research, use this as a template
-to understand the basic use case with a simple MNIST classifier.
+Introduction Guide
+==================
+PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
+you've organized it into a LightningModule, it automates most of the training for you.
+
+.. figure:: /img/mnist/pt_to_pl.jpg
+   :alt: mnist CPU bar
+
+
+
+This guide walks through the major parts of the library to help you understand
+how it compares to pure PyTorch and how Lightning works.
+
+Although Lightning can support any kind of research, We'll explore PyTorch Lightning by building
+a Lightning model for MNIST classification, and generation via:
+
+1. Simple classifier.
+2. Variational Autoencoder
+3. Generative Adversarial Network
+
+Lightning Motivation
+--------------------
+The code for deep learning systems can be factored into three types:
+
+1. Core research code.
+2. Engineering code.
+3. Non-essential research code.
+
+Research code
+^^^^^^^^^^^^^
+In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
+
+In Lightning, this code is abstracted out by the `LightningModule`.
+
+Engineering code
+^^^^^^^^^^^^^^^^
+
+The Engineering code is all the code related to training this system. Things such as early stopping, distribution
+over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
+
+In Lightnin, this code is abstracted out by the `Trainer`.
+
+Non-essential code
+^^^^^^^^^^^^^^^^^^
+This is code that helps the research but isn't relevant to the research code. Some examples might be:
+1. Inspect gradients
+2. Log to tensorboard.
+
+In Lightning this code is abstracted out by `Callbacks`.
+
+
+Elements of a research project
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Every research project requires the same core ingredients:
-1. A model.
+1. A model
 2. Train/val/test data
 3. Optimizer(s)
 4. Training step computations
@@ -393,419 +442,73 @@ Notice the epoch is MUCH faster!
 .. figure:: /img/mnist/tpu_fast.png
     :alt: TPU speed
 
-
-Neural networks can be constructed using the ``torch.nn`` package.
-
-Now that you had a glimpse of ``autograd``, ``nn`` depends on
-``autograd`` to define models and differentiate them.
-An ``nn.Module`` contains layers, and a method ``forward(input)``\ that
-returns the ``output``.
-
-For example, look at this network that classifies digit images:
-
-.. figure:: /_static/img/mnist.png
-   :alt: convnet
-
-   convnet
-
-It is a simple feed-forward network. It takes the input, feeds it
-through several layers one after the other, and then finally gives the
-output.
-
-A typical training procedure for a neural network is as follows:
-
-- Define the neural network that has some learnable parameters (or
-  weights)
-- Iterate over a dataset of inputs
-- Process input through the network
-- Compute the loss (how far is the output from being correct)
-- Propagate gradients back into the network’s parameters
-- Update the weights of the network, typically using a simple update rule:
-  ``weight = weight - learning_rate * gradient``
-
-Define the network
-------------------
-
-Let’s define this network:
-
-
-.. code-block:: default
-
-    import torch
-    import torch.nn as nn
-    import torch.nn.functional as F
-
-
-    class Net(nn.Module):
-
-        def __init__(self):
-            super(Net, self).__init__()
-            # 1 input image channel, 6 output channels, 3x3 square convolution
-            # kernel
-            self.conv1 = nn.Conv2d(1, 6, 3)
-            self.conv2 = nn.Conv2d(6, 16, 3)
-            # an affine operation: y = Wx + b
-            self.fc1 = nn.Linear(16 * 6 * 6, 120)  # 6*6 from image dimension
-            self.fc2 = nn.Linear(120, 84)
-            self.fc3 = nn.Linear(84, 10)
-
-        def forward(self, x):
-            # Max pooling over a (2, 2) window
-            x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
-            # If the size is a square you can only specify a single number
-            x = F.max_pool2d(F.relu(self.conv2(x)), 2)
-            x = x.view(-1, self.num_flat_features(x))
-            x = F.relu(self.fc1(x))
-            x = F.relu(self.fc2(x))
-            x = self.fc3(x)
-            return x
-
-        def num_flat_features(self, x):
-            size = x.size()[1:]  # all dimensions except the batch dimension
-            num_features = 1
-            for s in size:
-                num_features *= s
-            return num_features
-
-
-    net = Net()
-    print(net)
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    Net(
-      (conv1): Conv2d(1, 6, kernel_size=(3, 3), stride=(1, 1))
-      (conv2): Conv2d(6, 16, kernel_size=(3, 3), stride=(1, 1))
-      (fc1): Linear(in_features=576, out_features=120, bias=True)
-      (fc2): Linear(in_features=120, out_features=84, bias=True)
-      (fc3): Linear(in_features=84, out_features=10, bias=True)
-    )
-
-
-You just have to define the ``forward`` function, and the ``backward``
-function (where gradients are computed) is automatically defined for you
-using ``autograd``.
-You can use any of the Tensor operations in the ``forward`` function.
-
-The learnable parameters of a model are returned by ``net.parameters()``
-
-
-.. code-block:: default
-
-
-    params = list(net.parameters())
-    print(len(params))
-    print(params[0].size())  # conv1's .weight
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    10
-    torch.Size([6, 1, 3, 3])
-
-
-Let's try a random 32x32 input.
-Note: expected input size of this net (LeNet) is 32x32. To use this net on
-the MNIST dataset, please resize the images from the dataset to 32x32.
-
-
-.. code-block:: default
-
-
-    input = torch.randn(1, 1, 32, 32)
-    out = net(input)
-    print(out)
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    tensor([[ 0.0127, -0.0025, -0.0628, -0.1181, -0.0699, -0.1076,  0.0286,  0.0172,
-             -0.0834,  0.1178]], grad_fn=<AddmmBackward>)
-
-
-Zero the gradient buffers of all parameters and backprops with random
-gradients:
-
-
-.. code-block:: default
-
-    net.zero_grad()
-    out.backward(torch.randn(1, 10))
-
-
-
-
-
-
-
-.. note::
-
-    ``torch.nn`` only supports mini-batches. The entire ``torch.nn``
-    package only supports inputs that are a mini-batch of samples, and not
-    a single sample.
-
-    For example, ``nn.Conv2d`` will take in a 4D Tensor of
-    ``nSamples x nChannels x Height x Width``.
-
-    If you have a single sample, just use ``input.unsqueeze(0)`` to add
-    a fake batch dimension.
-
-Before proceeding further, let's recap all the classes you’ve seen so far.
-
-**Recap:**
-  -  ``torch.Tensor`` - A *multi-dimensional array* with support for autograd
-     operations like ``backward()``. Also *holds the gradient* w.r.t. the
-     tensor.
-  -  ``nn.Module`` - Neural network module. *Convenient way of
-     encapsulating parameters*, with helpers for moving them to GPU,
-     exporting, loading, etc.
-  -  ``nn.Parameter`` - A kind of Tensor, that is *automatically
-     registered as a parameter when assigned as an attribute to a*
-     ``Module``.
-  -  ``autograd.Function`` - Implements *forward and backward definitions
-     of an autograd operation*. Every ``Tensor`` operation creates at
-     least a single ``Function`` node that connects to functions that
-     created a ``Tensor`` and *encodes its history*.
-
-**At this point, we covered:**
-  -  Defining a neural network
-  -  Processing inputs and calling backward
-
-**Still Left:**
-  -  Computing the loss
-  -  Updating the weights of the network
-
-Loss Function
--------------
-A loss function takes the (output, target) pair of inputs, and computes a
-value that estimates how far away the output is from the target.
-
-There are several different
-`loss functions <https://pytorch.org/docs/nn.html#loss-functions>`_ under the
-nn package .
-A simple loss is: ``nn.MSELoss`` which computes the mean-squared error
-between the input and the target.
-
-For example:
-
-
-.. code-block:: default
-
-
-    output = net(input)
-    target = torch.randn(10)  # a dummy target, for example
-    target = target.view(1, -1)  # make it the same shape as output
-    criterion = nn.MSELoss()
-
-    loss = criterion(output, target)
-    print(loss)
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    tensor(0.7406, grad_fn=<MseLossBackward>)
-
-
-Now, if you follow ``loss`` in the backward direction, using its
-``.grad_fn`` attribute, you will see a graph of computations that looks
-like this:
-
-::
-
-    input -> conv2d -> relu -> maxpool2d -> conv2d -> relu -> maxpool2d
-          -> view -> linear -> relu -> linear -> relu -> linear
-          -> MSELoss
-          -> loss
-
-So, when we call ``loss.backward()``, the whole graph is differentiated
-w.r.t. the loss, and all Tensors in the graph that has ``requires_grad=True``
-will have their ``.grad`` Tensor accumulated with the gradient.
-
-For illustration, let us follow a few steps backward:
-
-
-.. code-block:: default
-
-
-    print(loss.grad_fn)  # MSELoss
-    print(loss.grad_fn.next_functions[0][0])  # Linear
-    print(loss.grad_fn.next_functions[0][0].next_functions[0][0])  # ReLU
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    <MseLossBackward object at 0x7fbd35b2cc88>
-    <AddmmBackward object at 0x7fbd35b2cd30>
-    <AccumulateGrad object at 0x7fbd35b2cd30>
-
-
-Backprop
---------
-To backpropagate the error all we have to do is to ``loss.backward()``.
-You need to clear the existing gradients though, else gradients will be
-accumulated to existing gradients.
-
-
-Now we shall call ``loss.backward()``, and have a look at conv1's bias
-gradients before and after the backward.
-
-
-.. code-block:: default
-
-
-
-    net.zero_grad()     # zeroes the gradient buffers of all parameters
-
-    print('conv1.bias.grad before backward')
-    print(net.conv1.bias.grad)
-
-    loss.backward()
-
-    print('conv1.bias.grad after backward')
-    print(net.conv1.bias.grad)
-
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    conv1.bias.grad before backward
-    tensor([0., 0., 0., 0., 0., 0.])
-    conv1.bias.grad after backward
-    tensor([ 0.0038, -0.0053,  0.0007, -0.0004,  0.0054,  0.0005])
-
-
-Now, we have seen how to use loss functions.
-
-**Read Later:**
-
-  The neural network package contains various modules and loss functions
-  that form the building blocks of deep neural networks. A full list with
-  documentation is `here <https://pytorch.org/docs/nn>`_.
-
-**The only thing left to learn is:**
-
-  - Updating the weights of the network
-
-Update the weights
-------------------
-The simplest update rule used in practice is the Stochastic Gradient
-Descent (SGD):
-
-     ``weight = weight - learning_rate * gradient``
-
-We can implement this using simple Python code:
-
-.. code:: python
-
-    learning_rate = 0.01
-    for f in net.parameters():
-        f.data.sub_(f.grad.data * learning_rate)
-
-However, as you use neural networks, you want to use various different
-update rules such as SGD, Nesterov-SGD, Adam, RMSProp, etc.
-To enable this, we built a small package: ``torch.optim`` that
-implements all these methods. Using it is very simple:
-
-
-.. code-block:: default
-
-
-    import torch.optim as optim
-
-    # create your optimizer
-    optimizer = optim.SGD(net.parameters(), lr=0.01)
-
-    # in your training loop:
-    optimizer.zero_grad()   # zero the gradient buffers
-    output = net(input)
-    loss = criterion(output, target)
-    loss.backward()
-    optimizer.step()    # Does the update
-
-
-
-
-
-
-
-
-.. Note::
-
-      Observe how gradient buffers had to be manually set to zero using
-      ``optimizer.zero_grad()``. This is because gradients are accumulated
-      as explained in the `Backprop`_ section.
-
-
-.. rst-class:: sphx-glr-timing
-
-   **Total running time of the script:** ( 0 minutes  3.783 seconds)
-
-
-.. _sphx_glr_download_beginner_blitz_neural_networks_tutorial.py:
-
-
-.. only :: html
-
- .. container:: sphx-glr-footer
-    :class: sphx-glr-footer-example
-
-
-
-  .. container:: sphx-glr-download
-
-     :download:`Download Python source code: neural_networks_tutorial.py <neural_networks_tutorial.py>`
-
-
-
-  .. container:: sphx-glr-download
-
-     :download:`Download Jupyter notebook: neural_networks_tutorial.ipynb <neural_networks_tutorial.ipynb>`
-
-
-.. only:: html
-
- .. rst-class:: sphx-glr-signature
-
-    `Gallery generated by Sphinx-Gallery <https://sphinx-gallery.readthedocs.io>`_
+Validation loop
+---------------
+For most cases, we stop training the model when the performance on a validation
+split of the data reaches a minimum.
+
+Just like the `training_step`, we can define a `validation_step` to check whatever
+metrics we care about, generate samples or add more to our logs.
+
+.. code-block:: python
+
+    for epoch in epochs:
+        for batch in data:
+            # ...
+            # train
+
+        # validate
+        outputs = []
+        for batch in val_data:
+            x, y = batch                        # validation_step
+            y_hat = model(x)                    # validation_step
+            loss = loss(y_hat, x)               # validation_step
+            outputs.append({'val_loss': loss})  # validation_step
+
+        full_loss = outputs.mean()              # validation_end
+
+Since the `validation_step` processes a single batch,
+in Lightning we also have a `validation_end` method which allows you to compute
+statistics on the full dataset and not just the batch.
+
+In addition, we define a `val_dataloader` method which tells the trainer what data to use for validation.
+Notice we split the train split of MNIST into train, validation. We also have to make sure to do the
+sample split in the `train_dataloader` method.
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+      def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, y)
+        return {'val_loss': loss}
+
+      def validation_end(self, outputs):
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        tensorboard_logs = {'val_loss': avg_loss}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+      def val_dataloader(self):
+        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        _, mnist_val = random_split(mnist_train, [55000, 5000])
+        mnist_val = DataLoader(mnist_val, batch_size=64)
+        return mnist_val
+
+Again, we've just organized the regular PyTorch code into two steps, the `validation_step` method which
+operates on a single batch and the `validation_end` method to compute statistics on all batches.
+
+If you have these methods defined, Lightning will call them automatically. Now we can train
+while checking the validation set.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = CoolMNIST()
+    trainer = Trainer(num_tpu_cores=8)
+    trainer.fit(model)
+
+# EXPLAIN VAL SANITY CHECK
+You may have noticed the`sanity
