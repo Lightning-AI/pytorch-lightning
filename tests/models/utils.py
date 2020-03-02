@@ -179,7 +179,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=LightningTemplateM
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.4):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.35):
     # run prediction on 1 batch
     for batch in dataloader:
         break
