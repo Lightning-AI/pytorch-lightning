@@ -94,12 +94,13 @@ def test_trainer_callback_system(tmpdir):
 
     test_callback = TestCallback()
 
-    trainer_options = {}
-    trainer_options['callbacks'] = [test_callback]
-    trainer_options['max_epochs'] = 1
-    trainer_options['val_percent_check'] = 0.1
-    trainer_options['train_percent_check'] = 0.2
-    trainer_options['show_progress_bar'] = False
+    trainer_options = {
+        'callbacks': [test_callback],
+        'max_epochs': 1,
+        'val_percent_check': 0.1,
+        'train_percent_check': 0.2,
+        'show_progress_bar': False
+    }
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
