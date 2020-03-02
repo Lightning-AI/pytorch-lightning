@@ -104,6 +104,16 @@ def test_trainer_callback_system(tmpdir):
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
+    assert not test_callback.on_epoch_start_called
+    assert not test_callback.on_epoch_start_called
+    assert not test_callback.on_batch_start_called
+    assert not test_callback.on_batch_end_called
+    assert not test_callback.on_train_start_called
+    assert not test_callback.on_train_end_called
+    assert not test_callback.on_validation_start_called
+    assert not test_callback.on_validation_end_called
+    assert not test_callback.on_test_start_called
+    assert not test_callback.on_test_end_called
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -111,10 +121,21 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert not test_callback.on_epoch_start_called
+    assert not test_callback.on_epoch_start_called
+    assert not test_callback.on_batch_start_called
+    assert not test_callback.on_batch_end_called
     assert not test_callback.on_train_start_called
+    assert not test_callback.on_train_end_called
+    assert not test_callback.on_validation_start_called
+    assert not test_callback.on_validation_end_called
+    assert not test_callback.on_test_start_called
+    assert not test_callback.on_test_end_called
 
     trainer.fit(model)
 
+    assert test_callback.on_init_start_called
+    assert test_callback.on_init_end_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_batch_start_called
