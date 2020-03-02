@@ -66,6 +66,31 @@ def test_multi_gpu_model_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
+    """Make sure DDP works with dataloaders passed to fit()"""
+    if not tutils.can_run_gpu_test():
+        return
+
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_model()
+    trainer_options = dict(default_save_path=tmpdir,
+                           show_progress_bar=False,
+                           max_epochs=1,
+                           train_percent_check=0.4,
+                           val_percent_check=0.2,
+                           gpus=[0, 1],
+                           distributed_backend='ddp')
+
+    fit_options = dict(train_dataloader=model.train_dataloader(),
+                       val_dataloaders=model.val_dataloader())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model, **fit_options)
+    assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
+
+
 def test_optimizer_return_options():
     tutils.reset_seed()
 
