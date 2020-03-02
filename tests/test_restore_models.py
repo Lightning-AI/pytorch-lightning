@@ -141,6 +141,10 @@ def test_load_model_from_checkpoint(tmpdir):
     for k, v in vars(hparams).items():
         assert getattr(pretrained_model.hparams, k) == v
 
+    # assert weights are the same
+    for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
+        assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
+
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
