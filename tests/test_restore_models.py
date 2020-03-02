@@ -126,7 +126,6 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    import pdb; pdb.set_trace()
     trainer.test()
 
     # correct result and ok accuracy
@@ -142,7 +141,6 @@ def test_load_model_from_checkpoint(tmpdir):
     for k, v in vars(hparams).items():
         assert getattr(pretrained_model.hparams, k) == v
 
-    import pdb; pdb.set_trace()
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(model)
 
