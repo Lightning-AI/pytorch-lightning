@@ -1,6 +1,8 @@
 import os
 import pickle
 
+import torch
+
 from unittest.mock import patch
 
 import pytest
@@ -43,6 +45,7 @@ def test_comet_logger(tmpdir, monkeypatch):
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    trainer.logger.log_metrics({'acc': torch.ones(1)})
 
     assert result == 1, 'Training failed'
 
