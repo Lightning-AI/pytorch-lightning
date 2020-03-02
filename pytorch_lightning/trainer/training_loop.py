@@ -25,37 +25,6 @@ It can be useful to force training for a minimum number of epochs or limit to a 
     # DEFAULT
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
-Early stopping
---------------
-
-The trainer already sets up default early stopping for you.
-To modify this behavior, pass in your own EarlyStopping callback.
-
-.. code-block:: python
-
-    from pytorch_lightning.callbacks import EarlyStopping
-
-    # DEFAULTS used by Trainer
-    early_stop_callback = EarlyStopping(
-        monitor='val_loss',
-        min_delta=0.00,
-        patience=3,
-        verbose=False,
-        mode='min'
-    )
-
-    # without passing anything in, uses the default callback above
-    trainer = Trainer()
-
-    # pass in your own to override the default callback
-    trainer = Trainer(early_stop_callback=early_stop_callback)
-
-    # pass in min_epochs to enable the callback after min_epochs have run
-    trainer = Trainer(early_stop_callback=early_stop_callback, min_epochs=5)
-
-    # pass in None to disable it
-    trainer = Trainer(early_stop_callback=None)
-
 Force disable early stop
 ------------------------
 

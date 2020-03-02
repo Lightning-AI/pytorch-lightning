@@ -62,21 +62,12 @@ class TrainerCallbackConfigMixin(ABC):
             self.weights_save_path = self.default_save_path
 
     def configure_early_stopping(self, early_stop_callback):
-        if early_stop_callback is True:
+        if early_stop_callback is True or None:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
                 strict=True,
                 verbose=True,
-                mode='min'
-            )
-            self.enable_early_stop = True
-        elif early_stop_callback is None:
-            self.early_stop_callback = EarlyStopping(
-                monitor='val_loss',
-                patience=3,
-                strict=False,
-                verbose=False,
                 mode='min'
             )
             self.enable_early_stop = True
