@@ -52,7 +52,9 @@ pip install pytorch-lightning
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What is it?
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code. Lightning guarantees tested, correct, modern best practices for the automated parts.  
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. 
+
+By refactoring your code, we can automate most of the non-research code. Lightning guarantees tested, correct, modern best practices for the automated parts.  
 
 Here's an example of how to organize PyTorch code into the LightningModule.
 
