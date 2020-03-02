@@ -257,8 +257,8 @@ def test_model_checkpoint_options(tmpdir):
     _ = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = tmpdir / "1"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '1')
+    os.mkdir(save_dir)
     losses = [10, 9, 2.8, 5, 2.5]
 
     # -----------------
@@ -285,8 +285,8 @@ def test_model_checkpoint_options(tmpdir):
                   'epoch=0.ckpt'}:
         assert fname in file_lists
 
-    save_dir = tmpdir / "2"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '2')
+    os.mkdir(save_dir)
 
     # -----------------
     # CASE K=0 (none)
@@ -304,8 +304,8 @@ def test_model_checkpoint_options(tmpdir):
 
     assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
-    save_dir = tmpdir / "3"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '3')
+    os.mkdir(save_dir)
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
@@ -324,8 +324,8 @@ def test_model_checkpoint_options(tmpdir):
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
     assert 'test_prefix_epoch=4.ckpt' in file_lists
 
-    save_dir = tmpdir / "4"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '4')
+    os.mkdir(save_dir)
 
     # -----------------
     # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
@@ -350,8 +350,8 @@ def test_model_checkpoint_options(tmpdir):
                   'other_file.ckpt'}:
         assert fname in file_lists
 
-    save_dir = tmpdir / "5"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '5')
+    os.mkdir(save_dir)
 
     # -----------------
     # CASE K=4 (save all 4 models)
@@ -371,8 +371,8 @@ def test_model_checkpoint_options(tmpdir):
 
     assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
 
-    save_dir = tmpdir / "6"
-    save_dir.mkdir()
+    save_dir = os.path.join(tmpdir, '6')
+    os.mkdir(save_dir)
 
     # -----------------
     # CASE K=3 (save the 2nd, 3rd, 4th model)
