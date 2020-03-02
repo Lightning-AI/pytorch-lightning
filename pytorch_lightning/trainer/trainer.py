@@ -1002,30 +1002,21 @@ class Trainer(TrainerIOMixin,
                 m = 'You called .fit() with a train_dataloader but did not define training_step()'
                 raise MisconfigurationException(m)
 
-            def patch_train_dataloader():
-                return train_dataloader
-
-            model.train_dataloader = patch_train_dataloader
+            model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             if not self.is_overriden('validation_step', model):
                 m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
                 raise MisconfigurationException(m)
 
-            def patch_val_dataloader():
-                return val_dataloaders
-
-            model.val_dataloader = patch_val_dataloader
+            model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
             if not self.is_overriden('test_step', model):
                 m = 'You called .fit() with a test_dataloaders but did not define test_step()'
                 raise MisconfigurationException(m)
 
-            def patch_test_dataloader():
-                return test_dataloaders
-
-            model.test_dataloader = patch_test_dataloader
+            model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
     def init_optimizers(
             self,
@@ -1187,6 +1178,21 @@ class Trainer(TrainerIOMixin,
         if model is not None:
             self.fit(model)
         self.run_evaluation(test_mode=True)
+
+
+class _PatchDataLoader(object):
+    r'''
+    Callable object for patching dataloaders passed into trainer.fit().
+    Use this class to override model.*_dataloader() and be pickle-compatible.
+
+    Args:
+        dataloader: Dataloader object to return when called.
+    '''
+    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+        self.dataloader = dataloader
+
+    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+        return self.dataloader
 
 
 def _set_dataloader(model, dataloader, attribute):
