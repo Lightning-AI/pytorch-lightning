@@ -97,9 +97,7 @@ class MLFlowLogger(LightningLoggerBase):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                logger.warning(
-                    f'Discarding metric with string value {k}={v}'
-                )
+                logger.warning(f'Discarding metric with string value {k}={v}.')
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
