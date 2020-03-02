@@ -110,8 +110,6 @@ def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
-    import pdb; pdb.set_trace()
-
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
@@ -129,13 +127,11 @@ def test_load_model_from_checkpoint(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     trainer.test()
-    import pdb; pdb.set_trace()
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
 
     # load last checkpoint
-    import pdb; pdb.set_trace()
     last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
     if not os.path.isfile(last_checkpoint):
         last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
@@ -145,8 +141,9 @@ def test_load_model_from_checkpoint(tmpdir):
     for k, v in vars(hparams).items():
         assert getattr(pretrained_model.hparams, k) == v
 
+    import pdb; pdb.set_trace()
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(model)
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
