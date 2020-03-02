@@ -825,10 +825,7 @@ class Trainer(TrainerIOMixin,
 
     @staticmethod
     def get_default_args():
-
-        trainer_default_args = vars(Trainer())
-
-        return trainer_default_args
+        return vars(Trainer())
 
     @staticmethod
     def add_argparse_args(parent_parser):
