@@ -99,7 +99,6 @@ def test_running_test_pretrained_model(tmpdir):
         logger, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
-    import pdb;pdb.set_trace()
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
@@ -146,7 +145,6 @@ def test_load_model_from_checkpoint(tmpdir):
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
-    import pdb; pdb.set_trace()
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
