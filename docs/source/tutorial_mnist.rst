@@ -285,7 +285,7 @@ For clarity, we'll recall that the full LightningModule now looks like this.
       def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        loss = F.nll_loss(logits, x)
+        loss = F.nll_loss(logits, y)
 
         # add logging
         logs = {'loss': loss}
@@ -576,3 +576,67 @@ You can also run the test from a saved lightning model
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
+
+Predicting
+----------
+Again, a LightningModule is exactly the same as a PyTorch module. This means you can load it
+and use it for prediction.
+
+.. code-block:: python
+
+    model = CoolMNIST.load_from_checkpoint(PATH)
+    x = torch.Tensor(1, 1, 28, 28)
+    out = model(x)
+
+On the surface, it looks like `forward` and `training_step` are similar. Generally, we want to make sure that
+what we want the model to do is what happens in the `forward`. whereas the `training_step` likely calls forward from
+within it.
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+      def forward(self, x):
+        batch_size, channels, width, height = x.size()
+        x = x.view(batch_size, -1)
+        x = self.layer_1(x)
+        x = torch.relu(x)
+        x = self.layer_2(x)
+        x = torch.relu(x)
+        x = self.layer_3(x)
+        x = torch.log_softmax(x, dim=1)
+        return x
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, y)
+        return loss
+
+In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+      def forward(self, x):
+        batch_size, channels, width, height = x.size()
+        x = x.view(batch_size, -1)
+        x = self.layer_1(x)
+        x1 = torch.relu(x)
+        x = self.layer_2(x1)
+        x2 = torch.relu(x)
+        x3 = self.layer_3(x2)
+        return [x, x1, x2, x3]
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        out, l1_feats, l2_feats, l3_feats = self.forward(x)
+        logits = torch.log_softmax(out, dim=1)
+        ce_loss = F.nll_loss(logits, y)
+        loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
+        return loss
+
+How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
+prediction.
+
