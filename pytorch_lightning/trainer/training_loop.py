@@ -436,8 +436,7 @@ class TrainerTrainLoopMixin(ABC):
             self.accumulation_scheduler.on_epoch_start(self, self.get_model())
             # model hooks
             if self.is_function_implemented('on_epoch_start'):
-                model = self.get_model()
-                model.on_epoch_start()
+                self.get_model().on_epoch_start()
 
         # reset train dataloader
         if self.reload_dataloaders_every_epoch:
@@ -522,8 +521,7 @@ class TrainerTrainLoopMixin(ABC):
             self.on_epoch_end()
             # model hooks
             if self.is_function_implemented('on_epoch_end'):
-                model = self.get_model()
-                model.on_epoch_end()
+                self.get_model().on_epoch_end()
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
@@ -544,8 +542,7 @@ class TrainerTrainLoopMixin(ABC):
             self.on_batch_start()
             # hooks
             if self.is_function_implemented('on_batch_start'):
-                model = self.get_model()
-                response = model.on_batch_start(batch)
+                response = self.get_model().on_batch_start(batch)
                 if response == -1:
                     return -1, grad_norm_dic, {}
 
@@ -648,8 +645,7 @@ class TrainerTrainLoopMixin(ABC):
             self.on_batch_end()
             # model hooks
             if self.is_function_implemented('on_batch_end'):
-                model = self.get_model()
-                model.on_batch_end()
+                self.get_model().on_batch_end()
 
         # update progress bar
         if batch_idx % self.progress_bar_refresh_rate == 0:
@@ -673,8 +669,7 @@ class TrainerTrainLoopMixin(ABC):
             self.on_train_end()
             # model hooks
             if self.is_function_implemented('on_train_end'):
-                model = self.get_model()
-                model.on_train_end()
+                self.get_model().on_train_end()
 
         if self.logger is not None:
             self.logger.finalize("success")
