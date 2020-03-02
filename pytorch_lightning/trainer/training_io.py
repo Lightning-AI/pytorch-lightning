@@ -1,94 +1,3 @@
-"""
-Lightning can automate saving and loading checkpoints
-=====================================================
-
-Checkpointing is enabled by default to the current working directory.
-To change the checkpoint path pass in::
-
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
-
-
-To modify the behavior of checkpointing pass in your own callback.
-
-.. code-block:: python
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-
-    # DEFAULTS used by the Trainer
-    checkpoint_callback = ModelCheckpoint(
-        filepath=os.getcwd(),
-        save_best_only=True,
-        verbose=True,
-        monitor='val_loss',
-        mode='min',
-        prefix=''
-    )
-
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
-
-
-Restoring training session
---------------------------
-
-You might want to not only load a model but also continue training it. Use this method to
-restore the trainer state as well. This will continue from the epoch and global step you last left off.
-However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
-
-Lightning will restore the session if you pass a logger with the same version and there's a saved checkpoint.
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.loggers import TestTubeLogger
-
-    logger = TestTubeLogger(
-        save_dir='./savepath',
-        version=1  # An existing version with a saved checkpoint
-    )
-    trainer = Trainer(
-        logger=logger,
-        default_save_path='./savepath'
-    )
-
-    # this fit call loads model weights and trainer state
-    # the trainer continues seamlessly from where you left off
-    # without having to do anything else.
-    trainer.fit(model)
-
-
-The trainer restores:
-
-- global_step
-- current_epoch
-- All optimizers
-- All lr_schedulers
-- Model weights
-
-You can even change the logic of your model as long as the weights and "architecture" of
-the system isn't different. If you add a layer, for instance, it might not work.
-
-At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.base_module.model_saving.py`:
-
-.. code-block:: python
-
-    self.global_step = checkpoint['global_step']
-    self.current_epoch = checkpoint['epoch']
-
-    # restore the optimizers
-    optimizer_states = checkpoint['optimizer_states']
-    for optimizer, opt_state in zip(self.optimizers, optimizer_states):
-        optimizer.load_state_dict(opt_state)
-
-    # restore the lr schedulers
-    lr_schedulers = checkpoint['lr_schedulers']
-    for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
-        scheduler.load_state_dict(lrs_state)
-
-    # uses the model you passed into trainer
-    model.load_state_dict(checkpoint['state_dict'])
-
-"""
-
 import logging as log
 import os
 import re
@@ -150,11 +59,11 @@ class TrainerIOMixin(ABC):
     # --------------------
     def restore_weights(self, model):
         """
-        To restore weights we have two cases.
-        First, attempt to restore hpc weights. If successful, don't restore
-        other weights.
+        We attempt to restore weights in this order:
+        1. HPC weights.
+        2. if no HPC weights restore checkpoint_path weights
+        3. otherwise don't restore weights
 
-        Otherwise, try to restore actual weights
         :param model:
         :return:
         """
@@ -172,9 +81,6 @@ class TrainerIOMixin(ABC):
         if not did_restore_hpc_weights:
             if self.resume_from_checkpoint is not None:
                 self.restore(self.resume_from_checkpoint, on_gpu=self.on_gpu)
-            else:
-                # restore weights if same exp version
-                self.restore_state_if_checkpoint_exists(model)
 
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
@@ -189,42 +95,6 @@ class TrainerIOMixin(ABC):
         # clear cache after restore
         if self.on_gpu:
             torch.cuda.empty_cache()
-
-    def restore_state_if_checkpoint_exists(self, model):
-        did_restore = False
-
-        # do nothing if there's not dir or callback
-        no_ckpt_callback = (self.checkpoint_callback is None) or (not self.checkpoint_callback)
-        if no_ckpt_callback or not os.path.exists(self.checkpoint_callback.filepath):
-            return did_restore
-
-        # restore trainer state and model if there is a weight for this experiment
-        last_epoch = -1
-        last_ckpt_name = None
-
-        # find last epoch
-        checkpoints = os.listdir(self.checkpoint_callback.filepath)
-        for name in checkpoints:
-            # ignore hpc ckpts
-            if 'hpc_' in name:
-                continue
-
-            if '.ckpt' in name:
-                epoch = name.split('epoch_')[1]
-                epoch = int(re.sub('[^0-9]', '', epoch))
-
-                if epoch > last_epoch:
-                    last_epoch = epoch
-                    last_ckpt_name = name
-
-        # restore last checkpoint
-        if last_ckpt_name is not None:
-            last_ckpt_path = os.path.join(self.checkpoint_callback.filepath, last_ckpt_name)
-            self.restore(last_ckpt_path, self.on_gpu)
-            log.info(f'Model and Trainer restored from checkpoint: {last_ckpt_path}')
-            did_restore = True
-
-        return did_restore
 
     # --------------------
     # HPC SIGNAL HANDLING
@@ -304,6 +174,18 @@ class TrainerIOMixin(ABC):
             self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
+        """
+        Restore training state from checkpoint.
+        Also restores all training state like:
+        - epoch
+        - callbacks
+        - schedulers
+        - optimizer
+        :param checkpoint_path:
+        :param on_gpu:
+
+        :return:
+        """
 
         # if on_gpu:
         #     checkpoint = torch.load(checkpoint_path)

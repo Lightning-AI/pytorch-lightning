@@ -1096,7 +1096,8 @@ class Trainer(TrainerIOMixin,
         self.register_slurm_signal_handlers()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary is not None:
+        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
+        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
@@ -1116,7 +1117,7 @@ class Trainer(TrainerIOMixin,
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
-            self.reset_test_dataloader(ref_model)
+            # self.reset_test_dataloader(ref_model)
             self.run_evaluation(test_mode=True)
             return
 
@@ -1189,8 +1190,10 @@ class Trainer(TrainerIOMixin,
         """
         self.testing = True
         if model is not None:
+            self.model = model
             self.fit(model)
-        self.run_evaluation(test_mode=True)
+        else:
+            self.run_evaluation(test_mode=True)
 
 
 class _PatchDataLoader(object):
