@@ -1096,7 +1096,7 @@ class Trainer(TrainerIOMixin,
         self.register_slurm_signal_handlers()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary is not None:
+        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
