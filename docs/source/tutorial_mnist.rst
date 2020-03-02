@@ -3,19 +3,26 @@ Introduction Guide
 PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
 you've organized it into a LightningModule, it automates most of the training for you.
 
+To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+
 .. figure:: /img/mnist/pt_to_pl.jpg
    :alt: mnist CPU bar
 
+As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
+quickly becomes onerous and starts distracting from the core research code.
 
-
+Goal of this guide
+------------------
 This guide walks through the major parts of the library to help you understand
 what each parts does. But at the end of the day, you write the same PyTorch code... just organize it
 into the LightningModule template which means you keep ALL the flexibility without having to deal with
 any of the boilerplate code
 
-Lightning can support any kind of DL/ML research. To illustrate, we'll start with an MNIST classifier and move into
+To show how Lightning works, we'll start with an MNIST classifier and move into
 a Variational Autoencoder and a Generative Adversarial Network (GAN).
 
+.. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
+    of research to illustrate.
 
 Lightning Philosophy
 --------------------
@@ -50,6 +57,7 @@ In Lightning this code is abstracted out by `Callbacks`.
 Elements of a research project
 ------------------------------
 Every research project requires the same core ingredients:
+
 1. A model
 2. Train/val/test data
 3. Optimizer(s)
@@ -314,6 +322,7 @@ Which will generate automatic tensorboard logs.
 .. figure:: /img/mnist/mnist_tb.png
    :alt: mnist CPU bar
 
+
 But the beauty is all the magic you can do with the trainer flags. For instance, to run this model on a GPU:
 
 .. code-block:: python
@@ -506,5 +515,64 @@ while checking the validation set.
     trainer = Trainer(num_tpu_cores=8)
     trainer.fit(model)
 
-# EXPLAIN VAL SANITY CHECK
-You may have noticed the`sanity
+You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 5 batches
+of validation before starting to train. This is a kind of unit test to make sure that if you have a bug
+in the validation loop, you won't need to potentially wait a full epoch to find out.
+
+.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
+
+Testing loop
+------------
+Once our research is done and we're about to publish or deploy a model, we normally want to figure out
+how it will generalize in the "real world." For this, we use a held-out split of the data for testing.
+
+Just like the validation loop, we define exactly the same steps for testing:
+
+- test_step
+- test_end
+- test_dataloader
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+      def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, y)
+        return {'val_loss': loss}
+
+      def test_end(self, outputs):
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        tensorboard_logs = {'val_loss': avg_loss}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+
+      def test_dataloader(self):
+        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=False, download=False, transform=transform)
+        _, mnist_val = random_split(mnist_train, [55000, 5000])
+        mnist_val = DataLoader(mnist_val, batch_size=64)
+        return mnist_val
+
+However, to make sure the test set isn't used inadvertently, Lightning has a separate API to run tests.
+Once you train your model simply call `.test()`.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = CoolMNIST()
+    trainer = Trainer(num_tpu_cores=8)
+    trainer.fit(model)
+
+    # run test set
+    trainer.test()
+
+You can also run the test from a saved lightning model
+
+.. code-block:: python
+
+    model = CoolMNIST.load_from_checkpoint(PATH)
+    trainer = Trainer(num_tpu_cores=8)
+    trainer.test(model)
+
+.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
