@@ -1188,8 +1188,8 @@ class Trainer(TrainerIOMixin,
             trainer.test(model)
         """
         self.testing = True
+        self.model = model
         if model is not None:
-            self.model = model
             self.fit(model)
         else:
             self.run_evaluation(test_mode=True)
