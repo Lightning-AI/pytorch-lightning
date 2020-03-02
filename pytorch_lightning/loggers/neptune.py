@@ -15,11 +15,10 @@ try:
     from neptune.experiments import Experiment
 except ImportError:
     raise ImportError('You want to use `neptune` logger which is not installed yet,'
-                      ' please install it e.g. `pip install neptune-client`.')
+                      ' install it with `pip install neptune-client`.')
 
 from torch import is_tensor
 
-# from .base import LightningLoggerBase, rank_zero_only
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 logger = getLogger(__name__)

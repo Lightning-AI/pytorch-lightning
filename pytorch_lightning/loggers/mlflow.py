@@ -31,7 +31,8 @@ from typing import Optional, Dict, Any
 try:
     import mlflow
 except ImportError:
-    raise ImportError('Missing mlflow package.')
+    raise ImportError('You want to use `mlflow` logger which is not installed yet,'
+                      ' install it with `pip install mlflow`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

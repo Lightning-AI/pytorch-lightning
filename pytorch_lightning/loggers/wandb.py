@@ -16,7 +16,7 @@ try:
     from wandb.wandb_run import Run
 except ImportError:
     raise ImportError('You want to use `wandb` logger which is not installed yet,'
-                      ' please install it e.g. `pip install wandb`.')
+                      ' install it with `pip install wandb`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

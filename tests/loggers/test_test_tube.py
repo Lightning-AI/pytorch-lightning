@@ -13,6 +13,8 @@ def test_testtube_logger(tmpdir):
 
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
+    assert logger.name == 'lightning_logs'
+
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,
@@ -23,7 +25,7 @@ def test_testtube_logger(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    assert result == 1, "Training failed"
+    assert result == 1, 'Training failed'
 
 
 def test_testtube_pickle(tmpdir):
@@ -31,7 +33,6 @@ def test_testtube_pickle(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
 
     logger = tutils.get_test_tube_logger(tmpdir, False)
     logger.log_hyperparams(hparams)
@@ -47,4 +48,4 @@ def test_testtube_pickle(tmpdir):
     trainer = Trainer(**trainer_options)
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0})
+    trainer2.logger.log_metrics({'acc': 1.0})

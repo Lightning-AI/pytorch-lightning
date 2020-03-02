@@ -19,7 +19,7 @@ def test_mlflow_logger(tmpdir):
 
     # Test already exists
     logger2 = MLFlowLogger('test', tracking_uri=f'file:{os.sep * 2}{mlflow_dir}')
-    _ = logger2.experiment
+    _ = logger2.run_id
 
     # Try logging string
     logger.log_metrics({'acc': 'test'})

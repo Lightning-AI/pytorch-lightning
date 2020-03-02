@@ -4,7 +4,8 @@ from typing import Optional, Dict, Any
 try:
     from test_tube import Experiment
 except ImportError:
-    raise ImportError('Missing test-tube package.')
+    raise ImportError('You want to use `test_tube` logger which is not installed yet,'
+                      ' install it with `pip install test-tube`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 

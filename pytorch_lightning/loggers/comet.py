@@ -7,7 +7,7 @@ CometLogger
 """
 import argparse
 from logging import getLogger
-from typing import Optional, Union, Dict
+from typing import Optional, Dict
 
 try:
     from comet_ml import Experiment as CometExperiment
@@ -20,7 +20,8 @@ try:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API
 except ImportError:
-    raise ImportError('Missing comet_ml package.')
+    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+                      ' install it with `pip install comet-ml`.')
 
 from torch import is_tensor
 
@@ -87,11 +88,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if save_dir is not None and api_key is not None:
-            # If arguments are passed for both save_dir and api_key, preference is given to online mode
-            self.mode = "online"
-            self.api_key = api_key
-        elif api_key is not None:
+        if api_key is not None:
             self.mode = "online"
             self.api_key = api_key
         elif save_dir is not None:
