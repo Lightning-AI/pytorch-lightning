@@ -131,6 +131,7 @@ def test_load_model_from_checkpoint(tmpdir):
     assert result == 1, 'training failed to complete'
 
     # load last checkpoint
+    import pdb; pdb.set_trace()
     last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
     if not os.path.isfile(last_checkpoint):
         last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
