@@ -627,6 +627,7 @@ class Trainer(TrainerIOMixin,
 
         # Transfer params
         # Backward compatibility
+        self.num_nodes = num_nodes
         if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
@@ -747,10 +748,12 @@ class Trainer(TrainerIOMixin,
         self.weights_save_path = weights_save_path
 
         # accumulated grads
+        self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.gpus = gpus
+        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # tpu state flags
@@ -797,6 +800,7 @@ class Trainer(TrainerIOMixin,
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
+        self.overfit_pct = overfit_pct
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
@@ -820,91 +824,14 @@ class Trainer(TrainerIOMixin,
         return job_id
 
     @staticmethod
-    def add_default_args(parent_parser):
+    def add_argparse_args(parent_parser):
 
         parser = ArgumentParser(parents=[parent_parser])
 
-        # training, test, val check intervals
-        parser.add_argument('--max_epochs', default=1000, type=int, help='maximum number of epochs')
-        parser.add_argument('--min_epochs', default=1, type=int, help='minimum number of epochs')
-        parser.add_argument('--max_steps', default=None, type=Optional[int],
-                            help='stop training after this number of steps')
-        parser.add_argument('--min_steps', default=None, type=Optional[int],
-                            help='force training for atleast these number of steps')
-        parser.add_argument('--check_val_every_n_epoch', default=1, type=int, help='check val every n epochs')
-        parser.add_argument('--accumulate_grad_batches', default=1, type=Union[int, Dict[int, int]],
-                            help='accumulates gradients k times before applying update.'
-                                 ' Simulates huge batch size')
-        parser.add_argument('--train_percent_check', default=1.0, type=float,
-                            help='how much of training set to check')
-        parser.add_argument('--val_percent_check', default=1.0, type=float,
-                            help='how much of val set to check')
-        parser.add_argument('--test_percent_check', default=1.0, type=float,
-                            help='how much of test set to check')
+        trainer_default_args = vars(Trainer())
 
-        parser.add_argument('--val_check_interval', default=1.0, type=Union[float],
-                            help='how much within 1 epoch to check val')
-
-        # early stopping
-        parser.add_argument('--early_stop_callback', dest='early_stop_callback',
-                            type=Optional[Union[EarlyStopping, bool]], default=None)
-
-        # gradient handling
-        parser.add_argument('--gradient_clip_val', default=0, type=float)
-        parser.add_argument('--track_grad_norm', default=-1, type=int,
-                            help='if > 0, will track this grad norm')
-        parser.add_argument('--print_nan_grads', default=False, type=bool,
-                            help='Prints gradients with nan values')
-
-        # model
-        parser.add_argument('--resume_from_checkpoint', default=None, type=Optional[str],
-                            help='resumes training from a checkpoint')
-        parser.add_argument('--checkpoint_callback', default=True, type=Union[ModelCheckpoint, bool],
-                            help='callback for checkpointing')
-        parser.add_argument('--truncated_bptt_steps', default=None, type=Optional[int],
-                            help='Truncated back prop breaks performs backprop every k steps')
-        parser.add_argument('--num_sanity_val_steps', default=5, type=int,
-                            help='check runs n batches of val before starting the training')
-        parser.add_argument('--process_position', default=0, type=int,
-                            help='orders the tqdm bar')
-        parser.add_argument('--show_progress_bar', default=True, type=bool,
-                            help='If true shows tqdm progress bar')
-        parser.add_argument('--distributed_backend', default=None, type=Optional[str],
-                            help='The distributed backend to use')
-        parser.add_argument('--weights_summary', default='full', type=str,
-                            help='Prints a summary of the weights when training begins')
-        parser.add_argument('--profiler', default=None, type=Optional[BaseProfiler],
-                            help='To profile individual steps during training and assist in'
-                                 'identifying bottlenecks')
-        parser.add_argument('--precision', default=32, type=int)
-
-        # model path
-        parser.add_argument('--default_save_path', default=None, type=Optional[str],
-                            help='Default path for logs and weights')
-        parser.add_argument('--weights_save_path', default=None, type=Optional[str],
-                            help='Prints a summary of the weights when training begins')
-
-        # GPU
-        parser.add_argument('--gpus', default=None, type=Optional[Union[List[int], str, int]])
-        parser.add_argument('--num_nodes', dest='num_nodes', type=int, default=1)
-        parser.add_argument('--num_tpu_cores', default=None, type=Optional[int])
-        parser.add_argument('--use_amp', dest='use_amp', default=False, type=bool)
-        parser.add_argument('--amp_level', dest='amp_level', default='O1', type=str,
-                            help='the optimization level to use')
-
-        # Fast Training
-        parser.add_argument('--fast_dev_run', dest='fast_dev_run', default=False, type=bool,
-                            help='runs validation after 1 training step')
-        parser.add_argument('--overfit_pct', default=0.0, type=float, dest='overfit_pct',
-                            help='%% of dataset to use with this option. float, or -1 for none')
-
-        # log
-        parser.add_argument('--logger', default=True, type=Union[LightningLoggerBase, bool])
-        parser.add_argument('--log_gpu_memory', default=None, type=Optional[str])
-        parser.add_argument('--row_log_interval', default=10, type=int,
-                            help='add log every k batches')
-        parser.add_argument('--log_save_interval', default=100, type=int,
-                            help='how many batches between log saves')
+        for arg in trainer_default_args:
+            parser.add_argument('--{0}'.format(arg), default=trainer_args[arg], dest=arg)
 
         return parser
 
