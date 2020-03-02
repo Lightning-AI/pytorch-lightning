@@ -78,32 +78,36 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 ### Testing
 
-You shall be able to test your work locally which may speed up your work since it allows you to focus later only in particular (failing) test-cases.
- To settup local develop environment, install both local and text dependecies:
+Test your work locally to speed up your work since so you can focus only in particular (failing) test-cases.
+ To setup a local development environment, install both local and test dependecies:
 ```bash
 pip install -r requirements.txt
 pip install -r tests/requirements.txt
 ``` 
-You can run the full test-case in your terminal via prepared bash script: 
+
+You can run the full test-case in your terminal via this bash script: 
+
 ```bash
 bash .run_local_tests.sh
 ```
+
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
-For convenience, you can use also your own CircleCI building which will be triggered witch each your commit.
- This is useful if you do not border yourself with testing against all required dependencies version.
- To do you, just login to [CircleCI](https://app.circleci.com/) and enable your forked project in dashboard, all rest is ready...
+For convenience, you can use also your own CircleCI building which will be triggered with each commit.
+This is useful if you do not test against all required dependencies version.
+To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked project in the dashboard. It will just work after that.
 
 ### Pull Request
 
-We are welcoming any useful contribution. For the convinece we draw a recommended workflow:
+We welcome any useful contribution! For convinece here's a recommended workflow:
+
 0. Think about what you want to do - fix a bug, repair docs, etc. 
 1. Start your work locally (usually until you need our CI testing)
     - create a branch and prepare your changes
-    - hint: do not work with your master directly, it may become complicated when you need rebase
-    - hint: name it suitably according to your task, it become useful later when you may work on multiple tasks/PRs
-2. Create a "Draft PR" which is clearly marked that tiy are till working on it and you do not need aby feedback yet.
-3. When you feel like you are ready for integrating your work, turn your PR by "Ready for review".
+    - hint: do not work with your master directly, it may become complicated when you need to rebase
+    - hint: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs
+2. Create a "Draft PR" which is clearly marked which lets us know you don't need feedback yet.
+3. When you feel like you are ready for integrating your work, turn your PR to "Ready for review".
 4. Use tags in PR name for following cases:
     - **[blocked by #<number>]** if you work is depending on others changes
-    - **[wip]** when you start to re-edit your work, mark it so noone will accidentally merge it in mean time
+    - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime
