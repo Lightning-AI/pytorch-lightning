@@ -5,6 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from typing import Optional, Union, Dict, Callable
 
 import torch
 import torch.distributed as dist
@@ -1102,7 +1103,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
-    def load_from_checkpoint(cls, checkpoint_path, map_location=None, tags_csv=None):
+    def load_from_checkpoint(
+            cls,
+            checkpoint_path: str,
+            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+            tags_csv: Optional[str] = None,
+    ) -> 'LightningModule':
         r"""
 
         Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
@@ -1124,13 +1130,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     self.learning_rate = hparams.learning_rate
 
         Args:
-            checkpoint_path (str): Path to checkpoint.
-            map_location (dict | str | torch.device | function):
+            checkpoint_path: Path to checkpoint.
+            map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in
                 `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
-            tags_csv (str): Optional path to a .csv file with two columns (key, value)
+            tags_csv: Optional path to a .csv file with two columns (key, value)
                 as in this example::
 
                     key,value
