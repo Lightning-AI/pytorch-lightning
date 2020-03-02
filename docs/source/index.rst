@@ -11,7 +11,7 @@ PyTorch-Lightning Documentation
    :name: start
    :caption: Start Here
 
-   new-project
+   tutorial_mnist
 
 .. toctree::
    :maxdepth: 4
@@ -37,7 +37,7 @@ PyTorch-Lightning Documentation
    :name: Tutorials
    :caption: Tutorials
 
-   tutorials
+   From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
 
 .. toctree::
    :maxdepth: 1
