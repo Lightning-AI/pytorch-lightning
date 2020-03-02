@@ -1177,7 +1177,8 @@ class Trainer(TrainerIOMixin,
         self.testing = True
         if model is not None:
             self.fit(model)
-        self.run_evaluation(test_mode=True)
+        else:
+            self.run_evaluation(test_mode=True)
 
 
 class _PatchDataLoader(object):
