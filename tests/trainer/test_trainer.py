@@ -248,7 +248,7 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_model_checkpoint_options(tmp_path):
+def test_model_checkpoint_options(tmpdir):
     """Test ModelCheckpoint options."""
     def mock_save_function(filepath):
         open(filepath, 'a').close()
@@ -257,7 +257,7 @@ def test_model_checkpoint_options(tmp_path):
     _ = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = tmp_path / "1"
+    save_dir = tmpdir / "1"
     save_dir.mkdir()
     losses = [10, 9, 2.8, 5, 2.5]
 
@@ -285,7 +285,7 @@ def test_model_checkpoint_options(tmp_path):
                   'epoch=0.ckpt'}:
         assert fname in file_lists
 
-    save_dir = tmp_path / "2"
+    save_dir = tmpdir / "2"
     save_dir.mkdir()
 
     # -----------------
@@ -304,7 +304,7 @@ def test_model_checkpoint_options(tmp_path):
 
     assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
 
-    save_dir = tmp_path / "3"
+    save_dir = tmpdir / "3"
     save_dir.mkdir()
 
     # -----------------
@@ -324,7 +324,7 @@ def test_model_checkpoint_options(tmp_path):
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
     assert 'test_prefix_epoch=4.ckpt' in file_lists
 
-    save_dir = tmp_path / "4"
+    save_dir = tmpdir / "4"
     save_dir.mkdir()
 
     # -----------------
@@ -350,7 +350,7 @@ def test_model_checkpoint_options(tmp_path):
                   'other_file.ckpt'}:
         assert fname in file_lists
 
-    save_dir = tmp_path / "5"
+    save_dir = tmpdir / "5"
     save_dir.mkdir()
 
     # -----------------
@@ -371,7 +371,7 @@ def test_model_checkpoint_options(tmp_path):
 
     assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
 
-    save_dir = tmp_path / "6"
+    save_dir = tmpdir / "6"
     save_dir.mkdir()
 
     # -----------------
