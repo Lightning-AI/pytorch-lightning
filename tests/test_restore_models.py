@@ -208,7 +208,7 @@ def test_dp_resume(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=2,
+        max_epochs=3,
         gpus=2,
         distributed_backend='dp',
     )
