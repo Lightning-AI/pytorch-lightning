@@ -110,6 +110,8 @@ def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
+    import pdb; pdb.set_trace()
+
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
 
