@@ -52,7 +52,9 @@ pip install pytorch-lightning
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What is it?
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code. Lightning guarantees tested, correct, modern best practices for the automated parts.  
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. 
+
+By refactoring your code, we can automate most of the non-research code. Lightning guarantees tested, correct, modern best practices for the automated parts.  
 
 Here's an example of how to organize PyTorch code into the LightningModule.
 
@@ -69,7 +71,7 @@ This is how lightning separates the science (red) from the engineering (blue).
 ![Overview](docs/source/_static/images/pl_overview.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538).
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
 
 ## What are the differences with PyTorch?    
 If you're wondering what you gain out of refactoring your PyTorch code, [read this comparison!](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09)
