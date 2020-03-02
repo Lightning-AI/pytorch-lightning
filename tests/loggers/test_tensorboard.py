@@ -31,9 +31,6 @@ def test_tensorboard_logger(tmpdir):
 def test_tensorboard_pickle(tmpdir):
     """Verify that pickling trainer with Tensorboard logger works."""
 
-    # hparams = tutils.get_hparams()
-    # model = LightningTestModel(hparams)
-
     logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_pickle_test")
 
     trainer_options = dict(max_epochs=1, logger=logger)
@@ -80,6 +77,16 @@ def test_tensorboard_named_version(tmpdir):
 
     assert logger.version == expected_version
     # Could also test existence of the directory but this fails in the "minimum requirements" test setup
+
+
+def test_tensorboard_no_name(tmpdir):
+    """Verify that None or empty name works"""
+
+    logger = TensorBoardLogger(save_dir=tmpdir, name="")
+    assert logger.root_dir == tmpdir
+
+    logger = TensorBoardLogger(save_dir=tmpdir, name=None)
+    assert logger.root_dir == tmpdir
 
 
 @pytest.mark.parametrize("step_idx", [10, None])

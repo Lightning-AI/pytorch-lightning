@@ -44,7 +44,7 @@ class TensorBoardLogger(LightningLoggerBase):
     """
     NAME_CSV_TAGS = 'meta_tags.csv'
 
-    def __init__(self, save_dir: str, name: str = "default", version: Optional[Union[int, str]] = None, **kwargs):
+    def __init__(self, save_dir: str, name: Optional[str] = "default", version: Optional[Union[int, str]] = None, **kwargs):
         super().__init__()
         self.save_dir = save_dir
         self._name = name
