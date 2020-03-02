@@ -245,7 +245,7 @@ def test_dp_resume(tmpdir):
     new_logger = tutils.get_test_tube_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.2
+    trainer_options['train_percent_check'] = 0.5
     trainer_options['val_percent_check'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
