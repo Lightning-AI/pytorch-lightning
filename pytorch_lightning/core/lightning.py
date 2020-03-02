@@ -1095,6 +1095,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             You should use `load_from_checkpoint` instead.
             Will be removed in v0.8.0.
         """
+        warnings.warn("`load_from_metrics` module has been unified wth `load_from_checkpoint` in v0.7.0."
+                      " The deprecated method will be removed in v0.9.0.", DeprecationWarning)
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
