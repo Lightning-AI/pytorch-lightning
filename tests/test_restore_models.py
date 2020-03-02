@@ -126,6 +126,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    import pdb; pdb.set_trace()
     trainer.test()
 
     # correct result and ok accuracy
