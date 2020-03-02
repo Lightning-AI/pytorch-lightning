@@ -5,7 +5,7 @@ you've organized it into a LightningModule, it automates most of the training fo
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
-.. figure:: /img/mnist_imgs/pt_to_pl.jpg
+.. figure:: /_images/mnist_imgs/pt_to_pl.jpg
    :alt: mnist CPU bar
 
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
@@ -304,7 +304,7 @@ by the LightningModule. This organization now lets us train this model
 
 You should see the following weights summary and progress bar
 
-.. figure:: /img/mnist_imgs/mnist_cpu_bar.png
+.. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
 
 When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
@@ -319,7 +319,7 @@ But you could have also logged by calling:
 
 Which will generate automatic tensorboard logs.
 
-.. figure:: /img/mnist_imgs/mnist_tb.png
+.. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
 
 
@@ -332,7 +332,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
     trainer.fit(model)
 
 
-.. figure:: /img/mnist_imgs/mnist_gpu.png
+.. figure:: /_images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
 Or you can also train on multiple GPUs (not on colab though)
@@ -356,10 +356,10 @@ And even TPUs. Let's do it on the colab!
 
 First, change the runtime to TPU (and reinstall lightning).
 
-.. figure:: /img/mnist_imgs/runtime_tpu.png
+.. figure:: /_images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
 
-.. figure:: /img/mnist_imgs/restart_runtime.png
+.. figure:: /_images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
@@ -439,12 +439,12 @@ Now we can train the LightningModule on a TPU wihout doing anything else!
 
 You'll now see the TPU cores booting up.
 
-.. figure:: /img/mnist_imgs/tpu_start.png
+.. figure:: /_images/mnist_imgs/tpu_start.png
     :alt: TPU start
 
 Notice the epoch is MUCH faster!
 
-.. figure:: /img/mnist_imgs/tpu_fast.png
+.. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
 Validation loop
