@@ -86,6 +86,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         if self.trainer.proc_rank == 0:
             log.info(*args, **kwargs)
+            print(*args, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
