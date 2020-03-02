@@ -958,6 +958,7 @@ class Trainer(TrainerIOMixin,
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
+                self.__set_random_port()
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
 
         # 1 gpu or dp option triggers training using DP module
@@ -993,6 +994,18 @@ class Trainer(TrainerIOMixin,
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def __set_random_port(self):
+        """
+        When running DDP NOT managed by SLURM, the ports might collide
+        :return:
+        """
+        try:
+            default_port = os.environ['MASTER_PORT']
+        except Exception:
+            import random
+            default_port = random.randint(10000, 19000)
+            os.environ['MASTER_PORT'] = str(default_port)
 
     def __set_fit_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
         # when dataloader is passed via fit, patch the train_dataloader
