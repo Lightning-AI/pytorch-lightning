@@ -9,18 +9,17 @@ you've organized it into a LightningModule, it automates most of the training fo
 
 
 This guide walks through the major parts of the library to help you understand
-how it compares to pure PyTorch and how Lightning works.
+what each parts does. But at the end of the day, you write the same PyTorch code... just organize it
+into the LightningModule template which means you keep ALL the flexibility without having to deal with
+any of the boilerplate code
 
-Although Lightning can support any kind of research, We'll explore PyTorch Lightning by building
-a Lightning model for MNIST classification, and generation via:
+Lightning can support any kind of DL/ML research. To illustrate, we'll start with an MNIST classifier and move into
+a Variational Autoencoder and a Generative Adversarial Network (GAN).
 
-1. Simple classifier.
-2. Variational Autoencoder
-3. Generative Adversarial Network
 
-Lightning Motivation
+Lightning Philosophy
 --------------------
-The code for deep learning systems can be factored into three types:
+Lightning factors DL/ML code into three types:
 
 1. Core research code.
 2. Engineering code.
@@ -38,7 +37,7 @@ Engineering code
 The Engineering code is all the code related to training this system. Things such as early stopping, distribution
 over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
 
-In Lightnin, this code is abstracted out by the `Trainer`.
+In Lightning, this code is abstracted out by the `Trainer`.
 
 Non-essential code
 ^^^^^^^^^^^^^^^^^^
@@ -48,19 +47,16 @@ This is code that helps the research but isn't relevant to the research code. So
 
 In Lightning this code is abstracted out by `Callbacks`.
 
-
 Elements of a research project
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+------------------------------
 Every research project requires the same core ingredients:
 1. A model
 2. Train/val/test data
 3. Optimizer(s)
 4. Training step computations
+5. Validation step computations
+6. Test step computations
 
-PyTorch Lightning does nothing more than organize and structure pure PyTorch code.
-
-IMAGE OF STRUCTURE
 
 The Model
 ---------
