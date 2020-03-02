@@ -99,6 +99,7 @@ def test_running_test_pretrained_model(tmpdir):
         logger, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
     )
 
+    import pdb;pdb.set_trace()
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
