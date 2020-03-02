@@ -142,7 +142,7 @@ def test_load_model_from_checkpoint(tmpdir):
         assert getattr(pretrained_model.hparams, k) == v
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(model)
+    new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
