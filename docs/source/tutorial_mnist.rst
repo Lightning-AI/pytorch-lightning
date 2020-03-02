@@ -6,7 +6,7 @@ you've organized it into a LightningModule, it automates most of the training fo
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
 .. figure:: /_images/mnist_imgs/pt_to_pl.jpg
-   :alt: mnist CPU bar
+   :alt: Convert from PyTorch to Lightning
 
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
