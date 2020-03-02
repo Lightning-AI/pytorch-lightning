@@ -274,68 +274,6 @@ def test_dp_resume(tmpdir):
     model.unfreeze()
 
 
-def test_cpu_restore_training(tmpdir):
-    """Verify continue training session on CPU."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
-
-    # logger file to get meta
-    test_logger_version = 10
-    logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-
-    trainer_options = dict(
-        max_epochs=8,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1)
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    # Increment since we've finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
-
-    # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-    trainer_options = dict(
-        max_epochs=2,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=new_logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-    )
-    trainer = Trainer(**trainer_options)
-    model = LightningTestModel(hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch
-        assert trainer.current_epoch >= 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        trainer.model.eval()
-        for dataloader in trainer.val_dataloaders:
-            tutils.run_prediction(dataloader, trainer.model)
-
-    model.on_train_start = assert_good_acc
-
-    # by calling fit again, we trigger training, loading weights from the cluster
-    # and our hook to predict using current model before any more weight updates
-    trainer.fit(model)
-
-
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
