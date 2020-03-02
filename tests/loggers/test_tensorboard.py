@@ -76,7 +76,8 @@ def test_tensorboard_named_version(tmpdir):
     logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
 
     assert logger.version == expected_version
-    # Could also test existence of the directory but this fails in the "minimum requirements" test setup
+    # Could also test existence of the directory but this fails
+    # in the "minimum requirements" test setup
 
 
 def test_tensorboard_no_name(tmpdir):

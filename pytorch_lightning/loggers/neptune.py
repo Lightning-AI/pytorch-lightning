@@ -169,7 +169,11 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None):
+    def log_metrics(
+            self,
+            metrics: Dict[str, Union[torch.Tensor, float]],
+            step: Optional[int] = None
+    ):
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
@@ -198,7 +202,12 @@ class NeptuneLogger(LightningLoggerBase):
             return self.experiment.id
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None):
+    def log_metric(
+            self,
+            metric_name: str,
+            metric_value: Union[torch.Tensor, float, str],
+            step: Optional[int] = None
+    ):
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
