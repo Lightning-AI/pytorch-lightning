@@ -824,11 +824,18 @@ class Trainer(TrainerIOMixin,
         return job_id
 
     @staticmethod
+    def get_default_args():
+
+        trainer_default_args = vars(Trainer())
+
+        return trainer_default_args
+
+    @staticmethod
     def add_argparse_args(parent_parser):
 
         parser = ArgumentParser(parents=[parent_parser])
 
-        trainer_default_args = vars(Trainer())
+        trainer_default_args = Trainer.get_default_args()
 
         for arg in trainer_default_args:
             parser.add_argument('--{0}'.format(arg), default=trainer_default_args[arg], dest=arg)
