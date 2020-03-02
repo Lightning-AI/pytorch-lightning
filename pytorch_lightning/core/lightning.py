@@ -8,6 +8,7 @@ from argparse import Namespace
 
 import torch
 import torch.distributed as dist
+from torch.optim import Adam
 
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
@@ -136,7 +137,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    @abstractmethod
     def training_step(self, *args, **kwargs):
         r"""return loss, dict with metrics for tqdm
 
@@ -718,11 +718,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    @abstractmethod
     def configure_optimizers(self):
         r"""
         This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
+
+        If you don't define this method Lightning will automatically use Adam(lr=1e-3)
 
         Return: any of these 3 options:
             - Single optimizer
@@ -734,9 +735,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            # most cases
+            # most cases (default if not defined)
             def configure_optimizers(self):
-                opt = Adam(self.parameters(), lr=0.01)
+                opt = Adam(self.parameters(), lr=1e-3)
                 return opt
 
             # multiple optimizer case (eg: GAN)
@@ -769,6 +770,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 
         """
+        return Adam(self.parameters(), lr=1e-3)
 
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         r"""
