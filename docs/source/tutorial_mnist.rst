@@ -67,7 +67,7 @@ Every research project requires the same core ingredients:
 
 
 The Model
----------
+^^^^^^^^^
 The LightningModule provides the structure on how to organize these 5 ingredients.
 
 Let's first start with the model. In this case we'll design
@@ -131,7 +131,7 @@ EXACTLY the same as you would a PyTorch Module.
     torch.Size([1, 10])
 
 Data
-----
+^^^^
 
 The Lightning Module organizes your dataloaders and data processing as well.
 Here's the PyTorch code for loading MNIST
@@ -174,7 +174,8 @@ under the `train_dataloader` method. This is great because if you run into a pro
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
 
 Optimizer
----------
+^^^^^^^^^
+
 Next we choose what optimizer to use for training our system.
 In PyTorch we do it as follows:
 
@@ -195,7 +196,7 @@ If you don't define this, Lightning will automatically use `Adam(self.parameters
         return Adam(self.parameters(), lr=1e-3)
 
 Training step
--------------
+^^^^^^^^^^^^^
 
 The training step is what happens inside the training loop.
 
@@ -449,6 +450,7 @@ Notice the epoch is MUCH faster!
 
 Validation loop
 ---------------
+
 For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
 
