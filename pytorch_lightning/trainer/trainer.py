@@ -828,7 +828,6 @@ class Trainer(TrainerIOMixin,
             job_id = None
         return job_id
 
-    @property
     @classmethod
     def default_attributes(cls):
         return vars(cls())
@@ -838,7 +837,7 @@ class Trainer(TrainerIOMixin,
         """Extend existing argparse by default `Trainer` attributes."""
         parser = ArgumentParser(parents=[parent_parser])
 
-        trainer_default_params = Trainer.default_attributes
+        trainer_default_params = Trainer.default_attributes()
 
         for arg in trainer_default_params:
             parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
