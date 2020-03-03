@@ -40,7 +40,7 @@ We used our pretrained Autoencoder (a LightningModule) for transfer learning!
 
 Example: BERT (transformers)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Lightning is completely agnostic to what's used for tranfer learning so long
+Lightning is completely agnostic to what's used for transfer learning so long
 as it is a `torch.nn.Module` subclass.
 
 .. code-block:: python
