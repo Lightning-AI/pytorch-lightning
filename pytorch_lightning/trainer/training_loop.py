@@ -302,9 +302,15 @@ class TrainerTrainLoopMixin(ABC):
         self.reset_train_dataloader(model)
         self.reset_val_dataloader(model)
 
-        # Train begin callbacks
-        model.on_train_start()
-        self.on_train_start()
+        # Train start events
+        with self.profiler.profile('on_train_start'):
+            # callbacks
+            self.on_train_start()
+            # initialize early stop callback
+            if self.early_stop_callback is not None:
+                self.early_stop_callback.on_train_start(self, self.get_model())
+            # model hooks
+            model.on_train_start()
 
         try:
             # run all epochs
@@ -347,9 +353,6 @@ class TrainerTrainLoopMixin(ABC):
                 desc = f'Epoch {epoch + 1}' if not self.is_infinite_dataloader(self.train_dataloader) else ''
                 self.main_progress_bar.set_description(desc)
 
-                # changing gradient according accumulation_scheduler
-                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
-
                 # -----------------
                 # RUN TNG EPOCH
                 # -----------------
@@ -369,15 +372,14 @@ class TrainerTrainLoopMixin(ABC):
                     self.reduce_lr_on_plateau_scheduler.step(val_loss)
 
                 if self.max_steps and self.max_steps == self.global_step:
-                    self.main_progress_bar.close()
-                    model.on_train_end()
-                    self.on_train_end()
+                    self.run_training_teardown()
                     return
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
+                # TODO wrap this logic into the callback
                 if self.enable_early_stop and not self.disable_validation and is_val_epoch:
                     if ((met_min_epochs and met_min_steps) or self.fast_dev_run):
                         should_stop = self.early_stop_callback.on_epoch_end(self, self.get_model())
@@ -385,7 +387,6 @@ class TrainerTrainLoopMixin(ABC):
                         stop = should_stop and met_min_epochs
                         if stop:
                             self.run_training_teardown()
-                            self.on_train_end()
                             return
 
             self.run_training_teardown()
@@ -394,19 +395,17 @@ class TrainerTrainLoopMixin(ABC):
             log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.run_training_teardown()
 
-        # Train end callbacks
-        self.on_train_end()
-
     def run_training_epoch(self):
 
-        # Epoch begin callbacks
-        self.on_epoch_start()
-
-        # before epoch hook
-        if self.is_function_implemented('on_epoch_start'):
-            model = self.get_model()
-            with self.profiler.profile('on_epoch_start'):
-                model.on_epoch_start()
+        # Epoch start events
+        with self.profiler.profile('on_epoch_start'):
+            # callbacks
+            self.on_epoch_start()
+            # changing gradient according accumulation_scheduler
+            self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+            # model hooks
+            if self.is_function_implemented('on_epoch_start'):
+                self.get_model().on_epoch_start()
 
         # reset train dataloader
         if self.reload_dataloaders_every_epoch:
@@ -485,14 +484,13 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-        # epoch end hook
-        if self.is_function_implemented('on_epoch_end'):
-            model = self.get_model()
-            with self.profiler.profile('on_epoch_end'):
-                model.on_epoch_end()
-
-        # Epoch begin callbacks
-        self.on_epoch_end()
+        # Epoch end events
+        with self.profiler.profile('on_epoch_end'):
+            # callbacks
+            self.on_epoch_end()
+            # model hooks
+            if self.is_function_implemented('on_epoch_end'):
+                self.get_model().on_epoch_end()
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
@@ -507,17 +505,15 @@ class TrainerTrainLoopMixin(ABC):
         if batch is None:
             return 0, grad_norm_dic, {}
 
-        # Batch begin callbacks
-        self.on_batch_start()
-
-        # hook
-        if self.is_function_implemented('on_batch_start'):
-            model_ref = self.get_model()
-            with self.profiler.profile('on_batch_start'):
-                response = model_ref.on_batch_start(batch)
-
-            if response == -1:
-                return -1, grad_norm_dic, {}
+        # Batch start events
+        with self.profiler.profile('on_batch_start'):
+            # callbacks
+            self.on_batch_start()
+            # hooks
+            if self.is_function_implemented('on_batch_start'):
+                response = self.get_model().on_batch_start(batch)
+                if response == -1:
+                    return -1, grad_norm_dic, {}
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -612,14 +608,13 @@ class TrainerTrainLoopMixin(ABC):
                     self.batch_loss_value = 0
                     self.avg_loss = np.mean(self.running_loss[-100:])
 
-        # activate batch end hook
-        if self.is_function_implemented('on_batch_end'):
-            model = self.get_model()
-            with self.profiler.profile('on_batch_end'):
-                model.on_batch_end()
-
-        # Batch end callbacks
-        self.on_batch_end()
+        # Batch end events
+        with self.profiler.profile('on_batch_end'):
+            # callbacks
+            self.on_batch_end()
+            # model hooks
+            if self.is_function_implemented('on_batch_end'):
+                self.get_model().on_batch_end()
 
         # update progress bar
         if batch_idx % self.progress_bar_refresh_rate == 0:
@@ -635,12 +630,15 @@ class TrainerTrainLoopMixin(ABC):
         return 0, grad_norm_dic, all_log_metrics
 
     def run_training_teardown(self):
-        model = self.get_model()
-
         self.main_progress_bar.close()
 
+        # Train end events
         with self.profiler.profile('on_train_end'):
-            model.on_train_end()
+            # callbacks
+            self.on_train_end()
+            # model hooks
+            if self.is_function_implemented('on_train_end'):
+                self.get_model().on_train_end()
 
         if self.logger is not None:
             self.logger.finalize("success")

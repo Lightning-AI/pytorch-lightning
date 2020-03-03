@@ -44,8 +44,4 @@ Callback Class
         _del_model,
         _save_model,
         _abc_impl,
-        on_epoch_end,
-        on_train_end,
-        on_epoch_start,
         check_monitor_top_k,
-        on_train_start,

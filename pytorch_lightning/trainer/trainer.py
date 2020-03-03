@@ -618,7 +618,7 @@ class Trainer(TrainerIOMixin,
 
         # Init callbacks
         self.callbacks = callbacks
-        self.on_init_start(self)
+        self.on_init_start()
 
         # benchmarking
         self.benchmark = benchmark
@@ -808,7 +808,7 @@ class Trainer(TrainerIOMixin,
         self.init_amp(use_amp)
 
         # Callback system
-        self.on_init_end(self)
+        self.on_init_end()
 
     @property
     def slurm_job_id(self) -> int:
@@ -941,9 +941,6 @@ class Trainer(TrainerIOMixin,
         # bind logger
         model.logger = self.logger
 
-        # Fit begin callbacks
-        self.on_fit_start()
-
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
 
@@ -1005,9 +1002,6 @@ class Trainer(TrainerIOMixin,
             self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
-
-        # Fit end callbacks
-        self.on_fit_end()
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
