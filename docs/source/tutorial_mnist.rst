@@ -499,8 +499,8 @@ For a full guide on using hyperparameters, `check out the hyperparameters docs <
 
 
 
-Validation loop
----------------
+Validating
+----------
 
 For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
@@ -574,8 +574,8 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
-Testing loop
-------------
+Testing
+-------
 Once our research is done and we're about to publish or deploy a model, we normally want to figure out
 how it will generalize in the "real world." For this, we use a held-out split of the data for testing.
 
