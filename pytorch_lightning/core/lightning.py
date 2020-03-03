@@ -71,17 +71,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @property
     def hparams(self) -> Namespace:
         if not hasattr(self, '_hparams'):
-            self._hparams = Namespace()
-        if isinstance(self._hparams, Namespace):
-            hparams = self._hparams
-        else:
-            assert isinstance(self._hparams, dict)
-            hparams = Namespace(**self._hparams)
-        return hparams
+            return Namespace()
+        assert isinstance(self._hparams, dict)
+        return Namespace(**self._hparams)
 
     @hparams.setter
     def hparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         """Set the model hyper-parameters."""
+        if isinstance(params, Namespace):
+            params = vars(params)
         self._hparams = params
 
     def print(self, *args, **kwargs):
