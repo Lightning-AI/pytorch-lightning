@@ -496,10 +496,7 @@ class TrainerDPMixin(ABC):
         log.info(m)
 
         # continue training routine
-        try:
-            self.run_pretrain_routine(model)
-        except KeyboardInterrupt:
-            print('keyboard pressed...')
+        self.run_pretrain_routine(model)
 
         self.save_spawn_weights(model)
 

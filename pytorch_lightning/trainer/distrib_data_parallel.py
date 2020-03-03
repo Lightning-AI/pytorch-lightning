@@ -339,10 +339,7 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        try:
-            self.run_pretrain_routine(model)
-        except KeyboardInterrupt:
-            print('keyboard pressed...')
+        self.run_pretrain_routine(model)
 
         # when ddp ends, we save the model
         self.save_spawn_weights(model)
@@ -353,6 +350,7 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
+        print('-' * 100)
         if self.proc_rank == 0:
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
