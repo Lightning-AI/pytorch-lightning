@@ -1,5 +1,5 @@
 Hooks
------
+=====
 
 .. automodule:: pytorch_lightning.core.hooks
 
