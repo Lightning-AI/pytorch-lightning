@@ -58,6 +58,7 @@ PyTorch-Lightning Documentation
    single_gpu
    sequences
    training_tricks
+   transfer_learning
    tpu
    test_set
    optimizers
