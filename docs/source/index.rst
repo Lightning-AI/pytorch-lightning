@@ -27,8 +27,8 @@ PyTorch-Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Examples
-   :caption: Examples
+   :name: Community Examples
+   :caption: Community Examples
 
    examples
 

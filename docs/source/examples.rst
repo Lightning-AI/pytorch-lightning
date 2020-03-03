@@ -6,8 +6,9 @@
 
     Fast Aging GAN <https://github.com/PyTorchLightning/Fast-AgingGAN>
     Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
-    Recurrent Attentive Neural Process for Sequential Data <https://github.com/PyTorchLightning/attentive-neural-processes>
-    Siamese Neural Networks for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>
+    Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
+    Recurrent Attentive Neural Process <https://github.com/PyTorchLightning/attentive-neural-processes>
+    Siamese Nets for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>
     Speech Transformers <https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning>
     Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
     Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
