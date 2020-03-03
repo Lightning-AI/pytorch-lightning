@@ -630,7 +630,7 @@ You can also run the test from a saved lightning model
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
 
-.. warning:: .test() is not stable yet on TPUs.
+.. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
 Predicting
 ----------
