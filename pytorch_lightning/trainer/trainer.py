@@ -1195,6 +1195,7 @@ class Trainer(TrainerIOMixin,
             trainer.test(model)
         """
         self.testing = True
+        import pdb; pdb.set_trace()
         if model is not None:
             self.model = model
             self.fit(model)
