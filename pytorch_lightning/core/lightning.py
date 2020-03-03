@@ -268,6 +268,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 loss = nce_loss(loss)
                 return {'loss': loss}
 
+        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+
         If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
 
         .. code-block:: python
