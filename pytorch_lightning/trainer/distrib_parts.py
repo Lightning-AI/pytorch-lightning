@@ -494,7 +494,12 @@ class TrainerDPMixin(ABC):
         m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
             f'global rank: {self.tpu_global_core_rank}'
         log.info(m)
-        self.run_pretrain_routine(model)
+
+        # continue training routine
+        try:
+            self.run_pretrain_routine(model)
+        except KeyboardInterrupt:
+            print('keyboard pressed...')
 
         self.save_spawn_weights(model)
 

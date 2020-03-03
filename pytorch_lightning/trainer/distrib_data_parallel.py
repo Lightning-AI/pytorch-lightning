@@ -339,7 +339,10 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        self.run_pretrain_routine(model)
+        try:
+            self.run_pretrain_routine(model)
+        except KeyboardInterrupt:
+            print('keyboard pressed...')
 
         # when ddp ends, we save the model
         self.save_spawn_weights(model)
