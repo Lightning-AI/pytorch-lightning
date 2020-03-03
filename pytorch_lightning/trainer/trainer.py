@@ -978,7 +978,6 @@ class Trainer(TrainerIOMixin,
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
-            print('0' * 100)
             self.load_spawn_weights(model)
             self.model = model
 
@@ -1194,12 +1193,18 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
             trainer.test(model)
         """
+
         self.testing = True
-        import pdb; pdb.set_trace()
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.model is not None and (self.use_ddp or self.use_tpu):
+        elif self.use_ddp or self.use_tpu:
+            import pdb; pdb.set_trace()
+            # attempt to load weights from a ddp process
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            if os.path.exists(path):
+                self.load_spawn_weights(self.model)
+
             self.fit(self.model)
         else:
             self.run_evaluation(test_mode=True)

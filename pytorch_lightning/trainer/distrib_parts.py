@@ -496,16 +496,10 @@ class TrainerDPMixin(ABC):
             f'global rank: {self.tpu_global_core_rank}'
         log.info(m)
 
-        def signal_handle(_signal, frame):
-            self.save_spawn_weights(model)
-
-        if self.proc_rank == 0:
-            signal.signal(signal.SIGINT, signal_handle)
-
         # continue training routine
         self.run_pretrain_routine(model)
 
-        # self.save_spawn_weights(model)
+        self.save_spawn_weights(model)
 
     def dp_train(self, model):
 

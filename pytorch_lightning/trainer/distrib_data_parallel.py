@@ -351,10 +351,8 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         if self.proc_rank == 0:
-            print('-' * 100)
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
-            print('saved checkpoint!!')
 
     def load_spawn_weights(self, original_model):
         """
@@ -372,7 +370,6 @@ class TrainerDDPMixin(ABC):
 
         # remove ddp weights
         os.remove(path)
-        print('loaded checkpoint!!')
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
