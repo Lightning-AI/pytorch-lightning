@@ -48,6 +48,9 @@ Now we can parametrize the LightningModule.
     hparams = parse_args()
     model = CoolMNIST(hparams)
 
+.. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
+    model using those hparams exactly.
+
 Trainer args
 ^^^^^^^^^^^^
 
