@@ -6,6 +6,7 @@ import warnings
 from abc import ABC
 from subprocess import call
 from typing import Union
+from copy import deepcopy
 
 import torch
 import torch.distributed as dist
@@ -235,7 +236,8 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
 
         if self.on_tpu:
-            checkpoint['state_dict'] = model.cpu().state_dict()
+            tpu_model = deepcopy(model).cpu()
+            checkpoint['state_dict'] = tpu_model.state_dict()
         else:
             checkpoint['state_dict'] = model.state_dict()
 
