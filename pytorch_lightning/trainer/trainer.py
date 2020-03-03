@@ -1190,6 +1190,7 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
             trainer.test(model)
         """
+        import pdb; pdb.set_trace()
         self.testing = True
         if model is not None:
             self.model = model
