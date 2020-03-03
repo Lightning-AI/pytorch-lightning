@@ -858,42 +858,7 @@ def test_testpass_overrides(tmpdir):
 
 
 @mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=argparse.Namespace(max_epochs=5,
-                                            checkpoint_callback=True,
-                                            early_stop_callback=None,
-                                            default_save_path=None,
-                                            gradient_clip_val=0,
-                                            process_position=0,
-                                            num_nodes=1,
-                                            gpus=None,
-                                            num_tpu_cores=None,
-                                            log_gpu_memory=None,
-                                            show_progress_bar=True,
-                                            overfit_pct=0.0,
-                                            track_grad_norm=-1,
-                                            check_val_every_n_epoch=1,
-                                            fast_dev_run=False,
-                                            accumulate_grad_batches=1,
-                                            min_epochs=1,
-                                            max_steps=None,
-                                            min_steps=None,
-                                            train_percent_check=1.0,
-                                            val_percent_check=1.0,
-                                            test_percent_check=1.0,
-                                            val_check_interval=1.0,
-                                            log_save_interval=100,
-                                            row_log_interval=10,
-                                            distributed_backend=None,
-                                            precision=32,
-                                            print_nan_grads=False,
-                                            weights_summary='full',
-                                            weights_save_path=None,
-                                            amp_level='O1',
-                                            num_sanity_val_steps=5,
-                                            truncated_bptt_steps=5,
-                                            resume_from_checkpoint=None,
-                                            profiler=None
-                                            ))
+            return_value=argparse.Namespace(**(Trainer.get_default_args())))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
     tutils.reset_seed()
@@ -905,7 +870,8 @@ def test_default_args(tmpdir):
     args = parser.parse_args()
     args.logger = logger
 
-    trainer = Trainer.from_default_args(args)
+    args.max_epochs = 5
+    trainer = Trainer.from_argparse_args(args)
 
     assert isinstance(trainer, Trainer)
     assert trainer.max_epochs == 5

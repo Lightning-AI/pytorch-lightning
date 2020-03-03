@@ -117,6 +117,7 @@ class Trainer(TrainerIOMixin,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            **kwargs
     ):
         r"""
 
@@ -827,8 +828,8 @@ class Trainer(TrainerIOMixin,
     def get_default_args():
         return vars(Trainer())
 
-    @staticmethod
-    def add_argparse_args(parent_parser):
+    @classmethod
+    def add_argparse_args(cls, parent_parser):
 
         parser = ArgumentParser(parents=[parent_parser])
 
@@ -840,44 +841,10 @@ class Trainer(TrainerIOMixin,
         return parser
 
     @classmethod
-    def from_default_args(cls, args):
+    def from_argparse_args(cls, args):
 
-        return Trainer(logger=args.logger,
-                       checkpoint_callback=args.checkpoint_callback,
-                       early_stop_callback=args.early_stop_callback,
-                       default_save_path=args.default_save_path,
-                       gradient_clip_val=args.gradient_clip_val,
-                       process_position=args.process_position,
-                       num_nodes=args.num_nodes,
-                       gpus=args.gpus,
-                       num_tpu_cores=args.num_tpu_cores,
-                       log_gpu_memory=args.log_gpu_memory,
-                       show_progress_bar=args.show_progress_bar,
-                       overfit_pct=args.overfit_pct,
-                       track_grad_norm=args.track_grad_norm,
-                       check_val_every_n_epoch=args.check_val_every_n_epoch,
-                       fast_dev_run=args.fast_dev_run,
-                       accumulate_grad_batches=args.accumulate_grad_batches,
-                       max_epochs=args.max_epochs,
-                       min_epochs=args.min_epochs,
-                       max_steps=args.max_steps,
-                       min_steps=args.min_steps,
-                       train_percent_check=args.train_percent_check,
-                       val_percent_check=args.val_percent_check,
-                       test_percent_check=args.test_percent_check,
-                       val_check_interval=args.val_check_interval,
-                       log_save_interval=args.log_save_interval,
-                       row_log_interval=args.row_log_interval,
-                       distributed_backend=args.distributed_backend,
-                       precision=args.precision,
-                       print_nan_grads=args.print_nan_grads,
-                       weights_summary=args.weights_summary,
-                       weights_save_path=args.weights_save_path,
-                       amp_level=args.amp_level,
-                       num_sanity_val_steps=args.num_sanity_val_steps,
-                       truncated_bptt_steps=args.truncated_bptt_steps,
-                       resume_from_checkpoint=args.resume_from_checkpoint,
-                       profiler=args.profiler)
+        params = vars(args)
+        return cls(**params)
 
     def __parse_gpu_ids(self, gpus):
         """Parse GPUs id.
