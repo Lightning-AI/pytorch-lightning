@@ -4,9 +4,9 @@ import re
 import signal
 import warnings
 from abc import ABC
+from argparse import Namespace
 from subprocess import call
 from typing import Union
-from copy import deepcopy
 
 import torch
 import torch.distributed as dist
@@ -238,7 +238,7 @@ class TrainerIOMixin(ABC):
         checkpoint['state_dict'] = model.state_dict()
 
         if hasattr(model, "hparams"):
-            checkpoint['hparams'] = vars(model.hparams)
+            checkpoint['hparams'] = vars(model.hparams) if isinstance(model.hparams, Namespace) else model.hparams
         else:
             warnings.warn(
                 "Did not find hyperparameters at model.hparams. Saving checkpoint without"
