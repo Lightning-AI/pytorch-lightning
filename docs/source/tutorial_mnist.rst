@@ -695,5 +695,58 @@ In this case, we've set this LightningModel to predict logits. But we could also
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
 
+Extensibility
+-------------
+Although lightning makes everything super simple, it doesn't sacrifice any flexibility or control.
+Lightning offers multiple ways of managing the training state.
 
+Hooks
+^^^^^
+Any part of the training, validation and testing loop can be modified.
+For instance, if you wanted to do your own backward pass, you would override the
+default implementation
+
+.. code-block:: python
+
+    def backward(self, use_amp, loss, optimizer):
+        if use_amp:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+With your own
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+        def backward(self, use_amp, loss, optimizer):
+            # do a custom way of backward
+            loss.backward(retain_graph=True)
+
+Or if you wanted to initialize ddp in a different way than the default one
+
+.. code-block:: python
+
+    def configure_ddp(self, model, device_ids):
+        # Lightning DDP simply routes to test_step, val_step, etc...
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
+        return model
+
+you could do your own:
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+        def configure_ddp(self, model, device_ids):
+
+            model = Horovod(model)
+            # model = Ray(model)
+            return model
 
