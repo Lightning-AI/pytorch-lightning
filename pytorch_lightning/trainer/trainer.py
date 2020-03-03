@@ -836,7 +836,7 @@ class Trainer(TrainerIOMixin,
 
         trainer_default_params = Trainer.default_attributes
 
-        for arg in trainer_default_args:
+        for arg in trainer_default_params:
             parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
 
         return parser
