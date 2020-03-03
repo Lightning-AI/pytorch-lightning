@@ -506,7 +506,7 @@ class TrainerDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
-        self.save_spawn_weights(model)
+        # self.save_spawn_weights(model)
 
     def dp_train(self, model):
 
