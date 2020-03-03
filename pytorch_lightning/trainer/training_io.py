@@ -6,6 +6,7 @@ import warnings
 from abc import ABC
 from subprocess import call
 from typing import Union
+from copy import deepcopy
 
 import torch
 import torch.distributed as dist
@@ -233,7 +234,9 @@ class TrainerIOMixin(ABC):
 
         # add the hparams and state_dict from the model
         model = self.get_model()
+
         checkpoint['state_dict'] = model.state_dict()
+
         if hasattr(model, "hparams"):
             checkpoint['hparams'] = vars(model.hparams)
         else:

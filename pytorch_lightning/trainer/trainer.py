@@ -959,7 +959,14 @@ class Trainer(TrainerIOMixin,
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
+
+                # track for predict
+                self.model = model
+
+                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+
+                # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
 
@@ -976,7 +983,14 @@ class Trainer(TrainerIOMixin,
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+
+            # track for predict
+            self.model = model
+
+            # train
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+
+            # load weights if not interrupted
             self.load_spawn_weights(model)
             self.model = model
 
@@ -1192,29 +1206,21 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
             trainer.test(model)
         """
+
         self.testing = True
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.model is not None and (self.use_ddp or self.use_tpu):
-            self.fit(self.model)
+        elif self.use_ddp or self.use_tpu:
+            # attempt to load weights from a spawn
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            test_model = self.model
+            if os.path.exists(path):
+                test_model = self.load_spawn_weights(self.model)
+
+            self.fit(test_model)
         else:
             self.run_evaluation(test_mode=True)
-
-
-class _PatchDataLoader(object):
-    r'''
-    Callable object for patching dataloaders passed into trainer.fit().
-    Use this class to override model.*_dataloader() and be pickle-compatible.
-
-    Args:
-        dataloader: Dataloader object to return when called.
-    '''
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
-        self.dataloader = dataloader
-
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
-        return self.dataloader
 
 
 class _PatchDataLoader(object):
