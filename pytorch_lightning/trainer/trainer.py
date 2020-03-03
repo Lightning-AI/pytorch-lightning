@@ -745,6 +745,7 @@ class Trainer(TrainerIOMixin,
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
+        self.ckpt_path = None
 
         # accumulated grads
         self.configure_accumulated_gradients(accumulate_grad_batches)
@@ -1092,7 +1093,6 @@ class Trainer(TrainerIOMixin,
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
         # set up checkpoint callback
-        self.ckpt_path = None
         self.configure_checkpoint_callback()
 
         # register auto-resubmit when on SLURM
