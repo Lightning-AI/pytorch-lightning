@@ -178,4 +178,10 @@ and now we can train MNIST or the gan using the command line interface!
     $ python main.py --model_name gan --encoder_layers 24
     $ python main.py --model_name mnist --layer_1_dim 128
 
+Hyperparameter Optimization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is fully compatible with the hyperparameter optimization libraries!
+Here are some useful ones:
 
+- Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>
+- Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
