@@ -423,7 +423,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         logger=False,
         default_save_path=tmpdir,
         early_stop_callback=False,
-        val_check_interval=0.5,
+        val_check_interval=1.,
     )
 
     # fit model
@@ -438,7 +438,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
 
-    for check in checkpoints[1::2]:
+    for check in checkpoints:
         next_model = _new_model()
         state = torch.load(check)
 
