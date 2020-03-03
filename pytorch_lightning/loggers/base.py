@@ -2,7 +2,7 @@ import argparse
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Dict
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
 
 def rank_zero_only(fn: Callable):

@@ -70,7 +70,7 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
    class MyLightningModule(pl.LightningModule):
 
        def __init__(self, hparams, ...):
-           self.set_hparams(hparams)
+           self.hparams = hparams
 
 Manual saving
 ^^^^^^^^^^^^^

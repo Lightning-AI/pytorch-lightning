@@ -29,7 +29,7 @@ Now we can parametrize the LightningModule.
     class CoolMNIST(pl.LightningModule):
       def __init__(self, hparams):
         super(CoolMNIST, self).__init__()
-        self.set_hparams(hparams)
+        self.hparams = hparams
 
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
         self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)

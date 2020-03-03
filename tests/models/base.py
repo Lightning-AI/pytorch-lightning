@@ -50,9 +50,7 @@ class TestModelBase(LightningModule):
         # init superclass
         super().__init__()
 
-        # accept also dict and convert it to Namespace locally
-        assert isinstance(hparams, (dict, Namespace))
-        self.set_hparams(hparams)
+        self.hparams = hparams
 
         self.batch_size = hparams.batch_size
 

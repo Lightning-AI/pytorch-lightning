@@ -79,7 +79,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             hparams = Namespace(**self._hparams)
         return hparams
 
-    def set_hparams(self, params: Union[Dict[str, Any], Namespace]):
+    @hparams.setter
+    def hparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         """Set the model hyper-parameters."""
         self._hparams = params
 
