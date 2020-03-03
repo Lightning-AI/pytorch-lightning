@@ -92,7 +92,7 @@ class TestTubeLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict, argparse.Namespace]):
+    def log_hyperparams(self, params: Union[dict, Namespace]):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         params = self._convert_params(params)
