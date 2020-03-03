@@ -76,22 +76,22 @@ Or add a test loop
 
 .. code_block:: python
 
-    class CoolModel(pl.LightningModule):
+        class CoolModel(pl.LightningModule):
 
-        def test_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self.forward(x)
-            return {'test_loss': F.cross_entropy(y_hat, y)}
+            def test_step(self, batch, batch_idx):
+                x, y = batch
+                y_hat = self.forward(x)
+                return {'test_loss': F.cross_entropy(y_hat, y)}
 
-        def test_end(self, outputs):
-            test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
-            return {'test_loss': test_loss_mean}
+            def test_end(self, outputs):
+                test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
+                return {'test_loss': test_loss_mean}
 
-        def test_dataloader(self):
-            # OPTIONAL
-            # can also return a list of test dataloaders
-            return DataLoader(MNIST(os.getcwd(), train=False, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
+            def test_dataloader(self):
+                # OPTIONAL
+                # can also return a list of test dataloaders
+                return DataLoader(MNIST(os.getcwd(), train=False, download=True,
+                                  transform=transforms.ToTensor()), batch_size=32)
 
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
