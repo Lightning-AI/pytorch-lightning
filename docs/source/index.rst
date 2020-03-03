@@ -56,14 +56,14 @@ PyTorch-Lightning Documentation
    hyperparameters
    multi_gpu
    weights_loading
+   optimizers
+   profiler
    single_gpu
    sequences
    training_tricks
    transfer_learning
    tpu
    test_set
-   optimizers
-   profiler
 
 .. toctree::
    :maxdepth: 1

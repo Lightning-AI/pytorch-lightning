@@ -7,7 +7,7 @@ For example, imaging we now want to train an Autoencoder to use as a feature ext
 Recall that `CoolMNIST` already defines all the dataloading etc... The only things
 that change in the `Autoencoder` model are the init, forward, training, validation and test step.
 
-.. code-block::
+.. code-block:: python
 
     class Encoder(torch.nn.Module):
         ...

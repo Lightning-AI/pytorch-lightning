@@ -35,6 +35,8 @@ Example
 
 We successfully extended functionality without polluting our super clean LightningModule research code
 
+---------
+
 .. automodule:: pytorch_lightning.callbacks.base
    :noindex:
    :exclude-members:
@@ -42,6 +44,8 @@ We successfully extended functionality without polluting our super clean Lightni
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+---------
 
 .. automodule:: pytorch_lightning.callbacks.early_stopping
    :noindex:
@@ -51,6 +55,8 @@ We successfully extended functionality without polluting our super clean Lightni
         _abc_impl,
         check_monitor_top_k,
 
+---------
+
 .. automodule:: pytorch_lightning.callbacks.model_checkpoint
    :noindex:
    :exclude-members:
@@ -58,6 +64,8 @@ We successfully extended functionality without polluting our super clean Lightni
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+---------
 
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
