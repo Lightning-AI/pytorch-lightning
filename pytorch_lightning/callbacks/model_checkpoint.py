@@ -20,7 +20,7 @@ class ModelCheckpoint(Callback):
 
                 # save epoch and val_loss in name
                 ModelCheckpoint(dirpath='/my/path/here', prefix='sample-mnist')
-                # saves file like: /my/path/here/sample-mnist_epoch_2.ckpt
+                # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
         monitor: quantity to monitor.
         verbose: verbosity mode, False or True.
         save_top_k: if `save_top_k == k`,
@@ -55,6 +55,8 @@ class ModelCheckpoint(Callback):
         checkpoint_callback = ModelCheckpoint('my_path')
         Trainer(checkpoint_callback=checkpoint_callback)
     """
+    #: checkpoint extension
+    EXTENSION = '.ckpt'
 
     def __init__(
             self,
@@ -118,11 +120,23 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, current: int) -> bool:
+    def check_monitor_top_k(self, current: float) -> bool:
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
+
+    def _get_available_filepath(self, current: float, epoch: int) -> str:
+        current_str = f'{current:.2f}' if current else 'NaN'
+        fname = f'{self.prefix}_epoch={epoch}_{self.monitor}={current_str}'
+
+        filepath = os.path.join(self.dirpath, fname + self.EXTENSION)
+        version_cnt = 0
+        while os.path.isfile(filepath):
+            # this epoch called before
+            filepath = os.path.join(self.dirpath, f'{fname}_v{version_cnt}' + self.EXTENSION)
+            version_cnt += 1
+        return filepath
 
     def on_validation_end(self, trainer, pl_module) -> None:
         # only run on main process
@@ -138,15 +152,10 @@ class ModelCheckpoint(Callback):
             return
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
-            filepath = os.path.join(self.dirpath, f'{self.prefix}_ckpt_epoch_{epoch}.ckpt')
-            version_cnt = 0
-            while os.path.isfile(filepath):
-                # this epoch called before
-                filepath = os.path.join(self.dirpath, f'{self.prefix}_ckpt_epoch_{epoch}_v{version_cnt}.ckpt')
-                version_cnt += 1
+            current = logs.get(self.monitor)
+            filepath = self._get_available_filepath(current, epoch)
 
             if self.save_top_k != -1:
-                current = logs.get(self.monitor)
 
                 if current is None:
                     warnings.warn(f'Can save best model only with {self.monitor} available,'
@@ -163,7 +172,7 @@ class ModelCheckpoint(Callback):
                     log.info('Epoch %05d: saving model to %s', epoch, filepath)
                 self._save_model(filepath)
 
-    def _do_check_save(self, filepath: str, current: int, epoch: int) -> None:
+    def _do_check_save(self, filepath: str, current: float, epoch: int) -> None:
         # remove kth
         if len(self.best_k_models) == self.save_top_k:
             delpath = self.kth_best_model
