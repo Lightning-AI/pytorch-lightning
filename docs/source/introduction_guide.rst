@@ -18,8 +18,8 @@ what each parts does. But at the end of the day, you write the same PyTorch code
 into the LightningModule template which means you keep ALL the flexibility without having to deal with
 any of the boilerplate code
 
-To show how Lightning works, we'll start with an MNIST classifier and move into
-a Variational Autoencoder and a Generative Adversarial Network (GAN).
+To show how Lightning works, we'll start with an MNIST classifier. We'll end showing how
+to use inheritance to very quickly create an AutoEncoder.
 
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
