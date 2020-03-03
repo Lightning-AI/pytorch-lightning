@@ -1094,7 +1094,6 @@ class Trainer(TrainerIOMixin,
         # set up checkpoint callback
         self.ckpt_path = None
         self.configure_checkpoint_callback()
-        print(self.ckpt_path)
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
