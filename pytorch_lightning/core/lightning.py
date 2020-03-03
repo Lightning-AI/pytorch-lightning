@@ -1114,7 +1114,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
         it stores the hyperparameters in the checkpoint if you initialized your LightningModule
         with an argument called `hparams` which is a Namespace (output of using argparse
-        to parse command line arguments) or dictionary of hyperparameters.
+        to parse command line arguments).
 
         Example
         -------
