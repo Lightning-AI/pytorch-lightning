@@ -1212,12 +1212,12 @@ class Trainer(TrainerIOMixin,
             self.model = model
             self.fit(model)
         elif self.use_ddp or self.use_tpu:
-            import pdb; pdb.set_trace()
             # attempt to load weights from a ddp process
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             if os.path.exists(path):
                 self.load_spawn_weights(self.model)
 
+            import pdb; pdb.set_trace()
             self.fit(self.model)
         else:
             self.run_evaluation(test_mode=True)
