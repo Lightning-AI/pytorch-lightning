@@ -145,6 +145,7 @@ class TrainerDDPMixin(ABC):
     use_amp: bool
     amp_level: str
     use_tpu: bool
+    ckpt_path: str
 
     @property
     @abstractmethod
@@ -340,10 +341,28 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
+        # when ddp ends, we save the model
+        self.save_spawn_weights(model)
 
     def save_spawn_weights(self, model):
-        path =
-        model.save_checkpoint()
+        """
+        Dump a temporary checkpoint after ddp ends to get weights out of the process
+        :param model:
+        :return:
+        """
+        path = os.path.join(self.ckpt_path, '__temp_weight_ddp_end.ckpt')
+        model.save_checkpoint(path)
+
+    def load_spawn_weights(self, model):
+        """
+        Load the temp weights saved in the process
+        :param model:
+        :return:
+        """
+        import pdb; pdb.set_trace()
+        path = os.path.join(self.ckpt_path, '__temp_weight_ddp_end.ckpt')
+        loaded_model = model.__class__.load_from_checkpoint(path)
+        return loaded_model
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:

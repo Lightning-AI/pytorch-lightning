@@ -960,6 +960,7 @@ class Trainer(TrainerIOMixin,
             else:
                 self.__set_random_port()
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+                self.load_spawn_weights(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -975,6 +976,7 @@ class Trainer(TrainerIOMixin,
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+            self.load_spawn_weights(model)
 
         # ON CPU
         else:
@@ -1090,6 +1092,7 @@ class Trainer(TrainerIOMixin,
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
         # set up checkpoint callback
+        self.ckpt_path = None
         self.configure_checkpoint_callback()
 
         # register auto-resubmit when on SLURM
