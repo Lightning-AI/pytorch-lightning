@@ -745,7 +745,6 @@ class Trainer(TrainerIOMixin,
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
-        self.ckpt_path = None
 
         # accumulated grads
         self.configure_accumulated_gradients(accumulate_grad_batches)

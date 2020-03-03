@@ -145,7 +145,7 @@ class TrainerDDPMixin(ABC):
     use_amp: bool
     amp_level: str
     use_tpu: bool
-    ckpt_path: str
+    default_save_path: str
 
     @property
     @abstractmethod
@@ -350,7 +350,7 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
-        path = os.path.join(self.ckpt_path, '__temp_weight_ddp_end.ckpt')
+        path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
         self.save_checkpoint(path)
 
     def load_spawn_weights(self, model):
@@ -360,7 +360,7 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         import pdb; pdb.set_trace()
-        path = os.path.join(self.ckpt_path, '__temp_weight_ddp_end.ckpt')
+        path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
         loaded_model = model.__class__.load_from_checkpoint(path)
         return loaded_model
 
