@@ -1,5 +1,9 @@
 Transfer Learning
 -----------------
+
+Using Pretrained Models
+^^^^^^^^^^^^^^^^^^^^^^^
+
 Sometimes we want to use a LightningModule as a pretrained model. This is fine because
 a LightningModule is just a `torch.nn.Module`!
 
@@ -31,3 +35,32 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
             ...
 
 We used our pretrained Autoencoder (a LightningModule) for transfer learning!
+
+Example: BERT (transformers)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is completely agnostic to what's used for tranfer learning so long
+as it is a `torch.nn.Module` subclass.
+
+.. code-block:: python
+
+    from transformers import BertModel
+
+    class BertMNLIFinetuner(pl.LightningModule):
+
+    def __init__(self):
+        super(BertMNLIFinetuner, self).__init__()
+
+        self.bert = BertModel.from_pretrained('bert-base-cased', output_attentions=True)
+        self.W = nn.Linear(bert.config.hidden_size, 3)
+        self.num_classes = 3
+
+
+    def forward(self, input_ids, attention_mask, token_type_ids):
+
+        h, _, attn = self.bert(input_ids=input_ids,
+                         attention_mask=attention_mask,
+                         token_type_ids=token_type_ids)
+
+        h_cls = h[:, 0]
+        logits = self.W(h_cls)
+        return logits, attn
