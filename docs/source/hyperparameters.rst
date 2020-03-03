@@ -183,5 +183,5 @@ Hyperparameter Optimization
 Lightning is fully compatible with the hyperparameter optimization libraries!
 Here are some useful ones:
 
-- Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>
-- Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
+- `Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>`_
+- `Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>`_
