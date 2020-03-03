@@ -82,7 +82,7 @@ We used a pretrained model on imagenet, finetuned on CIFAR-10 to predict on CIFA
 In the non-academic world we would finetune on a tiny dataset you have and predict on your dataset.
 
 Example: BERT (NLP)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 Lightning is completely agnostic to what's used for transfer learning so long
 as it is a `torch.nn.Module` subclass.
 
