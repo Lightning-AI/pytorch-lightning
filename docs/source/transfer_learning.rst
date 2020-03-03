@@ -29,7 +29,7 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
             self.feature_extractor.freeze()
 
             # the autoencoder outputs a 100-dim representation and CIFAR-10 has 10 classes
-            self.classifier = nn.Liner(100, 10)
+            self.classifier = nn.Linear(100, 10)
 
         def forward(self, x):
             representations = self.feature_extractor(x)
