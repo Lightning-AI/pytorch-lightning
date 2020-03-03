@@ -105,10 +105,8 @@ class ModelCheckpoint(Callback):
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath: str):
-        try:
-            shutil.rmtree(filepath, ignore_errors=True)
-        except OSError:
-            os.remove(filepath)
+        # shutil.rmtree(filepath)
+        os.remove(filepath)
 
     def _save_model(self, dirpath: str):
         # make paths
@@ -171,6 +169,8 @@ class ModelCheckpoint(Callback):
             delpath = self.kth_best_model
             self.best_k_models.pop(self.kth_best_model)
             self._del_model(delpath)
+        elif len(self.best_k_models) > self.save_top_k:
+            print("")
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:

@@ -804,7 +804,7 @@ class Trainer(TrainerIOMixin,
         self.amp_level = amp_level
         self.precision = precision
 
-        assert self.precision == 32 or self.precision == 16, 'only 32 or 16 bit precision supported'
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
         if self.precision == 16 and num_tpu_cores is None:
             use_amp = True
