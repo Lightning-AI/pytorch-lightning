@@ -448,7 +448,56 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
-.. include:: hyperparameters.rst
+Hyperparameters
+---------------
+Normally, we don't hard-code the values to a model. We usually use the command line to
+modify the network. The `Trainer` can add all the available options to an ArgumentParser.
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+
+    # parametrize the network
+    parser.add_argument('--layer_1_dim', type=int, default=128)
+    parser.add_argument('--layer_1_dim', type=int, default=256)
+    parser.add_argument('--batch_size', type=int, default=64)
+    args = parser.parse_args()
+
+Now we can parametrize the LightningModule.
+
+.. code-block:: python
+    :emphasize-lines: 5,6,7,12,14
+
+    class CoolMNIST(pl.LightningModule):
+      def __init__(self, hparams):
+        super(CoolMNIST, self).__init__()
+        self.hparams = hparams
+
+        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
+        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
+        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+
+      def forward(self, x):
+        ...
+
+      def train_dataloader(self):
+        ...
+        return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
+
+      def configure_optimizers(self):
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+
+    hparams = parse_args()
+    model = CoolMNIST(hparams)
+
+.. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
+    model using those hparams exactly.
+
+For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
+
+
 
 Validation loop
 ---------------
