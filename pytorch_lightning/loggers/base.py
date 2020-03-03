@@ -100,9 +100,12 @@ class LoggerCollection(LightningLoggerBase):
         super().__init__()
         self._logger_iterable = logger_iterable
 
+    def __getitem__(self, index: int) -> LightningLoggerBase:
+        return [logger for logger in self._logger_iterable][index]
+
     @property
     def experiment(self) -> List[Any]:
-        return [logger.experiment() for logger in self._logger_iterable]
+        return [logger.experiment for logger in self._logger_iterable]
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
@@ -119,11 +122,7 @@ class LoggerCollection(LightningLoggerBase):
     def close(self):
         [logger.close() for logger in self._logger_iterable]
 
-    @property
-    def rank(self) -> int:
-        return self._rank
-
-    @rank.setter
+    @LightningLoggerBase.rank.setter
     def rank(self, value: int):
         self._rank = value
         for logger in self._logger_iterable:

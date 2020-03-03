@@ -277,6 +277,7 @@ def get_human_readable_count(number):
     """
     Abbreviates an integer number with K, M, B, T for thousands, millions,
     billions and trillions, respectively.
+
     Examples:
         123     -> 123
         1234    -> 1 K       (one thousand)
@@ -284,8 +285,9 @@ def get_human_readable_count(number):
         3e9     -> 3 B       (three billion)
         4e12    -> 4 T       (four trillion)
         5e15    -> 5,000 T
+
     :param number: a positive integer number
-    :returns a string formatted according to the pattern described above.
+    :return: a string formatted according to the pattern described above.
     """
     assert number >= 0
     labels = [' ', 'K', 'M', 'B', 'T']

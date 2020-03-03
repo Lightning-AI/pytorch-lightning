@@ -1,5 +1,5 @@
 """
-Log using `mlflow <https://mlflow.org>'_
+Log using `mlflow <https://mlflow.org>`_
 
 .. code-block:: python
 
@@ -31,7 +31,8 @@ from typing import Optional, Dict, Any
 try:
     import mlflow
 except ImportError:
-    raise ImportError('Missing mlflow package.')
+    raise ImportError('You want to use `mlflow` logger which is not installed yet,'
+                      ' install it with `pip install mlflow`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
@@ -79,7 +80,7 @@ class MLFlowLogger(LightningLoggerBase):
         if expt:
             self._expt_id = expt.experiment_id
         else:
-            logger.warning(f"Experiment with name {self.experiment_name} not found. Creating it.")
+            logger.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
             self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
 
         run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
@@ -96,9 +97,7 @@ class MLFlowLogger(LightningLoggerBase):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                logger.warning(
-                    f"Discarding metric with string value {k}={v}"
-                )
+                logger.warning(f'Discarding metric with string value {k}={v}.')
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
@@ -106,7 +105,7 @@ class MLFlowLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status: str = "FINISHED"):
+    def finalize(self, status: str = 'FINISHED'):
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)

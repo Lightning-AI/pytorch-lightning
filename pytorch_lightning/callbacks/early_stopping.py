@@ -64,8 +64,6 @@ class EarlyStopping(Callback):
         self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
 
-        self.on_train_start(None, None)
-
     def check_metrics(self, logs):
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'

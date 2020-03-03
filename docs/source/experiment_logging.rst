@@ -22,13 +22,13 @@ To use CometLogger as your logger do the following.
     )
    trainer = Trainer(logger=comet_logger)
 
-The CometLogger is available anywhere in your LightningModule
+The CometLogger is available anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
@@ -52,13 +52,13 @@ To use Neptune.ai as your logger do the following.
     )
    trainer = Trainer(logger=neptune_logger)
 
-The Neptune.ai is available anywhere in your LightningModule
+The Neptune.ai is available anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
@@ -76,13 +76,13 @@ To use `Tensorboard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your
    logger = TensorBoardLogger("tb_logs", name="my_model")
    trainer = Trainer(logger=logger)
 
-The TensorBoardLogger is available anywhere in your LightningModule
+The TensorBoardLogger is available anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
@@ -102,13 +102,13 @@ To use TestTube as your logger do the following.
    logger = TestTubeLogger("tb_logs", name="my_model")
    trainer = Trainer(logger=logger)
 
-The TestTubeLogger is available anywhere in your LightningModule
+The TestTubeLogger is available anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
@@ -127,13 +127,13 @@ To use Wandb as your logger do the following.
    wandb_logger = WandbLogger()
    trainer = Trainer(logger=wandb_logger)
 
-The Wandb logger is available anywhere in your LightningModule
+The Wandb logger is available anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
@@ -151,12 +151,17 @@ PyTorch-Lightning supports use of multiple loggers, just pass a list to the `Tra
    logger2 = TestTubeLogger("tt_logs", name="my_model")
    trainer = Trainer(logger=[logger1, logger2])
    
-The loggers are available as a list anywhere in your LightningModule
+The loggers are available as a list anywhere except ``__init__`` in your LightningModule
 
 .. code-block:: python
 
    class MyModule(pl.LightningModule):
 
-      def __init__(self, ...):
+      def any_lightning_module_function_or_hook(self, ...):
          some_img = fake_image()
+
+         # Option 1
          self.logger.experiment[0].add_image('generated_images', some_img, 0)
+
+         # Option 2
+         self.logger[0].experiment.add_image('generated_images', some_img, 0)

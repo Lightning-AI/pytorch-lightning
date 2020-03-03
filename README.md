@@ -48,14 +48,17 @@ pip install pytorch-lightning
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
-
 ## Demo  
 [Copy and run this COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
-## What is it?  
-Lightning is a very lightweight wrapper on PyTorch that decouples the science code from the engineering code. It's more of a style-guide than a framework. By refactoring your code, we can automate most of the non-research code.  
+## What is it?
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. 
 
-To use Lightning, simply refactor your research code into the [LightningModule](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it) format (the science) and Lightning will automate the rest (the engineering). Lightning guarantees tested, correct, modern best practices for the automated parts.
+By refactoring your code, we can automate most of the non-research code. Lightning guarantees tested, correct, modern best practices for the automated parts.  
+
+Here's an example of how to organize PyTorch code into the LightningModule.
+
+![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg) 
 
 - If you are a researcher, Lightning is infinitely flexible, you can modify everything down to the way .backward is called or distributed is set up. 
 - If you are a scientist or production team, lightning is very simple to use with best practice defaults.
@@ -68,7 +71,10 @@ This is how lightning separates the science (red) from the engineering (blue).
 ![Overview](docs/source/_static/images/pl_overview.gif)
 
 ## How much effort is it to convert?
-You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/how-to-refactor-your-pytorch-code-to-get-these-42-benefits-of-pytorch-lighting-6fdd0dc97538)
+You're probably tired of switching frameworks at this point. But it is a very quick process to refactor into the Lightning format (ie: hours). [Check out this tutorial](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
+
+## What are the differences with PyTorch?    
+If you're wondering what you gain out of refactoring your PyTorch code, [read this comparison!](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09)
 
 ## Starting a new project?   
 [Use our seed-project aimed at reproducibility!](https://github.com/PytorchLightning/pytorch-lightning-conference-seed)     
@@ -392,13 +398,14 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 
 #### Leads
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
-- Jirka Borovec [(Borda)](https://github.com/Borda)
+- Jirka Borovec [(Borda)](https://github.com/Borda) (-_-)
 - Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
 - Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
 
 #### Core Maintainers
 
 - Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Jeff Ling [(jeffling)](https://github.com/jeffling)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 

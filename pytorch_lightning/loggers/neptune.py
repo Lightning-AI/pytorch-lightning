@@ -15,11 +15,11 @@ try:
     from neptune.experiments import Experiment
 except ImportError:
     raise ImportError('You want to use `neptune` logger which is not installed yet,'
-                      ' please install it e.g. `pip install neptune-client`.')
+                      ' install it with `pip install neptune-client`.')
 
+import torch
 from torch import is_tensor
 
-# from .base import LightningLoggerBase, rank_zero_only
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 logger = getLogger(__name__)
@@ -103,8 +103,10 @@ class NeptuneLogger(LightningLoggerBase):
                Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
                If None is passed, Python file from which experiment was created will be uploaded.
                Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
-               For example, you can pass '*.py' to upload all python source files from the current directory.
-               For recursion lookup use '**/*.py' (for Python 3.5 and later). For more information see glob library.
+               For example, you can pass '\*.py'
+                to upload all python source files from the current directory.
+               For recursion lookup use '\**/\*.py' (for Python 3.5 and later).
+               For more information see glob library.
             params (dict|None): Optional. Parameters of the experiment. After experiment creation params are read-only.
                Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
                viewed in experiments view as a column.
@@ -128,15 +130,15 @@ class NeptuneLogger(LightningLoggerBase):
         self._kwargs = kwargs
 
         if offline_mode:
-            self.mode = "offline"
+            self.mode = 'offline'
             neptune.init(project_qualified_name='dry-run/project',
                          backend=neptune.OfflineBackend())
         else:
-            self.mode = "online"
+            self.mode = 'online'
             neptune.init(api_token=self.api_key,
                          project_qualified_name=self.project_name)
 
-        logger.info(f"NeptuneLogger was initialized in {self.mode} mode")
+        logger.info(f'NeptuneLogger was initialized in {self.mode} mode')
 
     @property
     def experiment(self) -> Experiment:
@@ -164,25 +166,22 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: argparse.Namespace):
         for key, val in vars(params).items():
-            self.experiment.set_property(f"param__{key}", val)
+            self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(
+            self,
+            metrics: Dict[str, Union[torch.Tensor, float]],
+            step: Optional[int] = None
+    ):
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-
         for key, val in metrics.items():
-            if is_tensor(val):
-                val = val.cpu().detach()
-
-            if step is None:
-                self.experiment.log_metric(key, val)
-            else:
-                self.experiment.log_metric(key, x=step, y=val)
+            self.log_metric(key, val, step=step)
 
     @rank_zero_only
     def finalize(self, status: str):
@@ -190,20 +189,25 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        if self.mode == "offline":
-            return "offline-name"
+        if self.mode == 'offline':
+            return 'offline-name'
         else:
             return self.experiment.name
 
     @property
     def version(self) -> str:
-        if self.mode == "offline":
-            return "offline-id-1234"
+        if self.mode == 'offline':
+            return 'offline-id-1234'
         else:
             return self.experiment.id
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: float, step: Optional[int] = None):
+    def log_metric(
+            self,
+            metric_name: str,
+            metric_value: Union[torch.Tensor, float, str],
+            step: Optional[int] = None
+    ):
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
@@ -211,6 +215,9 @@ class NeptuneLogger(LightningLoggerBase):
             metric_value: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
+        if is_tensor(metric_value):
+            metric_value = metric_value.cpu().detach()
+
         if step is None:
             self.experiment.log_metric(metric_name, metric_value)
         else:
@@ -225,10 +232,7 @@ class NeptuneLogger(LightningLoggerBase):
             text: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        if step is None:
-            self.experiment.log_metric(log_name, text)
-        else:
-            self.experiment.log_metric(log_name, x=step, y=text)
+        self.log_metric(log_name, text, step=step)
 
     @rank_zero_only
     def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None):
@@ -275,6 +279,6 @@ class NeptuneLogger(LightningLoggerBase):
                 If multiple - comma separated - str are passed, all of them are added as tags.
                 If list of str is passed, all elements of the list are added as tags.
         """
-        if not isinstance(tags, Iterable):
+        if str(tags) == tags:
             tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)

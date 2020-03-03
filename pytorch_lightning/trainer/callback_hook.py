@@ -13,24 +13,14 @@ class TrainerCallbackHookMixin(ABC):
         self.get_model: Callable = ...
 
     def on_init_start(self):
-        """Called when the trainer initialization begins."""
+        """Called when the trainer initialization begins, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_init_start(self, None)
+            callback.on_init_start(self)
 
     def on_init_end(self):
-        """Called when the trainer initialization ends."""
+        """Called when the trainer initialization ends, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_init_end(self, self.get_model())
-
-    def on_fit_start(self):
-        """Called when the fit begins."""
-        for callback in self.callbacks:
-            callback.on_fit_start(self, self.get_model())
-
-    def on_fit_end(self):
-        """Called when the fit ends."""
-        for callback in self.callbacks:
-            callback.on_fit_end(self, self.get_model())
+            callback.on_init_end(self)
 
     def on_epoch_start(self):
         """Called when the epoch begins."""

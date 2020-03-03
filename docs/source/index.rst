@@ -11,7 +11,7 @@ PyTorch-Lightning Documentation
    :name: start
    :caption: Start Here
 
-   new-project
+   tutorial_mnist
 
 .. toctree::
    :maxdepth: 4
@@ -19,9 +19,11 @@ PyTorch-Lightning Documentation
    :caption: Python API
 
    callbacks
+   hooks
    lightning-module
    loggers
    trainer
+
 
 .. toctree::
    :maxdepth: 1
@@ -35,7 +37,7 @@ PyTorch-Lightning Documentation
    :name: Tutorials
    :caption: Tutorials
 
-   tutorials
+   From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
 
 .. toctree::
    :maxdepth: 1
@@ -43,7 +45,6 @@ PyTorch-Lightning Documentation
    :caption: Common Use Cases
 
    apex
-   checkpointing
    slurm
    debugging
    experiment_logging
@@ -52,6 +53,7 @@ PyTorch-Lightning Documentation
    fast_training
    hooks
    multi_gpu
+   weights_loading
    single_gpu
    sequences
    training_tricks
@@ -69,6 +71,7 @@ PyTorch-Lightning Documentation
    CODE_OF_CONDUCT.md
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
+   PULL_REQUEST_TEMPLATE.md
    governance.md
 
 Indices and tables

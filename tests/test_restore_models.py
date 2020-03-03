@@ -126,6 +126,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    trainer.test()
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
@@ -139,6 +140,10 @@ def test_load_model_from_checkpoint(tmpdir):
     # test that hparams loaded correctly
     for k, v in vars(hparams).items():
         assert getattr(pretrained_model.hparams, k) == v
+
+    # assert weights are the same
+    for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
+        assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -203,7 +208,7 @@ def test_dp_resume(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=2,
+        max_epochs=3,
         gpus=2,
         distributed_backend='dp',
     )
@@ -240,7 +245,7 @@ def test_dp_resume(tmpdir):
     new_logger = tutils.get_test_tube_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.2
+    trainer_options['train_percent_check'] = 0.5
     trainer_options['val_percent_check'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
@@ -267,68 +272,6 @@ def test_dp_resume(tmpdir):
     # test freeze on gpu
     model.freeze()
     model.unfreeze()
-
-
-def test_cpu_restore_training(tmpdir):
-    """Verify continue training session on CPU."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
-
-    # logger file to get meta
-    test_logger_version = 10
-    logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-
-    trainer_options = dict(
-        max_epochs=8,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1)
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    # Increment since we've finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
-
-    # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-    trainer_options = dict(
-        max_epochs=2,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=new_logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-    )
-    trainer = Trainer(**trainer_options)
-    model = LightningTestModel(hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch
-        assert trainer.current_epoch >= 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        trainer.model.eval()
-        for dataloader in trainer.val_dataloaders:
-            tutils.run_prediction(dataloader, trainer.model)
-
-    model.on_train_start = assert_good_acc
-
-    # by calling fit again, we trigger training, loading weights from the cluster
-    # and our hook to predict using current model before any more weight updates
-    trainer.fit(model)
 
 
 def test_model_saving_loading(tmpdir):
@@ -377,8 +320,10 @@ def test_model_saving_loading(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path)
+    model_2 = LightningTestModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        tags_csv=tags_path
+    )
     model_2.eval()
 
     # make prediction

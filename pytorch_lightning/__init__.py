@@ -24,9 +24,6 @@ if __LIGHTNING_SETUP__:
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
-    import logging as log
-    log.basicConfig(level=log.INFO)
-
     from .core import data_loader, LightningModule
     from .trainer import Trainer
     from .callbacks import Callback

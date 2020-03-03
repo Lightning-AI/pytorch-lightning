@@ -11,20 +11,12 @@ import abc
 class Callback(abc.ABC):
     """Abstract base class used to build new callbacks."""
 
-    def on_init_start(self, trainer, pl_module):
-        """Called when the trainer initialization begins."""
-        assert pl_module is None
-
-    def on_init_end(self, trainer, pl_module):
-        """Called when the trainer initialization ends."""
+    def on_init_start(self, trainer):
+        """Called when the trainer initialization begins, model has not yet been set."""
         pass
 
-    def on_fit_start(self, trainer, pl_module):
-        """Called when the fit begins."""
-        pass
-
-    def on_fit_end(self, trainer, pl_module):
-        """Called when the fit ends."""
+    def on_init_end(self, trainer):
+        """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
     def on_epoch_start(self, trainer, pl_module):
