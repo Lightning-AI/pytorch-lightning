@@ -961,6 +961,7 @@ class Trainer(TrainerIOMixin,
                 self.__set_random_port()
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
                 self.load_spawn_weights(model)
+                self.model = model
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -977,6 +978,7 @@ class Trainer(TrainerIOMixin,
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
             self.load_spawn_weights(model)
+            self.model = model
 
         # ON CPU
         else:
