@@ -5,6 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from typing import Optional, Union, Dict, Callable
 
 import torch
 import torch.distributed as dist
@@ -1090,77 +1091,35 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
         r"""
-        You should use `load_from_checkpoint` instead!
-        However, if your .ckpt weights don't have the hyperparameters saved, use this method  to pass
-        in a .csv with the hparams you'd like to use. These will  be converted  into a argparse.Namespace
-        and passed into  your LightningModule for use.
-
-        Args:
-
-            weights_path (str): Path to a PyTorch checkpoint
-            tags_csv (str): Path to a .csv with two columns (key, value) as in this
-
-            Example::
-                key,value
-                drop_prob,0.2
-                batch_size,32
-
-            map_location (dict | str | torch.device | function):
-                If your checkpoint saved a GPU model and you now load on CPUs
-                or a different number of GPUs, use this to map to the new setup
-                (example: {'cuda:1':'cuda:0'}).
-                The behaviour is the same as in
-                `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
-
-        Return:
-            LightningModule with loaded weights and hyperparameters (if available).
-
-        Example
-        -------
-        .. code-block:: python
-
-            pretrained_model = MyLightningModule.load_from_metrics(
-                weights_path='/path/to/pytorch_checkpoint.ckpt',
-                tags_csv='/path/to/hparams_file.csv',
-                on_gpu=True,
-                map_location=None
-            )
-
-            # predict
-            pretrained_model.eval()
-            pretrained_model.freeze()
-            y_hat = pretrained_model(x)
+        Warning:
+            Deprecated in version 0.7.0.
+            You should use `load_from_checkpoint` instead.
+            Will be removed in v0.9.0.
         """
-
-        hparams = load_hparams_from_tags_csv(tags_csv)
-        hparams.__setattr__('on_gpu', False)
-
-        if map_location is not None:
-            checkpoint = torch.load(weights_path, map_location=map_location)
-        else:
-            checkpoint = torch.load(weights_path, map_location=lambda storage, loc: storage)
-
-        # add the hparams from csv file to checkpoint
-        checkpoint['hparams'] = vars(hparams)
-
-        model = cls._load_model_state(checkpoint)
-        return model
+        warnings.warn(
+            "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
+            " The deprecated method will be removed in v0.9.0.", DeprecationWarning
+        )
+        return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
-    def load_from_checkpoint(cls, checkpoint_path, map_location=None):
+    def load_from_checkpoint(
+            cls,
+            checkpoint_path: str,
+            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+            tags_csv: Optional[str] = None,
+    ) -> 'LightningModule':
         r"""
 
         Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
-        it  stores  the hyperparameters in the checkpoint if you initialized your  LightningModule
-        with an argument  called `hparams` which is a Namespace or dictionary of hyperparameters
+        it stores the hyperparameters in the checkpoint if you initialized your LightningModule
+        with an argument called `hparams` which is a Namespace (output of using argparse
+        to parse command line arguments) or dictionary of hyperparameters.
 
         Example
         -------
         .. code-block:: python
 
-            # --------------
-            # Case 1
-            # when using Namespace (output of using Argparse to parse command line arguments)
             from argparse import Namespace
             hparams = Namespace(**{'learning_rate': 0.1})
 
@@ -1171,12 +1130,25 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     self.learning_rate = hparams.learning_rate
 
         Args:
-            checkpoint_path (str): Path to checkpoint.
-            map_location (dict | str | torch.device | function):
+            checkpoint_path: Path to checkpoint.
+            map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in
                 `torch.load <https://pytorch.org/docs/stable/torch.html#torch.load>`_.
+            tags_csv: Optional path to a .csv file with two columns (key, value)
+                as in this example::
+
+                    key,value
+                    drop_prob,0.2
+                    batch_size,32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a .csv file with the hparams you'd like to use.
+                These will be converted into a argparse.Namespace and passed into your
+                LightningModule for use.
 
         Return:
             LightningModule with loaded weights and hyperparameters (if available).
@@ -1185,19 +1157,37 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         -------
         .. code-block:: python
 
-            # load weights without mapping
+            # load weights without mapping ...
             MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
-            # load weights mapping all weights from GPU 1 to GPU 0
+            # or load weights mapping all weights from GPU 1 to GPU 0 ...
             map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt', map_location=map_location)
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
 
+            # or load weights and hyperparameters from separate files.
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                tags_csv='/path/to/hparams_file.csv'
+            )
+
+            # predict
+            pretrained_model.eval()
+            pretrained_model.freeze()
+            y_hat = pretrained_model(x)
         """
-
         if map_location is not None:
             checkpoint = torch.load(checkpoint_path, map_location=map_location)
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+
+        if tags_csv is not None:
+            # add the hparams from csv file to checkpoint
+            hparams = load_hparams_from_tags_csv(tags_csv)
+            hparams.__setattr__('on_gpu', False)
+            checkpoint['hparams'] = vars(hparams)
 
         model = cls._load_model_state(checkpoint)
         return model

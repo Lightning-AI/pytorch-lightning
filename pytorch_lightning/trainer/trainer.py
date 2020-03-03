@@ -1211,6 +1211,21 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
+class _PatchDataLoader(object):
+    r'''
+    Callable object for patching dataloaders passed into trainer.fit().
+    Use this class to override model.*_dataloader() and be pickle-compatible.
+
+    Args:
+        dataloader: Dataloader object to return when called.
+    '''
+    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+        self.dataloader = dataloader
+
+    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+        return self.dataloader
+
+
 def _set_dataloader(model, dataloader, attribute):
     r'''
     Check dataloaders passed to .fit() method if they are pytorch DataLoader
