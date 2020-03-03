@@ -489,7 +489,7 @@ class TrainerDPMixin(ABC):
 
         # init 16 bit for TPU
         if self.precision == 16:
-            os.environ['XLA_USE_BF16'] = 1
+            os.environ['XLA_USE_BF16'] = str(1)
 
         m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
             f'global rank: {self.tpu_global_core_rank}'
