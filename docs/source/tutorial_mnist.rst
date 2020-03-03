@@ -775,4 +775,10 @@ for hooks that you might care about
         def on_train_end(self, trainer, pl_module):
             print('do something when training ends')
 
-For a full list of the 12+ hooks see the `Callback docs <callbacks.rst#callback-class>`_
+And pass the callbacks into the trainer
+
+.. code-block:: python
+
+    Trainer(callbacks=[MyPrintingCallback()])
+
+.. note:: See full list of 12+ hooks in the `Callback docs <callbacks.rst#callback-class>`_
