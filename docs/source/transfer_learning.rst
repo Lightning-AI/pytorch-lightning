@@ -38,7 +38,50 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 We used our pretrained Autoencoder (a LightningModule) for transfer learning!
 
-Example: BERT (transformers)
+Example: Imagenet (computer Vision)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    import torchvision.models as models
+
+    class ImagenetTranferLearning(pl.LightingModule):
+        def __init__(self):
+            # init a pretrained resnet
+            num_target_classes = 10
+            self.feature_extractor = model.resnet50(pretrained=True, num_classes=num_target_classes)
+            self.feature_extractor.eval()
+
+            # use the pretrained model to classify cifar-10 (10 image classes)
+            self.classifier = nn.Linear(2048, num_target_classes)
+
+        def forward(self, x):
+            representations = self.feature_extractor(x)
+            x = self.classifier(representations)
+            ...
+
+Finetune
+
+.. code-block:: python
+
+    model = ImagenetTranferLearning()
+    trainer = Trainer()
+    trainer.fit(model)
+
+And use it to predict your data of interest
+
+.. code-block:: python
+
+    model = ImagenetTranferLearning.load_from_checkpoint(PATH)
+    model.freeze()
+
+    x = some_images_from_cifar10()
+    predictions = model(x)
+
+We used a pretrained model on imagenet, finetuned on CIFAR-10 to predict on CIFAR-10.
+In the non-academic world we would finetune on a tiny dataset you have and predict on your dataset.
+
+Example: BERT (NLP)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Lightning is completely agnostic to what's used for transfer learning so long
 as it is a `torch.nn.Module` subclass.
