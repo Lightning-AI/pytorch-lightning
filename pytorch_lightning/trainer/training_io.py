@@ -233,7 +233,12 @@ class TrainerIOMixin(ABC):
 
         # add the hparams and state_dict from the model
         model = self.get_model()
-        checkpoint['state_dict'] = model.state_dict()
+
+        if self.on_tpu:
+            checkpoint['state_dict'] = model.cpu().state_dict()
+        else:
+            checkpoint['state_dict'] = model.state_dict()
+
         if hasattr(model, "hparams"):
             checkpoint['hparams'] = vars(model.hparams)
         else:
