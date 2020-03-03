@@ -1192,11 +1192,12 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
             trainer.test(model)
         """
-        import pdb; pdb.set_trace()
         self.testing = True
         if model is not None:
             self.model = model
             self.fit(model)
+        elif self.model is not None and self.use_ddp or self.use_tpu:
+            self.fit(self.model)
         else:
             self.run_evaluation(test_mode=True)
 
