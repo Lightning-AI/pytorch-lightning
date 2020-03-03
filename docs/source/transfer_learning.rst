@@ -7,6 +7,8 @@ Using Pretrained Models
 Sometimes we want to use a LightningModule as a pretrained model. This is fine because
 a LightningModule is just a `torch.nn.Module`!
 
+.. note:: Remember that a pl.LightningModule is EXACTLY a torch.nn.Module but with more capabilities.
+
 Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 
