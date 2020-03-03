@@ -630,6 +630,8 @@ You can also run the test from a saved lightning model
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
 
+.. warning:: .test() is not stable yet on TPUs.
+
 Predicting
 ----------
 Again, a LightningModule is exactly the same as a PyTorch module. This means you can load it
@@ -692,4 +694,6 @@ In this case, we've set this LightningModel to predict logits. But we could also
 
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
+
+
 
