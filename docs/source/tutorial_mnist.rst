@@ -782,3 +782,41 @@ And pass the callbacks into the trainer
     Trainer(callbacks=[MyPrintingCallback()])
 
 .. note:: See full list of 12+ hooks in the `Callback docs <callbacks.rst#callback-class>`_
+
+Child Modules
+-------------
+Research projects tend to test different approaches to the same dataset.
+This is very easy to do in Lightning with inheritance.
+
+For example, imaging we now want to train a GAN to do image generation on MNIST.
+Recall that `CoolMNIST` already defines all the dataloading etc... The only things
+that change in the GoodGAN model are the training, validation and test step.
+
+.. code-block::
+
+    class CoolGAN(CoolMNIST):
+
+        def validation_step(self, batch, batch_idx):
+            return self._shared_eval(batch, batch_idx, 'val'):
+
+        def test_step(self, batch, batch_idx):
+            return self._shared_eval(batch, batch_idx, 'test'):
+
+        def validation_end(self, outputs):
+            return self._shared_eval_end(outputs, 'val'):
+
+        def test_end(self, outputs):
+            return self._shared_eval_end(outputs, 'test'):
+
+        def _shared_eval_end(self, outputs, prefix):
+            avg_loss = torch.stack([x[f'{prefix}_loss'] for x in outputs]).mean()
+            tensorboard_logs = {f'{prefix}_loss': avg_loss}
+            return {f'avg_{prefix}_loss': avg_loss, 'log': tensorboard_logs}
+
+        def _shared_eval(self, batch, batch_idx, prefix):
+            x, y = batch
+            logits = self.forward(x)
+            loss = F.nll_loss(logits, y)
+            return {f'{prefix}_loss': loss}
+
+
