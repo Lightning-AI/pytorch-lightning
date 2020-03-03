@@ -340,6 +340,11 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
+
+    def save_spawn_weights(self, model):
+        path =
+        model.save_checkpoint()
+
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name = root_node.split('[')[0]
