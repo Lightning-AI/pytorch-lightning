@@ -372,6 +372,7 @@ class TrainerDDPMixin(ABC):
 
         # remove ddp weights
         os.remove(path)
+        print('loaded checkpoint!!')
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
