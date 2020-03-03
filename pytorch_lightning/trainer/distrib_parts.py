@@ -337,6 +337,7 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 from abc import ABC, abstractmethod
 import logging as log
 import os
+import signal
 
 import torch
 
@@ -494,6 +495,13 @@ class TrainerDPMixin(ABC):
         m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
             f'global rank: {self.tpu_global_core_rank}'
         log.info(m)
+
+        def signal_handle(_signal, frame):
+            print(frame)
+            print('*' * 100)
+            self.save_spawn_weights(model)
+
+        signal.signal(signal.SIGINT, signal_handle)
 
         # continue training routine
         self.run_pretrain_routine(model)
