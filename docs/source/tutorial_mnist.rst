@@ -700,8 +700,9 @@ Extensibility
 Although lightning makes everything super simple, it doesn't sacrifice any flexibility or control.
 Lightning offers multiple ways of managing the training state.
 
-Hooks
-^^^^^
+Training overrides
+^^^^^^^^^^^^^^^^^^
+
 Any part of the training, validation and testing loop can be modified.
 For instance, if you wanted to do your own backward pass, you would override the
 default implementation
@@ -752,3 +753,26 @@ you could do your own:
 
 Every single part of training is configurable this way.
 For a full list look at `lightningModule <lightning-module.rst>`_.
+
+
+Callbacks
+---------
+Another way to add arbitrary functionality is to add a custom callback
+for hooks that you might care about
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    class MyPrintingCallback(pl.Callback):
+
+        def on_init_start(self, trainer):
+            print('Starting to init trainer!')
+
+        def on_init_end(self, trainer):
+            print('trainer is init now')
+
+        def on_train_end(self, trainer, pl_module):
+            print('do something when training ends')
+
+For a full list of the 12+ hooks see the `Callback docs <callbacks.rst#callback-class>`_
