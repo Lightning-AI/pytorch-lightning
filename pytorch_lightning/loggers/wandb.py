@@ -9,12 +9,14 @@ import argparse
 import os
 from typing import Optional, List, Dict
 
+import torch.nn as nn
+
 try:
     import wandb
     from wandb.wandb_run import Run
 except ImportError:
     raise ImportError('You want to use `wandb` logger which is not installed yet,'
-                      ' please install it e.g. `pip install wandb`.')
+                      ' install it with `pip install wandb`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
@@ -50,7 +52,7 @@ class WandbLogger(LightningLoggerBase):
         super().__init__()
         self._name = name
         self._save_dir = save_dir
-        self._anonymous = "allow" if anonymous else None
+        self._anonymous = 'allow' if anonymous else None
         self._id = version or id
         self._tags = tags
         self._project = project
@@ -79,14 +81,14 @@ class WandbLogger(LightningLoggerBase):
           """
         if self._experiment is None:
             if self._offline:
-                os.environ["WANDB_MODE"] = "dryrun"
+                os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                id=self._id, resume="allow", tags=self._tags, entity=self._entity)
+                id=self._id, resume='allow', tags=self._tags, entity=self._entity)
         return self._experiment
 
-    def watch(self, model, log="gradients", log_freq=100):
-        wandb.watch(model, log, log_freq)
+    def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
+        wandb.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
     def log_hyperparams(self, params: argparse.Namespace):
@@ -94,11 +96,9 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        metrics["global_step"] = step
+        if step is not None:
+            metrics['global_step'] = step
         self.experiment.log(metrics)
-
-    def save(self):
-        pass
 
     @rank_zero_only
     def finalize(self, status: str = 'success'):
