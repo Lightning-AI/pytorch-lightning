@@ -700,7 +700,7 @@ within it.
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTClassifier(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -719,11 +719,17 @@ within it.
         loss = F.nll_loss(logits, y)
         return loss
 
+.. code-block:: python
+
+    model = MNISTClassifier()
+    x = mnist_image()
+    logits = model(x)
+
 In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTRepresentator(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -742,6 +748,36 @@ In this case, we've set this LightningModel to predict logits. But we could also
         ce_loss = F.nll_loss(logits, y)
         loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
         return loss
+
+.. code-block:: python
+
+    model = MNISTRepresentator.load_from_checkpoint(PATH)
+    x = mnist_image()
+    feature_maps = model(x)
+
+Or maybe we have a model that we use to do generation
+
+.. code-block:: python
+
+    class CoolMNISTDreamer(pl.LightningModule):
+
+      def forward(self, z):
+        imgs = self.decoder(z)
+        return imgs
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        representation = self.encoder(x)
+        imgs = self.forward(representation)
+
+        loss = perceptual_loss(imgs, x)
+        return loss
+
+.. code-block:: python
+
+    model = CoolMNISTDreamer.load_from_checkpoint(PATH)
+    z = sample_noise()
+    generated_imgs = model(z)
 
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
