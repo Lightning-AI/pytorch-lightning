@@ -351,8 +351,7 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         path = os.path.join(self.ckpt_path, '__temp_weight_ddp_end.ckpt')
-        model = self.get_model()
-        model.save_checkpoint(path)
+        self.save_checkpoint(path)
 
     def load_spawn_weights(self, model):
         """
