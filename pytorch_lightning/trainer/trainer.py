@@ -3,6 +3,7 @@ import sys
 import warnings
 import logging as log
 from typing import Union, Optional, List, Dict, Tuple, Iterable
+from argparse import ArgumentParser
 
 import torch
 import torch.distributed as dist
@@ -116,6 +117,7 @@ class Trainer(TrainerIOMixin,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            **kwargs
     ):
         r"""
 
@@ -627,6 +629,7 @@ class Trainer(TrainerIOMixin,
 
         # Transfer params
         # Backward compatibility
+        self.num_nodes = num_nodes
         if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
@@ -747,10 +750,12 @@ class Trainer(TrainerIOMixin,
         self.weights_save_path = weights_save_path
 
         # accumulated grads
+        self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.gpus = gpus
+        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # tpu state flags
@@ -797,6 +802,7 @@ class Trainer(TrainerIOMixin,
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
+        self.overfit_pct = overfit_pct
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
@@ -821,6 +827,29 @@ class Trainer(TrainerIOMixin,
         except Exception:
             job_id = None
         return job_id
+
+    @property
+    @classmethod
+    def default_attributes(cls):
+        return vars(cls())
+
+    @classmethod
+    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
+
+        parser = ArgumentParser(parents=[parent_parser])
+
+        trainer_default_params = Trainer.default_attributes
+
+        for arg in trainer_default_params:
+            parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
+
+        return parser
+
+    @classmethod
+    def from_argparse_args(cls, args) -> Trainer:
+
+        params = vars(args)
+        return cls(**params)
 
     def __parse_gpu_ids(self, gpus):
         """Parse GPUs id.
