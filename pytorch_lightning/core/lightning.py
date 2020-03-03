@@ -5,7 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Optional, Union, Dict, Callable
+from typing import Optional, Union, Dict, Callable, Any
 
 import torch
 import torch.distributed as dist
@@ -67,6 +67,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         #: True if using amp
         self.use_amp = False
+
+    @property
+    def hparams(self) -> Namespace:
+        if not hasattr(self, '_hparams'):
+            self._hparams = Namespace()
+        if isinstance(self._hparams, Namespace):
+            hparams = self._hparams
+        else:
+            assert isinstance(self._hparams, dict)
+            hparams = Namespace(**self._hparams)
+        return hparams
+
+    def set_hparams(self, params: Union[Dict[str, Any], Namespace]):
+        """Set the model hyper-parameters."""
+        self._hparams = params
 
     def print(self, *args, **kwargs):
         r"""

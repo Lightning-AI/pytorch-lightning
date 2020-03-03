@@ -1,7 +1,7 @@
 import os
 from argparse import Namespace
 from collections import OrderedDict
-from typing import Union
+from typing import Any, Dict, Union
 
 import torch
 import torch.nn as nn
@@ -52,7 +52,7 @@ class TestModelBase(LightningModule):
 
         # accept also dict and convert it to Namespace locally
         assert isinstance(hparams, (dict, Namespace))
-        self.hparams = hparams if isinstance(hparams, Namespace) else Namespace(**hparams)
+        self.set_hparams(hparams)
 
         self.batch_size = hparams.batch_size
 

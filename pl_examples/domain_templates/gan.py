@@ -75,7 +75,7 @@ class GAN(LightningModule):
 
     def __init__(self, hparams):
         super(GAN, self).__init__()
-        self.hparams = hparams
+        self.set_hparams(hparams)
 
         # networks
         mnist_shape = (1, 28, 28)
