@@ -46,6 +46,7 @@ PyTorch-Lightning Documentation
 
    apex
    slurm
+   child_modules
    debugging
    experiment_logging
    experiment_reporting
