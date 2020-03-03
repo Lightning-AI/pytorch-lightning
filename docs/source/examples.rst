@@ -1,6 +1,15 @@
 .. toctree::
    :maxdepth: 1
-   :name: Examples
-   :caption: Examples
+   :name: Community Examples
+   :caption: Community Examples
 
+
+    Fast Aging GAN <https://github.com/PyTorchLightning/Fast-AgingGAN>
+    Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
+    Recurrent Attentive Neural Process for Sequential Data <https://github.com/PyTorchLightning/attentive-neural-processes>
+    Siamese Neural Networks for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>
+    Speech Transformers <https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning>
+    Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
+    Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
     MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
+    NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>
