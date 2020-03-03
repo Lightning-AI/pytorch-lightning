@@ -1,5 +1,5 @@
 import os
-import shutil
+import glob
 import logging as log
 import warnings
 
@@ -21,6 +21,7 @@ class ModelCheckpoint(Callback):
                 # save epoch and val_loss in name
                 ModelCheckpoint(dirpath='/my/path/here', prefix='sample-mnist')
                 # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
+                # if such model already exits, the file is: /my/path/here/sample-mnist-v0_epoch=02_val_loss=0.51.ckpt
         monitor: quantity to monitor.
         verbose: verbosity mode, False or True.
         save_top_k: if `save_top_k == k`,
@@ -91,6 +92,14 @@ class ModelCheckpoint(Callback):
         self.best = 0
         self.save_function = None
 
+        # this create unique prefix if the give already exists
+        existing_checkpoints = sorted(glob.glob(os.path.join(self.dirpath, '*' + self.EXTENSION)))
+        existing_names = set(os.path.basename(ckpt).split('_epoch=')[0] for ckpt in existing_checkpoints)
+        version_cnt = 0
+        while self.prefix in existing_names:
+            self.prefix = f'{prefix}-v{version_cnt}'
+            version_cnt += 1
+
         mode_dict = {
             'min': (np.less, np.Inf, 'min'),
             'max': (np.greater, -np.Inf, 'max'),
@@ -129,13 +138,8 @@ class ModelCheckpoint(Callback):
     def _get_available_filepath(self, current: float, epoch: int) -> str:
         current_str = f'{current:.2f}' if current else 'NaN'
         fname = f'{self.prefix}_epoch={epoch}_{self.monitor}={current_str}'
-
         filepath = os.path.join(self.dirpath, fname + self.EXTENSION)
-        version_cnt = 0
-        while os.path.isfile(filepath):
-            # this epoch called before
-            filepath = os.path.join(self.dirpath, f'{fname}_v{version_cnt}' + self.EXTENSION)
-            version_cnt += 1
+        assert not os.path.isfile(filepath)
         return filepath
 
     def on_validation_end(self, trainer, pl_module) -> None:
