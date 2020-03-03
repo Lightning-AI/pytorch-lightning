@@ -11,6 +11,8 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
 
+---------
+
 Goal of this guide
 ------------------
 This guide walks through the major parts of the library to help you understand
