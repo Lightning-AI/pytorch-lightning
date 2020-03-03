@@ -959,8 +959,14 @@ class Trainer(TrainerIOMixin,
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
+
+                # track for predict
+                self.model = model
+
+                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
-                print('0'*100)
+
+                # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
 
@@ -977,7 +983,14 @@ class Trainer(TrainerIOMixin,
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+
+            # track for predict
+            self.model = model
+
+            # train
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+
+            # load weights if not interrupted
             self.load_spawn_weights(model)
             self.model = model
 
