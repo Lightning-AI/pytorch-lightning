@@ -1,3 +1,10 @@
+r"""
+Early Stopping
+==============
+Stop training when a monitored quantity has stopped improving.
+
+"""
+
 import logging as log
 import warnings
 
@@ -8,7 +15,6 @@ from .base import Callback
 
 class EarlyStopping(Callback):
     r"""
-    Stop training when a monitored quantity has stopped improving.
 
     Args:
         monitor (str): quantity to be monitored. Default: ``'val_loss'``.

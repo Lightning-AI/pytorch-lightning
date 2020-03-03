@@ -35,10 +35,31 @@ Example
 
 We successfully extended functionality without polluting our super clean LightningModule research code
 
-Callback Class
---------------
+.. automodule:: pytorch_lightning.callbacks.base
+   :noindex:
+   :exclude-members:
+        _del_model,
+        _save_model,
+        _abc_impl,
+        check_monitor_top_k,
 
-.. automodule:: pytorch_lightning.callbacks
+.. automodule:: pytorch_lightning.callbacks.early_stopping
+   :noindex:
+   :exclude-members:
+        _del_model,
+        _save_model,
+        _abc_impl,
+        check_monitor_top_k,
+
+.. automodule:: pytorch_lightning.callbacks.model_checkpoint
+   :noindex:
+   :exclude-members:
+        _del_model,
+        _save_model,
+        _abc_impl,
+        check_monitor_top_k,
+
+.. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
    :exclude-members:
         _del_model,
