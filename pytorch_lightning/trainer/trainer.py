@@ -803,9 +803,9 @@ class Trainer(TrainerIOMixin,
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.precision = precision
-        if self.precision == 16:
+        if self.precision == 16 and num_tpu_cores is None:
             use_amp = True
-        self.init_amp(use_amp)
+            self.init_amp(use_amp)
 
         # Callback system
         self.on_init_end()
