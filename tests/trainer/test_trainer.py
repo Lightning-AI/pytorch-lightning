@@ -256,8 +256,12 @@ def test_model_checkpoint_options(tmp_path):
     assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
 
     # verify correct naming
-    for i in range(0, len(losses)):
-        assert f"_ckpt_epoch_{i}.ckpt" in file_lists
+    for fname in {'_epoch=4_val_loss=2.50.ckpt',
+                  '_epoch=3_val_loss=5.00.ckpt',
+                  '_epoch=2_val_loss=2.80.ckpt',
+                  '_epoch=1_val_loss=9.00.ckpt',
+                  '_epoch=0_val_loss=10.00.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "2"
     save_dir.mkdir()
@@ -296,7 +300,7 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
+    assert 'test_prefix_epoch=4_val_loss=2.50.ckpt' in file_lists
 
     save_dir = tmp_path / "4"
     save_dir.mkdir()
@@ -319,9 +323,10 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    assert '_ckpt_epoch_4.ckpt' in file_lists
-    assert '_ckpt_epoch_2.ckpt' in file_lists
-    assert 'other_file.ckpt' in file_lists
+    for fname in {'_epoch=4_val_loss=2.50.ckpt',
+                  '_epoch=2_val_loss=2.80.ckpt',
+                  'other_file.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "5"
     save_dir.mkdir()
@@ -364,9 +369,10 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    assert '_ckpt_epoch_0_v2.ckpt' in file_lists
-    assert '_ckpt_epoch_0_v1.ckpt' in file_lists
-    assert '_ckpt_epoch_0.ckpt' in file_lists
+    for fname in {'_epoch=0_val_loss=2.80.ckpt',
+                  '_epoch=0_val_loss=2.50.ckpt',
+                  '_epoch=0_val_loss=5.00.ckpt'}:
+        assert fname in file_lists
 
 
 def test_model_freeze_unfreeze():
