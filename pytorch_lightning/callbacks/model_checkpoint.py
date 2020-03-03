@@ -104,27 +104,27 @@ class ModelCheckpoint(Callback):
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
-    def _del_model(self, filepath: str):
+    def _del_model(self, filepath: str) -> None:
         # shutil.rmtree(filepath)
         os.remove(filepath)
 
-    def _save_model(self, dirpath: str):
+    def _save_model(self, filepath: str) -> None:
         # make paths
-        os.makedirs(os.path.dirname(dirpath), exist_ok=True)
+        os.makedirs(self.dirpath, exist_ok=True)
 
         # delegate the saving to the model
         if self.save_function is not None:
-            self.save_function(dirpath)
+            self.save_function(filepath)
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, current):
+    def check_monitor_top_k(self, current: int) -> bool:
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module) -> None:
         # only run on main process
         if trainer.proc_rank != 0:
             return
@@ -163,14 +163,12 @@ class ModelCheckpoint(Callback):
                     log.info('Epoch %05d: saving model to %s', epoch, filepath)
                 self._save_model(filepath)
 
-    def _do_check_save(self, filepath: str, current, epoch):
+    def _do_check_save(self, filepath: str, current: int, epoch: int) -> None:
         # remove kth
         if len(self.best_k_models) == self.save_top_k:
             delpath = self.kth_best_model
             self.best_k_models.pop(self.kth_best_model)
             self._del_model(delpath)
-        elif len(self.best_k_models) > self.save_top_k:
-            print("")
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
