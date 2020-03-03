@@ -47,7 +47,7 @@ class LightningLoggerBase(ABC):
         # in case converting from namespace
         if isinstance(params, Namespace):
             params = vars(params)
-        return dict(params)
+        return params
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
@@ -118,7 +118,7 @@ class LoggerCollection(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
 
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: Union[dict, Namespace]):
         [logger.log_hyperparams(params) for logger in self._logger_iterable]
 
     def save(self):

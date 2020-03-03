@@ -3,7 +3,7 @@ import math
 import os
 import pytest
 import torch
-import argparse
+from argparse import ArgumentParser, Namespace
 
 import tests.models.utils as tutils
 from unittest import mock
@@ -20,13 +20,10 @@ from tests.models import (
     LightValidationMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
-    LightValidationMixin,
-    LightTestMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning import Callback
 
 
 def test_no_val_module(tmpdir):
@@ -188,7 +185,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
 def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
-    from argparse import Namespace
     hparams = tutils.get_hparams()
 
     # save tags
@@ -605,7 +601,7 @@ def test_testpass_overrides(tmpdir):
     Trainer().test(model)
 
 @mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=argparse.Namespace(**Trainer.default_attributes()))
+            return_value=Namespace(**Trainer.default_attributes()))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
     tutils.reset_seed()
@@ -613,7 +609,7 @@ def test_default_args(tmpdir):
     # logger file to get meta
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = ArgumentParser(add_help=False)
     args = parser.parse_args()
     args.logger = logger
 

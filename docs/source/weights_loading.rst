@@ -62,7 +62,7 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
    from argparse import Namespace
 
    # usually these come from command line args
-   args = Namespace(**{'learning_rate':0.001})
+   args = Namespace(learning_rate=0.001)
 
    # define you module to have hparams as the first arg
    # this means your checkpoint will have everything that went into making
