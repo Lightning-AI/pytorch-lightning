@@ -1,3 +1,9 @@
+"""
+Early Stopping
+--------------
+
+"""
+
 import logging as log
 import warnings
 
