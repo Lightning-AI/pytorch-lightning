@@ -17,7 +17,7 @@ modify the network. The `Trainer` can add all the available options to an Argume
 
     # parametrize the network
     parser.add_argument('--layer_1_dim', type=int, default=128)
-    parser.add_argument('--layer_1_dim', type=int, default=256)
+    parser.add_argument('--layer_2_dim', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=64)
     args = parser.parse_args()
 
