@@ -21,6 +21,7 @@ modify the network. The `Trainer` can add all the available options to an Argume
 Now we can parametrize our LightningModule.
 
 .. code-block:: python
+    :emphasize-lines: 5,6,7,12,14
 
     class CoolMNIST(pl.LightningModule):
       def __init__(self, hparams):
@@ -32,32 +33,14 @@ Now we can parametrize our LightningModule.
         self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
 
       def forward(self, x):
-        batch_size, channels, width, height = x.size()
-        x = x.view(batch_size, -1)
-        x = self.layer_1(x)
-        x = torch.relu(x)
-        x = self.layer_2(x)
-        x = torch.relu(x)
-        x = self.layer_3(x)
-        x = torch.log_softmax(x, dim=1)
-        return x
+        ...
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        ...
         return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
 
       def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self.forward(x)
-        loss = F.nll_loss(logits, y)
-
-        # add logging
-        logs = {'loss': loss}
-        return {'loss': loss, 'log': logs}
 
     hparams = parse_args()
     model = CoolMNIST(hparams)
