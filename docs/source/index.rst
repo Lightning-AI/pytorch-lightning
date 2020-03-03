@@ -27,8 +27,8 @@ PyTorch-Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Examples
-   :caption: Examples
+   :name: Community Examples
+   :caption: Community Examples
 
    examples
 
@@ -46,17 +46,20 @@ PyTorch-Lightning Documentation
 
    apex
    slurm
+   child_modules
    debugging
    experiment_logging
    experiment_reporting
    early_stopping
    fast_training
    hooks
+   hyperparameters
    multi_gpu
    weights_loading
    single_gpu
    sequences
    training_tricks
+   transfer_learning
    tpu
    test_set
    optimizers

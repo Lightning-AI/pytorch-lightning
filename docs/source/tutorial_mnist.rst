@@ -448,8 +448,59 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
-Validation loop
+Hyperparameters
 ---------------
+Normally, we don't hard-code the values to a model. We usually use the command line to
+modify the network. The `Trainer` can add all the available options to an ArgumentParser.
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+
+    # parametrize the network
+    parser.add_argument('--layer_1_dim', type=int, default=128)
+    parser.add_argument('--layer_1_dim', type=int, default=256)
+    parser.add_argument('--batch_size', type=int, default=64)
+    args = parser.parse_args()
+
+Now we can parametrize the LightningModule.
+
+.. code-block:: python
+    :emphasize-lines: 5,6,7,12,14
+
+    class CoolMNIST(pl.LightningModule):
+      def __init__(self, hparams):
+        super(CoolMNIST, self).__init__()
+        self.hparams = hparams
+
+        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
+        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
+        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+
+      def forward(self, x):
+        ...
+
+      def train_dataloader(self):
+        ...
+        return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
+
+      def configure_optimizers(self):
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+
+    hparams = parse_args()
+    model = CoolMNIST(hparams)
+
+.. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
+    model using those hparams exactly.
+
+For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
+
+
+
+Validating
+----------
 
 For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
@@ -523,8 +574,8 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
-Testing loop
-------------
+Testing
+-------
 Once our research is done and we're about to publish or deploy a model, we normally want to figure out
 how it will generalize in the "real world." For this, we use a held-out split of the data for testing.
 
@@ -578,6 +629,8 @@ You can also run the test from a saved lightning model
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
+
+.. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
 Predicting
 ----------
@@ -641,4 +694,96 @@ In this case, we've set this LightningModel to predict logits. But we could also
 
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
+
+Extensibility
+-------------
+Although lightning makes everything super simple, it doesn't sacrifice any flexibility or control.
+Lightning offers multiple ways of managing the training state.
+
+Training overrides
+^^^^^^^^^^^^^^^^^^
+
+Any part of the training, validation and testing loop can be modified.
+For instance, if you wanted to do your own backward pass, you would override the
+default implementation
+
+.. code-block:: python
+
+    def backward(self, use_amp, loss, optimizer):
+        if use_amp:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+With your own
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+        def backward(self, use_amp, loss, optimizer):
+            # do a custom way of backward
+            loss.backward(retain_graph=True)
+
+Or if you wanted to initialize ddp in a different way than the default one
+
+.. code-block:: python
+
+    def configure_ddp(self, model, device_ids):
+        # Lightning DDP simply routes to test_step, val_step, etc...
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
+        return model
+
+you could do your own:
+
+.. code-block:: python
+
+    class CoolMNIST(pl.LightningModule):
+
+        def configure_ddp(self, model, device_ids):
+
+            model = Horovod(model)
+            # model = Ray(model)
+            return model
+
+Every single part of training is configurable this way.
+For a full list look at `lightningModule <lightning-module.rst>`_.
+
+
+Callbacks
+---------
+Another way to add arbitrary functionality is to add a custom callback
+for hooks that you might care about
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    class MyPrintingCallback(pl.Callback):
+
+        def on_init_start(self, trainer):
+            print('Starting to init trainer!')
+
+        def on_init_end(self, trainer):
+            print('trainer is init now')
+
+        def on_train_end(self, trainer, pl_module):
+            print('do something when training ends')
+
+And pass the callbacks into the trainer
+
+.. code-block:: python
+
+    Trainer(callbacks=[MyPrintingCallback()])
+
+.. note:: See full list of 12+ hooks in the `Callback docs <callbacks.rst#callback-class>`_
+
+.. include:: child_modules.rst
+
+.. include:: transfer_learning.rst
 
