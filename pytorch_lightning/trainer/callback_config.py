@@ -32,6 +32,7 @@ class TrainerCallbackConfigMixin(ABC):
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
+        ckpt_path = self.default_save_path
         if self.checkpoint_callback is True:
             # init a default one
             if self.logger is not None:
@@ -53,7 +54,8 @@ class TrainerCallbackConfigMixin(ABC):
             )
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
-            self.ckpt_path=self.default_save_path
+
+        self.ckpt_path = ckpt_path
 
         if self.checkpoint_callback:
             # set the path for the callbacks
