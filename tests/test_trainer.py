@@ -858,7 +858,7 @@ def test_testpass_overrides(tmpdir):
 
 
 @mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=argparse.Namespace(**(Trainer.get_default_args())))
+            return_value=argparse.Namespace(**(Trainer.default_attributes)))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
     tutils.reset_seed()
