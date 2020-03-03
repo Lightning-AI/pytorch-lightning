@@ -1212,10 +1212,13 @@ class Trainer(TrainerIOMixin,
             self.model = model
             self.fit(model)
         elif self.use_ddp or self.use_tpu:
-            # attempt to load weights from a ddp process
+            # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             if os.path.exists(path):
                 self.load_spawn_weights(self.model)
+
+            # TODO: allow test to run on all cores. 1 core only that works now
+            self.num_tpu_cores = 1
 
             self.fit(self.model)
         else:
