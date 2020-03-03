@@ -960,6 +960,7 @@ class Trainer(TrainerIOMixin,
             else:
                 self.__set_random_port()
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+                print('0'*100)
                 self.load_spawn_weights(model)
                 self.model = model
 
