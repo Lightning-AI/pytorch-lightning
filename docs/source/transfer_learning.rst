@@ -8,6 +8,14 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 .. code-block:: python
 
+    class Encoder(torch.nn.Module):
+        ...
+
+    class AutoEncoder(pl.LightningModule):
+        def __init__(self):
+            self.encoder = Encoder()
+            self.decoder = Decoder()
+
     class CIFAR10Classifier(pl.LightingModule):
         def __init__(self):
             # init the pretrained LightningModule
