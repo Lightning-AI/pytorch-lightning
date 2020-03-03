@@ -1,20 +1,22 @@
+import logging as log
 import os
 import sys
 import warnings
-import logging as log
-from typing import Union, Optional, List, Dict, Tuple, Iterable
 from argparse import ArgumentParser
+from typing import Union, Optional, List, Dict, Tuple, Iterable
 
 import torch
 from torch import optim
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.profiler.profiler import BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
@@ -35,9 +37,6 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.callbacks import Callback
-
 
 try:
     from apex import amp

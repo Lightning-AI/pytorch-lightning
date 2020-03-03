@@ -2,6 +2,7 @@ import pytest
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.models import (
     TestModelBase,
     LightningTestModel,
@@ -14,7 +15,6 @@ from tests.models import (
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 def test_multiple_val_dataloader(tmpdir):

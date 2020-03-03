@@ -1,17 +1,21 @@
 import glob
 import math
 import os
+from argparse import ArgumentParser, Namespace
+from unittest import mock
+
 import pytest
 import torch
-from argparse import ArgumentParser, Namespace
 
 import tests.models.utils as tutils
-from unittest import mock
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
 )
+from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
+from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.models import (
     TestModelBase,
     DictHparamsModel,
@@ -22,9 +26,6 @@ from tests.models import (
     LightTrainDataloader,
     LightTestDataloader,
 )
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 def test_hparams_save_load(tmpdir):
