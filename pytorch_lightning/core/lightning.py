@@ -1250,7 +1250,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.eval()
 
     def unfreeze(self):
-        """Unfreeze all params for inference.
+        """Unfreeze all params for training.
 
         .. code-block:: python
 
