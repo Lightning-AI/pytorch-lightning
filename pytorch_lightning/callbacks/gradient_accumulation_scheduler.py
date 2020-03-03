@@ -1,3 +1,9 @@
+r"""
+Gradient Accumulator
+====================
+Change gradient accumulation factor according to scheduling.
+"""
+
 import warnings
 
 from .base import Callback

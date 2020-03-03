@@ -1,3 +1,10 @@
+r"""
+Model Checkpoint
+==============
+Save the model as often as requested.
+
+"""
+
 import os
 import shutil
 import logging as log
