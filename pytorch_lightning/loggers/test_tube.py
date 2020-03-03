@@ -1,5 +1,5 @@
-import argparse
-from typing import Optional, Dict, Any
+from argparse import Namespace
+from typing import Optional, Dict, Any, Union
 
 try:
     from test_tube import Experiment
@@ -92,10 +92,11 @@ class TestTubeLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: Union[dict, argparse.Namespace]):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        self.experiment.argparse(params)
+        params = self._convert_params(params)
+        self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):

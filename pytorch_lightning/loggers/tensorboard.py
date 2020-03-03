@@ -1,4 +1,3 @@
-import argparse
 import csv
 import os
 from argparse import Namespace
@@ -100,14 +99,8 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        if params is None:
-            return
-
-        # in case converting from namespace
-        if isinstance(params, Namespace):
-            params = vars(params)
-        params = dict(params)
+    def log_hyperparams(self, params: Union[dict, Namespace]):
+        params = self._convert_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(

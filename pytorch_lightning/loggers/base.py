@@ -1,5 +1,6 @@
 import argparse
 from abc import ABC, abstractmethod
+from argparse import Namespace
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
@@ -40,6 +41,13 @@ class LightningLoggerBase(ABC):
             step: Step number at which the metrics should be recorded
         """
         pass
+
+    def _convert_params(self, params: Union[dict, Namespace]) -> dict:
+        assert isinstance(params, (dict, Namespace))
+        # in case converting from namespace
+        if isinstance(params, Namespace):
+            params = vars(params)
+        return dict(params)
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):

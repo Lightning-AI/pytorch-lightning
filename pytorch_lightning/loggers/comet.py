@@ -5,7 +5,7 @@ r"""
 CometLogger
 -------------
 """
-import argparse
+from argparse import Namespace
 from logging import getLogger
 from typing import Optional, Dict, Union
 
@@ -162,8 +162,9 @@ class CometLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        self.experiment.log_parameters(vars(params))
+    def log_hyperparams(self, params: Union[dict, Namespace]):
+        params = self._convert_params(params)
+        self.experiment.log_parameters(params)
 
     @rank_zero_only
     def log_metrics(

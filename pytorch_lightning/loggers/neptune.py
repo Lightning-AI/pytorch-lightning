@@ -6,7 +6,7 @@ Log using `neptune-logger <https://www.neptune.ml>`_
 NeptuneLogger
 --------------
 """
-import argparse
+from argparse import Namespace
 from logging import getLogger
 from typing import Optional, List, Dict, Any, Union, Iterable
 
@@ -164,8 +164,9 @@ class NeptuneLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        for key, val in vars(params).items():
+    def log_hyperparams(self, params: Union[dict, Namespace]):
+        params = self._convert_params(params)
+        for key, val in params.items():
             self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only

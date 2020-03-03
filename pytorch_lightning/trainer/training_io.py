@@ -322,7 +322,7 @@ class TrainerIOMixin(ABC):
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
-    def hpc_save(self, folderpath, logger):
+    def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
         os.makedirs(folderpath, exist_ok=True)
 
@@ -333,7 +333,7 @@ class TrainerIOMixin(ABC):
 
         if not os.path.exists(folderpath):
             os.makedirs(folderpath, exist_ok=True)
-        filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, ckpt_number)
+        filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
         model = self.get_model()

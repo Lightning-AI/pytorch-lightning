@@ -135,7 +135,7 @@ class ModelCheckpoint(Callback):
         if self.save_function is not None:
             self.save_function(filepath)
         else:
-            raise ValueError(".save_function() not set")
+            raise ValueError("Method `.save_function()` not set")
 
     def check_monitor_top_k(self, current: float) -> bool:
         less_than_k_models = len(self.best_k_models) < self.save_top_k

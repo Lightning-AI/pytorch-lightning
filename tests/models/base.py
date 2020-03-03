@@ -1,12 +1,13 @@
 import os
+from argparse import Namespace
 from collections import OrderedDict
+from typing import Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
@@ -42,14 +43,16 @@ class TestModelBase(LightningModule):
     interface
     """
 
-    def __init__(self, hparams, force_remove_distributed_sampler=False):
-        """
-        Pass in parsed HyperOptArgumentParser to the model
+    def __init__(self, hparams: Union[dict, Namespace], force_remove_distributed_sampler: bool = False):
+        """Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
         """
         # init superclass
         super().__init__()
-        self.hparams = hparams
+
+        # accept also dict and convert it to Namespace locally
+        assert isinstance(hparams, (dict, Namespace))
+        self.hparams = hparams if isinstance(hparams, Namespace) else Namespace(**hparams)
 
         self.batch_size = hparams.batch_size
 
