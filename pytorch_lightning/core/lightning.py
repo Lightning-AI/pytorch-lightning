@@ -11,14 +11,15 @@ import torch
 import torch.distributed as dist
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
+from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
