@@ -37,6 +37,27 @@ Most methods are optional. Here's a minimal example.
             y_hat = self.forward(x)
             return {'loss': F.cross_entropy(y_hat, y)}
 
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+
+        def train_dataloader(self):
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
+                              transform=transforms.ToTensor()), batch_size=32)
+
+Which you can train by doing:
+
+.. code-block:: python
+
+   trainer = pl.Trainer()
+   model = CoolModel()
+
+   trainer.fit(model)
+
+If you wanted to add a validation loop
+
+.. code_block:: python
+
+    class CoolModel(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
             # OPTIONAL
             x, y = batch
@@ -47,6 +68,18 @@ Most methods are optional. Here's a minimal example.
             # OPTIONAL
             val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
             return {'val_loss': val_loss_mean}
+
+        def val_dataloader(self):
+            # OPTIONAL
+            # can also return a list of val dataloaders
+            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
+                              transform=transforms.ToTensor()), batch_size=32)
+
+Or add a test loop
+
+.. code_block:: python
+
+    class CoolModel(pl.LightningModule):
 
         def test_step(self, batch, batch_idx):
             # OPTIONAL
@@ -59,41 +92,18 @@ Most methods are optional. Here's a minimal example.
             test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
             return {'test_loss': test_loss_mean}
 
-        def configure_optimizers(self):
-            # REQUIRED
-            return torch.optim.Adam(self.parameters(), lr=0.02)
-
-        @pl.data_loader
-        def train_dataloader(self):
-            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
-
-        @pl.data_loader
-        def val_dataloader(self):
-            # OPTIONAL
-            # can also return a list of val dataloaders
-            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
-
-        @pl.data_loader
         def test_dataloader(self):
             # OPTIONAL
             # can also return a list of test dataloaders
             return DataLoader(MNIST(os.getcwd(), train=False, download=True,
                               transform=transforms.ToTensor()), batch_size=32)
 
-Once you've defined the LightningModule, fit  it using a trainer.
-
-.. code-block:: python
-
-   trainer = pl.Trainer()
-   model = CoolModel()
-
-   trainer.fit(model)
-
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
+
+.. note:: Remove all .cuda() or .to() calls from LightningModules. See:
+    `the multi-gpu training guide for details <multi_gpu.rst>`_.
 
 """
 
