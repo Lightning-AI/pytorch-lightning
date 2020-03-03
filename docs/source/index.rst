@@ -52,6 +52,7 @@ PyTorch-Lightning Documentation
    early_stopping
    fast_training
    hooks
+   hyperparams
    multi_gpu
    weights_loading
    single_gpu
