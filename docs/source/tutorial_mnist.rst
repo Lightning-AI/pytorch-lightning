@@ -750,3 +750,5 @@ you could do your own:
             # model = Ray(model)
             return model
 
+Every single part of training is configurable this way.
+For a full list look at `lightningModule <lightning-module.rst>`_.
