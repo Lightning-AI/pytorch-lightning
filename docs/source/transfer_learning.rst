@@ -43,6 +43,8 @@ Example: BERT (transformers)
 Lightning is completely agnostic to what's used for transfer learning so long
 as it is a `torch.nn.Module` subclass.
 
+Here's a model that uses `Huggingface transformers <https://github.com/huggingface/transformers>`_.
+
 .. code-block:: python
 
     from transformers import BertModel
