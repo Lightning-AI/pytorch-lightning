@@ -347,6 +347,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # add metrics to prog bar
         self.add_tqdm_metrics(prog_bar_metrics)
 
+        # log results of test
+        if test_mode:
+            model.print(prog_bar_metrics)
+
         # log metrics
         self.log_metrics(log_metrics, {})
 

@@ -958,6 +958,7 @@ class Trainer(TrainerIOMixin,
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
+                self.__set_random_port()
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
 
         # 1 gpu or dp option triggers training using DP module
@@ -993,6 +994,18 @@ class Trainer(TrainerIOMixin,
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def __set_random_port(self):
+        """
+        When running DDP NOT managed by SLURM, the ports might collide
+        :return:
+        """
+        try:
+            default_port = os.environ['MASTER_PORT']
+        except Exception:
+            import random
+            default_port = random.randint(10000, 19000)
+            os.environ['MASTER_PORT'] = str(default_port)
 
     def __set_fit_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1083,7 +1096,8 @@ class Trainer(TrainerIOMixin,
         self.register_slurm_signal_handlers()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary is not None:
+        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
+        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
@@ -1103,7 +1117,7 @@ class Trainer(TrainerIOMixin,
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
-            self.reset_test_dataloader(ref_model)
+            # self.reset_test_dataloader(ref_model)
             self.run_evaluation(test_mode=True)
             return
 
@@ -1176,8 +1190,25 @@ class Trainer(TrainerIOMixin,
         """
         self.testing = True
         if model is not None:
+            self.model = model
             self.fit(model)
-        self.run_evaluation(test_mode=True)
+        else:
+            self.run_evaluation(test_mode=True)
+
+
+class _PatchDataLoader(object):
+    r'''
+    Callable object for patching dataloaders passed into trainer.fit().
+    Use this class to override model.*_dataloader() and be pickle-compatible.
+
+    Args:
+        dataloader: Dataloader object to return when called.
+    '''
+    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+        self.dataloader = dataloader
+
+    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+        return self.dataloader
 
 
 class _PatchDataLoader(object):
