@@ -28,6 +28,10 @@ Lightning Philosophy
 --------------------
 Lightning factors DL/ML code into three types:
 
+- Research code
+- Engineerng code
+- Non-essential code
+
 Research code
 ^^^^^^^^^^^^^
 In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
