@@ -12,6 +12,9 @@ class TrainerCallbackConfigMixin(ABC):
     #  the proper values/initialisation should be done in child class
     default_save_path: str
     logger: Union[LightningLoggerBase, bool]
+    weights_save_path: str
+    ckpt_path: str
+    checkpoint_callback: ModelCheckpoint
 
     @property
     @abstractmethod
@@ -29,6 +32,7 @@ class TrainerCallbackConfigMixin(ABC):
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
+        ckpt_path = self.default_save_path
         if self.checkpoint_callback is True:
             # init a default one
             if self.logger is not None:
@@ -44,11 +48,14 @@ class TrainerCallbackConfigMixin(ABC):
             else:
                 ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
+            self.ckpt_path = ckpt_path
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
             )
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
+
+        self.ckpt_path = ckpt_path
 
         if self.checkpoint_callback:
             # set the path for the callbacks
