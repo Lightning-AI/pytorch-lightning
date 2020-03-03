@@ -50,7 +50,7 @@ class TrainerCallbackConfigMixin(ABC):
 
             self.ckpt_path = ckpt_path
             self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path
+                dirpath=ckpt_path
             )
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
@@ -62,7 +62,7 @@ class TrainerCallbackConfigMixin(ABC):
             self.checkpoint_callback.save_function = self.save_checkpoint
 
             # if checkpoint callback used, then override the weights path
-            self.weights_save_path = self.checkpoint_callback.filepath
+            self.weights_save_path = self.checkpoint_callback.dirpath
 
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
