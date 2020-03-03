@@ -42,8 +42,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def _convert_params(self, params: Union[dict, Namespace]) -> dict:
-        assert isinstance(params, (dict, Namespace))
+    def _convert_params(self, params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
         # in case converting from namespace
         if isinstance(params, Namespace):
             params = vars(params)
@@ -58,11 +57,11 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def save(self):
+    def save(self) -> None:
         """Save log data."""
         pass
 
-    def finalize(self, status: str):
+    def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
 
         Args:
@@ -70,7 +69,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def close(self):
+    def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""
         pass
 
@@ -80,7 +79,7 @@ class LightningLoggerBase(ABC):
         return self._rank
 
     @rank.setter
-    def rank(self, value: int):
+    def rank(self, value: int) -> None:
         """Set the process rank."""
         self._rank = value
 
@@ -115,23 +114,23 @@ class LoggerCollection(LightningLoggerBase):
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
 
-    def log_hyperparams(self, params: Union[dict, Namespace]):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         [logger.log_hyperparams(params) for logger in self._logger_iterable]
 
-    def save(self):
+    def save(self) -> None:
         [logger.save() for logger in self._logger_iterable]
 
-    def finalize(self, status: str):
+    def finalize(self, status: str) -> None:
         [logger.finalize(status) for logger in self._logger_iterable]
 
-    def close(self):
+    def close(self) -> None:
         [logger.close() for logger in self._logger_iterable]
 
     @LightningLoggerBase.rank.setter
-    def rank(self, value: int):
+    def rank(self, value: int) -> None:
         self._rank = value
         for logger in self._logger_iterable:
             logger.rank = value

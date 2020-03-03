@@ -7,7 +7,7 @@ WandbLogger
 """
 import os
 from argparse import Namespace
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Any
 
 import torch.nn as nn
 
@@ -91,7 +91,7 @@ class WandbLogger(LightningLoggerBase):
         wandb.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict, Namespace]):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]):
         params = self._convert_params(params)
         self.experiment.config.update(params)
 

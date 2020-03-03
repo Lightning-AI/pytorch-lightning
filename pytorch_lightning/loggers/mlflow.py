@@ -88,7 +88,7 @@ class MLFlowLogger(LightningLoggerBase):
         return self._run_id
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict, Namespace]):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]):
         params = self._convert_params(params)
         for k, v in params.items():
             self.experiment.log_param(self.run_id, k, v)

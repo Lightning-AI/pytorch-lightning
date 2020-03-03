@@ -43,7 +43,7 @@ class TestModelBase(LightningModule):
     interface
     """
 
-    def __init__(self, hparams: Union[dict, Namespace], force_remove_distributed_sampler: bool = False):
+    def __init__(self, hparams: Union[Dict[str, Any], Namespace], force_remove_distributed_sampler: bool = False):
         """Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
         """
