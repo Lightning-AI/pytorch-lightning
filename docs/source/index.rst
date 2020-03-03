@@ -11,7 +11,7 @@ PyTorch-Lightning Documentation
    :name: start
    :caption: Start Here
 
-   tutorial_mnist
+   introduction_guide
 
 .. toctree::
    :maxdepth: 4
