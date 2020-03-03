@@ -1215,9 +1215,9 @@ class Trainer(TrainerIOMixin,
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             if os.path.exists(path):
-                self.load_spawn_weights(self.model)
+                test_model = self.load_spawn_weights(self.model)
 
-            self.fit(self.model)
+            self.fit(test_model)
         else:
             self.run_evaluation(test_mode=True)
 

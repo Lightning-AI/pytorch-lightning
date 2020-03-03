@@ -371,6 +371,8 @@ class TrainerDDPMixin(ABC):
         # remove ddp weights
         os.remove(path)
 
+        return loaded_model
+
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name = root_node.split('[')[0]
