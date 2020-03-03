@@ -1,5 +1,7 @@
 Hyperparameters
 ---------------
+Lightning has utilities to interact seamlessly with the command line ArgumentParser
+and plays well with the hyperparameter optimization framework of your choice.
 
 LightiningModule hparams
 ^^^^^^^^^^^^^^^^^^^^^^^^
