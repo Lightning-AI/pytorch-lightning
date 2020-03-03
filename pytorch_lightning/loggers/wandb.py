@@ -91,18 +91,18 @@ class WandbLogger(LightningLoggerBase):
         wandb.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
         self.experiment.config.update(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         if step is not None:
             metrics['global_step'] = step
         self.experiment.log(metrics)
 
     @rank_zero_only
-    def finalize(self, status: str = 'success'):
+    def finalize(self, status: str = 'success') -> None:
         try:
             exit_code = 0 if status == 'success' else 1
             wandb.join(exit_code)
