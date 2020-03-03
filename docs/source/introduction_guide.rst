@@ -29,8 +29,40 @@ Lightning Philosophy
 Lightning factors DL/ML code into three types:
 
 1. Core research code.
+
+.. code-block:: python
+
+    l1 = nn.Linear(...)
+    l2 = nn.Linear(...)
+    decoder = Decoder()
+
+    x1 = l1(x)
+    x2 = l2(x2)
+    out = decoder(features, x)
+
+    loss = perceptual_loss(x1, x2, x) + CE(out, x)
+
 2. Engineering code.
+
+.. code-block:: python
+
+    model.cuda(0)
+    x = x.cuda(0)
+
+    distributed = DistributedParallel(model)
+
+    with gpu_zero:
+        download_data()
+
+    dist.barrier()
+
 3. Non-essential research code.
+
+.. code-block:: python
+
+    # log samples
+    z = Q.rsample()
+    generated = decoder(z)
 
 Research code
 ^^^^^^^^^^^^^
