@@ -496,6 +496,8 @@ class TrainerDPMixin(ABC):
         log.info(m)
         self.run_pretrain_routine(model)
 
+        self.save_spawn_weights(model)
+
     def dp_train(self, model):
 
         # CHOOSE OPTIMIZER

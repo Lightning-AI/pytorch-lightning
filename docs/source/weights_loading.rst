@@ -5,6 +5,19 @@ Lightning can automate saving and loading checkpoints.
 
 Checkpoint saving
 -----------------
+A Lightning checkpoint has everything needed to restore a training session including:
+
+- 16-bit scaling factor (apex)
+- Current epoch
+- Global step
+- Model state_dict
+- State of all optimizers
+- State of all learningRate schedulers
+- State of all callbacks
+- The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
+
+Automatic saving
+^^^^^^^^^^^^^^^^
 
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
@@ -58,6 +71,15 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
 
        def __init__(self, hparams, ...):
            self.hparams = hparams
+
+Manual saving
+^^^^^^^^^^^^^
+
+To save your own checkpoint call:
+
+.. code-block:: python
+
+   model.save_checkpoint(PATH)
 
 Checkpoint Loading
 ------------------
