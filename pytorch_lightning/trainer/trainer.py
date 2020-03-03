@@ -978,6 +978,7 @@ class Trainer(TrainerIOMixin,
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+            print('0' * 100)
             self.load_spawn_weights(model)
             self.model = model
 
