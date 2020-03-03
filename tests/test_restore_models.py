@@ -1,3 +1,4 @@
+import glob
 import logging as log
 import os
 
@@ -132,9 +133,7 @@ def test_load_model_from_checkpoint(tmpdir):
     assert result == 1, 'training failed to complete'
 
     # load last checkpoint
-    last_checkpoint = os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_1.ckpt")
-    if not os.path.isfile(last_checkpoint):
-        last_checkpoint = os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_0.ckpt")
+    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
     pretrained_model = LightningTestModel.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
@@ -346,7 +345,7 @@ def test_load_model_with_missing_hparams(tmpdir):
 
     model = LightningTestModelWithoutHyperparametersArg()
     trainer.fit(model)
-    last_checkpoint = os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_0.ckpt")
+    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
 
     # try to load a checkpoint that has hparams but model is missing hparams arg
     with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
