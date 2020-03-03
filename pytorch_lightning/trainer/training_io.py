@@ -97,6 +97,7 @@ from abc import ABC
 from argparse import Namespace
 from subprocess import call
 from typing import Union
+from copy import deepcopy
 
 import torch
 import torch.distributed as torch_distrib
