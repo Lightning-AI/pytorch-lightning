@@ -1,3 +1,4 @@
+import glob
 import math
 import os
 import pytest
@@ -257,8 +258,12 @@ def test_model_checkpoint_options(tmp_path):
     assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
 
     # verify correct naming
-    for i in range(0, len(losses)):
-        assert f"_ckpt_epoch_{i}.ckpt" in file_lists
+    for fname in {'_epoch=4_val_loss=2.50.ckpt',
+                  '_epoch=3_val_loss=5.00.ckpt',
+                  '_epoch=2_val_loss=2.80.ckpt',
+                  '_epoch=1_val_loss=9.00.ckpt',
+                  '_epoch=0_val_loss=10.00.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "2"
     save_dir.mkdir()
@@ -297,7 +302,7 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
+    assert 'test_prefix_epoch=4_val_loss=2.50.ckpt' in file_lists
 
     save_dir = tmp_path / "4"
     save_dir.mkdir()
@@ -320,9 +325,10 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    assert '_ckpt_epoch_4.ckpt' in file_lists
-    assert '_ckpt_epoch_2.ckpt' in file_lists
-    assert 'other_file.ckpt' in file_lists
+    for fname in {'_epoch=4_val_loss=2.50.ckpt',
+                  '_epoch=2_val_loss=2.80.ckpt',
+                  'other_file.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "5"
     save_dir.mkdir()
@@ -365,9 +371,10 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    assert '_ckpt_epoch_0_v2.ckpt' in file_lists
-    assert '_ckpt_epoch_0_v1.ckpt' in file_lists
-    assert '_ckpt_epoch_0.ckpt' in file_lists
+    for fname in {'_epoch=0_val_loss=2.80.ckpt',
+                  '_epoch=0_val_loss=2.50.ckpt',
+                  '_epoch=0_val_loss=5.00.ckpt'}:
+        assert fname in file_lists
 
 
 def test_model_freeze_unfreeze():
@@ -388,7 +395,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    def new_model():
+    def _new_model():
         # Create a model that tracks epochs and batches seen
         model = LightningTestModel(hparams)
         model.num_epochs_seen = 0
@@ -406,7 +413,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         model.on_batch_start = types.MethodType(increment_batch, model)
         return model
 
-    model = new_model()
+    model = _new_model()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -417,7 +424,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         logger=False,
         default_save_path=tmpdir,
         early_stop_callback=False,
-        val_check_interval=0.5,
+        val_check_interval=1.,
     )
 
     # fit model
@@ -430,15 +437,10 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     assert model.num_batches_seen == training_batches * 2
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = [
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0_v0.ckpt"),
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1_v0.ckpt"),
-    ]
+    checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
 
     for check in checkpoints:
-        next_model = new_model()
+        next_model = _new_model()
         state = torch.load(check)
 
         # Resume training
