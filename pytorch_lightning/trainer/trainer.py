@@ -71,7 +71,7 @@ class Trainer(TrainerIOMixin,
             self,
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
+            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
             callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
@@ -155,7 +155,7 @@ class Trainer(TrainerIOMixin,
 
             early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
                 Callback for early stopping.
-                If set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+                If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
                 If set to ``False``, then early stopping will be disabled.
                 If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
