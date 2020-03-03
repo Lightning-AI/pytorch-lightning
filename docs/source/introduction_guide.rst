@@ -28,7 +28,10 @@ Lightning Philosophy
 --------------------
 Lightning factors DL/ML code into three types:
 
-1. Core research code.
+Research code
+^^^^^^^^^^^^^
+In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
+In Lightning, this code is abstracted out by the `LightningModule`.
 
 .. code-block:: python
 
@@ -42,7 +45,13 @@ Lightning factors DL/ML code into three types:
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
 
-2. Engineering code.
+Engineering code
+^^^^^^^^^^^^^^^^
+
+The Engineering code is all the code related to training this system. Things such as early stopping, distribution
+over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
+
+In Lightning, this code is abstracted out by the `Trainer`.
 
 .. code-block:: python
 
@@ -56,28 +65,6 @@ Lightning factors DL/ML code into three types:
 
     dist.barrier()
 
-3. Non-essential research code.
-
-.. code-block:: python
-
-    # log samples
-    z = Q.rsample()
-    generated = decoder(z)
-
-Research code
-^^^^^^^^^^^^^
-In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
-
-In Lightning, this code is abstracted out by the `LightningModule`.
-
-Engineering code
-^^^^^^^^^^^^^^^^
-
-The Engineering code is all the code related to training this system. Things such as early stopping, distribution
-over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
-
-In Lightning, this code is abstracted out by the `Trainer`.
-
 Non-essential code
 ^^^^^^^^^^^^^^^^^^
 This is code that helps the research but isn't relevant to the research code. Some examples might be:
@@ -85,6 +72,12 @@ This is code that helps the research but isn't relevant to the research code. So
 2. Log to tensorboard.
 
 In Lightning this code is abstracted out by `Callbacks`.
+
+.. code-block:: python
+
+    # log samples
+    z = Q.rsample()
+    generated = decoder(z)
 
 Elements of a research project
 ------------------------------
