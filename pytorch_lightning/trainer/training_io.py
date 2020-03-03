@@ -235,14 +235,7 @@ class TrainerIOMixin(ABC):
         # add the hparams and state_dict from the model
         model = self.get_model()
 
-        if self.on_tpu:
-            xm.save(model.state_dict(), 'tmp_tpu_tensors.pt')
-            tpu_tensors = torch.load('tmp_tpu_tensors.pt')
-            os.remove('tmp_tpu_tensors.pt')
-
-            checkpoint['state_dict'] = tpu_tensors.state_dict()
-        else:
-            checkpoint['state_dict'] = model.state_dict()
+        checkpoint['state_dict'] = model.state_dict()
 
         if hasattr(model, "hparams"):
             checkpoint['hparams'] = vars(model.hparams)
