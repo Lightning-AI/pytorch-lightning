@@ -282,7 +282,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # do training_step with decoder
 
         If you add truncated back propagation through time you will also get an additional argument
-         with the hidden states of the previous step.
+        with the hidden states of the previous step.
 
         .. code-block:: python
 
