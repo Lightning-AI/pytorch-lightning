@@ -2,8 +2,8 @@ import os
 import sys
 import warnings
 import logging as log
-from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable
+from argparse import ArgumentParser
 
 import torch
 import torch.distributed as dist
@@ -39,19 +39,19 @@ from pytorch_lightning.callbacks import Callback
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class Trainer(TrainerIOMixin,
@@ -72,7 +72,7 @@ class Trainer(TrainerIOMixin,
             self,
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
+            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
             callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
@@ -99,7 +99,7 @@ class Trainer(TrainerIOMixin,
             train_percent_check: float = 1.0,
             val_percent_check: float = 1.0,
             test_percent_check: float = 1.0,
-            val_check_interval: Union[float] = 1.0,
+            val_check_interval: float = 1.0,
             log_save_interval: int = 100,
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
@@ -155,8 +155,9 @@ class Trainer(TrainerIOMixin,
 
                     trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-            early_stop_callback: Callback for early stopping. If
-                set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
+                Callback for early stopping.
+                If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
                 If set to ``False``, then early stopping will be disabled.
                 If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
@@ -808,7 +809,10 @@ class Trainer(TrainerIOMixin,
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.precision = precision
-        if self.precision == 16:
+
+        assert self.precision == 32 or self.precision == 16, 'only 32 or 16 bit precision supported'
+
+        if self.precision == 16 and num_tpu_cores is None:
             use_amp = True
         self.init_amp(use_amp)
 
@@ -966,8 +970,8 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
-        # Fit begin callbacks
-        self.on_fit_start()
+        # bind logger
+        model.logger = self.logger
 
         # set up the passed in dataloaders (if needed)
         self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
@@ -983,7 +987,17 @@ class Trainer(TrainerIOMixin,
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
             else:
+                self.__set_random_port()
+
+                # track for predict
+                self.model = model
+
+                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+
+                # load weights if not interrupted
+                self.load_spawn_weights(model)
+                self.model = model
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -998,7 +1012,16 @@ class Trainer(TrainerIOMixin,
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+
+            # track for predict
+            self.model = model
+
+            # train
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+
+            # load weights if not interrupted
+            self.load_spawn_weights(model)
+            self.model = model
 
         # ON CPU
         else:
@@ -1012,12 +1035,21 @@ class Trainer(TrainerIOMixin,
 
             self.run_pretrain_routine(model)
 
-        # Fit end callbacks
-        self.on_fit_end()
-
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def __set_random_port(self):
+        """
+        When running DDP NOT managed by SLURM, the ports might collide
+        :return:
+        """
+        try:
+            default_port = os.environ['MASTER_PORT']
+        except Exception:
+            import random
+            default_port = random.randint(10000, 19000)
+            os.environ['MASTER_PORT'] = str(default_port)
 
     def __set_fit_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1027,30 +1059,21 @@ class Trainer(TrainerIOMixin,
                 m = 'You called .fit() with a train_dataloader but did not define training_step()'
                 raise MisconfigurationException(m)
 
-            def patch_train_dataloader():
-                return train_dataloader
-
-            model.train_dataloader = patch_train_dataloader
+            model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             if not self.is_overriden('validation_step', model):
                 m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
                 raise MisconfigurationException(m)
 
-            def patch_val_dataloader():
-                return val_dataloaders
-
-            model.val_dataloader = patch_val_dataloader
+            model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
             if not self.is_overriden('test_step', model):
                 m = 'You called .fit() with a test_dataloaders but did not define test_step()'
                 raise MisconfigurationException(m)
 
-            def patch_test_dataloader():
-                return test_dataloaders
-
-            model.test_dataloader = patch_test_dataloader
+            model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
     def init_optimizers(
             self,
@@ -1094,10 +1117,8 @@ class Trainer(TrainerIOMixin,
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
 
-        # link up experiment object
+        # log hyper-parameters
         if self.logger is not None:
-            ref_model.logger = self.logger
-
             # save exp to get started
             if hasattr(ref_model, "hparams"):
                 self.logger.log_hyperparams(ref_model.hparams)
@@ -1119,7 +1140,8 @@ class Trainer(TrainerIOMixin,
         self.register_slurm_signal_handlers()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary is not None:
+        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
+        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
@@ -1139,23 +1161,18 @@ class Trainer(TrainerIOMixin,
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
-            self.reset_test_dataloader(ref_model)
+            # self.reset_test_dataloader(ref_model)
             self.run_evaluation(test_mode=True)
             return
 
-        # load the dataloaders
-        self.reset_train_dataloader(ref_model)
-        self.reset_val_dataloader(ref_model)
-
         # check if we should run validation during training
-        self.disable_validation = self.num_val_batches == 0 or not self.is_overriden('validation_step')
-        self.disable_validation = self.disable_validation and not self.fast_dev_run
+        self.disable_validation = not self.is_overriden('validation_step') and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         ref_model.on_sanity_check_start()
-        ref_model.on_train_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
+            self.reset_val_dataloader(ref_model)
             # init progress bars for validation sanity check
             pbar = tqdm(desc='Validation sanity check',
                         total=self.num_sanity_val_steps * len(self.val_dataloaders),
@@ -1197,7 +1214,7 @@ class Trainer(TrainerIOMixin,
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model: The model to test.
+            model (:class:`.LightningModule`): The model to test.
 
         Example::
 
@@ -1215,10 +1232,36 @@ class Trainer(TrainerIOMixin,
             trainer = Trainer()
             trainer.test(model)
         """
+
         self.testing = True
         if model is not None:
+            self.model = model
             self.fit(model)
-        self.run_evaluation(test_mode=True)
+        elif self.use_ddp or self.use_tpu:
+            # attempt to load weights from a spawn
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            test_model = self.model
+            if os.path.exists(path):
+                test_model = self.load_spawn_weights(self.model)
+
+            self.fit(test_model)
+        else:
+            self.run_evaluation(test_mode=True)
+
+
+class _PatchDataLoader(object):
+    r'''
+    Callable object for patching dataloaders passed into trainer.fit().
+    Use this class to override model.*_dataloader() and be pickle-compatible.
+
+    Args:
+        dataloader: Dataloader object to return when called.
+    '''
+    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+        self.dataloader = dataloader
+
+    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+        return self.dataloader
 
 
 def _set_dataloader(model, dataloader, attribute):
