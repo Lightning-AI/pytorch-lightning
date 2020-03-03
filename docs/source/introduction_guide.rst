@@ -78,6 +78,7 @@ In Lightning this code is abstracted out by `Callbacks`.
     # log samples
     z = Q.rsample()
     generated = decoder(z)
+    self.experiment.log('images', generated)
 
 Elements of a research project
 ------------------------------
@@ -320,6 +321,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
 
+Train on CPU
+^^^^^^^^^^^^
+
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -332,6 +336,9 @@ You should see the following weights summary and progress bar
 
 .. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
+
+Logging
+^^^^^^^
 
 When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
 But you could have also logged by calling:
@@ -348,6 +355,10 @@ Which will generate automatic tensorboard logs.
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
 
+But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
+
+GPU training
+^^^^^^^^^^^^
 
 But the beauty is all the magic you can do with the trainer flags. For instance, to run this model on a GPU:
 
@@ -361,7 +372,10 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. figure:: /_images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
-Or you can also train on multiple GPUs (not on colab though)
+Multi-GPU training
+^^^^^^^^^^^^^^^^^^
+
+Or you can also train on multiple GPUs.
 
 .. code-block:: python
 
@@ -378,7 +392,15 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model)
 
-And even TPUs. Let's do it on the colab!
+Refer to the `distributed computing guide for more details <multi_gpu.rst>`_.
+
+TPUs
+^^^^
+Did you know you can use PyTorch on TPUs? It's very hard to do, but we've
+worked with the xla team to use their awesome library to get this to work
+out of the box!
+
+Let's train on Colab (`full demo available here <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_)
 
 First, change the runtime to TPU (and reinstall lightning).
 
