@@ -52,8 +52,6 @@ class TrainerTrainingTricksMixin(ABC):
                 log.info(param, param.grad)
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
-        self.accumulate_grad_batches = None
-
         if isinstance(accumulate_grad_batches, dict):
             self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):

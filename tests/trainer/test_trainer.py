@@ -1,10 +1,11 @@
 import math
 import os
-
 import pytest
 import torch
+import argparse
 
 import tests.models.utils as tutils
+from unittest import mock
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -600,3 +601,22 @@ def test_testpass_overrides(tmpdir):
 
     model = LightningTestModel(hparams)
     Trainer().test(model)
+
+@mock.patch('argparse.ArgumentParser.parse_args',
+            return_value=argparse.Namespace(**Trainer.default_attributes()))
+def test_default_args(tmpdir):
+    """Tests default argument parser for Trainer"""
+    tutils.reset_seed()
+
+    # logger file to get meta
+    logger = tutils.get_test_tube_logger(tmpdir, False)
+
+    parser = argparse.ArgumentParser(add_help=False)
+    args = parser.parse_args()
+    args.logger = logger
+
+    args.max_epochs = 5
+    trainer = Trainer.from_argparse_args(args)
+
+    assert isinstance(trainer, Trainer)
+    assert trainer.max_epochs == 5
