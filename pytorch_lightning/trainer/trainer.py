@@ -1217,9 +1217,6 @@ class Trainer(TrainerIOMixin,
             if os.path.exists(path):
                 self.load_spawn_weights(self.model)
 
-            # TODO: allow test to run on all cores. 1 core only that works now
-            self.num_tpu_cores = 1
-
             self.fit(self.model)
         else:
             self.run_evaluation(test_mode=True)
