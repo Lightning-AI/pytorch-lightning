@@ -1,3 +1,4 @@
+import glob
 import math
 import os
 
@@ -393,7 +394,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    def new_model():
+    def _new_model():
         # Create a model that tracks epochs and batches seen
         model = LightningTestModel(hparams)
         model.num_epochs_seen = 0
@@ -411,7 +412,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         model.on_batch_start = types.MethodType(increment_batch, model)
         return model
 
-    model = new_model()
+    model = _new_model()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -435,15 +436,10 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     assert model.num_batches_seen == training_batches * 2
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = [
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt"),
-        os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_0_v0.ckpt"),
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt"),
-        os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_1_v0.ckpt"),
-    ]
+    checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
 
-    for check in checkpoints:
-        next_model = new_model()
+    for check in checkpoints[1::2]:
+        next_model = _new_model()
         state = torch.load(check)
 
         # Resume training
