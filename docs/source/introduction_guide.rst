@@ -11,6 +11,8 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
 
+---------
+
 Goal of this guide
 ------------------
 This guide walks through the major parts of the library to help you understand
@@ -18,25 +20,38 @@ what each parts does. But at the end of the day, you write the same PyTorch code
 into the LightningModule template which means you keep ALL the flexibility without having to deal with
 any of the boilerplate code
 
-To show how Lightning works, we'll start with an MNIST classifier and move into
-a Variational Autoencoder and a Generative Adversarial Network (GAN).
+To show how Lightning works, we'll start with an MNIST classifier. We'll end showing how
+to use inheritance to very quickly create an AutoEncoder.
 
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
+
+---------
 
 Lightning Philosophy
 --------------------
 Lightning factors DL/ML code into three types:
 
-1. Core research code.
-2. Engineering code.
-3. Non-essential research code.
+- Research code
+- Engineerng code
+- Non-essential code
 
 Research code
 ^^^^^^^^^^^^^
 In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
-
 In Lightning, this code is abstracted out by the `LightningModule`.
+
+.. code-block:: python
+
+    l1 = nn.Linear(...)
+    l2 = nn.Linear(...)
+    decoder = Decoder()
+
+    x1 = l1(x)
+    x2 = l2(x2)
+    out = decoder(features, x)
+
+    loss = perceptual_loss(x1, x2, x) + CE(out, x)
 
 Engineering code
 ^^^^^^^^^^^^^^^^
@@ -46,6 +61,18 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 
 In Lightning, this code is abstracted out by the `Trainer`.
 
+.. code-block:: python
+
+    model.cuda(0)
+    x = x.cuda(0)
+
+    distributed = DistributedParallel(model)
+
+    with gpu_zero:
+        download_data()
+
+    dist.barrier()
+
 Non-essential code
 ^^^^^^^^^^^^^^^^^^
 This is code that helps the research but isn't relevant to the research code. Some examples might be:
@@ -53,6 +80,15 @@ This is code that helps the research but isn't relevant to the research code. So
 2. Log to tensorboard.
 
 In Lightning this code is abstracted out by `Callbacks`.
+
+.. code-block:: python
+
+    # log samples
+    z = Q.rsample()
+    generated = decoder(z)
+    self.experiment.log('images', generated)
+
+---------
 
 Elements of a research project
 ------------------------------
@@ -244,6 +280,8 @@ in the LightningModule
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
 
+---------
+
 Training
 --------
 So far we defined 4 key ingredients in pure PyTorch but organized the code inside the LightningModule.
@@ -295,6 +333,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
 
+Train on CPU
+^^^^^^^^^^^^
+
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -307,6 +348,9 @@ You should see the following weights summary and progress bar
 
 .. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
+
+Logging
+^^^^^^^
 
 When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
 But you could have also logged by calling:
@@ -323,6 +367,10 @@ Which will generate automatic tensorboard logs.
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
 
+But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
+
+GPU training
+^^^^^^^^^^^^
 
 But the beauty is all the magic you can do with the trainer flags. For instance, to run this model on a GPU:
 
@@ -336,7 +384,10 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. figure:: /_images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
-Or you can also train on multiple GPUs (not on colab though)
+Multi-GPU training
+^^^^^^^^^^^^^^^^^^
+
+Or you can also train on multiple GPUs.
 
 .. code-block:: python
 
@@ -353,7 +404,15 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model)
 
-And even TPUs. Let's do it on the colab!
+Refer to the `distributed computing guide for more details <multi_gpu.rst>`_.
+
+TPUs
+^^^^
+Did you know you can use PyTorch on TPUs? It's very hard to do, but we've
+worked with the xla team to use their awesome library to get this to work
+out of the box!
+
+Let's train on Colab (`full demo available here <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_)
 
 First, change the runtime to TPU (and reinstall lightning).
 
@@ -448,6 +507,8 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
+---------
+
 Hyperparameters
 ---------------
 Normally, we don't hard-code the values to a model. We usually use the command line to
@@ -497,7 +558,7 @@ Now we can parametrize the LightningModule.
 
 For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
 
-
+---------
 
 Validating
 ----------
@@ -574,6 +635,8 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
+---------
+
 Testing
 -------
 Once our research is done and we're about to publish or deploy a model, we normally want to figure out
@@ -632,6 +695,8 @@ You can also run the test from a saved lightning model
 
 .. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
+---------
+
 Predicting
 ----------
 Again, a LightningModule is exactly the same as a PyTorch module. This means you can load it
@@ -649,7 +714,7 @@ within it.
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTClassifier(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -668,11 +733,17 @@ within it.
         loss = F.nll_loss(logits, y)
         return loss
 
+.. code-block:: python
+
+    model = MNISTClassifier()
+    x = mnist_image()
+    logits = model(x)
+
 In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTRepresentator(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -692,8 +763,40 @@ In this case, we've set this LightningModel to predict logits. But we could also
         loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
         return loss
 
+.. code-block:: python
+
+    model = MNISTRepresentator.load_from_checkpoint(PATH)
+    x = mnist_image()
+    feature_maps = model(x)
+
+Or maybe we have a model that we use to do generation
+
+.. code-block:: python
+
+    class CoolMNISTDreamer(pl.LightningModule):
+
+      def forward(self, z):
+        imgs = self.decoder(z)
+        return imgs
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        representation = self.encoder(x)
+        imgs = self.forward(representation)
+
+        loss = perceptual_loss(imgs, x)
+        return loss
+
+.. code-block:: python
+
+    model = CoolMNISTDreamer.load_from_checkpoint(PATH)
+    z = sample_noise()
+    generated_imgs = model(z)
+
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
+
+---------
 
 Extensibility
 -------------
@@ -783,7 +886,11 @@ And pass the callbacks into the trainer
 
 .. note:: See full list of 12+ hooks in the `Callback docs <callbacks.rst#callback-class>`_
 
+---------
+
 .. include:: child_modules.rst
+
+---------
 
 .. include:: transfer_learning.rst
 

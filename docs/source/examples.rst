@@ -3,8 +3,6 @@
    :name: Community Examples
    :caption: Community Examples
 
-
-    Fast Aging GAN <https://github.com/PyTorchLightning/Fast-AgingGAN>
     Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
     Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
     Recurrent Attentive Neural Process <https://github.com/PyTorchLightning/attentive-neural-processes>

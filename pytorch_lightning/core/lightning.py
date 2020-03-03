@@ -268,6 +268,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 loss = nce_loss(loss)
                 return {'loss': loss}
 
+        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+
         If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
 
         .. code-block:: python
@@ -280,7 +282,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # do training_step with decoder
 
         If you add truncated back propagation through time you will also get an additional argument
-         with the hidden states of the previous step.
+        with the hidden states of the previous step.
 
         .. code-block:: python
 
@@ -1248,7 +1250,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.eval()
 
     def unfreeze(self):
-        """Unfreeze all params for inference.
+        """Unfreeze all params for training.
 
         .. code-block:: python
 
