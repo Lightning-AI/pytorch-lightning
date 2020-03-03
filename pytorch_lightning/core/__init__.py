@@ -55,22 +55,22 @@ Which you can train by doing:
 
 If you wanted to add a validation loop
 
-.. code_block:: python
+.. code-block:: python
 
-    class CoolModel(pl.LightningModule):
-        def validation_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self.forward(x)
-            return {'val_loss': F.cross_entropy(y_hat, y)}
+        class CoolModel(pl.LightningModule):
+            def validation_step(self, batch, batch_idx):
+                x, y = batch
+                y_hat = self.forward(x)
+                return {'val_loss': F.cross_entropy(y_hat, y)}
 
-        def validation_end(self, outputs):
-            val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
-            return {'val_loss': val_loss_mean}
+            def validation_end(self, outputs):
+                val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
+                return {'val_loss': val_loss_mean}
 
-        def val_dataloader(self):
-            # can also return a list of val dataloaders
-            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
+            def val_dataloader(self):
+                # can also return a list of val dataloaders
+                return DataLoader(MNIST(os.getcwd(), train=True, download=True,
+                                  transform=transforms.ToTensor()), batch_size=32)
 
 Or add a test loop
 
