@@ -1217,7 +1217,6 @@ class Trainer(TrainerIOMixin,
             if os.path.exists(path):
                 self.load_spawn_weights(self.model)
 
-            import pdb; pdb.set_trace()
             self.fit(self.model)
         else:
             self.run_evaluation(test_mode=True)
