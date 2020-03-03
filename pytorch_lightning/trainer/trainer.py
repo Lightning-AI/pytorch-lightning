@@ -599,6 +599,8 @@ class Trainer(
 
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+                self.load_spawn_weights(model)
+                self.model = model
 
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
@@ -623,6 +625,8 @@ class Trainer(
 
             # train
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+            self.load_spawn_weights(model)
+            self.model = model
 
             # load weights if not interrupted
             self.load_spawn_weights(model)
