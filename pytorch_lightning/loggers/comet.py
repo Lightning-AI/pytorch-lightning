@@ -7,7 +7,7 @@ CometLogger
 """
 import argparse
 from logging import getLogger
-from typing import Optional, Union, Dict
+from typing import Optional, Dict, Union
 
 try:
     from comet_ml import Experiment as CometExperiment
@@ -20,8 +20,10 @@ try:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API
 except ImportError:
-    raise ImportError('Missing comet_ml package.')
+    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+                      ' install it with `pip install comet-ml`.')
 
+import torch
 from torch import is_tensor
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -87,11 +89,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if save_dir is not None and api_key is not None:
-            # If arguments are passed for both save_dir and api_key, preference is given to online mode
-            self.mode = "online"
-            self.api_key = api_key
-        elif api_key is not None:
+        if api_key is not None:
             self.mode = "online"
             self.api_key = api_key
         elif save_dir is not None:
@@ -168,7 +166,11 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(vars(params))
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(
+            self,
+            metrics: Dict[str, Union[torch.Tensor, float]],
+            step: Optional[int] = None
+    ):
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
