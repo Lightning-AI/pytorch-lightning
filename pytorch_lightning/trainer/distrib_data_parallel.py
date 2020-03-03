@@ -354,6 +354,7 @@ class TrainerDDPMixin(ABC):
             print('-' * 100)
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
+            print('saved checkpoint!!')
 
     def load_spawn_weights(self, original_model):
         """

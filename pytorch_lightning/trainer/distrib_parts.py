@@ -497,11 +497,10 @@ class TrainerDPMixin(ABC):
         log.info(m)
 
         def signal_handle(_signal, frame):
-            print(frame)
-            print('*' * 100)
             self.save_spawn_weights(model)
 
-        signal.signal(signal.SIGINT, signal_handle)
+        if self.proc_rank == 0:
+            signal.signal(signal.SIGINT, signal_handle)
 
         # continue training routine
         self.run_pretrain_routine(model)
