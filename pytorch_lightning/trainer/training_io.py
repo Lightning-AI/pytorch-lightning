@@ -236,7 +236,7 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
 
         if self.on_tpu:
-            xm.save(model, 'tmp_tpu_tensors.pt')
+            xm.save(model.state_dict(), 'tmp_tpu_tensors.pt')
             tpu_tensors = torch.load('tmp_tpu_tensors.pt')
             os.remove('tmp_tpu_tensors.pt')
 
