@@ -93,7 +93,7 @@ class ModelCheckpoint(Callback):
             'min': (np.less, np.Inf, 'min'),
             'max': (np.greater, -np.Inf, 'max'),
             'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-                else (np.less, np.Inf, 'min'),
+            else (np.less, np.Inf, 'min'),
         }
 
         if mode not in mode_dict:
