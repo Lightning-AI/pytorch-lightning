@@ -276,16 +276,16 @@ class Trainer(TrainerIOMixin,
                     # -1: train on all available TPUs
                     trainer = Trainer(num_tpu_cores=-1)
 
-            To train on more than 8 cores (ie: a POD),
-            submit this script using the xla_dist script.
+                To train on more than 8 cores (ie: a POD),
+                submit this script using the xla_dist script.
 
-            Example::
+                Example::
 
-                $ python -m torch_xla.distributed.xla_dist
-                --tpu=$TPU_POD_NAME
-                --conda-env=torch-xla-nightly
-                --env=XLA_USE_BF16=1
-                -- python your_trainer_file.py
+                    $ python -m torch_xla.distributed.xla_dist
+                    --tpu=$TPU_POD_NAME
+                    --conda-env=torch-xla-nightly
+                    --env=XLA_USE_BF16=1
+                    -- python your_trainer_file.py
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
