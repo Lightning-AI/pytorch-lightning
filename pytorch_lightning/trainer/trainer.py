@@ -824,24 +824,25 @@ class Trainer(TrainerIOMixin,
             job_id = None
         return job_id
 
+    @property
     @classmethod
-    def get_default_args(cls):
+    def default_attributes(cls):
         return vars(cls())
 
     @classmethod
-    def add_argparse_args(cls, parent_parser):
+    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
 
         parser = ArgumentParser(parents=[parent_parser])
 
-        trainer_default_args = Trainer.get_default_args()
+        trainer_default_params = Trainer.default_attributes
 
         for arg in trainer_default_args:
-            parser.add_argument('--{0}'.format(arg), default=trainer_default_args[arg], dest=arg)
+            parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
 
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args):
+    def from_argparse_args(cls, args) -> Trainer:
 
         params = vars(args)
         return cls(**params)
