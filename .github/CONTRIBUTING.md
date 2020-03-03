@@ -74,7 +74,9 @@ A lot of good work has already been done in project mechanics (requirements.txt,
     ```
     autopep8 -v -r --max-line-length 120 --in-place .
     ```
-3. Documentation is using [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
+3. Documentation is using:
+    - [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
+    - [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
 
 ### Testing
 
