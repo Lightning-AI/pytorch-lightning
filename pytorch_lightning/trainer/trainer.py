@@ -824,9 +824,9 @@ class Trainer(TrainerIOMixin,
             job_id = None
         return job_id
 
-    @staticmethod
-    def get_default_args():
-        return vars(Trainer())
+    @classmethod
+    def get_default_args(cls):
+        return vars(cls())
 
     @classmethod
     def add_argparse_args(cls, parent_parser):
