@@ -32,7 +32,7 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
 
     # test model loading
     pretrained_model = load_model(trainer.logger,
-                                  trainer.checkpoint_callback.filepath,
+                                  trainer.checkpoint_callback.dirpath,
                                   path_expt=trainer_options.get('default_save_path'))
 
     # test new model accuracy
@@ -70,7 +70,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
+    pretrained_model = load_model(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()

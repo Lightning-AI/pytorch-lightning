@@ -431,9 +431,9 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = [
         # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0_v0.ckpt"),
+        os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_0_v0.ckpt"),
         # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1_v0.ckpt"),
+        os.path.join(trainer.checkpoint_callback.dirpath, "_ckpt_epoch_1_v0.ckpt"),
     ]
 
     for check in checkpoints:
