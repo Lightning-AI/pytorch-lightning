@@ -846,7 +846,7 @@ class Trainer(TrainerIOMixin,
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args) -> Trainer:
+    def from_argparse_args(cls, args):
 
         params = vars(args)
         return cls(**params)
