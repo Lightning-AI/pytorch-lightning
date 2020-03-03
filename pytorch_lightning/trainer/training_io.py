@@ -236,8 +236,9 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
 
         if self.on_tpu:
-            tpu_model = deepcopy(model).cpu()
-            checkpoint['state_dict'] = tpu_model.state_dict()
+            xm.save(model, 'tmp_tpu_tensors.pt')
+            tpu_tensors = torch.load('tmp_tpu_tensors.pt')
+            checkpoint['state_dict'] = tpu_tensors.state_dict()
         else:
             checkpoint['state_dict'] = model.state_dict()
 
