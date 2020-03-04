@@ -168,6 +168,20 @@ def load_model(exp, root_weights_dir, module_class=LightningTemplateModel, path_
     return trained_model
 
 
+def load_model_from_checkpoint(root_weights_dir, module_class=LightningTemplateModel):
+    # load trained model
+    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
+
+    trained_model = module_class.load_from_checkpoint(
+        checkpoint_path=weights_dir,
+    )
+
+    assert trained_model is not None, 'loading model failed'
+
+    return trained_model
+
+
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.45):
     # run prediction on 1 batch
     for batch in dataloader:
