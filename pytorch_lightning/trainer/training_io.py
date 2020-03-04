@@ -240,7 +240,7 @@ class TrainerIOMixin(ABC):
         if hasattr(model, "hparams"):
             is_namespace = isinstance(model.hparams, Namespace)
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
-            checkpont['hparams_type'] = 'namespace' if is_namespace else 'dict'
+            checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
         else:
             warnings.warn(
                 "Did not find hyperparameters at model.hparams. Saving checkpoint without"
