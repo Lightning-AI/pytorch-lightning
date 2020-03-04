@@ -462,7 +462,7 @@ class TrainerTrainLoopMixin(ABC):
             # save checkpoint even when no test or val step are defined
             train_step_only = not self.is_overriden('validation_step')
             if self.fast_dev_run or should_check_val or train_step_only:
-                self.save_checkpoint()
+                self.call_checkpoint_callback()
 
                 if self.enable_early_stop:
                     self.early_stop_callback.check_metrics(self.callback_metrics)
@@ -716,7 +716,7 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def save_checkpoint(self):
+    def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
