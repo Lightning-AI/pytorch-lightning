@@ -1215,7 +1215,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                hparams = Namespace(**ckpt_hparams)
+                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
