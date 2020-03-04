@@ -29,8 +29,8 @@ class MNIST(Dataset):
         "https://pl-public-data.s3.amazonaws.com/MNIST/processed/test.pt",
     ]
 
-    TRAINING_FILE = 'training.pt'
-    TEST_FILE = 'test.pt'
+    TRAINING_FILE_NAME = 'training.pt'
+    TEST_FILE_NAME = 'test.pt'
 
     def __init__(self, root, train=True, normalize=(0.5, 1.0), download=False):
         super(MNIST, self).__init__()
@@ -44,7 +44,7 @@ class MNIST(Dataset):
         if not self._check_exists():
             raise RuntimeError('Dataset not found.')
 
-        data_file = self.TRAINING_FILE if self.train else self.TEST_FILE
+        data_file = self.TRAINING_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
     def __getitem__(self, index):
@@ -63,8 +63,8 @@ class MNIST(Dataset):
         return os.path.join(self.root, 'MNIST', 'processed')
 
     def _check_exists(self):
-        train_file = os.path.join(self.processed_folder, self.TRAINING_FILE)
-        test_file = os.path.join(self.processed_folder, self.TEST_FILE)
+        train_file = os.path.join(self.processed_folder, self.TRAINING_FILE_NAME)
+        test_file = os.path.join(self.processed_folder, self.TEST_FILE_NAME)
         return os.path.exists(train_file) and os.path.exists(test_file)
 
     def download(self):
