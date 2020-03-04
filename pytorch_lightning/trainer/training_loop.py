@@ -203,6 +203,7 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     max_steps: int
     total_batch_idx: int
+    checkpoint_callback: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -212,6 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     on_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
+    on_validation_end: Callable
 
     @property
     def max_nb_epochs(self):
@@ -285,10 +287,6 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def reset_val_dataloader(self, model):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def save_checkpoint(self):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -717,3 +715,8 @@ class TrainerTrainLoopMixin(ABC):
         output = self.process_output(output, train=True)
 
         return output
+
+    def save_checkpoint(self):
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.on_validation_end(self, self.get_model())
+        self.on_validation_end()
