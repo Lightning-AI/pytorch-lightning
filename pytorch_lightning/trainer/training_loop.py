@@ -290,6 +290,10 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
+    def save_checkpoint(self):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -462,7 +466,7 @@ class TrainerTrainLoopMixin(ABC):
             # save checkpoint even when no test or val step are defined
             train_step_only = not self.is_overriden('validation_step')
             if self.fast_dev_run or should_check_val or train_step_only:
-                self.call_checkpoint_callback()
+                self.save_checkpoint()
 
                 if self.enable_early_stop:
                     self.early_stop_callback.check_metrics(self.callback_metrics)
