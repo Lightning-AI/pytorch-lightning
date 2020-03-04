@@ -111,10 +111,7 @@ class ModelCheckpoint(Callback):
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
-        try:
-            shutil.rmtree(filepath)
-        except OSError:
-            os.remove(filepath)
+        os.remove(filepath)
 
     def _save_model(self, filepath):
         # make paths
@@ -145,6 +142,8 @@ class ModelCheckpoint(Callback):
             for tmp in groups:
                 name = tmp[1:]
                 filename = filename.replace(tmp, name + '={' + name)
+                if name not in metrics:
+                    metrics[name] = 0
             filename = filename.format(**metrics)
         str_ver = f'_v{ver}' if ver is not None else ''
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
