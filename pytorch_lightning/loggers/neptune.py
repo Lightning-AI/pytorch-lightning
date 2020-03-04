@@ -45,7 +45,7 @@ class NeptuneLogger(LightningLoggerBase):
             # We are using an api_key for the anonymous user "neptuner" but you can use your own.
 
             neptune_logger = NeptuneLogger(
-                api_key="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ=="
+                api_key="ANONYMOUS"
                 project_name="shared/pytorch-lightning-integration",
                 experiment_name="default", # Optional,
                 params={"max_epochs": 10}, # Optional,

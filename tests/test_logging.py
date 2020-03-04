@@ -259,9 +259,9 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
     logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))
     assert logger_close_after_fit._experiment.stop.call_count == 1
 
-    logger_open_after_fit = _run_training(NeptuneLogger(offline_mode=True, close_after_fit=False))
+    logger_open_after_fit = _run_training(
+        NeptuneLogger(offline_mode=True, close_after_fit=False))
     assert logger_open_after_fit._experiment.stop.call_count == 0
-
 
 
 def test_tensorboard_logger(tmpdir):
@@ -328,7 +328,8 @@ def test_tensorboard_named_version(tmpdir):
     tmpdir.mkdir("tb_versioning")
     expected_version = "2020-02-05-162402"
 
-    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning", version=expected_version)
+    logger = TensorBoardLogger(save_dir=tmpdir, name="tb_versioning",
+                               version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
 
     assert logger.version == expected_version
