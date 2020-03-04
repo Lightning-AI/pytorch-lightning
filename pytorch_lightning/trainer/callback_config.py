@@ -55,7 +55,7 @@ class TrainerCallbackConfigMixin(ABC):
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
 
-        self.weights_save_path = ckpt_path
+        self.ckpt_path = ckpt_path
 
         if self.checkpoint_callback:
             # set the path for the callbacks
