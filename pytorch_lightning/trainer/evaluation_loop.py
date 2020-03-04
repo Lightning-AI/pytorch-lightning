@@ -377,11 +377,6 @@ class TrainerEvaluationLoopMixin(ABC):
         if test_mode:
             self.on_test_end()
 
-    def save_checkpoint(self):
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.on_validation_end(self, self.get_model())
-        self.on_validation_end()
-
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]

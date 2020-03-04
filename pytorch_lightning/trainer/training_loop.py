@@ -290,10 +290,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def save_checkpoint(self):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -720,7 +716,7 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def call_checkpoint_callback(self):
+    def save_checkpoint(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
