@@ -44,10 +44,7 @@ class MNIST(Dataset):
         if not self._check_exists():
             raise RuntimeError('Dataset not found.')
 
-        if self.train:
-            data_file = self.training_file
-        else:
-            data_file = self.test_file
+        data_file = self.training_file if self.train else self.test_file
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
     def __getitem__(self, index):
