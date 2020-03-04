@@ -628,7 +628,7 @@ def test_hparams_save_load(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_epochs=1,
+        max_epochs=2,
     )
 
     # fit model
@@ -638,6 +638,7 @@ def test_hparams_save_load(tmpdir):
     assert result == 1
 
     # try to load the model now
+    import pdb; pdb.set_trace()
     pretrained_model = tutils.load_model_from_checkpoint(
         trainer.checkpoint_callback.dirpath,
         module_class=DictHparamsModel
