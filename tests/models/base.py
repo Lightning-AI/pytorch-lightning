@@ -16,8 +16,14 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
+
+# TODO: remove after getting own MNIST
+# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
+import urllib.request
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
 
 
 class TestingMNIST(MNIST):
