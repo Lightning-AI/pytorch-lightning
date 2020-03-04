@@ -636,3 +636,6 @@ def test_hparams_save_load(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(tmpdir, module_class=DictHparamsModel)
