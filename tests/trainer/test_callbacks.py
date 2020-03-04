@@ -154,14 +154,3 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
-
-
-def test_model_checkpoint_formatting(tmpdir):
-    ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
-    assert os.path.basename(ckpt.format_checkpoint_name(0, {})) == 'epoch=0.ckpt'
-    ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
-    assert os.path.basename(ckpt.format_checkpoint_name(5, {})) == 'epoch=005.ckpt'
-    ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
-    assert os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456))) == 'epoch=2-val_loss=0.12.ckpt'
-    ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
-    assert os.path.basename(ckpt.format_checkpoint_name(0, {})) == 'missing=0.ckpt'

@@ -6,7 +6,7 @@ import re
 
 import numpy as np
 
-from .base import Callback
+from pytorch_lightning.callbacks.base import Callback
 
 
 class ModelCheckpoint(Callback):
@@ -130,6 +130,24 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
+        """Generate a filename according define template.
+
+        Examples
+        --------
+        >>> tmpdir = os.path.dirname(__file__)
+        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
+        >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+        'epoch=0.ckpt'
+        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
+        >>> os.path.basename(ckpt.format_checkpoint_name(5, {}))
+        'epoch=005.ckpt'
+        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
+        >>> os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456)))
+        'epoch=2-val_loss=0.12.ckpt'
+        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
+        >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+        'missing=0.ckpt'
+        """
         # check if user passed in keys to the string
         groups = re.findall(r'(\{.*?)[:\}]', self.filename)
 
