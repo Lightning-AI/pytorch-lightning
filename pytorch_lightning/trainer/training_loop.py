@@ -484,6 +484,17 @@ class TrainerTrainLoopMixin(ABC):
                 self.global_step += 1
             self.total_batch_idx += 1
 
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
+            # save checkpoint even when no test or val step are defined
+            train_step_only = not self.is_overriden('validation_step')
+            if self.fast_dev_run or should_check_val or train_step_only:
+                self.call_checkpoint_callback()
+
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
+
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
                 break
