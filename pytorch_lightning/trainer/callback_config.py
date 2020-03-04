@@ -48,9 +48,14 @@ class TrainerCallbackConfigMixin(ABC):
             else:
                 ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
+            # when no val step is defined, use 'loss' otherwise 'val_loss'
+            train_step_only = not self.is_overriden('validation_step')
+            monitor_key = 'loss' if train_step_only else 'val_loss'
+
             self.ckpt_path = ckpt_path
             self.checkpoint_callback = ModelCheckpoint(
-                dirpath=ckpt_path
+                dirpath=ckpt_path,
+                monitor=monitor_key
             )
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
