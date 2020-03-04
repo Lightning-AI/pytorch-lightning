@@ -292,7 +292,7 @@ def test_model_checkpoint_options(tmp_path):
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.currentepoch = i
+        trainer.current_epoch = i
         trainer.callback_metrics = {'val_loss': loss}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
@@ -322,8 +322,8 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    for fname in {'epoch=4_val.ckpt',
-                  'epoch=2_val.ckpt',
+    for fname in {'epoch=4.ckpt',
+                  'epoch=2.ckpt',
                   'other_file.ckpt'}:
         assert fname in file_lists
 
@@ -368,9 +368,9 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    for fname in {'epoch=0_val.ckpt',
-                  'epoch=0_val.ckpt',
-                  'epoch=0_val.ckpt'}:
+    for fname in {'epoch=0.ckpt',
+                  'epoch=0.ckpt',
+                  'epoch=0.ckpt'}:
         assert fname in file_lists
 
 
