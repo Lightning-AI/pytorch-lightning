@@ -5,9 +5,9 @@ r"""
 CometLogger
 -------------
 """
-import argparse
+from argparse import Namespace
 from logging import getLogger
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Any
 
 try:
     from comet_ml import Experiment as CometExperiment
@@ -162,15 +162,16 @@ class CometLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        self.experiment.log_parameters(vars(params))
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
+        self.experiment.log_parameters(params)
 
     @rank_zero_only
     def log_metrics(
             self,
             metrics: Dict[str, Union[torch.Tensor, float]],
             step: Optional[int] = None
-    ):
+    ) -> None:
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
@@ -182,7 +183,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment = None
 
     @rank_zero_only
-    def finalize(self, status: str):
+    def finalize(self, status: str) -> None:
         r"""
         When calling self.experiment.end(), that experiment won't log any more data to Comet. That's why, if you need
         to log any more data you need to create an ExistingCometExperiment. For example, to log data when testing your
@@ -199,7 +200,7 @@ class CometLogger(LightningLoggerBase):
         return self.experiment.project_name
 
     @name.setter
-    def name(self, value: str):
+    def name(self, value: str) -> None:
         self.experiment.set_name(value)
 
     @property

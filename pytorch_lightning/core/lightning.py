@@ -5,7 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Optional, Union, Dict, Callable
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -67,6 +67,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         #: True if using amp
         self.use_amp = False
+
+    @property
+    def hparams(self) -> Namespace:
+        if not hasattr(self, '_hparams'):
+            return Namespace()
+        assert isinstance(self._hparams, dict)
+        return Namespace(**self._hparams)
+
+    @hparams.setter
+    def hparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        """Set the model hyper-parameters."""
+        if isinstance(params, Namespace):
+            params = vars(params)
+        self._hparams = params
 
     def print(self, *args, **kwargs):
         r"""
@@ -1201,7 +1215,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                hparams = Namespace(**ckpt_hparams)
+                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
