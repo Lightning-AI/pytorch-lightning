@@ -45,14 +45,14 @@ def test_optimizer_with_scheduling(tmpdir):
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
     assert len(trainer.lr_schedulers) == 1, \
-        'lr scheduler not initialized properly'
+        'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
 
     assert all(a == adjusted_lr[0] for a in adjusted_lr), \
-        'lr not equally adjusted for all param groups'
+        'Lr not equally adjusted for all param groups'
     adjusted_lr = adjusted_lr[0]
 
     assert init_lr * 0.1 == adjusted_lr, \
-        'lr not adjusted correctly'
+        'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr)
 
 
 def test_multi_optimizer_with_scheduling(tmpdir):
@@ -85,18 +85,18 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
     assert len(trainer.lr_schedulers) == 2, \
-        'all lr scheduler not initialized properly'
+        'all lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
 
     assert all(a == adjusted_lr1[0] for a in adjusted_lr1), \
-        'lr not equally adjusted for all param groups for optimizer 1'
+        'Lr not equally adjusted for all param groups for optimizer 1'
     adjusted_lr1 = adjusted_lr1[0]
 
     assert all(a == adjusted_lr2[0] for a in adjusted_lr2), \
-        'lr not equally adjusted for all param groups for optimizer 2'
+        'Lr not equally adjusted for all param groups for optimizer 2'
     adjusted_lr2 = adjusted_lr2[0]
 
     assert init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2, \
-        'lr not adjusted correctly'
+        'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
 
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
@@ -144,7 +144,3 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
     assert init_lr * 0.1 == adjusted_lr2, \
         'lr for optimizer 2 not adjusted correctly'
-
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])
