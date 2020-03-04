@@ -53,8 +53,9 @@ class TrainerCallbackConfigMixin(ABC):
             monitor_key = 'loss' if train_step_only else 'val_loss'
 
             self.ckpt_path = ckpt_path
+            os.mkdir(ckpt_path)
             self.checkpoint_callback = ModelCheckpoint(
-                dirpath=ckpt_path,
+                filepath=ckpt_path,
                 monitor=monitor_key
             )
         elif self.checkpoint_callback is False:

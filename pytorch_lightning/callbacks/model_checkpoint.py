@@ -63,7 +63,7 @@ class ModelCheckpoint(Callback):
         Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
-        ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
+        ModelCheckpoint(filepath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
         # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
     """
 
@@ -146,8 +146,8 @@ class ModelCheckpoint(Callback):
                 name = tmp[1:]
                 filename = filename.replace(tmp, name + '={' + name)
             filename = filename.format(**metrics)
-        str_ver = f'_v{ver}' if ver else ''
-        filepath = os.path.join(self.dirpath, filename + str_ver + '.ckpt')
+        str_ver = f'_v{ver}' if ver is not None else ''
+        filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
     def on_validation_end(self, trainer, pl_module):
