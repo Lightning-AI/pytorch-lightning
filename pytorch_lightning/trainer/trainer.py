@@ -1075,7 +1075,8 @@ class Trainer(TrainerIOMixin,
         lr_schedulers = []
         default_config = {'interval': 'epoch',  # default every epoch
                           'frequency': 1,  # default every epoch/batch
-                          'reduce_on_plateau': False}  # most often not ReduceLROnPlateau scheduler
+                          'reduce_on_plateau': False, # most often not ReduceLROnPlateau scheduler
+                          'monitor': 'val_loss'}  # default value to monitor for ReduceLROnPlateau 
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:
@@ -1083,7 +1084,7 @@ class Trainer(TrainerIOMixin,
                                      ' with item being a lr scheduler')
                 scheduler['reduce_on_plateau'] = \
                     isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
-
+                
                 lr_schedulers.append({**default_config, **scheduler})
 
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):

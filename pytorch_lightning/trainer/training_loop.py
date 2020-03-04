@@ -715,12 +715,14 @@ class TrainerTrainLoopMixin(ABC):
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
                 # If instance of ReduceLROnPlateau, we need to pass validation loss
                 if lr_scheduler['reduce_on_plateau']:
-                    val_loss = self.callback_metrics.get('val_loss')
-                    if val_loss is None:
+                    monitor_key = lr_scheduler['monitor']
+                    monitor_val = self.callback_metrics.get(monitor_key)
+                    if monitor_val is None:
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
-                            f'which is not available. Available metrics are: {avail_metrics}'
+                        m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
+                            f'which is not available. Available metrics are: {avail_metrics}. ' \
+                             'Condition can be set using `monitor` key in lr scheduler dict'
                         raise MisconfigurationException(m)
-                    lr_scheduler['scheduler'].step(val_loss)
+                    lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
