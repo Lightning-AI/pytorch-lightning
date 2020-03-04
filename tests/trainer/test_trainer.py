@@ -7,13 +7,14 @@ from argparse import ArgumentParser, Namespace
 
 import tests.models.utils as tutils
 from unittest import mock
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
 )
 from tests.models import (
     TestModelBase,
+    DictHparamsModel,
     LightningTestModel,
     LightEmptyTestStep,
     LightValidationStepMixin,
@@ -600,6 +601,7 @@ def test_testpass_overrides(tmpdir):
     model = LightningTestModel(hparams)
     Trainer().test(model)
 
+
 @mock.patch('argparse.ArgumentParser.parse_args',
             return_value=Namespace(**Trainer.default_attributes()))
 def test_default_args(tmpdir):
@@ -618,3 +620,19 @@ def test_default_args(tmpdir):
 
     assert isinstance(trainer, Trainer)
     assert trainer.max_epochs == 5
+
+
+def test_hparams_save_load(tmpdir):
+    model = DictHparamsModel({'in_features': 28*28, 'out_features': 10})
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
