@@ -5,7 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Optional, Union, Dict, Callable, Any
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 import torch.distributed as dist
