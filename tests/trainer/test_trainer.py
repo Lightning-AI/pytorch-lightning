@@ -125,7 +125,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def _optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
             if epoch == 0:
@@ -176,7 +176,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
                       default_save_path=tmpdir)
 
     # for the test
-    trainer.optimizer_step = optimizer_step
+    trainer.optimizer_step = _optimizer_step
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
