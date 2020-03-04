@@ -24,13 +24,13 @@ class MNIST(Dataset):
             downloaded again.
     """
 
-    resources = [
+    RESOURCES = [
         "https://pl-public-data.s3.amazonaws.com/MNIST/processed/training.pt",
         "https://pl-public-data.s3.amazonaws.com/MNIST/processed/test.pt",
     ]
 
-    training_file = 'training.pt'
-    test_file = 'test.pt'
+    TRAINING_FILE = 'training.pt'
+    TEST_FILE = 'test.pt'
 
     def __init__(self, root, train=True, normalize=(0.5, 1.0), download=False):
         super(MNIST, self).__init__()
@@ -44,7 +44,7 @@ class MNIST(Dataset):
         if not self._check_exists():
             raise RuntimeError('Dataset not found.')
 
-        data_file = self.training_file if self.train else self.test_file
+        data_file = self.TRAINING_FILE if self.train else self.TEST_FILE
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
     def __getitem__(self, index):
@@ -63,8 +63,8 @@ class MNIST(Dataset):
         return os.path.join(self.root, 'MNIST', 'processed')
 
     def _check_exists(self):
-        train_file = os.path.join(self.processed_folder, self.training_file)
-        test_file = os.path.join(self.processed_folder, self.test_file)
+        train_file = os.path.join(self.processed_folder, self.TRAINING_FILE)
+        test_file = os.path.join(self.processed_folder, self.TEST_FILE)
         return os.path.exists(train_file) and os.path.exists(test_file)
 
     def download(self):
@@ -75,7 +75,7 @@ class MNIST(Dataset):
 
         os.makedirs(self.processed_folder, exist_ok=True)
 
-        for url in self.resources:
+        for url in self.RESOURCES:
             logging.info(f'Downloading {url}')
             fpath = os.path.join(self.processed_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
