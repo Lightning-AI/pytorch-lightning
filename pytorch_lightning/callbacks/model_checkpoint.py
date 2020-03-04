@@ -146,8 +146,7 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def _get_available_filepath(self, current: float, epoch: int) -> str:
-        current_str = f'{current:.2f}' if current else 'NaN'
-        fname = f'{self.prefix}_epoch={epoch}_{self.monitor}={current_str}'
+        fname = f'{self.prefix}_epoch={epoch}'
         filepath = os.path.join(self.dirpath, fname + self.EXTENSION)
         assert not os.path.isfile(filepath)
         return filepath
