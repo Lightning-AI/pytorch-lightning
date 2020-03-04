@@ -87,3 +87,17 @@ def normalize_tensor(tensor, mean=0.0, std=1.0):
     std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
     tensor.sub_(mean).div_(std)
     return tensor
+
+
+class TestingMNIST(MNIST):
+
+    def __init__(self, root, train=True, normalize=None, download=False, num_samples=8000):
+        super().__init__(
+            root,
+            train=train,
+            normalize=normalize,
+            download=download
+        )
+        # take just a subset of MNIST dataset
+        self.data = self.data[:num_samples]
+        self.targets = self.targets[:num_samples]
