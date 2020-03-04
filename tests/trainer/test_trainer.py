@@ -639,6 +639,6 @@ def test_hparams_save_load(tmpdir):
 
     # try to load the model now
     pretrained_model = tutils.load_model_from_checkpoint(
-        trainer.checkpoint_callback.dirpat,
+        trainer.checkpoint_callback.dirpath,
         module_class=DictHparamsModel
     )
