@@ -60,8 +60,8 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                                transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
+                                       transform=transforms.ToTensor()), batch_size=32)
 
 
 class TestModelBase(LightningModule):
