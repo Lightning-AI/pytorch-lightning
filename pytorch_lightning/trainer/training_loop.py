@@ -130,6 +130,7 @@ from abc import ABC, abstractmethod
 from typing import Union, List
 
 import numpy as np
+import torch.optim.lr_scheduler
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -193,7 +194,6 @@ class TrainerTrainLoopMixin(ABC):
     model: LightningModule
     running_loss: ...
     training_tqdm_dict: ...
-    reduce_lr_on_plateau_scheduler: ...
     profiler: ...
     batch_idx: int
     precision: ...
@@ -361,15 +361,16 @@ class TrainerTrainLoopMixin(ABC):
                 # update LR schedulers
                 if self.lr_schedulers is not None:
                     for lr_scheduler in self.lr_schedulers:
-                        lr_scheduler.step()
-                if self.reduce_lr_on_plateau_scheduler is not None:
-                    val_loss = self.callback_metrics.get('val_loss')
-                    if val_loss is None:
-                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
-                            f'which is not available. Available metrics are: {avail_metrics}'
-                        raise MisconfigurationException(m)
-                    self.reduce_lr_on_plateau_scheduler.step(val_loss)
+                        if isinstance(lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                            val_loss = self.callback_metrics.get('val_loss')
+                            if val_loss is None:
+                                avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                                m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
+                                    f'which is not available. Available metrics are: {avail_metrics}'
+                                raise MisconfigurationException(m)
+                            lr_scheduler.step(val_loss)
+                        else:
+                            lr_scheduler.step()
 
                 if self.max_steps and self.max_steps == self.global_step:
                     self.run_training_teardown()

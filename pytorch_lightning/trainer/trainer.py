@@ -743,8 +743,6 @@ class Trainer(TrainerIOMixin,
         # creates a default one if none passed in
         self.configure_early_stopping(early_stop_callback)
 
-        self.reduce_lr_on_plateau_scheduler = None
-
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
@@ -1085,20 +1083,11 @@ class Trainer(TrainerIOMixin,
 
         # two lists
         if len(optimizers) == 2 and isinstance(optimizers[0], list):
-            optimizers, lr_schedulers = optimizers
-            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers
+            return optimizers
 
         # single list or tuple
         if isinstance(optimizers, (list, tuple)):
             return optimizers, []
-
-    def configure_schedulers(self, schedulers: list):
-        for i, scheduler in enumerate(schedulers):
-            if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                reduce_lr_on_plateau_scheduler = schedulers.pop(i)
-                return schedulers, reduce_lr_on_plateau_scheduler
-        return schedulers, None
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
