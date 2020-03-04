@@ -79,8 +79,11 @@ class ModelCheckpoint(Callback):
 
         self.monitor = monitor
         self.verbose = verbose
-        self.filepath = filepath
-        os.makedirs(filepath, exist_ok=True)
+        if os.path.isdir(filepath):
+            self.dirpath, self.filename = filepath, '{epoch}'
+        else:
+            self.dirpath, self.filename = os.path.split(filepath)
+        os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
@@ -129,44 +132,44 @@ class ModelCheckpoint(Callback):
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def format_checkpoint_name(self, epoch, logs):
+    def format_checkpoint_name(self, epoch, metrics):
         # check if user passed in keys to the string
-        groups = re.findall(r'\{.*?\}', self.filepath)
+        groups = re.findall(r'(\{.*?)[:\}]', self.filename)
 
         if len(groups) == 0:
             # default name
-            filepath = f'{self.filepath}/{self.prefix}_ckpt_epoch_{epoch}.ckpt'
-            return filepath
+            filename = f'{self.prefix}_ckpt_epoch_{epoch}'
         else:
-            filepath = self.filepath
-            for group in groups:
-                clean_group = group.strip('{}')
-                key, rounding = clean_group.split(':')
-                metric_val = logs[key]
-                new_str = f'{key}={metric_val}:{rounding}'
-                filepath.replace(group, new_str)
-
+            metrics['epoch'] = epoch
+            filename = self.filename
+            for tmp in groups:
+                name = tmp[1:]
+                filename = filename.replace(tmp, name + '={' + name)
+            filename = filename.format(**metrics)
+        filepath = os.path.join(self.dirpath, filename + '.ckpt')
         return filepath
 
     def on_validation_end(self, trainer, pl_module):
-        logs = trainer.callback_metrics
+        metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
         self.epochs_since_last_check += 1
 
         if self.save_top_k == 0:
             # no models are saved
             return
+        filepath = self.format_checkpoint_name(epoch, metrics)
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
 
+            filepath = self.format_checkpoint_name(epoch, metrics)
             version_cnt = 0
             while os.path.isfile(filepath):
+                filepath = self.format_checkpoint_name(epoch, metrics) + f'v{version_cnt}'
                 # this epoch called before
-                filepath = self.format_checkpoint_name(epoch, logs)
                 version_cnt += 1
 
             if self.save_top_k != -1:
-                current = logs.get(self.monitor)
+                current = metrics.get(self.monitor)
 
                 if current is None:
                     warnings.warn(
