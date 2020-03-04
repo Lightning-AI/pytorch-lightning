@@ -27,9 +27,10 @@ class ModelCheckpoint(Callback):
 
                 # save epoch and val_loss in name
                 ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
-                # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
-                # if such model already exits, the file will be: /my/path/here/sample-mnist-v0_epoch=02_val_loss=0.32.ckpt
-                
+            
+            it saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
+            if such model already exits, the file will be: /my/path/here/sample-mnist-v0_epoch=02_val_loss=0.32.ckpt
+
         monitor: quantity to monitor.
         verbose: verbosity mode, False or True.
         save_top_k: if `save_top_k == k`,
