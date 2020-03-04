@@ -125,7 +125,7 @@ class ModelCheckpoint(Callback):
             return True
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def format_checkpoint_name(self, epoch, metrics):
+    def format_checkpoint_name(self, epoch, metrics, ver=None):
         # check if user passed in keys to the string
         groups = re.findall(r'(\{.*?)[:\}]', self.filename)
 
@@ -139,7 +139,8 @@ class ModelCheckpoint(Callback):
                 name = tmp[1:]
                 filename = filename.replace(tmp, name + '={' + name)
             filename = filename.format(**metrics)
-        filepath = os.path.join(self.dirpath, filename + '.ckpt')
+        str_ver = f'_v{ver}' if ver else ''
+        filepath = os.path.join(self.dirpath, filename + str_ver + '.ckpt')
         return filepath
 
     def on_validation_end(self, trainer, pl_module):
@@ -150,14 +151,13 @@ class ModelCheckpoint(Callback):
         if self.save_top_k == 0:
             # no models are saved
             return
-        filepath = self.format_checkpoint_name(epoch, metrics)
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
 
             filepath = self.format_checkpoint_name(epoch, metrics)
             version_cnt = 0
             while os.path.isfile(filepath):
-                filepath = self.format_checkpoint_name(epoch, metrics) + f'v{version_cnt}'
+                filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
                 # this epoch called before
                 version_cnt += 1
 
