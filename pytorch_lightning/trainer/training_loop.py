@@ -468,11 +468,6 @@ class TrainerTrainLoopMixin(ABC):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
-            # progress global step according to grads progress
-            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-                self.global_step += 1
-            self.total_batch_idx += 1
-
             # ---------------
             # CHECKPOINTING, EARLY STOPPING
             # ---------------
@@ -483,6 +478,11 @@ class TrainerTrainLoopMixin(ABC):
 
                 if self.enable_early_stop:
                     self.early_stop_callback.check_metrics(self.callback_metrics)
+
+            # progress global step according to grads progress
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                self.global_step += 1
+            self.total_batch_idx += 1
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
