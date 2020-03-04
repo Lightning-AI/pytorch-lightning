@@ -129,4 +129,5 @@ ENV/
 
 # data
 .data/
+datasets/
 mnist/
