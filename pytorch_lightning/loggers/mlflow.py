@@ -23,10 +23,10 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
-import argparse
+from argparse import Namespace
 from logging import getLogger
 from time import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 try:
     import mlflow
@@ -88,12 +88,13 @@ class MLFlowLogger(LightningLoggerBase):
         return self._run_id
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        for k, v in vars(params).items():
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
+        for k, v in params.items():
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
@@ -105,7 +106,7 @@ class MLFlowLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status: str = 'FINISHED'):
+    def finalize(self, status: str = 'FINISHED') -> None:
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
