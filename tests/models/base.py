@@ -1,7 +1,5 @@
 import os
-from argparse import Namespace
 from collections import OrderedDict
-from typing import Any, Dict, Union
 
 import torch
 import torch.nn as nn
@@ -10,6 +8,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import MNIST
+from typing import Dict
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -37,19 +36,41 @@ class TestingMNIST(MNIST):
         self.targets = self.targets[:num_samples]
 
 
+class DictHparamsModel(LightningModule):
+
+    def __init__(self, hparams: Dict):
+        super(DictHparamsModel, self).__init__()
+        self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'loss': F.cross_entropy(y_hat, y)}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    def train_dataloader(self):
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True,
+                                transform=transforms.ToTensor()), batch_size=32)
+
+
 class TestModelBase(LightningModule):
     """
     Base LightningModule for testing. Implements only the required
     interface
     """
 
-    def __init__(self, hparams: Union[Dict[str, Any], Namespace], force_remove_distributed_sampler: bool = False):
-        """Pass in parsed HyperOptArgumentParser to the model
+    def __init__(self, hparams, force_remove_distributed_sampler=False):
+        """
+        Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
         """
         # init superclass
         super().__init__()
-
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
