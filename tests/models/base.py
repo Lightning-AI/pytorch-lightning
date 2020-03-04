@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from tests.datasets.mnist import MNIST
+from tests.models.mnist import MNIST
 
 try:
     from test_tube import HyperOptArgumentParser
