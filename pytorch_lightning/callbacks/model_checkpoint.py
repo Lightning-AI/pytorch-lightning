@@ -19,9 +19,10 @@ class ModelCheckpoint(Callback):
 
             Example::
 
-                # save epoch and val_loss in name
-                ModelCheckpoint(filepath='/my/path/{epoch:02d}-{val_loss:.2f}')
-                # saves file like: /my/path/epoch_2-val_loss_0.2.ckpt
+                # save any arbitrary metrics like and val_loss, etc in name
+                ModelCheckpoint(filepath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
+                # saves file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
+                
         monitor (str): quantity to monitor.
         verbose (bool): verbosity mode, False or True.
         save_top_k (int): if `save_top_k == k`,
