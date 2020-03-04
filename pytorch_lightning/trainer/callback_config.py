@@ -49,7 +49,7 @@ class TrainerCallbackConfigMixin(ABC):
                 ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
             self.ckpt_path = ckpt_path
-            os.mkdir(ckpt_path)
+            os.makedirs(ckpt_path, exist_ok=True)
             self.checkpoint_callback = ModelCheckpoint(
                 filepath=ckpt_path
             )
