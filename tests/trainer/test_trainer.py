@@ -255,11 +255,11 @@ def test_model_checkpoint_options(tmp_path):
     assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
 
     # verify correct naming
-    for fname in {'_epoch=4_val_loss=2.50.ckpt',
-                  '_epoch=3_val_loss=5.00.ckpt',
-                  '_epoch=2_val_loss=2.80.ckpt',
-                  '_epoch=1_val_loss=9.00.ckpt',
-                  '_epoch=0_val_loss=10.00.ckpt'}:
+    for fname in {'epoch=4.ckpt',
+                  'epoch=3.ckpt',
+                  'epoch=2.ckpt',
+                  'epoch=1.ckpt',
+                  'epoch=0.ckpt'}:
         assert fname in file_lists
 
     save_dir = tmp_path / "2"
@@ -286,20 +286,20 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix_')
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.current_epoch = i
+        trainer.currentepoch = i
         trainer.callback_metrics = {'val_loss': loss}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_epoch=4_val_loss=2.50.ckpt' in file_lists
+    assert 'test_prefix_epoch=4.ckpt' in file_lists
 
     save_dir = tmp_path / "4"
     save_dir.mkdir()
@@ -322,8 +322,8 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    for fname in {'_epoch=4_val_loss=2.50.ckpt',
-                  '_epoch=2_val_loss=2.80.ckpt',
+    for fname in {'epoch=4_val.ckpt',
+                  'epoch=2_val.ckpt',
                   'other_file.ckpt'}:
         assert fname in file_lists
 
@@ -368,9 +368,9 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    for fname in {'_epoch=0_val_loss=2.80.ckpt',
-                  '_epoch=0_val_loss=2.50.ckpt',
-                  '_epoch=0_val_loss=5.00.ckpt'}:
+    for fname in {'epoch=0_val.ckpt',
+                  'epoch=0_val.ckpt',
+                  'epoch=0_val.ckpt'}:
         assert fname in file_lists
 
 
