@@ -28,9 +28,9 @@ class ModelCheckpoint(Callback):
                 # saves file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
 
 
-        monitor: quantity to monitor.
-        verbose: verbosity mode, False or True.
-        save_top_k: if `save_top_k == k`,
+        monitor (str): quantity to monitor.
+        verbose (bool): verbosity mode, False or True.
+        save_top_k (int): if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
