@@ -175,6 +175,9 @@ class TrainerIOMixin(ABC):
 
                 self._atomic_save(checkpoint, filepath)
 
+        if self.use_ddp or self.use_ddp2:
+            dist.barrier()
+
     def restore(self, checkpoint_path, on_gpu):
         """
         Restore training state from checkpoint.
