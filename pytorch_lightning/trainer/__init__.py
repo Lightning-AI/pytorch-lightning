@@ -241,7 +241,7 @@ Example::
 
 nb_gpu_nodes
 
-..warning:: .. deprecated:: 0.5.0
+.. warning:: .. deprecated:: 0.5.0
     Use `num_nodes` instead. Will remove 0.8.0.
 
 gpus
