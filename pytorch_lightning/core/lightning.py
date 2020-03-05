@@ -695,7 +695,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     'log': {'test_loss': val_loss_mean.item()}
                 }
                 return results
-
         """
 
     def configure_ddp(self, model, device_ids):
