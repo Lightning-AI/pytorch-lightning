@@ -34,7 +34,7 @@ class CoolModel(pl.LightningModule):
         y_hat = self.forward(x)
         return {'val_loss': self.my_loss(y_hat, y)}
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
         return avg_loss
 

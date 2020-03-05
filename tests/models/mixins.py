@@ -1,8 +1,7 @@
 from collections import OrderedDict
 
 import torch
-from torch import optim
-from pytorch_lightning.core.decorators import data_loader
+from torch import optim\
 
 
 class LightValidationStepMixin:
@@ -64,7 +63,7 @@ class LightValidationMixin(LightValidationStepMixin):
     when val_dataloader returns a single dataloader
     """
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -163,7 +162,7 @@ class LightValidationMultipleDataloadersMixin(LightValidationStepMultipleDataloa
     when val_dataloader returns multiple dataloaders
     """
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -271,7 +270,7 @@ class LightTestStepMixin(LightTestDataloader):
 class LightTestMixin(LightTestStepMixin):
     """Ritch test mixin."""
 
-    def test_end(self, outputs):
+    def test_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -561,7 +560,7 @@ class LightValStepFitMultipleDataloadersMixin:
 
 class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
 
-    def test_end(self, outputs):
+    def test_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
