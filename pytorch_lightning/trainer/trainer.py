@@ -1,9 +1,3 @@
-r"""
-Test TEst
----------
-Hello hello
-
-"""
 import os
 import sys
 import warnings
