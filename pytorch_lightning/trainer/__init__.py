@@ -787,6 +787,9 @@ The speedup comes from allowing the cudnn auto-tuner to find the best
 algorithm for the hardware `[see discussion here]
 <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
 
+Trainer class
+-------------
+
 """
 
 from .trainer import Trainer
