@@ -1,3 +1,94 @@
+"""
+Lightning can automate saving and loading checkpoints
+=====================================================
+
+Checkpointing is enabled by default to the current working directory.
+To change the checkpoint path pass in::
+
+    Trainer(default_save_path='/your/path/to/save/checkpoints')
+
+
+To modify the behavior of checkpointing pass in your own callback.
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks import ModelCheckpoint
+
+    # DEFAULTS used by the Trainer
+    checkpoint_callback = ModelCheckpoint(
+        filepath=os.getcwd(),
+        save_best_only=True,
+        verbose=True,
+        monitor='val_loss',
+        mode='min',
+        prefix=''
+    )
+
+    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+
+
+Restoring training session
+--------------------------
+
+You might want to not only load a model but also continue training it. Use this method to
+restore the trainer state as well. This will continue from the epoch and global step you last left off.
+However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
+
+Lightning will restore the session if you pass a logger with the same version and there's a saved checkpoint.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.loggers import TestTubeLogger
+
+    logger = TestTubeLogger(
+        save_dir='./savepath',
+        version=1  # An existing version with a saved checkpoint
+    )
+    trainer = Trainer(
+        logger=logger,
+        default_save_path='./savepath'
+    )
+
+    # this fit call loads model weights and trainer state
+    # the trainer continues seamlessly from where you left off
+    # without having to do anything else.
+    trainer.fit(model)
+
+
+The trainer restores:
+
+- global_step
+- current_epoch
+- All optimizers
+- All lr_schedulers
+- Model weights
+
+You can even change the logic of your model as long as the weights and "architecture" of
+the system isn't different. If you add a layer, for instance, it might not work.
+
+At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.base_module.model_saving.py`:
+
+.. code-block:: python
+
+    self.global_step = checkpoint['global_step']
+    self.current_epoch = checkpoint['epoch']
+
+    # restore the optimizers
+    optimizer_states = checkpoint['optimizer_states']
+    for optimizer, opt_state in zip(self.optimizers, optimizer_states):
+        optimizer.load_state_dict(opt_state)
+
+    # restore the lr schedulers
+    lr_schedulers = checkpoint['lr_schedulers']
+    for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
+        scheduler['scheduler'].load_state_dict(lrs_state)
+
+    # uses the model you passed into trainer
+    model.load_state_dict(checkpoint['state_dict'])
+
+"""
+
 import logging as log
 import os
 import re
@@ -228,8 +319,8 @@ class TrainerIOMixin(ABC):
 
         # save lr schedulers
         lr_schedulers = []
-        for i, scheduler in enumerate(self.lr_schedulers):
-            lr_schedulers.append(scheduler.state_dict())
+        for scheduler in self.lr_schedulers:
+            lr_schedulers.append(scheduler['scheduler'].state_dict())
 
         checkpoint['lr_schedulers'] = lr_schedulers
 
@@ -320,7 +411,7 @@ class TrainerIOMixin(ABC):
         # restore the lr schedulers
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
-            scheduler.load_state_dict(lrs_state)
+            scheduler['scheduler'].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS

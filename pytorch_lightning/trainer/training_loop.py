@@ -361,17 +361,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.run_training_epoch()
 
                 # update LR schedulers
-                if self.lr_schedulers is not None:
-                    for lr_scheduler in self.lr_schedulers:
-                        lr_scheduler.step()
-                if self.reduce_lr_on_plateau_scheduler is not None:
-                    val_loss = self.callback_metrics.get('val_loss')
-                    if val_loss is None:
-                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
-                            f'which is not available. Available metrics are: {avail_metrics}'
-                        raise MisconfigurationException(m)
-                    self.reduce_lr_on_plateau_scheduler.step(val_loss)
+                self.update_learning_rates(interval='epoch')
 
                 if self.max_steps and self.max_steps == self.global_step:
                     self.run_training_teardown()
@@ -443,6 +433,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
+
+            # update lr
+            self.update_learning_rates(interval='step')
 
             # ---------------
             # RUN VAL STEP
@@ -715,6 +708,34 @@ class TrainerTrainLoopMixin(ABC):
         output = self.process_output(output, train=True)
 
         return output
+
+    def update_learning_rates(self, interval):
+        ''' Update learning rates
+        Args:
+            interval (str): either 'epoch' or 'step'.
+        '''
+        if not self.lr_schedulers:
+            return
+
+        for lr_scheduler in self.lr_schedulers:
+            current_idx = self.batch_idx if interval == 'step' else self.current_epoch
+            current_idx += 1  # account for both batch and epoch starts from 0
+            # Take step if call to update_learning_rates matches the interval key and
+            # the current step modulo the schedulers frequency is zero
+            if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
+                # If instance of ReduceLROnPlateau, we need to pass validation loss
+                if lr_scheduler['reduce_on_plateau']:
+                    monitor_key = lr_scheduler['monitor']
+                    monitor_val = self.callback_metrics.get(monitor_key)
+                    if monitor_val is None:
+                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                        m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
+                            f'which is not available. Available metrics are: {avail_metrics}. ' \
+                            'Condition can be set using `monitor` key in lr scheduler dict'
+                        raise MisconfigurationException(m)
+                    lr_scheduler['scheduler'].step(monitor_val)
+                else:
+                    lr_scheduler['scheduler'].step()
 
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
