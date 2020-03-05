@@ -203,7 +203,8 @@ class Trainer(TrainerIOMixin,
                 .. warning: .. deprecated:: 0.5.0
                     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
-            process_position: orders the tqdm bar when running multiple models on same machine; default values is ``0``.
+            process_position: orders the tqdm bar when running multiple models on same machine;
+                default values is ``0``.
 
             num_nodes: number of GPU nodes for distributed training; default value is ``1``.
 
@@ -285,15 +286,17 @@ class Trainer(TrainerIOMixin,
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
             overfit_pct: uses this much data of all datasets. Default value is ``0.0``
-                The values are in relative units, so set `0.01` use only 1% of the train, test, val datasets.
+                The values are in relative units, so set ``0.01``
+                 use only 1% of the train, test, val datasets.
 
             track_grad_norm: Defines norms order. Moreover ``-1`` [default value] means no tracking].
 
             check_val_every_n_epoch: Check val every n train epochs; default value is `1`.
 
 
-            fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
-                Default value is ``False``. If ``True```, it runs 1 train, val, test  batch and program ends.
+            fast_dev_run: runs 1 batch of train, test  and val to find any bugs
+                (ie: a sort of unit test). Default value is ``False``. If ``True```,
+                 it runs 1 train, val, test  batch and program ends.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
                 Example::
@@ -366,7 +369,8 @@ class Trainer(TrainerIOMixin,
 
             log_save_interval: Writes logs to disk this often; default value is ``100``.
 
-            row_log_interval: How often to add logging rows (does not write to disk); default value is ``10``.
+            row_log_interval: How often to add logging rows (does not write to disk);
+                default value is ``10``.
 
             add_row_log_interval:
                 .. warning:: .. deprecated:: 0.5.0
@@ -434,7 +438,8 @@ class Trainer(TrainerIOMixin,
                         weights_save_path='my/path'
                     )
 
-            amp_level: The optimization level to use (O1, O2, etc...); default value is ``'O1'``.                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels).
+            amp_level: The optimization level to use (O1, O2, etc...); default value is ``'O1'``.
+                Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels).
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
                 This catches any bugs in your validation without having to wait for the first validation check.
