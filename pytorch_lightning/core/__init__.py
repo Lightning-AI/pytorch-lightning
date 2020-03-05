@@ -10,7 +10,7 @@ Notice a few things.
 1. It's the SAME code.
 2. The PyTorch code IS NOT abstracted - just organized.
 3. All the other code that didn't go in the LightningModule has been automated
-    for you by the trainer
+for you by the trainer
 
 .. code-block:: python
 
@@ -18,8 +18,35 @@ Notice a few things.
     trainer = Trainer()
     trainer.fit(net)
 
-4. Also notice there are no .cuda() or .to() calls... Lightning does these for you.
-5. Also notice there are no samplers for distributed, Lightning also does this for you.
+4. There are no .cuda() or .to() calls... Lightning does these for you.
+
+.. code-block:: python
+
+    # don't do in lightning
+    x = torch.Tensor(2, 3)
+    x = x.cuda()
+    x = x.to(device)
+
+    # do this instead
+    x = x  # leave it alone!
+
+    # or to init a new tensor
+    new_x = torch.Tensor(2, 3)
+    new_x = new_x.type_as(x.type())
+
+5. There are no samplers for distributed, Lightning also does this for you.
+
+..code-block:: python
+
+    # Don't do in Lightning...
+    data = MNIST(...)
+    sampler = DistributedSampler(data)
+    DataLoader(data, sampler=sampler)
+
+    # do this instead
+    data = MNIST(...)
+    DataLoader(data)
+
 6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
 
 .. code-block:: python
