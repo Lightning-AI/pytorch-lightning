@@ -83,7 +83,7 @@ Or add a test loop
                 y_hat = self.forward(x)
                 return {'test_loss': F.cross_entropy(y_hat, y)}
 
-            def test_end(self, outputs):
+            def test_epoch_end(self, outputs):
                 test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
                 return {'test_loss': test_loss_mean}
 
