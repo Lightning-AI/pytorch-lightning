@@ -26,7 +26,7 @@ Training loop
 - on_batch_start
 - tbptt_split_batch
 - training_step
-- training_end (optional)
+- training_step_end (optional)
 - backward
 - on_after_backward
 - optimizer.step()

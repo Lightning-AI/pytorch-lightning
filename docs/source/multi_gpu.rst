@@ -166,11 +166,11 @@ you will only be operating on one of those pieces.
 
 For most metrics, this doesn't really matter. However, if you want
 full batch statistics or want to use the outputs of the training_step
-to do something like a softmax, you can use the `training_end` step.
+to do something like a softmax, you can use the `training_step_end` step.
 
 .. code-block:: python
 
-    def training_end(self, outputs):
+    def training_step_end(self, outputs):
         outputs = torch.cat(outputs, dim=1)
         softmax = softmax(outputs, dim=1)
         out = softmax.mean()
@@ -196,7 +196,7 @@ In pseudocode, the full sequence is:
         all_results.append(out)
 
     # calculate statistics for all parts of the batch
-    full out = model.training_end(all_results)
+    full out = model.training_step_end(all_results)
 
 
 Implement Your Own Distributed (DDP) training

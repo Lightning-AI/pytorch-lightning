@@ -706,10 +706,10 @@ class TrainerTrainLoopMixin(ABC):
             output = self.model.training_step(*args)
 
         # allow any mode to define training_end
-        if self.is_overriden('training_end'):
+        if self.is_overriden('training_step_end'):
             model_ref = self.get_model()
-            with self.profiler.profile('training_end'):
-                output = model_ref.training_end(output)
+            with self.profiler.profile('training_step_end'):
+                output = model_ref.training_step_end(output)
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)

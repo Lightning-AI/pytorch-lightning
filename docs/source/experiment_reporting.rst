@@ -34,11 +34,11 @@ Log metrics
 
 To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
 
-1. Training_end, validation_end, test_end will all log anything in the "log" key of the return dict.
+1. training_step_end, validation_end, test_end will all log anything in the "log" key of the return dict.
 
 .. code-block:: python
 
-   def training_end(self, outputs):
+   def training_step_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -62,7 +62,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-2. Most of the time, you only need training_step and not training_end. You can also return logs from here:
+2. Most of the time, you only need training_step and not training_step_end. You can also return logs from here:
 
 .. code-block:: python
 

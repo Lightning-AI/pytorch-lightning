@@ -222,7 +222,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     def training_end(self, *args, **kwargs):
-        """return loss, dict with metrics for tqdm
+        """
+        .. warning:: Deprecated in v0.7.0. use training_step_end instead
+        """
+
+    def training_step_end(self, *args, **kwargs):
+        """
+        Called with the outputs of each batch subset when using
+        dp or ddp2.
+
+        .. code-block:: python
+
+            # pseudocode
+            sub_batches = split_batches_for_dp(batch)
+            results = [training_step(sub_batch) for sub_batch in sub_batches]
+            training_step_end(results)
 
         :param outputs: What you return in `training_step`.
         :return dict: dictionary with loss key and optional log, progress keys:
@@ -230,18 +244,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - progress_bar -> Dict for progress bar display. Must have only tensors
             - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
-        In certain cases (dp, ddp2), you might want to use all outputs of every process to do something.
-        For instance, if using negative samples, you could run a batch via dp and use ALL the outputs
-        for a single softmax across the full batch (ie: the denominator would use the full batch).
-
-        In this case you should define training_end to perform those calculations.
+        In this case you should define training_step_end to perform those calculations.
 
         Example
         -------
 
         .. code-block:: python
 
-            # WITHOUT training_end
+            # WITHOUT training_step_end
             # if used in DP or DDP2, this batch is 1/num_gpus large
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
@@ -253,7 +263,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return {'loss': loss}
 
             # --------------
-            # with training_end to do softmax over the full batch
+            # with training_step_end to do softmax over the full batch
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -261,7 +271,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 out = self.forward(x)
                 return {'out': out}
 
-            def training_end(self, outputs):
+            def training_step_end(self, outputs):
                 # this out is now the full size of the batch
                 out = outputs['out']
 
@@ -271,29 +281,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 return {'loss': loss}
 
         .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
-
-        If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
-
-        .. code-block:: python
-
-            # Multiple optimizers (ie: GANs)
-            def training_step(self, batch, batch_idx, optimizer_idx):
-                if optimizer_idx == 0:
-                    # do training_step with encoder
-                if optimizer_idx == 1:
-                    # do training_step with decoder
-
-        If you add truncated back propagation through time you will also get an additional argument
-        with the hidden states of the previous step.
-
-        .. code-block:: python
-
-            # Truncated back-propagation through time
-            def training_step(self, batch, batch_idx, hiddens):
-                # hiddens are the hiddens from the previous truncated backprop step
-
-        You can also return a -1 instead of a dict to stop the current loop. This is useful if you want to
-        break out of the current training epoch early.
         """
 
     def validation_step(self, *args, **kwargs):
