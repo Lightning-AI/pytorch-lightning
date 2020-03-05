@@ -122,7 +122,8 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1
     assert optim[0] == opts[0][0] and \
         lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
-                            frequency=1, reduce_on_plateau=False)
+                            frequency=1, reduce_on_plateau=False,
+                            monitor='val_loss')
 
 
 def test_cpu_slurm_save_load(tmpdir):
