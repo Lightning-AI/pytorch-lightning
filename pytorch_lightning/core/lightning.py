@@ -233,7 +233,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         and only needed for things like softmax or NCE loss.
 
         .. note:: If you later switch to ddp or some other mode, this will still be called
-        so that you don't have to change your code
+            so that you don't have to change your code
 
         .. code-block:: python
 
@@ -365,7 +365,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         and only needed for things like softmax or NCE loss.
 
         .. note:: If you later switch to ddp or some other mode, this will still be called
-        so that you don't have to change your code
+            so that you don't have to change your code
 
         .. code-block:: python
 
@@ -574,7 +574,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         and only needed for things like softmax or NCE loss.
 
         .. note:: If you later switch to ddp or some other mode, this will still be called
-        so that you don't have to change your code
+            so that you don't have to change your code
 
         .. code-block:: python
 
