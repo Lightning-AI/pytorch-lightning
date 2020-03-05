@@ -1,18 +1,32 @@
 """
 A LightningModule organizes your PyTorch code into the following sections:
 
-- The model/system definition (__init__)
-- The model/system computations (forward)
-- What happens in the training loop (training_step)
-- What happens in the validation loop (validation_step, validation_epoch_end)
-- What happens in the test loop (test_step, test_epoch_end)
-- What optimizers to use (configure_optimizers)
-- What data to use (train_dataloader, val_dataloader, test_dataloader)
+.. figure:: /_images/lightning_module/pt_to_pl.png
+   :alt: Convert from PyTorch to Lightning
 
-.. note:: LightningModule is a torch.nn.Module but with added functionality.
 
-Thus to use PyTorch Lightning, you simply need to organize your code into the sections
-outlined by the LightningModule. Anything outside of that will be automated :)
+Notice a few things.
+
+1. It's the SAME code.
+2. The PyTorch code IS NOT abstracted - just organized.
+3. All the other code that didn't go in the LightningModule has been automated
+    for you by the trainer
+
+.. code-block:: python
+
+    net = Net()
+    trainer = Trainer()
+    trainer.fit(net)
+
+4. Also notice there are no .cuda() or .to() calls... Lightning does these for you.
+5. Also notice there are no samplers for distributed, Lightning also does this for you.
+6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
+
+.. code-block:: python
+
+    net = Net.load_from_checkpoint(PATH)
+    net.freeze()
+    out = net(x)
 
 ------------
 
