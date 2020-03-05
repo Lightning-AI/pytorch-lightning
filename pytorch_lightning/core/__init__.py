@@ -11,12 +11,15 @@ A LightningModule organizes your PyTorch code into the following sections:
 
 .. note:: LightningModule is a torch.nn.Module but with added functionality.
 
+Thus to use PyTorch Lightning, you simply need to organize your code into the sections
+outlined by the LightningModule. Anything outside of that will be automated :)
+
 ------------
 
 Minimal Example
 ---------------
 
-Most methods are optional. Here's a minimal example.
+Here are the only required methods.
 
 .. code-block:: python
 
@@ -167,9 +170,10 @@ which allows you to operate on the pieces of the batch
         # like calculate validation set accuracy or loss
         training_epoch_end(val_outs)
 
-.cuda, .to
-----------
-In a LightningModule, all calls to .cuda and .to should be removed. Lightning will do these
+Remove cuda calls
+-----------------
+In a LightningModule, all calls to ```.cuda()```
+and ```.to(device)``` should be removed. Lightning will do these
 automatically. This will allow your code to work on CPUs, TPUs and GPUs.
 
 When you init a new tensor in your code, just use type_as
