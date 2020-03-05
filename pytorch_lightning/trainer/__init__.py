@@ -18,9 +18,9 @@ from pytorch_lightning.training import (  # noqa: E402
     logging,
     model_hooks,
     trainer,
-    training_io,
-    training_loop,
-    training_tricks
+    train_io as training_io,
+    train_loop as training_loop,
+    train_tricks as training_tricks
 )
 from pytorch_lightning.training import Trainer
 

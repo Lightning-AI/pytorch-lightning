@@ -184,7 +184,7 @@ To use lightning do 2 things:
             # OPTIONAL
             return DataLoader(MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor()), batch_size=32)
     ```
-2. Fit with a [trainer](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)    
+2. Fit with a [trainer](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.html)    
     ```python
     from pytorch_lightning import Trainer
     
@@ -296,19 +296,19 @@ Lightning also adds a text column with all the hyperparameters for this experime
 
 ![tensorboard-support](docs/source/_static/images/tf_tags.png)
 
-## Lightning automates all of the following ([each is also configurable](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)):
+## Lightning automates all of the following ([each is also configurable](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.html)):
 
 
-- [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_data_parallel.html)  
+- [Running grid search on a cluster](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.distrib_data_parallel.html)  
 - [Fast dev run](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.utilities.debugging.html)
 - [Logging](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.loggers.html)
 - [Implement Your Own Distributed (DDP) training](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_ddp)
-- [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.distrib_parts.html)
-- [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_loop.html)
+- [Multi-GPU & Multi-node](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.distrib_parts.html)
+- [Training loop](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.training_loop.html)
 - [Hooks](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.hooks.html)
 - [Configure optimizers](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.core.lightning.html#pytorch_lightning.core.lightning.LightningModule.configure_optimizers)
-- [Validations](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.evaluation_loop.html)
-- [Model saving & Restoring training session](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.training_io.html)
+- [Validations](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.evaluation_loop.html)
+- [Model saving & Restoring training session](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.training.training_io.html)
   
 
 ## Examples   
