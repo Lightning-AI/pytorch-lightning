@@ -101,7 +101,7 @@ Which you can train by doing:
 
    trainer.fit(model)
 
----
+----------
 
 Training loop structure
 -----------------------
@@ -181,7 +181,7 @@ don't run your test data by accident. Instead you have to explicitly call:
     trainer = Trainer()
     trainer.test(model)
 
----
+----------
 
 Training_step_end method
 ------------------------
@@ -211,7 +211,7 @@ which allows you to operate on the pieces of the batch
         # like calculate validation set accuracy or loss
         training_epoch_end(val_outs)
 
----
+----------
 
 Remove cuda calls
 -----------------
@@ -230,7 +230,7 @@ When you init a new tensor in your code, just use type_as
         z = sample_noise()
         z = z.type_as(x.type())
 
----
+----------
 
 Data preparation
 ----------------
