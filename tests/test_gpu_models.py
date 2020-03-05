@@ -306,7 +306,7 @@ def test_root_gpu_property_0_passing(
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize([
-    'gpus', 'expected_root_gpu', "distributed_backend"],  [
+    'gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(1, None, "ddp"),
     pytest.param(3, None, "ddp"),
     pytest.param(3, None, "ddp"),
