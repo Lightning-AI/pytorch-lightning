@@ -131,6 +131,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import warnings
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -260,6 +261,18 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
+                # on dp / ddp2 might still want to do something with the batch parts
+                if test_mode:
+                    if self.is_overriden('test_step_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('test_step_end'):
+                            output = model_ref.test_step_end(output)
+                else:
+                    if self.is_overriden('validation_step_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('validation_step_end'):
+                            output = model_ref.validation_step_end(output)
+
                 # track outputs for collation
                 dl_outputs.append(output)
 
@@ -280,10 +293,23 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.get_model()
+
+        if test_mode and self.is_overriden('test_epoch_end'):
+            eval_results = model.test_epoch_end(outputs)
+        elif self.is_overriden('validation_epoch_end'):
+            eval_results = model.validation_epoch_end(outputs)
+
+        # TODO: remove in v 1.0.0
         if test_mode and self.is_overriden('test_end'):
             eval_results = model.test_end(outputs)
+            m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use test_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
         elif self.is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
+            m = 'validation_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use validation_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
         model.train()
@@ -392,7 +418,7 @@ class TrainerEvaluationLoopMixin(ABC):
             output = model(*args)
             return output
 
-        # single GPU
+        # single GPU data transfer
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
@@ -401,12 +427,12 @@ class TrainerEvaluationLoopMixin(ABC):
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch
 
-        # TPU
+        # TPU data  transfer
         if self.use_tpu:
             batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
-        # CPU
+        # CPU, TPU or gpu step
         if test_mode:
             output = model.test_step(*args)
         else:
