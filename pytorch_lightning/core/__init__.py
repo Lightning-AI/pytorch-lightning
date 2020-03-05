@@ -9,7 +9,7 @@ Notice a few things.
 
     1. It's the SAME code.
     2. The PyTorch code IS NOT abstracted - just organized.
-    3. All the other code that didn't go in the LightningModule has been automated for you by the trainer
+    3. All the other code that not in the LightningModule has been automated for you by the trainer
          .. code-block:: python
 
             net = Net()
@@ -101,7 +101,7 @@ Which you can train by doing:
 
    trainer.fit(model)
 
----
+----------
 
 Training loop structure
 -----------------------
@@ -181,7 +181,7 @@ don't run your test data by accident. Instead you have to explicitly call:
     trainer = Trainer()
     trainer.test(model)
 
----
+----------
 
 Training_step_end method
 ------------------------
@@ -211,7 +211,7 @@ which allows you to operate on the pieces of the batch
         # like calculate validation set accuracy or loss
         training_epoch_end(val_outs)
 
----
+----------
 
 Remove cuda calls
 -----------------
@@ -230,7 +230,7 @@ When you init a new tensor in your code, just use type_as
         z = sample_noise()
         z = z.type_as(x.type())
 
----
+----------
 
 Data preparation
 ----------------
