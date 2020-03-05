@@ -2,18 +2,23 @@
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
-.. figure:: /_images/lightning_module/pt_to_trainer.png
+.. figure:: /_images/lightning_module/pt_trainer.png
    :alt: Convert from PyTorch to Lightning
 
+This abstraction achieves the folowing:
 
-The trainer automates all parts of training except:
+1. You maintain control over all aspects via PyTorch
+code without an added abstraction.
 
-- what happens in training , test, val loop
-- where the data come from
-- which optimizers to use
-- how to do the computations
+2. The trainer uses best practices embedded by contributors and users
+from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-The Trainer delegates those calls to your LightningModule which defines how to do those parts.
+3. The trainer allows overriding any key part that you don't want automated.
+
+-----------
+
+Basic use
+---------
 
 This is the basic use of the trainer:
 
