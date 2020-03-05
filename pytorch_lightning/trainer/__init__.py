@@ -103,6 +103,10 @@ logger
 
 Logger (or iterable collection of loggers) for experiment tracking.
 
+    ..code-block:: python
+
+        Trainer(logger=logger)
+
     Example::
 
         from pytorch_lightning.loggers import TensorBoardLogger
@@ -114,7 +118,6 @@ Logger (or iterable collection of loggers) for experiment tracking.
             name='lightning_logs'
         )
 
-        Trainer(logger=logger)
 
 Checkpoint
 ^^^^^^^^^^
