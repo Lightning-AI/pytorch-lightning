@@ -103,7 +103,7 @@ logger
 
 Logger (or iterable collection of loggers) for experiment tracking.
 
-    ..code-block:: python
+    .. code-block:: python
 
         Trainer(logger=logger)
 
