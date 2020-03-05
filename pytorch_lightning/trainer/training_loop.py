@@ -731,7 +731,7 @@ class TrainerTrainLoopMixin(ABC):
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
                         m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
                             f'which is not available. Available metrics are: {avail_metrics}. ' \
-                             'Condition can be set using `monitor` key in lr scheduler dict'
+                            'Condition can be set using `monitor` key in lr scheduler dict'
                         raise MisconfigurationException(m)
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
