@@ -224,6 +224,15 @@ to illustrate why this is needed, let's look at dataparallel
 If `training_step_end` is defined it will be called regardless of tpu, dp, ddp, etc... which means
 it will behave the same no matter the backend.
 
+Validation and test step also have the same option when using dp
+
+.. code-block:: python
+        def validation_step_end(self, full_batch_outputs):
+            ...
+
+        def test_step_end(self, full_batch_outputs):
+            ...
+
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
