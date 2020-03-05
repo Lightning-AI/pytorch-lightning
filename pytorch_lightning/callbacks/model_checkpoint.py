@@ -14,19 +14,19 @@ class ModelCheckpoint(Callback):
     Save the model after every epoch.
 
     Args:
-        filepath: path to save the model file.
+        dirpath: path to save the model file.
             Can contain named formatting options to be auto-filled.
 
             Example::
 
+<<<<<<< HEAD
                 # no path
                 ModelCheckpoint()
                 #  saves like /my/path/epoch_0.ckpt
 
-                # save epoch and val_loss in name
-                ModelCheckpoint(filepath='{epoch:02d}-{val_loss:.2f}.hdf5')
-                # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
-                # if model already exits, the file will be: /my/path/here/sample-mnist-v0_epoch=02_val_loss=0.32.ckpt
+                # save any arbitrary metrics like and val_loss, etc in name
+                ModelCheckpoint(dirpath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
+                # saves file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
 
 
         monitor: quantity to monitor.
@@ -49,8 +49,8 @@ class ModelCheckpoint(Callback):
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
         save_weights_only (bool): if True, then only the model's weights will be
-            saved (`model.save_weights(filepath)`), else the full model
-            is saved (`model.save(filepath)`).
+            saved (`model.save_weights(dirpath)`), else the full model
+            is saved (`model.save(dirpath)`).
         period (int): Interval (number of epochs) between checkpoints.
 
     Example::
@@ -59,30 +59,30 @@ class ModelCheckpoint(Callback):
         from pytorch_lightning.callbacks import ModelCheckpoint
 
         # saves checkpoints to my_path whenever 'val_loss' has a new min
-        checkpoint_callback = ModelCheckpoint(filepath='my_path')
+        checkpoint_callback = ModelCheckpoint(dirpath='my_path')
         Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
-        ModelCheckpoint(filepath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
+        ModelCheckpoint(dirpath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
         # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
     """
 
-    def __init__(self, filepath, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, dirpath, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
-        if save_top_k and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
+        if save_top_k and os.path.isdir(dirpath) and len(os.listdir(dirpath)) > 0:
             warnings.warn(
-                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
+                f"Checkpoint directory {dirpath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
 
         self.monitor = monitor
         self.verbose = verbose
-        if os.path.isdir(filepath):
-            self.dirpath, self.filename = filepath, '{epoch}'
+        if os.path.isdir(dirpath):
+            self.dirpath, self.filename = dirpath, '{epoch}'
         else:
-            self.dirpath, self.filename = os.path.split(filepath)
+            self.dirpath, self.filename = os.path.split(dirpath)
         os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
@@ -110,16 +110,16 @@ class ModelCheckpoint(Callback):
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
-    def _del_model(self, filepath):
-        os.remove(filepath)
+    def _del_model(self, dirpath):
+        os.remove(dirpath)
 
-    def _save_model(self, filepath):
+    def _save_model(self, dirpath):
         # make paths
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        os.makedirs(os.path.dirname(dirpath), exist_ok=True)
 
         # delegate the saving to the model
         if self.save_function is not None:
-            self.save_function(filepath)
+            self.save_function(dirpath)
         else:
             raise ValueError(".save_function() not set")
 
@@ -164,8 +164,8 @@ class ModelCheckpoint(Callback):
                     metrics[name] = 0
             filename = filename.format(**metrics)
         str_ver = f'_v{ver}' if ver is not None else ''
-        filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
-        return filepath
+        dirpath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
+        return dirpath
 
     def on_validation_end(self, trainer, pl_module):
         metrics = trainer.callback_metrics
@@ -178,10 +178,10 @@ class ModelCheckpoint(Callback):
         if self.epochs_since_last_check >= self.period:
             self.epochs_since_last_check = 0
 
-            filepath = self.format_checkpoint_name(epoch, metrics)
+            dirpath = self.format_checkpoint_name(epoch, metrics)
             version_cnt = 0
-            while os.path.isfile(filepath):
-                filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
+            while os.path.isfile(dirpath):
+                dirpath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
                 # this epoch called before
                 version_cnt += 1
 
@@ -194,7 +194,7 @@ class ModelCheckpoint(Callback):
                         ' skipping.', RuntimeWarning)
                 else:
                     if self.check_monitor_top_k(current):
-                        self._do_check_save(filepath, current, epoch)
+                        self._do_check_save(dirpath, current, epoch)
                     else:
                         if self.verbose > 0:
                             log.info(
@@ -203,17 +203,17 @@ class ModelCheckpoint(Callback):
 
             else:
                 if self.verbose > 0:
-                    log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
-                self._save_model(filepath)
+                    log.info(f'\nEpoch {epoch:05d}: saving model to {dirpath}')
+                self._save_model(dirpath)
 
-    def _do_check_save(self, filepath, current, epoch):
+    def _do_check_save(self, dirpath, current, epoch):
         # remove kth
         if len(self.best_k_models) == self.save_top_k:
             delpath = self.kth_best_model
             self.best_k_models.pop(self.kth_best_model)
             self._del_model(delpath)
 
-        self.best_k_models[filepath] = current
+        self.best_k_models[dirpath] = current
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
             _op = max if self.mode == 'min' else min
@@ -228,5 +228,5 @@ class ModelCheckpoint(Callback):
             log.info(
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                 f' {current:0.5f} (best {self.best:0.5f}), saving model to'
-                f' {filepath} as top {self.save_top_k}')
-        self._save_model(filepath)
+                f' {dirpath} as top {self.save_top_k}')
+        self._save_model(dirpath)
