@@ -26,6 +26,27 @@ from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
+def test_hparams_save_load(tmpdir):
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=2,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(
+        trainer.checkpoint_callback.dirpath,
+        module_class=DictHparamsModel
+    )
+
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
@@ -126,7 +147,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def _optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def _optimizer_step(self, epoch, batch_idx, optimizer,
+                        optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
             if epoch == 0:
@@ -620,25 +642,3 @@ def test_default_args(tmpdir):
 
     assert isinstance(trainer, Trainer)
     assert trainer.max_epochs == 5
-
-
-def test_hparams_save_load(tmpdir):
-    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=2,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    assert result == 1
-
-    # try to load the model now
-    pretrained_model = tutils.load_model_from_checkpoint(
-        trainer.checkpoint_callback.dirpath,
-        module_class=DictHparamsModel
-    )

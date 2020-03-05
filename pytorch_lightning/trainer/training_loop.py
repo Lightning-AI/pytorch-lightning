@@ -203,6 +203,7 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     max_steps: int
     total_batch_idx: int
+    checkpoint_callback: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -212,6 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     on_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
+    on_validation_end: Callable
 
     @property
     def max_nb_epochs(self):
@@ -454,9 +456,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
 
-                if self.enable_early_stop:
-                    self.early_stop_callback.check_metrics(self.callback_metrics)
-
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
@@ -469,10 +468,32 @@ class TrainerTrainLoopMixin(ABC):
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
+            # save checkpoint even when no test or val step are defined
+            train_step_only = not self.is_overriden('validation_step')
+            if self.fast_dev_run or should_check_val or train_step_only:
+                self.call_checkpoint_callback()
+
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
+
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
                 self.global_step += 1
             self.total_batch_idx += 1
+
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
+            # save checkpoint even when no test or val step are defined
+            train_step_only = not self.is_overriden('validation_step')
+            if self.fast_dev_run or should_check_val or train_step_only:
+                self.call_checkpoint_callback()
+
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
@@ -705,3 +726,8 @@ class TrainerTrainLoopMixin(ABC):
         output = self.process_output(output, train=True)
 
         return output
+
+    def call_checkpoint_callback(self):
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.on_validation_end(self, self.get_model())
+        self.on_validation_end()
