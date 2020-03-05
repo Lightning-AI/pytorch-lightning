@@ -60,6 +60,8 @@ So you can run it like so:
 
     $ python main.py --gpus 2
 
+------------
+
 Testing
 -------
 Once you're done training, feel free to run the test set!
@@ -68,6 +70,8 @@ Once you're done training, feel free to run the test set!
 .. code-block:: python
 
     trainer.test()
+
+------------
 
 Deployment / prediction
 -----------------------
