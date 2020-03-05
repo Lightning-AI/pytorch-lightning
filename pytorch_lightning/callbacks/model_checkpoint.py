@@ -82,6 +82,8 @@ class ModelCheckpoint(Callback):
             self.dirpath, self.filename = filepath, '{epoch}'
         else:
             self.dirpath, self.filename = os.path.split(filepath)
+            assert os.path.isdir(self.dirpath)
+
         os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
