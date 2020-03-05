@@ -16,8 +16,14 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
+
+# TODO: remove after getting own MNIST
+# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
+import urllib.request
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
 
 
 class TestingMNIST(MNIST):
@@ -40,6 +46,7 @@ class DictHparamsModel(LightningModule):
 
     def __init__(self, hparams: Dict):
         super(DictHparamsModel, self).__init__()
+        self.hparams = hparams
         self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
 
     def forward(self, x):
@@ -54,8 +61,8 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                                transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
+                                       transform=transforms.ToTensor()), batch_size=32)
 
 
 class TestModelBase(LightningModule):
