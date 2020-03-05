@@ -227,12 +227,12 @@ it will behave the same no matter the backend.
 Validation and test step also have the same option when using dp
 
 .. code-block:: python
+
         def validation_step_end(self, batch_parts_outputs):
             ...
 
         def test_step_end(self, batch_parts_outputs):
             ...
-
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
