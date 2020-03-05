@@ -291,13 +291,9 @@ In every epoch, the loop methods are called in this frequency:
 
 Live demo
 ---------
-Check out how this live demo
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
-
-.. note:: Remove all .cuda() or .to() calls from LightningModules. See:
-    `the multi-gpu training guide for details <multi_gpu.rst>`_.
 
 """
 
