@@ -355,74 +355,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
 
-    def test_step(self, *args, **kwargs):
-        """return whatever outputs will need to be aggregated in test_end
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
-        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
-        :return dict: Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors.
-
-        .. code-block:: python
-
-            # if you have one test dataloader:
-            def test_step(self, batch, batch_idx)
-
-            # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idxdx)
-
-
-        **OPTIONAL**
-        If you don't need to test you don't need to implement this method.
-        In this step you'd normally generate examples or
-        calculate anything of interest such as accuracy.
-
-        When the validation_step is called, the model has been put in eval mode
-        and PyTorch gradients have been disabled.
-        At the end of validation, model goes back to training mode and gradients are enabled.
-
-        The dict you return here will be available in the `test_end` method.
-
-        This function is used when you execute `trainer.test()`.
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            # CASE 1: A single test dataset
-            def test_step(self, batch, batch_idx):
-                x, y = batch
-
-                # implement your own
-                out = self.forward(x)
-                loss = self.loss(out, y)
-
-                # calculate acc
-                labels_hat = torch.argmax(out, dim=1)
-                test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-
-                # all optional...
-                # return whatever you need for the collation function test_end
-                output = OrderedDict({
-                    'test_loss': loss_test,
-                    'test_acc': torch.tensor(test_acc), # everything must be a tensor
-                })
-
-                # return an optional dict
-                return output
-
-
-        If you pass in multiple test datasets, `test_step` will have an additional argument.
-
-        .. code-block:: python
-
-            # CASE 2: multiple test datasets
-            def test_step(self, batch, batch_idx, dataset_idx):
-                # dataset_idx tells you which dataset this is.
-
-
-        The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
-        """
     def validation_end(self, outputs):
         """
         .. warning:: Deprecated in v0.7.0. use validation_epoch_end instead.
@@ -501,6 +433,75 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 }
                 return results
 
+        """
+
+    def test_step(self, *args, **kwargs):
+        """return whatever outputs will need to be aggregated in test_end
+        :param batch: The output of your dataloader. A tensor, tuple or list
+        :param int batch_idx: Integer displaying which batch this is
+        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
+        :return dict: Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors.
+
+        .. code-block:: python
+
+            # if you have one test dataloader:
+            def test_step(self, batch, batch_idx)
+
+            # if you have multiple test dataloaders:
+            def test_step(self, batch, batch_idx, dataloader_idxdx)
+
+
+        **OPTIONAL**
+        If you don't need to test you don't need to implement this method.
+        In this step you'd normally generate examples or
+        calculate anything of interest such as accuracy.
+
+        When the validation_step is called, the model has been put in eval mode
+        and PyTorch gradients have been disabled.
+        At the end of validation, model goes back to training mode and gradients are enabled.
+
+        The dict you return here will be available in the `test_end` method.
+
+        This function is used when you execute `trainer.test()`.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # CASE 1: A single test dataset
+            def test_step(self, batch, batch_idx):
+                x, y = batch
+
+                # implement your own
+                out = self.forward(x)
+                loss = self.loss(out, y)
+
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+                # all optional...
+                # return whatever you need for the collation function test_end
+                output = OrderedDict({
+                    'test_loss': loss_test,
+                    'test_acc': torch.tensor(test_acc), # everything must be a tensor
+                })
+
+                # return an optional dict
+                return output
+
+
+        If you pass in multiple test datasets, `test_step` will have an additional argument.
+
+        .. code-block:: python
+
+            # CASE 2: multiple test datasets
+            def test_step(self, batch, batch_idx, dataset_idx):
+                # dataset_idx tells you which dataset this is.
+
+
+        The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
 
     def test_end(self, outputs):

@@ -711,6 +711,17 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_step_end'):
                 output = model_ref.training_step_end(output)
 
+        # allow any mode to define training_end
+        # TODO: remove in 0.8.0
+        if self.is_overriden('training_end'):
+            model_ref = self.get_model()
+            with self.profiler.profile('training_end'):
+                output = model_ref.training_step_end(output)
+
+            m = 'training_end was deprecated in 0.7.0 and will be removed 0.8.0. ' \
+                'Use training_epoch_end instead'
+            warnings.warn(m, DeprecationWarning)
+
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 

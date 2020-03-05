@@ -131,6 +131,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import warnings
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
@@ -280,10 +281,23 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.get_model()
+
+        if test_mode and self.is_overriden('test_epoch_end'):
+            eval_results = model.test_end(outputs)
+        elif self.is_overriden('validation_epoch_end'):
+            eval_results = model.validation_end(outputs)
+
+        # TODO: remove in v 1.0.0
         if test_mode and self.is_overriden('test_end'):
             eval_results = model.test_end(outputs)
+            m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use test_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
         elif self.is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
+            m = 'validation_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use validation_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
         model.train()
