@@ -8,7 +8,9 @@ A LightningModule organizes your PyTorch code into the following sections:
 Notice a few things.
 
 1. It's the SAME code.
+
 2. The PyTorch code IS NOT abstracted - just organized.
+
 3. All the other code that didn't go in the LightningModule has been automated
 for you by the trainer
 
@@ -34,9 +36,10 @@ for you by the trainer
     new_x = torch.Tensor(2, 3)
     new_x = new_x.type_as(x.type())
 
+
 5. There are no samplers for distributed, Lightning also does this for you.
 
-..code-block:: python
+.. code-block:: python
 
     # Don't do in Lightning...
     data = MNIST(...)
@@ -46,6 +49,7 @@ for you by the trainer
     # do this instead
     data = MNIST(...)
     DataLoader(data)
+
 
 6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
 
