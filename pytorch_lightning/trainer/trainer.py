@@ -138,8 +138,7 @@ class Trainer(TrainerIOMixin,
             gradient_clip_val: 0 means don't clip.
 
             gradient_clip:
-            .. warning:: deprecated 0.6.1
-                Use `gradient_clip_val` instead. Will remove 0.8.0.
+            .. warning:: deprecated 0.6.1 Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position: orders the tqdm bar when running multiple models on same machine.
 
