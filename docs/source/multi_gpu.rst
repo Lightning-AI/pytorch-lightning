@@ -165,12 +165,13 @@ you will only be operating on one of those pieces.
         y_0 = batch
 
 For most metrics, this doesn't really matter. However, if you want
-full batch statistics or want to use the outputs of the training_step
-to do something like a softmax, you can use the `training_step_end` step.
+to add something to your computational graph (like softmax)
+using all batch parts you can use the `training_step_end` step.
 
 .. code-block:: python
 
     def training_step_end(self, outputs):
+        # only use when  on dp
         outputs = torch.cat(outputs, dim=1)
         softmax = softmax(outputs, dim=1)
         out = softmax.mean()
@@ -195,8 +196,33 @@ In pseudocode, the full sequence is:
         out = gpu_model(batch_split)
         all_results.append(out)
 
-    # calculate statistics for all parts of the batch
+    # use the full batch for something like softmax
     full out = model.training_step_end(all_results)
+
+to illustrate why this is needed, let's look at dataparallel
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.forward(batch)
+
+        # on dp or ddp2 if we did softmax now it would be wrong
+        # because batch is actually a piece of the full batch
+        return y_hat
+
+    def training_step_end(self, full_batch_outputs):
+        # full_batch_outputs has outputs of each part of the batch
+
+        # do softmax here
+        outputs = torch.cat(outputs, dim=1)
+        softmax = softmax(outputs, dim=1)
+        out = softmax.mean()
+
+        return out
+
+If `training_step_end` is defined it will be called regardless of tpu, dp, ddp, etc... which means
+it will behave the same no matter the backend.
 
 
 Implement Your Own Distributed (DDP) training
