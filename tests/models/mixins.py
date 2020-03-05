@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 import torch
-from torch import optim\
+from torch import optim
 
 
 class LightValidationStepMixin:
