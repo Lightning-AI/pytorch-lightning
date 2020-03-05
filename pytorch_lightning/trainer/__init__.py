@@ -60,6 +60,34 @@ So you can run it like so:
 
     $ python main.py --gpus 2
 
+Testing
+-------
+Once you're done training, feel free to run the test set!
+(Only right before publishing your paper or pushing to production)
+
+.. code-block:: python
+
+    trainer.test()
+
+Deployment / prediction
+-----------------------
+You just trained a LightningModule which is also just a torch.nn.Module.
+Use it to do whatever!
+
+.. code-block:: python
+
+    # load model
+    pretrained_model = LightningModule.load_from_checkpoint(PATH)
+    pretrained_model.freeze()
+
+    # use it for finetuning
+    def forward(self, x):
+        features = pretrained_model(x)
+        classes = classifier(features)
+
+    # or for prediction
+    out = pretrained_model(x)
+    api_write({'response': out}
 """
 
 from .trainer import Trainer
