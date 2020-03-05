@@ -1,8 +1,10 @@
 """
+Once you've organized your PyTorch code into a LightningModule,
+the Trainer automates everything else.
 
-The trainer de-couples the engineering code (16-bit, early stopping, GPU distribution, etc...) from the
-science code (GAN, BERT, your project, etc...). It uses many assumptions which are best practices in
-AI research today.
+.. figure:: /_images/lightning_module/pt_to_trainer.png
+   :alt: Convert from PyTorch to Lightning
+
 
 The trainer automates all parts of training except:
 
