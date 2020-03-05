@@ -28,6 +28,9 @@ Notice a few things.
     net.freeze()
     out = net(x)
 
+Thus, to use Lightning, you just need to organize your code which takes about 30 minutes,
+(and let's be real, you probably should do anyhow).
+
 ------------
 
 Minimal Example
