@@ -65,7 +65,10 @@ Training loop structure
 -----------------------
 
 The general pattern is that each loop (training, validation, test loop)
-has 2 methods, ```___step, ___epoch_end```
+has 2 methods:
+
+- ``` ___step ```
+- ``` ___epoch_end```
 
 To show how lightning calls these, let's use the validation loop as an example
 
@@ -80,6 +83,9 @@ To show how lightning calls these, let's use the validation loop as an example
     # do something with the outputs for all batches
     # like calculate validation set accuracy or loss
     validation_epoch_end(val_outs)
+
+Add validation loop
+^^^^^^^^^^^^^^^^^^^
 
 Thus, if we wanted to add a validation loop you would add this to your LightningModule
 
@@ -97,15 +103,14 @@ Thus, if we wanted to add a validation loop you would add this to your Lightning
 
             def val_dataloader(self):
                 # can also return a list of val dataloaders
-                return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                                  transform=transforms.ToTensor()), batch_size=32)
+                return DataLoader(...)
 
-Or add a test loop
+Add test loop
+^^^^^^^^^^^^^
 
-.. code_block:: python
+.. code-block:: python
 
         class CoolModel(pl.LightningModule):
-
             def test_step(self, batch, batch_idx):
                 x, y = batch
                 y_hat = self.forward(x)
@@ -116,11 +121,71 @@ Or add a test loop
                 return {'test_loss': test_loss_mean}
 
             def test_dataloader(self):
-                # OPTIONAL
                 # can also return a list of test dataloaders
-                return DataLoader(MNIST(os.getcwd(), train=False, download=True,
-                                  transform=transforms.ToTensor()), batch_size=32)
+                return DataLoader(...)
 
+However, the test loop won't ever be called automatically to make sure you
+don't run your test data by accident. Instead you have to explicitly call:
+
+.. code-block:: python
+
+    # call after training
+    trainer = Trainer()
+    trainer.fit(model)
+    trainer.test()
+
+    # or call with pretrained model
+    model = MyLightningModule.load_from_checkpoint(PATH)
+    trainer = Trainer()
+    trainer.test(model)
+
+Training_step_end method
+------------------------
+When using dataParallel or distributedDataParallel2, the training_step
+will be operating on a portion of the batch. This is normally ok but in special
+cases like calculating NCE loss using negative samples, we might want to
+perform a softmax across all samples in the batch.
+
+For these types of situations, each loop has an additional ```__step_end``` method
+which allows you to operate on the pieces of the batch
+
+.. code-block:: python
+
+        training_outs = []
+        for train_batch in train_data:
+            # dp, ddp2 splits the batch
+            sub_batches = split_batches_for_dp(batch)
+
+            # run training_step on each piece of the batch
+            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
+
+            # do softmax with all pieces
+            out = training_step_end(batch_parts_outputs)
+            training_outs.append(out)
+
+        # do something with the outputs for all batches
+        # like calculate validation set accuracy or loss
+        training_epoch_end(val_outs)
+
+.cuda, .to
+----------
+In a LightningModule, all calls to .cuda and .to should be removed. Lightning will do these
+automatically. This will allow your code to work on CPUs, TPUs and GPUs.
+
+When you init a new tensor in your code, just use type_as
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+
+        # put the z on the appropriate gpu or tpu core
+        z = sample_noise()
+        z = z.type_as(x.type())
+
+Live demo
+---------
+Check out how this live demo
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
