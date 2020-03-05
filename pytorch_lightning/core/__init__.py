@@ -262,6 +262,8 @@ allow for this
         # do stuff that writes to disk or should be done once
         # this will only happen from the master GPU or TPU core
 
+.. note:: ```prepare_data``` is called once.
+
 Lifecycle
 ---------
 The methods in the LightningModule are called in this order:
@@ -282,6 +284,10 @@ And if you define a test loop:
 
 .. note:: test_dataloader is only called with .test()
 
+In every epoch, the loop methods are called in this frequency:
+
+1. ```validation_step``` called every batch
+2. ```validation_epoch_end``` called every epoch
 
 Live demo
 ---------
