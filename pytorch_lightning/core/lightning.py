@@ -288,10 +288,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def validation_step(self, *args, **kwargs):
         r"""
-
-        This is the validation loop. It is called for each batch of the validation set.
-        Whatever is returned from here will be passed in as a list on validation_end.
+        Operate on a single batch of data from the validation set
         In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+
+            val_outs = []
+            for val_batch in val_data:
+                out = validation_step(train_batch)
+                val_outs.append(out
+            validation_epoch_end(val_outs)
 
         Args:
             batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
@@ -301,7 +309,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 val datasets used)
 
         Return:
-            Dict or OrderedDict - passed to the validation_end step
+            Dict or OrderedDict - passed to the validation_epoch_end
 
         .. code-block:: python
 
@@ -309,7 +317,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def validation_step(self, batch, batch_idx)
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idxdx)
+            def validation_step(self, batch, batch_idx, dataloader_idx)
 
         Example
         -------
@@ -427,22 +435,34 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     def validation_epoch_end(self, outputs):
-        """Outputs has the appended output after each validation step.
+        """
+        Called at end of validation epoch with the output of all validation_steps
 
-        :param outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
-         a list containing a list of outputs for each dataloader
-        :return dict: Dictionary or OrderedDict with optional:
+        .. code-block:: python
+
+            # the pseudocode for these calls
+
+            val_outs = []
+            for val_batch in val_data:
+                out = validation_step(train_batch)
+                train_outs.append(out
+            validation_epoch_end(val_outs)
+
+        Args:
+
+            outputs (list): List of outputs you defined in validation_step, or if there are multiple dataloaders,
+             a list containing a list of outputs for each dataloader
+
+        Return:
+            Dict or OrderedDict (dict): Dict has the following optional keys:
             progress_bar -> Dict for progress bar display. Must have only tensors
             log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
-        If you didn't define a validation_step, this won't be called.
-         Called at the end of the validation loop with the outputs of validation_step.
+        .. note:: If you didn't define a validation_step, this won't be called.
 
-        The outputs here are strictly for the progress bar.
-         If you don't need to display anything, don't return anything.
-         Any keys present in 'log', 'progress_bar' or the rest of the dictionary
-         are available for callbacks to access. If you want to manually set current step, you can specify it with
-         'step' key in the 'log' Dict.
+        - The outputs here are strictly for logging or progress bar.
+        - If you don't need to display anything, don't return anything.
+        - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
 
         Example
         -------
@@ -451,21 +471,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            def validation_end(self, outputs):
-                val_loss_mean = 0
+            def validation_epoch_end(self, outputs):
                 val_acc_mean = 0
                 for output in outputs:
-                    val_loss_mean += output['val_loss']
                     val_acc_mean += output['val_acc']
 
-                val_loss_mean /= len(outputs)
                 val_acc_mean /= len(outputs)
-                tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+                tqdm_dict = {'val_acc': val_acc_mean.item()}
 
                 # show val_loss and val_acc in progress bar but only log val_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'val_loss': val_loss_mean.item()}
+                    'log': {'val_acc': val_acc_mean.item()}
                 }
                 return results
 
@@ -475,35 +492,49 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. code-block:: python
 
-            def validation_end(self, outputs):
-                val_loss_mean = 0
+            def validation_epoch_end(self, outputs):
                 val_acc_mean = 0
                 i = 0
                 for dataloader_outputs in outputs:
                     for output in dataloader_outputs:
-                        val_loss_mean += output['val_loss']
                         val_acc_mean += output['val_acc']
                         i += 1
 
-                val_loss_mean /= i
                 val_acc_mean /= i
-                tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+                tqdm_dict = {'val_acc': val_acc_mean.item()}
 
                 # show val_loss and val_acc in progress bar but only log val_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'val_loss': val_loss_mean.item(), 'step': self.current_epoch}
+                    'log': {'val_acc': val_acc_mean.item(), 'step': self.current_epoch}
                 }
                 return results
-
         """
 
     def test_step(self, *args, **kwargs):
-        """return whatever outputs will need to be aggregated in test_end
-        :param batch: The output of your dataloader. A tensor, tuple or list
-        :param int batch_idx: Integer displaying which batch this is
-        :param int dataloader_idx: Integer displaying which dataloader this is (only if multiple test datasets used)
-        :return dict: Dict or OrderedDict with metrics to display in progress bar. All keys must be tensors.
+        r"""
+        Operate on a single batch of data from the test set
+        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+
+            test_outs = []
+            for test_batch in test_data:
+                out = test_step(train_batch)
+                test_outs.append(out
+            test_epoch_end(test_outs)
+
+        Args:
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
+                A tensor, tuple or list
+            batch_idx (int): The index of this batch
+            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple
+                test datasets used)
+
+        Return:
+            Dict or OrderedDict - passed to the test_epoch_end
 
         .. code-block:: python
 
@@ -511,21 +542,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             def test_step(self, batch, batch_idx)
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idxdx)
-
-
-        **OPTIONAL**
-        If you don't need to test you don't need to implement this method.
-        In this step you'd normally generate examples or
-        calculate anything of interest such as accuracy.
-
-        When the validation_step is called, the model has been put in eval mode
-        and PyTorch gradients have been disabled.
-        At the end of validation, model goes back to training mode and gradients are enabled.
-
-        The dict you return here will be available in the `test_end` method.
-
-        This function is used when you execute `trainer.test()`.
+            def test_step(self, batch, batch_idx, dataloader_idx)
 
         Example
         -------
@@ -540,31 +557,38 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 out = self.forward(x)
                 loss = self.loss(out, y)
 
+                # log 6 example images
+                # or generated text... or whatever
+                sample_imgs = x[:6]
+                grid = torchvision.utils.make_grid(sample_imgs)
+                self.logger.experiment.add_image('example_images', grid, 0)
+
                 # calculate acc
                 labels_hat = torch.argmax(out, dim=1)
-                test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                 # all optional...
-                # return whatever you need for the collation function test_end
+                # return whatever you need for the collation function validation_end
                 output = OrderedDict({
-                    'test_loss': loss_test,
-                    'test_acc': torch.tensor(test_acc), # everything must be a tensor
+                    'val_loss': loss_val,
+                    'val_acc': torch.tensor(val_acc), # everything must be a tensor
                 })
 
                 # return an optional dict
                 return output
 
-
-        If you pass in multiple test datasets, `test_step` will have an additional argument.
+        If you pass in multiple validation datasets, validation_step will have an additional argument.
 
         .. code-block:: python
 
-            # CASE 2: multiple test datasets
+            # CASE 2: multiple validation datasets
             def test_step(self, batch, batch_idx, dataset_idx):
                 # dataset_idx tells you which dataset this is.
 
+        .. note:: If you don't need to validate you don't need to implement this method.
 
-        The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
+        .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
+            have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
         """
 
     def test_step_end(self, *args, **kwargs):
@@ -635,64 +659,78 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     def test_epoch_end(self, outputs):
-        """Outputs has the appended output after each test step.
+        """
+        Called at end of test epoch with the output of all test_steps
 
-        :param outputs:  List of outputs you defined in test_step, or if there are multiple dataloaders,
-         a list containing a list of outputs for each dataloader
-        :return dict: Dict of OrderedDict with metrics to display in progress bar
+        .. code-block:: python
 
-        If you didn't define a test_step, this won't be called.
-         Called at the end of the test step with the output of each test_step.
-         The outputs here are strictly for the progress bar.
-         If you don't need to display anything, don't return anything.
+            # the pseudocode for these calls
+
+            test_outs = []
+            for test_batch in test_data:
+                out = test_step(test_batch)
+                test_outs.append(out)
+            test_epoch_end(test_outs)
+
+        Args:
+
+            outputs (list): List of outputs you defined in test_step, or if there are multiple dataloaders,
+             a list containing a list of outputs for each dataloader
+
+        Return:
+            Dict or OrderedDict (dict): Dict has the following optional keys:
+            progress_bar -> Dict for progress bar display. Must have only tensors
+            log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+
+        .. note:: If you didn't define a test_step, this won't be called.
+
+        - The outputs here are strictly for logging or progress bar.
+        - If you don't need to display anything, don't return anything.
+        - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
 
         Example
         -------
 
+        With a single dataloader
+
         .. code-block:: python
 
-            def test_end(self, outputs):
-                test_loss_mean = 0
+            def test_epoch_end(self, outputs):
                 test_acc_mean = 0
                 for output in outputs:
-                    test_loss_mean += output['test_loss']
                     test_acc_mean += output['test_acc']
 
-                test_loss_mean /= len(outputs)
                 test_acc_mean /= len(outputs)
-                tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+                tqdm_dict = {'test_acc': test_acc_mean.item()}
 
                 # show test_loss and test_acc in progress bar but only log test_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'test_loss': val_loss_mean.item()}
+                    'log': {'test_acc': test_acc_mean.item()}
                 }
                 return results
 
         With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
         one entry per dataloader, while the inner list contains the individual outputs of
-        each validation step for that dataloader.
+        each test step for that dataloader.
 
         .. code-block:: python
 
-            def test_end(self, outputs):
-                test_loss_mean = 0
+            def test_epoch_end(self, outputs):
                 test_acc_mean = 0
                 i = 0
                 for dataloader_outputs in outputs:
                     for output in dataloader_outputs:
-                        test_loss_mean += output['test_loss']
                         test_acc_mean += output['test_acc']
                         i += 1
 
-                test_loss_mean /= i
                 test_acc_mean /= i
-                tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+                tqdm_dict = {'test_acc': test_acc_mean.item()}
 
                 # show test_loss and test_acc in progress bar but only log test_loss
                 results = {
                     'progress_bar': tqdm_dict,
-                    'log': {'test_loss': val_loss_mean.item()}
+                    'log': {'test_acc': test_acc_mean.item(), 'step': self.current_epoch}
                 }
                 return results
         """

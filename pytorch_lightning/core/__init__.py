@@ -1,14 +1,20 @@
 """
-A LightningModule is a strict superclass of torch.nn.Module but provides an interface to standardize
-the "ingredients" for a research or production system.
+A LightningModule organizes your PyTorch code into the following sections:
 
 - The model/system definition (__init__)
 - The model/system computations (forward)
-- What happens in the training loop (training_step, training_end)
-- What happens in the validation loop (validation_step, validation_end)
-- What happens in the test loop (test_step, test_end)
+- What happens in the training loop (training_step)
+- What happens in the validation loop (validation_step, validation_epoch_end)
+- What happens in the test loop (test_step, test_epoch_end)
 - What optimizers to use (configure_optimizers)
 - What data to use (train_dataloader, val_dataloader, test_dataloader)
+
+.. note:: LightningModule is a torch.nn.Module but with added functionality.
+
+------------
+
+Minimal Example
+---------------
 
 Most methods are optional. Here's a minimal example.
 
@@ -37,12 +43,12 @@ Most methods are optional. Here's a minimal example.
             y_hat = self.forward(x)
             return {'loss': F.cross_entropy(y_hat, y)}
 
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.02)
-
         def train_dataloader(self):
             return DataLoader(MNIST(os.getcwd(), train=True, download=True,
                               transform=transforms.ToTensor()), batch_size=32)
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
 
 Which you can train by doing:
 
@@ -53,7 +59,29 @@ Which you can train by doing:
 
    trainer.fit(model)
 
-If you wanted to add a validation loop
+----------
+
+Training loop structure
+-----------------------
+
+The general pattern is that each loop (training, validation, test loop)
+has 2 methods, ```___step, ___epoch_end```
+
+To show how lightning calls these, let's use the validation loop as an example
+
+.. code-block:: python
+
+    val_outs = []
+    for val_batch in val_data:
+        # do something with each batch
+        out = validation_step(val_batch)
+        val_outs.append(out)
+
+    # do something with the outputs for all batches
+    # like calculate validation set accuracy or loss
+    validation_epoch_end(val_outs)
+
+Thus, if we wanted to add a validation loop you would add this to your LightningModule
 
 .. code-block:: python
 
@@ -63,7 +91,7 @@ If you wanted to add a validation loop
                 y_hat = self.forward(x)
                 return {'val_loss': F.cross_entropy(y_hat, y)}
 
-            def validation_end(self, outputs):
+            def validation_epoch_end(self, outputs):
                 val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
                 return {'val_loss': val_loss_mean}
 
