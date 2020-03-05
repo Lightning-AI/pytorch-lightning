@@ -103,76 +103,92 @@ logger
 
 Logger (or iterable collection of loggers) for experiment tracking.
 
-    .. code-block:: python
+.. code-block:: python
 
-        Trainer(logger=logger)
+    Trainer(logger=logger)
 
-    Example::
+Example::
 
-        from pytorch_lightning.loggers import TensorBoardLogger
+    from pytorch_lightning.loggers import TensorBoardLogger
 
-        # default logger used by trainer
-        logger = TensorBoardLogger(
-            save_dir=os.getcwd(),
-            version=self.slurm_job_id,
-            name='lightning_logs'
-        )
+    # default logger used by trainer
+    logger = TensorBoardLogger(
+        save_dir=os.getcwd(),
+        version=self.slurm_job_id,
+        name='lightning_logs'
+    )
 
 
-Checkpoint
-^^^^^^^^^^
+checkpoint_callback
+^^^^^^^^^^^^^^^^^^^
+Callback for checkpointing.
 
-            checkpoint_callback: Callback for checkpointing.
-                Example::
+.. code-block:: python
 
-                    from pytorch_lightning.callbacks import ModelCheckpoint
+    trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-                    # default used by the Trainer
-                    checkpoint_callback = ModelCheckpoint(
-                        filepath=os.getcwd(),
-                        save_best_only=True,
-                        verbose=True,
-                        monitor='val_loss',
-                        mode='min',
-                        prefix=''
-                    )
+Example::
 
-                    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    from pytorch_lightning.callbacks import ModelCheckpoint
 
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
-                Callback for early stopping.
-                If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
-                Will raise an error if ``'val_loss'`` is not found.
-                If set to ``False``, then early stopping will be disabled.
-                If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
-                If ``'val_loss'`` is not found will work as if early stopping is disabled.
-                Default: ``None``.
-                Example::
+    # default used by the Trainer
+    checkpoint_callback = ModelCheckpoint(
+        filepath=os.getcwd(),
+        save_best_only=True,
+        verbose=True,
+        monitor='val_loss',
+        mode='min',
+        prefix=''
+    )
 
-                    from pytorch_lightning.callbacks import EarlyStopping
+early_stop_callback
+^^^^^^^^^^^^^^^^^^^
 
-                    # default used by the Trainer
-                    early_stop_callback = EarlyStopping(
-                        monitor='val_loss',
-                        patience=3,
-                        strict=False,
-                        verbose=False,
-                        mode='min'
-                    )
+Callback for early stopping.
+early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-                    trainer = Trainer(early_stop_callback=early_stop_callback)
+- If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
+- Will raise an error if ``'val_loss'`` is not found.
+- If set to ``False``, then early stopping will be disabled.
+- If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
+- If ``'val_loss'`` is not found will work as if early stopping is disabled.
+- Default: ``None``.
 
-            callbacks: Add a list of callbacks.
-                Example::
-                    from pytorch_lightning.callbacks import Callback
-                    class PrintCallback(Callback):
-                        def on_train_start(self):
-                            print("Training is started!")
-                        def on_train_end(self):
-                            print(f"Training is done. The logs are: {self.trainer.logs}")
-                    # a list of callbacks
-                    callbacks = [PrintCallback()]
-                    trainer = Trainer(callbacks=callbacks)
+.. code-block:: python
+
+    trainer = Trainer(early_stop_callback=early_stop_callback)
+
+Example::
+
+    from pytorch_lightning.callbacks import EarlyStopping
+
+    # default used by the Trainer
+    early_stop_callback = EarlyStopping(
+        monitor='val_loss',
+        patience=3,
+        strict=False,
+        verbose=False,
+        mode='min'
+    )
+
+callbacks
+^^^^^^^^^
+
+callbacks: Add a list of callbacks.
+
+.. code-block:: python
+
+    # a list of callbacks
+    callbacks = [PrintCallback()]
+    trainer = Trainer(callbacks=callbacks)
+
+Example::
+    from pytorch_lightning.callbacks import Callback
+    class PrintCallback(Callback):
+        def on_train_start(self):
+            print("Training is started!")
+        def on_train_end(self):
+            print(f"Training is done. The logs are: {self.trainer.logs}")
 
             default_save_path: Default path for logs and weights when no logger/ckpt_callback passed
                 Example::
