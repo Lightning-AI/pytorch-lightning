@@ -235,6 +235,48 @@ When you init a new tensor in your code, just use type_as
         z = sample_noise()
         z = z.type_as(x.type())
 
+Data preparation
+----------------
+Data preparation in PyTorch follows 5 steps:
+
+1. Download
+2. Clean and (maybe) save to disk
+3. Load inside dataset
+4. Apply transforms (rotate, tokenize, etc...)
+5. Wrap inside a dataloader
+
+When working in distributed settings, steps 1 and 2 have to be done
+from a single GPU, otherwise you will overwrite these files from
+every GPU. The lightningModule has the ```prepare_data``` method to
+allow for this
+
+.. code-block:: python
+
+    def prepare_data(self):
+        # do stuff that writes to disk or should be done once
+        # this will only happen from the master GPU or TPU core
+
+Lifecycle
+---------
+The methods in the LightningModule are called in this order:
+
+1. ```__init__```
+2. ```prepare_data```
+3. ```configure_optimizers```
+4. ```prepare_data```
+5. ```train_dataloader```
+
+If you define a validation loop then
+
+6. ```val_dataloader```
+
+And if you define a test loop:
+
+7. ```test_dataloader```
+
+.. note:: test_dataloader is only called with .test()
+
+
 Live demo
 ---------
 Check out how this live demo

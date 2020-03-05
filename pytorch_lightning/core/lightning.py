@@ -737,7 +737,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def configure_ddp(self, model, device_ids):
         r"""
-
         Override to init DDP in your own way or with your own wrapper.
         The only requirements are that:
 
