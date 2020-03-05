@@ -94,8 +94,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Same as torch.nn.Module.forward(), however in Lightning you want this to define
         the  operations you want to use for prediction (ie: on a server or as a feature extractor).
 
-        Normally you'd call self.forward() from your training_step() method. This makes it easy to write a complex
-        system for training with the outputs you'd want in a prediction setting.
+        Normally you'd call self.forward() from your training_step() method.
+        This makes it easy to write a complex system for training with the outputs
+        you'd want in a prediction setting.
 
         Args:
             x (tensor): Whatever  you decide to define in the forward method
@@ -140,11 +141,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""return loss, dict with metrics for tqdm
 
         Args:
-            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
-                A tensor, tuple or list
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your
+                dataloader. A tensor, tuple or list
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): If using multiple optimizers, this argument will also be present.
-            hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
+            hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_):
+                Passed in if truncated_bptt_steps > 0.
 
         Return:
             dict with loss key and optional log, progress keys
@@ -155,7 +157,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
-         You can also do fancier things like multiple forward passes or something specific to your model.
+        You can also do fancier things like multiple forward passes or something model specific.
 
         Examples:
             .. code-block:: python
@@ -181,7 +183,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # return a dict
                     return output
 
-            If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
+            If you define multiple optimizers, this step will be called with an additional
+            `optimizer_idx` param.
 
             .. code-block:: python
 
@@ -284,7 +287,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def validation_step(self, *args, **kwargs):
         r"""
         Operate on a single batch of data from the validation set
-        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+        In this step you'd might generate examples or calculate anything of interest like accuracy.
 
         .. code-block:: python
 
@@ -296,11 +299,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 validation_epoch_end(val_outs)
 
         Args:
-            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
-                A tensor, tuple or list
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your
+                dataloader. A tensor, tuple or list
             batch_idx (int): The index of this batch
-            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple
-                val datasets used)
+            dataloader_idx (int): The index of the dataloader that produced this batch
+                (only if multiple val datasets used)
 
         Return:
             Dict or OrderedDict - passed to the validation_epoch_end
@@ -344,7 +347,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # return an optional dict
                     return output
 
-            If you pass in multiple validation datasets, validation_step will have an additional argument.
+            If you pass in multiple val datasets, validation_step will have an additional argument.
 
             .. code-block:: python
 
@@ -354,8 +357,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you don't need to validate you don't need to implement this method.
 
-        .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-            have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+        .. note:: When the validation_step is called, the model has been put in eval mode
+            and PyTorch gradients have been disabled. At the end of validation,
+            model goes back to training mode and gradients are enabled.
         """
 
     def validation_step_end(self, *args, **kwargs):
@@ -440,8 +444,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             validation_epoch_end(val_outs)
 
         Args:
-            outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
-             a list containing a list of outputs for each dataloader
+            outputs: List of outputs you defined in validation_step, or if there are multiple
+            dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
             Dict or OrderedDict (dict): Dict has the following optional keys:
@@ -452,7 +456,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
-        - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
+        - If you want to manually set current step, you can specify the 'step' key in the 'log' Dict
 
         Examples:
             With a single dataloader
@@ -502,7 +506,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def test_step(self, *args, **kwargs):
         r"""
         Operate on a single batch of data from the test set
-        In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+        In this step you'd normally generate examples or calculate anything of interest
+        such as accuracy.
 
         .. code-block:: python
 
@@ -515,11 +520,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             test_epoch_end(test_outs)
 
         Args:
-            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
-                A tensor, tuple or list
+            batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your
+                dataloader. A tensor, tuple or list
             batch_idx (int): The index of this batch
-            dataloader_idx (int): The index of the dataloader that produced this batch (only if multiple
-                test datasets used)
+            dataloader_idx (int): The index of the dataloader that produced this batch
+                (only if multiple test datasets used)
 
         Return:
             Dict or OrderedDict - passed to the test_epoch_end
@@ -563,7 +568,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # return an optional dict
                     return output
 
-            If you pass in multiple validation datasets, validation_step will have an additional argument.
+            If you pass in multiple validation datasets, validation_step will have an additional
+            argument.
 
         .. code-block:: python
 
@@ -573,8 +579,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you don't need to validate you don't need to implement this method.
 
-        .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
-            have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+        .. note:: When the validation_step is called, the model has been put in eval mode and
+            PyTorch gradients have been disabled. At the end of validation, model goes back
+            to training mode and gradients are enabled.
         """
 
     def test_step_end(self, *args, **kwargs):
@@ -660,8 +667,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
 
-            outputs (list): List of outputs you defined in test_step, or if there are multiple dataloaders,
-             a list containing a list of outputs for each dataloader
+            outputs (list): List of outputs you defined in test_step, or if there are multiple
+            dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
             Dict or OrderedDict (dict): Dict has the following optional keys:
@@ -672,7 +679,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
-        - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
+        - If you want to manually set current step, specify it with the 'step' key in the 'log' Dict
 
         Examples:
             With a single dataloader
@@ -867,15 +874,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def configure_optimizers(self):
         r"""
-        This is where you choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or something more esoteric you might have multiple.
+        Choose what optimizers and learning-rate schedulers to use in your optimization.
+        Normally you'd need one. But in the case of GANs or similar you might have multiple.
 
         If you don't define this method Lightning will automatically use Adam(lr=1e-3)
 
         Return: any of these 3 options:
             - Single optimizer
             - List or Tuple - List of optimizers
-            - Two lists - The first list has multiple optimizers, the second a list of learning-rate schedulers
+            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers
 
         Examples:
             .. code-block:: python
@@ -904,7 +911,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
                     gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
                                  'interval': 'step'}  # called after each training step
-                    dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
+                    dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
         .. note:: Lightning calls ``.backward()`` and ``.step()`` on each optimizer
@@ -913,18 +920,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you use 16-bit precision (``use_amp=True``), Lightning will automatically
             handle the optimizers for you.
 
-        .. note:: If you use multiple optimizers, training_step will have an additional ``optimizer_idx`` parameter.
+        .. note:: If you use multiple optimizers, training_step will have an additional
+            ``optimizer_idx`` parameter.
 
         .. note:: If you use LBFGS lightning handles the closure function automatically for you
 
         .. note:: If you use multiple optimizers, gradients will be calculated only
             for the parameters of current optimizer at each training step.
 
-        .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
-            override the `optimizer_step` hook.
+        .. note:: If you need to control how often those optimizers step or override the
+            default .step() schedule, override the `optimizer_step` hook.
 
         .. note:: If you only want to call a learning rate scheduler every `x` step or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_scheduler, interval='step' or 'epoch', frequency=x)
+            you can input this as 'frequency' key: dict(scheduler=lr_scheduler,
+                                                        interval='step' or 'epoch', frequency=x)
 
         """
         return Adam(self.parameters(), lr=1e-3)
@@ -932,8 +941,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         r"""
 
-        Override this method to adjust the default way the Trainer calls each optimizer. By default, Lightning
-        calls .step() and zero_grad() as shown in the example once per optimizer.
+        Override this method to adjust the default way the Trainer calls each optimizer.
+        By default, Lightning calls .step() and zero_grad() as shown in the example
+        once per optimizer.
 
         Args:
             epoch (int): Current epoch
@@ -946,12 +956,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             .. code-block:: python
 
                 # DEFAULT
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                                   second_order_closure=None):
                     optimizer.step()
                     optimizer.zero_grad()
 
                 # Alternating schedule for optimizer steps (ie: GANs)
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                                   second_order_closure=None):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -968,12 +980,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # add as many optimizers as you want
 
 
-            Here's another example showing how to use this for more advanced things such as learning-rate warm-up:
+            Here's another example showing how to use this for more advanced things such as
+            learning-rate warm-up:
 
             .. code-block:: python
 
                 # learning rate warm-up
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                def optimizer_step(self, current_epoch, batch_idx, optimizer,
+                                    optimizer_idx, second_order_closure=None):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -998,8 +1012,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def tbptt_split_batch(self, batch, split_size):
         r"""
 
-        When using truncated backpropagation through time, each batch must be split along the time dimension.
-        Lightning handles this by default, but  for custom behavior override this function.
+        When using truncated backpropagation through time, each batch must be split along the
+        time dimension. Lightning handles this by default, but  for custom behavior override
+        this function.
 
         Args:
             batch (torch.nn.Tensor): Current batch
@@ -1093,7 +1108,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
-        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware.
+            No need to set yourself.
 
             - .fit()
             - ...
@@ -1104,8 +1120,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             .. code-block:: python
 
                 def train_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
+                                    download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
@@ -1143,7 +1161,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - val_dataloader
             - test_dataloader
 
-        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware.
+            No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -1152,8 +1171,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             .. code-block:: python
 
                 def test_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
+                                    download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
@@ -1162,9 +1183,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                     return loader
 
-        .. note:: If you don't need a test dataset and a test_step, you don't need to implement this method.
+        .. note:: If you don't need a test dataset and a test_step, you don't need to implement
+            this method.
 
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader
+            decorator.
 
         """
         return None
@@ -1183,7 +1206,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - train_dataloader
             - val_dataloader
 
-        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware No need to set yourself.
+        .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware
+            No need to set yourself.
 
         Return:
             PyTorch DataLoader
@@ -1192,8 +1216,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             .. code-block:: python
 
                 def val_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False,
+                                    transform=transform, download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
@@ -1210,8 +1236,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 @pl.data_loader
                 def val_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False,
+                              transform=transform, download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
@@ -1225,9 +1253,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 def val_dataloader(self):
                     return [loader_a, loader_b, ..., loader_n]
 
-        .. note:: If you don't need a validation dataset and a validation_step, you don't need to implement this method.
+        .. note:: If you don't need a validation dataset and a validation_step, you don't need to
+            implement this method.
 
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader decorator.
+        .. note:: If you want to change the data during every epoch DON'T use the data_loader
+            decorator.
 
         .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
             will have an argument `dataset_idx` which matches the order here.
@@ -1346,8 +1376,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
-                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
-                    " argument 'hparams'. Will pass in an empty Namespace instead."
+                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ "
+                    f"contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"
                 )
                 hparams = Namespace()
@@ -1356,8 +1386,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 hparams = None
             else:
                 raise MisconfigurationException(
-                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ is missing the"
-                    " argument 'hparams'. Are you loading the correct checkpoint?"
+                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ "
+                    f"is missing the  argument 'hparams'. Are you loading the correct checkpoint?"
                 )
 
         # load the state_dict on the model automatically
@@ -1420,15 +1450,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # 99% of the time you don't need to implement this method
                     self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
-        .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
+        .. note:: Lighting auto-restores global step, epoch, and train state including amp scaling.
             No need for you to restore anything regarding training.
         """
 
     def on_save_checkpoint(self, checkpoint):
         r"""
 
-        Called by lightning when saving a  checkpoint  to give you a chance to store anything else you
-        might want to  save
+        Called by lightning when saving a  checkpoint  to give you a chance to store anything
+        else you might want to  save
 
         Args:
             checkpoint (dic): Checkpoint to be saved
@@ -1440,7 +1470,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # 99% of use cases you don't need to implement this method
                     checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 
-        .. note:: Lighting saves all aspects of training (epoch, global step, etc...) including amp scaling. No need
+        .. note:: Lighting saves all aspects of training (epoch, global step, etc...)
+            including amp scaling. No need
             for you to store anything about training.
 
         """
