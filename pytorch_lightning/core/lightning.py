@@ -907,7 +907,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-        .. note:: Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
+        .. note:: Lightning calls ``.backward()`` and ``.step()`` on each optimizer
+            and learning rate scheduler as needed.
 
         .. note:: If you use 16-bit precision (``use_amp=True``), Lightning will automatically
             handle the optimizers for you.
