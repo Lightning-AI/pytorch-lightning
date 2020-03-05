@@ -421,7 +421,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def validation_end(self, outputs):
         """
         .. warning:: Deprecated in v0.7.0. use validation_epoch_end instead.
-            Will be removed 0.8.0
+            Will be removed 1.0.0
         :param outputs:
         :return:
         """
@@ -629,7 +629,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def test_end(self, outputs):
         """
-        .. warning:: Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 0.8.0
+        .. warning:: Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
         :param outputs:
         :return:
         """
@@ -1093,13 +1093,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return None
 
     @data_loader
-    def tng_dataloader(self):  # todo: remove in v0.8.0
+    def tng_dataloader(self):  # todo: remove in v1.0.0
         """Implement a PyTorch DataLoader.
-        .. warning:: Deprecated in v0.5.0. use train_dataloader instead. Will be removed 0.8.0
+        .. warning:: Deprecated in v0.5.0. use train_dataloader instead. Will be removed 1.0.0
         """
         output = self.train_dataloader()
         warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-                      " and this method will be removed in v0.8.0", DeprecationWarning)
+                      " and this method will be removed in v1.0.0", DeprecationWarning)
         return output
 
     def test_dataloader(self):
