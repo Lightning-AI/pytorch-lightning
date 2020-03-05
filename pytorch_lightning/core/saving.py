@@ -34,7 +34,6 @@ class ModelIO(object):
         Hook to do whatever you need right before Slurm manager loads the model
         """
 
-        
 def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')
