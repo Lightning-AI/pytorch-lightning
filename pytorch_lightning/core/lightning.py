@@ -77,9 +77,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Args:
             x (object): The thing to print
 
-        Example
-        -------
-
+        Examples:
         .. code-block:: python
 
             # example if we were using this model as a feature extractor
@@ -105,38 +103,36 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Predicted output
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # example if we were using this model as a feature extractor
+                def forward(self, x):
+                    feature_maps = self.convnet(x)
+                    return feature_maps
 
-            # example if we were using this model as a feature extractor
-            def forward(self, x):
-                feature_maps = self.convnet(x)
-                return feature_maps
+                def training_step(self, batch, batch_idx):
+                    x, y = batch
+                    feature_maps = self.forward(x)
+                    logits = self.classifier(feature_maps)
 
-            def training_step(self, batch, batch_idx):
-                x, y = batch
-                feature_maps = self.forward(x)
-                logits = self.classifier(feature_maps)
+                    # ...
+                    return loss
 
-                # ...
-                return loss
+                # splitting it this way allows model to be used a feature extractor
+                model = MyModelAbove()
 
-            # splitting it this way allows model to be used a feature extractor
-            model = MyModelAbove()
+                inputs = server.get_request()
+                results = model(inputs)
+                server.write_results(results)
 
-            inputs = server.get_request()
-            results = model(inputs)
-            server.write_results(results)
-
-            # -------------
-            # This is in stark contrast to torch.nn.Module where normally you would have this:
-            def forward(self, batch):
-                x, y = batch
-                feature_maps = self.convnet(x)
-                logits = self.classifier(feature_maps)
-                return logits
+                # -------------
+                # This is in stark contrast to torch.nn.Module where normally you would have this:
+                def forward(self, batch):
+                    x, y = batch
+                    feature_maps = self.convnet(x)
+                    logits = self.classifier(feature_maps)
+                    return logits
 
         """
 
@@ -150,80 +146,78 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             optimizer_idx (int): If using multiple optimizers, this argument will also be present.
             hiddens(:`Tensor <https://pytorch.org/docs/stable/tensors.html>`_): Passed in if truncated_bptt_steps > 0.
 
-        :param
+        Return:
+            dict with loss key and optional log, progress keys
+             if implementing training_step, return whatever you need in that step:
 
-        :return: dict with loss key and optional log, progress keys
-         if implementing training_step, return whatever you need in that step:
-
-            - loss -> tensor scalar [REQUIRED]
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+                - loss -> tensor scalar [REQUIRED]
+                - progress_bar -> Dict for progress bar display. Must have only tensors
+                - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
          You can also do fancier things like multiple forward passes or something specific to your model.
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                def training_step(self, batch, batch_idx):
+                    x, y, z = batch
 
-            def training_step(self, batch, batch_idx):
-                x, y, z = batch
+                    # implement your own
+                    out = self.forward(x)
+                    loss = self.loss(out, x)
 
-                # implement your own
-                out = self.forward(x)
-                loss = self.loss(out, x)
+                    logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
 
-                logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+                    # if using TestTubeLogger or TensorBoardLogger you can nest scalars
+                    logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
 
-                # if using TestTubeLogger or TensorBoardLogger you can nest scalars
-                logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
+                    output = {
+                        'loss': loss, # required
+                        'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
+                        'log': logger_logs
+                    }
 
-                output = {
-                    'loss': loss, # required
-                    'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
-                    'log': logger_logs
-                }
+                    # return a dict
+                    return output
 
-                # return a dict
-                return output
+            If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
 
-        If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
+            .. code-block:: python
 
-        .. code-block:: python
-
-            # Multiple optimizers (ie: GANs)
-            def training_step(self, batch, batch_idx, optimizer_idx):
-                if optimizer_idx == 0:
-                    # do training_step with encoder
-                if optimizer_idx == 1:
-                    # do training_step with decoder
+                # Multiple optimizers (ie: GANs)
+                def training_step(self, batch, batch_idx, optimizer_idx):
+                    if optimizer_idx == 0:
+                        # do training_step with encoder
+                    if optimizer_idx == 1:
+                        # do training_step with decoder
 
 
-        If you add truncated back propagation through time you will also get an additional
-         argument with the hidden states of the previous step.
+            If you add truncated back propagation through time you will also get an additional
+             argument with the hidden states of the previous step.
 
-        .. code-block:: python
+            .. code-block:: python
 
-            # Truncated back-propagation through time
-            def training_step(self, batch, batch_idx, hiddens):
-                # hiddens are the hiddens from the previous truncated backprop step
-                ...
-                out, hiddens = self.lstm(data, hiddens)
-                ...
+                # Truncated back-propagation through time
+                def training_step(self, batch, batch_idx, hiddens):
+                    # hiddens are the hiddens from the previous truncated backprop step
+                    ...
+                    out, hiddens = self.lstm(data, hiddens)
+                    ...
 
-                return {
-                    "loss": ...,
-                    "hiddens": hiddens  # remember to detach() this
-                }
+                    return {
+                        "loss": ...,
+                        "hiddens": hiddens  # remember to detach() this
+                    }
 
-        You can also return a -1 instead of a dict to stop the current loop. This is useful
-         if you want to break out of the current training epoch early.
+            You can also return a -1 instead of a dict to stop the current loop. This is useful
+             if you want to break out of the current training epoch early.
         """
 
     def training_end(self, *args, **kwargs):
         """
-        .. warning:: Deprecated in v0.7.0. use training_step_end instead
+        Warnings:
+            Deprecated in v0.7.0. use training_step_end instead
         """
 
     def training_step_end(self, *args, **kwargs):
@@ -242,48 +236,49 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
             training_step_end(batch_parts_outputs)
 
-        :param batch_parts_outputs: What you return in `training_step` for each batch part.
-        :return dict: dictionary with loss key and optional log, progress keys:
-            - loss -> tensor scalar [REQUIRED]
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+        Args:
+            batch_parts_outputs: What you return in `training_step` for each batch part.
+
+        Return:
+            dictionary with loss key and optional log, progress keys:
+                - loss -> tensor scalar [REQUIRED]
+                - progress_bar -> Dict for progress bar display. Must have only tensors
+                - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
         In this case you should define training_step_end to perform those calculations.
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # WITHOUT training_step_end
+                # if used in DP or DDP2, this batch is 1/num_gpus large
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # WITHOUT training_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    loss = self.softmax(out)
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                out = self.forward(x)
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                return {'loss': loss}
+                # --------------
+                # with training_step_end to do softmax over the full batch
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # --------------
-            # with training_step_end to do softmax over the full batch
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    return {'out': out}
 
-                out = self.forward(x)
-                return {'out': out}
+                def training_step_end(self, outputs):
+                    # this out is now the full size of the batch
+                    out = outputs['out']
 
-            def training_step_end(self, outputs):
-                # this out is now the full size of the batch
-                out = outputs['out']
+                    # this softmax now uses the full batch size
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                # this softmax now uses the full batch size
-                loss = nce_loss(loss)
-                return {'loss': loss}
-
-        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
     def validation_step(self, *args, **kwargs):
@@ -294,12 +289,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. code-block:: python
 
             # the pseudocode for these calls
-
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(train_batch)
                 val_outs.append(out
-            validation_epoch_end(val_outs)
+                validation_epoch_end(val_outs)
 
         Args:
             batch (torch.nn.Tensor | (Tensor, Tensor) | [Tensor, Tensor]): The output of your dataloader.
@@ -319,46 +313,44 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # if you have multiple val dataloaders:
             def validation_step(self, batch, batch_idx, dataloader_idx)
 
-        Example
-        -------
+        EExamples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # CASE 1: A single validation dataset
+                def validation_step(self, batch, batch_idx):
+                    x, y = batch
 
-            # CASE 1: A single validation dataset
-            def validation_step(self, batch, batch_idx):
-                x, y = batch
+                    # implement your own
+                    out = self.forward(x)
+                    loss = self.loss(out, y)
 
-                # implement your own
-                out = self.forward(x)
-                loss = self.loss(out, y)
+                    # log 6 example images
+                    # or generated text... or whatever
+                    sample_imgs = x[:6]
+                    grid = torchvision.utils.make_grid(sample_imgs)
+                    self.logger.experiment.add_image('example_images', grid, 0)
 
-                # log 6 example images
-                # or generated text... or whatever
-                sample_imgs = x[:6]
-                grid = torchvision.utils.make_grid(sample_imgs)
-                self.logger.experiment.add_image('example_images', grid, 0)
+                    # calculate acc
+                    labels_hat = torch.argmax(out, dim=1)
+                    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                # calculate acc
-                labels_hat = torch.argmax(out, dim=1)
-                val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                    # all optional...
+                    # return whatever you need for the collation function validation_end
+                    output = OrderedDict({
+                        'val_loss': loss_val,
+                        'val_acc': torch.tensor(val_acc), # everything must be a tensor
+                    })
 
-                # all optional...
-                # return whatever you need for the collation function validation_end
-                output = OrderedDict({
-                    'val_loss': loss_val,
-                    'val_acc': torch.tensor(val_acc), # everything must be a tensor
-                })
+                    # return an optional dict
+                    return output
 
-                # return an optional dict
-                return output
+            If you pass in multiple validation datasets, validation_step will have an additional argument.
 
-        If you pass in multiple validation datasets, validation_step will have an additional argument.
+            .. code-block:: python
 
-        .. code-block:: python
-
-            # CASE 2: multiple validation datasets
-            def validation_step(self, batch, batch_idx, dataset_idx):
-                # dataset_idx tells you which dataset this is.
+                # CASE 2: multiple validation datasets
+                def validation_step(self, batch, batch_idx, dataset_idx):
+                    # dataset_idx tells you which dataset this is.
 
         .. note:: If you don't need to validate you don't need to implement this method.
 
@@ -382,59 +374,58 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
             validation_step_end(batch_parts_outputs)
 
-        :param batch_parts_outputs: What you return in `training_step` for each batch part.
-        :return dict: dictionary with loss key and optional log, progress keys:
-            - loss -> tensor scalar [REQUIRED]
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+        Args:
+            batch_parts_outputs: What you return in `training_step` for each batch part.
+
+        Return:
+            dictionary with loss key and optional log, progress keys:
+                - loss -> tensor scalar [REQUIRED]
+                - progress_bar -> Dict for progress bar display. Must have only tensors
+                - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
         In this case you should define validation_step_end to perform those calculations.
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # WITHOUT validation_step_end
+                # if used in DP or DDP2, this batch is 1/num_gpus large
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # WITHOUT validation_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    loss = self.softmax(out)
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                out = self.forward(x)
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                return {'loss': loss}
+                # --------------
+                # with validation_step_end to do softmax over the full batch
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # --------------
-            # with validation_step_end to do softmax over the full batch
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    return {'out': out}
 
-                out = self.forward(x)
-                return {'out': out}
+                def validation_step_end(self, outputs):
+                    # this out is now the full size of the batch
+                    out = outputs['out']
 
-            def validation_step_end(self, outputs):
-                # this out is now the full size of the batch
-                out = outputs['out']
+                    # this softmax now uses the full batch size
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                # this softmax now uses the full batch size
-                loss = nce_loss(loss)
-                return {'loss': loss}
-
-        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
     def validation_end(self, outputs):
         """
-        .. warning:: Deprecated in v0.7.0. use validation_epoch_end instead.
-            Will be removed 1.0.0
-        :param outputs:
-        :return:
+        Warnings:
+            Deprecated in v0.7.0. use validation_epoch_end instead. Will be removed 1.0.0
         """
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs: list):
         """
         Called at end of validation epoch with the output of all validation_steps
 
@@ -449,8 +440,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             validation_epoch_end(val_outs)
 
         Args:
-
-            outputs (list): List of outputs you defined in validation_step, or if there are multiple dataloaders,
+            outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
              a list containing a list of outputs for each dataloader
 
         Return:
@@ -464,51 +454,49 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         - If you don't need to display anything, don't return anything.
         - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
 
-        Example
-        -------
+        Examples:
+            With a single dataloader
 
-        With a single dataloader
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def validation_epoch_end(self, outputs):
-                val_acc_mean = 0
-                for output in outputs:
-                    val_acc_mean += output['val_acc']
-
-                val_acc_mean /= len(outputs)
-                tqdm_dict = {'val_acc': val_acc_mean.item()}
-
-                # show val_loss and val_acc in progress bar but only log val_loss
-                results = {
-                    'progress_bar': tqdm_dict,
-                    'log': {'val_acc': val_acc_mean.item()}
-                }
-                return results
-
-        With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
-        one entry per dataloader, while the inner list contains the individual outputs of
-        each validation step for that dataloader.
-
-        .. code-block:: python
-
-            def validation_epoch_end(self, outputs):
-                val_acc_mean = 0
-                i = 0
-                for dataloader_outputs in outputs:
-                    for output in dataloader_outputs:
+                def validation_epoch_end(self, outputs):
+                    val_acc_mean = 0
+                    for output in outputs:
                         val_acc_mean += output['val_acc']
-                        i += 1
 
-                val_acc_mean /= i
-                tqdm_dict = {'val_acc': val_acc_mean.item()}
+                    val_acc_mean /= len(outputs)
+                    tqdm_dict = {'val_acc': val_acc_mean.item()}
 
-                # show val_loss and val_acc in progress bar but only log val_loss
-                results = {
-                    'progress_bar': tqdm_dict,
-                    'log': {'val_acc': val_acc_mean.item(), 'step': self.current_epoch}
-                }
-                return results
+                    # show val_loss and val_acc in progress bar but only log val_loss
+                    results = {
+                        'progress_bar': tqdm_dict,
+                        'log': {'val_acc': val_acc_mean.item()}
+                    }
+                    return results
+
+            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+            one entry per dataloader, while the inner list contains the individual outputs of
+            each validation step for that dataloader.
+
+            .. code-block:: python
+
+                def validation_epoch_end(self, outputs):
+                    val_acc_mean = 0
+                    i = 0
+                    for dataloader_outputs in outputs:
+                        for output in dataloader_outputs:
+                            val_acc_mean += output['val_acc']
+                            i += 1
+
+                    val_acc_mean /= i
+                    tqdm_dict = {'val_acc': val_acc_mean.item()}
+
+                    # show val_loss and val_acc in progress bar but only log val_loss
+                    results = {
+                        'progress_bar': tqdm_dict,
+                        'log': {'val_acc': val_acc_mean.item(), 'step': self.current_epoch}
+                    }
+                    return results
         """
 
     def test_step(self, *args, **kwargs):
@@ -544,40 +532,38 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             # if you have multiple test dataloaders:
             def test_step(self, batch, batch_idx, dataloader_idx)
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # CASE 1: A single test dataset
+                def test_step(self, batch, batch_idx):
+                    x, y = batch
 
-            # CASE 1: A single test dataset
-            def test_step(self, batch, batch_idx):
-                x, y = batch
+                    # implement your own
+                    out = self.forward(x)
+                    loss = self.loss(out, y)
 
-                # implement your own
-                out = self.forward(x)
-                loss = self.loss(out, y)
+                    # log 6 example images
+                    # or generated text... or whatever
+                    sample_imgs = x[:6]
+                    grid = torchvision.utils.make_grid(sample_imgs)
+                    self.logger.experiment.add_image('example_images', grid, 0)
 
-                # log 6 example images
-                # or generated text... or whatever
-                sample_imgs = x[:6]
-                grid = torchvision.utils.make_grid(sample_imgs)
-                self.logger.experiment.add_image('example_images', grid, 0)
+                    # calculate acc
+                    labels_hat = torch.argmax(out, dim=1)
+                    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                # calculate acc
-                labels_hat = torch.argmax(out, dim=1)
-                val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                    # all optional...
+                    # return whatever you need for the collation function validation_end
+                    output = OrderedDict({
+                        'val_loss': loss_val,
+                        'val_acc': torch.tensor(val_acc), # everything must be a tensor
+                    })
 
-                # all optional...
-                # return whatever you need for the collation function validation_end
-                output = OrderedDict({
-                    'val_loss': loss_val,
-                    'val_acc': torch.tensor(val_acc), # everything must be a tensor
-                })
+                    # return an optional dict
+                    return output
 
-                # return an optional dict
-                return output
-
-        If you pass in multiple validation datasets, validation_step will have an additional argument.
+            If you pass in multiple validation datasets, validation_step will have an additional argument.
 
         .. code-block:: python
 
@@ -607,55 +593,55 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
             test_step_end(batch_parts_outputs)
 
-        :param batch_parts_outputs: What you return in `training_step` for each batch part.
-        :return dict: dictionary with loss key and optional log, progress keys:
-            - loss -> tensor scalar [REQUIRED]
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+        Args:
+            batch_parts_outputs: What you return in `training_step` for each batch part.
+
+        Return:
+            dictionary with loss key and optional log, progress keys:
+                - loss -> tensor scalar [REQUIRED]
+                - progress_bar -> Dict for progress bar display. Must have only tensors
+                - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
         In this case you should define test_step_end to perform those calculations.
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # WITHOUT test_step_end
+                # if used in DP or DDP2, this batch is 1/num_gpus large
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # WITHOUT test_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    loss = self.softmax(out)
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                out = self.forward(x)
-                loss = self.softmax(out)
-                loss = nce_loss(loss)
-                return {'loss': loss}
+                # --------------
+                # with test_step_end to do softmax over the full batch
+                def training_step(self, batch, batch_idx):
+                    # batch is 1/num_gpus big
+                    x, y = batch
 
-            # --------------
-            # with test_step_end to do softmax over the full batch
-            def training_step(self, batch, batch_idx):
-                # batch is 1/num_gpus big
-                x, y = batch
+                    out = self.forward(x)
+                    return {'out': out}
 
-                out = self.forward(x)
-                return {'out': out}
+                def test_step_end(self, outputs):
+                    # this out is now the full size of the batch
+                    out = outputs['out']
 
-            def test_step_end(self, outputs):
-                # this out is now the full size of the batch
-                out = outputs['out']
+                    # this softmax now uses the full batch size
+                    loss = nce_loss(loss)
+                    return {'loss': loss}
 
-                # this softmax now uses the full batch size
-                loss = nce_loss(loss)
-                return {'loss': loss}
-
-        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
     def test_end(self, outputs):
         """
-        .. warning:: Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
-        :param outputs:
-        :return:
+        Warnings:
+             Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
         """
 
     def test_epoch_end(self, outputs):
@@ -688,51 +674,49 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         - If you don't need to display anything, don't return anything.
         - If you want to manually set current step, you can specify it with the 'step' key in the 'log' Dict.
 
-        Example
-        -------
+        Examples:
+            With a single dataloader
 
-        With a single dataloader
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def test_epoch_end(self, outputs):
-                test_acc_mean = 0
-                for output in outputs:
-                    test_acc_mean += output['test_acc']
-
-                test_acc_mean /= len(outputs)
-                tqdm_dict = {'test_acc': test_acc_mean.item()}
-
-                # show test_loss and test_acc in progress bar but only log test_loss
-                results = {
-                    'progress_bar': tqdm_dict,
-                    'log': {'test_acc': test_acc_mean.item()}
-                }
-                return results
-
-        With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
-        one entry per dataloader, while the inner list contains the individual outputs of
-        each test step for that dataloader.
-
-        .. code-block:: python
-
-            def test_epoch_end(self, outputs):
-                test_acc_mean = 0
-                i = 0
-                for dataloader_outputs in outputs:
-                    for output in dataloader_outputs:
+                def test_epoch_end(self, outputs):
+                    test_acc_mean = 0
+                    for output in outputs:
                         test_acc_mean += output['test_acc']
-                        i += 1
 
-                test_acc_mean /= i
-                tqdm_dict = {'test_acc': test_acc_mean.item()}
+                    test_acc_mean /= len(outputs)
+                    tqdm_dict = {'test_acc': test_acc_mean.item()}
 
-                # show test_loss and test_acc in progress bar but only log test_loss
-                results = {
-                    'progress_bar': tqdm_dict,
-                    'log': {'test_acc': test_acc_mean.item(), 'step': self.current_epoch}
-                }
-                return results
+                    # show test_loss and test_acc in progress bar but only log test_loss
+                    results = {
+                        'progress_bar': tqdm_dict,
+                        'log': {'test_acc': test_acc_mean.item()}
+                    }
+                    return results
+
+            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+            one entry per dataloader, while the inner list contains the individual outputs of
+            each test step for that dataloader.
+
+            .. code-block:: python
+
+                def test_epoch_end(self, outputs):
+                    test_acc_mean = 0
+                    i = 0
+                    for dataloader_outputs in outputs:
+                        for output in dataloader_outputs:
+                            test_acc_mean += output['test_acc']
+                            i += 1
+
+                    test_acc_mean /= i
+                    tqdm_dict = {'test_acc': test_acc_mean.item()}
+
+                    # show test_loss and test_acc in progress bar but only log test_loss
+                    results = {
+                        'progress_bar': tqdm_dict,
+                        'log': {'test_acc': test_acc_mean.item(), 'step': self.current_epoch}
+                    }
+                    return results
         """
 
     def configure_ddp(self, model, device_ids):
@@ -751,20 +735,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             DDP wrapped model
 
-        Example
-        -------
-        .. code-block:: python
+        Examples:
+            .. code-block:: python
 
-            # default implementation used in Trainer
-            def configure_ddp(self, model, device_ids):
-                # Lightning DDP simply routes to test_step, val_step, etc...
-                model = LightningDistributedDataParallel(
-                    model,
-                    device_ids=device_ids,
-                    find_unused_parameters=True
-                )
-                return model
-
+                # default implementation used in Trainer
+                def configure_ddp(self, model, device_ids):
+                    # Lightning DDP simply routes to test_step, val_step, etc...
+                    model = LightningDistributedDataParallel(
+                        model,
+                        device_ids=device_ids,
+                        find_unused_parameters=True
+                    )
+                    return model
 
         """
         model = LightningDistributedDataParallel(
@@ -784,43 +766,43 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Args:
             proc_rank (int): The current process rank within the node.
             world_size (int): Number of GPUs being use across all nodes. (num_nodes*nb_gpu_nodes).
-        Example
-        -------
-        .. code-block:: python
 
-            def init_ddp_connection(self):
-                # use slurm job id for the port number
-                # guarantees unique ports across jobs from same grid search
-                try:
-                    # use the last 4 numbers in the job id as the id
-                    default_port = os.environ['SLURM_JOB_ID']
-                    default_port = default_port[-4:]
+        Examples:
+            .. code-block:: python
 
-                    # all ports should be in the 10k+ range
-                    default_port = int(default_port) + 15000
+                def init_ddp_connection(self):
+                    # use slurm job id for the port number
+                    # guarantees unique ports across jobs from same grid search
+                    try:
+                        # use the last 4 numbers in the job id as the id
+                        default_port = os.environ['SLURM_JOB_ID']
+                        default_port = default_port[-4:]
 
-                except Exception as e:
-                    default_port = 12910
+                        # all ports should be in the 10k+ range
+                        default_port = int(default_port) + 15000
 
-                # if user gave a port number, use that one instead
-                try:
-                    default_port = os.environ['MASTER_PORT']
-                except Exception:
-                    os.environ['MASTER_PORT'] = str(default_port)
+                    except Exception as e:
+                        default_port = 12910
 
-                # figure out the root node addr
-                try:
-                    root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-                except Exception:
-                    root_node = '127.0.0.2'
+                    # if user gave a port number, use that one instead
+                    try:
+                        default_port = os.environ['MASTER_PORT']
+                    except Exception:
+                        os.environ['MASTER_PORT'] = str(default_port)
 
-                root_node = self.trainer.resolve_root_node_address(root_node)
-                os.environ['MASTER_ADDR'] = root_node
-                dist.init_process_group(
-                    'nccl',
-                    rank=self.proc_rank,
-                    world_size=self.world_size
-                )
+                    # figure out the root node addr
+                    try:
+                        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
+                    except Exception:
+                        root_node = '127.0.0.2'
+
+                    root_node = self.trainer.resolve_root_node_address(root_node)
+                    os.environ['MASTER_ADDR'] = root_node
+                    dist.init_process_group(
+                        'nccl',
+                        rank=self.proc_rank,
+                        world_size=self.world_size
+                    )
 
         """
         # use slurm job id for the port number
@@ -866,17 +848,16 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Apex wrapped model and optimizers
 
-        Example
-        -------
-        .. code-block:: python
+        Examples:
+            .. code-block:: python
 
-            # Default implementation used by Trainer.
-            def configure_apex(self, amp, model, optimizers, amp_level):
-                model, optimizers = amp.initialize(
-                    model, optimizers, opt_level=amp_level,
-                )
+                # Default implementation used by Trainer.
+                def configure_apex(self, amp, model, optimizers, amp_level):
+                    model, optimizers = amp.initialize(
+                        model, optimizers, opt_level=amp_level,
+                    )
 
-                return model, optimizers
+                    return model, optimizers
         """
         model, optimizers = amp.initialize(
             model, optimizers, opt_level=amp_level,
@@ -896,44 +877,42 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - List or Tuple - List of optimizers
             - Two lists - The first list has multiple optimizers, the second a list of learning-rate schedulers
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                # most cases (default if not defined)
+                def configure_optimizers(self):
+                    opt = Adam(self.parameters(), lr=1e-3)
+                    return opt
 
-            # most cases (default if not defined)
-            def configure_optimizers(self):
-                opt = Adam(self.parameters(), lr=1e-3)
-                return opt
+                # multiple optimizer case (eg: GAN)
+                def configure_optimizers(self):
+                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                    return generator_opt, disriminator_opt
 
-            # multiple optimizer case (eg: GAN)
-            def configure_optimizers(self):
-                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                return generator_opt, disriminator_opt
+                # example with learning_rate schedulers
+                def configure_optimizers(self):
+                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+                    return [generator_opt, disriminator_opt], [discriminator_sched]
 
-            # example with learning_rate schedulers
-            def configure_optimizers(self):
-                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
-                return [generator_opt, disriminator_opt], [discriminator_sched]
+                # example with step-based learning_rate schedulers
+                def configure_optimizers(self):
+                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                    gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
+                                 'interval': 'step'}  # called after each training step
+                    dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
+                    return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-            # example with step-based learning_rate schedulers
-            def configure_optimizers(self):
-                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                             'interval': 'step'}  # called after each training step
-                dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called after each epoch
-                return [gen_opt, dis_opt], [gen_sched, dis_sched]
+        .. note:: Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
 
-        .. note:: Lightning calls .backward() and .step() on each optimizer and learning rate scheduler as needed.
-
-        .. note:: If you use 16-bit precision (use_amp=True), Lightning will automatically
+        .. note:: If you use 16-bit precision (``use_amp=True``), Lightning will automatically
             handle the optimizers for you.
 
-        .. note:: If you use multiple optimizers, training_step will have an additional `optimizer_idx` parameter.
+        .. note:: If you use multiple optimizers, training_step will have an additional ``optimizer_idx`` parameter.
 
         .. note:: If you use LBFGS lightning handles the closure function automatically for you
 
@@ -943,8 +922,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you need to control how often those optimizers step or override the default .step() schedule,
             override the `optimizer_step` hook.
 
-        .. note:: If you only want to call a learning rate schduler every `x` step or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_schudler, interval='step' or 'epoch', frequency=x)
+        .. note:: If you only want to call a learning rate scheduler every `x` step or epoch,
+            you can input this as 'frequency' key: dict(scheduler=lr_scheduler, interval='step' or 'epoch', frequency=x)
 
         """
         return Adam(self.parameters(), lr=1e-3)
@@ -962,48 +941,47 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             optimizer_idx (int): If you used multiple optimizers this indexes into that list
             second_order_closure (int): closure for second order methods
 
-        Example
-        -------
-        .. code-block:: python
+        Examples:
+            .. code-block:: python
 
-            # DEFAULT
-            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-                optimizer.step()
-                optimizer.zero_grad()
+                # DEFAULT
+                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                    optimizer.step()
+                    optimizer.zero_grad()
 
-            # Alternating schedule for optimizer steps (ie: GANs)
-            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-                # update generator opt every 2 steps
-                if optimizer_idx == 0:
-                    if batch_idx % 2 == 0 :
-                        optimizer.step()
-                        optimizer.zero_grad()
+                # Alternating schedule for optimizer steps (ie: GANs)
+                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                    # update generator opt every 2 steps
+                    if optimizer_idx == 0:
+                        if batch_idx % 2 == 0 :
+                            optimizer.step()
+                            optimizer.zero_grad()
 
-                # update discriminator opt every 4 steps
-                if optimizer_idx == 1:
-                    if batch_idx % 4 == 0 :
-                        optimizer.step()
-                        optimizer.zero_grad()
+                    # update discriminator opt every 4 steps
+                    if optimizer_idx == 1:
+                        if batch_idx % 4 == 0 :
+                            optimizer.step()
+                            optimizer.zero_grad()
 
-                # ...
-                # add as many optimizers as you want
+                    # ...
+                    # add as many optimizers as you want
 
 
-        Here's another example showing how to use this for more advanced things such as learning-rate warm-up:
+            Here's another example showing how to use this for more advanced things such as learning-rate warm-up:
 
-        .. code-block:: python
+            .. code-block:: python
 
-            # learning rate warm-up
-            def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-                # warm up lr
-                if self.trainer.global_step < 500:
-                    lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
-                    for pg in optimizer.param_groups:
-                        pg['lr'] = lr_scale * self.hparams.learning_rate
+                # learning rate warm-up
+                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+                    # warm up lr
+                    if self.trainer.global_step < 500:
+                        lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                        for pg in optimizer.param_groups:
+                            pg['lr'] = lr_scale * self.hparams.learning_rate
 
-                # update params
-                optimizer.step()
-                optimizer.zero_grad()
+                    # update params
+                    optimizer.step()
+                    optimizer.zero_grad()
 
         """
         if self.trainer.use_tpu and XLA_AVAILABLE:
@@ -1031,30 +1009,29 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             back propagation through time. The default implementation splits root level Tensors and
             Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
 
-        Example
-        -------
-        .. code-block:: python
+        Examples:
+            .. code-block:: python
 
-            def tbptt_split_batch(self, batch, split_size):
-              splits = []
-              for t in range(0, time_dims[0], split_size):
-                  batch_split = []
-                  for i, x in enumerate(batch):
-                      if isinstance(x, torch.Tensor):
-                          split_x = x[:, t:t + split_size]
-                      elif isinstance(x, collections.Sequence):
-                          split_x = [None] * len(x)
-                          for batch_idx in range(len(x)):
-                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
+                def tbptt_split_batch(self, batch, split_size):
+                  splits = []
+                  for t in range(0, time_dims[0], split_size):
+                      batch_split = []
+                      for i, x in enumerate(batch):
+                          if isinstance(x, torch.Tensor):
+                              split_x = x[:, t:t + split_size]
+                          elif isinstance(x, collections.Sequence):
+                              split_x = [None] * len(x)
+                              for batch_idx in range(len(x)):
+                                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
 
-                      batch_split.append(split_x)
+                          batch_split.append(split_x)
 
-                  splits.append(batch_split)
+                      splits.append(batch_split)
 
-              return splits
+                  return splits
 
-        .. note:: Called in the training loop after on_batch_start if `truncated_bptt_steps > 0`.
-            Each returned batch split is passed separately to training_step(...).
+        .. note:: Called in the training loop after on_batch_start if ``truncated_bptt_steps > 0``.
+            Each returned batch split is passed separately to ``training_step(...)``.
 
         """
         time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
@@ -1082,7 +1059,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """Use this to download and prepare data.
         In distributed (GPU, TPU), this will only be called once
 
-        :return: PyTorch DataLoader
+        Return:
+            PyTorch DataLoader
 
         This is called before requesting the dataloaders
 
@@ -1093,22 +1071,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             model.val_dataloader()
             model.test_dataloader()
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def prepare_data(self):
-                download_imagenet()
-                clean_imagenet()
-                cache_imagenet()
+                def prepare_data(self):
+                    download_imagenet()
+                    clean_imagenet()
+                    cache_imagenet()
         """
         return None
 
     def train_dataloader(self):
         """Implement a PyTorch DataLoader
 
-        :return: PyTorch DataLoader
+        Return:
+            PyTorch DataLoader
 
         Return a dataloader. It will not be called every epoch unless you set
         ```Trainer(reload_dataloaders_every_epoch=True)```.
@@ -1117,25 +1094,23 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
 
-        - .fit()
-        - ...
-        - prepare_data()
-        - train_dataloader
+            - .fit()
+            - ...
+            - prepare_data()
+            - train_dataloader
 
-        Example
-        -------
+        Example:
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def train_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.hparams.batch_size,
-                    shuffle=True
-                )
-                return loader
+                def train_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform, download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.hparams.batch_size,
+                        shuffle=True
+                    )
+                    return loader
 
         """
         return None
@@ -1143,7 +1118,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @data_loader
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """Implement a PyTorch DataLoader.
-        .. warning:: Deprecated in v0.5.0. use train_dataloader instead. Will be removed 1.0.0
+
+        Warnings:
+            Deprecated in v0.5.0. use train_dataloader instead. Will be removed 1.0.0
         """
         output = self.train_dataloader()
         warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
@@ -1158,33 +1135,31 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
-        - .fit()
-        - ...
-        - prepare_data()
-        - train_dataloader
-        - val_dataloader
-        - test_dataloader
+            - .fit()
+            - ...
+            - prepare_data()
+            - train_dataloader
+            - val_dataloader
+            - test_dataloader
 
         .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware. No need to set yourself.
 
         Return:
             PyTorch DataLoader
 
-        Example
-        -------
+        Example:
+            .. code-block:: python
 
-        .. code-block:: python
+                def test_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.hparams.batch_size,
+                        shuffle=True
+                    )
 
-            def test_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.hparams.batch_size,
-                    shuffle=True
-                )
-
-                return loader
+                    return loader
 
         .. note:: If you don't need a test dataset and a test_step, you don't need to implement this method.
 
@@ -1201,58 +1176,53 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
-        - .fit()
-        - ...
-        - prepare_data()
-        - train_dataloader
-        - val_dataloader
+            - .fit()
+            - ...
+            - prepare_data()
+            - train_dataloader
+            - val_dataloader
 
         .. note:: Lightning adds the correct sampler for distributed and arbitrary hardware No need to set yourself.
 
         Return:
             PyTorch DataLoader
 
-        Example
-        -------
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                def val_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.hparams.batch_size,
+                        shuffle=True
+                    )
 
-            def val_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.hparams.batch_size,
-                    shuffle=True
-                )
+                    return loader
 
-                return loader
+                # can also return multiple dataloaders
+                def val_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
 
-            # can also return multiple dataloaders
-            def val_dataloader(self):
-                return [loader_a, loader_b, ..., loader_n]
+            .. code-block:: python
 
-        Example
-        -------
+                @pl.data_loader
+                def val_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.hparams.batch_size,
+                        shuffle=True
+                    )
 
-        .. code-block:: python
+                    return loader
 
-            @pl.data_loader
-            def val_dataloader(self):
-                transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform, download=True)
-                loader = torch.utils.data.DataLoader(
-                    dataset=dataset,
-                    batch_size=self.hparams.batch_size,
-                    shuffle=True
-                )
-
-                return loader
-
-            # can also return multiple dataloaders
-            @pl.data_loader
-            def val_dataloader(self):
-                return [loader_a, loader_b, ..., loader_n]
+                # can also return multiple dataloaders
+                @pl.data_loader
+                def val_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
 
         .. note:: If you don't need a validation dataset and a validation_step, you don't need to implement this method.
 
@@ -1267,9 +1237,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
         r"""
         Warning:
-            Deprecated in version 0.7.0.
-            You should use `load_from_checkpoint` instead.
-            Will be removed in v0.9.0.
+            Deprecated in version 0.7.0. You should use `load_from_checkpoint` instead.
+             Will be removed in v0.9.0.
         """
         warnings.warn(
             "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
@@ -1291,18 +1260,17 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         with an argument called `hparams` which is a Namespace (output of using argparse
         to parse command line arguments).
 
-        Example
-        -------
-        .. code-block:: python
+        Example:
+            .. code-block:: python
 
-            from argparse import Namespace
-            hparams = Namespace(**{'learning_rate': 0.1})
+                from argparse import Namespace
+                hparams = Namespace(**{'learning_rate': 0.1})
 
-            model = MyModel(hparams)
+                model = MyModel(hparams)
 
-            class MyModel(LightningModule):
-                def __init__(self, hparams):
-                    self.learning_rate = hparams.learning_rate
+                class MyModel(LightningModule):
+                    def __init__(self, hparams):
+                        self.learning_rate = hparams.learning_rate
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1328,30 +1296,29 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             LightningModule with loaded weights and hyperparameters (if available).
 
-        Example
-        -------
-        .. code-block:: python
+        Example:
+            .. code-block:: python
 
-            # load weights without mapping ...
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+                # load weights without mapping ...
+                MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
-            # or load weights mapping all weights from GPU 1 to GPU 0 ...
-            map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint(
-                'path/to/checkpoint.ckpt',
-                map_location=map_location
-            )
+                # or load weights mapping all weights from GPU 1 to GPU 0 ...
+                map_location = {'cuda:1':'cuda:0'}
+                MyLightningModule.load_from_checkpoint(
+                    'path/to/checkpoint.ckpt',
+                    map_location=map_location
+                )
 
-            # or load weights and hyperparameters from separate files.
-            MyLightningModule.load_from_checkpoint(
-                'path/to/checkpoint.ckpt',
-                tags_csv='/path/to/hparams_file.csv'
-            )
+                # or load weights and hyperparameters from separate files.
+                MyLightningModule.load_from_checkpoint(
+                    'path/to/checkpoint.ckpt',
+                    tags_csv='/path/to/hparams_file.csv'
+                )
 
-            # predict
-            pretrained_model.eval()
-            pretrained_model.freeze()
-            y_hat = pretrained_model(x)
+                # predict
+                pretrained_model.eval()
+                pretrained_model.freeze()
+                y_hat = pretrained_model(x)
         """
         if map_location is not None:
             checkpoint = torch.load(checkpoint_path, map_location=map_location)
@@ -1410,12 +1377,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""
         Freeze all params for inference
 
-        Example
-        -------
-        .. code-block:: python
+        Example:
+            .. code-block:: python
 
-            model = MyLightningModule(...)
-            model.freeze()
+                model = MyLightningModule(...)
+                model.freeze()
 
         """
         for param in self.parameters():
@@ -1446,14 +1412,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             checkpoint (dict): Loaded checkpoint
 
 
-        Example
-        -------
+        Example:
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def on_load_checkpoint(self, checkpoint):
-                # 99% of the time you don't need to implement this method
-                self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
+                def on_load_checkpoint(self, checkpoint):
+                    # 99% of the time you don't need to implement this method
+                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
         .. note:: Lighting auto-restores global step, epoch, and all training state including amp scaling.
             No need for you to restore anything regarding training.
@@ -1468,14 +1432,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Args:
             checkpoint (dic): Checkpoint to be saved
 
-        Example
-        -------
+        Example:
+            .. code-block:: python
 
-        .. code-block:: python
-
-            def on_save_checkpoint(self, checkpoint):
-                # 99% of use cases you don't need to implement this method
-                checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
+                def on_save_checkpoint(self, checkpoint):
+                    # 99% of use cases you don't need to implement this method
+                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 
         .. note:: Lighting saves all aspects of training (epoch, global step, etc...) including amp scaling. No need
             for you to store anything about training.

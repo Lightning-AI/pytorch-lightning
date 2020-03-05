@@ -262,7 +262,7 @@ allow for this
         # do stuff that writes to disk or should be done once
         # this will only happen from the master GPU or TPU core
 
-.. note:: ```prepare_data``` is called once.
+.. note:: ``prepare_data`` is called once.
 
 Lifecycle
 ---------
@@ -282,7 +282,7 @@ And if you define a test loop:
 
 7. ```test_dataloader```
 
-.. note:: test_dataloader is only called with .test()
+.. note:: ``test_dataloader`` is only called with ``.test()``
 
 In every epoch, the loop methods are called in this frequency:
 
