@@ -228,17 +228,21 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def training_step_end(self, *args, **kwargs):
         """
-        Called with the outputs of each batch subset when using
-        dp or ddp2.
+        Use this when training with dp or ddp2 because training_step will operate
+        on only part of the batch. However, this is still optional
+        and only needed for things like softmax or NCE loss.
+
+        If you later switch to ddp or some other mode, this will still be called
+        so that you don't have to change your code
 
         .. code-block:: python
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            results = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(results)
+            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
+            training_step_end(batch_parts_outputs)
 
-        :param outputs: What you return in `training_step`.
+        :param batch_parts_outputs: What you return in `training_step` for each batch part.
         :return dict: dictionary with loss key and optional log, progress keys:
             - loss -> tensor scalar [REQUIRED]
             - progress_bar -> Dict for progress bar display. Must have only tensors
@@ -276,7 +280,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 out = outputs['out']
 
                 # this softmax now uses the full batch size
-                loss = self.softmax(out)
                 loss = nce_loss(loss)
                 return {'loss': loss}
 
@@ -353,6 +356,66 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: When the validation_step is called, the model has been put in eval mode and PyTorch gradients
             have been disabled. At the end of validation, model goes back to training mode and gradients are enabled.
+        """
+
+    def validation_step_end(self, *args, **kwargs):
+        """
+        Use this when training with dp or ddp2 because training_step will operate
+        on only part of the batch. However, this is still optional
+        and only needed for things like softmax or NCE loss.
+
+        If you later switch to ddp or some other mode, this will still be called
+        so that you don't have to change your code
+
+        .. code-block:: python
+
+            # pseudocode
+            sub_batches = split_batches_for_dp(batch)
+            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
+            validation_step_end(batch_parts_outputs)
+
+        :param batch_parts_outputs: What you return in `training_step` for each batch part.
+        :return dict: dictionary with loss key and optional log, progress keys:
+            - loss -> tensor scalar [REQUIRED]
+            - progress_bar -> Dict for progress bar display. Must have only tensors
+            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+
+        In this case you should define validation_step_end to perform those calculations.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # WITHOUT validation_step_end
+            # if used in DP or DDP2, this batch is 1/num_gpus large
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
+
+                out = self.forward(x)
+                loss = self.softmax(out)
+                loss = nce_loss(loss)
+                return {'loss': loss}
+
+            # --------------
+            # with validation_step_end to do softmax over the full batch
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
+
+                out = self.forward(x)
+                return {'out': out}
+
+            def validation_step_end(self, outputs):
+                # this out is now the full size of the batch
+                out = outputs['out']
+
+                # this softmax now uses the full batch size
+                loss = nce_loss(loss)
+                return {'loss': loss}
+
+        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
     def validation_end(self, outputs):
@@ -502,6 +565,66 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
 
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
+        """
+
+    def test_step_end(self, *args, **kwargs):
+        """
+        Use this when training with dp or ddp2 because training_step will operate
+        on only part of the batch. However, this is still optional
+        and only needed for things like softmax or NCE loss.
+
+        If you later switch to ddp or some other mode, this will still be called
+        so that you don't have to change your code
+
+        .. code-block:: python
+
+            # pseudocode
+            sub_batches = split_batches_for_dp(batch)
+            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
+            test_step_end(batch_parts_outputs)
+
+        :param batch_parts_outputs: What you return in `training_step` for each batch part.
+        :return dict: dictionary with loss key and optional log, progress keys:
+            - loss -> tensor scalar [REQUIRED]
+            - progress_bar -> Dict for progress bar display. Must have only tensors
+            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+
+        In this case you should define test_step_end to perform those calculations.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # WITHOUT test_step_end
+            # if used in DP or DDP2, this batch is 1/num_gpus large
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
+
+                out = self.forward(x)
+                loss = self.softmax(out)
+                loss = nce_loss(loss)
+                return {'loss': loss}
+
+            # --------------
+            # with test_step_end to do softmax over the full batch
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
+
+                out = self.forward(x)
+                return {'out': out}
+
+            def test_step_end(self, outputs):
+                # this out is now the full size of the batch
+                out = outputs['out']
+
+                # this softmax now uses the full batch size
+                loss = nce_loss(loss)
+                return {'loss': loss}
+
+        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
     def test_end(self, outputs):
