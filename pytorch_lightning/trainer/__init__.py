@@ -54,7 +54,7 @@ main.py file this way
 
         main(args)
 
-So you can run it like so:
+So you can run it like so:distributed_backend
 
 .. code-block:: bash
 

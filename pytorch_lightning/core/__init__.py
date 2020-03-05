@@ -7,57 +7,48 @@ A LightningModule organizes your PyTorch code into the following sections:
 
 Notice a few things.
 
-1. It's the SAME code.
+    1. It's the SAME code.
+    2. The PyTorch code IS NOT abstracted - just organized.
+    3. All the other code that didn't go in the LightningModule has been automated for you by the trainer
+         .. code-block:: python
 
-2. The PyTorch code IS NOT abstracted - just organized.
+            net = Net()
+            trainer = Trainer()
+            trainer.fit(net)
 
-3. All the other code that didn't go in the LightningModule has been automated
-for you by the trainer
+    4. There are no .cuda() or .to() calls... Lightning does these for you.
+        .. code-block:: python
 
-.. code-block:: python
+            # don't do in lightning
+            x = torch.Tensor(2, 3)
+            x = x.cuda()
+            x = x.to(device)
 
-    net = Net()
-    trainer = Trainer()
-    trainer.fit(net)
+            # do this instead
+            x = x  # leave it alone!
 
-4. There are no .cuda() or .to() calls... Lightning does these for you.
+            # or to init a new tensor
+            new_x = torch.Tensor(2, 3)
+            new_x = new_x.type_as(x.type())
 
-.. code-block:: python
+    5. There are no samplers for distributed, Lightning also does this for you.
+        .. code-block:: python
 
-    # don't do in lightning
-    x = torch.Tensor(2, 3)
-    x = x.cuda()
-    x = x.to(device)
+            # Don't do in Lightning...
+            data = MNIST(...)
+            sampler = DistributedSampler(data)
+            DataLoader(data, sampler=sampler)
 
-    # do this instead
-    x = x  # leave it alone!
+            # do this instead
+            data = MNIST(...)
+            DataLoader(data)
 
-    # or to init a new tensor
-    new_x = torch.Tensor(2, 3)
-    new_x = new_x.type_as(x.type())
+    6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
+        .. code-block:: python
 
-
-5. There are no samplers for distributed, Lightning also does this for you.
-
-.. code-block:: python
-
-    # Don't do in Lightning...
-    data = MNIST(...)
-    sampler = DistributedSampler(data)
-    DataLoader(data, sampler=sampler)
-
-    # do this instead
-    data = MNIST(...)
-    DataLoader(data)
-
-
-6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
-
-.. code-block:: python
-
-    net = Net.load_from_checkpoint(PATH)
-    net.freeze()
-    out = net(x)
+            net = Net.load_from_checkpoint(PATH)
+            net.freeze()
+            out = net(x)
 
 Thus, to use Lightning, you just need to organize your code which takes about 30 minutes,
 (and let's be real, you probably should do anyhow).
@@ -110,7 +101,7 @@ Which you can train by doing:
 
    trainer.fit(model)
 
-----------
+---
 
 Training loop structure
 -----------------------
@@ -190,7 +181,7 @@ don't run your test data by accident. Instead you have to explicitly call:
     trainer = Trainer()
     trainer.test(model)
 
--------------
+---
 
 Training_step_end method
 ------------------------
@@ -220,7 +211,7 @@ which allows you to operate on the pieces of the batch
         # like calculate validation set accuracy or loss
         training_epoch_end(val_outs)
 
--------------
+---
 
 Remove cuda calls
 -----------------
@@ -239,7 +230,7 @@ When you init a new tensor in your code, just use type_as
         z = sample_noise()
         z = z.type_as(x.type())
 
--------------
+---
 
 Data preparation
 ----------------
@@ -262,27 +253,27 @@ allow for this
         # do stuff that writes to disk or should be done once
         # this will only happen from the master GPU or TPU core
 
-.. note:: ```prepare_data``` is called once.
+.. note:: ``prepare_data`` is called once.
 
 Lifecycle
 ---------
 The methods in the LightningModule are called in this order:
 
-1. ```__init__```
-2. ```prepare_data```
-3. ```configure_optimizers```
-4. ```prepare_data```
-5. ```train_dataloader```
+    1. ```__init__```
+    2. ```prepare_data```
+    3. ```configure_optimizers```
+    4. ```prepare_data```
+    5. ```train_dataloader```
 
-If you define a validation loop then
+    If you define a validation loop then
 
-6. ```val_dataloader```
+    6. ```val_dataloader```
 
-And if you define a test loop:
+    And if you define a test loop:
 
-7. ```test_dataloader```
+    7. ```test_dataloader```
 
-.. note:: test_dataloader is only called with .test()
+.. note:: ``test_dataloader`` is only called with ``.test()``
 
 In every epoch, the loop methods are called in this frequency:
 
