@@ -34,11 +34,11 @@ Log metrics
 
 To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
 
-1. training_step_end, validation_end, test_end will all log anything in the "log" key of the return dict.
+1. training_epoch_end, validation_epoch_end, test_epoch_end will all log anything in the "log" key of the return dict.
 
 .. code-block:: python
 
-   def training_step_end(self, outputs):
+   def training_epoch_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -46,7 +46,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-   def validation_end(self, outputs):
+   def validation_epoch_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -54,7 +54,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-   def test_end(self, outputs):
+   def test_epoch_end(self, outputs):
       loss = some_loss()
       ...
 
@@ -62,19 +62,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       results = {'log': logs}
       return results
 
-2. Most of the time, you only need training_step and not training_step_end. You can also return logs from here:
-
-.. code-block:: python
-
-   def training_step(self, batch, batch_idx):
-      loss = some_loss()
-      ...
-
-      logs = {'train_loss': loss}
-      results = {'log': logs}
-      return results
-
-3. In addition, you can also use any arbitrary functionality from a particular logger from within your LightningModule.
+2. In addition, you can also use any arbitrary functionality from a particular logger from within your LightningModule.
 For instance, here we log images using tensorboard.
 
 .. code-block:: python
