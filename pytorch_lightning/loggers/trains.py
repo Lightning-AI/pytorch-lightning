@@ -45,13 +45,17 @@ logger = getLogger(__name__)
 
 
 class TrainsLogger(LightningLoggerBase):
-    r"""
-
-    Logs using TRAINS
+    """Logs using TRAINS
 
     Args:
-        project_name (str): The name of the experiment's project
-        task_name (str): The name of the experiment
+        project_name (Optional[str], optional): The name of the experiment's project. Defaults to None.
+        task_name (Optional[str], optional): The name of the experiment. Defaults to None.
+        task_type (str, optional): The name of the experiment. Defaults to 'training'.
+        reuse_last_task_id (bool, optional): Start with the previously used task id. Defaults to True.
+        output_uri (Optional[str], optional): Default location for output models. Defaults to None.
+        auto_connect_arg_parser (bool, optional): Automatically grab the ArgParser and connect it with the task. Defaults to True.
+        auto_connect_frameworks (bool, optional): If True, automatically patch to trains backend. Defaults to True.
+        auto_resource_monitoring (bool, optional): If true, machine vitals will be sent along side the task scalars. Defaults to True.
     """
 
     def __init__(
