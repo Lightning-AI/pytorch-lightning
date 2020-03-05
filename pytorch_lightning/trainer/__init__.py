@@ -787,12 +787,6 @@ The speedup comes from allowing the cudnn auto-tuner to find the best
 algorithm for the hardware `[see discussion here]
 <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
 
-
-nb_sanity_val_steps
-
-.. warning:: .. deprecated:: 0.6.1
-    Use `precision` instead. Will remove 0.8.0.
-
 """
 
 from .trainer import Trainer
