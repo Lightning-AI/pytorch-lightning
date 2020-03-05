@@ -307,7 +307,7 @@ class Trainer(TrainerIOMixin,
                     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
                     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-            max_epochs: Stop training once this number of epochs is reached; efault values is 1000.
+            max_epochs: Stop training once this number of epochs is reached; default values is 1000.
 
             max_nb_epochs:
                 .. warning:: .. deprecated:: 0.5.0
