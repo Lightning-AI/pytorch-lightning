@@ -16,23 +16,23 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler.profiler import BaseProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
-from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (
+from pytorch_lightning.training.auto_mix_precision import TrainerAMPMixin
+from pytorch_lightning.training.callback_config import TrainerCallbackConfigMixin
+from pytorch_lightning.training.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.training.distrib_data_parallel import TrainerDDPMixin
+from pytorch_lightning.training.distrib_parts import (
     TrainerDPMixin,
     parse_gpu_ids,
     determine_root_gpu_device
 )
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
-from pytorch_lightning.trainer.training_io import TrainerIOMixin
-from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
-from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.training.evaluation_loop import TrainerEvaluationLoopMixin
+from pytorch_lightning.training.logging import TrainerLoggingMixin
+from pytorch_lightning.training.model_hooks import TrainerModelHooksMixin
+from pytorch_lightning.training.training_io import TrainerIOMixin
+from pytorch_lightning.training.training_loop import TrainerTrainLoopMixin
+from pytorch_lightning.training.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.training.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.callbacks import Callback

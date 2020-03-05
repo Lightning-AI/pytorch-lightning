@@ -25,7 +25,7 @@ if __LIGHTNING_SETUP__:
     # process, as it may not be compiled yet
 else:
     from .core import data_loader, LightningModule
-    from .trainer import Trainer
+    from .training import Trainer
     from .callbacks import Callback
 
     __all__ = [
