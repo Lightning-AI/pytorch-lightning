@@ -126,71 +126,108 @@ class Trainer(TrainerIOMixin,
 
         Args:
             logger: Logger (or iterable collection of loggers) for experiment tracking.
+
             checkpoint_callback: Callback for checkpointing.
+
             early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
+
             callbacks: Add a list of callbacks.
+
             default_save_path: Default path for logs and weights when no logger/ckpt_callback passed
+
             gradient_clip_val: 0 means don't clip.
+
             gradient_clip:
-            .. warning:: .. deprecated:: 0.6.1
-                Use `gradient_clip_val` instead. Will remove 0.8.0.
+            .. warning:: deprecated 0.6.1 Use `gradient_clip_val` instead. Will remove 0.8.0.
 
             process_position: orders the tqdm bar when running multiple models on same machine.
+
             num_nodes: number of GPU nodes for distributed training.
+
             nb_gpu_nodes:
             .. warning:: .. deprecated:: 0.6.1
                 Use `num_nodes` instead. Will remove 0.8.0.
 
             gpus: Which GPUs to train on.
+
             num_tpu_cores: How many TPU cores to train on (1 or 8).
+
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
+
             show_progress_bar: If true shows tqdm progress bar
+
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
+
             track_grad_norm: -1 no tracking. Otherwise tracks that norm
+
             check_val_every_n_epoch: Check val every n train epochs.
+
             fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
+
             max_epochs: Stop training once this number of epochs is reached.
+
             max_nb_epochs:
             .. warning:: .. deprecated:: 0.6.1
                 Use `max_epochs` instead. Will remove 0.8.0.
 
             min_epochs: Force training for at least these many epochs
+
             min_nb_epochs:
             .. warning:: .. deprecated:: 0.6.1
                 Use `min_epochs` instead. Will remove 0.8.0.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
+
             min_steps: Force training for at least these number of steps. Disabled by default (None).
+
             train_percent_check: How much of training dataset to check.
+
             val_percent_check: How much of validation dataset to check.
+
             test_percent_check: How much of test dataset to check.
+
             val_check_interval: How often within one training epoch to check the validation set
+
             log_save_interval: Writes logs to disk this often
+
             row_log_interval: How often to add logging rows (does not write to disk)
+
             add_row_log_interval:
             .. warning:: .. deprecated:: 0.6.1
                 Use `row_log_interval` instead. Will remove 0.8.0.
 
             distributed_backend: The distributed backend to use.
+
             use_amp:
             .. warning:: .. deprecated:: 0.7.0
                 Use `precision` instead. Will remove 0.8.0.
 
             precision: Full precision (32), half precision (16).
+
             print_nan_grads: Prints gradients with nan values
+
             weights_summary: Prints a summary of the weights when training begins.
+
             weights_save_path: Where to save weights if specified.
+
             amp_level: The optimization level to use (O1, O2, etc...).
+
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
+
             nb_sanity_val_steps:
             .. warning:: .. deprecated:: 0.7.0
                 Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
+
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.k
+
             profiler:  To profile individual steps during training and assist in
+
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
+
             benchmark (bool): If true enables cudnn.benchmark.
         """
 

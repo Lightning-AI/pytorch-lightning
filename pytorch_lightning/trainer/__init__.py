@@ -98,26 +98,78 @@ Use it to do whatever!
 Trainer flags
 -------------
 
-logger
-^^^^^^
-
-Logger (or iterable collection of loggers) for experiment tracking.
-
-.. code-block:: python
-
-    Trainer(logger=logger)
+accumulate_grad_batches
+^^^^^^^^^^^^^^^^^^^^^^^
+Accumulates grads every k batches or as set up in the dict.
 
 Example::
 
-    from pytorch_lightning.loggers import TensorBoardLogger
+    # default used by the Trainer (no accumulation)
+    trainer = Trainer(accumulate_grad_batches=1)
 
-    # default logger used by trainer
-    logger = TensorBoardLogger(
-        save_dir=os.getcwd(),
-        version=self.slurm_job_id,
-        name='lightning_logs'
-    )
+    # accumulate every 4 batches (effective batch size is batch*4)
+    trainer = Trainer(accumulate_grad_batches=4)
 
+    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
+    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+
+amp_level
+^^^^^^^^^
+The optimization level to use (O1, O2, etc...)
+for 16-bit GPU precision (using NVIDIA apex under the hood).
+
+Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(amp_level='O1')
+
+benchmark
+^^^^^^^^^
+
+If true enables cudnn.benchmark.
+This flag is likely to increase the speed of your system if your
+input sizes don't change. However, if it does, then it will likely
+make your system slower.
+
+The speedup comes from allowing the cudnn auto-tuner to find the best
+algorithm for the hardware `[see discussion here]
+<https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+
+callbacks
+^^^^^^^^^
+
+callbacks: Add a list of callbacks.
+
+.. code-block:: python
+
+    # a list of callbacks
+    callbacks = [PrintCallback()]
+    trainer = Trainer(callbacks=callbacks)
+
+Example::
+
+    from pytorch_lightning.callbacks import Callback
+
+    class PrintCallback(Callback):
+        def on_train_start(self):
+            print("Training is started!")
+        def on_train_end(self):
+            print(f"Training is done. The logs are: {self.trainer.logs}")
+
+check_val_every_n_epoch
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Check val every n train epochs.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(check_val_every_n_epoch=1)
+
+    # run val loop every 10 training epochs
+    trainer = Trainer(check_val_every_n_epoch=10)
 
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -140,6 +192,43 @@ Example::
         mode='min',
         prefix=''
     )
+
+default_save_path
+^^^^^^^^^^^^^^^^^
+
+Default path for logs and weights when no logger/ckpt_callback passed
+
+    Example::
+
+        # default used by the Trainer
+        trainer = Trainer(default_save_path=os.getcwd())
+
+distributed_backend
+^^^^^^^^^^^^^^^^^^^
+The distributed backend to use.
+
+- ('dp') is DataParallel (split batch among GPUs of same machine)
+- ('ddp') is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- ('ddp2') dp on node, ddp across nodes
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(distributed_backend=None)
+
+    # dp = DataParallel (split a batch onto k gpus on same machine).
+    trainer = Trainer(gpus=2, distributed_backend='dp')
+
+    # ddp = DistributedDataParallel
+    # Each gpu trains by itself on a subset of the data.
+    # Gradients sync across all gpus and all machines.
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+
+    # ddp2 = DistributedDataParallel + dp
+    # behaves like dp on every node
+    # syncs gradients across nodes like ddp
+    # useful for things like increasing the number of negative samples
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -171,78 +260,35 @@ Example::
         mode='min'
     )
 
-callbacks
-^^^^^^^^^
+fast_dev_run
+^^^^^^^^^^^^
 
-callbacks: Add a list of callbacks.
+Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+
+Under the hood the pseudocode looks like this:
 
 .. code-block:: python
 
-    # a list of callbacks
-    callbacks = [PrintCallback()]
-    trainer = Trainer(callbacks=callbacks)
+    # loading
+    __init__()
+    prepare_data
 
-Example::
+    # test training step
+    training_batch = next(train_dataloader)
+    training_step(training_batch)
 
-    from pytorch_lightning.callbacks import Callback
-
-    class PrintCallback(Callback):
-        def on_train_start(self):
-            print("Training is started!")
-        def on_train_end(self):
-            print(f"Training is done. The logs are: {self.trainer.logs}")
-
-default_save_path
-^^^^^^^^^^^^^^^^^
-
-Default path for logs and weights when no logger/ckpt_callback passed
-
-    Example::
-
-        # default used by the Trainer
-        trainer = Trainer(default_save_path=os.getcwd())
-
-gradient_clip_val
-^^^^^^^^^^^^^^^^^
-Gradient clipping value
-
-- 0 means don't clip.
+    # test val step
+    val_batch = next(val_dataloader)
+    out = validation_step(val_batch)
+    validation_epoch_end([out])
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(gradient_clip_val=0.0)
+    trainer = Trainer(fast_dev_run=False)
 
-gradient_clip
-.. warning: .. deprecated:: 0.5.0
-    Use `gradient_clip_val` instead. Will remove 0.8.0.
-
-process_position
-^^^^^^^^^^^^^^^^
-orders the tqdm bar when running multiple models on same machine.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(process_position=0)
-
-num_nodes
-^^^^^^^^^
-
-Number of GPU nodes for distributed training.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(num_nodes=1)
-
-    # to train on 8 nodes
-    trainer = Trainer(num_nodes=8)
-
-nb_gpu_nodes
-
-..warning:: .. deprecated:: 0.5.0
-    Use `num_nodes` instead. Will remove 0.8.0.
+    # runs 1 train, val, test  batch and program ends
+    trainer = Trainer(fast_dev_run=True)
 
 gpus
 ^^^^
@@ -269,6 +315,158 @@ Example::
 
     # combine with num_nodes to train on multiple GPUs across nodes
     trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
+
+gradient_clip_val
+^^^^^^^^^^^^^^^^^
+Gradient clipping value
+
+- 0 means don't clip.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(gradient_clip_val=0.0)
+
+gradient_clip
+.. warning: .. deprecated:: 0.5.0
+    Use `gradient_clip_val` instead. Will remove 0.8.0.
+
+log_gpu_memory
+^^^^^^^^^^^^^^
+Options:
+
+- None
+- 'min_max'
+- 'all'
+
+.. note:: Might slow performance because it uses the output of nvidia-smi.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(log_gpu_memory=None)
+
+    # log all the GPUs (on master node only)
+    trainer = Trainer(log_gpu_memory='all')
+
+    # log only the min and max memory on the master node
+    trainer = Trainer(log_gpu_memory='min_max')
+
+log_save_interval
+^^^^^^^^^^^^^^^^^
+
+Writes logs to disk this often
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(log_save_interval=100)
+
+logger
+^^^^^^
+
+Logger (or iterable collection of loggers) for experiment tracking.
+
+.. code-block:: python
+
+    Trainer(logger=logger)
+
+Example::
+
+    from pytorch_lightning.loggers import TensorBoardLogger
+
+    # default logger used by trainer
+    logger = TensorBoardLogger(
+        save_dir=os.getcwd(),
+        version=self.slurm_job_id,
+        name='lightning_logs'
+    )
+
+max_epochs
+^^^^^^^^^^
+Stop training once this number of epochs is reached
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(max_epochs=1000)
+
+max_nb_epochs
+
+.. warning:: .. deprecated:: 0.5.0
+    Use `max_epochs` instead. Will remove 0.8.0.
+
+min_epochs
+^^^^^^^^^^
+Force training for at least these many epochs
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(min_epochs=1)
+
+min_nb_epochs:
+
+.. warning:: deprecated:: 0.5.0
+    Use `min_nb_epochs` instead. Will remove 0.8.0.
+
+max_steps
+^^^^^^^^^
+Stop training after this number of steps. Disabled by default (None).
+Training will stop if max_steps or max_epochs have reached (earliest).
+
+Example::
+
+    # Stop after 100 steps
+    trainer = Trainer(max_steps=100)
+
+min_steps
+^^^^^^^^^
+
+Force training for at least these number of steps. Disabled by default (None).
+Trainer will train model for at least min_steps or min_epochs (latest).
+
+Example::
+
+    # Run at least for 100 steps (disable min_epochs)
+    trainer = Trainer(min_steps=100, min_epochs=0)
+
+num_nodes
+^^^^^^^^^
+
+Number of GPU nodes for distributed training.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(num_nodes=1)
+
+    # to train on 8 nodes
+    trainer = Trainer(num_nodes=8)
+
+nb_gpu_nodes
+
+.. warning:: .. deprecated:: 0.5.0
+    Use `num_nodes` instead. Will remove 0.8.0.
+
+num_sanity_val_steps
+^^^^^^^^^^^^^^^^^^^^
+
+Sanity check runs n batches of val before starting the training routine.
+This catches any bugs in your validation without having to wait for the first validation check.
+The Trainer uses 5 steps by default. Turn it off or modify it here.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(num_sanity_val_steps=5)
+
+    # turn it off
+    trainer = Trainer(num_sanity_val_steps=0)
+
+nb_sanity_val_steps:
+    .. warning:: .. deprecated:: 0.5.0
+        Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
 num_tpu_cores
 ^^^^^^^^^^^^^
@@ -315,42 +513,6 @@ Example::
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
 
-log_gpu_memory
-^^^^^^^^^^^^^^
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. note:: Might slow performance because it uses the output of nvidia-smi.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory='all')
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory='min_max')
-
-show_progress_bar
-^^^^^^^^^^^^^^^^^
-
-If true shows tqdm progress bar
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(show_progress_bar=True)
-
-progress_bar_refresh_rate
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-How often to refresh progress bar (in steps)
-
 overfit_pct
 ^^^^^^^^^^^
 uses this much data of all datasets.
@@ -363,153 +525,127 @@ Example::
     # use only 1% of the train, test, val datasets
     trainer = Trainer(overfit_pct=0.01)
 
-track_grad_norm
+precision
+^^^^^^^^^
+Full precision (32), half precision (16).
+Can be used on CPU, GPU or TPUs.
+
+If used on TPU will use torch.bfloat16 but tensor printing
+will still show torch.float32.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(precision=32)
+
+    # 16-bit precision
+    trainer = Trainer(precision=16)
+
+    # one day
+    trainer = Trainer(precision=8|4|2)
+
+print_nan_grads
 ^^^^^^^^^^^^^^^
 
-- no tracking (-1)
-- Otherwise tracks that norm (2 for 2-norm)
+Prints gradients with nan values
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(track_grad_norm=-1)
+    trainer = Trainer(print_nan_grads=False)
 
-    # track the 2-norm
-    trainer = Trainer(track_grad_norm=2)
-
-check_val_every_n_epoch
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Check val every n train epochs.
+process_position
+^^^^^^^^^^^^^^^^
+orders the tqdm bar when running multiple models on same machine.
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(check_val_every_n_epoch=1)
+    trainer = Trainer(process_position=0)
 
-    # run val loop every 10 training epochs
-    trainer = Trainer(check_val_every_n_epoch=10)
+profiler
+^^^^^^^^
+To profile individual steps during training and assist in identifying bottlenecks.
 
-fast_dev_run
-^^^^^^^^^^^^
+Example::
 
-Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
 
-Under the hood the pseudocode looks like this:
+    # default used by the Trainer
+    trainer = Trainer(profiler=None)
+
+    # to profile standard training events
+    trainer = Trainer(profiler=True)
+
+    # equivalent to profiler=True
+    profiler = Profiler()
+    trainer = Trainer(profiler=profiler)
+
+    # advanced profiler for function-level stats
+    profiler = AdvancedProfiler()
+    trainer = Trainer(profiler=profiler)
+
+progress_bar_refresh_rate
+^^^^^^^^^^^^^^^^^^^^^^^^^
+How often to refresh progress bar (in steps)
+Default is 50. Useful for notebooks with slow refresh rate.
+
+reload_dataloaders_every_epoch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Set to True to reload dataloaders every epoch
 
 .. code-block:: python
 
-    # loading
-    __init__()
-    prepare_data
+    # if False (default)
+    train_loader = model.train_dataloader()
+    for epoch in epochs:
+        for batch in train_loader:
+            ...
 
-    # test training step
-    training_batch = next(train_dataloader)
-    training_step(training_batch)
+    # if True
+    for epoch in epochs:
+        train_loader = model.train_dataloader()
+        for batch in train_loader:
 
-    # test val step
-    val_batch = next(val_dataloader)
-    out = validation_step(val_batch)
-    validation_epoch_end([out])
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(fast_dev_run=False)
-
-    # runs 1 train, val, test  batch and program ends
-    trainer = Trainer(fast_dev_run=True)
-
-accumulate_grad_batches
-^^^^^^^^^^^^^^^^^^^^^^^
-Accumulates grads every k batches or as set up in the dict.
-
-Example::
-
-    # default used by the Trainer (no accumulation)
-    trainer = Trainer(accumulate_grad_batches=1)
-
-    # accumulate every 4 batches (effective batch size is batch*4)
-    trainer = Trainer(accumulate_grad_batches=4)
-
-    # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
-    trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
-
-max_epochs
-^^^^^^^^^^
-Stop training once this number of epochs is reached
+resume_from_checkpoint
+^^^^^^^^^^^^^^^^^^^^^^
+To resume training from a specific checkpoint pass in the path here.k
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(max_epochs=1000)
+    trainer = Trainer(resume_from_checkpoint=None)
 
-max_nb_epochs
+    # resume from a specific checkpoint
+    trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
 
+row_log_interval
+^^^^^^^^^^^^^^^^
+
+How often to add logging rows (does not write to disk)
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(row_log_interval=10)
+
+add_row_log_interval
 .. warning:: .. deprecated:: 0.5.0
-    Use `max_epochs` instead. Will remove 0.8.0.
+    Use `row_log_interval` instead. Will remove 0.8.0.
 
-min_epochs
-^^^^^^^^^^
-Force training for at least these many epochs
+use_amp:
+    .. warning:: .. deprecated:: 0.6.1
+        Use `precision` instead. Will remove 0.8.0.
 
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(min_epochs=1)
-
-min_nb_epochs:
-.. warning:: .. deprecated:: 0.5.0
-    Use `min_nb_epochs` instead. Will remove 0.8.0.
-
-max_steps
-^^^^^^^^^
-Stop training after this number of steps. Disabled by default (None).
-Training will stop if max_steps or max_epochs have reached (earliest).
-
-Example::
-
-    # Stop after 100 steps
-    trainer = Trainer(max_steps=100)
-
-min_steps
-^^^^^^^^^
-
-Force training for at least these number of steps. Disabled by default (None).
-Trainer will train model for at least min_steps or min_epochs (latest).
-
-Example::
-
-    # Run at least for 100 steps (disable min_epochs)
-    trainer = Trainer(min_steps=100, min_epochs=0)
-
-train_percent_check
-^^^^^^^^^^^^^^^^^^^
-
-How much of training dataset to check.
-Useful when debugging or testing something that happens at the end of an epoch.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(train_percent_check=1.0)
-
-    # run through only 25% of the training set each epoch
-    trainer = Trainer(train_percent_check=0.25)
-
-val_percent_check
+show_progress_bar
 ^^^^^^^^^^^^^^^^^
 
-How much of validation dataset to check.
-Useful when debugging or testing something that happens at the end of an epoch.
+If true shows tqdm progress bar
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(val_percent_check=1.0)
-
-    # run through only 25% of the validation set each epoch
-    trainer = Trainer(val_percent_check=0.25)
+    trainer = Trainer(show_progress_bar=True)
 
 test_percent_check
 ^^^^^^^^^^^^^^^^^^
@@ -545,156 +681,33 @@ Example::
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000)
 
-log_save_interval
-^^^^^^^^^^^^^^^^^
+track_grad_norm
+^^^^^^^^^^^^^^^
 
-Writes logs to disk this often
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(log_save_interval=100)
-
-row_log_interval
-^^^^^^^^^^^^^^^^
-
-How often to add logging rows (does not write to disk)
+- no tracking (-1)
+- Otherwise tracks that norm (2 for 2-norm)
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(row_log_interval=10)
+    trainer = Trainer(track_grad_norm=-1)
 
-add_row_log_interval
-.. warning:: .. deprecated:: 0.5.0
-    Use `row_log_interval` instead. Will remove 0.8.0.
+    # track the 2-norm
+    trainer = Trainer(track_grad_norm=2)
 
-distributed_backend
+train_percent_check
 ^^^^^^^^^^^^^^^^^^^
-The distributed backend to use.
 
-- ('dp') is DataParallel (split batch among GPUs of same machine)
-- ('ddp') is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- ('ddp2') dp on node, ddp across nodes
+How much of training dataset to check.
+Useful when debugging or testing something that happens at the end of an epoch.
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(distributed_backend=None)
+    trainer = Trainer(train_percent_check=1.0)
 
-    # dp = DataParallel (split a batch onto k gpus on same machine).
-    trainer = Trainer(gpus=2, distributed_backend='dp')
-
-    # ddp = DistributedDataParallel
-    # Each gpu trains by itself on a subset of the data.
-    # Gradients sync across all gpus and all machines.
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
-
-    # ddp2 = DistributedDataParallel + dp
-    # behaves like dp on every node
-    # syncs gradients across nodes like ddp
-    # useful for things like increasing the number of negative samples
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
-
-use_amp:
-    .. warning:: .. deprecated:: 0.6.1
-        Use `precision` instead. Will remove 0.8.0.
-
-precision
-^^^^^^^^^
-Full precision (32), half precision (16).
-Can be used on CPU, GPU or TPUs.
-
-If used on TPU will use torch.bfloat16 but tensor printing
-will still show torch.float32.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(precision=32)
-
-    # 16-bit precision
-    trainer = Trainer(precision=16)
-
-    # one day
-    trainer = Trainer(precision=8|4|2)
-
-print_nan_grads
-^^^^^^^^^^^^^^^
-
-Prints gradients with nan values
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(print_nan_grads=False)
-
-weights_summary
-^^^^^^^^^^^^^^^
-Prints a summary of the weights when training begins.
-Options: 'full', 'top', None.
-
-Example::
-
-    # default used by the Trainer (ie: print all weights)
-    trainer = Trainer(weights_summary='full')
-
-    # print only the top level modules
-    trainer = Trainer(weights_summary='top')
-
-    # don't print a summary
-    trainer = Trainer(weights_summary=None)
-
-weights_save_path
-^^^^^^^^^^^^^^^^^
-Where to save weights if specified.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(weights_save_path=os.getcwd())
-
-    # save to your custom path
-    trainer = Trainer(weights_save_path='my/path')
-
-    # if checkpoint callback used, then overrides the weights path
-    # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint_callback = ModelCheckpoint(filepath='some/path')
-    trainer = Trainer(
-        checkpoint_callback=checkpoint_callback,
-        weights_save_path='my/path'
-    )
-
-amp_level
-^^^^^^^^^
-The optimization level to use (O1, O2, etc...)
-for 16-bit GPU precision (using NVIDIA apex under the hood).
-
-Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(amp_level='O1')
-
-num_sanity_val_steps
-^^^^^^^^^^^^^^^^^^^^
-
-Sanity check runs n batches of val before starting the training routine.
-This catches any bugs in your validation without having to wait for the first validation check.
-The Trainer uses 5 steps by default. Turn it off or modify it here.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(num_sanity_val_steps=5)
-
-    # turn it off
-    trainer = Trainer(num_sanity_val_steps=0)
-
-nb_sanity_val_steps:
-    .. warning:: .. deprecated:: 0.5.0
-        Use `num_sanity_val_steps` instead. Will remove 0.8.0.
+    # run through only 25% of the training set each epoch
+    trainer = Trainer(train_percent_check=0.25)
 
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -723,69 +736,58 @@ Lightning takes care to split your batch along the time-dimension.
 .. note:: Using this feature requires updating your LightningModule's
     :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
 
-resume_from_checkpoint
-^^^^^^^^^^^^^^^^^^^^^^
-To resume training from a specific checkpoint pass in the path here.k
+val_percent_check
+^^^^^^^^^^^^^^^^^
+
+How much of validation dataset to check.
+Useful when debugging or testing something that happens at the end of an epoch.
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(resume_from_checkpoint=None)
+    trainer = Trainer(val_percent_check=1.0)
 
-    # resume from a specific checkpoint
-    trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+    # run through only 25% of the validation set each epoch
+    trainer = Trainer(val_percent_check=0.25)
 
-profiler
-^^^^^^^^
-To profile individual steps during training and assist in identifying bottlenecks.
+weights_save_path
+^^^^^^^^^^^^^^^^^
+Where to save weights if specified.
 
 Example::
 
-    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
-
     # default used by the Trainer
-    trainer = Trainer(profiler=None)
+    trainer = Trainer(weights_save_path=os.getcwd())
 
-    # to profile standard training events
-    trainer = Trainer(profiler=True)
+    # save to your custom path
+    trainer = Trainer(weights_save_path='my/path')
 
-    # equivalent to profiler=True
-    profiler = Profiler()
-    trainer = Trainer(profiler=profiler)
+    # if checkpoint callback used, then overrides the weights path
+    # **NOTE: this saves weights to some/path NOT my/path
+    checkpoint_callback = ModelCheckpoint(filepath='some/path')
+    trainer = Trainer(
+        checkpoint_callback=checkpoint_callback,
+        weights_save_path='my/path'
+    )
 
-    # advanced profiler for function-level stats
-    profiler = AdvancedProfiler()
-    trainer = Trainer(profiler=profiler)
+weights_summary
+^^^^^^^^^^^^^^^
+Prints a summary of the weights when training begins.
+Options: 'full', 'top', None.
 
+Example::
 
-reload_dataloaders_every_epoch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Set to True to reload dataloaders every epoch
+    # default used by the Trainer (ie: print all weights)
+    trainer = Trainer(weights_summary='full')
 
-.. code-block:: python
+    # print only the top level modules
+    trainer = Trainer(weights_summary='top')
 
-    # if False (default)
-    train_loader = model.train_dataloader()
-    for epoch in epochs:
-        for batch in train_loader:
-            ...
+    # don't print a summary
+    trainer = Trainer(weights_summary=None)
 
-    # if True
-    for epoch in epochs:
-        train_loader = model.train_dataloader()
-        for batch in train_loader:
-
-benchmark
-^^^^^^^^^
-
-If true enables cudnn.benchmark.
-This flag is likely to increase the speed of your system if your
-input sizes don't change. However, if it does, then it will likely
-make your system slower.
-
-The speedup comes from allowing the cudnn auto-tuner to find the best
-algorithm for the hardware `[see discussion here]
-<https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+Trainer class
+-------------
 
 """
 
