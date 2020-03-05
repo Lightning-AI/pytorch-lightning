@@ -1201,7 +1201,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
         ckpt_hparams = checkpoint.get('hparams')
 
-        import pdb; pdb.set_trace()
         if cls_takes_hparams:
             if ckpt_hparams is not None:
                 is_namespace = checkpoint.get('hparams_type') == 'namespace'
