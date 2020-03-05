@@ -30,6 +30,36 @@ This is the basic use of the trainer:
 
     trainer = Trainer()
     trainer.fit(model)
+
+--------
+
+Best Practices
+--------------
+For cluster computing, it's recommended you structure your
+main.py file this way
+
+.. code-block:: python
+
+    from argparser import AugumentParser
+
+    def main(hparams):
+        model = LightningModule()
+        trainer = Trainer(gpus=hparams.gpus)
+        trainer.fit(model)
+
+    if __name__ == '__main__':
+        parser = ArgumentParser()
+        parser.add_argument('--gpus', default=None)
+        args = parser.parse_args()
+
+        main(args)
+
+So you can run it like so:
+
+.. code-block:: bash
+
+    $ python main.py --gpus 2
+
 """
 
 from .trainer import Trainer
