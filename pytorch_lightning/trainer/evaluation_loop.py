@@ -165,7 +165,6 @@ class TrainerEvaluationLoopMixin(ABC):
     process_output: ...
     training_tqdm_dict: ...
     proc_rank: int
-    checkpoint_callback: ...
     current_epoch: int
     callback_metrics: ...
     test_dataloaders: DataLoader
@@ -377,11 +376,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # Validation/Test end callbacks
         if test_mode:
             self.on_test_end()
-        else:
-            # model checkpointing
-            if self.checkpoint_callback is not None:
-                self.checkpoint_callback.on_validation_end(self, self.get_model())
-            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional

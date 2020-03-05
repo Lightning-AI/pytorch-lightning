@@ -46,6 +46,10 @@ class LightningLoggerBase(ABC):
         # in case converting from namespace
         if isinstance(params, Namespace):
             params = vars(params)
+
+        if params is None:
+            params = {}
+
         return params
 
     @abstractmethod

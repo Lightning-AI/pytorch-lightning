@@ -165,14 +165,15 @@ class TrainerIOMixin(ABC):
     def save_checkpoint(self, filepath):
         checkpoint = self.dump_checkpoint()
 
-        # do the actual save
-        try:
-            self._atomic_save(checkpoint, filepath)
-        except AttributeError:
-            if 'hparams' in checkpoint:
-                del checkpoint['hparams']
+        if self.proc_rank == 0:
+            # do the actual save
+            try:
+                self._atomic_save(checkpoint, filepath)
+            except AttributeError:
+                if 'hparams' in checkpoint:
+                    del checkpoint['hparams']
 
-            self._atomic_save(checkpoint, filepath)
+                self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
         """

@@ -46,6 +46,7 @@ class DictHparamsModel(LightningModule):
 
     def __init__(self, hparams: Dict):
         super(DictHparamsModel, self).__init__()
+        self.hparams = hparams
         self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
 
     def forward(self, x):

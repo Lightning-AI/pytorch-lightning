@@ -1132,9 +1132,6 @@ class Trainer(TrainerIOMixin,
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
-        # set up checkpoint callback
-        self.configure_checkpoint_callback()
-
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
@@ -1150,6 +1147,9 @@ class Trainer(TrainerIOMixin,
         # track model now.
         # if cluster resets state, the model will update with the saved weights
         self.model = model
+
+        # set up checkpoint callback
+        self.configure_checkpoint_callback()
 
         # restore training and model before hpc call
         self.restore_weights(model)
