@@ -355,7 +355,7 @@ autoclass_content = 'both'
 autodoc_default_options = {
     'members': None,
     'methods': None,
-    #'attributes': None,
+    # 'attributes': None,
     'special-members': '__call__',
     # 'exclude-members': '__weakref__',
     'show-inheritance': True,

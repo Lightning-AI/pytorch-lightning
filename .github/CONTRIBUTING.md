@@ -78,10 +78,36 @@ A lot of good work has already been done in project mechanics (requirements.txt,
     - [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
     - [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
 
+See following short example of a sample function taking one position string and optional 
+
+```python
+from typing import Optional
+
+def my_func(param_a: int, param_b: Optional[float] = None) -> str:
+    """Sample function.
+
+    Args:
+        param_a: first parameter
+        param_b: second parameter
+    
+    Return:
+        sum of both numbers
+
+    Example:
+        Sample doctest example...
+        >>> my_func(1, 2)
+        3
+
+    .. note:: If you want to add something.
+    """
+    p = param_b if param_b else 0
+    return str(param_a + p)
+```
+
 ### Testing
 
 Test your work locally to speed up your work since so you can focus only in particular (failing) test-cases.
- To setup a local development environment, install both local and test dependecies:
+ To setup a local development environment, install both local and test dependencies:
 ```bash
 pip install -r requirements.txt
 pip install -r tests/requirements.txt
