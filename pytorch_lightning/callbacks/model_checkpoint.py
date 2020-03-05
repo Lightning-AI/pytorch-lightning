@@ -19,7 +19,6 @@ class ModelCheckpoint(Callback):
 
             Example::
 
-<<<<<<< HEAD
                 # no path
                 ModelCheckpoint()
                 #  saves like /my/path/epoch_0.ckpt
