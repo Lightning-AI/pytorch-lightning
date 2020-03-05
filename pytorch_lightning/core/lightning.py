@@ -423,8 +423,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         The `dataset_idx` corresponds to the order of datasets returned in `test_dataloader`.
         """
-
     def validation_end(self, outputs):
+        """
+        .. warning:: Deprecated in v0.7.0. use validation_epoch_end instead.
+            Will be removed 0.8.0
+        :param outputs:
+        :return:
+        """
+
+    def validation_epoch_end(self, outputs):
         """Outputs has the appended output after each validation step.
 
         :param outputs: List of outputs you defined in validation_step, or if there are multiple dataloaders,
@@ -497,6 +504,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     def test_end(self, outputs):
+        """
+        .. warning:: Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 0.8.0
+        :param outputs:
+        :return:
+        """
+
+    def test_epoch_end(self, outputs):
         """Outputs has the appended output after each test step.
 
         :param outputs:  List of outputs you defined in test_step, or if there are multiple dataloaders,
@@ -958,8 +972,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     @data_loader
     def tng_dataloader(self):  # todo: remove in v0.8.0
         """Implement a PyTorch DataLoader.
-
-        .. warning:: Deprecated in v0.5.0. use train_dataloader instead.
+        .. warning:: Deprecated in v0.5.0. use train_dataloader instead. Will be removed 0.8.0
         """
         output = self.train_dataloader()
         warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
