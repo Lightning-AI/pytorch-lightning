@@ -1,15 +1,16 @@
-"""
-Callbacks
-=========
-
-Callbacks supported by Lightning
+r"""
+Callback Base
+==============
+    Abstract base class used to build new callbacks.
 """
 
 import abc
 
 
 class Callback(abc.ABC):
-    """Abstract base class used to build new callbacks."""
+    r"""
+    Abstract base class used to build new callbacks.
+    """
 
     def on_init_start(self, trainer):
         """Called when the trainer initialization begins, model has not yet been set."""

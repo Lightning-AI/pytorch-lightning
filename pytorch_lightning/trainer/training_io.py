@@ -4,9 +4,9 @@ import re
 import signal
 import warnings
 from abc import ABC
+from argparse import Namespace
 from subprocess import call
 from typing import Union
-from copy import deepcopy
 
 import torch
 import torch.distributed as dist
@@ -165,14 +165,15 @@ class TrainerIOMixin(ABC):
     def save_checkpoint(self, filepath):
         checkpoint = self.dump_checkpoint()
 
-        # do the actual save
-        try:
-            self._atomic_save(checkpoint, filepath)
-        except AttributeError:
-            if 'hparams' in checkpoint:
-                del checkpoint['hparams']
+        if self.proc_rank == 0:
+            # do the actual save
+            try:
+                self._atomic_save(checkpoint, filepath)
+            except AttributeError:
+                if 'hparams' in checkpoint:
+                    del checkpoint['hparams']
 
-            self._atomic_save(checkpoint, filepath)
+                self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path, on_gpu):
         """
@@ -238,7 +239,9 @@ class TrainerIOMixin(ABC):
         checkpoint['state_dict'] = model.state_dict()
 
         if hasattr(model, "hparams"):
-            checkpoint['hparams'] = vars(model.hparams)
+            is_namespace = isinstance(model.hparams, Namespace)
+            checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
+            checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
         else:
             warnings.warn(
                 "Did not find hyperparameters at model.hparams. Saving checkpoint without"
@@ -322,7 +325,7 @@ class TrainerIOMixin(ABC):
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
-    def hpc_save(self, folderpath, logger):
+    def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
         os.makedirs(folderpath, exist_ok=True)
 
@@ -333,7 +336,7 @@ class TrainerIOMixin(ABC):
 
         if not os.path.exists(folderpath):
             os.makedirs(folderpath, exist_ok=True)
-        filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, ckpt_number)
+        filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
         model = self.get_model()

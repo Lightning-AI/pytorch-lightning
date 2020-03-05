@@ -34,17 +34,15 @@ class ModelIO(object):
         Hook to do whatever you need right before Slurm manager loads the model
         """
 
-
+        
 def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')
         return Namespace()
 
-    tags = {}
     with open(tags_csv) as f:
         csv_reader = csv.reader(f, delimiter=',')
-        for row in list(csv_reader)[1:]:
-            tags[row[0]] = convert(row[1])
+        tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
     ns = Namespace(**tags)
     return ns
 

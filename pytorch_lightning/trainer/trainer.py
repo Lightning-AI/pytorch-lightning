@@ -3,6 +3,7 @@ import sys
 import warnings
 import logging as log
 from typing import Union, Optional, List, Dict, Tuple, Iterable
+from argparse import ArgumentParser
 
 import torch
 import torch.distributed as dist
@@ -71,7 +72,7 @@ class Trainer(TrainerIOMixin,
             self,
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = None,
+            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
             callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
@@ -116,6 +117,7 @@ class Trainer(TrainerIOMixin,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            **kwargs
     ):
         r"""
 
@@ -155,7 +157,7 @@ class Trainer(TrainerIOMixin,
 
             early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`):
                 Callback for early stopping.
-                If set to ``True``, then the default callback monitoring ``'val_loss'`` is created.
+                If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
                 Will raise an error if ``'val_loss'`` is not found.
                 If set to ``False``, then early stopping will be disabled.
                 If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
@@ -274,16 +276,16 @@ class Trainer(TrainerIOMixin,
                     # -1: train on all available TPUs
                     trainer = Trainer(num_tpu_cores=-1)
 
-            To train on more than 8 cores (ie: a POD),
-            submit this script using the xla_dist script.
+                To train on more than 8 cores (ie: a POD),
+                submit this script using the xla_dist script.
 
-            Example::
+                Example::
 
-                $ python -m torch_xla.distributed.xla_dist
-                --tpu=$TPU_POD_NAME
-                --conda-env=torch-xla-nightly
-                --env=XLA_USE_BF16=1
-                -- python your_trainer_file.py
+                    $ python -m torch_xla.distributed.xla_dist
+                    --tpu=$TPU_POD_NAME
+                    --conda-env=torch-xla-nightly
+                    --env=XLA_USE_BF16=1
+                    -- python your_trainer_file.py
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
                 because it uses the output of nvidia-smi.
@@ -627,6 +629,7 @@ class Trainer(TrainerIOMixin,
 
         # Transfer params
         # Backward compatibility
+        self.num_nodes = num_nodes
         if nb_gpu_nodes is not None:
             warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
@@ -747,10 +750,12 @@ class Trainer(TrainerIOMixin,
         self.weights_save_path = weights_save_path
 
         # accumulated grads
+        self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # allow int, string and gpu list
-        self.data_parallel_device_ids = parse_gpu_ids(gpus)
+        self.gpus = gpus
+        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
 
         # tpu state flags
@@ -797,6 +802,7 @@ class Trainer(TrainerIOMixin,
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
+        self.overfit_pct = overfit_pct
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
@@ -804,7 +810,7 @@ class Trainer(TrainerIOMixin,
         self.amp_level = amp_level
         self.precision = precision
 
-        assert self.precision == 32 or self.precision == 16, 'only 32 or 16 bit precision supported'
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
         if self.precision == 16 and num_tpu_cores is None:
             use_amp = True
@@ -821,6 +827,28 @@ class Trainer(TrainerIOMixin,
         except Exception:
             job_id = None
         return job_id
+
+    @classmethod
+    def default_attributes(cls):
+        return vars(cls())
+
+    @classmethod
+    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
+        """Extend existing argparse by default `Trainer` attributes."""
+        parser = ArgumentParser(parents=[parent_parser])
+
+        trainer_default_params = Trainer.default_attributes()
+
+        for arg in trainer_default_params:
+            parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
+
+        return parser
+
+    @classmethod
+    def from_argparse_args(cls, args):
+
+        params = vars(args)
+        return cls(**params)
 
     def __parse_gpu_ids(self, gpus):
         """Parse GPUs id.
@@ -1104,9 +1132,6 @@ class Trainer(TrainerIOMixin,
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
-        # set up checkpoint callback
-        self.configure_checkpoint_callback()
-
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
@@ -1122,6 +1147,9 @@ class Trainer(TrainerIOMixin,
         # track model now.
         # if cluster resets state, the model will update with the saved weights
         self.model = model
+
+        # set up checkpoint callback
+        self.configure_checkpoint_callback()
 
         # restore training and model before hpc call
         self.restore_weights(model)

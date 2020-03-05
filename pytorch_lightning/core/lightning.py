@@ -274,6 +274,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 loss = nce_loss(loss)
                 return {'loss': loss}
 
+        .. note:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+
         If you define multiple optimizers, this step will also be called with an additional `optimizer_idx` param.
 
         .. code-block:: python
@@ -286,7 +288,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # do training_step with decoder
 
         If you add truncated back propagation through time you will also get an additional argument
-         with the hidden states of the previous step.
+        with the hidden states of the previous step.
 
         .. code-block:: python
 
@@ -1144,7 +1146,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Primary way of loading model from a checkpoint. When Lightning saves a checkpoint
         it stores the hyperparameters in the checkpoint if you initialized your LightningModule
         with an argument called `hparams` which is a Namespace (output of using argparse
-        to parse command line arguments) or dictionary of hyperparameters.
+        to parse command line arguments).
 
         Example
         -------
@@ -1229,7 +1231,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                hparams = Namespace(**ckpt_hparams)
+                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ contains"
