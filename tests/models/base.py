@@ -130,7 +130,7 @@ class TestModelBase(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx=None):
         """
         Lightning calls this inside the training loop
         :param batch:

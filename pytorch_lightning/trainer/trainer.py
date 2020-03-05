@@ -6,6 +6,7 @@ from typing import Union, Optional, List, Dict, Tuple, Iterable
 from argparse import ArgumentParser
 
 import torch
+from torch import optim
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
@@ -743,8 +744,6 @@ class Trainer(TrainerIOMixin,
         # creates a default one if none passed in
         self.configure_early_stopping(early_stop_callback)
 
-        self.reduce_lr_on_plateau_scheduler = None
-
         # configure checkpoint callback
         self.checkpoint_callback = checkpoint_callback
         self.weights_save_path = weights_save_path
@@ -1079,26 +1078,56 @@ class Trainer(TrainerIOMixin,
             optimizers: Union[Optimizer, Tuple[List, List], List[Optimizer], Tuple[Optimizer]]
     ) -> Tuple[List, List]:
 
-        # single optimizer
+        # single output, single optimizer
         if isinstance(optimizers, Optimizer):
             return [optimizers], []
 
-        # two lists
-        if len(optimizers) == 2 and isinstance(optimizers[0], list):
+        # two lists, optimizer + lr schedulers
+        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers, self.reduce_lr_on_plateau_scheduler = self.configure_schedulers(lr_schedulers)
+            lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
-        # single list or tuple
-        if isinstance(optimizers, (list, tuple)):
+        # single list or tuple, multiple optimizer
+        elif isinstance(optimizers, (list, tuple)):
             return optimizers, []
 
+        # unknown configuration
+        else:
+            raise ValueError('Unknown configuration for model optimizers. Output'
+                             'from model.configure_optimizers() should either be:'
+                             '* single output, single torch.optim.Optimizer'
+                             '* single output, list of torch.optim.Optimizer'
+                             '* two outputs, first being a list of torch.optim.Optimizer',
+                             'second being a list of torch.optim.lr_scheduler')
+
     def configure_schedulers(self, schedulers: list):
-        for i, scheduler in enumerate(schedulers):
-            if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                reduce_lr_on_plateau_scheduler = schedulers.pop(i)
-                return schedulers, reduce_lr_on_plateau_scheduler
-        return schedulers, None
+        # Convert each scheduler into dict sturcture with relevant information
+        lr_schedulers = []
+        default_config = {'interval': 'epoch',  # default every epoch
+                          'frequency': 1,  # default every epoch/batch
+                          'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
+                          'monitor': 'val_loss'}  # default value to monitor for ReduceLROnPlateau
+        for scheduler in schedulers:
+            if isinstance(scheduler, dict):
+                if 'scheduler' not in scheduler:
+                    raise ValueError(f'Lr scheduler should have key `scheduler`',
+                                     ' with item being a lr scheduler')
+                scheduler['reduce_on_plateau'] = \
+                    isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
+
+                lr_schedulers.append({**default_config, **scheduler})
+
+            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                lr_schedulers.append({**default_config, 'scheduler': scheduler,
+                                      'reduce_on_plateau': True})
+
+            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
+                lr_schedulers.append({**default_config, 'scheduler': scheduler})
+            else:
+                raise ValueError(f'Input {scheduler} to lr schedulers '
+                                 'is a invalid input.')
+        return lr_schedulers
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.

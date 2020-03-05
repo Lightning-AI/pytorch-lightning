@@ -19,6 +19,9 @@ from .mixins import (
     LightValStepFitMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
+    LightTestOptimizerWithSchedulingMixin,
+    LightTestMultipleOptimizersWithSchedulingMixin,
+    LightTestOptimizersWithMixedSchedulingMixin
 )
 
 
