@@ -71,10 +71,10 @@ Here are the only required methods.
 
     import pytorch_lightning as pl
 
-    class CoolModel(pl.LightningModule):
+    class LitModel(pl.LightningModule):
 
         def __init__(self):
-            super(CoolModel, self).__init__()
+            super(LitModel, self).__init__()
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):
@@ -97,7 +97,7 @@ Which you can train by doing:
 .. code-block:: python
 
    trainer = pl.Trainer()
-   model = CoolModel()
+   model = LitModel()
 
    trainer.fit(model)
 
@@ -133,7 +133,7 @@ Thus, if we wanted to add a validation loop you would add this to your Lightning
 
 .. code-block:: python
 
-        class CoolModel(pl.LightningModule):
+        class LitModel(pl.LightningModule):
             def validation_step(self, batch, batch_idx):
                 x, y = batch
                 y_hat = self.forward(x)
@@ -152,7 +152,7 @@ Add test loop
 
 .. code-block:: python
 
-        class CoolModel(pl.LightningModule):
+        class LitModel(pl.LightningModule):
             def test_step(self, batch, batch_idx):
                 x, y = batch
                 y_hat = self.forward(x)
@@ -250,10 +250,30 @@ allow for this
 .. code-block:: python
 
     def prepare_data(self):
-        # do stuff that writes to disk or should be done once
-        # this will only happen from the master GPU or TPU core
+        # download
+        mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
+        mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
+
+        # train/val split
+        mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
+
+        # assign to use in dataloaders
+        self.train_dataset = mnist_train
+        self.val_dataset = mnist_val
+        self.test_dataset = mnist_test
+
+      def train_dataloader(self):
+        return DataLoader(train_dataset, batch_size=64)
+
+      def val_dataloader(self):
+        return DataLoader(mnist_val, batch_size=64)
+
+      def test_dataloader(self):
+        return DataLoader(mnist_test, batch_size=64)
 
 .. note:: ``prepare_data`` is called once.
+
+.. note:: Do anything with data that needs to happen ONLY once here, like download, tokenize, etc...
 
 Lifecycle
 ---------
@@ -262,16 +282,15 @@ The methods in the LightningModule are called in this order:
     1. ```__init__```
     2. ```prepare_data```
     3. ```configure_optimizers```
-    4. ```prepare_data```
-    5. ```train_dataloader```
+    4. ```train_dataloader```
 
     If you define a validation loop then
 
-    6. ```val_dataloader```
+    5. ```val_dataloader```
 
     And if you define a test loop:
 
-    7. ```test_dataloader```
+    6. ```test_dataloader```
 
 .. note:: ``test_dataloader`` is only called with ``.test()``
 
