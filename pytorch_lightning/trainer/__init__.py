@@ -198,10 +198,10 @@ default_save_path
 
 Default path for logs and weights when no logger/ckpt_callback passed
 
-    Example::
+Example::
 
-        # default used by the Trainer
-        trainer = Trainer(default_save_path=os.getcwd())
+    # default used by the Trainer
+    trainer = Trainer(default_save_path=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
@@ -327,8 +327,10 @@ Example::
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
-gradient_clip
-.. warning: .. deprecated:: 0.5.0
+
+gradient_clip:
+
+.. warning:: .. deprecated:: 0.5.0
     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
 log_gpu_memory
@@ -391,7 +393,7 @@ Example::
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
-max_nb_epochs
+max_nb_epochs:
 
 .. warning:: .. deprecated:: 0.5.0
     Use `max_epochs` instead. Will remove 0.8.0.
@@ -444,7 +446,7 @@ Example::
     # to train on 8 nodes
     trainer = Trainer(num_nodes=8)
 
-nb_gpu_nodes
+nb_gpu_nodes:
 
 .. warning:: .. deprecated:: 0.5.0
     Use `num_nodes` instead. Will remove 0.8.0.
@@ -465,8 +467,9 @@ Example::
     trainer = Trainer(num_sanity_val_steps=0)
 
 nb_sanity_val_steps:
-    .. warning:: .. deprecated:: 0.5.0
-        Use `num_sanity_val_steps` instead. Will remove 0.8.0.
+
+.. warning:: .. deprecated:: 0.5.0
+    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
 num_tpu_cores
 ^^^^^^^^^^^^^
@@ -629,13 +632,16 @@ Example::
     # default used by the Trainer
     trainer = Trainer(row_log_interval=10)
 
-add_row_log_interval
+
+add_row_log_interval:
+
 .. warning:: .. deprecated:: 0.5.0
     Use `row_log_interval` instead. Will remove 0.8.0.
 
 use_amp:
-    .. warning:: .. deprecated:: 0.6.1
-        Use `precision` instead. Will remove 0.8.0.
+
+.. warning:: .. deprecated:: 0.6.1
+    Use `precision` instead. Will remove 0.8.0.
 
 show_progress_bar
 ^^^^^^^^^^^^^^^^^
