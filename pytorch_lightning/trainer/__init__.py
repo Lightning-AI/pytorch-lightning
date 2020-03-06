@@ -675,8 +675,8 @@ add_row_log_interval:
 
 use_amp:
 
-.. warning:: .. deprecated:: 0.6.1
-    Use `precision` instead. Will remove 0.8.0.
+.. warning:: .. deprecated:: 0.7.0
+    Use `precision` instead. Will remove 0.9.0.
 
 show_progress_bar
 ^^^^^^^^^^^^^^^^^

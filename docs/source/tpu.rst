@@ -86,7 +86,7 @@ the TPU.
     !pip install "$TORCHVISION_WHEEL"
     !sudo apt-get install libomp5
     update.join()
-5. Once the above is done, install PyTorch Lightning (v 0.6.1+).
+5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
 
 .. code-block::
 

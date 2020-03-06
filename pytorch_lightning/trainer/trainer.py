@@ -138,15 +138,15 @@ class Trainer(TrainerIOMixin,
             gradient_clip_val: 0 means don't clip.
 
             gradient_clip:
-                .. warning:: deprecated 0.6.1 Use `gradient_clip_val` instead. Will remove 0.8.0.
+                .. warning:: deprecated 0.7.0 Use `gradient_clip_val` instead. Will remove 0.9.0.
 
             process_position: orders the tqdm bar when running multiple models on same machine.
 
             num_nodes: number of GPU nodes for distributed training.
 
             nb_gpu_nodes:
-                .. warning:: .. deprecated:: 0.6.1
-                    Use `num_nodes` instead. Will remove 0.8.0.
+                .. warning:: .. deprecated:: 0.7.0
+                    Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
 
@@ -169,14 +169,14 @@ class Trainer(TrainerIOMixin,
             max_epochs: Stop training once this number of epochs is reached.
 
             max_nb_epochs:
-                .. warning:: .. deprecated:: 0.6.1
-                    Use `max_epochs` instead. Will remove 0.8.0.
+                .. warning:: .. deprecated:: 0.7.0
+                    Use `max_epochs` instead. Will remove 0.9.0.
 
             min_epochs: Force training for at least these many epochs
 
             min_nb_epochs:
-                .. warning:: .. deprecated:: 0.6.1
-                    Use `min_epochs` instead. Will remove 0.8.0.
+                .. warning:: .. deprecated:: 0.7.0
+                    Use `min_epochs` instead. Will remove 0.9.0.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
 
@@ -195,8 +195,8 @@ class Trainer(TrainerIOMixin,
             row_log_interval: How often to add logging rows (does not write to disk)
 
             add_row_log_interval:
-                .. warning:: .. deprecated:: 0.6.1
-                    Use `row_log_interval` instead. Will remove 0.8.0.
+                .. warning:: .. deprecated:: 0.7.0
+                    Use `row_log_interval` instead. Will remove 0.9.0.
 
             distributed_backend: The distributed backend to use.
 
