@@ -97,6 +97,12 @@ If your code IS a mess, then you needed to clean up anyhow ;)
 ## Why do I want to use lightning?
 Although your research/production project might start simple, once you add things like GPU AND TPU training, 16-bit precision, etc, you end up spending more time engineering than researching. Lightning automates AND rigorously tests those parts for you.
 
+## Support
+- [7 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs. 
+- 100+ community contributors.
+
+Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
+
 ---
  
 ## README Table of Contents        
