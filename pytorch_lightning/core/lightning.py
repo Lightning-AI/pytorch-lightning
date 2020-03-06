@@ -364,7 +364,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def validation_step_end(self, *args, **kwargs):
         """
-        Use this when training/validating with dp or ddp2 because training_step and validation_step will operate
+        Use this when validating with dp or ddp2 because validation_step will operate
         on only part of the batch. However, this is still optional
         and only needed for things like softmax or NCE loss.
 
