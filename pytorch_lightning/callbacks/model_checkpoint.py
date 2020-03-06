@@ -1,3 +1,10 @@
+"""
+Model Checkpointing
+===================
+
+Automatically save model checkpoints during training.
+"""
+
 import os
 import shutil
 import logging as log
