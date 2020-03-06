@@ -633,7 +633,7 @@ Example::
     trainer = Trainer(row_log_interval=10)
 
 
-add_row_log_interval: 
+add_row_log_interval:
 
 .. warning:: .. deprecated:: 0.5.0
     Use `row_log_interval` instead. Will remove 0.8.0.
