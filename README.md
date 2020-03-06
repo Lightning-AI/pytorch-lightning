@@ -120,7 +120,8 @@ Here's how you would organize a realistic PyTorch project into Lightning.
 
 ![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg)
 
-The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALSO define a simple classifier such as the example below.   
+The LightningModule defines a *system* such as seq-2-seq, GAN, etc... 
+It can ALSO define a simple classifier.   
 
 In summary, you:
 
