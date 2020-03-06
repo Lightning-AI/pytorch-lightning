@@ -206,7 +206,7 @@ class TrainerIOMixin(ABC):
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
-    def sig_handler(self, signum, frame):
+    def sig_handler(self, signum, frame):  # pragma: no cover
         if self.proc_rank == 0:
             # save weights
             log.info('handling SIGUSR1')
