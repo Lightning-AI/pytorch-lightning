@@ -310,6 +310,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             If you defined validation_step_end it will go to that first.
 
         .. code-block:: python
+
             # pseudocode of order
             out = validation_step()
             if defined('validation_step_end'):
