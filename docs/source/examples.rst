@@ -3,10 +3,10 @@
    :name: Community Examples
    :caption: Community Examples
 
-    Contextual Emotion Detection in Text (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
+    Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
     Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
     Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
-    Image Inpainting for Irregular Holes Using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
+    Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
     MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
     NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>
     NeuralTexture (CVPR) <https://github.com/PyTorchLightning/neuraltexture>
