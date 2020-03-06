@@ -71,10 +71,10 @@ Here are the only required methods.
 
     import pytorch_lightning as pl
 
-    class CoolModel(pl.LightningModule):
+    class LitModel(pl.LightningModule):
 
         def __init__(self):
-            super(CoolModel, self).__init__()
+            super(LitModel, self).__init__()
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):
@@ -97,7 +97,7 @@ Which you can train by doing:
 .. code-block:: python
 
    trainer = pl.Trainer()
-   model = CoolModel()
+   model = LitModel()
 
    trainer.fit(model)
 
@@ -133,7 +133,7 @@ Thus, if we wanted to add a validation loop you would add this to your Lightning
 
 .. code-block:: python
 
-        class CoolModel(pl.LightningModule):
+        class LitModel(pl.LightningModule):
             def validation_step(self, batch, batch_idx):
                 x, y = batch
                 y_hat = self.forward(x)
@@ -152,7 +152,7 @@ Add test loop
 
 .. code-block:: python
 
-        class CoolModel(pl.LightningModule):
+        class LitModel(pl.LightningModule):
             def test_step(self, batch, batch_idx):
                 x, y = batch
                 y_hat = self.forward(x)
