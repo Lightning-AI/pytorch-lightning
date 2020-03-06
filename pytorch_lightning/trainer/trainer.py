@@ -293,7 +293,8 @@ class Trainer(
         self.num_sanity_val_steps = num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.8.0
         if nb_sanity_val_steps is not None:
-            warnings.warn("Argument `nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
+            warnings.warn("Argument `nb_sanity_val_steps` has renamed to "
+                          "`num_sanity_val_steps` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
