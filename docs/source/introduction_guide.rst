@@ -603,7 +603,7 @@ sample split in the `train_dataloader` method.
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
-      def validation_end(self, outputs):
+      def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
@@ -657,7 +657,7 @@ Just like the validation loop, we define exactly the same steps for testing:
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
-      def test_end(self, outputs):
+      def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}

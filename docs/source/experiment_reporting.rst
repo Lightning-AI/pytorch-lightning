@@ -87,7 +87,7 @@ Here we show the validation loss in the progress bar
 
 .. code-block:: python
 
-   def validation_end(self, outputs):
+   def validation_epoch_end(self, outputs):
       loss = some_loss()
       ...
 

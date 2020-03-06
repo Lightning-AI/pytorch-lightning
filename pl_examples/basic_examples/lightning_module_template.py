@@ -143,7 +143,7 @@ class LightningTemplateModel(LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
