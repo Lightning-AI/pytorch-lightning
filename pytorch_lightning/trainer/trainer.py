@@ -461,40 +461,6 @@ class Trainer(TrainerIOMixin,
         params = vars(args)
         return cls(**params)
 
-    def __parse_gpu_ids(self, gpus):
-        """Parse GPUs id.
-
-        :param list|str|int gpus: input GPU ids
-        :return list(int):
-        """
-        # if gpus = -1 then use all available devices
-        # otherwise, split the string using commas
-        if gpus is not None:
-            if isinstance(gpus, list):
-                gpus = gpus
-            elif isinstance(gpus, str):
-                if gpus == '-1':
-                    gpus = list(range(0, torch.cuda.device_count()))
-                else:
-                    gpus = [int(x.strip()) for x in gpus.split(',')]
-            elif isinstance(gpus, int):
-                gpus = gpus
-            else:
-                raise ValueError('`gpus` has to be a string, int or list of ints')
-
-        return gpus
-
-    def __set_root_gpu(self, gpus):
-        if gpus is None:
-            return None
-
-        # set root gpu
-        root_gpu = 0
-        if isinstance(gpus, list):
-            root_gpu = gpus[0]
-
-        return root_gpu
-
     @property
     def num_gpus(self) -> int:
         gpus = self.data_parallel_device_ids
