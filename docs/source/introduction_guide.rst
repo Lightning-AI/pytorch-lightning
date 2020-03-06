@@ -578,7 +578,7 @@ Notice the epoch is MUCH faster!
 Hyperparameters
 ---------------
 Normally, we don't hard-code the values to a model. We usually use the command line to
-modify the network. The `Trainer` can add all the available options to an ArgumentParser.
+modify the network.
 
 .. code-block:: python
 
@@ -590,9 +590,6 @@ modify the network. The `Trainer` can add all the available options to an Argume
     parser.add_argument('--layer_1_dim', type=int, default=128)
     parser.add_argument('--layer_2_dim', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=64)
-
-    # add all the available options to the trainer
-    parser = pl.Trainer.add_argparse_args(parser)
 
     args = parser.parse_args()
 
@@ -625,6 +622,22 @@ Now we can parametrize the LightningModule.
 
 .. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
     model using those hparams exactly.
+
+And we can also add all the flags available in the Trainer to the Argparser.
+
+.. code-block:: python
+
+    # add all the available Trainer options to the ArgParser
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+
+And now you can start your program with
+
+.. code-block:: bash
+
+    # now you can use any trainer flag
+    $ python main.py --num_nodes 2 --gpus 8
+
 
 For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
 
