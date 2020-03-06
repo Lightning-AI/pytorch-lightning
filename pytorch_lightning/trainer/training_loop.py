@@ -215,24 +215,6 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_end: Callable
     on_validation_end: Callable
 
-    @property
-    def max_nb_epochs(self):
-        """
-        .. warning:: `max_nb_epochs` is deprecated and will be removed in v0.8.0, use `max_epochs` instead.
-        """
-        warnings.warn("`max_nb_epochs` is deprecated and will be removed in "
-                      "v0.8.0, use `max_epochs` instead.", DeprecationWarning)
-        return self.max_epochs
-
-    @property
-    def min_nb_epochs(self):
-        """
-        .. warning:: `min_nb_epochs` is deprecated and will be removed in v0.8.0, use `min_epochs` instead.
-        """
-        warnings.warn("`min_nb_epochs` is deprecated and will be removed in "
-                      "v0.8.0, use `min_epochs` instead.", DeprecationWarning)
-        return self.min_epochs
-
     @abstractmethod
     def get_model(self):
         """Warning: this is just empty shell for code implemented in other class."""
