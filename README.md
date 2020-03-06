@@ -145,7 +145,7 @@ To use lightning do 2 things:
             y_hat = self.forward(x)
             return {'val_loss': F.cross_entropy(y_hat, y)}
     
-        def validation_epoch_end(self, outputs):
+        def validation_end(self, outputs):
             # OPTIONAL
             avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
             tensorboard_logs = {'val_loss': avg_loss}
@@ -157,7 +157,7 @@ To use lightning do 2 things:
             y_hat = self.forward(x)
             return {'test_loss': F.cross_entropy(y_hat, y)}
     
-        def test_epoch_end(self, outputs):
+        def test_end(self, outputs):
             # OPTIONAL
             avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
             tensorboard_logs = {'test_loss': avg_loss}
