@@ -85,6 +85,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
         # TODO: fix bug
+        import pdb; pdb.set_trace()
         if self.trainer.proc_rank == 0:
             log.info(*args, **kwargs)
 
