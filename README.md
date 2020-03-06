@@ -243,6 +243,7 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Logging/Visualizing
 - Checkpointing
 - Experiment management
+- [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
   
 
 ## Examples   
