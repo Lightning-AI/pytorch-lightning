@@ -109,7 +109,6 @@ The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALS
 
 To use lightning do 2 things:  
 1. [Define a LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
-**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
     ```python
     import os
     
