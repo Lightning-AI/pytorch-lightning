@@ -85,7 +85,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
         if self.trainer.proc_rank == 0:
-            log.info(*args, **kwargs)
+            print(*args, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
@@ -1189,9 +1189,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. note:: If you don't need a test dataset and a test_step, you don't need to implement
             this method.
 
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader
-            decorator.
-
         """
         return None
 
@@ -1256,9 +1253,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         .. note:: If you don't need a validation dataset and a validation_step, you don't need to
             implement this method.
-
-        .. note:: If you want to change the data during every epoch DON'T use the data_loader
-            decorator.
 
         .. note:: In the case where you return multiple `val_dataloaders`, the `validation_step`
             will have an argument `dataset_idx` which matches the order here.

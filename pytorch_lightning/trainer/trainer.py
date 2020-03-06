@@ -558,8 +558,9 @@ class Trainer(
             # feed to .fit()
 
         """
-        # bind logger
+        # bind logger and other properties
         model.logger = self.logger
+        self.copy_trainer_model_properties(model)
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
