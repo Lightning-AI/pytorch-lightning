@@ -856,6 +856,8 @@ class Trainer(TrainerIOMixin,
         else:
             self.run_evaluation(test_mode=True)
 
+        self.testing = False
+
 
 class _PatchDataLoader(object):
     r'''
