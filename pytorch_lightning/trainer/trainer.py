@@ -83,7 +83,7 @@ class Trainer(
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             process_position: int = 0,
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
-            num_nodes: int = 0,
+            num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
