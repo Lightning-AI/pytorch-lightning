@@ -307,6 +307,9 @@ Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
 
+LightningModule Class
+---------------------
+
 """
 
 from .decorators import data_loader
