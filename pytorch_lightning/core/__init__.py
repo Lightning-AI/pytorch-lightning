@@ -338,5 +338,5 @@ LightningModule Class
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
 
-__all__ = ['LightningModule']
+__all__ = ['LightningModule', 'data_loader']
 # __call__ = __all__
