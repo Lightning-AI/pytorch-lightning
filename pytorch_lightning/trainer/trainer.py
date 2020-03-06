@@ -437,17 +437,15 @@ class Trainer(
 
     @classmethod
     def default_attributes(cls):
-        args = vars(cls())
-        none_args = [
-            'checkpoint_callback',
-            'profiler',
-            'early_stop_callback',
-            'accumulation_scheduler',
-            'logger'
-        ]
+        import inspect
 
-        for arg in none_args:
-            args[arg] = None
+        init_signature = inspect.signature(Trainer)
+
+        args = {}
+        for param_name in init_signature.parameters:
+            value = init_signature.parameters[param_name].default
+            args[param_name] = value
+
         return args
 
     @classmethod
