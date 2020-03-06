@@ -108,7 +108,7 @@ class Trainer(
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend: Optional[str] = None,
-            use_amp=False,  # backward compatible, todo: remove in v0.8.0
+            use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
             print_nan_grads: bool = False,
             weights_summary: str = 'full',
@@ -233,7 +233,6 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
         """
-        super().__init__()
 
         # Init callbacks
         self.callbacks = callbacks
