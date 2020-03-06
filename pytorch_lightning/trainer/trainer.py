@@ -455,6 +455,7 @@ class Trainer(
 
         trainer_default_params = Trainer.default_attributes()
 
+        # TODO: get "help" from docstring :)
         for arg in trainer_default_params:
             parser.add_argument(
                 f'--{arg}',
