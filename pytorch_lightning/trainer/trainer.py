@@ -451,7 +451,7 @@ class Trainer(
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         """Extend existing argparse by default `Trainer` attributes."""
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         trainer_default_params = Trainer.default_attributes()
 
