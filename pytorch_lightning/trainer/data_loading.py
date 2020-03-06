@@ -55,31 +55,6 @@ class TrainerDataLoadingMixin(ABC):
         if not 0. <= value <= 1.:
             raise ValueError(msg)
 
-    def call_prepare_data(self, model):
-        """
-        Let model download the data on proc==0 only
-        :param model:
-        """
-        # download data on DDP+
-        if self.use_ddp or self.use_ddp2:
-            if self.proc_rank == 0:
-                model.prepare_data()
-
-            # all processes wait until data download has happened
-            dist.barrier()
-
-        # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
-            if self.tpu_local_core_rank == 0:
-                model.prepare_data()
-
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous("pl.TrainerDataLoadingMixin.get_dataloaders")
-
-        else:
-            # regular download
-            model.prepare_data()
-
     def auto_add_sampler(self, dataloader, train):
         if self.use_ddp or self.use_ddp2 or self.use_tpu:
             dl_args = {

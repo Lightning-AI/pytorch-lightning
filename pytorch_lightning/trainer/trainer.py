@@ -550,7 +550,12 @@ class Trainer(TrainerIOMixin,
         model.logger = self.logger
 
         # set up the passed in dataloaders (if needed)
-        self.__set_fit_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+
+        # download the data and do whatever transforms we need
+        # do before any spawn calls so that the model can assign properties
+        # only on proc 0 because no spawn has happened yet
+        model.prepare_data()
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
@@ -627,7 +632,7 @@ class Trainer(TrainerIOMixin,
             default_port = random.randint(10000, 19000)
             os.environ['MASTER_PORT'] = str(default_port)
 
-    def __set_fit_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
+    def __attach_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -760,9 +765,6 @@ class Trainer(TrainerIOMixin,
 
         # restore training and model before hpc call
         self.restore_weights(model)
-
-        # download the data and do whatever transforms we need
-        self.call_prepare_data(ref_model)
 
         # when testing requested only run test and return
         if self.testing:
