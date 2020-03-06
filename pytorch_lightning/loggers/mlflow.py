@@ -23,8 +23,8 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
+import logging as log
 from argparse import Namespace
-from logging import getLogger
 from time import time
 from typing import Optional, Dict, Any, Union
 
@@ -35,8 +35,6 @@ except ImportError:
                       ' install it with `pip install mlflow`.')
 
 from .base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class MLFlowLogger(LightningLoggerBase):
@@ -80,7 +78,7 @@ class MLFlowLogger(LightningLoggerBase):
         if expt:
             self._expt_id = expt.experiment_id
         else:
-            logger.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
+            log.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
             self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
 
         run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
@@ -98,7 +96,7 @@ class MLFlowLogger(LightningLoggerBase):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                logger.warning(f'Discarding metric with string value {k}={v}.')
+                log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
