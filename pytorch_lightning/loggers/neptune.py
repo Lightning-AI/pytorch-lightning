@@ -6,8 +6,8 @@ Log using `neptune-logger <https://www.neptune.ml>`_
 NeptuneLogger
 --------------
 """
+import logging as log
 from argparse import Namespace
-from logging import getLogger
 from typing import Optional, List, Dict, Any, Union, Iterable
 
 try:
@@ -21,8 +21,6 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -138,7 +136,7 @@ class NeptuneLogger(LightningLoggerBase):
             neptune.init(api_token=self.api_key,
                          project_qualified_name=self.project_name)
 
-        logger.info(f'NeptuneLogger was initialized in {self.mode} mode')
+        log.info(f'NeptuneLogger was initialized in {self.mode} mode')
 
     @property
     def experiment(self) -> Experiment:
