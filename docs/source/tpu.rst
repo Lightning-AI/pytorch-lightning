@@ -101,7 +101,6 @@ train_dataloader (and val, train) code as follows.
 
     import torch_xla.core.xla_model as xm
 
-    @pl.data_loader
     def train_dataloader(self):
         dataset = MNIST(
             os.getcwd(),
