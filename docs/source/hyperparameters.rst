@@ -55,6 +55,21 @@ Now we can parametrize the LightningModule.
 .. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
     model using those hparams exactly.
 
+And we can also add all the flags available in the Trainer to the Argparser.
+
+.. code-block:: python
+
+    # add all the available Trainer options to the ArgParser
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+
+And now you can start your program with
+
+.. code-block:: bash
+
+    # now you can use any trainer flag
+    $ python main.py --num_nodes 2 --gpus 8
+
 Trainer args
 ^^^^^^^^^^^^
 
