@@ -22,8 +22,13 @@ def test_deprecated_v0_8_0_module_imports():
     from pytorch_lightning.core.model_saving import ModelIO  # noqa: F811
     from pytorch_lightning.core.root_module import LightningModule  # noqa: F811
 
-    # TODO
-    # from pytorch_lightning.root_module. import LightningModule
+
+    from pytorch_lightning.root_module.decorators import data_loader  # noqa: F811
+    from pytorch_lightning.root_module.grads import GradInformation  # noqa: F811
+    from pytorch_lightning.root_module.hooks import ModelHooks  # noqa: F811
+    from pytorch_lightning.root_module.memory import ModelSummary  # noqa: F811
+    from pytorch_lightning.root_module.model_saving import ModelIO  # noqa: F811
+    from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
 
 
 def test_deprecated_v0_8_0_trainer():

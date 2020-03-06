@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.distrib_parts import (
 )
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
-from pytorch_lightning.trainer.deprecated import TrainerDeprecatedAPI_0_8_0
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPI_0_8_0
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
