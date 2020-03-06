@@ -75,13 +75,15 @@ class TrainerDeprecatedAPITillVer0_8(ABC):
     @property
     def nb_sanity_val_steps(self):
         """Back compatibility, will be removed in v0.8.0"""
-        warnings.warn("Attribute `nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
+        warnings.warn("Attribute `nb_sanity_val_steps` has renamed to "
+                      "`num_sanity_val_steps` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return self.num_sanity_val_steps
 
     @nb_sanity_val_steps.setter
     def nb_sanity_val_steps(self, nb):
         """Back compatibility, will be removed in v0.8.0"""
-        warnings.warn("Attribute `nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
+        warnings.warn("Attribute `nb_sanity_val_steps` has renamed to "
+                      "`num_sanity_val_steps` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         self.num_sanity_val_steps = nb
