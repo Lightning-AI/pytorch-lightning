@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core import data_loader
 from pytorch_lightning.trainer import Trainer
 
 
