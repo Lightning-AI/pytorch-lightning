@@ -109,7 +109,6 @@ The LightningModule defines a *system* such as seq-2-seq, GAN, etc... It can ALS
 
 To use lightning do 2 things:  
 1. [Define a LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
-**WARNING:** This syntax is for version 0.5.0+ where abbreviations were removed.
     ```python
     import os
     
@@ -268,7 +267,7 @@ def validation_step(self, batch, batch_idx):
 **And you also decide how to collate the output of all validation steps**    
 
 ```python
-def validation_end(self, outputs):
+def validation_epoch_end(self, outputs):
     """
     Called at the end of validation to aggregate outputs
     :param outputs: list of individual outputs of each validation step

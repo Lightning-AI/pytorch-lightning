@@ -4,6 +4,10 @@
 Trainer
 =======
 
+
+:hidden:`Trainer`
+~~~~~~~~~~~~~~~~~
+
 .. automodule:: pytorch_lightning.trainer
    :members: fit, test
    :noindex:

@@ -26,9 +26,9 @@ Now we can parametrize the LightningModule.
 .. code-block:: python
     :emphasize-lines: 5,6,7,12,14
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def __init__(self, hparams):
-        super(CoolMNIST, self).__init__()
+        super(LitMNIST, self).__init__()
         self.hparams = hparams
 
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
@@ -46,7 +46,7 @@ Now we can parametrize the LightningModule.
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
     hparams = parse_args()
-    model = CoolMNIST(hparams)
+    model = LitMNIST(hparams)
 
 .. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
     model using those hparams exactly.
@@ -69,7 +69,7 @@ We set up the main training entry point file like this:
 .. code-block:: python
 
     def main(args):
-        model = CoolMNIST(hparams=args)
+        model = LitMNIST(hparams=args)
         trainer = Trainer(max_epochs=args.max_epochs)
         trainer.fit(model)
 
@@ -100,7 +100,7 @@ We can do it by changing how we init the trainer.
 .. code-block:: python
 
     def main(args):
-        model = CoolMNIST(hparams=args)
+        model = LitMNIST(hparams=args)
 
         # makes all trainer options available from the command line
         trainer = Trainer.from_argparse_args(args)
@@ -119,9 +119,9 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def __init__(self, hparams):
-        super(CoolMNIST, self).__init__()
+        super(LitMNIST, self).__init__()
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
 
         @staticmethod
@@ -151,9 +151,9 @@ Now we can allow each model to inject the arguments it needs in the main.py
         if args.model_name == 'gan':
             model = GoodGAN(hparams=args)
         elif args.model_name == 'mnist':
-            model = CoolMNIST(hparams=args)
+            model = LitMNIST(hparams=args)
 
-        model = CoolMNIST(hparams=args)
+        model = LitMNIST(hparams=args)
         trainer = Trainer(max_epochs=args.max_epochs)
         trainer.fit(model)
 
@@ -169,7 +169,7 @@ Now we can allow each model to inject the arguments it needs in the main.py
         if temp_args.model_name == 'gan':
             parser = GoodGAN.add_model_specific_args(parser)
         elif temp_args.model_name == 'mnist':
-            parser = CoolMNIST.add_model_specific_args(parser)
+            parser = LitMNIST.add_model_specific_args(parser)
 
         args = parser.parse_args()
 

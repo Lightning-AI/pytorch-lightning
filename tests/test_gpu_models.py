@@ -116,10 +116,14 @@ def test_optimizer_return_options():
     assert len(lr_sched) == 0
 
     # opt tuple of lists
-    opts = ([opt_a], ['lr_scheduler'])
+    scheduler = torch.optim.lr_scheduler.StepLR(opt_a, 10)
+    opts = ([opt_a], [scheduler])
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
+    assert optim[0] == opts[0][0] and \
+        lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
+                            frequency=1, reduce_on_plateau=False,
+                            monitor='val_loss')
 
 
 def test_cpu_slurm_save_load(tmpdir):

@@ -4,7 +4,7 @@ Research projects tend to test different approaches to the same dataset.
 This is very easy to do in Lightning with inheritance.
 
 For example, imaging we now want to train an Autoencoder to use as a feature extractor for MNIST images.
-Recall that `CoolMNIST` already defines all the dataloading etc... The only things
+Recall that `LitMNIST` already defines all the dataloading etc... The only things
 that change in the `Autoencoder` model are the init, forward, training, validation and test step.
 
 .. code-block:: python
@@ -12,7 +12,7 @@ that change in the `Autoencoder` model are the init, forward, training, validati
     class Encoder(torch.nn.Module):
         ...
 
-    class AutoEncoder(CoolMNIST):
+    class AutoEncoder(LitMNIST):
         def __init__(self):
             self.encoder = Encoder()
             self.decoder = Decoder()

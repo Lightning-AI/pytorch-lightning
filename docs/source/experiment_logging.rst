@@ -11,7 +11,7 @@ To use CometLogger as your logger do the following.
 
 .. code-block:: python
 
-   from pytorch_lightning.loggers import TestTubeLogger
+   from pytorch_lightning.loggers import CometLogger
 
     comet_logger = CometLogger(
         api_key=os.environ["COMET_KEY"],
