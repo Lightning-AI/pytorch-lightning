@@ -84,6 +84,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 self.print(x, 'in loader')
 
         """
+        # TODO: fix bug
         if self.trainer.proc_rank == 0:
             log.info(*args, **kwargs)
 

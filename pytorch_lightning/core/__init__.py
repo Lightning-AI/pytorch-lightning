@@ -312,7 +312,8 @@ LightningModule Class
 
 """
 
+from .decorators import data_loader
 from .lightning import LightningModule
 
-__all__ = ['LightningModule']
+__all__ = ['LightningModule', 'data_loader']
 # __call__ = __all__
