@@ -19,6 +19,10 @@ modify the network. The `Trainer` can add all the available options to an Argume
     parser.add_argument('--layer_1_dim', type=int, default=128)
     parser.add_argument('--layer_2_dim', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=64)
+
+    # add all the available options to the trainer
+    parser = pl.Trainer.add_argparse_args(parser)
+
     args = parser.parse_args()
 
 Now we can parametrize the LightningModule.
