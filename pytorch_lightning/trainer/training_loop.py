@@ -666,8 +666,9 @@ class TrainerTrainLoopMixin(ABC):
             if self.has_arg('training_step', 'optimizer_idx'):
                 args.append(opt_idx)
             else:
+                num_opts = len(self.optimizers)
                 raise ValueError(
-                    f'Your LightningModule defines {len(self.optimizers)} optimizers but '
+                    f'Your LightningModule defines {num_opts} optimizers but '
                     f'training_step is missing the "optimizer_idx" argument.'
                 )
 
