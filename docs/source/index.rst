@@ -14,7 +14,7 @@ PyTorch-Lightning Documentation
    introduction_guide
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :name: docs
    :caption: Python API
 
