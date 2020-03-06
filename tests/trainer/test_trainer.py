@@ -604,7 +604,7 @@ def test_testpass_overrides(tmpdir):
         pass
 
     class LocalModelNoStep(LightTrainDataloader, TestModelBase):
-        def test_end(self, outputs):
+        def test_epoch_end(self, outputs):
             return {}
 
     # Misconfig when neither test_step or test_end is implemented
