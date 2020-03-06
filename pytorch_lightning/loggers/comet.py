@@ -5,8 +5,9 @@ r"""
 CometLogger
 -------------
 """
+
+import logging as log
 from argparse import Namespace
-from logging import getLogger
 from typing import Optional, Dict, Union, Any
 
 try:
@@ -28,8 +29,6 @@ from torch import is_tensor
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from .base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class CometLogger(LightningLoggerBase):
@@ -99,7 +98,7 @@ class CometLogger(LightningLoggerBase):
             # If neither api_key nor save_dir are passed as arguments, raise an exception
             raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
-        logger.info(f"CometLogger will be initialized in {self.mode} mode")
+        log.info(f"CometLogger will be initialized in {self.mode} mode")
 
         self.workspace = workspace
         self.project_name = project_name
@@ -118,7 +117,7 @@ class CometLogger(LightningLoggerBase):
             try:
                 self.name = experiment_name
             except TypeError as e:
-                logger.exception("Failed to set experiment name for comet.ml logger")
+                log.exception("Failed to set experiment name for comet.ml logger")
 
     @property
     def experiment(self) -> CometBaseExperiment:

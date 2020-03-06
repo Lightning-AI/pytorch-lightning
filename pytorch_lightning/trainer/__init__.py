@@ -423,7 +423,7 @@ Example::
 min_nb_epochs:
 
 .. warning:: deprecated:: 0.5.0
-    Use `min_nb_epochs` instead. Will remove 0.8.0.
+    Use `min_epochs` instead. Will remove 0.8.0.
 
 max_steps
 ^^^^^^^^^
