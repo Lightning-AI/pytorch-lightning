@@ -3,13 +3,7 @@
 from pytorch_lightning import Trainer
 
 
-def test_deprecated_v0_8_0_module_imports():
-    from pytorch_lightning.logging.comet import CometLogger  # noqa: F402
-    from pytorch_lightning.logging.mlflow import MLFlowLogger  # noqa: F402
-    from pytorch_lightning.logging.neptune import NeptuneLogger  # noqa: F402
-    from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
-    from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
-
+def test_to_be_removed_in_v0_8_0_module_imports():
     from pytorch_lightning.logging.comet_logger import CometLogger  # noqa: F811
     from pytorch_lightning.logging.mlflow_logger import MLFlowLogger  # noqa: F811
     from pytorch_lightning.logging.test_tube_logger import TestTubeLogger  # noqa: F811
@@ -22,7 +16,6 @@ def test_deprecated_v0_8_0_module_imports():
     from pytorch_lightning.core.model_saving import ModelIO  # noqa: F811
     from pytorch_lightning.core.root_module import LightningModule  # noqa: F811
 
-
     from pytorch_lightning.root_module.decorators import data_loader  # noqa: F811
     from pytorch_lightning.root_module.grads import GradInformation  # noqa: F811
     from pytorch_lightning.root_module.hooks import ModelHooks  # noqa: F811
@@ -31,7 +24,7 @@ def test_deprecated_v0_8_0_module_imports():
     from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
 
 
-def test_deprecated_v0_8_0_trainer():
+def test_to_be_removed_in_v0_8_0_trainer():
     mapping_old_new = {
         'gradient_clip': 'gradient_clip_val',
         'nb_gpu_nodes': 'num_nodes',
@@ -50,3 +43,13 @@ def test_deprecated_v0_8_0_trainer():
             'Missing deprecated attribute "%s"' % attr_old
         assert kwargs[attr_old] == getattr(trainer, attr_new), \
             'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+
+
+def test_to_be_removed_in_v0_9_0_module_imports():
+    from pytorch_lightning.core.decorators import data_loader  # noqa: F811
+
+    from pytorch_lightning.logging.comet import CometLogger  # noqa: F402
+    from pytorch_lightning.logging.mlflow import MLFlowLogger  # noqa: F402
+    from pytorch_lightning.logging.neptune import NeptuneLogger  # noqa: F402
+    from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
+    from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402

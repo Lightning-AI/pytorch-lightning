@@ -4,7 +4,7 @@ import warnings
 from abc import ABC
 
 
-class TrainerDeprecatedAPI_0_8_0(ABC):
+class TrainerDeprecatedAPITillVer0_8(ABC):
 
     def __init__(self):
         super().__init__()  # mixin calls super too

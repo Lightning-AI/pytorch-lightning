@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.distrib_parts import (
 )
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPI_0_8_0
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -69,7 +69,7 @@ class Trainer(
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
-    TrainerDeprecatedAPI_0_8_0,
+    TrainerDeprecatedAPITillVer0_8,
 ):
 
     def __init__(
@@ -419,7 +419,7 @@ class Trainer(
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
-        if self.precision == 16 and num_tpu_cores is None:
+        if self.precision == 16 and self.num_tpu_cores is None:
             use_amp = True
         self.init_amp(use_amp)
 
