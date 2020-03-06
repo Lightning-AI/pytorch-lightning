@@ -438,7 +438,14 @@ class Trainer(
     @classmethod
     def default_attributes(cls):
         args = vars(cls())
-        none_args = ['checkpoint_callback', 'profiler', 'early_stop_callback']
+        none_args = [
+            'checkpoint_callback',
+            'profiler',
+            'early_stop_callback',
+            'accumulation_scheduler',
+            'logger'
+        ]
+
         for arg in none_args:
             args[arg] = None
         return args
