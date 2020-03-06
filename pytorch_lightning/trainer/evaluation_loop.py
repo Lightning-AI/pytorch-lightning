@@ -293,22 +293,20 @@ class TrainerEvaluationLoopMixin(ABC):
         # give model a chance to do something with the outputs (and method defined)
         model = self.get_model()
 
+        # TODO: remove in v1.0.0
+        if test_mode and self.is_overriden('test_end'):
+            eval_results = model.test_end(outputs)
+            warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use `test_epoch_end` instead.', DeprecationWarning)
+        elif self.is_overriden('validation_end'):
+            eval_results = model.validation_end(outputs)
+            warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use `validation_epoch_end` instead.', DeprecationWarning)
+
         if test_mode and self.is_overriden('test_epoch_end'):
             eval_results = model.test_epoch_end(outputs)
         elif self.is_overriden('validation_epoch_end'):
             eval_results = model.validation_epoch_end(outputs)
-
-        # TODO: remove in v 1.0.0
-        if test_mode and self.is_overriden('test_end'):
-            eval_results = model.test_end(outputs)
-            m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use test_epoch_end instead.'
-            warnings.warn(m, DeprecationWarning)
-        elif self.is_overriden('validation_end'):
-            eval_results = model.validation_end(outputs)
-            m = 'validation_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use validation_epoch_end instead.'
-            warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
         model.train()
