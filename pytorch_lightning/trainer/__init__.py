@@ -5,15 +5,14 @@ the Trainer automates everything else.
 .. figure:: /_images/lightning_module/pt_trainer.png
    :alt: Convert from PyTorch to Lightning
 
-This abstraction achieves the folowing:
+This abstraction achieves the following:
 
-1. You maintain control over all aspects via PyTorch
-code without an added abstraction.
+    1. You maintain control over all aspects via PyTorch code without an added abstraction.
 
-2. The trainer uses best practices embedded by contributors and users
-from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
+    2. The trainer uses best practices embedded by contributors and users
+       from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-3. The trainer allows overriding any key part that you don't want automated.
+    3. The trainer allows overriding any key part that you don't want automated.
 
 -----------
 
@@ -102,10 +101,12 @@ accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer (no accumulation)
     trainer = Trainer(accumulate_grad_batches=1)
+
+Example::
 
     # accumulate every 4 batches (effective batch size is batch*4)
     trainer = Trainer(accumulate_grad_batches=4)
@@ -118,7 +119,7 @@ amp_level
 The optimization level to use (O1, O2, etc...)
 for 16-bit GPU precision (using NVIDIA apex under the hood).
 
-Check nvidia docs for level (https://nvidia.github.io/apex/amp.html#opt-levels)
+Check `NVIDIA apex docs <https://nvidia.github.io/apex/amp.html#opt-levels>`_ for level
 
 Example::
 
@@ -137,10 +138,17 @@ The speedup comes from allowing the cudnn auto-tuner to find the best
 algorithm for the hardware `[see discussion here]
 <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
 
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(benchmark=False)
+
 callbacks
 ^^^^^^^^^
 
-callbacks: Add a list of callbacks.
+Add a list of user defined callbacks.
+
+.. note:: Only user defined callbacks (ie: Not EarlyStopping or ModelCheckpoint)
 
 .. code-block:: python
 
@@ -196,7 +204,10 @@ Example::
 default_save_path
 ^^^^^^^^^^^^^^^^^
 
-Default path for logs and weights when no logger/ckpt_callback passed
+Default path for logs and weights when no logger
+or :class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.
+On certain clusters you might want to separate where logs and checkpoints
+are stored. If you don't then use this method for convenience.
 
 Example::
 
@@ -207,27 +218,25 @@ distributed_backend
 ^^^^^^^^^^^^^^^^^^^
 The distributed backend to use.
 
-- ('dp') is DataParallel (split batch among GPUs of same machine)
-- ('ddp') is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- ('ddp2') dp on node, ddp across nodes
+- (```dp```) is DataParallel (split batch among GPUs of same machine)
+- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
+    the number of negative samples
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer
     trainer = Trainer(distributed_backend=None)
 
-    # dp = DataParallel (split a batch onto k gpus on same machine).
+Example::
+
+    # dp = DataParallel
     trainer = Trainer(gpus=2, distributed_backend='dp')
 
     # ddp = DistributedDataParallel
-    # Each gpu trains by itself on a subset of the data.
-    # Gradients sync across all gpus and all machines.
     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
 
     # ddp2 = DistributedDataParallel + dp
-    # behaves like dp on every node
-    # syncs gradients across nodes like ddp
-    # useful for things like increasing the number of negative samples
     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
 early_stop_callback
@@ -236,12 +245,13 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- If set to ``True``, then a default callback monitoring ``'val_loss'`` is created.
-- Will raise an error if ``'val_loss'`` is not found.
-- If set to ``False``, then early stopping will be disabled.
-- If set to ``None``, then the default callback monitoring ``'val_loss'`` is created.
-- If ``'val_loss'`` is not found will work as if early stopping is disabled.
+- ``True``: A default callback monitoring ``'val_loss'`` is created.
+   Will raise an error if ``'val_loss'`` is not found.
+- ``False``: Early stopping will be disabled.
+- ``None``: The default callback monitoring ``'val_loss'`` is created.
 - Default: ``None``.
+
+.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
 
 .. code-block:: python
 
@@ -314,7 +324,10 @@ Example::
     trainer = Trainer(gpus='-1') # equivalent
 
     # combine with num_nodes to train on multiple GPUs across nodes
-    trainer = Trainer(gpus=2, num_nodes=4) # uses 8 gpus in total
+    # uses 8 gpus in total
+    trainer = Trainer(gpus=2, num_nodes=4)
+
+.. note:: See the `multi-gpu computing guide <multi_gpu.rst>`_
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -357,7 +370,7 @@ Example::
 log_save_interval
 ^^^^^^^^^^^^^^^^^
 
-Writes logs to disk this often
+Writes logs to disk this often.
 
 Example::
 
@@ -367,7 +380,7 @@ Example::
 logger
 ^^^^^^
 
-Logger (or iterable collection of loggers) for experiment tracking.
+`Logger <loggers.rst>`_ (or iterable collection of loggers) for experiment tracking.
 
 .. code-block:: python
 
@@ -414,8 +427,13 @@ min_nb_epochs:
 
 max_steps
 ^^^^^^^^^
-Stop training after this number of steps. Disabled by default (None).
+Stop training after this number of steps
 Training will stop if max_steps or max_epochs have reached (earliest).
+
+.. code-block:: python
+
+    # Default (disabled)
+    trainer = Trainer(max_steps=None)
 
 Example::
 
@@ -425,8 +443,13 @@ Example::
 min_steps
 ^^^^^^^^^
 
-Force training for at least these number of steps. Disabled by default (None).
+Force training for at least these number of steps.
 Trainer will train model for at least min_steps or min_epochs (latest).
+
+.. code-block:: python
+
+    # Default (disabled)
+    trainer = Trainer(min_steps=None)
 
 Example::
 
@@ -479,8 +502,9 @@ A single TPU v2 or v3 has 8 cores. A TPU pod has
 up to 2048 cores. A slice of a POD means you get as many cores
 as you request.
 
-You MUST use DistributedDataSampler with your dataloader for this
-to work. Your effective batch size is batch_size * total tpu cores.
+Your effective batch size is batch_size * total tpu cores.
+
+.. note:: No need to add a DistributedDataSampler, Lightning automatically does it for you.
 
 This parameter can be either 1 or 8.
 
@@ -518,7 +542,8 @@ Example::
 
 overfit_pct
 ^^^^^^^^^^^
-uses this much data of all datasets.
+Uses this much data of all datasets.
+Useful for quickly debugging or trying to overfit on purpose
 
 Example::
 
@@ -559,7 +584,8 @@ Example::
 
 process_position
 ^^^^^^^^^^^^^^^^
-orders the tqdm bar when running multiple models on same machine.
+Orders the tqdm bar. Useful when running multiple trainers
+on the same node.
 
 Example::
 
@@ -569,6 +595,8 @@ Example::
 profiler
 ^^^^^^^^
 To profile individual steps during training and assist in identifying bottlenecks.
+
+See the `profiler documentation <profiler.rst>`_. for more details.
 
 Example::
 
@@ -590,12 +618,19 @@ Example::
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-How often to refresh progress bar (in steps)
-Default is 50. Useful for notebooks with slow refresh rate.
+How often to refresh progress bar (in steps).
+Faster refresh rates (lower number), in notebooks is known to crash them
+because of their screen refresh rates. 50 is optimal for those cases.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(progress_bar_refresh_rate=50)
+
 
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Set to True to reload dataloaders every epoch
+Set to True to reload dataloaders every epoch.
 
 .. code-block:: python
 
@@ -657,7 +692,6 @@ test_percent_check
 ^^^^^^^^^^^^^^^^^^
 
 How much of test dataset to check.
-Useful when debugging or testing something that happens at the end of an epoch.
 
 Example::
 
@@ -667,17 +701,21 @@ Example::
     # run through only 25% of the test set each epoch
     trainer = Trainer(test_percent_check=0.25)
 
-val_check_interval:
+val_check_interval
+^^^^^^^^^^^^^^^^^^
+
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
 - use (float) to check within a training epoch
 - use (int) to check every n steps (batches)
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer
     trainer = Trainer(val_check_interval=1.0)
+
+Example::
 
     # check validation set 4 times during a training epoch
     trainer = Trainer(val_check_interval=0.25)
@@ -693,10 +731,12 @@ track_grad_norm
 - no tracking (-1)
 - Otherwise tracks that norm (2 for 2-norm)
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer
     trainer = Trainer(track_grad_norm=-1)
+
+Example::
 
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
@@ -706,6 +746,11 @@ train_percent_check
 
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
+
+.. code-block::python
+
+    # default used by the Trainer
+    trainer = Trainer(train_percent_check=1.0)
 
 Example::
 
@@ -719,11 +764,16 @@ truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
 Truncated back prop breaks performs backprop every k steps of
-a much longer sequence If this is enabled, your batches will automatically get truncated
-and the trainer will apply Truncated Backprop to it. Make sure your batches have a sequence
-dimension. (`Williams et al. "An efficient gradient-based algorithm for on-line training of
+a much longer sequence.
+
+If this is enabled, your batches will automatically get truncated
+and the trainer will apply Truncated Backprop to it.
+
+(`Williams et al. "An efficient gradient-based algorithm for on-line training of
 recurrent network trajectories."
 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+
+.. note::  Make sure your batches have a sequence dimension.
 
 Example::
 
@@ -736,11 +786,38 @@ Example::
 
 Lightning takes care to split your batch along the time-dimension.
 
-.. note:: If you need to modify how the batch is split,
-    override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
+.. code-block:: python
 
-.. note:: Using this feature requires updating your LightningModule's
-    :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
+    # we use the second as the time dimension
+    # (batch, time, ...)
+    sub_batch = batch[0, 0:t, ...]
+
+Using this feature requires updating your LightningModule's
+:meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg
+with the hidden
+
+.. code-block:: python
+
+        # Truncated back-propagation through time
+        def training_step(self, batch, batch_idx, hiddens):
+            # hiddens are the hiddens from the previous truncated backprop step
+            out, hiddens = self.lstm(data, hiddens)
+
+            return {
+                "loss": ...,
+                "hiddens": hiddens  # remember to detach() this
+            }
+
+To modify how the batch is split,
+override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+
+.. code-block:: python
+
+        class LitMNIST(pl.LightningModule):
+            def tbptt_split_batch(self, batch, split_size):
+                # do your own splitting on the batch
+                return splits
+
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^
@@ -758,12 +835,14 @@ Example::
 
 weights_save_path
 ^^^^^^^^^^^^^^^^^
-Where to save weights if specified.
+Directory of where to save weights if specified.
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer
     trainer = Trainer(weights_save_path=os.getcwd())
+
+Example::
 
     # save to your custom path
     trainer = Trainer(weights_save_path='my/path')
