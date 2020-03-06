@@ -55,7 +55,7 @@ pip install pytorch-lightning
 Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. 
 
 To use Lightning, first refactor your research code into a LightningModule
-![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png | width=50)
+![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png)
 
 And Lightning automates the rest!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
