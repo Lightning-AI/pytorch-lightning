@@ -554,6 +554,7 @@ class Trainer(TrainerIOMixin,
 
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
+        # otherwise only proc_0 things will work here
         self.call_prepare_data(model)
 
         # route to appropriate start method
