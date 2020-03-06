@@ -11,7 +11,6 @@ import torch
 import torch.distributed as dist
 from torch.optim import Adam
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
@@ -1139,7 +1138,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         return None
 
-    @data_loader
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """Implement a PyTorch DataLoader.
 
@@ -1239,7 +1237,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             .. code-block:: python
 
-                @pl.data_loader
                 def val_dataloader(self):
                     transform = transforms.Compose([transforms.ToTensor(),
                                 transforms.Normalize((0.5,), (1.0,))])
@@ -1254,7 +1251,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return loader
 
                 # can also return multiple dataloaders
-                @pl.data_loader
                 def val_dataloader(self):
                     return [loader_a, loader_b, ..., loader_n]
 

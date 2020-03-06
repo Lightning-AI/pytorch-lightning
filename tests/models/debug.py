@@ -41,14 +41,11 @@ class CoolModel(pl.LightningModule):
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @pl.data_loader
     def train_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
-    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
-    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
