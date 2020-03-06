@@ -917,6 +917,8 @@ class Trainer(
 
         self.testing = False
 
+        self.testing = False
+
 
 class _PatchDataLoader(object):
     r'''
