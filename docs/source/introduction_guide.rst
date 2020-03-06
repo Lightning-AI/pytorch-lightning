@@ -182,7 +182,8 @@ Here's the PyTorch code for loading MNIST
 
     # transforms
     # prepare transforms standard to MNIST
-    transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    transform=transforms.Compose([transforms.ToTensor(),
+                                  transforms.Normalize((0.1307,), (0.3081,))])
 
     # data
     mnist_train = MNIST(os.getcwd(), train=True, download=True)
@@ -201,8 +202,10 @@ the LightningModule
     class LitMNIST(pl.LightningModule):
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
         return DataLoader(mnist_train, batch_size=64)
 
 Notice the code is exactly the same, except now the training dataloading has been organized by the LightningModule
@@ -314,7 +317,8 @@ For clarity, we'll recall that the full LightningModule now looks like this.
         return x
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
         return DataLoader(mnist_train, batch_size=64)
 
@@ -424,7 +428,7 @@ First, change the runtime to TPU (and reinstall lightning).
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
-.. code-block:: default
+.. code-block:: python
 
     import collections
     from datetime import datetime, timedelta
@@ -627,8 +631,10 @@ sample split in the `train_dataloader` method.
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
       def val_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
         _, mnist_val = random_split(mnist_train, [55000, 5000])
         mnist_val = DataLoader(mnist_val, batch_size=64)
         return mnist_val

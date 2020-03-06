@@ -354,6 +354,8 @@ autoclass_content = 'both'
 #  see https://github.com/sphinx-doc/sphinx/issues/5459
 autodoc_default_options = {
     'members': None,
+    'methods': None,
+    # 'attributes': None,
     'special-members': '__call__',
     # 'exclude-members': '__weakref__',
     'show-inheritance': True,
