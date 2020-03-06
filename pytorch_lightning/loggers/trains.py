@@ -76,9 +76,9 @@ class TrainsLogger(LightningLoggerBase):
     def experiment(self) -> trains.Task:
         r"""Actual TRAINS object. To use TRAINS features do the following.
 
-        Example::
-
-            self.logger.experiment.some_trains_function()
+        Example:
+            .. code-block:: python
+                self.logger.experiment.some_trains_function()
 
         """
         return self._trains
@@ -184,7 +184,7 @@ class TrainsLogger(LightningLoggerBase):
                 Debug image to log. Can be one of the following types:
                     Torch, Numpy, PIL image, path to image file (str)
                 If Numpy or Torch, the image is assume to be the following:
-                    shape: CHW or NCHW
+                    shape: CHW
                     color space: RGB
                     value range: [0., 1.] (float) or [0, 255] (uint8)
             step (Optional[int], optional):
