@@ -251,8 +251,6 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 - ``None``: The default callback monitoring ``'val_loss'`` is created.
 - Default: ``None``.
 
-.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
-
 .. code-block:: python
 
     trainer = Trainer(early_stop_callback=early_stop_callback)
@@ -269,6 +267,8 @@ Example::
         verbose=False,
         mode='min'
     )
+
+.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -354,8 +354,6 @@ Options:
 - 'min_max'
 - 'all'
 
-.. note:: Might slow performance because it uses the output of nvidia-smi.
-
 Example::
 
     # default used by the Trainer
@@ -366,6 +364,8 @@ Example::
 
     # log only the min and max memory on the master node
     trainer = Trainer(log_gpu_memory='min_max')
+
+.. note:: Might slow performance because it uses the output of nvidia-smi.
 
 log_save_interval
 ^^^^^^^^^^^^^^^^^
@@ -773,8 +773,6 @@ and the trainer will apply Truncated Backprop to it.
 recurrent network trajectories."
 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
 
-.. note::  Make sure your batches have a sequence dimension.
-
 Example::
 
     # default used by the Trainer (ie: disabled)
@@ -783,6 +781,7 @@ Example::
     # backprop every 5 steps in a batch
     trainer = Trainer(truncated_bptt_steps=5)
 
+.. note::  Make sure your batches have a sequence dimension.
 
 Lightning takes care to split your batch along the time-dimension.
 
