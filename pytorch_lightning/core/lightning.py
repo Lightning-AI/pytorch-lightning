@@ -306,7 +306,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 (only if multiple val datasets used)
 
         Return:
-            Dict or OrderedDict - passed to validation_epoch_end. 
+            Dict or OrderedDict - passed to validation_epoch_end.
             If you defined validation_step_end it will go to that first.
 
         .. code-block:: python
