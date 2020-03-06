@@ -437,7 +437,11 @@ class Trainer(
 
     @classmethod
     def default_attributes(cls):
-        return vars(cls())
+        args = vars(cls())
+        none_args = ['checkpoint_callback', 'profiler', 'early_stop_callback']
+        for arg in none_args:
+            args[arg] = None
+        return args
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
