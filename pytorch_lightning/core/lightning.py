@@ -1387,7 +1387,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             else:
                 raise MisconfigurationException(
                     f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ "
-                    f"is missing the  argument 'hparams'. Are you loading the correct checkpoint?"
+                    f"is missing the argument 'hparams'. Are you loading the correct checkpoint?"
                 )
 
         # load the state_dict on the model automatically
