@@ -212,6 +212,50 @@ Notice the code is exactly the same, except now the training dataloading has bee
 under the `train_dataloader` method. This is great because if you run into a project that uses Lightning and want
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
 
+Usually though, we want to separate the things that write to disk in data-processing from
+things like transforms which happen in memory.
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+      def prepare_data(self):
+        # download only
+        MNIST(os.getcwd(), train=True, download=True)
+
+      def train_dataloader(self):
+        # no download, just transform
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
+        return DataLoader(mnist_train, batch_size=64)
+
+Doing it in the `prepare_data` method ensures that when you have
+multiple GPUs you won't overwrite the data. This is a contrived example
+but it gets more complicated with things like NLP or Imagenet.
+
+In general fill these methods with the following:
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+      def prepare_data(self):
+        # stuff here is done once at the very beginning of training
+        # before any distributed training starts
+
+        # download stuff
+        # save to disk
+        # etc...
+
+      def train_dataloader(self):
+        # data transforms
+        # dataset creation
+        # return a DataLoader
+
+
+
 Optimizer
 ^^^^^^^^^
 
@@ -534,7 +578,7 @@ Notice the epoch is MUCH faster!
 Hyperparameters
 ---------------
 Normally, we don't hard-code the values to a model. We usually use the command line to
-modify the network. The `Trainer` can add all the available options to an ArgumentParser.
+modify the network.
 
 .. code-block:: python
 
@@ -544,8 +588,9 @@ modify the network. The `Trainer` can add all the available options to an Argume
 
     # parametrize the network
     parser.add_argument('--layer_1_dim', type=int, default=128)
-    parser.add_argument('--layer_1_dim', type=int, default=256)
+    parser.add_argument('--layer_2_dim', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=64)
+
     args = parser.parse_args()
 
 Now we can parametrize the LightningModule.
@@ -578,6 +623,22 @@ Now we can parametrize the LightningModule.
 .. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
     model using those hparams exactly.
 
+And we can also add all the flags available in the Trainer to the Argparser.
+
+.. code-block:: python
+
+    # add all the available Trainer options to the ArgParser
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+
+And now you can start your program with
+
+.. code-block:: bash
+
+    # now you can use any trainer flag
+    $ python main.py --num_nodes 2 --gpus 8
+
+
 For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
 
 ---------
@@ -606,11 +667,11 @@ metrics we care about, generate samples or add more to our logs.
             loss = loss(y_hat, x)               # validation_step
             outputs.append({'val_loss': loss})  # validation_step
 
-        full_loss = outputs.mean()              # validation_end
+        full_loss = outputs.mean()              # validation_epoch_end
 
 Since the `validation_step` processes a single batch,
-in Lightning we also have a `validation_end` method which allows you to compute
-statistics on the full dataset and not just the batch.
+in Lightning we also have a `validation_epoch_end` method which allows you to compute
+statistics on the full dataset after an epoch of validation data and not just the batch.
 
 In addition, we define a `val_dataloader` method which tells the trainer what data to use for validation.
 Notice we split the train split of MNIST into train, validation. We also have to make sure to do the
@@ -640,7 +701,7 @@ sample split in the `train_dataloader` method.
         return mnist_val
 
 Again, we've just organized the regular PyTorch code into two steps, the `validation_step` method which
-operates on a single batch and the `validation_end` method to compute statistics on all batches.
+operates on a single batch and the `validation_epoch_end` method to compute statistics on all batches.
 
 If you have these methods defined, Lightning will call them automatically. Now we can train
 while checking the validation set.
@@ -669,7 +730,7 @@ how it will generalize in the "real world." For this, we use a held-out split of
 Just like the validation loop, we define exactly the same steps for testing:
 
 - test_step
-- test_end
+- test_epoch_end
 - test_dataloader
 
 .. code-block:: python
@@ -706,6 +767,17 @@ Once you train your model simply call `.test()`.
 
     # run test set
     trainer.test()
+
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+        --------------------------------------------------------------
+        TEST RESULTS
+        {'test_loss': tensor(1.1703, device='cuda:0')}
+        --------------------------------------------------------------
 
 You can also run the test from a saved lightning model
 
@@ -881,6 +953,7 @@ you could do your own:
 Every single part of training is configurable this way.
 For a full list look at `lightningModule <lightning-module.rst>`_.
 
+---------
 
 Callbacks
 ---------

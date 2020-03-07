@@ -26,13 +26,14 @@ from pytorch_lightning.trainer.distrib_parts import (
     determine_root_gpu_device
 )
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.callbacks import Callback
@@ -55,19 +56,21 @@ else:
     XLA_AVAILABLE = True
 
 
-class Trainer(TrainerIOMixin,
-              TrainerDPMixin,
-              TrainerDDPMixin,
-              TrainerLoggingMixin,
-              TrainerModelHooksMixin,
-              TrainerTrainingTricksMixin,
-              TrainerDataLoadingMixin,
-              TrainerAMPMixin,
-              TrainerEvaluationLoopMixin,
-              TrainerTrainLoopMixin,
-              TrainerCallbackConfigMixin,
-              TrainerCallbackHookMixin
-              ):
+class Trainer(
+    TrainerIOMixin,
+    TrainerDPMixin,
+    TrainerDDPMixin,
+    TrainerLoggingMixin,
+    TrainerModelHooksMixin,
+    TrainerTrainingTricksMixin,
+    TrainerDataLoadingMixin,
+    TrainerAMPMixin,
+    TrainerEvaluationLoopMixin,
+    TrainerTrainLoopMixin,
+    TrainerCallbackConfigMixin,
+    TrainerCallbackHookMixin,
+    TrainerDeprecatedAPITillVer0_8,
+):
 
     def __init__(
             self,
@@ -105,7 +108,7 @@ class Trainer(TrainerIOMixin,
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend: Optional[str] = None,
-            use_amp=False,  # backward compatible, todo: remove in v0.8.0
+            use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
             print_nan_grads: bool = False,
             weights_summary: str = 'full',
@@ -202,7 +205,7 @@ class Trainer(TrainerIOMixin,
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
-                    Use `precision` instead. Will remove 0.8.0.
+                    Use `precision` instead. Will remove 0.9.0.
 
             precision: Full precision (32), half precision (16).
 
@@ -241,23 +244,20 @@ class Trainer(TrainerIOMixin,
             torch.backends.cudnn.benchmark = True
 
         # Transfer params
-        # Backward compatibility
         self.num_nodes = num_nodes
+        # Backward compatibility, TODO: remove in v0.8.0
         if nb_gpu_nodes is not None:
-            warnings.warn("`nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
+            warnings.warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not num_nodes:  # in case you did not set the proper value
-                num_nodes = nb_gpu_nodes
-        self.num_gpu_nodes = num_nodes
+            self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
-        # Backward compatibility
-        if gradient_clip is not None:
-            warnings.warn("`gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not gradient_clip_val:  # in case you did not set the proper value
-                gradient_clip_val = gradient_clip
         self.gradient_clip_val = gradient_clip_val
+        # Backward compatibility, TODO: remove in v0.8.0
+        if gradient_clip is not None:
+            warnings.warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            self.gradient_clip = gradient_clip
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -273,33 +273,30 @@ class Trainer(TrainerIOMixin,
         self.process_position = process_position
         self.weights_summary = weights_summary
 
-        # Backward compatibility
-        if max_nb_epochs is not None:
-            warnings.warn("`max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not max_epochs:  # in case you did not set the proper value
-                max_epochs = max_nb_epochs
         self.max_epochs = max_epochs
-
-        # Backward compatibility
-        if min_nb_epochs is not None:
-            warnings.warn("`min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
+        # Backward compatibility, TODO: remove in v0.8.0
+        if max_nb_epochs is not None:
+            warnings.warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not min_epochs:  # in case you did not set the proper value
-                min_epochs = min_nb_epochs
+            self.max_nb_epochs = max_nb_epochs
+
         self.min_epochs = min_epochs
+        # Backward compatibility, TODO: remove in v0.8.0
+        if min_nb_epochs is not None:
+            warnings.warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            self.min_nb_epochs = min_nb_epochs
 
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        # Backward compatibility
-        if nb_sanity_val_steps is not None:
-            warnings.warn("`nb_sanity_val_steps` has renamed to `num_sanity_val_steps` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not num_sanity_val_steps:  # in case you did not set the proper value
-                num_sanity_val_steps = nb_sanity_val_steps
-
         self.num_sanity_val_steps = num_sanity_val_steps
+        # Backward compatibility, TODO: remove in v0.8.0
+        if nb_sanity_val_steps is not None:
+            warnings.warn("Argument `nb_sanity_val_steps` has renamed to "
+                          "`num_sanity_val_steps` since v0.5.0"
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            self.nb_sanity_val_steps = nb_sanity_val_steps
         self.print_nan_grads = print_nan_grads
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -380,7 +377,7 @@ class Trainer(TrainerIOMixin,
         self.use_dp = False
         self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend, num_nodes)
+        self.set_distributed_mode(distributed_backend, self.num_nodes)
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -391,7 +388,7 @@ class Trainer(TrainerIOMixin,
         self.proc_rank = 0
         self.world_size = 1
         self.node_rank = 0
-        self.configure_slurm_ddp(num_nodes)
+        self.configure_slurm_ddp(self.num_nodes)
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -423,7 +420,7 @@ class Trainer(TrainerIOMixin,
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
-        if self.precision == 16 and num_tpu_cores is None:
+        if self.precision == 16 and self.num_tpu_cores is None:
             use_amp = True
         self.init_amp(use_amp)
 
@@ -441,17 +438,32 @@ class Trainer(TrainerIOMixin,
 
     @classmethod
     def default_attributes(cls):
-        return vars(cls())
+        import inspect
+
+        init_signature = inspect.signature(Trainer)
+
+        args = {}
+        for param_name in init_signature.parameters:
+            value = init_signature.parameters[param_name].default
+            args[param_name] = value
+
+        return args
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         """Extend existing argparse by default `Trainer` attributes."""
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         trainer_default_params = Trainer.default_attributes()
 
+        # TODO: get "help" from docstring :)
         for arg in trainer_default_params:
-            parser.add_argument('--{0}'.format(arg), default=trainer_default_params[arg], dest=arg)
+            parser.add_argument(
+                f'--{arg}',
+                default=trainer_default_params[arg],
+                dest=arg,
+                help='autogenerated by pl.Trainer'
+            )
 
         return parser
 
@@ -546,8 +558,9 @@ class Trainer(TrainerIOMixin,
             # feed to .fit()
 
         """
-        # bind logger
+        # bind logger and other properties
         model.logger = self.logger
+        self.copy_trainer_model_properties(model)
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)

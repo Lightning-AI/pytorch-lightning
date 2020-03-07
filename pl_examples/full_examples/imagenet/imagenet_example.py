@@ -20,7 +20,6 @@ import torchvision.transforms as transforms
 
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core import data_loader
 
 # pull out resnet names from torchvision models
 MODEL_NAMES = sorted(
@@ -132,7 +131,6 @@ class ImageNetLightningModel(LightningModule):
         scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
         return [optimizer], [scheduler]
 
-    @data_loader
     def train_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -163,7 +161,6 @@ class ImageNetLightningModel(LightningModule):
         )
         return train_loader
 
-    @data_loader
     def val_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],

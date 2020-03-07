@@ -12,11 +12,9 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core import data_loader
 
 
 class LightningTemplateModel(LightningModule):
