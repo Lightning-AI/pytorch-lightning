@@ -221,15 +221,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
              if you want to break out of the current training epoch early.
         """
 
-    def training_end(self, outputs: dict) -> Union[
-        int, Dict[str, Union[Tensor, Dict[str, Tensor]]]
-    ]:
+    def training_end(self, outputs: dict):
         """
         Warnings:
             Deprecated in v0.7.0. use training_step_end instead
         """
 
-    def training_step_end(self, *args, **kwargs):
+    def training_step_end(self, *args, **kwargs) -> Dict[
+        str, Union[Tensor, Dict[str, Tensor]]
+    ]:
         """
         Use this when training with dp or ddp2 because training_step will operate
         on only part of the batch. However, this is still optional
@@ -290,7 +290,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
-    def validation_step(self, *args, **kwargs) -> Union[Tensor, Dict[str, Tensor]]:
+    def validation_step(self, *args, **kwargs) -> Dict[str, Tensor]:
         r"""
         Operate on a single batch of data from the validation set
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -656,8 +656,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     ]:
         """
         Warnings:
-        """
+
              Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
+            """
 
     def test_epoch_end(self, outputs):
         """
