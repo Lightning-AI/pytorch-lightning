@@ -443,9 +443,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Deprecated in v0.7.0. use validation_epoch_end instead. Will be removed 1.0.0
         """
 
-    def validation_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[
-        str, Dict[str, Tensor]
-    ]:
+    def validation_epoch_end(
+            self,
+            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at end of validation epoch with the output of all validation_steps
 
@@ -664,9 +665,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
              Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
         """
 
-    def test_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[
-        str, Dict[str, Tensor]
-    ]:
+    def test_epoch_end(
+            self,
+            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at end of test epoch with the output of all test_steps.
 
@@ -681,7 +683,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             test_epoch_end(test_outs)
 
         Args:
-            outputs (list): List of outputs you defined in test_step, or if there are multiple
+            outputs: List of outputs you defined in test_step, or if there are multiple
             dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
