@@ -10,7 +10,7 @@ a full epoch to crash.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = pl.Trainer(unit_test=True)
 
 Inspect gradient norms
 ----------------------

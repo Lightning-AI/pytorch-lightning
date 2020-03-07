@@ -160,7 +160,7 @@ class TrainerEvaluationLoopMixin(ABC):
     model: LightningModule
     num_test_batches: int
     num_val_batches: int
-    fast_dev_run: ...
+    unit_test: ...
     process_position: ...
     show_progress_bar: ...
     process_output: ...
@@ -252,7 +252,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch is None:  # pragma: no cover
                     continue
 
-                # stop short when on fast_dev_run (sets max_batch=1)
+                # stop short when on unit_test (sets max_batch=1)
                 if batch_idx >= max_batches:
                     break
 
@@ -351,8 +351,8 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
-        # cap max batches to 1 when using fast_dev_run
-        if self.fast_dev_run:
+        # cap max batches to 1 when using unit_test
+        if self.unit_test:
             max_batches = 1
 
         # init validation or test progress bar

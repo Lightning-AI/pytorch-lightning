@@ -170,7 +170,7 @@ class TrainerTrainLoopMixin(ABC):
     val_check_batch: ...
     num_val_batches: int
     disable_validation: bool
-    fast_dev_run: ...
+    unit_test: ...
     main_progress_bar: ...
     accumulation_scheduler: ...
     lr_schedulers: ...
@@ -321,8 +321,8 @@ class TrainerTrainLoopMixin(ABC):
                 self.total_batches = self.num_training_batches + total_val_batches
                 self.batch_loss_value = 0  # accumulated grads
 
-                if self.fast_dev_run:
-                    # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
+                if self.unit_test:
+                    # limit the number of batches to 2 (1 train and 1 val) in unit_test
                     num_iterations = 2
                 elif self.is_infinite_dataloader(self.train_dataloader):
                     # for infinite train loader, the progress bar never ends
@@ -355,7 +355,7 @@ class TrainerTrainLoopMixin(ABC):
 
                 # TODO wrap this logic into the callback
                 if self.enable_early_stop and not self.disable_validation and is_val_epoch:
-                    if ((met_min_epochs and met_min_steps) or self.fast_dev_run):
+                    if ((met_min_epochs and met_min_steps) or self.unit_test):
                         should_stop = self.early_stop_callback.on_epoch_end(self, self.get_model())
                         # stop training
                         stop = should_stop and met_min_epochs
@@ -427,19 +427,19 @@ class TrainerTrainLoopMixin(ABC):
             should_check_val = not self.disable_validation and can_check_epoch
             should_check_val = should_check_val and (is_val_check_batch or early_stop_epoch)
 
-            # fast_dev_run always forces val checking after train batch
-            if self.fast_dev_run or should_check_val:
+            # unit_test always forces val checking after train batch
+            if self.unit_test or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
-            if should_save_log or self.fast_dev_run:
+            if should_save_log or self.unit_test:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
             should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
-            if should_log_metrics or self.fast_dev_run:
+            if should_log_metrics or self.unit_test:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
 
@@ -448,7 +448,7 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             # save checkpoint even when no test or val step are defined
             train_step_only = not self.is_overriden('validation_step')
-            if self.fast_dev_run or should_check_val or train_step_only:
+            if self.unit_test or should_check_val or train_step_only:
                 self.call_checkpoint_callback()
 
                 if self.enable_early_stop:
@@ -466,7 +466,7 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if early_stop_epoch or self.fast_dev_run:
+            if early_stop_epoch or self.unit_test:
                 break
 
         # Epoch end events

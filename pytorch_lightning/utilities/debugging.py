@@ -11,7 +11,7 @@ This flag is meant for debugging a full train/val/test loop.
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(fast_dev_run=False)
+    trainer = Trainer(unit_test=False)
 
 
 Inspect gradient norms

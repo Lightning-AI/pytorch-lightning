@@ -78,7 +78,7 @@ def add_default_args(parser, root_dir, rand_seed=None, possible_model_names=None
 
     # FAST training
     # use these settings to make sure network has no bugs without running a full dataset
-    parser.add_argument('--fast_dev_run', dest='fast_dev_run', default=False, action='store_true',
+    parser.add_argument('--unit_test', dest='unit_test', default=False, action='store_true',
                         help='runs validation after 1 training step')
     parser.add_argument('--enable_tqdm', dest='enable_tqdm', default=False, action='store_true',
                         help='false removes the progress bar')
