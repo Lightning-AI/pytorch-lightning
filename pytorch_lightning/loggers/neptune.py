@@ -125,37 +125,45 @@ class NeptuneLogger(LightningLoggerBase):
         https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts
 
         Args:
-            api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ai.
+            api_key (str | None): Required in online mode.
+                Neputne API token, found on https://neptune.ai
                 Read how to get your API key
                 https://docs.neptune.ai/python-api/tutorials/get-started.html#copy-api-token.
             project_name (str): Required in online mode. Qualified name of a project in a form of
                "namespace/project_name" for example "tom/minst-classification".
                If None, the value of NEPTUNE_PROJECT environment variable will be taken.
                You need to create the project in https://neptune.ai first.
-            offline_mode (bool): Optional default False. If offline_mode=True no logs will be send to neptune.
-               Usually used for debug purposes.
+            offline_mode (bool): Optional default False. If offline_mode=True no logs will be send
+               to neptune. Usually used for debug purposes.
             close_after_fit (bool): Optional default True. If close_after_fit=False the experiment
-               will not be closed after training and additional metrics, images or artifacts can be logged.
-               Also, remember to close the experiment explicitly by running neptune_logger.experiment.stop().
+               will not be closed after training and additional metrics,
+               images or artifacts can be logged. Also, remember to close the experiment explicitly
+               by running neptune_logger.experiment.stop().
             experiment_name (str|None): Optional. Editable name of the experiment.
-               Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
+               Name is displayed in the experiment’s Details (Metadata section) and i
+               n experiments view as a column.
             upload_source_files (list|None): Optional. List of source files to be uploaded.
-               Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
+               Must be list of str or single str. Uploaded sources are displayed
+               in the experiment’s Source code tab.
                If None is passed, Python file from which experiment was created will be uploaded.
-               Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
+               Pass empty list ([]) to upload no files.
+               Unix style pathname pattern expansion is supported.
                For example, you can pass '\*.py'
                 to upload all python source files from the current directory.
                For recursion lookup use '\**/\*.py' (for Python 3.5 and later).
                For more information see glob library.
-            params (dict|None): Optional. Parameters of the experiment. After experiment creation params are read-only.
-               Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
-               viewed in experiments view as a column.
+            params (dict|None): Optional. Parameters of the experiment.
+               After experiment creation params are read-only.
+               Parameters are displayed in the experiment’s Parameters section and
+               each key-value pair can be viewed in experiments view as a column.
             properties (dict|None): Optional default is {}. Properties of the experiment.
-               They are editable after experiment is created. Properties are displayed in the experiment’s Details and
+               They are editable after experiment is created.
+               Properties are displayed in the experiment’s Details and
                each key-value pair can be viewed in experiments view as a column.
             tags (list|None): Optional default []. Must be list of str. Tags of the experiment.
                They are editable after experiment is created (see: append_tag() and remove_tag()).
-               Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
+               Tags are displayed in the experiment’s Details and can be viewed
+               in experiments view as a column.
         """
         super().__init__()
         self.api_key = api_key
