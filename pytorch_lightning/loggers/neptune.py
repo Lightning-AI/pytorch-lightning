@@ -121,9 +121,6 @@ class NeptuneLogger(LightningLoggerBase):
         You can go and see an example experiment here:
         https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts
 
-        You can go and see an example experiment here:
-        https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts
-
         Args:
             api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.
                 Read how to get your API key
