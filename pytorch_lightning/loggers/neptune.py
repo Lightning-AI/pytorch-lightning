@@ -117,6 +117,9 @@ class NeptuneLogger(LightningLoggerBase):
 
             # When you are done, stop the experiment
             neptune_logger.experiment.stop()
+            
+        You can go and see an example experiment here:
+        https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts
 
         Args:
             api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.
