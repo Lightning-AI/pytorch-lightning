@@ -71,6 +71,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         #: True if using amp
         self.use_amp = False
 
+        self.hparams = None
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once
@@ -220,7 +222,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
              if you want to break out of the current training epoch early.
         """
 
-    def training_end(self, outputs: dict):
+    def training_end(self, *args, **kwargs):
         """
         Warnings:
             Deprecated in v0.7.0. use training_step_end instead
@@ -659,9 +661,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def test_end(self, outputs):
         """
         Warnings:
-
              Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
-            """
+        """
 
     def test_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[
         str, Dict[str, Tensor]
@@ -1442,7 +1443,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.eval()
 
     def unfreeze(self) -> None:
-        """Unfreeze all params for inference.
+        """Unfreeze all params for training.
 
         .. code-block:: python
 
