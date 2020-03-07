@@ -121,21 +121,23 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 """
 
-from typing import Callable
-
 import copy
-import warnings
 import logging as log
+import sys
+import warnings
 from abc import ABC, abstractmethod
+from typing import Callable
 from typing import Union, List
 
 import numpy as np
+import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.callbacks.base import Callback
 
 try:
     from apex import amp
@@ -702,6 +704,9 @@ class TrainerTrainLoopMixin(ABC):
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
+        # check if loss or model weights are NaN
+        self.detect_nan(output[0])
+
         return output
 
     def update_learning_rates(self, interval):
@@ -736,3 +741,25 @@ class TrainerTrainLoopMixin(ABC):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
+
+    def detect_nan(self, loss: Tensor) -> None:
+        # check if loss is NaN
+        if torch.any(torch.isnan(loss)):
+            warnings.warn(
+                'The loss returned in `training_step` is NaN.'
+                ' Will stop training.',
+                UserWarning
+            )
+            sys.exit()
+        # check if a network weight is NaN (only the ones we optimize for)
+        for name, param in self.model.named_parameters():
+            if torch.any(torch.isnan(param)):
+                warnings.warn(
+                    f'Detected NaN values in `{name}`.'
+                    ' Check your forward pass for numerically unstable operations.'
+                    ' Will stop training.',
+                    UserWarning
+                )
+            sys.exit()
+
+
