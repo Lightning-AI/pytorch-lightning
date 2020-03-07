@@ -12,7 +12,7 @@
 [![Coverage](docs/source/_static/images/coverage.svg)](https://github.com/PytorchLightning/pytorch-lightning/tree/master/tests#running-coverage)
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=latest)](https://pytorch-lightning.readthedocs.io/en/latest/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.7.1)](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-May%2006-<COLOR>.svg)](https://shields.io/)
@@ -44,7 +44,8 @@ pip install pytorch-lightning
 ```
 
 ## Docs   
-- [master](https://pytorch-lightning.readthedocs.io/en/latest)   
+- [master](https://pytorch-lightning.readthedocs.io/en/latest)  
+- [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
