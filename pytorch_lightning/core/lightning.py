@@ -377,7 +377,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs):
+    def validation_step_end(self, *args, **kwargs) -> Dict[str, Tensor]:
         """
         Use this when validating with dp or ddp2 because validation_step will operate
         on only part of the batch. However, this is still optional
@@ -441,7 +441,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Deprecated in v0.7.0. use validation_epoch_end instead. Will be removed 1.0.0
         """
 
-    def validation_epoch_end(self, outputs: list):
+    def validation_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[
+        str, Dict[str, Tensor]
+    ]:
         """
         Called at end of validation epoch with the output of all validation_steps
 
@@ -515,7 +517,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return results
         """
 
-    def test_step(self, *args, **kwargs) -> Union[Tensor, Dict[str, Tensor]]:
+    def test_step(self, *args, **kwargs) -> Dict[str, Tensor]:
         r"""
         Operate on a single batch of data from the test set
         In this step you'd normally generate examples or calculate anything of interest
@@ -596,7 +598,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs):
+    def test_step_end(self, *args, **kwargs) -> Dict[str, Tensor]:
         """
         Use this when testing with dp or ddp2 because test_step will operate
         on only part of the batch. However, this is still optional
@@ -654,16 +656,16 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
         """
 
-    def test_end(self, outputs: list) -> Dict[
-        str, Union[Dict[str, Union[float, Tensor]], float, Tensor]
-    ]:
+    def test_end(self, outputs):
         """
         Warnings:
 
              Deprecated in v0.7.0. use test_epoch_end instead. Will be removed 1.0.0
             """
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[
+        str, Dict[str, Tensor]
+    ]:
         """
         Called at end of test epoch with the output of all test_steps.
 
@@ -894,7 +896,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         return model, optimizers
 
     def configure_optimizers(self) -> Union[
-        Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], list]
+        Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], List]
     ]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -1284,12 +1286,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
 
     @classmethod
-    def load_from_metrics(
-            cls,
-            weights_path: str,
-            tags_csv: str,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None
-    ) -> 'LightningModule':
+    def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
         r"""
         Warning:
             Deprecated in version 0.7.0. You should use `load_from_checkpoint` instead.
