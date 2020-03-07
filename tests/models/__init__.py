@@ -1,4 +1,5 @@
 """Models for testing."""
+
 import torch
 
 from .base import TestModelBase, DictHparamsModel
