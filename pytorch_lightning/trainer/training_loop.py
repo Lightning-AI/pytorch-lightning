@@ -203,6 +203,7 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     max_steps: int
     total_batch_idx: int
+    checkpoint_callback: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -212,24 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     on_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
-
-    @property
-    def max_nb_epochs(self):
-        """
-        .. warning:: `max_nb_epochs` is deprecated and will be removed in v0.8.0, use `max_epochs` instead.
-        """
-        warnings.warn("`max_nb_epochs` is deprecated and will be removed in "
-                      "v0.8.0, use `max_epochs` instead.", DeprecationWarning)
-        return self.max_epochs
-
-    @property
-    def min_nb_epochs(self):
-        """
-        .. warning:: `min_nb_epochs` is deprecated and will be removed in v0.8.0, use `min_epochs` instead.
-        """
-        warnings.warn("`min_nb_epochs` is deprecated and will be removed in "
-                      "v0.8.0, use `min_epochs` instead.", DeprecationWarning)
-        return self.min_epochs
+    on_validation_end: Callable
 
     @abstractmethod
     def get_model(self):
@@ -359,17 +343,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.run_training_epoch()
 
                 # update LR schedulers
-                if self.lr_schedulers is not None:
-                    for lr_scheduler in self.lr_schedulers:
-                        lr_scheduler.step()
-                if self.reduce_lr_on_plateau_scheduler is not None:
-                    val_loss = self.callback_metrics.get('val_loss')
-                    if val_loss is None:
-                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric val_loss ' \
-                            f'which is not available. Available metrics are: {avail_metrics}'
-                        raise MisconfigurationException(m)
-                    self.reduce_lr_on_plateau_scheduler.step(val_loss)
+                self.update_learning_rates(interval='epoch')
 
                 if self.max_steps and self.max_steps == self.global_step:
                     self.run_training_teardown()
@@ -442,6 +416,9 @@ class TrainerTrainLoopMixin(ABC):
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
 
+            # update lr
+            self.update_learning_rates(interval='step')
+
             # ---------------
             # RUN VAL STEP
             # ---------------
@@ -454,9 +431,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
 
-                if self.enable_early_stop:
-                    self.early_stop_callback.check_metrics(self.callback_metrics)
-
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
@@ -468,6 +442,17 @@ class TrainerTrainLoopMixin(ABC):
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
+
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
+            # save checkpoint even when no test or val step are defined
+            train_step_only = not self.is_overriden('validation_step')
+            if self.fast_dev_run or should_check_val or train_step_only:
+                self.call_checkpoint_callback()
+
+                if self.enable_early_stop:
+                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -663,8 +648,9 @@ class TrainerTrainLoopMixin(ABC):
             if self.has_arg('training_step', 'optimizer_idx'):
                 args.append(opt_idx)
             else:
+                num_opts = len(self.optimizers)
                 raise ValueError(
-                    f'Your LightningModule defines {len(self.optimizers)} optimizers but '
+                    f'Your LightningModule defines {num_opts} optimizers but '
                     f'training_step is missing the "optimizer_idx" argument.'
                 )
 
@@ -695,13 +681,58 @@ class TrainerTrainLoopMixin(ABC):
         else:
             output = self.model.training_step(*args)
 
+        # allow any mode to define training_step_end
+        # do something will all the dp outputs (like softmax)
+        if self.is_overriden('training_step_end'):
+            model_ref = self.get_model()
+            with self.profiler.profile('training_step_end'):
+                output = model_ref.training_step_end(output)
+
         # allow any mode to define training_end
+        # TODO: remove in 1.0.0
         if self.is_overriden('training_end'):
             model_ref = self.get_model()
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
+            m = 'training_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use training_epoch_end instead'
+            warnings.warn(m, DeprecationWarning)
+
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
         return output
+
+    def update_learning_rates(self, interval):
+        ''' Update learning rates
+        Args:
+            interval (str): either 'epoch' or 'step'.
+        '''
+        if not self.lr_schedulers:
+            return
+
+        for lr_scheduler in self.lr_schedulers:
+            current_idx = self.batch_idx if interval == 'step' else self.current_epoch
+            current_idx += 1  # account for both batch and epoch starts from 0
+            # Take step if call to update_learning_rates matches the interval key and
+            # the current step modulo the schedulers frequency is zero
+            if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
+                # If instance of ReduceLROnPlateau, we need to pass validation loss
+                if lr_scheduler['reduce_on_plateau']:
+                    monitor_key = lr_scheduler['monitor']
+                    monitor_val = self.callback_metrics.get(monitor_key)
+                    if monitor_val is None:
+                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                        m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
+                            f'which is not available. Available metrics are: {avail_metrics}. ' \
+                            'Condition can be set using `monitor` key in lr scheduler dict'
+                        raise MisconfigurationException(m)
+                    lr_scheduler['scheduler'].step(monitor_val)
+                else:
+                    lr_scheduler['scheduler'].step()
+
+    def call_checkpoint_callback(self):
+        if self.checkpoint_callback is not None:
+            self.checkpoint_callback.on_validation_end(self, self.get_model())
+        self.on_validation_end()

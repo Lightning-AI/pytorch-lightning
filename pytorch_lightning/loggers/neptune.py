@@ -6,8 +6,8 @@ Log using `neptune-logger <https://www.neptune.ml>`_
 NeptuneLogger
 --------------
 """
-import argparse
-from logging import getLogger
+import logging as log
+from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
 try:
@@ -21,8 +21,6 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -138,7 +136,7 @@ class NeptuneLogger(LightningLoggerBase):
             neptune.init(api_token=self.api_key,
                          project_qualified_name=self.project_name)
 
-        logger.info(f'NeptuneLogger was initialized in {self.mode} mode')
+        log.info(f'NeptuneLogger was initialized in {self.mode} mode')
 
     @property
     def experiment(self) -> Experiment:
@@ -164,8 +162,9 @@ class NeptuneLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
-        for key, val in vars(params).items():
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
+        for key, val in params.items():
             self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only
@@ -173,7 +172,7 @@ class NeptuneLogger(LightningLoggerBase):
             self,
             metrics: Dict[str, Union[torch.Tensor, float]],
             step: Optional[int] = None
-    ):
+    ) -> None:
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
@@ -184,7 +183,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val, step=step)
 
     @rank_zero_only
-    def finalize(self, status: str):
+    def finalize(self, status: str) -> None:
         self.experiment.stop()
 
     @property
@@ -207,7 +206,7 @@ class NeptuneLogger(LightningLoggerBase):
             metric_name: str,
             metric_value: Union[torch.Tensor, float, str],
             step: Optional[int] = None
-    ):
+    ) -> None:
         """Log metrics (numeric values) in Neptune experiments
 
         Args:
@@ -224,7 +223,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.log_metric(metric_name, x=step, y=metric_value)
 
     @rank_zero_only
-    def log_text(self, log_name: str, text: str, step: Optional[int] = None):
+    def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
         """Log text data in Neptune experiment
 
         Args:
@@ -235,7 +234,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.log_metric(log_name, text, step=step)
 
     @rank_zero_only
-    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None):
+    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
         """Log image data in Neptune experiment
 
         Args:
@@ -250,7 +249,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.log_image(log_name, x=step, y=image)
 
     @rank_zero_only
-    def log_artifact(self, artifact: str, destination: Optional[str] = None):
+    def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:
         """Save an artifact (file) in Neptune experiment storage.
 
         Args:
@@ -261,7 +260,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment.log_artifact(artifact, destination)
 
     @rank_zero_only
-    def set_property(self, key: str, value: Any):
+    def set_property(self, key: str, value: Any) -> None:
         """Set key-value pair as Neptune experiment property.
 
         Args:
@@ -271,7 +270,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment.set_property(key, value)
 
     @rank_zero_only
-    def append_tags(self, tags: Union[str, Iterable[str]]):
+    def append_tags(self, tags: Union[str, Iterable[str]]) -> None:
         """appends tags to neptune experiment
 
         Args:

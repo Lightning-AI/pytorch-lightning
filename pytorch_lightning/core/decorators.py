@@ -9,7 +9,7 @@ def data_loader(fn):
     :param fn:
     :return:
     """
-    w = 'data_loader decorator deprecated in 0.6.1. Will remove 0.8.0'
+    w = 'data_loader decorator deprecated in 0.7.0. Will remove 0.9.0'
     warnings.warn(w)
 
     def inner_fx(self):

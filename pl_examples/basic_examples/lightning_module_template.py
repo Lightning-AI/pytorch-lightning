@@ -12,11 +12,9 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core import data_loader
 
 
 class LightningTemplateModel(LightningModule):
@@ -143,7 +141,7 @@ class LightningTemplateModel(LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step

@@ -1,7 +1,7 @@
 """Models for testing."""
 import torch
 
-from .base import TestModelBase
+from .base import TestModelBase, DictHparamsModel
 from .mixins import (
     LightEmptyTestStep,
     LightValidationStepMixin,
@@ -18,6 +18,9 @@ from .mixins import (
     LightValStepFitMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
+    LightTestOptimizerWithSchedulingMixin,
+    LightTestMultipleOptimizersWithSchedulingMixin,
+    LightTestOptimizersWithMixedSchedulingMixin
 )
 
 

@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PyTorch-Lightning Documentation
+PyTorch Lightning Documentation
 ===============================
 
 .. toctree::
@@ -14,7 +14,7 @@ PyTorch-Lightning Documentation
    introduction_guide
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :name: docs
    :caption: Python API
 

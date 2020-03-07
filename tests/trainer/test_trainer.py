@@ -3,30 +3,50 @@ import math
 import os
 import pytest
 import torch
-import argparse
+from argparse import ArgumentParser, Namespace
 
 import tests.models.utils as tutils
 from unittest import mock
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
 )
 from tests.models import (
     TestModelBase,
+    DictHparamsModel,
     LightningTestModel,
     LightEmptyTestStep,
     LightValidationStepMixin,
     LightValidationMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
-    LightValidationMixin,
-    LightTestMixin
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning import Callback
+
+
+def test_hparams_save_load(tmpdir):
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=2,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(
+        trainer.checkpoint_callback.dirpath,
+        module_class=DictHparamsModel
+    )
 
 
 def test_no_val_module(tmpdir):
@@ -128,7 +148,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def _optimizer_step(self, epoch, batch_idx, optimizer,
+                        optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
             if epoch == 0:
@@ -179,7 +200,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
                       default_save_path=tmpdir)
 
     # for the test
-    trainer.optimizer_step = optimizer_step
+    trainer.optimizer_step = _optimizer_step
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
@@ -188,7 +209,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
 def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
-    from argparse import Namespace
     hparams = tutils.get_hparams()
 
     # save tags
@@ -258,11 +278,11 @@ def test_model_checkpoint_options(tmp_path):
     assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
 
     # verify correct naming
-    for fname in {'_epoch=4_val_loss=2.50.ckpt',
-                  '_epoch=3_val_loss=5.00.ckpt',
-                  '_epoch=2_val_loss=2.80.ckpt',
-                  '_epoch=1_val_loss=9.00.ckpt',
-                  '_epoch=0_val_loss=10.00.ckpt'}:
+    for fname in {'epoch=4.ckpt',
+                  'epoch=3.ckpt',
+                  'epoch=2.ckpt',
+                  'epoch=1.ckpt',
+                  'epoch=0.ckpt'}:
         assert fname in file_lists
 
     save_dir = tmp_path / "2"
@@ -289,7 +309,7 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix_')
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
@@ -302,7 +322,7 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_epoch=4_val_loss=2.50.ckpt' in file_lists
+    assert 'test_prefix_epoch=4.ckpt' in file_lists
 
     save_dir = tmp_path / "4"
     save_dir.mkdir()
@@ -325,8 +345,8 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    for fname in {'_epoch=4_val_loss=2.50.ckpt',
-                  '_epoch=2_val_loss=2.80.ckpt',
+    for fname in {'epoch=4.ckpt',
+                  'epoch=2.ckpt',
                   'other_file.ckpt'}:
         assert fname in file_lists
 
@@ -371,9 +391,9 @@ def test_model_checkpoint_options(tmp_path):
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    for fname in {'_epoch=0_val_loss=2.80.ckpt',
-                  '_epoch=0_val_loss=2.50.ckpt',
-                  '_epoch=0_val_loss=5.00.ckpt'}:
+    for fname in {'epoch=0.ckpt',
+                  'epoch=0.ckpt',
+                  'epoch=0.ckpt'}:
         assert fname in file_lists
 
 
@@ -584,7 +604,7 @@ def test_testpass_overrides(tmpdir):
         pass
 
     class LocalModelNoStep(LightTrainDataloader, TestModelBase):
-        def test_end(self, outputs):
+        def test_epoch_end(self, outputs):
             return {}
 
     # Misconfig when neither test_step or test_end is implemented
@@ -604,8 +624,9 @@ def test_testpass_overrides(tmpdir):
     model = LightningTestModel(hparams)
     Trainer().test(model)
 
+
 @mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=argparse.Namespace(**Trainer.default_attributes()))
+            return_value=Namespace(**Trainer.default_attributes()))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
     tutils.reset_seed()
@@ -613,7 +634,7 @@ def test_default_args(tmpdir):
     # logger file to get meta
     logger = tutils.get_test_tube_logger(tmpdir, False)
 
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = ArgumentParser(add_help=False)
     args = parser.parse_args()
     args.logger = logger
 
