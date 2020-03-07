@@ -1,5 +1,6 @@
 import os
 from collections import OrderedDict
+from typing import Dict
 
 import torch
 import torch.nn as nn
@@ -23,6 +24,30 @@ import urllib.request
 opener = urllib.request.build_opener()
 opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 urllib.request.install_opener(opener)
+
+
+class DictHparamsModel(LightningModule):
+
+    def __init__(self, hparams: Dict):
+        super(DictHparamsModel, self).__init__()
+        self.hparams = hparams
+        self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'loss': F.cross_entropy(y_hat, y)}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    def train_dataloader(self):
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
+                                       normalize=(0.5, 1.0)), batch_size=32)
+
 
 class TestModelBase(LightningModule):
     """
