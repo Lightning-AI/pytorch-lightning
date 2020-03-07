@@ -1,25 +1,52 @@
+import glob
 import math
 import os
-
 import pytest
 import torch
+from argparse import ArgumentParser, Namespace
 
 import tests.models.utils as tutils
-from pytorch_lightning import Trainer
+from unittest import mock
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
 )
 from tests.models import (
+    TestModelBase,
+    DictHparamsModel,
     LightningTestModel,
-    LightningTestModelBase,
-    LightningTestModelBaseWithoutDataloader,
-    LightningValidationStepMixin,
-    LightningValidationMultipleDataloadersMixin,
-    LightningTestMultipleDataloadersMixin,
+    LightEmptyTestStep,
+    LightValidationStepMixin,
+    LightValidationMultipleDataloadersMixin,
+    LightTrainDataloader,
+    LightTestDataloader,
 )
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+
+
+def test_hparams_save_load(tmpdir):
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=2,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(
+        trainer.checkpoint_callback.dirpath,
+        module_class=DictHparamsModel
+    )
 
 
 def test_no_val_module(tmpdir):
@@ -28,7 +55,7 @@ def test_no_val_module(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    class CurrentTestModel(LightningTestModelBase):
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
 
     model = CurrentTestModel(hparams)
@@ -56,8 +83,10 @@ def test_no_val_module(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path)
+    model_2 = LightningTestModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        tags_csv=tags_path
+    )
     model_2.eval()
 
 
@@ -65,7 +94,7 @@ def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningValidationStepMixin, LightningTestModelBase):
+    class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
 
     hparams = tutils.get_hparams()
@@ -94,8 +123,10 @@ def test_no_val_end_module(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path)
+    model_2 = LightningTestModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        tags_csv=tags_path
+    )
     model_2.eval()
 
 
@@ -117,7 +148,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
+    def _optimizer_step(self, epoch, batch_idx, optimizer,
+                        optimizer_idx, second_order_closure=None):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
             if epoch == 0:
@@ -168,7 +200,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
                       default_save_path=tmpdir)
 
     # for the test
-    trainer.optimizer_step = optimizer_step
+    trainer.optimizer_step = _optimizer_step
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
@@ -177,7 +209,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
 def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
-    from argparse import Namespace
     hparams = tutils.get_hparams()
 
     # save tags
@@ -235,21 +266,24 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
 
     # verify correct naming
-    for i in range(0, len(losses)):
-        assert f'_ckpt_epoch_{i}.ckpt' in file_lists
+    for fname in {'epoch=4.ckpt',
+                  'epoch=3.ckpt',
+                  'epoch=2.ckpt',
+                  'epoch=1.ckpt',
+                  'epoch=0.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "2"
     save_dir.mkdir()
@@ -259,13 +293,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = os.listdir(save_dir)
 
@@ -276,21 +309,20 @@ def test_model_checkpoint_options(tmp_path):
 
     # -----------------
     # CASE K=1 (2.5, epoch 4)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix')
+    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix_')
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_ckpt_epoch_4.ckpt' in file_lists
+    assert 'test_prefix_epoch=4.ckpt' in file_lists
 
     save_dir = tmp_path / "4"
     save_dir.mkdir()
@@ -300,23 +332,23 @@ def test_model_checkpoint_options(tmp_path):
     # make sure other files don't get deleted
 
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
-    open(f'{save_dir}/other_file.ckpt', 'a').close()
+    open(f"{save_dir}/other_file.ckpt", 'a').close()
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        checkpoint_callback._trainer.current_epoch = i
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = i
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    assert '_ckpt_epoch_4.ckpt' in file_lists
-    assert '_ckpt_epoch_2.ckpt' in file_lists
-    assert 'other_file.ckpt' in file_lists
+    for fname in {'epoch=4.ckpt',
+                  'epoch=2.ckpt',
+                  'other_file.ckpt'}:
+        assert fname in file_lists
 
     save_dir = tmp_path / "5"
     save_dir.mkdir()
@@ -328,13 +360,12 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for loss in losses:
-        checkpoint_callback._trainer.current_epoch = 0
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = 0
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
@@ -350,20 +381,20 @@ def test_model_checkpoint_options(tmp_path):
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    checkpoint_callback.set_trainer(trainer)
 
     # emulate callback's calls during the training
     for loss in losses:
-        checkpoint_callback._trainer.current_epoch = 0
-        checkpoint_callback._trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end()
+        trainer.current_epoch = 0
+        trainer.callback_metrics = {'val_loss': loss}
+        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    assert '_ckpt_epoch_0_v2.ckpt' in file_lists
-    assert '_ckpt_epoch_0_v1.ckpt' in file_lists
-    assert '_ckpt_epoch_0.ckpt' in file_lists
+    for fname in {'epoch=0.ckpt',
+                  'epoch=0.ckpt',
+                  'epoch=0.ckpt'}:
+        assert fname in file_lists
 
 
 def test_model_freeze_unfreeze():
@@ -376,43 +407,6 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_multiple_val_dataloader(tmpdir):
-    """Verify multiple val_dataloader."""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningValidationMultipleDataloadersMixin,
-        LightningTestModelBase
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=1.0,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # verify training completed
-    assert result == 1
-
-    # verify there are 2 val loaders
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        'Multiple val_dataloaders not initiated properly'
-
-    # make sure predictions are good for each val set
-    for dataloader in trainer.get_val_dataloaders():
-        tutils.run_prediction(dataloader, trainer.model)
-
-
 def test_resume_from_checkpoint_epoch_restored(tmpdir):
     """Verify resuming from checkpoint runs the right number of epochs"""
     import types
@@ -421,7 +415,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     hparams = tutils.get_hparams()
 
-    def new_model():
+    def _new_model():
         # Create a model that tracks epochs and batches seen
         model = LightningTestModel(hparams)
         model.num_epochs_seen = 0
@@ -439,7 +433,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         model.on_batch_start = types.MethodType(increment_batch, model)
         return model
 
-    model = new_model()
+    model = _new_model()
 
     trainer_options = dict(
         show_progress_bar=False,
@@ -450,7 +444,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         logger=False,
         default_save_path=tmpdir,
         early_stop_callback=False,
-        val_check_interval=0.5,
+        val_check_interval=1.,
     )
 
     # fit model
@@ -463,15 +457,10 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     assert model.num_batches_seen == training_batches * 2
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = [
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0_v0.ckpt"),
-        # os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt"),
-        os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1_v0.ckpt"),
-    ]
+    checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
 
     for check in checkpoints:
-        next_model = new_model()
+        next_model = _new_model()
         state = torch.load(check)
 
         # Resume training
@@ -479,202 +468,6 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
         assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
-
-
-def test_multiple_test_dataloader(tmpdir):
-    """Verify multiple test_dataloader."""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestMultipleDataloadersMixin,
-        LightningTestModelBase
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # verify there are 2 val loaders
-    assert len(trainer.get_test_dataloaders()) == 2, \
-        'Multiple test_dataloaders not initiated properly'
-
-    # make sure predictions are good for each test set
-    for dataloader in trainer.get_test_dataloaders():
-        tutils.run_prediction(dataloader, trainer.model)
-
-    # run the test method
-    trainer.test()
-
-
-def test_train_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that train dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # only train passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True))
-    results = trainer.fit(model, **fit_options)
-
-
-def test_train_val_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that train & val dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, val passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-
-
-def test_all_dataloaders_passed_to_fit(tmpdir):
-    """ Verify train, val & test dataloader can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, val and test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
-
-
-def test_multiple_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that multiple val & test dataloaders can be passed to fit """
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModelBaseWithoutDataloader
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # train, multiple val and multiple test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloader=[model._dataloader(train=False),
-                                       model._dataloader(train=False)],
-                       test_dataloader=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
-    results = trainer.fit(model, **fit_options)
-
-    assert len(trainer.get_val_dataloaders()) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
-
-
-def test_mixing_of_dataloader_options(tmpdir):
-    """Verify that dataloaders can be passed to fit"""
-    tutils.reset_seed()
-
-    class CurrentTestModel(
-        LightningTestModelBase
-    ):
-        pass
-
-    hparams = tutils.get_hparams()
-    model = CurrentTestModel(hparams)
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloader=model._dataloader(train=False),
-                       test_dataloader=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
-    assert len(trainer.get_val_dataloaders()) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.get_val_dataloaders()}'
-    assert len(trainer.get_test_dataloaders()) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.get_test_dataloaders()}'
 
 
 def _init_steps_model():
@@ -699,6 +492,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # define less train steps than epochs
     trainer_options.update(dict(
+        default_save_path=tmpdir,
         max_epochs=5,
         max_steps=num_train_samples + 10
     ))
@@ -712,8 +506,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
-    trainer_options['max_epochs'] = 2
-    trainer_options['max_steps'] = trainer_options['max_epochs'] * 2 * num_train_samples
+    trainer_options.update(dict(
+        max_epochs=2,
+        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
+    ))
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -721,8 +517,8 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer.max_nb_epochs \
-        and trainer.current_epoch == trainer.max_nb_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.global_step == num_train_samples * trainer.max_epochs \
+        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -730,12 +526,13 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
-    trainer_options.update({
-        'early_stop_callback': EarlyStopping(monitor='val_loss', min_delta=1.0),
-        'val_check_interval': 20,
-        'min_epochs': 1,
-        'max_epochs': 10
-    })
+    trainer_options.update(dict(
+        default_save_path=tmpdir,
+        early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
+        val_check_interval=20,
+        min_epochs=1,
+        max_epochs=10
+    ))
 
     # define less min steps than 1 epoch
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)
@@ -762,5 +559,87 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
-# if __name__ == '__main__':
-#     pytest.main([__file__])
+def test_benchmark_option(tmpdir):
+    """Verify benchmark option."""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightValidationMultipleDataloadersMixin,
+        LightTrainDataloader,
+        TestModelBase
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # verify torch.backends.cudnn.benchmark is not turned on
+    assert not torch.backends.cudnn.benchmark
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        benchmark=True,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    # verify torch.backends.cudnn.benchmark is not turned off
+    assert torch.backends.cudnn.benchmark
+
+
+def test_testpass_overrides(tmpdir):
+    hparams = tutils.get_hparams()
+
+    class LocalModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
+        pass
+
+    class LocalModelNoStep(LightTrainDataloader, TestModelBase):
+        def test_epoch_end(self, outputs):
+            return {}
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModel(hparams)
+        Trainer().test(model)
+
+    # Misconfig when neither test_step or test_end is implemented
+    with pytest.raises(MisconfigurationException):
+        model = LocalModelNoStep(hparams)
+        Trainer().test(model)
+
+    # No exceptions when one or both of test_step or test_end are implemented
+    model = LocalModelNoEnd(hparams)
+    Trainer().test(model)
+
+    model = LightningTestModel(hparams)
+    Trainer().test(model)
+
+
+@mock.patch('argparse.ArgumentParser.parse_args',
+            return_value=Namespace(**Trainer.default_attributes()))
+def test_default_args(tmpdir):
+    """Tests default argument parser for Trainer"""
+    tutils.reset_seed()
+
+    # logger file to get meta
+    logger = tutils.get_test_tube_logger(tmpdir, False)
+
+    parser = ArgumentParser(add_help=False)
+    args = parser.parse_args()
+    args.logger = logger
+
+    args.max_epochs = 5
+    trainer = Trainer.from_argparse_args(args)
+
+    assert isinstance(trainer, Trainer)
+    assert trainer.max_epochs == 5

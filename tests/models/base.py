@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.datasets import MNIST
+from typing import Dict
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -16,15 +16,21 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
+
+# TODO: remove after getting own MNIST
+# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
+import urllib.request
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
 
 
 class TestingMNIST(MNIST):
 
     def __init__(self, root, train=True, transform=None, target_transform=None,
                  download=False, num_samples=8000):
-        super(TestingMNIST, self).__init__(
+        super().__init__(
             root,
             train=train,
             transform=transform,
@@ -34,6 +40,29 @@ class TestingMNIST(MNIST):
         # take just a subset of MNIST dataset
         self.data = self.data[:num_samples]
         self.targets = self.targets[:num_samples]
+
+
+class DictHparamsModel(LightningModule):
+
+    def __init__(self, hparams: Dict):
+        super(DictHparamsModel, self).__init__()
+        self.hparams = hparams
+        self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'loss': F.cross_entropy(y_hat, y)}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    def train_dataloader(self):
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
+                                       transform=transforms.ToTensor()), batch_size=32)
 
 
 class TestModelBase(LightningModule):
@@ -48,7 +77,7 @@ class TestModelBase(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(TestModelBase, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -87,7 +116,6 @@ class TestModelBase(LightningModule):
         :param x:
         :return:
         """
-
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
@@ -102,7 +130,7 @@ class TestModelBase(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx=None):
         """
         Lightning calls this inside the training loop
         :param batch:
@@ -150,30 +178,26 @@ class TestModelBase(LightningModule):
         # test returning only 1 list instead of 2
         return optimizer
 
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        _ = TestingMNIST(root=self.hparams.data_root, train=True,
+                         transform=transform, download=True, num_samples=2000)
+
     def _dataloader(self, train):
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=True, num_samples=2000)
+                               transform=transform, download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        try:
-            if self.use_ddp and not self.force_remove_distributed_sampler:
-                train_sampler = DistributedSampler(dataset, rank=self.trainer.proc_rank)
-                batch_size = batch_size // self.trainer.world_size  # scale batch size
-        except Exception:
-            pass
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler
+            shuffle=True
         )
 
         return loader
@@ -197,32 +221,17 @@ class TestModelBase(LightningModule):
         parser.add_argument('--out_features', default=10, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
         parser.add_argument('--hidden_dim', default=50000, type=int)
-
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
                         options=[0.0001, 0.0005, 0.001, 0.005],
                         tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str,
                         options=['adam'], tunable=False)
-
         # if using 2 nodes with 4 gpus each the batch size here
         #  (256) will be 256 / (2*8) = 16 per gpu
         parser.opt_list('--batch_size', default=256 * 8, type=int,
                         options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all gpus being used across all nodes')
+                        help='batch size will be divided over all GPUs being used across all nodes')
         return parser
-
-
-class LightningTestModelBase(TestModelBase):
-    """ with pre-defined train dataloader """
-    @data_loader
-    def train_dataloader(self):
-        return self._dataloader(train=True)
-
-
-class LightningTestModelBaseWithoutDataloader(TestModelBase):
-    """ without pre-defined train dataloader """
-    pass

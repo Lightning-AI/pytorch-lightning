@@ -118,48 +118,51 @@ import os
 import re
 import warnings
 from abc import ABC, abstractmethod
+from typing import Union
 
 import torch
+from pytorch_lightning.loggers import LightningLoggerBase
 
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerDDPMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.num_gpus = None
-        self.on_gpu = None
-        self.num_gpu_nodes = None
-        self.logger = None
-        self.data_parallel_device_ids = None
-        self.distributed_backend = None
-        self.use_amp = None
-        self.amp_level = None
-        self.use_tpu = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    on_gpu: bool
+    num_gpu_nodes: int
+    logger: Union[LightningLoggerBase, bool]
+    data_parallel_device_ids: ...
+    distributed_backend: str
+    use_amp: bool
+    amp_level: str
+    use_tpu: bool
+    default_save_path: str
+
+    @property
+    @abstractmethod
+    def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def copy_trainer_model_properties(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def copy_trainer_model_properties(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_pretrain_routine(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def run_pretrain_routine(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def init_optimizers(self, optimizers):
-        # this is just empty shell for code from other class
-        pass
+    def init_optimizers(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
         # turn off all the GPU stuff
@@ -337,6 +340,38 @@ class TrainerDDPMixin(ABC):
 
         # continue training routine
         self.run_pretrain_routine(model)
+
+        # when ddp ends, we save the model
+        self.save_spawn_weights(model)
+
+    def save_spawn_weights(self, model):
+        """
+        Dump a temporary checkpoint after ddp ends to get weights out of the process
+        :param model:
+        :return:
+        """
+        if self.proc_rank == 0:
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            self.save_checkpoint(path)
+
+    def load_spawn_weights(self, original_model):
+        """
+        Load the temp weights saved in the process
+        To recover the trained model from the ddp process we load the saved weights
+        :param model:
+        :return:
+        """
+        # load weights saved in ddp
+        path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+        loaded_model = original_model.__class__.load_from_checkpoint(path)
+
+        # copy loaded weights to old model
+        original_model.load_state_dict(loaded_model.state_dict())
+
+        # remove ddp weights
+        os.remove(path)
+
+        return loaded_model
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:

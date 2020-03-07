@@ -1,10 +1,11 @@
+import csv
 import os
-from warnings import warn
 from argparse import Namespace
-from pkg_resources import parse_version
+from typing import Optional, Dict, Union, Any
+from warnings import warn
 
 import torch
-import csv
+from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
 from .base import LightningLoggerBase, rank_zero_only
@@ -42,7 +43,10 @@ class TensorBoardLogger(LightningLoggerBase):
     """
     NAME_CSV_TAGS = 'meta_tags.csv'
 
-    def __init__(self, save_dir, name="default", version=None, **kwargs):
+    def __init__(
+            self, save_dir: str, name: Optional[str] = "default",
+            version: Optional[Union[int, str]] = None, **kwargs
+    ):
         super().__init__()
         self.save_dir = save_dir
         self._name = name
@@ -53,7 +57,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self.kwargs = kwargs
 
     @property
-    def root_dir(self):
+    def root_dir(self) -> str:
         """
         Parent directory for all tensorboard checkpoint subdirectories.
         If the experiment name parameter is None or the empty string, no experiment subdirectory is used
@@ -65,7 +69,7 @@ class TensorBoardLogger(LightningLoggerBase):
             return os.path.join(self.save_dir, self.name)
 
     @property
-    def log_dir(self):
+    def log_dir(self) -> str:
         """
         The directory for this run's tensorboard checkpoint.  By default, it is named 'version_${self.version}'
         but it can be overridden by passing a string value for the constructor's version parameter
@@ -77,7 +81,7 @@ class TensorBoardLogger(LightningLoggerBase):
         return log_dir
 
     @property
-    def experiment(self):
+    def experiment(self) -> SummaryWriter:
         r"""
 
          Actual tensorboard object. To use tensorboard features do the following.
@@ -95,14 +99,8 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params):
-        if params is None:
-            return
-
-        # in case converting from namespace
-        if isinstance(params, Namespace):
-            params = vars(params)
-        params = dict(params)
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
@@ -121,14 +119,14 @@ class TensorBoardLogger(LightningLoggerBase):
         self.tags.update(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
             self.experiment.add_scalar(k, v, step)
 
     @rank_zero_only
-    def save(self):
+    def save(self) -> None:
         try:
             self.experiment.flush()
         except AttributeError:
@@ -151,15 +149,15 @@ class TensorBoardLogger(LightningLoggerBase):
                 writer.writerow({'key': k, 'value': v})
 
     @rank_zero_only
-    def finalize(self, status):
+    def finalize(self, status: str) -> None:
         self.save()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def version(self):
+    def version(self) -> int:
         if self._version is None:
             self._version = self._get_next_version()
         return self._version

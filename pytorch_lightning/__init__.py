@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.6.1.dev'
+__version__ = '0.7.1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -24,15 +24,15 @@ if __LIGHTNING_SETUP__:
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
-    import logging as log
-    log.basicConfig(level=log.INFO)
-
-    from .core import data_loader, LightningModule
+    from .core import LightningModule
     from .trainer import Trainer
+    from .callbacks import Callback
+    from .core import data_loader
 
     __all__ = [
         'Trainer',
         'LightningModule',
-        'data_loader',
+        'Callback',
+        'data_loader'
     ]
     # __call__ = __all__

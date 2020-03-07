@@ -1,5 +1,5 @@
 """
-Log using `mlflow <https://mlflow.org>'_
+Log using `mlflow <https://mlflow.org>`_
 
 .. code-block:: python
 
@@ -23,22 +23,23 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
-
-from logging import getLogger
+import logging as log
+from argparse import Namespace
 from time import time
+from typing import Optional, Dict, Any, Union
 
 try:
     import mlflow
 except ImportError:
-    raise ImportError('Missing mlflow package.')
+    raise ImportError('You want to use `mlflow` logger which is not installed yet,'
+                      ' install it with `pip install mlflow`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
-logger = getLogger(__name__)
-
 
 class MLFlowLogger(LightningLoggerBase):
-    def __init__(self, experiment_name, tracking_uri=None, tags=None):
+    def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
+                 tags: Dict[str, Any] = None):
         r"""
 
         Logs using MLFlow
@@ -55,7 +56,7 @@ class MLFlowLogger(LightningLoggerBase):
         self.tags = tags
 
     @property
-    def experiment(self):
+    def experiment(self) -> mlflow.tracking.MlflowClient:
         r"""
 
         Actual mlflow object. To use mlflow features do the following.
@@ -77,7 +78,7 @@ class MLFlowLogger(LightningLoggerBase):
         if expt:
             self._expt_id = expt.experiment_id
         else:
-            logger.warning(f"Experiment with name {self.experiment_name} not found. Creating it.")
+            log.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
             self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
 
         run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
@@ -85,18 +86,17 @@ class MLFlowLogger(LightningLoggerBase):
         return self._run_id
 
     @rank_zero_only
-    def log_hyperparams(self, params):
-        for k, v in vars(params).items():
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
+        for k, v in params.items():
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                logger.warning(
-                    f"Discarding metric with string value {k}={v}"
-                )
+                log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
@@ -104,15 +104,15 @@ class MLFlowLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status="FINISHED"):
+    def finalize(self, status: str = 'FINISHED') -> None:
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.experiment_name
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self._run_id

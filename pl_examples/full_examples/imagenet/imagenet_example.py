@@ -19,6 +19,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 import pytorch_lightning as pl
+from pytorch_lightning.core import LightningModule
 
 # pull out resnet names from torchvision models
 MODEL_NAMES = sorted(
@@ -27,9 +28,11 @@ MODEL_NAMES = sorted(
 )
 
 
-class ImageNetLightningModel(pl.LightningModule):
-
+class ImageNetLightningModel(LightningModule):
     def __init__(self, hparams):
+        """
+        TODO: add docstring here
+        """
         super(ImageNetLightningModel, self).__init__()
         self.hparams = hparams
         self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
@@ -80,7 +83,7 @@ class ImageNetLightningModel(pl.LightningModule):
 
         return output
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
 
         tqdm_dict = {}
 
@@ -128,7 +131,6 @@ class ImageNetLightningModel(pl.LightningModule):
         scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
         return [optimizer], [scheduler]
 
-    @pl.data_loader
     def train_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -159,7 +161,6 @@ class ImageNetLightningModel(pl.LightningModule):
         )
         return train_loader
 
-    @pl.data_loader
     def val_dataloader(self):
         normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],

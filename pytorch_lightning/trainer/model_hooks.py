@@ -11,8 +11,9 @@ class TrainerModelHooksMixin(ABC):
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
-    def is_overriden(self, f_name):
-        model = self.get_model()
+    def is_overriden(self, f_name, model=None):
+        if model is None:
+            model = self.get_model()
         super_object = LightningModule
 
         # when code pointers are different, it was overriden
@@ -26,5 +27,4 @@ class TrainerModelHooksMixin(ABC):
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""

@@ -86,6 +86,7 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     # 'm2r',
     'nbsphinx',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -353,11 +354,13 @@ autoclass_content = 'both'
 #  see https://github.com/sphinx-doc/sphinx/issues/5459
 autodoc_default_options = {
     'members': None,
+    'methods': None,
+    # 'attributes': None,
     'special-members': '__call__',
-    'undoc-members': True,
     # 'exclude-members': '__weakref__',
     'show-inheritance': True,
     'private-members': True,
+    'noindex': True,
 }
 
 # Sphinx will add “permalinks” for each heading and description environment as paragraph signs that

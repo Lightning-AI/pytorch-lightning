@@ -12,13 +12,12 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
 
-import pytorch_lightning as pl
+from pytorch_lightning.core import LightningModule
 
 
-class LightningTemplateModel(pl.LightningModule):
+class LightningTemplateModel(LightningModule):
     """
     Sample model to show how to define a template
     """
@@ -142,7 +141,7 @@ class LightningTemplateModel(pl.LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -188,41 +187,39 @@ class LightningTemplateModel(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def __dataloader(self, train):
+        # this is neede when you want some info about dataset before binding to trainer
+        self.prepare_data()
         # init data generators
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
         dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=True)
+                        transform=transform, download=False)
 
         # when using multi-node (ddp) we need to add the  datasampler
-        train_sampler = None
         batch_size = self.hparams.batch_size
 
-        if self.use_ddp:
-            train_sampler = DistributedSampler(dataset)
-
-        should_shuffle = train_sampler is None
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=should_shuffle,
-            sampler=train_sampler,
             num_workers=0
         )
 
         return loader
 
-    @pl.data_loader
+    def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        _ = MNIST(root=self.hparams.data_root, train=True,
+                  transform=transform, download=True)
+
     def train_dataloader(self):
         log.info('Training data loader called.')
         return self.__dataloader(train=True)
 
-    @pl.data_loader
     def val_dataloader(self):
         log.info('Validation data loader called.')
         return self.__dataloader(train=False)
 
-    @pl.data_loader
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
@@ -252,6 +249,7 @@ class LightningTemplateModel(pl.LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
 
         # training params (opt)
+        parser.add_argument('--epochs', default=20, type=int)
         parser.add_argument('--optimizer_name', default='adam', type=str)
         parser.add_argument('--batch_size', default=64, type=int)
         return parser

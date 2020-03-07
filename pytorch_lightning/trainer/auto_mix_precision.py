@@ -12,8 +12,9 @@ import logging as log
 
 class TrainerAMPMixin(ABC):
 
-    def __init__(self):
-        self.use_amp = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    use_amp: bool
 
     def init_amp(self, use_amp):
         self.use_amp = use_amp and APEX_AVAILABLE

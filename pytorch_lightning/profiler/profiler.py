@@ -6,9 +6,7 @@ import cProfile
 import pstats
 import io
 from abc import ABC, abstractmethod
-import logging
-
-logger = logging.getLogger(__name__)
+import logging as log
 
 
 class BaseProfiler(ABC):
@@ -124,7 +122,7 @@ class Profiler(BaseProfiler):
                 action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
             )
         output_string += "\n"
-        logger.info(output_string)
+        log.info(output_string)
 
 
 class AdvancedProfiler(BaseProfiler):
@@ -177,4 +175,4 @@ class AdvancedProfiler(BaseProfiler):
             output_string = "\nProfiler Report\n"
             for action, stats in self.recorded_stats.items():
                 output_string += f"\nProfile stats for: {action}\n{stats}"
-            logger.info(output_string)
+            log.info(output_string)

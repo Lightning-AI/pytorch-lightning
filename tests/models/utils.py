@@ -32,11 +32,15 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
 
     # test model loading
     pretrained_model = load_model(trainer.logger,
-                                  trainer.checkpoint_callback.filepath,
+                                  trainer.checkpoint_callback.dirpath,
                                   path_expt=trainer_options.get('default_save_path'))
 
     # test new model accuracy
-    for dataloader in model.test_dataloader():
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
     if trainer.use_ddp:
@@ -66,15 +70,19 @@ def run_model_test(trainer_options, model, on_gpu=True):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger, trainer.checkpoint_callback.filepath)
+    pretrained_model = load_model(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
-    [run_prediction(dataloader, pretrained_model) for dataloader in model.test_dataloader()]
+    test_loaders = model.test_dataloader()
+    if not isinstance(test_loaders, list):
+        test_loaders = [test_loaders]
+
+    [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
 
     if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+        trainer.optimizers, trainer.lr_schedulers = trainer.init_optimizers(pretrained_model.configure_optimizers())
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, logger)
@@ -82,7 +90,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
 
 
 def get_hparams(continue_training=False, hpc_exp_number=0):
-    root_dir = os.path.dirname(os.path.realpath(__file__))
+    tests_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
     args = {
         'drop_prob': 0.2,
@@ -90,7 +98,7 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
         'in_features': 28 * 28,
         'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
-        'data_root': os.path.join(root_dir, 'mnist'),
+        'data_root': os.path.join(tests_dir, 'datasets'),
         'out_features': 10,
         'hidden_dim': 1000,
     }
@@ -150,15 +158,31 @@ def load_model(exp, root_weights_dir, module_class=LightningTemplateModel, path_
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
-    trained_model = module_class.load_from_metrics(weights_path=weights_dir,
-                                                   tags_csv=tags_path)
+    trained_model = module_class.load_from_checkpoint(
+        checkpoint_path=weights_dir,
+        tags_csv=tags_path
+    )
 
     assert trained_model is not None, 'loading model failed'
 
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
+def load_model_from_checkpoint(root_weights_dir, module_class=LightningTemplateModel):
+    # load trained model
+    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
+    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
+
+    trained_model = module_class.load_from_checkpoint(
+        checkpoint_path=weights_dir,
+    )
+
+    assert trained_model is not None, 'loading model failed'
+
+    return trained_model
+
+
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.45):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -180,13 +204,13 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.tensor(acc)
         acc = acc.item()
 
-    assert acc > min_acc, f'this model is expected to get > {min_acc} in test set (it got {acc})'
+    assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
     # this model should get 0.80+ acc
     acc = trainer.training_tqdm_dict[key]
-    assert acc > thr, f'Model failed to get expected {thr} accuracy. {key} = {acc}'
+    assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
 def can_run_gpu_test():
@@ -215,5 +239,6 @@ def set_random_master_port():
 def init_checkpoint_callback(logger, path_dir=None):
     exp_path = get_data_path(logger, path_dir=path_dir)
     ckpt_dir = os.path.join(exp_path, 'checkpoints')
+    os.mkdir(ckpt_dir)
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint
