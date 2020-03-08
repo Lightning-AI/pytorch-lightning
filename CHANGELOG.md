@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+- 
+
+### Changed
+
+-
+
+### Deprecated
+
+-
+
+### Removed
+
+-
+
+### Fixed
+
+-
+
+## [0.7.1] - 2020-03-07
+
+### Added
+
+- _None_
+
+### Changed
+
+- _None_
+
+### Deprecated
+
+- _None_
+
+### Removed
+
+- _None_
+
+### Fixed
+
+- Fixes `print` issues and `data_loader` ([#1080](https://github.com/PyTorchLightning/pytorch-lightning/pull/1080))
+
 ## [0.7.0] - 2020-03-06
 
 ### Added
@@ -147,7 +191,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -173,7 +217,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
@@ -208,11 +252,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -225,7 +269,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -238,11 +282,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -267,11 +311,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -288,15 +332,15 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -306,7 +350,7 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -315,11 +359,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -340,15 +384,15 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -362,19 +406,19 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.4] - 2019-08-12
 
@@ -390,11 +434,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -405,19 +449,19 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -427,7 +471,7 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -435,21 +479,21 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.1] - 2019-08-08
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -457,15 +501,15 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.0] - 2019-08-08
 
@@ -480,7 +524,7 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
@@ -494,19 +538,19 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -520,16 +564,30 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
+
+## [0.3.5] - 2019-MM-DD
+
+## [0.3.4] - 2019-MM-DD
+
+## [0.3.3] - 2019-MM-DD
+
+## [0.3.2] - 2019-MM-DD
+
+## [0.3.1] - 2019-MM-DD
+
+## [0.2.x] - YYYY-MM-DD
+
+## [0.1.x] - YYYY-MM-DD
