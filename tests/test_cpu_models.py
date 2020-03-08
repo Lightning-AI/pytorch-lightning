@@ -1,5 +1,6 @@
 import warnings
 
+import pytest
 import torch
 
 import tests.models.utils as tutils
@@ -357,6 +358,34 @@ def test_single_gpu_model(tmpdir):
     )
 
     tutils.run_model_test(trainer_options, model)
+
+
+def test_nan_detection(tmpdir):
+
+    class NanModel(LightTrainDataloader, TestModelBase):
+
+        def __init__(self, hparams):
+            super().__init__(hparams)
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            if isinstance(output, dict):
+                output['loss'] /= 0  # make loss NaN
+            else:
+                output /= 0
+            return output
+
+    hparams = tutils.get_hparams()
+    model = NanModel(hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=10,
+    )
+
+    with pytest.raises(SystemExit, match=r".*The loss returned in `training_step` is NaN.*"):
+        trainer.fit(model)
 
 
 # if __name__ == '__main__':
