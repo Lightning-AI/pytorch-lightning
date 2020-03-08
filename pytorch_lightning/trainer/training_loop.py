@@ -704,7 +704,7 @@ class TrainerTrainLoopMixin(ABC):
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
-        # check if loss or model weights are NaN
+        # check if loss or model weights are nan
         self.detect_nan(output[0])
 
         return output
