@@ -757,5 +757,3 @@ class TrainerTrainLoopMixin(ABC):
                     ' Check your forward pass for numerically unstable operations.'
                     ' Will stop training.',
                 )
-
-
