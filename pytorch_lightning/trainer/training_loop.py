@@ -743,17 +743,17 @@ class TrainerTrainLoopMixin(ABC):
         self.on_validation_end()
 
     def detect_nan(self, loss: Tensor) -> None:
-        # check if loss is NaN
-        if torch.any(torch.isnan(loss)):
+        # check if loss is nan
+        if not torch.isfinite(loss).all():
             sys.exit(
-                'The loss returned in `training_step` is NaN.'
+                'The loss returned in `training_step` is nan or inf.'
                 ' Will stop training.'
             )
-        # check if a network weight is NaN
+        # check if a network weight is nan
         for name, param in self.model.named_parameters():
-            if torch.any(torch.isnan(param)):
+            if not torch.isfinite(param).all():
                 sys.exit(
-                    f'Detected NaN values in `{name}`.'
+                    f'Detected nan and/or inf values in `{name}`.'
                     ' Check your forward pass for numerically unstable operations.'
                     ' Will stop training.',
                 )

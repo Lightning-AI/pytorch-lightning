@@ -1,3 +1,4 @@
+import math
 import warnings
 
 import pytest
@@ -360,32 +361,64 @@ def test_single_gpu_model(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
-def test_nan_detection(tmpdir):
+def test_nan_loss_detection(tmpdir):
+    test_step = 8
 
-    class NanModel(LightTrainDataloader, TestModelBase):
-
-        def __init__(self, hparams):
-            super().__init__(hparams)
+    class InfLossModel(LightTrainDataloader, TestModelBase):
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
-            if isinstance(output, dict):
-                output['loss'] /= 0  # make loss NaN
-            else:
-                output /= 0
+            if batch_idx == test_step:
+                if isinstance(output, dict):
+                    output['loss'] /= 0  # make loss infinite
+                else:
+                    output /= 0
             return output
 
     hparams = tutils.get_hparams()
-    model = NanModel(hparams)
+    model = InfLossModel(hparams)
 
     # fit model
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_steps=10,
+        max_steps=(test_step + 1),
     )
 
-    with pytest.raises(SystemExit, match=r".*The loss returned in `training_step` is NaN.*"):
+    with pytest.raises(SystemExit, match=r'.*The loss returned in `training_step` is nan or inf.*'):
         trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    for param in model.parameters():
+        assert torch.isfinite(param).all()
+
+
+def test_nan_params_detection(tmpdir):
+    test_step = 8
+
+    class NanParamModel(LightTrainDataloader, TestModelBase):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            if batch_idx == test_step:
+                # simulate parameter that became nan
+                self.c_d1.bias[0] = torch.as_tensor(math.nan)
+            return output
+
+    hparams = tutils.get_hparams()
+
+    model = NanParamModel(hparams)
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=(test_step + 1),
+    )
+
+    with pytest.raises(SystemExit, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
+        trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    # after aborting the training loop, model still has nan-valued params
+    params = torch.cat([param.view(-1) for param in model.parameters()])
+    assert not torch.isfinite(params).all()
 
 
 # if __name__ == '__main__':
