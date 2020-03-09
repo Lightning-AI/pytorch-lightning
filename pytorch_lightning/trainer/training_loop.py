@@ -119,6 +119,17 @@ When this flag is enabled each batch is split into sequences of size truncated_b
     trainer = Trainer(truncated_bptt_steps=2)
 
 
+NaN detection and intervention
+------------------------------
+In every forward pass in training, Lightning will check that
+
+1. the loss you return in `training_step` is finite (not NaN and not +/-inf)
+2. the model parameters have finite values.
+
+Lightning will terminate the training loop with an error message if NaN or infinite
+values are detected. If this happens, you should investigate numerically unstable operations
+in your model.
+
 """
 
 import copy
