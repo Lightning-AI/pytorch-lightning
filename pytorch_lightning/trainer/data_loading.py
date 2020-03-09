@@ -163,10 +163,22 @@ class TrainerDataLoadingMixin(ABC):
         # determine number of validation batches
         # val datasets could be none, 1 or 2+
         if self.val_dataloaders is not None:
-            self._percent_range_check('val_percent_check')
+            for dataloader in self.val_dataloaders:
+                if self.is_infinite_dataloader(dataloader):
+                    self.num_val_batches = float('inf')
 
-            self.num_val_batches = sum(len(dataloader) for dataloader in self.val_dataloaders)
-            self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
+            if self.num_val_batches != float('inf'):
+                self._percent_range_check('val_percent_check')
+
+                self.num_val_batches = sum(len(dataloader) for dataloader in self.val_dataloaders)
+                self.num_val_batches = int(self.num_val_batches * self.val_percent_check)
+            elif not (self.val_percent_check == 1.0 or self.val_percent_check == 0.0):
+                m = '''
+                When using an infinite DataLoader (e.g. with an IterableDataset or when DataLoader
+                does not implement `__len__`) for `val_dataloader`, `Trainer(val_percent_check)`
+                must be `0.0` or `1.0`.
+                '''
+                raise MisconfigurationException(m)
 
     def reset_test_dataloader(self, model):
         """Dataloaders are provided by the model.
@@ -188,11 +200,23 @@ class TrainerDataLoadingMixin(ABC):
 
         # determine number of test batches
         if self.test_dataloaders is not None:
-            self._percent_range_check('test_percent_check')
+            for dataloader in self.test_dataloaders:
+                if self.is_infinite_dataloader(dataloader):
+                    self.num_test_batches = float('inf')
 
-            len_sum = sum(len(dataloader) for dataloader in self.test_dataloaders)
-            self.num_test_batches = len_sum
-            self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
+            if self.num_test_batches != float('inf'):
+                self._percent_range_check('test_percent_check')
+
+                len_sum = sum(len(dataloader) for dataloader in self.test_dataloaders)
+                self.num_test_batches = len_sum
+                self.num_test_batches = int(self.num_test_batches * self.test_percent_check)
+            elif not (self.test_percent_check == 1.0 or self.test_percent_check == 0.0):
+                m = '''
+                When using an infinite DataLoader (e.g. with an IterableDataset or when DataLoader
+                does not implement `__len__`) for `test_dataloader`, `Trainer(test_percent_check)`
+                must be `0.0` or `1.0`.
+                '''
+                raise MisconfigurationException(m)
 
     def request_data_loader(self, data_loader_fx):
         """

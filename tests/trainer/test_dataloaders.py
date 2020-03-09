@@ -13,6 +13,9 @@ from tests.models import (
     LightValStepFitMultipleDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
+    LightInfTrainDataloader,
+    LightInfValDataloader,
+    LightInfTestDataloader
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -274,31 +277,11 @@ def test_inf_train_dataloader(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningTestModel):
-        def train_dataloader(self):
-            dataloader = self._dataloader(train=True)
-
-            class CustomInfDataLoader:
-                def __init__(self, dataloader):
-                    self.dataloader = dataloader
-                    self.iter = iter(dataloader)
-                    self.count = 0
-
-                def __iter__(self):
-                    self.count = 0
-                    return self
-
-                def __next__(self):
-                    if self.count >= 5:
-                        raise StopIteration
-                    self.count = self.count + 1
-                    try:
-                        return next(self.iter)
-                    except StopIteration:
-                        self.iter = iter(self.dataloader)
-                        return next(self.iter)
-
-            return CustomInfDataLoader(dataloader)
+    class CurrentTestModel(
+        LightInfTrainDataloader,
+        LightningTestModel
+    ):
+        pass
 
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
@@ -316,9 +299,77 @@ def test_inf_train_dataloader(tmpdir):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        val_check_interval=50,
+        val_check_interval=50
     )
     result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
+def test_inf_val_dataloader(tmpdir):
+    """Test inf val data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightInfValDataloader,
+        LightningTestModel
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            val_percent_check=0.5
+        )
+        trainer.fit(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
+def test_inf_test_dataloader(tmpdir):
+    """Test inf test data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightInfTestDataloader,
+        LightningTestModel,
+        LightTestFitSingleTestDataloadersMixin
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            test_percent_check=0.5
+        )
+        trainer.test(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+    trainer.test(model)
 
     # verify training completed
     assert result == 1
