@@ -39,7 +39,7 @@ main.py file this way
 
 .. code-block:: python
 
-    from argparser import AugumentParser
+    from argparse import ArgumentParser
 
     def main(hparams):
         model = LightningModule()
