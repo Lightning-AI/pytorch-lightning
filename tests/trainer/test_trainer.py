@@ -437,7 +437,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     model = _new_model()
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.65,
         val_percent_check=1,

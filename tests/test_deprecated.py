@@ -37,6 +37,7 @@ def test_tbd_remove_in_v0_8_0_trainer():
     }
     # skip 0 since it may be interested as False
     kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
+    kwargs['show_progress_bar'] = True
 
     trainer = Trainer(**kwargs)
 
@@ -46,6 +47,12 @@ def test_tbd_remove_in_v0_8_0_trainer():
             'Missing deprecated attribute "%s"' % attr_old
         assert kwargs[attr_old] == getattr(trainer, attr_new), \
             'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+    attr_old = 'show_progress_bar'
+    attr_new = 'progress_bar_refresh_rate'
+    assert kwargs[attr_old] == getattr(trainer, attr_old), \
+        'Missing deprecated attribute "%s"' % attr_old
+    assert kwargs[attr_old] == bool(getattr(trainer, attr_new)), \
+        'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
 
 def test_tbd_remove_in_v0_9_0_module_imports():
