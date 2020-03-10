@@ -28,8 +28,8 @@ def test_early_stopping_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        show_progress_bar=True,
-        logger=tutils.get_default_testtube_logger(tmpdir),
+        print_nan_grads=True,
+        logger=tutils.get_test_tube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1,
     )
@@ -49,7 +49,8 @@ def test_lbfgs_cpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=2,
-        show_progress_bar=False,
+        print_nan_grads=True,
+        progress_bar_refresh_rate=0,
         weights_summary='top',
         train_percent_check=1.0,
         val_percent_check=0.2,
@@ -68,7 +69,8 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
-        show_progress_bar=False,
+        print_nan_grads=True,
+        progress_bar_refresh_rate=0,
         train_percent_check=0.01,
         val_percent_check=0.01,
     )
@@ -96,8 +98,8 @@ def test_running_test_after_fitting(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=False,
-        max_epochs=8,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -134,7 +136,7 @@ def test_running_test_without_val(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -229,8 +231,8 @@ def test_cpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=False,
-        logger=tutils.get_default_testtube_logger(tmpdir),
+        progress_bar_refresh_rate=0,
+        logger=tutils.get_test_tube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -250,8 +252,9 @@ def test_all_features_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        show_progress_bar=False,
-        logger=tutils.get_default_testtube_logger(tmpdir),
+        print_nan_grads=True,
+        progress_bar_refresh_rate=0,
+        logger=tutils.get_test_tube_logger(tmpdir),
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
@@ -347,7 +350,7 @@ def test_single_gpu_model(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,

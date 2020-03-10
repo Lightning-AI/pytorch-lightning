@@ -34,7 +34,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -82,7 +82,7 @@ def test_running_test_pretrained_model(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -115,7 +115,7 @@ def test_load_model_from_checkpoint(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -168,7 +168,6 @@ def test_running_test_pretrained_model_dp(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        show_progress_bar=True,
         max_epochs=4,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -206,7 +205,6 @@ def test_dp_resume(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        show_progress_bar=True,
         max_epochs=3,
         gpus=2,
         distributed_backend='dp',
@@ -333,7 +331,7 @@ def test_model_saving_loading(tmpdir):
 
 def test_load_model_with_missing_hparams(tmpdir):
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
