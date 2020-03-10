@@ -88,7 +88,7 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
-            show_progress_bar: bool = True,
+            show_progress_bar=None,  # backward compatible, todo: remove in v0.8.0
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
@@ -161,9 +161,11 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            show_progress_bar: If true shows tqdm progress bar
+            show_progress_bar:
+                .. warning:: .. deprecated:: 0.7.0
+                        Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps)
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). 0 to disable progress bar.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -414,9 +416,13 @@ class Trainer(
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
+        # Backward compatibility, TODO: remove in v0.8.0
+        if show_progress_bar is not None:
+            warnings.warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.1"
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
-        self.show_progress_bar = show_progress_bar
+        self.show_progress_bar = self.progress_bar_refresh_rate >= 1
 
         # logging
         self.log_save_interval = log_save_interval

@@ -637,7 +637,8 @@ Example::
     trainer = Trainer(profiler=profiler)
 
 progress_bar_refresh_rate
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^
+^^^^^^^^^^^^^^^^^^^
 How often to refresh progress bar (in steps).
 In notebooks, faster refresh rates (lower number) is known to crash them
 because of their screen refresh rates, so raise it to 50 or more.
@@ -647,6 +648,8 @@ Example::
     # default used by the Trainer
     trainer = Trainer(progress_bar_refresh_rate=1)
 
+    #disable progress bar
+    trainer = Trainer(progress_bar_refresh_rate=0)
 
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -703,12 +706,8 @@ use_amp:
 show_progress_bar
 ^^^^^^^^^^^^^^^^^
 
-If true shows tqdm progress bar
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(show_progress_bar=True)
+.. warning:: .. deprecated:: 0.7.0
+    Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check
 ^^^^^^^^^^^^^^^^^^
