@@ -224,10 +224,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_infinite_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def run_evaluation(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
