@@ -11,7 +11,7 @@ steps:
     - python --version
     - pip install pip -U
     - pip --version
-    - pip install torch==1.3
+    #- pip install torch==1.3
     - pip install -r requirements.txt --user
     - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
     - pip install coverage pytest pytest-cov pytest-flake8
