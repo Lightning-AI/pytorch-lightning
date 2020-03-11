@@ -48,14 +48,19 @@ class TrainsLogger(LightningLoggerBase):
     """Logs using TRAINS
 
     Args:
-        project_name (Optional[str], optional): The name of the experiment's project. Defaults to None.
+        project_name (Optional[str], optional): The name of the experiment's project.
+            Defaults to None.
         task_name (Optional[str], optional): The name of the experiment. Defaults to None.
         task_type (str, optional): The name of the experiment. Defaults to 'training'.
-        reuse_last_task_id (bool, optional): Start with the previously used task id. Defaults to True.
+        reuse_last_task_id (bool, optional): Start with the previously used task id.
+            Defaults to True.
         output_uri (Optional[str], optional): Default location for output models. Defaults to None.
-        auto_connect_arg_parser (bool, optional): Automatically grab the ArgParser and connect it with the task. Defaults to True.
-        auto_connect_frameworks (bool, optional): If True, automatically patch to trains backend. Defaults to True.
-        auto_resource_monitoring (bool, optional): If true, machine vitals will be sent along side the task scalars. Defaults to True.
+        auto_connect_arg_parser (bool, optional): Automatically grab the ArgParser
+            and connect it with the task. Defaults to True.
+        auto_connect_frameworks (bool, optional): If True, automatically patch to trains backend.
+            Defaults to True.
+        auto_resource_monitoring (bool, optional): If true, machine vitals will be
+            sent along side the task scalars. Defaults to True.
     """
 
     def __init__(
@@ -94,7 +99,8 @@ class TrainsLogger(LightningLoggerBase):
         """Log hyperparameters (numeric values) in TRAINS experiments
 
         Args:
-            params (Union[Dict[str, Any], Namespace]): The hyperparameters that passed through the model.
+            params (Union[Dict[str, Any], Namespace]):
+                The hyperparameters that passed through the model.
         """
         if not self._trains:
             return None
@@ -107,14 +113,16 @@ class TrainsLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Log metrics (numeric values) in TRAINS experiments. This method will be called by Trainer.
+        """Log metrics (numeric values) in TRAINS experiments.
+            This method will be called by Trainer.
 
         Args:
             metrics (Dict[str, float]):
                 The dictionary of the metrics.
-                If the key contains "/", it will be splitted by the delimiter,
+                If the key contains "/", it will be split by the delimiter,
                 then the elements will be logged as "title" and "series" respectively.
-            step (Optional[int], optional): Step number at which the metrics should be recorded. Defaults to None.
+            step (Optional[int], optional): Step number at which the metrics should be recorded.
+                Defaults to None.
         """
         if not self._trains:
             return None
@@ -139,13 +147,15 @@ class TrainsLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metric(self, title: str, series: str, value: float, step: Optional[int] = None) -> None:
-        """Log metrics (numeric values) in TRAINS experiments. This method will be called by the users.
+        """Log metrics (numeric values) in TRAINS experiments.
+            This method will be called by the users.
 
         Args:
             title (str): The title of the graph to log, e.g. loss, accuracy.
             series (str): The series name in the graph, e.g. classification, localization.
             value (float): The value to log.
-            step (Optional[int], optional): Step number at which the metrics should be recorded. Defaults to None.
+            step (Optional[int], optional): Step number at which the metrics should be recorded.
+                Defaults to None.
         """
         if not self._trains:
             return None
@@ -215,10 +225,12 @@ class TrainsLogger(LightningLoggerBase):
         """Save an artifact (file/object) in TRAINS experiment storage.
 
         Args:
-            name (str): Artifact name. Notice! it will override previous artifact if name already exists
+            name (str): Artifact name. Notice! it will override previous artifact
+                if name already exists
             artifact (Any): Artifact object to upload. Currently supports:
                 - string / pathlib2.Path are treated as path to artifact file to upload
-                    If wildcard or a folder is passed, zip file containing the local files will be created and uploaded
+                    If wildcard or a folder is passed, zip file containing the
+                    local files will be created and uploaded
                 - dict will be stored as .json file and uploaded
                 - pandas.DataFrame will be stored as .csv.gz (compressed CSV file) and uploaded
                 - numpy.ndarray will be stored as .npz and uploaded
@@ -226,7 +238,8 @@ class TrainsLogger(LightningLoggerBase):
             metadata (Optional[Dict[str, Any]], optional):
                 Simple key/value dictionary to store on the artifact. Defaults to None.
             delete_after_upload (bool, optional):
-                If True local artifact will be deleted (only applies if artifact_object is a local file). Defaults to False.
+                If True local artifact will be deleted (only applies if artifact_object is a
+                local file). Defaults to False.
         """
         if not self._trains:
             return None
