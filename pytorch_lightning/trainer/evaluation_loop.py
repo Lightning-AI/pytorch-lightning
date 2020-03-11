@@ -123,94 +123,106 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
+from typing import Callable
+
 import sys
 from abc import ABC, abstractmethod
 
 import torch
+from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import warnings
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
-
-    XLA_AVAILABLE = True
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerEvaluationLoopMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.test_progress_bar = None
-        self.val_progress_bar = None
-        self.main_progress_bar = None
-        self.use_ddp = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.single_gpu = None
-        self.data_parallel_device_ids = None
-        self.model = None
-        self.num_test_batches = None
-        self.num_val_batches = None
-        self.fast_dev_run = None
-        self.process_position = None
-        self.show_progress_bar = None
-        self.process_output = None
-        self.training_tqdm_dict = None
-        self.proc_rank = None
-        self.checkpoint_callback = None
-        self.current_epoch = None
-        self.callback_metrics = None
-        self.get_test_dataloaders = None
-        self.get_val_dataloaders = None
-        self.use_tpu = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    test_progress_bar: ...
+    val_progress_bar: ...
+    main_progress_bar: ...
+    use_ddp: bool
+    use_dp: bool
+    use_ddp2: bool
+    single_gpu: bool
+    data_parallel_device_ids: ...
+    model: LightningModule
+    num_test_batches: int
+    num_val_batches: int
+    fast_dev_run: ...
+    process_position: ...
+    show_progress_bar: ...
+    process_output: ...
+    training_tqdm_dict: ...
+    proc_rank: int
+    current_epoch: int
+    callback_metrics: ...
+    test_dataloaders: DataLoader
+    val_dataloaders: DataLoader
+    use_tpu: bool
+    reload_dataloaders_every_epoch: ...
+    progress_bar_refresh_rate: ...
+
+    # Callback system
+    on_validation_start: Callable
+    on_validation_end: Callable
+    on_test_start: Callable
+    on_test_end: Callable
 
     @abstractmethod
-    def copy_trainer_model_properties(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def copy_trainer_model_properties(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def get_model(self):
-        # this is just empty shell for code from other class
-        pass
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overriden(self, m):
-        # this is just empty shell for code from other class
-        pass
+    def is_overriden(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, batch):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_tpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_gpu(self, batch, gpu):
-        # this is just empty shell for code from other class
-        pass
+    def transfer_batch_to_gpu(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_tqdm_metrics(self, metrics):
-        # this is just empty shell for code from other class
-        pass
+    def add_tqdm_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, metrics, grad_norm_dic):
-        # this is just empty shell for code from other class
-        pass
+    def log_metrics(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
-    def evaluate(self, model, dataloaders, max_batches, test=False):
+    @abstractmethod
+    def reset_test_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def reset_val_dataloader(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
         """Run evaluation code.
 
         :param model: PT model
         :param dataloaders: list of PT dataloaders
         :param max_batches: Scalar
-        :param test: boolean
+        :param test_mode
         :return:
         """
         # enable eval mode
@@ -237,7 +249,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = dataloader.per_device_loader(device)
 
             for batch_idx, batch in enumerate(dataloader):
-
                 if batch is None:  # pragma: no cover
                     continue
 
@@ -248,21 +259,30 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model,
-                                                 batch,
-                                                 batch_idx,
-                                                 dataloader_idx,
-                                                 test)
+                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+
+                # on dp / ddp2 might still want to do something with the batch parts
+                if test_mode:
+                    if self.is_overriden('test_step_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('test_step_end'):
+                            output = model_ref.test_step_end(output)
+                else:
+                    if self.is_overriden('validation_step_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('validation_step_end'):
+                            output = model_ref.validation_step_end(output)
 
                 # track outputs for collation
                 dl_outputs.append(output)
 
                 # batch done
-                if test:
-                    self.test_progress_bar.update(1)
-                else:
-                    self.val_progress_bar.update(1)
-                    self.main_progress_bar.update(1)
+                if batch_idx % self.progress_bar_refresh_rate == 0:
+                    if test_mode:
+                        self.test_progress_bar.update(self.progress_bar_refresh_rate)
+                    else:
+                        self.val_progress_bar.update(self.progress_bar_refresh_rate)
+                        self.main_progress_bar.update(self.progress_bar_refresh_rate)
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -273,10 +293,23 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # give model a chance to do something with the outputs (and method defined)
         model = self.get_model()
-        if test and self.is_overriden('test_end'):
+
+        if test_mode and self.is_overriden('test_epoch_end'):
+            eval_results = model.test_epoch_end(outputs)
+        elif self.is_overriden('validation_epoch_end'):
+            eval_results = model.validation_epoch_end(outputs)
+
+        # TODO: remove in v 1.0.0
+        if test_mode and self.is_overriden('test_end'):
             eval_results = model.test_end(outputs)
+            m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use test_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
         elif self.is_overriden('validation_end'):
             eval_results = model.validation_end(outputs)
+            m = 'validation_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
+                'Use validation_epoch_end instead.'
+            warnings.warn(m, DeprecationWarning)
 
         # enable train mode again
         model.train()
@@ -286,24 +319,36 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_results
 
-    def run_evaluation(self, test=False):
+    def run_evaluation(self, test_mode: bool = False):
         # when testing make sure user defined a test step
-        if test and not (self.is_overriden('test_step') and self.is_overriden('test_end')):
-            m = '''You called `.test()` without defining model's `.test_step()` or `.test_end()`.
-                    Please define and try again'''
+        if test_mode and not self.is_overriden('test_step'):
+            m = "You called `.test()` without defining model's `.test_step()`." \
+                " Please define and try again"
             raise MisconfigurationException(m)
+
+        # Validation/Test begin callbacks
+        if test_mode:
+            self.on_test_start()
+        else:
+            self.on_validation_start()
 
         # hook
         model = self.get_model()
         model.on_pre_performance_check()
 
         # select dataloaders
-        if test:
-            dataloaders = self.get_test_dataloaders()
+        if test_mode:
+            if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
+                self.reset_test_dataloader(model)
+
+            dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
         else:
             # val
-            dataloaders = self.get_val_dataloaders()
+            if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
+                self.reset_val_dataloader(model)
+
+            dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
         # cap max batches to 1 when using fast_dev_run
@@ -312,23 +357,28 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # init validation or test progress bar
         # main progress bar will already be closed when testing so initial position is free
-        position = 2 * self.process_position + (not test)
-        desc = 'Testing' if test else 'Validating'
-        pbar = tqdm(desc=desc, total=max_batches, leave=test, position=position,
+        position = 2 * self.process_position + (not test_mode)
+        desc = 'Testing' if test_mode else 'Validating'
+        pbar = tqdm(desc=desc, total=max_batches, leave=test_mode, position=position,
                     disable=not self.show_progress_bar, dynamic_ncols=True,
                     file=sys.stdout)
-        setattr(self, f'{"test" if test else "val"}_progress_bar', pbar)
+        setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation
-        eval_results = self.evaluate(self.model,
-                                     dataloaders,
-                                     max_batches,
-                                     test)
+        eval_results = self.evaluate(self.model, dataloaders, max_batches, test_mode)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
             eval_results)
 
         # add metrics to prog bar
         self.add_tqdm_metrics(prog_bar_metrics)
+
+        # log results of test
+        if test_mode:
+            if self.proc_rank == 0:
+                print('-' * 100)
+                print('TEST RESULTS')
+                print(prog_bar_metrics)
+                print('-' * 100)
 
         # log metrics
         self.log_metrics(log_metrics, {})
@@ -340,27 +390,27 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_post_performance_check()
 
         # add model specific metrics
-        if not test:
+        if not test_mode:
             self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 
         # close progress bar
-        if test:
+        if test_mode:
             self.test_progress_bar.close()
         else:
             self.val_progress_bar.close()
 
-        # model checkpointing
-        if self.proc_rank == 0 and self.checkpoint_callback is not None and not test:
-            self.checkpoint_callback.on_validation_end()
+        # Validation/Test end callbacks
+        if test_mode:
+            self.on_test_end()
 
-    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test=False):
+    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test and len(self.get_test_dataloaders()) > 1:
+        if test_mode and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif not test and len(self.get_val_dataloaders()) > 1:
+        elif not test_mode and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
@@ -368,7 +418,7 @@ class TrainerEvaluationLoopMixin(ABC):
             output = model(*args)
             return output
 
-        # single GPU
+        # single GPU data transfer
         if self.single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
@@ -377,13 +427,13 @@ class TrainerEvaluationLoopMixin(ABC):
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch
 
-        # TPU
+        # TPU data  transfer
         if self.use_tpu:
             batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
-        # CPU
-        if test:
+        # CPU, TPU or gpu step
+        if test_mode:
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)

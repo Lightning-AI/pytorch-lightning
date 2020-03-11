@@ -66,6 +66,31 @@ def test_multi_gpu_model_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
+    """Make sure DDP works with dataloaders passed to fit()"""
+    if not tutils.can_run_gpu_test():
+        return
+
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_model()
+    trainer_options = dict(default_save_path=tmpdir,
+                           show_progress_bar=False,
+                           max_epochs=1,
+                           train_percent_check=0.4,
+                           val_percent_check=0.2,
+                           gpus=[0, 1],
+                           distributed_backend='ddp')
+
+    fit_options = dict(train_dataloader=model.train_dataloader(),
+                       val_dataloaders=model.val_dataloader())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model, **fit_options)
+    assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
+
+
 def test_optimizer_return_options():
     tutils.reset_seed()
 
@@ -91,10 +116,14 @@ def test_optimizer_return_options():
     assert len(lr_sched) == 0
 
     # opt tuple of lists
-    opts = ([opt_a], ['lr_scheduler'])
+    scheduler = torch.optim.lr_scheduler.StepLR(opt_a, 10)
+    opts = ([opt_a], [scheduler])
     optim, lr_sched = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0][0] and lr_sched[0] == 'lr_scheduler'
+    assert optim[0] == opts[0][0] and \
+        lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
+                            frequency=1, reduce_on_plateau=False,
+                            monitor='val_loss')
 
 
 def test_cpu_slurm_save_load(tmpdir):
@@ -124,7 +153,11 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # predict with trained model before saving
     # make a prediction
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         for batch in dataloader:
             break
 
@@ -211,32 +244,6 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-def test_ddp_sampler_error(tmpdir):
-    """Make sure DDP + AMP work."""
-    if not tutils.can_run_gpu_test():
-        return
-
-    tutils.reset_seed()
-    tutils.set_random_master_port()
-
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams, force_remove_distributed_sampler=True)
-
-    logger = tutils.get_test_tube_logger(tmpdir, True)
-
-    trainer = Trainer(
-        logger=logger,
-        show_progress_bar=False,
-        max_epochs=1,
-        gpus=[0, 1],
-        distributed_backend='ddp',
-        precision=16
-    )
-
-    with pytest.warns(UserWarning):
-        trainer.get_dataloaders(model)
-
-
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
@@ -253,66 +260,57 @@ def mocked_device_count_0(monkeypatch):
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
-test_num_gpus_data = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], [
     pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
     pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
     pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
     pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
     pytest.param('-1', PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
     pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)")
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], test_num_gpus_data)
+])
 def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
 
 
-test_num_gpus_data_0 = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], [
     pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
     pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(["gpus", "expected_num_gpus", "distributed_backend"], test_num_gpus_data_0)
+])
 def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
 
 
-test_root_gpu_data = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(['gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(None, None, "ddp", id="None is None"),
     pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
     pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
     pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
     pytest.param('-1', 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-    pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(['gpus', 'expected_root_gpu', "distributed_backend"], test_root_gpu_data)
+    pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")
+])
 def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
 
 
-test_root_gpu_data_for_0_devices_passing = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize([
+    'gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(None, None, None, id="None is None"),
     pytest.param(None, None, "ddp", id="None is None"),
     pytest.param(0, None, "ddp", id="None is None"),
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize([
-    'gpus', 'expected_root_gpu', "distributed_backend"], test_root_gpu_data_for_0_devices_passing)
+])
 def test_root_gpu_property_0_passing(
         mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
 
 
 # Asking for a gpu when non are available will result in a MisconfigurationException
-test_root_gpu_data_for_0_devices_raising = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize([
+    'gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(1, None, "ddp"),
     pytest.param(3, None, "ddp"),
     pytest.param(3, None, "ddp"),
@@ -320,34 +318,27 @@ test_root_gpu_data_for_0_devices_raising = [
     pytest.param([0, 1], None, "ddp"),
     pytest.param(-1, None, "ddp"),
     pytest.param('-1', None, "ddp")
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize([
-    'gpus', 'expected_root_gpu', "distributed_backend"], test_root_gpu_data_for_0_devices_raising)
+])
 def test_root_gpu_property_0_raising(
         mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
         Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu
 
 
-test_determine_root_gpu_device_data = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(['gpus', 'expected_root_gpu'], [
     pytest.param(None, None, id="No gpus, expect gpu root device to be None"),
     pytest.param([0], 0, id="Oth gpu, expect gpu root device to be 0."),
     pytest.param([1], 1, id="1st gpu, expect gpu root device to be 1."),
     pytest.param([3], 3, id="3rd gpu, expect gpu root device to be 3."),
     pytest.param([1, 2], 1, id="[1, 2] gpus, expect gpu root device to be 1."),
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(['gpus', 'expected_root_gpu'], test_determine_root_gpu_device_data)
+])
 def test_determine_root_gpu_device(gpus, expected_root_gpu):
     assert determine_root_gpu_device(gpus) == expected_root_gpu
 
 
-test_parse_gpu_ids_data = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(['gpus', 'expected_gpu_ids'], [
     pytest.param(None, None),
     pytest.param(0, None),
     pytest.param(1, [0]),
@@ -359,16 +350,13 @@ test_parse_gpu_ids_data = [
     pytest.param('3', [3]),
     pytest.param('1, 3', [1, 3]),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(['gpus', 'expected_gpu_ids'], test_parse_gpu_ids_data)
+])
 def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert parse_gpu_ids(gpus) == expected_gpu_ids
 
 
-test_parse_gpu_invalid_inputs_data = [
+@pytest.mark.gpus_param_tests
+@pytest.mark.parametrize(['gpus'], [
     pytest.param(0.1),
     pytest.param(-2),
     pytest.param(False),
@@ -377,11 +365,7 @@ test_parse_gpu_invalid_inputs_data = [
     pytest.param([None]),
     pytest.param(['0']),
     pytest.param((0, 1)),
-]
-
-
-@pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(['gpus'], test_parse_gpu_invalid_inputs_data)
+])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
         parse_gpu_ids(gpus)

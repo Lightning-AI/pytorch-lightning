@@ -4,10 +4,57 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [unreleased] - YYYY-MM-DD
 
 ### Added
 
+- 
+
+### Changed
+
+-
+
+### Deprecated
+
+-
+
+### Removed
+
+-
+
+### Fixed
+
+-
+
+## [0.7.1] - 2020-03-07
+
+### Added
+
+- _None_
+
+### Changed
+
+- _None_
+
+### Deprecated
+
+- _None_
+
+### Removed
+
+- _None_
+
+### Fixed
+
+- Fixes `print` issues and `data_loader` ([#1080](https://github.com/PyTorchLightning/pytorch-lightning/pull/1080))
+
+## [0.7.0] - 2020-03-06
+
+### Added
+
+- Added automatic sampler setup. Depending on DDP or TPU, lightning configures the sampler correctly (user needs to do nothing)  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Added `reload_dataloaders_every_epoch=False` flag for trainer. Some users require reloading data every epoch  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Added `progress_bar_refresh_rate=50` flag for trainer. Throttle refresh rate on notebooks  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
 - Updated governance docs
 - Added a check to ensure that the metric used for early stopping exists before training commences ([#542](https://github.com/PyTorchLightning/pytorch-lightning/pull/542))
 - Added `optimizer_idx` argument to `backward` hook ([#733](https://github.com/PyTorchLightning/pytorch-lightning/pull/733))
@@ -17,18 +64,42 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added option to specify `step` key when logging metrics ([#808](https://github.com/PyTorchLightning/pytorch-lightning/pull/808))
 - Added `train_dataloader`, `val_dataloader` and `test_dataloader` arguments to `Trainer.fit()`, for alternative data parsing ([#759](https://github.com/PyTorchLightning/pytorch-lightning/pull/759))
 - Added Tensor Processing Unit (TPU) support ([#868](https://github.com/PyTorchLightning/pytorch-lightning/pull/868))
-- Added semantic segmentation example ([#751](https://github.com/PyTorchLightning/pytorch-lightning/pull/751),[#876](https://github.com/PyTorchLightning/pytorch-lightning/pull/876))
+- Added semantic segmentation example ([#751](https://github.com/PyTorchLightning/pytorch-lightning/pull/751),[#876](https://github.com/PyTorchLightning/pytorch-lightning/pull/876), [#881](https://github.com/PyTorchLightning/pytorch-lightning/pull/881))
 - Split callbacks in multiple files ([#849](https://github.com/PyTorchLightning/pytorch-lightning/pull/849))
+- Support for user defined callbacks ([#889](https://github.com/PyTorchLightning/pytorch-lightning/pull/889) and [#950](https://github.com/PyTorchLightning/pytorch-lightning/pull/950))
+- Added support for multiple loggers to be passed to `Trainer` as an iterable (e.g. list, tuple, etc.) ([#903](https://github.com/PyTorchLightning/pytorch-lightning/pull/903))
+- Added support for step-based learning rate scheduling ([#941](https://github.com/PyTorchLightning/pytorch-lightning/pull/941))
+- Added support for logging hparams as dict ([#1029](https://github.com/PyTorchLightning/pytorch-lightning/pull/1029))
+- Checkpoint and early stopping now work without val. step ([#1041](https://github.com/PyTorchLightning/pytorch-lightning/pull/1041))
+- Support graceful training cleanup after Keyboard Interrupt ([#856](https://github.com/PyTorchLightning/pytorch-lightning/pull/856), [#1019](https://github.com/PyTorchLightning/pytorch-lightning/pull/1019))
+- Added type hints for function arguments ([#912](https://github.com/PyTorchLightning/pytorch-lightning/pull/912), )
+- Added default `argparser` for `Trainer` ([#952](https://github.com/PyTorchLightning/pytorch-lightning/pull/1023), [#1023](https://github.com/PyTorchLightning/pytorch-lightning/pull/1023))
+- Added TPU gradient clipping ([#963](https://github.com/PyTorchLightning/pytorch-lightning/pull/963))
+- Added max/min number of steps in Trainer ([#728](https://github.com/PyTorchLightning/pytorch-lightning/pull/728))
+
 
 ### Changed
 
 - Changed default TQDM to use `tqdm.auto` for prettier outputs in IPython notebooks ([#752](https://github.com/PyTorchLightning/pytorch-lightning/pull/752))
 - Changed `pytorch_lightning.logging` to `pytorch_lightning.loggers` ([#767](https://github.com/PyTorchLightning/pytorch-lightning/pull/767))
 - Moved the default `tqdm_dict` definition from Trainer to `LightningModule`, so it can be overridden by the user ([#749](https://github.com/PyTorchLightning/pytorch-lightning/pull/749))
+- Moved functionality of `LightningModule.load_from_metrics` into `LightningModule.load_from_checkpoint` ([#995](https://github.com/PyTorchLightning/pytorch-lightning/pull/995))
+- Changed Checkpoint path parameter from `filepath` to `dirpath` ([#1016](https://github.com/PyTorchLightning/pytorch-lightning/pull/1016))
+- Freezed models `hparams` as `Namespace` property ([#1029](https://github.com/PyTorchLightning/pytorch-lightning/pull/1029))
+- Dropped `logging` config in package init ([#1015](https://github.com/PyTorchLightning/pytorch-lightning/pull/1015))
+- Renames model steps ([#1051](https://github.com/PyTorchLightning/pytorch-lightning/pull/1051))
+    * `training_end` >> `training_epoch_end`
+    * `validation_end` >> `validation_epoch_end`
+    * `test_end` >> `test_epoch_end`
+- Refactor dataloading, supports infinite dataloader ([#955](https://github.com/PyTorchLightning/pytorch-lightning/pull/955))
+- Create single file in `TensorBoardLogger` ([#777](https://github.com/PyTorchLightning/pytorch-lightning/pull/777))
 
 ### Deprecated
 
-- None
+- Deprecated `pytorch_lightning.logging` ([#767](https://github.com/PyTorchLightning/pytorch-lightning/pull/767))
+- Deprecated `LightningModule.load_from_metrics` in favour of `LightningModule.load_from_checkpoint` ([#995](https://github.com/PyTorchLightning/pytorch-lightning/pull/995), [#1079](https://github.com/PyTorchLightning/pytorch-lightning/pull/1079))
+- Deprecated `@data_loader` decorator  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Deprecated model steps `training_end`, `validation_end` and `test_end` ([#1051](https://github.com/PyTorchLightning/pytorch-lightning/pull/1051), [#1056](https://github.com/PyTorchLightning/pytorch-lightning/pull/1056))
 
 ### Removed
 
@@ -42,6 +113,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where the model checkpointer didn't write to the same directory as the logger ([#771](https://github.com/PyTorchLightning/pytorch-lightning/pull/771))
 - Fixed a bug where the `TensorBoardLogger` class would create an additional empty log file during fitting ([#777](https://github.com/PyTorchLightning/pytorch-lightning/pull/777))
 - Fixed a bug where `global_step` was advanced incorrectly when using `accumulate_grad_batches > 1` ([#832](https://github.com/PyTorchLightning/pytorch-lightning/pull/832))
+- Fixed a bug when calling `self.logger.experiment` with multiple loggers ([#1009](https://github.com/PyTorchLightning/pytorch-lightning/pull/1009))
+- Fixed a bug when calling `logger.append_tags` on a `NeptuneLogger` with a single tag ([#1009](https://github.com/PyTorchLightning/pytorch-lightning/pull/1009))
+- Fixed sending back data from `.spawn` by saving and loading the trained model in/out of the process ([#1017](https://github.com/PyTorchLightning/pytorch-lightning/pull/1017)
+- Fixed port collision on DDP ([#1010](https://github.com/PyTorchLightning/pytorch-lightning/pull/1010))
+- Fixed/tested pass overrides ([#918](https://github.com/PyTorchLightning/pytorch-lightning/pull/918))
+- Fixed comet logger to log after train ([#892](https://github.com/PyTorchLightning/pytorch-lightning/pull/892))
+- Remove deprecated args to learning rate step function ([#890](https://github.com/PyTorchLightning/pytorch-lightning/pull/890))
 
 ## [0.6.0] - 2020-01-21
 
@@ -133,7 +211,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -159,7 +237,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
@@ -194,11 +272,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -211,7 +289,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -224,11 +302,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -253,11 +331,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -274,15 +352,15 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -292,7 +370,7 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -301,11 +379,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -326,15 +404,15 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -348,19 +426,19 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.4] - 2019-08-12
 
@@ -376,11 +454,11 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -391,19 +469,19 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -413,7 +491,7 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -421,21 +499,21 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.1] - 2019-08-08
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
@@ -443,15 +521,15 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
 
 ## [0.4.0] - 2019-08-08
 
@@ -466,7 +544,7 @@ memory utilization
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
@@ -480,19 +558,19 @@ memory utilization
 
 ### Added
 
-- None
+- _None_
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
@@ -506,16 +584,30 @@ memory utilization
 
 ### Changed
 
-- None
+- _None_
 
 ### Deprecated
 
-- None
+- _None_
 
 ### Removed
 
-- None
+- _None_
 
 ### Fixed
 
-- None
+- _None_
+
+## [0.3.5] - 2019-MM-DD
+
+## [0.3.4] - 2019-MM-DD
+
+## [0.3.3] - 2019-MM-DD
+
+## [0.3.2] - 2019-MM-DD
+
+## [0.3.1] - 2019-MM-DD
+
+## [0.2.x] - YYYY-MM-DD
+
+## [0.1.x] - YYYY-MM-DD

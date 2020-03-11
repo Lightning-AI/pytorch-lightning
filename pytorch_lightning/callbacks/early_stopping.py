@@ -1,3 +1,10 @@
+r"""
+Early Stopping
+==============
+Stop training when a monitored quantity has stopped improving.
+
+"""
+
 import logging as log
 import warnings
 
@@ -8,7 +15,6 @@ from .base import Callback
 
 class EarlyStopping(Callback):
     r"""
-    Stop training when a monitored quantity has stopped improving.
 
     Args:
         monitor (str): quantity to be monitored. Default: ``'val_loss'``.
@@ -64,8 +70,6 @@ class EarlyStopping(Callback):
         self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
 
-        self.on_train_begin()
-
     def check_metrics(self, logs):
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
@@ -82,14 +86,14 @@ class EarlyStopping(Callback):
 
         return True
 
-    def on_train_begin(self):
+    def on_train_start(self, trainer, pl_module):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
-    def on_epoch_end(self):
-        logs = self.trainer.callback_metrics
+    def on_epoch_end(self, trainer, pl_module):
+        logs = trainer.callback_metrics
         stop_training = False
         if not self.check_metrics(logs):
             return stop_training
@@ -101,13 +105,13 @@ class EarlyStopping(Callback):
         else:
             self.wait += 1
             if self.wait >= self.patience:
-                self.stopped_epoch = self.trainer.current_epoch
+                self.stopped_epoch = trainer.current_epoch
                 stop_training = True
-                self.on_train_end()
+                self.on_train_end(trainer, pl_module)
 
         return stop_training
 
-    def on_train_end(self):
+    def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
             warnings.warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
                           ' but will start from "0" in v0.8.0.', DeprecationWarning)

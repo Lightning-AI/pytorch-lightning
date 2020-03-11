@@ -1,7 +1,11 @@
+from argparse import Namespace
+from typing import Optional, Dict, Any, Union
+
 try:
     from test_tube import Experiment
 except ImportError:
-    raise ImportError('Missing test-tube package.')
+    raise ImportError('You want to use `test_tube` logger which is not installed yet,'
+                      ' install it with `pip install test-tube`.')
 
 from .base import LightningLoggerBase, rank_zero_only
 
@@ -15,8 +19,8 @@ class TestTubeLogger(LightningLoggerBase):
     __test__ = False
 
     def __init__(
-            self, save_dir, name="default", description=None, debug=False,
-            version=None, create_git_tag=False
+            self, save_dir: str, name: str = "default", description: Optional[str] = None,
+            debug: bool = False, version: Optional[int] = None, create_git_tag: bool = False
     ):
         r"""
 
@@ -62,7 +66,7 @@ class TestTubeLogger(LightningLoggerBase):
         self._experiment = None
 
     @property
-    def experiment(self):
+    def experiment(self) -> Experiment:
         r"""
 
           Actual test-tube object. To use test-tube features do the following.
@@ -88,32 +92,33 @@ class TestTubeLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        self.experiment.argparse(params)
+        params = self._convert_params(params)
+        self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def save(self):
+    def save(self) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.save()
 
     @rank_zero_only
-    def finalize(self, status):
+    def finalize(self, status: str) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.save()
         self.close()
 
     @rank_zero_only
-    def close(self):
+    def close(self) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         if not self.debug:
@@ -121,24 +126,24 @@ class TestTubeLogger(LightningLoggerBase):
             exp.close()
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         return self._rank
 
     @rank.setter
-    def rank(self, value):
+    def rank(self, value: int) -> None:
         self._rank = value
         if self._experiment is not None:
             self.experiment.rank = value
 
     @property
-    def name(self):
+    def name(self) -> str:
         if self._experiment is None:
             return self._name
         else:
             return self.experiment.name
 
     @property
-    def version(self):
+    def version(self) -> int:
         if self._experiment is None:
             return self._version
         else:
@@ -148,12 +153,12 @@ class TestTubeLogger(LightningLoggerBase):
     # methods to get DDP working. See
     # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
     # for more info.
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[Any, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = self.experiment.get_meta_copy()
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[Any, Any]):
         self._experiment = state["_experiment"].get_non_ddp_exp()
         del state["_experiment"]
         self.__dict__.update(state)

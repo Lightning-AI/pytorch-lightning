@@ -1,6 +1,15 @@
 name: CI testing
 
-on: [push, pull_request]
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
@@ -14,8 +23,10 @@ jobs:
         python-version: [3.6, 3.7]
         requires: ['minimal', 'latest']
 
+    # https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
@@ -36,6 +47,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
           ${{ runner.os }}-${{ matrix.python-version }}-
+
+    - name: Cache datasets
+      uses: actions/cache@v1
+      with:
+        path: tests/datasets # This path is specific to Ubuntu
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: mnist-dataset
 
     - name: Install dependencies
       run: |

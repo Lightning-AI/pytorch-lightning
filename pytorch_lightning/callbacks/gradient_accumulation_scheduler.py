@@ -1,3 +1,9 @@
+r"""
+Gradient Accumulator
+====================
+Change gradient accumulation factor according to scheduling.
+"""
+
 import warnings
 
 from .base import Callback
@@ -8,9 +14,9 @@ class GradientAccumulationScheduler(Callback):
     Change gradient accumulation factor according to scheduling.
 
     Args:
-        scheduling (dict): scheduling in format {epoch: accumulation_factor}
-        .. warning:: Epochs indexing starts from "1" until v0.6.x, but will start from "0" in
-        v0.8.0.
+        scheduling: scheduling in format {epoch: accumulation_factor}
+            .. warning:: Epochs indexing starts from "1" until v0.6.x,
+                but will start from "0" in v0.8.0.
 
     Example::
 
@@ -44,8 +50,7 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def on_epoch_begin(self):
-        trainer = self.trainer
+    def on_epoch_start(self, trainer, pl_module):
         # indexing epochs from 1 (until v0.6.x)
         # In v0.8.0, ` + 1` should be removed.
         epoch = trainer.current_epoch + 1

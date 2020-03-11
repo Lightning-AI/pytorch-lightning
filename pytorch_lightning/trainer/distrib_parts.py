@@ -269,14 +269,14 @@ Auto-slurm-job-submission
 -------------------------
 
 Instead of manually building SLURM scripts, you can use the
- `SlurmCluster object <https://williamfalcon.github.io/test-tube/hpc/SlurmCluster>`_
- to do this for you. The SlurmCluster can also run a grid search if you pass
- in a `HyperOptArgumentParser
-  <https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_.
+`SlurmCluster object <https://williamfalcon.github.io/test-tube/hpc/SlurmCluster>`_
+to do this for you. The SlurmCluster can also run a grid search if you pass
+in a `HyperOptArgumentParser
+<https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_.
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
- The full examples are `here
- <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/new_project_templates/multi_node_examples>`_.
+The full examples are
+`here <https://git.io/Jv87p>`_.
 
 .. code-block:: python
 
@@ -337,6 +337,7 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 from abc import ABC, abstractmethod
 import logging as log
 import os
+import signal
 
 import torch
 
@@ -348,49 +349,47 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla.core.xla_model as xm
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class TrainerDPMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        #  the proper values/initialisation should be done in child class
-        self.on_gpu = None
-        self.use_dp = None
-        self.use_ddp2 = None
-        self.use_ddp = None
-        self.use_amp = None
-        self.testing = None
-        self.single_gpu = None
-        self.root_gpu = None
-        self.amp_level = None
-        self.precision = None
-        self.current_tpu_idx = None
-        self.proc_rank = None
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-        self.use_tpu = None
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    on_gpu: bool
+    use_dp: bool
+    use_ddp2: bool
+    use_ddp: bool
+    use_amp: bool
+    testing: bool
+    single_gpu: bool
+    root_gpu: ...
+    amp_level: str
+    precision: ...
+    current_tpu_idx: ...
+    proc_rank: int
+    tpu_local_core_rank: int
+    tpu_global_core_rank: int
+    use_tpu: bool
+    data_parallel_device_ids: ...
 
     @abstractmethod
-    def run_pretrain_routine(self, model):
-        # this is just empty shell for code from other class
-        pass
+    def run_pretrain_routine(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def init_optimizers(self, optimizers):
-        # this is just empty shell for code from other class
-        pass
+    def init_optimizers(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
 
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
@@ -491,12 +490,16 @@ class TrainerDPMixin(ABC):
 
         # init 16 bit for TPU
         if self.precision == 16:
-            os.environ['XLA_USE_BF16'] = 1
+            os.environ['XLA_USE_BF16'] = str(1)
 
         m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
             f'global rank: {self.tpu_global_core_rank}'
         log.info(m)
+
+        # continue training routine
         self.run_pretrain_routine(model)
+
+        self.save_spawn_weights(model)
 
     def dp_train(self, model):
 
@@ -509,7 +512,7 @@ class TrainerDPMixin(ABC):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            if self.amp_level == 'O2':
+            if self.amp_level == 'O2':  # pragma: no cover
                 m = f"""
                 Amp level {self.amp_level} with DataParallel is not supported.
                 See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.

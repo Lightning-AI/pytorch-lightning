@@ -1,12 +1,19 @@
+import glob
 import logging as log
 import os
 
+import pytest
 import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.models import LightningTestModel
+from pytorch_lightning.utilities.debugging import MisconfigurationException
+from tests.models import (
+    LightningTestModel,
+    LightningTestModelWithoutHyperparametersArg,
+    LightningTestModelWithUnusedHyperparametersArg
+)
 
 
 def test_running_test_pretrained_model_ddp(tmpdir):
@@ -46,14 +53,18 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.filepath,
+                                         trainer.checkpoint_callback.dirpath,
                                          module_class=LightningTestModel)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         tutils.run_prediction(dataloader, pretrained_model)
 
 
@@ -86,7 +97,7 @@ def test_running_test_pretrained_model(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = tutils.load_model(
-        logger, trainer.checkpoint_callback.filepath, module_class=LightningTestModel
+        logger, trainer.checkpoint_callback.dirpath, module_class=LightningTestModel
     )
 
     new_trainer = Trainer(**trainer_options)
@@ -116,19 +127,22 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    trainer.test()
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
 
     # load last checkpoint
-    last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_1.ckpt")
-    if not os.path.isfile(last_checkpoint):
-        last_checkpoint = os.path.join(trainer.checkpoint_callback.filepath, "_ckpt_epoch_0.ckpt")
+    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
     pretrained_model = LightningTestModel.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
     for k, v in vars(hparams).items():
         assert getattr(pretrained_model.hparams, k) == v
+
+    # assert weights are the same
+    for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
+        assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -171,7 +185,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.filepath,
+                                         trainer.checkpoint_callback.dirpath,
                                          module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
@@ -193,7 +207,7 @@ def test_dp_resume(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=2,
+        max_epochs=3,
         gpus=2,
         distributed_backend='dp',
     )
@@ -230,7 +244,7 @@ def test_dp_resume(tmpdir):
     new_logger = tutils.get_test_tube_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.2
+    trainer_options['train_percent_check'] = 0.5
     trainer_options['val_percent_check'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
@@ -244,7 +258,7 @@ def test_dp_resume(tmpdir):
         dp_model = new_trainer.model
         dp_model.eval()
 
-        dataloader = trainer.get_train_dataloader()
+        dataloader = trainer.train_dataloader
         tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
@@ -257,68 +271,6 @@ def test_dp_resume(tmpdir):
     # test freeze on gpu
     model.freeze()
     model.unfreeze()
-
-
-def test_cpu_restore_training(tmpdir):
-    """Verify continue training session on CPU."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_hparams()
-    model = LightningTestModel(hparams)
-
-    # logger file to get meta
-    test_logger_version = 10
-    logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-
-    trainer_options = dict(
-        max_epochs=8,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1)
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    # Increment since we've finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
-
-    # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
-
-    # wipe-out trainer and model
-    # retrain with not much data... this simulates picking training back up after slurm
-    # we want to see if the weights come back correctly
-    new_logger = tutils.get_test_tube_logger(tmpdir, False, version=test_logger_version)
-    trainer_options = dict(
-        max_epochs=2,
-        val_check_interval=0.50,
-        val_percent_check=0.2,
-        train_percent_check=0.2,
-        logger=new_logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-    )
-    trainer = Trainer(**trainer_options)
-    model = LightningTestModel(hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert trainer.current_epoch == real_global_epoch
-        assert trainer.current_epoch >= 0
-
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        trainer.model.eval()
-        for dataloader in trainer.get_val_dataloaders():
-            tutils.run_prediction(dataloader, trainer.model)
-
-    model.on_train_start = assert_good_acc
-
-    # by calling fit again, we trigger training, loading weights from the cluster
-    # and our hook to predict using current model before any more weight updates
-    trainer.fit(model)
 
 
 def test_model_saving_loading(tmpdir):
@@ -345,7 +297,11 @@ def test_model_saving_loading(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # make a prediction
-    for dataloader in model.test_dataloader():
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
         for batch in dataloader:
             break
 
@@ -363,14 +319,50 @@ def test_model_saving_loading(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_metrics(weights_path=new_weights_path,
-                                                   tags_csv=tags_path)
+    model_2 = LightningTestModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        tags_csv=tags_path
+    )
     model_2.eval()
 
     # make prediction
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+
+def test_load_model_with_missing_hparams(tmpdir):
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=1,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        logger=False,
+        default_save_path=tmpdir,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    model = LightningTestModelWithoutHyperparametersArg()
+    trainer.fit(model)
+    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
+
+    # try to load a checkpoint that has hparams but model is missing hparams arg
+    with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
+        LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # create a checkpoint without hyperparameters
+    # if the model does not take a hparams argument, it should not throw an error
+    ckpt = torch.load(last_checkpoint)
+    del(ckpt['hparams'])
+    torch.save(ckpt, last_checkpoint)
+    LightningTestModelWithoutHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
+    # load checkpoint without hparams again
+    # warn if user's model has hparams argument
+    with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
+        LightningTestModelWithUnusedHyperparametersArg.load_from_checkpoint(last_checkpoint)
+
 
 # if __name__ == '__main__':
 #     pytest.main([__file__])

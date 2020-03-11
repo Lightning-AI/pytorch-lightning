@@ -6,26 +6,29 @@ CometLogger
 -------------
 """
 
-from logging import getLogger
+import logging as log
+from argparse import Namespace
+from typing import Optional, Dict, Union, Any
 
 try:
     from comet_ml import Experiment as CometExperiment
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
+    from comet_ml import BaseExperiment as CometBaseExperiment
     try:
         from comet_ml.api import API
     except ImportError:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API
 except ImportError:
-    raise ImportError('Missing comet_ml package.')
+    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+                      ' install it with `pip install comet-ml`.')
 
+import torch
 from torch import is_tensor
 
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from .base import LightningLoggerBase, rank_zero_only
-from ..utilities.debugging import MisconfigurationException
-
-logger = getLogger(__name__)
 
 
 class CometLogger(LightningLoggerBase):
@@ -33,9 +36,10 @@ class CometLogger(LightningLoggerBase):
     Log using `comet.ml <https://www.comet.ml>`_.
     """
 
-    def __init__(self, api_key=None, save_dir=None, workspace=None,
-                 rest_api_key=None, project_name=None, experiment_name=None,
-                 experiment_key=None, **kwargs):
+    def __init__(self, api_key: Optional[str] = None, save_dir: Optional[str] = None,
+                 workspace: Optional[str] = None, project_name: Optional[str] = None,
+                 rest_api_key: Optional[str] = None, experiment_name: Optional[str] = None,
+                 experiment_key: Optional[str] = None, **kwargs):
         r"""
 
         Requires either an API Key (online mode) or a local directory path (offline mode)
@@ -77,18 +81,14 @@ class CometLogger(LightningLoggerBase):
             If project name does not already exists Comet.ml will create a new project.
             rest_api_key (str): Optional. Rest API key found in Comet.ml settings.
                 This is used to determine version number
-            experiment_name (str): Optional. String representing the name for this particular experiment on Comet.ml
-
+            experiment_name (str): Optional. String representing the name for this particular experiment on Comet.ml.
+            experiment_key (str): Optional. If set, restores from existing experiment.
         """
         super().__init__()
         self._experiment = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if save_dir is not None and api_key is not None:
-            # If arguments are passed for both save_dir and api_key, preference is given to online mode
-            self.mode = "online"
-            self.api_key = api_key
-        elif api_key is not None:
+        if api_key is not None:
             self.mode = "online"
             self.api_key = api_key
         elif save_dir is not None:
@@ -98,7 +98,7 @@ class CometLogger(LightningLoggerBase):
             # If neither api_key nor save_dir are passed as arguments, raise an exception
             raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
-        logger.info(f"CometLogger will be initialized in {self.mode} mode")
+        log.info(f"CometLogger will be initialized in {self.mode} mode")
 
         self.workspace = workspace
         self.project_name = project_name
@@ -117,10 +117,10 @@ class CometLogger(LightningLoggerBase):
             try:
                 self.name = experiment_name
             except TypeError as e:
-                logger.exception("Failed to set experiment name for comet.ml logger")
+                log.exception("Failed to set experiment name for comet.ml logger")
 
     @property
-    def experiment(self):
+    def experiment(self) -> CometBaseExperiment:
         r"""
 
         Actual comet object. To use comet features do the following.
@@ -161,11 +161,16 @@ class CometLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params):
-        self.experiment.log_parameters(vars(params))
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
+        self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics, step=None):
+    def log_metrics(
+            self,
+            metrics: Dict[str, Union[torch.Tensor, float]],
+            step: Optional[int] = None
+    ) -> None:
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
@@ -177,7 +182,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment = None
 
     @rank_zero_only
-    def finalize(self, status):
+    def finalize(self, status: str) -> None:
         r"""
         When calling self.experiment.end(), that experiment won't log any more data to Comet. That's why, if you need
         to log any more data you need to create an ExistingCometExperiment. For example, to log data when testing your
@@ -190,13 +195,13 @@ class CometLogger(LightningLoggerBase):
         self.reset_experiment()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.experiment.project_name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str) -> None:
         self.experiment.set_name(value)
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self.experiment.id

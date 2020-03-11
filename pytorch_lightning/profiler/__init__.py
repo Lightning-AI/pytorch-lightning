@@ -16,7 +16,7 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_after_backward
 - optimizer_step
 - on_batch_end
-- training_end
+- training_step_end
 - on_training_end
 
 Enable simple profiling
