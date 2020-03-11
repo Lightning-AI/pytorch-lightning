@@ -60,8 +60,9 @@ def test_tbd_remove_in_v0_9_0_module_imports():
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
-    #def val_dataloader(self):
-    #    return self._dataloader(train=False)
+    # todo: this shall not be needed while evaluate asks for dataloader explicitly
+    def val_dataloader(self):
+        return self._dataloader(train=False)
 
     def validation_end(self, outputs):
         return {'val_loss': 0.6}
@@ -72,8 +73,9 @@ class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
 class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
-    #def val_dataloader(self):
-    #    return self._dataloader(train=False)
+    # todo: this shall not be needed while evaluate asks for dataloader explicitly
+    def val_dataloader(self):
+        return self._dataloader(train=False)
 
     def validation_end(self, outputs):
         return {'val_loss': 0.7}
@@ -89,9 +91,13 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     model = ModelVer0_6(hparams)
     trainer.test(model)
     assert trainer.callback_metrics == {'test_loss': 0.6}
-    #trainer.evaluate(model, dataloaders=None, max_batches=1)
-    #assert trainer.callback_metrics == {'test_loss': 0.6}
+    # TODO: why dataloder is required if it is not used
+    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    assert result == {'val_loss': 0.6}
 
     model = ModelVer0_7(hparams)
     trainer.test(model)
     assert trainer.callback_metrics == {'test_loss': 0.7}
+    # TODO: why dataloder is required if it is not used
+    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    assert result == {'val_loss': 0.7}
