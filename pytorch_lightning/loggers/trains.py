@@ -24,42 +24,38 @@ Use the logger anywhere in you LightningModule as follows:
 
 """
 
+import logging
 from argparse import Namespace
-from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+import PIL
 import numpy as np
 import pandas as pd
-import PIL
 import torch
 
 try:
     import trains
 except ImportError:
-    raise ImportError('Missing TRAINS package.')
+    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'
+                      ' install it with `pip install trains`.')
 
 from .base import LightningLoggerBase, rank_zero_only
-
-logger = getLogger(__name__)
 
 
 class TrainsLogger(LightningLoggerBase):
     """Logs using TRAINS
 
     Args:
-        project_name (Optional[str], optional): The name of the experiment's project.
-            Defaults to None.
-        task_name (Optional[str], optional): The name of the experiment. Defaults to None.
-        task_type (str, optional): The name of the experiment. Defaults to 'training'.
-        reuse_last_task_id (bool, optional): Start with the previously used task id.
-            Defaults to True.
-        output_uri (Optional[str], optional): Default location for output models. Defaults to None.
-        auto_connect_arg_parser (bool, optional): Automatically grab the ArgParser
+        project_name: The name of the experiment's project. Defaults to None.
+        task_name: The name of the experiment. Defaults to None.
+        task_type: The name of the experiment. Defaults to 'training'.
+        reuse_last_task_id: Start with the previously used task id. Defaults to True.
+        output_uri: Default location for output models. Defaults to None.
+        auto_connect_arg_parser: Automatically grab the ArgParser
             and connect it with the task. Defaults to True.
-        auto_connect_frameworks (bool, optional): If True, automatically patch to trains backend.
-            Defaults to True.
-        auto_resource_monitoring (bool, optional): If true, machine vitals will be
+        auto_connect_frameworks: If True, automatically patch to trains backend. Defaults to True.
+        auto_resource_monitoring: If true, machine vitals will be
             sent along side the task scalars. Defaults to True.
     """
 
@@ -89,7 +85,7 @@ class TrainsLogger(LightningLoggerBase):
         return self._trains
 
     @property
-    def id(self) -> str:
+    def id(self) -> Union[str, None]:
         if not self._trains:
             return None
         return self._trains.id
@@ -99,7 +95,7 @@ class TrainsLogger(LightningLoggerBase):
         """Log hyperparameters (numeric values) in TRAINS experiments
 
         Args:
-            params (Union[Dict[str, Any], Namespace]):
+            params:
                 The hyperparameters that passed through the model.
         """
         if not self._trains:
@@ -117,12 +113,11 @@ class TrainsLogger(LightningLoggerBase):
             This method will be called by Trainer.
 
         Args:
-            metrics (Dict[str, float]):
+            metrics:
                 The dictionary of the metrics.
                 If the key contains "/", it will be split by the delimiter,
                 then the elements will be logged as "title" and "series" respectively.
-            step (Optional[int], optional): Step number at which the metrics should be recorded.
-                Defaults to None.
+            step: Step number at which the metrics should be recorded. Defaults to None.
         """
         if not self._trains:
             return None
@@ -132,7 +127,7 @@ class TrainsLogger(LightningLoggerBase):
 
         for k, v in metrics.items():
             if isinstance(v, str):
-                logger.warning("Discarding metric with string value {}={}".format(k, v))
+                logging.warning("Discarding metric with string value {}={}".format(k, v))
                 continue
             if isinstance(v, torch.Tensor):
                 v = v.item()
@@ -151,11 +146,10 @@ class TrainsLogger(LightningLoggerBase):
             This method will be called by the users.
 
         Args:
-            title (str): The title of the graph to log, e.g. loss, accuracy.
-            series (str): The series name in the graph, e.g. classification, localization.
-            value (float): The value to log.
-            step (Optional[int], optional): Step number at which the metrics should be recorded.
-                Defaults to None.
+            title: The title of the graph to log, e.g. loss, accuracy.
+            series: The series name in the graph, e.g. classification, localization.
+            value: The value to log.
+            step: Step number at which the metrics should be recorded. Defaults to None.
         """
         if not self._trains:
             return None
@@ -173,7 +167,7 @@ class TrainsLogger(LightningLoggerBase):
         """Log console text data in TRAINS experiment
 
         Args:
-            text (str): The value of the log (data-point).
+            text: The value of the log (data-point).
         """
         if not self._trains:
             return None
@@ -188,16 +182,16 @@ class TrainsLogger(LightningLoggerBase):
         """Log Debug image in TRAINS experiment
 
         Args:
-            title (str): The title of the debug image, i.e. "failed", "passed".
-            series (str): The series name of the debug image, i.e. "Image 0", "Image 1".
-            image (Union[str, np.ndarray, PIL.Image.Image, torch.Tensor]):
+            title: The title of the debug image, i.e. "failed", "passed".
+            series: The series name of the debug image, i.e. "Image 0", "Image 1".
+            image:
                 Debug image to log. Can be one of the following types:
                     Torch, Numpy, PIL image, path to image file (str)
                 If Numpy or Torch, the image is assume to be the following:
                     shape: CHW
                     color space: RGB
                     value range: [0., 1.] (float) or [0, 255] (uint8)
-            step (Optional[int], optional):
+            step:
                 Step number at which the metrics should be recorded. Defaults to None.
         """
         if not self._trains:
@@ -225,9 +219,9 @@ class TrainsLogger(LightningLoggerBase):
         """Save an artifact (file/object) in TRAINS experiment storage.
 
         Args:
-            name (str): Artifact name. Notice! it will override previous artifact
+            name: Artifact name. Notice! it will override previous artifact
                 if name already exists
-            artifact (Any): Artifact object to upload. Currently supports:
+            artifact: Artifact object to upload. Currently supports:
                 - string / pathlib2.Path are treated as path to artifact file to upload
                     If wildcard or a folder is passed, zip file containing the
                     local files will be created and uploaded
@@ -235,9 +229,9 @@ class TrainsLogger(LightningLoggerBase):
                 - pandas.DataFrame will be stored as .csv.gz (compressed CSV file) and uploaded
                 - numpy.ndarray will be stored as .npz and uploaded
                 - PIL.Image will be stored to .png file and uploaded
-            metadata (Optional[Dict[str, Any]], optional):
+            metadata:
                 Simple key/value dictionary to store on the artifact. Defaults to None.
-            delete_after_upload (bool, optional):
+            delete_after_upload:
                 If True local artifact will be deleted (only applies if artifact_object is a
                 local file). Defaults to False.
         """
@@ -260,23 +254,23 @@ class TrainsLogger(LightningLoggerBase):
         self._trains = None
 
     @property
-    def name(self) -> str:
+    def name(self) -> Union[str, None]:
         if not self._trains:
             return None
         return self._trains.name
 
     @property
-    def version(self) -> str:
+    def version(self) -> Union[str, None]:
         if not self._trains:
             return None
         return self._trains.id
 
-    def __getstate__(self) -> str:
+    def __getstate__(self) -> Union[str, None]:
         if not self._trains:
             return None
         return self._trains.id
 
-    def __setstate__(self, state: str) -> str:
+    def __setstate__(self, state: str) -> None:
         self._rank = 0
         self._trains = None
         if state:
