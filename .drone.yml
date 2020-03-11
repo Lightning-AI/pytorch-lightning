@@ -1,6 +1,7 @@
 # https://docs.drone.io/pipeline/docker/examples/languages/python/#python-example
 
 kind: pipeline
+type: docker
 name: torch-1.3
 
 steps:
