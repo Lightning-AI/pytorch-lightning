@@ -12,12 +12,11 @@ steps:
     - pip install pip -U
     - pip --version
     - nvidia-smi
-    - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
     #- pip install torch==1.3
     - pip install -r requirements.txt --user
-    - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
     - pip install coverage pytest pytest-cov pytest-flake8
     - pip install -r ./tests/requirements.txt --user
     - pip list
+    - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
     - coverage report
