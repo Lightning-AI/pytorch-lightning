@@ -109,8 +109,17 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
+            # See https://github.com/PyTorchLightning/pytorch-lightning/pull/609#issuecomment-598253152
+            # Passing only those params which tensorboard allows here:
+            # https://github.com/pytorch/pytorch/blob/master/torch/utils/tensorboard/summary.py#L134
+            from six import string_types
             from torch.utils.tensorboard.summary import hparams
-            exp, ssi, sei = hparams(params, {})
+            tensorboard_params = {}
+            for k, v in params.items():
+                if isinstance(v, int) or isinstance(v, float) or isinstance(v, string_types) or isinstance(
+                        v, bool) or isinstance(v, torch.Tensor):
+                    tensorboard_params[k] = v
+            exp, ssi, sei = hparams(tensorboard_params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
