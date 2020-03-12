@@ -1,12 +1,13 @@
-from contextlib import contextmanager
-from collections import defaultdict
-import time
-import numpy as np
 import cProfile
-import pstats
 import io
-from abc import ABC, abstractmethod
 import logging as log
+import pstats
+import time
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from contextlib import contextmanager
+
+import numpy as np
 
 
 class BaseProfiler(ABC):

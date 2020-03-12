@@ -5,9 +5,9 @@ Model Checkpointing
 Automatically save model checkpoints during training.
 """
 
+import logging as log
 import os
 import shutil
-import logging as log
 import warnings
 import re
 

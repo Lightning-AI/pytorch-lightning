@@ -1,5 +1,4 @@
 import pickle
-
 from unittest.mock import MagicMock
 
 import tests.models.utils as tutils

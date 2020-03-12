@@ -123,10 +123,9 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
-from typing import Callable
-
 import sys
 from abc import ABC, abstractmethod
+from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
