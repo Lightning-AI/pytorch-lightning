@@ -223,10 +223,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_infinite_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def run_evaluation(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -309,7 +305,7 @@ class TrainerTrainLoopMixin(ABC):
 
                 total_val_batches = 0
                 is_val_epoch = False
-                if not self.disable_validation:
+                if not self.disable_validation and self.num_training_batches != float('inf'):
                     # val can be checked multiple times in epoch
                     is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
                     val_checks_per_epoch = self.num_training_batches // self.val_check_batch
@@ -323,8 +319,8 @@ class TrainerTrainLoopMixin(ABC):
                 if self.fast_dev_run:
                     # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
                     num_iterations = 2
-                elif self.is_infinite_dataloader(self.train_dataloader):
-                    # for infinite train loader, the progress bar never ends
+                elif self.total_batches == float('inf'):
+                    # for infinite train or val loader, the progress bar never ends
                     num_iterations = None
                 else:
                     num_iterations = self.total_batches
@@ -333,7 +329,7 @@ class TrainerTrainLoopMixin(ABC):
                 # .reset() doesn't work on disabled progress bar so we should check
                 if not self.main_progress_bar.disable:
                     self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}' if not self.is_infinite_dataloader(self.train_dataloader) else ''
+                desc = f'Epoch {epoch + 1}'
                 self.main_progress_bar.set_description(desc)
 
                 # -----------------
