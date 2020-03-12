@@ -1,13 +1,14 @@
 """
 Module to describe gradients
 """
+from typing import Dict
 
 from torch import nn
 
 
 class GradInformation(nn.Module):
 
-    def grad_norm(self, norm_type):
+    def grad_norm(self, norm_type: float) -> Dict[str, int]:
         results = {}
         total_norm = 0
         for name, p in self.named_parameters():
