@@ -700,3 +700,124 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+
+def test_trainer_config_cpu():
+    trainer = Trainer(distributed_backend=None, gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.single_gpu is False
+
+
+def test_trainer_config_nogpu_dp():
+    """Fall back to non-distributed training on CPU"""
+    trainer = Trainer(distributed_backend="dp", gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.single_gpu is False
+
+
+def test_trainer_config_nogpu_ddp():
+    """Fall back to non-distributed training on CPU"""
+    trainer = Trainer(distributed_backend="ddp", gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.single_gpu is False
+
+
+def test_trainer_config_nogpu_ddp2():
+    """Fall back to non-distributed training on CPU"""
+    trainer = Trainer(distributed_backend="ddp2", gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.single_gpu is False
+
+
+@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
+def test_trainer_config_single_gpu():
+    trainer = Trainer(distributed_backend=None, gpus=1)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 1
+    assert trainer.single_gpu is True
+
+
+@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
+def test_trainer_config_single_gpu_dp():
+    trainer = Trainer(distributed_backend="dp", gpus=1)
+    assert trainer.use_dp is True
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 1
+    assert trainer.single_gpu is True
+
+
+@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
+def test_trainer_config_single_gpu_ddp():
+    trainer = Trainer(distributed_backend="ddp", gpus=1)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 1
+    assert trainer.single_gpu is True
+
+
+@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
+def test_trainer_config_single_gpu_ddp2():
+    trainer = Trainer(distributed_backend="ddp2", gpus=1)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is True
+    assert trainer.num_gpus == 1
+    assert trainer.single_gpu is False
+
+
+@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+def test_trainer_config_multi_gpu():
+    """Test fallback to DP if no distributed_backend specified"""
+    with pytest.warns(UserWarning):
+        trainer = Trainer(distributed_backend=None, gpus=2)
+    assert trainer.use_dp is True
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 2
+    assert trainer.single_gpu is False
+
+
+@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+def test_trainer_config_multi_gpu_dp():
+    trainer = Trainer(distributed_backend="dp", gpus=2)
+    assert trainer.use_dp is True
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 2
+    assert trainer.single_gpu is False
+
+
+@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+def test_trainer_config_multi_gpu_ddp():
+    trainer = Trainer(distributed_backend="ddp", gpus=2)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 2
+    assert trainer.single_gpu is False
+
+
+@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+def test_trainer_config_multi_gpu_ddp2():
+    trainer = Trainer(distributed_backend="ddp2", gpus=2)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is False
+    assert trainer.use_ddp2 is True
+    assert trainer.num_gpus == 2
+    assert trainer.single_gpu is False
