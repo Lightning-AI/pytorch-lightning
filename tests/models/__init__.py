@@ -21,7 +21,8 @@ from .mixins import (
     LightTestDataloader,
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
-    LightTestOptimizersWithMixedSchedulingMixin
+    LightTestOptimizersWithMixedSchedulingMixin,
+    LightTestReduceLROnPlateauMixin
 )
 
 

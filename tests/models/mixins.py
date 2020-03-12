@@ -636,6 +636,16 @@ class LightTestOptimizersWithMixedSchedulingMixin:
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
 
 
+class LightTestReduceLROnPlateauMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        return [optimizer], [lr_scheduler]
+
+
 def _get_output_metric(output, name):
     if isinstance(output, dict):
         val = output[name]
