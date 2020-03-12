@@ -86,6 +86,9 @@ class TrainsLogger(LightningLoggerBase):
 
     @property
     def id(self) -> Union[str, None]:
+        """
+        ID is a uuid (string) representing this specific experiment in the entire system.
+        """
         if not self._trains:
             return None
         return self._trains.id
@@ -255,6 +258,9 @@ class TrainsLogger(LightningLoggerBase):
 
     @property
     def name(self) -> Union[str, None]:
+        """
+        Name is a human readable non-unique name (str) of the experiment.
+        """
         if not self._trains:
             return None
         return self._trains.name
