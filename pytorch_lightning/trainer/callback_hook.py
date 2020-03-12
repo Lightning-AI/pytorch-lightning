@@ -1,5 +1,5 @@
-from typing import Callable
 from abc import ABC
+from typing import Callable
 
 from pytorch_lightning.callbacks import Callback
 
