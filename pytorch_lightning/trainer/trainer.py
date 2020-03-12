@@ -88,7 +88,7 @@ class Trainer(
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             show_progress_bar: bool = True,
-            progress_bar_refresh_rate: int = 50,
+            progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
