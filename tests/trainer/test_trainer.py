@@ -708,7 +708,9 @@ def test_trainer_config_cpu():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 def test_trainer_config_nogpu_dp():
@@ -718,7 +720,9 @@ def test_trainer_config_nogpu_dp():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 def test_trainer_config_nogpu_ddp():
@@ -728,7 +732,20 @@ def test_trainer_config_nogpu_ddp():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
+
+
+def test_trainer_config_nogpu_ddp_cpu():
+    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
+    assert trainer.single_gpu is False
+    assert trainer.num_processes == 2
 
 
 def test_trainer_config_nogpu_ddp2():
@@ -738,7 +755,9 @@ def test_trainer_config_nogpu_ddp2():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
@@ -748,7 +767,9 @@ def test_trainer_config_single_gpu():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 1
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is True
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
@@ -758,7 +779,9 @@ def test_trainer_config_single_gpu_dp():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 1
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is True
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
@@ -768,7 +791,21 @@ def test_trainer_config_single_gpu_ddp():
     assert trainer.use_ddp is True
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 1
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is True
+    assert trainer.num_processes == 1
+
+
+@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
+def test_trainer_config_single_gpu_ddp_cpu():
+    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=1)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
+    assert trainer.single_gpu is False
+    assert trainer.num_processes == 2
 
 
 @pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
@@ -778,7 +815,9 @@ def test_trainer_config_single_gpu_ddp2():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is True
     assert trainer.num_gpus == 1
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
@@ -790,7 +829,9 @@ def test_trainer_config_multi_gpu():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 2
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
@@ -800,7 +841,9 @@ def test_trainer_config_multi_gpu_dp():
     assert trainer.use_ddp is False
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 2
+    assert trainer.on_gpu is True
     assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
@@ -811,6 +854,8 @@ def test_trainer_config_multi_gpu_ddp():
     assert trainer.use_ddp2 is False
     assert trainer.num_gpus == 2
     assert trainer.single_gpu is False
+    assert trainer.on_gpu is True
+    assert trainer.num_processes == 2
 
 
 @pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
@@ -821,3 +866,5 @@ def test_trainer_config_multi_gpu_ddp2():
     assert trainer.use_ddp2 is True
     assert trainer.num_gpus == 2
     assert trainer.single_gpu is False
+    assert trainer.on_gpu is True
+    assert trainer.num_processes == 1

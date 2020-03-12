@@ -174,44 +174,51 @@ class TrainerDDPMixin(ABC):
         # enable tpu
         self.use_tpu = True
 
-    def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
-        # skip for CPU
-        if self.num_gpus == 0:
-            return
+    def set_distributed_mode(self, distributed_backend):
+        self.use_dp = False
+        self.use_ddp = False
+        self.use_ddp2 = False
+        self.single_gpu = False
 
-        # single GPU case
-        # in single gpu case we allow ddp so we can train on multiple
-        # nodes, 1 gpu per node
-        if self.num_gpus == 1:
-            self.single_gpu = True
-
-            if distributed_backend is not None:
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-                # disable single gpu when using ddp2
-                if self.use_ddp2:
-                    self.single_gpu = False
-
-        # multiple GPU case
-        elif self.num_gpus > 1:
-            if distributed_backend is not None:
-                # DP, DDP case
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-            elif distributed_backend is None:
+        if distributed_backend is None:
+            if self.num_gpus == 0:
+                return
+            elif self.num_gpus == 1:
+                self.single_gpu = True
+            elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=dp for you.')
                 self.use_dp = True
-                self.use_ddp = False
-                self.use_ddp2 = False
+        elif distributed_backend == "dp":
+            if self.num_gpus == 0:
+                return
+            elif self.num_gpus == 1:
+                self.single_gpu = True
+                self.use_dp = True
+            elif self.num_gpus > 1:
+                self.use_dp = True
+        elif distributed_backend == "ddp":
+            if self.num_gpus == 0:
+                return
+            elif self.num_gpus == 1:
+                self.single_gpu = True
+                self.use_ddp = True
+            elif self.num_gpus > 1:
+                self.use_ddp = True
+                self.num_processes = self.num_gpus
+        elif distributed_backend == "ddp2":
+            if self.num_gpus == 0:
+                return
+            elif self.num_gpus >= 1:
+                self.use_ddp2 = True
+        elif distributed_backend == "ddp_cpu":
+            self.use_ddp = True
+            self.data_parallel_device_ids = None
+            self.on_gpu = False
 
         # throw error to force user ddp or ddp2 choice
-        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
+        if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'

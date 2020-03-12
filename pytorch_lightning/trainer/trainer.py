@@ -318,6 +318,10 @@ class Trainer(
         self.num_tpu_cores = num_tpu_cores
         assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
 
+        if num_processes != 1 and distributed_backend != "ddp_cpu":
+            warnings.warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
+        self.num_processes = num_processes
+
         self.process_position = process_position
         self.weights_summary = weights_summary
 
@@ -437,12 +441,8 @@ class Trainer(
         self.tpu_global_core_rank = None
 
         # distributed backend choice
-        self.use_ddp = False
-        self.use_ddp2 = False
-        self.use_dp = False
-        self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend, self.num_nodes)
+        self.set_distributed_mode(distributed_backend)
 
         # override dist backend when using tpus
         if self.on_tpu:
