@@ -9,6 +9,7 @@ from pytorch_lightning.loggers import (
     TensorBoardLogger
 )
 from tests.models import LightningTestModel
+from argparse import Namespace
 
 
 def test_tensorboard_logger(tmpdir):
@@ -108,6 +109,9 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "float": 0.3,
         "int": 1,
         "string": "abc",
-        "bool": True
+        "bool": True,
+        "list": [1, 2, 3],
+        "namespace": Namespace(foo=3),
+        "layer": torch.nn.BatchNorm1d
     }
     logger.log_hyperparams(hparams)

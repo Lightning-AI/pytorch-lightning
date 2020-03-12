@@ -101,6 +101,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        sanitized_params = self._sanitize_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
@@ -110,13 +111,14 @@ class TensorBoardLogger(LightningLoggerBase):
             )
         else:
             from torch.utils.tensorboard.summary import hparams
-            exp, ssi, sei = hparams(params, {})
+            exp, ssi, sei = hparams(sanitized_params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
+
         # some alternative should be added
-        self.tags.update(params)
+        self.tags.update(sanitized_params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -173,3 +175,15 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         return max(existing_versions) + 1
+
+    def _sanitize_params(self, params):
+        native_types = [int, bool, float, str, torch.Tensor]
+        out_dict = {}
+
+        for k, v in params.items():
+            if type(v) not in native_types:
+                out_dict[k] = repr(v)
+            else:
+                out_dict[k] = v
+
+        return out_dict
