@@ -12,10 +12,10 @@ steps:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
-  #volumes:
-  #  # Mount pip cache from host
-  #  - name: pip_cache
-  #    path: /root/.cache/pip
+  volumes:
+    # Mount pip cache from host
+    - name: pip_cache
+      path: /root/.cache/pip
   commands:
     - python --version
     - pip install pip -U
@@ -30,14 +30,7 @@ steps:
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules #  --flake8
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
 
-#- name: codecov
-#  image: plugins/codecov
-#  settings:
-#    token: d0fcb731-42af-465d-b680-c1ccdc824bdc
-#    files:
-#      - *.xml
-
-#volumes:
-#  - name: pip_cache
-#    host:
-#      path: /tmp/cache/drone/pip
+volumes:
+  - name: pip_cache
+    host:
+      path: /tmp/cache/drone/pip
