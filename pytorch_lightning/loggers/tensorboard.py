@@ -187,3 +187,4 @@ class TensorBoardLogger(LightningLoggerBase):
                 out_dict[k] = v
 
         return out_dict
+    
