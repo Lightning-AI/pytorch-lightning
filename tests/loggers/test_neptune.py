@@ -1,13 +1,12 @@
 import pickle
-
 from unittest.mock import patch
+
+import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.models import LightningTestModel
-
-import torch
 
 
 def test_neptune_logger(tmpdir):

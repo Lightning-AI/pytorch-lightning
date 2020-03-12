@@ -33,7 +33,7 @@ Lightning Philosophy
 Lightning factors DL/ML code into three types:
 
 - Research code
-- Engineerng code
+- Engineering code
 - Non-essential code
 
 Research code
