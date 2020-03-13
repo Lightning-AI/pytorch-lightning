@@ -45,7 +45,7 @@ class LightningLoggerBase(ABC):
         pass
 
     @staticmethod
-    def _convert_params(self, params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
+    def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
         # in case converting from namespace
         if isinstance(params, Namespace):
             params = vars(params)
@@ -66,8 +66,8 @@ class LightningLoggerBase(ABC):
         ...         "namespace": Namespace(foo=3),
         ...         "layer": torch.nn.BatchNorm1d}
         >>> OrderedDict(LightningLoggerBase._sanitize_params(params))
-        OrderedDict([('float', 0.3), ('int', 1), ('string', 'abc'), ('bool', True), ('list', '[1, 2, 3]'),\
- ('namespace', 'Namespace(foo=3)'), ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
+        OrderedDict([('float', 0.3), ('int', 1), ('string', 'abc'), ('bool', True),\
+ ('list', '[1, 2, 3]'), ('namespace', 'Namespace(foo=3)'), ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
         """
         return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
