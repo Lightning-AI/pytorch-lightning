@@ -1,6 +1,8 @@
 import argparse
+import torch
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from collections import OrderedDict
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
@@ -42,6 +44,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
+    @staticmethod
     def _convert_params(self, params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
         # in case converting from namespace
         if isinstance(params, Namespace):
@@ -51,6 +54,22 @@ class LightningLoggerBase(ABC):
             params = {}
 
         return params
+
+    @staticmethod
+    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+        """Returns params with non-primitvies converted to strings for logging
+        >>> params = {"float": 0.3,
+        ...         "int": 1,
+        ...         "string": "abc",
+        ...         "bool": True,
+        ...         "list": [1, 2, 3],
+        ...         "namespace": Namespace(foo=3),
+        ...         "layer": torch.nn.BatchNorm1d}
+        >>> OrderedDict(LightningLoggerBase._sanitize_params(params))
+        OrderedDict([('float', 0.3), ('int', 1), ('string', 'abc'), ('bool', True), ('list', '[1, 2, 3]'),\
+ ('namespace', 'Namespace(foo=3)'), ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
+        """
+        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):

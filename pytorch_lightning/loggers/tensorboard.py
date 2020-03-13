@@ -175,15 +175,3 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         return max(existing_versions) + 1
-
-    def _sanitize_params(self, params):
-        native_types = [int, bool, float, str, torch.Tensor]
-        out_dict = {}
-
-        for k, v in params.items():
-            if type(v) not in native_types:
-                out_dict[k] = repr(v)
-            else:
-                out_dict[k] = v
-
-        return out_dict
