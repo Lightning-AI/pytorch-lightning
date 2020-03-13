@@ -85,7 +85,7 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    trainer = Trainer()
+    trainer = Trainer(logger=False)
     hparams = tutils.get_hparams()
 
     model = ModelVer0_6(hparams)
