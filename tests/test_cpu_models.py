@@ -114,7 +114,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer)
+    tutils.assert_ok_model_acc(trainer, thr=0.35)
 
 
 def test_running_test_without_val(tmpdir):
