@@ -13,7 +13,7 @@ from tests.models import LightningTestModel
 def test_tensorboard_logger(tmpdir):
     """Verify that basic functionality of Tensorboard logger works."""
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_logger_test")

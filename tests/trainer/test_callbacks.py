@@ -23,7 +23,7 @@ def test_trainer_callback_system(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     def _check_args(trainer, pl_module):

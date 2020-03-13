@@ -53,7 +53,7 @@ def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
@@ -97,7 +97,7 @@ def test_no_val_end_module(tmpdir):
     class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -189,7 +189,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         # clear gradients
         optimizer.zero_grad()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     schedule = {1: 2, 3: 4}
 
@@ -209,7 +209,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
 def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # save tags
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -254,7 +254,7 @@ def test_model_checkpoint_options(tmpdir):
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     _ = LightningTestModel(hparams)
 
     # simulated losses
@@ -401,7 +401,7 @@ def test_model_checkpoint_options(tmpdir):
 def test_model_freeze_unfreeze():
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     model.freeze()
@@ -414,7 +414,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
@@ -571,7 +571,7 @@ def test_benchmark_option(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # verify torch.backends.cudnn.benchmark is not turned on
@@ -596,7 +596,7 @@ def test_benchmark_option(tmpdir):
 
 
 def test_testpass_overrides(tmpdir):
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     class LocalModel(LightTrainDataloader, TestModelBase):
         pass

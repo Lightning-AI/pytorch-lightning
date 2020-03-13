@@ -17,7 +17,7 @@ def test_amp_single_gpu(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -40,7 +40,7 @@ def test_no_amp_single_gpu(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -66,7 +66,7 @@ def test_amp_gpu_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -93,7 +93,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     tutils.set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(

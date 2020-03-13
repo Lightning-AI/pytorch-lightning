@@ -130,7 +130,7 @@ def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta

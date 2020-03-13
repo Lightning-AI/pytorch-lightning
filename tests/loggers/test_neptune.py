@@ -14,7 +14,7 @@ def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     logger = NeptuneLogger(offline_mode=True)
 

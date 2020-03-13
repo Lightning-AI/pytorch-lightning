@@ -89,7 +89,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
 
-def get_hparams(continue_training=False, hpc_exp_number=0):
+def get_default_hparams(continue_training=False, hpc_exp_number=0):
     tests_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
     args = {
@@ -113,7 +113,7 @@ def get_hparams(continue_training=False, hpc_exp_number=0):
 
 def get_default_model(lbfgs=False):
     # set up model with these hyperparams
-    hparams = get_hparams()
+    hparams = get_default_hparams()
     if lbfgs:
         setattr(hparams, 'optimizer_name', 'lbfgs')
         setattr(hparams, 'learning_rate', 0.002)

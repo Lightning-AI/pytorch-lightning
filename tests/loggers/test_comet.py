@@ -22,7 +22,7 @@ def test_comet_logger(tmpdir, monkeypatch):
 
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     comet_dir = os.path.join(tmpdir, 'cometruns')
@@ -132,7 +132,7 @@ def test_comet_pickle(tmpdir, monkeypatch):
 
     tutils.reset_seed()
 
-    # hparams = tutils.get_hparams()
+    # hparams = tutils.get_default_hparams()
     # model = LightningTestModel(hparams)
 
     comet_dir = os.path.join(tmpdir, 'cometruns')

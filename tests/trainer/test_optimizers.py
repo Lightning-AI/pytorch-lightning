@@ -29,7 +29,7 @@ def test_optimizer_with_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -68,7 +68,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -111,7 +111,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta

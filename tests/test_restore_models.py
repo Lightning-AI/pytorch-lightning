@@ -24,7 +24,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # exp file to get meta
@@ -72,7 +72,7 @@ def test_running_test_pretrained_model(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
@@ -111,7 +111,7 @@ def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -158,7 +158,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
@@ -202,7 +202,7 @@ def test_dp_resume(tmpdir):
 
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -277,7 +277,7 @@ def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta

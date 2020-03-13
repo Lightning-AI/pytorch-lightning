@@ -8,10 +8,10 @@ from tests.models import LightningTestModel
 def test_testtube_logger(tmpdir):
     """Verify that basic functionality of test tube logger works."""
     tutils.reset_seed()
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     assert logger.name == 'lightning_logs'
 
@@ -32,9 +32,9 @@ def test_testtube_pickle(tmpdir):
     """Verify that pickling a trainer containing a test tube logger works."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
     logger.log_hyperparams(hparams)
     logger.save()
 

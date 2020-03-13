@@ -11,7 +11,7 @@ def test_mlflow_logger(tmpdir):
     """Verify that basic functionality of mlflow logger works."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     mlflow_dir = os.path.join(tmpdir, 'mlruns')

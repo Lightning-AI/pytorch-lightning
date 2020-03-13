@@ -85,7 +85,7 @@ def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
@@ -124,7 +124,7 @@ def test_running_test_without_val(tmpdir):
     class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -204,7 +204,7 @@ def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
@@ -320,7 +320,7 @@ def test_tbptt_cpu_model(tmpdir):
         early_stop_callback=False
     )
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     hparams.batch_size = batch_size
     hparams.in_features = truncated_bptt_steps
     hparams.hidden_dim = truncated_bptt_steps

@@ -46,7 +46,7 @@ class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
         import tests.models.utils as tutils
 
         # the user loads the hparams in some other way
-        hparams = tutils.get_hparams()
+        hparams = tutils.get_default_hparams()
         super().__init__(hparams)
 
 
