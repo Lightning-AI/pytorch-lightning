@@ -67,7 +67,8 @@ class LightningLoggerBase(ABC):
         ...         "layer": torch.nn.BatchNorm1d}
         >>> OrderedDict(LightningLoggerBase._sanitize_params(params))
         OrderedDict([('float', 0.3), ('int', 1), ('string', 'abc'), ('bool', True),\
- ('list', '[1, 2, 3]'), ('namespace', 'Namespace(foo=3)'), ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
+ ('list', '[1, 2, 3]'), ('namespace', 'Namespace(foo=3)'),\
+ ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
         """
         return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
