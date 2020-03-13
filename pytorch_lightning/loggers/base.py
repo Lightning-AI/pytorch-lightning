@@ -2,7 +2,6 @@ import argparse
 import torch
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from collections import OrderedDict
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
