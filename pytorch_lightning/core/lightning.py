@@ -1396,9 +1396,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = False
-                if 'hparams_type' not in checkpoint or checkpoint.get('hparams_type') == 'namespace':
-                    is_namespace = True
+                is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
