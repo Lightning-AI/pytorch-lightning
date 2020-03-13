@@ -165,7 +165,7 @@ def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt
     return trained_model
 
 
-def load_model_from_checkpoint(root_weights_dir, module_class=LightningTemplateModel):
+def load_model_from_checkpoint(root_weights_dir, module_class=LightningTestModel):
     # load trained model
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
