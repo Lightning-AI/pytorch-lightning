@@ -24,7 +24,7 @@ Use the logger anywhere in you LightningModule as follows:
 
 """
 
-import logging
+import logging as log
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -130,7 +130,7 @@ class TrainsLogger(LightningLoggerBase):
 
         for k, v in metrics.items():
             if isinstance(v, str):
-                logging.warning("Discarding metric with string value {}={}".format(k, v))
+                log.warning("Discarding metric with string value {}={}".format(k, v))
                 continue
             if isinstance(v, torch.Tensor):
                 v = v.item()
