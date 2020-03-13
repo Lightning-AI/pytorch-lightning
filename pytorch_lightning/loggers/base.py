@@ -58,17 +58,23 @@ class LightningLoggerBase(ABC):
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """Returns params with non-primitvies converted to strings for logging
+
         >>> params = {"float": 0.3,
-        ...         "int": 1,
-        ...         "string": "abc",
-        ...         "bool": True,
-        ...         "list": [1, 2, 3],
-        ...         "namespace": Namespace(foo=3),
-        ...         "layer": torch.nn.BatchNorm1d}
-        >>> OrderedDict(LightningLoggerBase._sanitize_params(params))
-        OrderedDict([('float', 0.3), ('int', 1), ('string', 'abc'), ('bool', True),\
- ('list', '[1, 2, 3]'), ('namespace', 'Namespace(foo=3)'),\
- ('layer', "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>")])
+        ...           "int": 1,
+        ...           "string": "abc",
+        ...           "bool": True,
+        ...           "list": [1, 2, 3],
+        ...           "namespace": Namespace(foo=3),
+        ...           "layer": torch.nn.BatchNorm1d}
+        >>> import pprint
+        >>> pprint.pprint(LightningLoggerBase._sanitize_params(params))  # doctest: +NORMALIZE_WHITESPACE
+        {'bool': True,
+         'float': 0.3,
+         'int': 1,
+         'layer': "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>",
+         'list': '[1, 2, 3]',
+         'namespace': 'Namespace(foo=3)',
+         'string': 'abc'}
         """
         return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
