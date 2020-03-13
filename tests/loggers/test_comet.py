@@ -1,16 +1,14 @@
 import os
 import pickle
-
-import torch
-
 from unittest.mock import patch
 
 import pytest
+import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 from pytorch_lightning.loggers import CometLogger
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.models import LightningTestModel
 
 

@@ -1,18 +1,15 @@
 import os
 from argparse import ArgumentParser
-from collections import OrderedDict
-from PIL import Image
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
 import torchvision.transforms as transforms
+from PIL import Image
+from models.unet.model import UNet
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
-from models.unet.model import UNet
 
 
 class KITTI(Dataset):

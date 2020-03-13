@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# install APEX, see https://github.com/NVIDIA/apex#linux
+# to imitate SLURM set only single node
+export SLURM_LOCALID=0
+
 # use this to run tests
 rm -rf _ckpt_*
 rm -rf ./tests/save_dir*
