@@ -4,10 +4,10 @@ import pytest
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.models import (
     LightningTestModel,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 
 def test_amp_single_gpu(tmpdir):
