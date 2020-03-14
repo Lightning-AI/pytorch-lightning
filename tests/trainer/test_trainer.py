@@ -520,7 +520,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs \
-           and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -546,7 +546,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least min_epochs
     assert trainer.global_step >= num_train_samples and \
-           trainer.current_epoch > 0, "Model did not train for at least min_epochs"
+        trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
     trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
@@ -558,7 +558,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
-           trainer.current_epoch > 0, "Model did not train for at least min_steps"
+        trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
 def test_benchmark_option(tmpdir):

@@ -13,6 +13,7 @@ class UNet(nn.Module):
     bilinear (bool) - Whether to use bilinear interpolation or transposed
     convolutions for upsampling.
     '''
+
     def __init__(self, num_classes=19, bilinear=False):
         super().__init__()
         self.layer1 = DoubleConv(3, 64)
