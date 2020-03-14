@@ -47,10 +47,28 @@ class LightningLoggerBase(ABC):
         if isinstance(params, Namespace):
             params = vars(params)
 
+        # flatten dict e.g. {'a': {'b': 'c'}} -> {'a/b': 'c'}
+        params = self._flatten_dict(params)
+
         if params is None:
             params = {}
 
         return params
+
+    def _flatten_dict(self, params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+        def _dict_generator(_dict, prefixes=None):
+            prefixes = prefixes[:] if prefixes else []
+            if isinstance(_dict, dict):
+                for key, value in _dict.items():
+                    if isinstance(value, dict):
+                        for d in _dict_generator(value, prefixes + [key]):
+                            yield d
+                    else:
+                        yield prefixes + [key, value if value is not None else str(None)]
+            else:
+                yield prefixes + [_dict if _dict is None else str(_dict)]
+
+        return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):

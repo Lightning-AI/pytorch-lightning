@@ -108,6 +108,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "float": 0.3,
         "int": 1,
         "string": "abc",
-        "bool": True
+        "bool": True,
+        "dict": {'a': {'b': 'c'}}
     }
     logger.log_hyperparams(hparams)
