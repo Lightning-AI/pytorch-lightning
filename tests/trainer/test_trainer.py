@@ -651,7 +651,6 @@ def test_default_args(tmpdir):
     'cli_args',
     [
         ['--accumulate_grad_batches=22'],
-        ['--gpus=0'],
         ['--print_nan_grads=1', '--weights_save_path=./'],
         []
     ]
