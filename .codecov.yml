@@ -5,7 +5,6 @@
 
 # https://docs.codecov.io/docs/codecovyml-reference
 codecov:
-  token: "d0fcb731-42af-465d-b680-c1ccdc824bdc"
   bot: "codecov-io"
   strict_yaml_branch: "yaml-config"
   require_ci_to_pass: yes
