@@ -84,7 +84,7 @@ class WandbLogger(LightningLoggerBase):
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                id=self._id, resume='allow', tags=self._tags, entity=self._entity)
+                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity)
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
