@@ -74,7 +74,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(default_save_path=tmpdir,
                            show_progress_bar=False,
                            max_epochs=1,
