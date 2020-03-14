@@ -481,7 +481,7 @@ class Trainer(
             else:
                 log.debug(
                     'Argument %s has no allowed default type hint and will not be added '
-                    'to the arguments parser. Allowed types: %s', (arg, allowed_arg_types)
+                    'to the arguments parser. Allowed types: %s', (arg, allowed_types)
                 )
 
     @classmethod
