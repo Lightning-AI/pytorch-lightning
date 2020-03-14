@@ -637,8 +637,7 @@ Example::
     trainer = Trainer(profiler=profiler)
 
 progress_bar_refresh_rate
-^^^^^^
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 How often to refresh progress bar (in steps).
 In notebooks, faster refresh rates (lower number) is known to crash them
 because of their screen refresh rates, so raise it to 50 or more.

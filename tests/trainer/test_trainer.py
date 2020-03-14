@@ -624,3 +624,15 @@ def test_testpass_overrides(tmpdir):
 
     model = LightningTestModel(hparams)
     Trainer().test(model)
+
+
+def test_disable_progress_bar_arg(tmpdir):
+    """Tests disabling progress bar by setting refresh to 0"""
+    trainer = Trainer(progress_bar_refresh_rate=0)
+    assert not getattr(trainer, 'show_progress_bar')
+
+    trainer = Trainer(progress_bar_refresh_rate=-1)
+    assert not getattr(trainer, 'show_progress_bar')
+
+    trainer = Trainer(progress_bar_refresh_rate=50)
+    assert getattr(trainer, 'show_progress_bar')

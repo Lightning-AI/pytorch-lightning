@@ -162,10 +162,10 @@ class Trainer(
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
             show_progress_bar:
-                .. warning:: .. deprecated:: 0.7.0
+                .. warning:: .. deprecated:: 0.7.2
                         Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). 0 to disable progress bar.
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -422,7 +422,6 @@ class Trainer(
                           " and this method will be removed in v0.8.0", DeprecationWarning)
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
-        self.show_progress_bar = self.progress_bar_refresh_rate >= 1
 
         # logging
         self.log_save_interval = log_save_interval
@@ -567,6 +566,10 @@ class Trainer(
 
         params = vars(args)
         return cls(**params)
+
+    @property
+    def show_progress_bar(self) -> bool:
+        return self.progress_bar_refresh_rate >= 1
 
     @property
     def num_gpus(self) -> int:
