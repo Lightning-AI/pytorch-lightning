@@ -1,9 +1,10 @@
 import argparse
-import torch
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
+
+import torch
 
 
 def rank_zero_only(fn: Callable):

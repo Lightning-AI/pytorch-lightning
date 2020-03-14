@@ -1,4 +1,5 @@
 import pickle
+from argparse import Namespace
 
 import pytest
 import torch
@@ -9,7 +10,6 @@ from pytorch_lightning.loggers import (
     TensorBoardLogger
 )
 from tests.models import LightningTestModel
-from argparse import Namespace
 
 
 def test_tensorboard_logger(tmpdir):
