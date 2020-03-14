@@ -63,6 +63,9 @@ class LightningLoggerBase(ABC):
                     if isinstance(value, dict):
                         for d in _dict_generator(value, prefixes + [key]):
                             yield d
+                    elif isinstance(value, Namespace):
+                        for d in _dict_generator(vars(value), prefixes + [key]):
+                            yield d
                     else:
                         yield prefixes + [key, value if value is not None else str(None)]
             else:
