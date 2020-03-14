@@ -443,12 +443,13 @@ class Trainer(
                                        test_percent_check, overfit_pct)
 
         # 16 bit mixed precision training using apex
+        self.amp_level = amp_level
+        self.precision = precision
+
         if use_amp:
             warnings.warn("`use_amp` has been deprecated in favor of `precision` since v0.7.0"
                           " and will be removed in v0.9.0", DeprecationWarning)
-            precision = 16
-        self.amp_level = amp_level
-        self.precision = precision
+            self.use_amp = use_amp
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
