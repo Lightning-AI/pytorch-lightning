@@ -62,10 +62,14 @@ class WandbLogger(LightningLoggerBase):
 
     def __getstate__(self):
         state = self.__dict__.copy()
+        # args needed to reload correct experiment
+        if self._experiment is not None:
+            state['_id'] = self._experiment.id
+        else:
+            state['_id'] = None
+
         # cannot be pickled
         state['_experiment'] = None
-        # args needed to reload correct experiment
-        state['_id'] = self.experiment.id
         return state
 
     @property
@@ -111,8 +115,14 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return self.experiment.project_name()
+        if self._experiment:
+            return self.experiment.project_name()
+        else:
+            return None
 
     @property
     def version(self) -> str:
-        return self.experiment.id
+        if self._experiment:
+            return self.experiment.id
+        else:
+            return None
