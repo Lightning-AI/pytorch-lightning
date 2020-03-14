@@ -1,17 +1,14 @@
 import glob
 import math
 import os
-from argparse import Namespace
+from argparse import Namespace, ArgumentParser
 
 import pytest
 import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    ModelCheckpoint,
-)
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning import Callback
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -441,7 +438,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least min_epochs
     assert trainer.global_step >= num_train_samples and \
-           trainer.current_epoch > 0, "Model did not train for at least min_epochs"
+        trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
     trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
@@ -453,7 +450,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
-           trainer.current_epoch > 0, "Model did not train for at least min_steps"
+        trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
 def test_benchmark_option(tmpdir):
