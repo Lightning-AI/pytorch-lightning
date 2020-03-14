@@ -113,14 +113,16 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
+        # don't create an experiment if we don't have one
         if self._experiment:
-            return self.experiment.project_name()
+            return self._experiment.project_name()
         else:
             return None
 
     @property
     def version(self) -> str:
+        # don't create an experiment if we don't have one
         if self._experiment:
-            return self.experiment.id
+            return self._experiment.id
         else:
             return None
