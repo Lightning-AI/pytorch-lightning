@@ -119,3 +119,9 @@ try:
     __all__.append('WandbLogger')
 except ImportError:
     pass
+
+try:
+    from .trains import TrainsLogger
+    __all__.append('TrainsLogger')
+except ImportError:
+    pass
