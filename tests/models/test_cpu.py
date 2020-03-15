@@ -40,6 +40,26 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
+def test_multi_cpu_model_ddp(tmpdir):
+    """Make sure DDP works."""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_model()
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        show_progress_bar=False,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=None,
+        num_processes=2,
+        distributed_backend='ddp_cpu'
+    )
+
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
+
+
 def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options."""
     tutils.reset_seed()

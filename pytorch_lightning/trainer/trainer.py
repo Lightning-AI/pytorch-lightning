@@ -92,6 +92,7 @@ class Trainer(
             gradient_clip_val: float = 0,
             process_position: int = 0,
             num_nodes: int = 1,
+            num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             auto_select_gpus: bool = False,
             num_tpu_cores: Optional[int] = None,
@@ -728,7 +729,7 @@ class Trainer(
                 self.model = model
 
                 # train
-                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
