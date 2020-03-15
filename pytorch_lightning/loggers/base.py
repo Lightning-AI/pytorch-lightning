@@ -60,6 +60,15 @@ class LightningLoggerBase(ABC):
 
     @staticmethod
     def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+        """Flatten hierarchical dict e.g. {'a': {'b': 'c'}} -> {'a/b': 'c'}.
+
+        Args:
+            params: Dictionary contains hparams
+            delimiter: Delimiter to express the hierarchy. Defaults to '/'.
+
+        Returns:
+            Flatten dict.
+        """
 
         def _dict_generator(_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
