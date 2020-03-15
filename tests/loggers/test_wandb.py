@@ -64,6 +64,8 @@ def test_wandb_pickle(wandb):
     trainer_options = dict(max_epochs=1, logger=logger)
 
     trainer = Trainer(**trainer_options)
+    # Access the experiment to ensure it's created
+    trainer.logger.experiment
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 
