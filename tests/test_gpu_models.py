@@ -5,18 +5,14 @@ import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    ModelCheckpoint,
-)
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
-    LightningTestModel,
-)
+from tests.models import LightningTestModel
 
 PRETEND_N_OF_GPUS = 16
 
