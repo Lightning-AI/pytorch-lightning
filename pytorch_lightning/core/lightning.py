@@ -948,7 +948,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
+        if self.trainer.on_gpu:
+            torch_backend = "nccl"
+        else:
+            torch_backend = "gloo"
+        torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
     def configure_apex(
             self,
