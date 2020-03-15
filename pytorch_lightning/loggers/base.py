@@ -4,6 +4,8 @@ from argparse import Namespace
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List
 
+import torch
+
 
 def rank_zero_only(fn: Callable):
     """Decorate a logger method to run it only on the process with rank 0.
@@ -42,7 +44,8 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def _convert_params(self, params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
+    @staticmethod
+    def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
         # in case converting from namespace
         if isinstance(params, Namespace):
             params = vars(params)
@@ -51,6 +54,29 @@ class LightningLoggerBase(ABC):
             params = {}
 
         return params
+
+    @staticmethod
+    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+        """Returns params with non-primitvies converted to strings for logging
+
+        >>> params = {"float": 0.3,
+        ...           "int": 1,
+        ...           "string": "abc",
+        ...           "bool": True,
+        ...           "list": [1, 2, 3],
+        ...           "namespace": Namespace(foo=3),
+        ...           "layer": torch.nn.BatchNorm1d}
+        >>> import pprint
+        >>> pprint.pprint(LightningLoggerBase._sanitize_params(params))  # doctest: +NORMALIZE_WHITESPACE
+        {'bool': True,
+         'float': 0.3,
+         'int': 1,
+         'layer': "<class 'torch.nn.modules.batchnorm.BatchNorm1d'>",
+         'list': '[1, 2, 3]',
+         'namespace': 'Namespace(foo=3)',
+         'string': 'abc'}
+        """
+        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):

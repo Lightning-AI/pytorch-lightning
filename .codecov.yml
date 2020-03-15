@@ -2,9 +2,15 @@
 # Validation check:
 # $ curl --data-binary @.codecov.yml https://codecov.io/validate
 
+
+# https://docs.codecov.io/docs/codecovyml-reference
 codecov:
+  bot: "codecov-io"
+  strict_yaml_branch: "yaml-config"
+  require_ci_to_pass: yes
   notify:
-    require_ci_to_pass: yes
+    # after_n_builds: 2
+    wait_for_ci: yes
 
 coverage:
   precision: 0  # 2 = xx.xx%, 0 = xx%
@@ -16,7 +22,7 @@ coverage:
       default:
         against: auto
         target: 99% # specify the target coverage for each commit status
-        threshold: 20% # allow this little decrease on project
+        threshold: 30% # allow this little decrease on project
         # https://github.com/codecov/support/wiki/Filtering-Branches
         # branches: master
         if_ci_failed: error
@@ -24,7 +30,7 @@ coverage:
     patch:
       default:
         against: auto
-        target: 40% # specify the target "X%" coverage to hit
+        target: 50% # specify the target "X%" coverage to hit
         # threshold: 50% # allow this much decrease on patch
     changes: false
 

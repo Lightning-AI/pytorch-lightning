@@ -39,7 +39,7 @@ main.py file this way
 
 .. code-block:: python
 
-    from argparser import AugumentParser
+    from argparse import ArgumentParser
 
     def main(hparams):
         model = LightningModule()
@@ -619,13 +619,13 @@ Example::
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 How often to refresh progress bar (in steps).
-Faster refresh rates (lower number), in notebooks is known to crash them
-because of their screen refresh rates. 50 is optimal for those cases.
+In notebooks, faster refresh rates (lower number) is known to crash them
+because of their screen refresh rates, so raise it to 50 or more.
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(progress_bar_refresh_rate=50)
+    trainer = Trainer(progress_bar_refresh_rate=1)
 
 
 reload_dataloaders_every_epoch

@@ -121,8 +121,8 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 import torch
-from pytorch_lightning.loggers import LightningLoggerBase
 
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:

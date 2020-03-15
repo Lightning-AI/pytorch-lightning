@@ -1,6 +1,7 @@
 import os
 
 import tests.models.utils as tutils
+from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.models import (
@@ -9,8 +10,6 @@ from tests.models import (
     LightValidationMixin,
     LightTestMixin
 )
-
-from pytorch_lightning import Callback
 
 
 def test_trainer_callback_system(tmpdir):
