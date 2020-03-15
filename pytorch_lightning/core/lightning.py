@@ -944,7 +944,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         try:
             root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
         except Exception:
-            root_node = '127.0.0.2'
+            root_node = '127.0.0.1'
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
