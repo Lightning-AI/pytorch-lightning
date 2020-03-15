@@ -29,9 +29,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-import PIL
 import numpy as np
-import pandas as pd
 import torch
 
 try:
@@ -180,7 +178,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_image(
             self, title: str, series: str,
-            image: Union[str, np.ndarray, PIL.Image.Image, torch.Tensor],
+            image: Union[str, np.ndarray, 'PIL.Image', torch.Tensor],
             step: Optional[int] = None) -> None:
         """Log Debug image in TRAINS experiment
 
@@ -217,7 +215,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_artifact(
             self, name: str,
-            artifact: Union[str, Path, Dict[str, Any], pd.DataFrame, np.ndarray, PIL.Image.Image],
+            artifact: Union[str, Path, Dict[str, Any], 'pandas.DataFrame', 'numpy.ndarray', 'PIL.Image.Image'],
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
