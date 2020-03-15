@@ -105,10 +105,10 @@ class TrainsLogger(LightningLoggerBase):
             return None
         if not params:
             return
-        if isinstance(params, dict):
-            self._trains.connect(params)
-        else:
-            self._trains.connect(vars(params))
+
+        params = self._convert_params(params)
+        params = self._flatten_dict(params)
+        self._trains.connect(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:

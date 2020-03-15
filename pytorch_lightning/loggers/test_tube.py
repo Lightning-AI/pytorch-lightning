@@ -96,6 +96,7 @@ class TestTubeLogger(LightningLoggerBase):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only

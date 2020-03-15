@@ -50,9 +50,6 @@ class LightningLoggerBase(ABC):
         if isinstance(params, Namespace):
             params = vars(params)
 
-        # flatten dict e.g. {'a': {'b': 'c'}} -> {'a/b': 'c'}
-        params = self._flatten_dict(params)
-
         if params is None:
             params = {}
 
