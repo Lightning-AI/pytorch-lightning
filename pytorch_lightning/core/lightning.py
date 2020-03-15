@@ -8,8 +8,8 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 from torch import Tensor
+from torch.distributed import init_process_group
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
@@ -859,7 +859,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
+        init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(
             self,
