@@ -77,6 +77,7 @@ class TrainsLogger(LightningLoggerBase):
 
         Example:
             .. code-block:: python
+
                 self.logger.experiment.some_trains_function()
 
         """
