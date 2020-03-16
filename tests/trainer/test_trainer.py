@@ -1,8 +1,7 @@
 import glob
 import math
 import os
-from argparse import ArgumentParser, Namespace
-from unittest import mock
+from argparse import Namespace
 
 import pytest
 import torch
@@ -520,7 +519,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs \
-        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+           and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -546,7 +545,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least min_epochs
     assert trainer.global_step >= num_train_samples and \
-        trainer.current_epoch > 0, "Model did not train for at least min_epochs"
+           trainer.current_epoch > 0, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
     trainer_options['min_steps'] = math.floor(num_train_samples * 1.5)
@@ -558,7 +557,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # check model ran for at least num_train_samples*1.5
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
-        trainer.current_epoch > 0, "Model did not train for at least min_steps"
+           trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
 
 def test_benchmark_option(tmpdir):
@@ -625,69 +624,3 @@ def test_testpass_overrides(tmpdir):
 
     model = LightningTestModel(hparams)
     Trainer().test(model)
-
-
-@mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=Namespace(**Trainer.default_attributes()))
-def test_default_args(tmpdir):
-    """Tests default argument parser for Trainer"""
-    tutils.reset_seed()
-
-    # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
-
-    parser = ArgumentParser(add_help=False)
-    args = parser.parse_args()
-    args.logger = logger
-
-    args.max_epochs = 5
-    trainer = Trainer.from_argparse_args(args)
-
-    assert isinstance(trainer, Trainer)
-    assert trainer.max_epochs == 5
-
-
-@pytest.mark.parametrize(
-    'cli_args',
-    [
-        ['--accumulate_grad_batches=22'],
-        ['--print_nan_grads=1', '--weights_save_path=./'],
-        []
-    ]
-)
-def test_add_argparse_args_redefined(cli_args):
-    """Redefines some default Trainer arguments via the cli and
-    tests the Trainer initialization correctness.
-    """
-    parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-
-    args = parser.parse_args(cli_args)
-
-    trainer = Trainer.from_argparse_args(args=args)
-    assert isinstance(trainer, Trainer)
-
-
-@pytest.mark.parametrize(
-    'cli_args',
-    [
-        ['--callbacks=1', '--logger'],
-        ['--foo', '--bar=1']
-    ]
-)
-def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
-    """Asserts thar an error raised in case of passing not default cli arguments."""
-
-    class _UnkArgError(Exception):
-        pass
-
-    def _raise():
-        raise _UnkArgError
-
-    parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-
-    monkeypatch.setattr(parser, 'exit', lambda *args: _raise(), raising=True)
-
-    with pytest.raises(_UnkArgError):
-        parser.parse_args(cli_args)
