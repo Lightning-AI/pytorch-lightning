@@ -22,10 +22,10 @@ from torch.optim.optimizer import Optimizer
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class ModelHooks(torch.nn.Module):
