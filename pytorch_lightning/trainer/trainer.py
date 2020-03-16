@@ -707,8 +707,8 @@ class Trainer(
                 if 'scheduler' not in scheduler:
                     raise ValueError(f'Lr scheduler should have key `scheduler`',
                                      ' with item being a lr scheduler')
-                scheduler['reduce_on_plateau'] = \
-                    isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
+                scheduler['reduce_on_plateau'] = isinstance(
+                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
 
                 lr_schedulers.append({**default_config, **scheduler})
 
