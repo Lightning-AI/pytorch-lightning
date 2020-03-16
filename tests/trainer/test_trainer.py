@@ -820,7 +820,7 @@ def test_trainer_config_single_gpu_ddp2():
     assert trainer.num_processes == 1
 
 
-@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
 def test_trainer_config_multi_gpu():
     """Test fallback to DP if no distributed_backend specified"""
     with pytest.warns(UserWarning):
@@ -834,7 +834,7 @@ def test_trainer_config_multi_gpu():
     assert trainer.num_processes == 1
 
 
-@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
 def test_trainer_config_multi_gpu_dp():
     trainer = Trainer(distributed_backend="dp", gpus=2)
     assert trainer.use_dp is True
@@ -846,7 +846,7 @@ def test_trainer_config_multi_gpu_dp():
     assert trainer.num_processes == 1
 
 
-@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
 def test_trainer_config_multi_gpu_ddp():
     trainer = Trainer(distributed_backend="ddp", gpus=2)
     assert trainer.use_dp is False
@@ -858,7 +858,7 @@ def test_trainer_config_multi_gpu_ddp():
     assert trainer.num_processes == 2
 
 
-@pytest.mark.skipif(torch.cuda.device_count() > 2, reason="Multiple GPUs needed")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
 def test_trainer_config_multi_gpu_ddp2():
     trainer = Trainer(distributed_backend="ddp2", gpus=2)
     assert trainer.use_dp is False
