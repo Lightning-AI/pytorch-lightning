@@ -7,8 +7,8 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch import Tensor
 import torch.distributed as torch_distrib
+from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
