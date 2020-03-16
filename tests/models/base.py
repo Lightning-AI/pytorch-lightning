@@ -174,9 +174,8 @@ class TestModelBase(LightningModule):
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         else:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-        # test returning only 1 list instead of 2
-        return optimizer
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
