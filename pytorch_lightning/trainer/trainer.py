@@ -320,7 +320,9 @@ class Trainer(
         assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
-            warnings.warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
+            warnings.warn(
+                "num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it."
+            )
         self.num_processes = num_processes
 
         self.process_position = process_position
