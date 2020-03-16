@@ -7,7 +7,7 @@ Comet.ml
 `Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
 To use CometLogger as your logger do the following.
 
-.. note:: See: :ref:`comet` docs.
+.. seealso:: :ref:`comet` docs.
 
 .. code-block:: python
 
@@ -38,7 +38,7 @@ Neptune.ai
 `Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
 To use Neptune.ai as your logger do the following.
 
-.. note:: See: :ref:`neptune` docs.
+.. seealso:: :ref:`neptune` docs.
 
 .. code-block:: python
 
@@ -62,12 +62,40 @@ The Neptune.ai is available anywhere except ``__init__`` in your LightningModule
          some_img = fake_image()
          self.logger.experiment.add_image('generated_images', some_img, 0)
 
+allegro.ai TRAINS
+^^^^^^^^^^^^^^^^^
+
+`allegro.ai <https://github.com/allegroai/trains/>`_ is a third-party logger.
+To use TRAINS as your logger do the following.
+
+.. seealso:: :ref:`trains` docs.
+
+.. code-block:: python
+
+   from pytorch_lightning.loggers import TrainsLogger
+
+    trains_logger = TrainsLogger(
+        project_name="examples",
+        task_name="pytorch lightning test"
+    )
+   trainer = Trainer(logger=trains_logger)
+
+The TrainsLogger is available anywhere in your LightningModule
+
+.. code-block:: python
+
+   class MyModule(pl.LightningModule):
+
+      def __init__(self, ...):
+         some_img = fake_image()
+         self.logger.log_image('debug', 'generated_image_0', some_img, 0)
+
 Tensorboard
 ^^^^^^^^^^^
 
 To use `Tensorboard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
-.. note:: See: TensorBoardLogger :ref:`tf-logger`
+.. seealso:: TensorBoardLogger :ref:`tf-logger`
 
 .. code-block:: python
 
@@ -93,7 +121,7 @@ Test Tube
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a tensorboard logger but with nicer file structure.
 To use TestTube as your logger do the following.
 
-.. note:: See: TestTube :ref:`testTube`
+.. seealso:: TestTube :ref:`testTube`
 
 .. code-block:: python
 
@@ -118,7 +146,7 @@ Wandb
 `Wandb <https://www.wandb.com/>`_ is a third-party logger.
 To use Wandb as your logger do the following.
 
-.. note:: See: :ref:`wandb` docs
+.. seealso:: :ref:`wandb` docs
 
 .. code-block:: python
 

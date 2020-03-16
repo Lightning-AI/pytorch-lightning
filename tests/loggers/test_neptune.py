@@ -1,5 +1,6 @@
 import pickle
-from unittest.mock import patch
+
+from unittest.mock import patch, MagicMock
 
 import torch
 
@@ -96,3 +97,31 @@ def test_neptune_pickle(tmpdir):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({'acc': 1.0})
+
+
+def test_neptune_leave_open_experiment_after_fit(tmpdir):
+    """Verify that neptune experiment was closed after training"""
+    tutils.reset_seed()
+
+    hparams = tutils.get_hparams()
+    model = LightningTestModel(hparams)
+
+    def _run_training(logger):
+        logger._experiment = MagicMock()
+
+        trainer_options = dict(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            train_percent_check=0.05,
+            logger=logger
+        )
+        trainer = Trainer(**trainer_options)
+        trainer.fit(model)
+        return logger
+
+    logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))
+    assert logger_close_after_fit._experiment.stop.call_count == 1
+
+    logger_open_after_fit = _run_training(
+        NeptuneLogger(offline_mode=True, close_after_fit=False))
+    assert logger_open_after_fit._experiment.stop.call_count == 0
