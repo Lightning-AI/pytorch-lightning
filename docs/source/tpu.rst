@@ -33,16 +33,16 @@ hosted on GCP.
 
 To get a TPU on colab, follow these steps:
 
-1. Go to https://colab.research.google.com/.
+    1. Go to https://colab.research.google.com/.
 
-2. Click "new notebook" (bottom right of pop-up).
+    2. Click "new notebook" (bottom right of pop-up).
 
-3. Click runtime > change runtime settings. Select Python 3,
-and hardware accelerator "TPU". This will give you a TPU with 8 cores.
+    3. Click runtime > change runtime settings. Select Python 3,
+    and hardware accelerator "TPU". This will give you a TPU with 8 cores.
 
-4. Next, insert this code into the first cell and execute. This
-will install the xla library that interfaces between PyTorch and
-the TPU.
+    4. Next, insert this code into the first cell and execute. This
+    will install the xla library that interfaces between PyTorch and
+    the TPU.
 
 .. code-block:: python
 
@@ -86,7 +86,8 @@ the TPU.
     !pip install "$TORCHVISION_WHEEL"
     !sudo apt-get install libomp5
     update.join()
-5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
+
+    5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
 
 .. code-block::
 
@@ -94,9 +95,17 @@ the TPU.
 
 6. Then set up your LightningModule as normal.
 
-7. TPUs require a DistributedSampler. That means you should change your
-train_dataloader (and val, train) code as follows.
+DistributedSamplers
+-------------------
+Lightning automatically inserts the correct samplers - no need to do this yourself!
 
+Usually, with TPUs (and DDP), you would need to define a DistributedSampler to move the right
+chunk of data to the appropriate TPU. As mentioned, this is not needed in Lightning
+
+.. note:: Don't add distributedSamplers. Lightning does this automatically
+
+If for some reason you still need to, this is how to construct the sampler
+for TPU use
 .. code-block:: python
 
     import torch_xla.core.xla_model as xm
@@ -139,6 +148,11 @@ train_dataloader (and val, train) code as follows.
     trainer.fit(my_model)
 
 That's it! Your model will train on all 8 TPU cores.
+
+Distributed Backend with TPU
+----------------------------
+The ```distributed_backend``` option used for GPUs does not apply to TPUs.
+TPUs work in DDP mode by default (distributing over each core)
 
 TPU Pod
 --------
