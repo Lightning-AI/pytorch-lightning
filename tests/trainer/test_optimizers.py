@@ -160,7 +160,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
