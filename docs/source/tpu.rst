@@ -5,9 +5,13 @@ Lightning supports running on TPUs. At this moment, TPUs are only available
 on Google Cloud (GCP). For more information on TPUs
 `watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
 
+---------------
+
 Live demo
 ----------
 Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
+
+---------------
 
 TPU Terminology
 ---------------
@@ -19,12 +23,16 @@ A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
+---------------
+
 How to access TPUs
 -------------------
 To access TPUs there are two main ways.
 
 1. Using google colab.
 2. Using Google Cloud (GCP).
+
+---------------
 
 Colab TPUs
 -----------
@@ -95,6 +103,8 @@ To get a TPU on colab, follow these steps:
 
 6. Then set up your LightningModule as normal.
 
+---------------
+
 DistributedSamplers
 -------------------
 Lightning automatically inserts the correct samplers - no need to do this yourself!
@@ -149,10 +159,14 @@ for TPU use
 
 That's it! Your model will train on all 8 TPU cores.
 
+---------------
+
 Distributed Backend with TPU
 ----------------------------
 The ```distributed_backend``` option used for GPUs does not apply to TPUs.
 TPUs work in DDP mode by default (distributing over each core)
+
+---------------
 
 TPU Pod
 --------
@@ -165,6 +179,8 @@ All you need to do is submit the following command:
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
+
+---------------
 
 16 bit precision
 -----------------
@@ -182,6 +198,7 @@ set the 16-bit flag.
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
+---------------
 
 About XLA
 ----------
