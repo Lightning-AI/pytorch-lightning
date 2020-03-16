@@ -116,6 +116,7 @@ chunk of data to the appropriate TPU. As mentioned, this is not needed in Lightn
 
 If for some reason you still need to, this is how to construct the sampler
 for TPU use
+
 .. code-block:: python
 
     import torch_xla.core.xla_model as xm
