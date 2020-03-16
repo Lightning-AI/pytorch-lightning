@@ -1,3 +1,4 @@
+import inspect
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
@@ -45,6 +46,19 @@ def test_add_argparse_args_redefined(cli_args):
     args = parser.parse_args(cli_args)
 
     trainer = Trainer.from_argparse_args(args=args)
+    assert isinstance(trainer, Trainer)
+
+
+def test_get_init_arguments_and_types():
+    """Asserts a correctness of the `get_init_arguments_and_types` Trainer classmethod."""
+    args = Trainer.get_init_arguments_and_types()
+    parameters = inspect.signature(Trainer).parameters
+    assert len(parameters) == len(args)
+    for arg in args:
+        assert parameters[arg[0]].default == arg[2]
+
+    kwargs = {arg[0]: arg[2] for arg in args}
+    trainer = Trainer(**kwargs)
     assert isinstance(trainer, Trainer)
 
 
