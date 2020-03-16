@@ -8,7 +8,7 @@ from typing import Union, Optional, List, Dict, Tuple, Iterable
 
 import torch
 from torch import optim
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -748,7 +748,7 @@ class Trainer(
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
-            dist.barrier()
+            torch_distrib.barrier()
 
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
