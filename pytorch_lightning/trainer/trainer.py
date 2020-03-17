@@ -448,32 +448,32 @@ class Trainer(
         return args
 
     @classmethod
-    def get_init_arguments_and_types(cls) -> List[Tuple[str, Set, Any]]:
+    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         r"""Scans the Trainer signature and returns argument names, types and default values.
 
         Returns:
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).
-        
+
         Examples:
             >>> args = Trainer.get_init_arguments_and_types()
             >>> import pprint
             >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
             [('accumulate_grad_batches',
-              {<class 'int'>, typing.Dict[int, int], typing.List[list]},
+              (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
              ...
-             ('callbacks', {<class 'pytorch_lightning.callbacks.base.Callback'>}, []),
-             ('check_val_every_n_epoch', {<class 'int'>}, 1),
+             ('callbacks', (<class 'pytorch_lightning.callbacks.base.Callback'>,), []),
+             ('check_val_every_n_epoch', (<class 'int'>,), 1),
              ...
-             ('max_epochs', {<class 'int'>}, 1000),
+             ('max_epochs', (<class 'int'>,), 1000),
              ...
-             ('precision', {<class 'int'>}, 32),
-             ('print_nan_grads', {<class 'bool'>}, False),
-             ('process_position', {<class 'int'>}, 0),
+             ('precision', (<class 'int'>,), 32),
+             ('print_nan_grads', (<class 'bool'>,), False),
+             ('process_position', (<class 'int'>,), 0),
              ('profiler',
-              {<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
-               <class 'NoneType'>},
+              (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+               <class 'NoneType'>),
               None),
             ...
         """
@@ -483,9 +483,9 @@ class Trainer(
             arg_type = trainer_default_params[arg].annotation
             arg_default = trainer_default_params[arg].default
             try:
-                arg_types = set(arg_type.__args__)
+                arg_types = tuple(arg_type.__args__)
             except AttributeError:
-                arg_types = {arg_type}
+                arg_types = (arg_type, )
 
             name_type_default.append((arg, arg_types, arg_default))
 
