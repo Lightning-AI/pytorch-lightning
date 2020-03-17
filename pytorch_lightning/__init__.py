@@ -26,10 +26,10 @@ else:
     from logging import getLogger
     _logger = getLogger("lightning")
 
-    from .core import LightningModule
-    from .trainer import Trainer
-    from .callbacks import Callback
-    from .core import data_loader
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer import Trainer
+    from pytorch_lightning.callbacks import Callback
+    from pytorch_lightning.core import data_loader
 
     __all__ = [
         'Trainer',
