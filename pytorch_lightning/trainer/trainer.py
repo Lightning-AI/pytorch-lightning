@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Generator, Any
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch import optim
 from torch.optim.optimizer import Optimizer
@@ -742,8 +742,8 @@ class Trainer(
                 if 'scheduler' not in scheduler:
                     raise ValueError(f'Lr scheduler should have key `scheduler`',
                                      ' with item being a lr scheduler')
-                scheduler['reduce_on_plateau'] = \
-                    isinstance(scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
+                scheduler['reduce_on_plateau'] = isinstance(
+                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
 
                 lr_schedulers.append({**default_config, **scheduler})
 
@@ -783,7 +783,7 @@ class Trainer(
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
-            dist.barrier()
+            torch_distrib.barrier()
 
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:

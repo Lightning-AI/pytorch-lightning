@@ -146,7 +146,8 @@ Example::
 callbacks
 ^^^^^^^^^
 
-Add a list of user defined callbacks.
+Add a list of user defined callbacks. These callbacks DO NOT replace the explicit callbacks
+(loggers, EarlyStopping or ModelCheckpoint).
 
 .. note:: Only user defined callbacks (ie: Not EarlyStopping or ModelCheckpoint)
 
@@ -238,6 +239,8 @@ Example::
 
     # ddp2 = DistributedDataParallel + dp
     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+
+.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
