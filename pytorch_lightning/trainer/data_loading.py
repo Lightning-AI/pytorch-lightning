@@ -96,9 +96,6 @@ class TrainerDataLoadingMixin(ABC):
 
             dl_args['sampler'] = sampler
             dataloader = DataLoader(**dl_args)
-        # else:
-        #     sampler = SequentialSampler(dataloader.dataset)
-        #     dl_args['sampler'] = sampler
 
         return dataloader
 
