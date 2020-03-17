@@ -58,7 +58,7 @@ class TrainsLogger(LightningLoggerBase):
             sent along side the task scalars. Defaults to True.
 
     Examples:
-        >>> logger = TrainsLogger("examples", "my-test", output_uri=".")  # doctest: +ELLIPSIS
+        >>> logger = TrainsLogger("lightning_log", "my-test", output_uri=".")  # doctest: +ELLIPSIS
         TRAINS Task: ...
         TRAINS results page: https://demoapp.trains.allegro.ai/.../log
         >>> logger.log_metrics({"val_loss": 1.23}, step=0)
@@ -70,14 +70,23 @@ class TrainsLogger(LightningLoggerBase):
     """
 
     def __init__(
-            self, project_name: Optional[str] = None, task_name: Optional[str] = None,
-            task_type: str = 'training', reuse_last_task_id: bool = True,
-            output_uri: Optional[str] = None, auto_connect_arg_parser: bool = True,
-            auto_connect_frameworks: bool = True, auto_resource_monitoring: bool = True) -> None:
+            self,
+            project_name: Optional[str] = None,
+            task_name: Optional[str] = None,
+            task_type: str = 'training',
+            reuse_last_task_id: bool = True,
+            output_uri: Optional[str] = None,
+            auto_connect_arg_parser: bool = True,
+            auto_connect_frameworks: bool = True,
+            auto_resource_monitoring: bool = True
+    ) -> None:
         super().__init__()
         self._trains = Task.init(
-            project_name=project_name, task_name=task_name, task_type=task_type,
-            reuse_last_task_id=reuse_last_task_id, output_uri=output_uri,
+            project_name=project_name,
+            task_name=task_name,
+            task_type=task_type,
+            reuse_last_task_id=reuse_last_task_id,
+            output_uri=output_uri,
             auto_connect_arg_parser=auto_connect_arg_parser,
             auto_connect_frameworks=auto_connect_frameworks,
             auto_resource_monitoring=auto_resource_monitoring
