@@ -454,6 +454,28 @@ class Trainer(
         Returns:
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).
+        
+        Examples:
+            >>> args = Trainer.get_init_arguments_and_types()
+            >>> import pprint
+            >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+            [('accumulate_grad_batches',
+              {<class 'int'>, typing.Dict[int, int], typing.List[list]},
+              1),
+             ...
+             ('callbacks', {<class 'pytorch_lightning.callbacks.base.Callback'>}, []),
+             ('check_val_every_n_epoch', {<class 'int'>}, 1),
+             ...
+             ('max_epochs', {<class 'int'>}, 1000),
+             ...
+             ('precision', {<class 'int'>}, 32),
+             ('print_nan_grads', {<class 'bool'>}, False),
+             ('process_position', {<class 'int'>}, 0),
+             ('profiler',
+              {<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+               <class 'NoneType'>},
+              None),
+            ...
         """
         trainer_default_params = inspect.signature(cls).parameters
         name_type_default = []
