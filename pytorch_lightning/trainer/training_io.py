@@ -89,7 +89,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 """
 
-import logging as log
 import os
 import re
 import signal
@@ -102,6 +101,7 @@ from typing import Union
 import torch
 import torch.distributed as torch_distrib
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (

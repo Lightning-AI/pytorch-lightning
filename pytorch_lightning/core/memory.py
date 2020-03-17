@@ -3,7 +3,6 @@ Generates a summary of a model's layers and dimensionality
 """
 
 import gc
-import logging as log
 import os
 import subprocess
 from subprocess import PIPE
@@ -14,6 +13,8 @@ import torch
 from torch.nn import Module
 
 import pytorch_lightning as pl
+
+from pytorch_lightning import _logger as log
 
 
 class ModelSummary(object):
