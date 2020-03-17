@@ -5,8 +5,8 @@ from typing import Optional, Dict, Union, Any
 from warnings import warn
 
 import torch
-from tensorboardX import SummaryWriter
-from tensorboardX.summary import hparams
+from pkg_resources import parse_version
+from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
@@ -16,19 +16,17 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Log to local file system in TensorBoard format
 
-    Implemented using :class:`tensorboardX.SummaryWriter`. Logs are saved to
+    Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     `os.path.join(save_dir, name, version)`
 
     .. _tf-logger:
 
-    Example
-    -------
+    Example:
+        .. code-block:: python
 
-    .. code-block:: python
-
-        logger = TensorBoardLogger("tb_logs", name="my_model")
-        trainer = Trainer(logger=logger)
-        trainer.train(model)
+            logger = TensorBoardLogger("tb_logs", name="my_model")
+            trainer = Trainer(logger=logger)
+            trainer.train(model)
 
     Args:
         save_dir (str): Save directory
@@ -103,11 +101,19 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
         sanitized_params = self._sanitize_params(params)
 
-        exp, ssi, sei = hparams(sanitized_params, {})
-        writer = self.experiment._get_file_writer()
-        writer.add_summary(exp)
-        writer.add_summary(ssi)
-        writer.add_summary(sei)
+        if parse_version(torch.__version__) < parse_version("1.3.0"):
+            warn(
+                f"Hyperparameter logging is not available for Torch version {torch.__version__}."
+                " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
+                " hyperparameter logging."
+            )
+        else:
+            from torch.utils.tensorboard.summary import hparams
+            exp, ssi, sei = hparams(sanitized_params, {})
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
 
         # some alternative should be added
         self.tags.update(sanitized_params)
