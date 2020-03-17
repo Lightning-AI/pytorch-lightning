@@ -27,8 +27,8 @@ except ImportError:
 import torch
 from torch import is_tensor
 
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from .base import LightningLoggerBase, rank_zero_only
 
 
 class CometLogger(LightningLoggerBase):

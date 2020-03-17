@@ -23,10 +23,10 @@ if __LIGHTNING_SETUP__:
     sys.stderr.write('Partial import of `torchlightning` during the build process.\n')  # pragma: no cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
-    from .core import LightningModule
-    from .trainer import Trainer
-    from .callbacks import Callback
-    from .core import data_loader
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer import Trainer
+    from pytorch_lightning.callbacks import Callback
+    from pytorch_lightning.core import data_loader
 
     __all__ = [
         'Trainer',

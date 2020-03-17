@@ -8,7 +8,7 @@ import torch
 from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):

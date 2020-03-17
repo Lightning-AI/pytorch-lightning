@@ -7,7 +7,7 @@ except ImportError:
     raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                       ' install it with `pip install test-tube`.')
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TestTubeLogger(LightningLoggerBase):
