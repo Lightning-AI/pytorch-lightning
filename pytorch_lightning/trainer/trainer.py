@@ -497,16 +497,13 @@ class Trainer(
         return name_type_default
 
     @classmethod
-    def get_deprecated_arg_names(cls) -> set:
-        """Returns a set with deprecated Trainer arguments."""
-        depr_prefix = 'DEPRECATED'
+    def get_deprecated_arg_names(cls) -> List:
+        """Returns a list with deprecated Trainer arguments."""
         depr_arg_names = []
-        for field_name in cls.__dict__:
-            if field_name.startswith(depr_prefix):
-                field = cls.__dict__[field_name]
-                if isinstance(field, tuple):
-                    depr_arg_names.extend(field)
-        return set(depr_arg_names)
+        for name, val in cls.__dict__.items():
+            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
+                depr_arg_names.extend(name)
+        return depr_arg_names
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
