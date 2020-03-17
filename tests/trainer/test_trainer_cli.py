@@ -30,8 +30,8 @@ def test_default_args(tmpdir):
 
 @pytest.mark.parametrize('cli_args', [
         ['--accumulate_grad_batches=22'],
-        ['--print_nan_grads=1', '--weights_save_path=./'],
-        []
+    ['--print_nan_grads=1', '--weights_save_path=./'],
+    []
 ])
 def test_add_argparse_args_redefined(cli_args):
     """Redefines some default Trainer arguments via the cli and
@@ -61,7 +61,7 @@ def test_get_init_arguments_and_types():
 
 @pytest.mark.parametrize('cli_args', [
         ['--callbacks=1', '--logger'],
-        ['--foo', '--bar=1']
+    ['--foo', '--bar=1']
 ])
 def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     """Asserts thar an error raised in case of passing not default cli arguments."""
