@@ -6,7 +6,7 @@ from warnings import warn
 
 import torch
 from pkg_resources import parse_version
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
@@ -22,7 +22,7 @@ class TensorBoardLogger(LightningLoggerBase):
     .. _tf-logger:
 
     Example
-    ------------------
+    -------
 
     .. code-block:: python
 
@@ -110,7 +110,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
-            from tensorboardX.summary import hparams
+            from torch.utils.tensorboard.summary import hparams
             exp, ssi, sei = hparams(sanitized_params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
