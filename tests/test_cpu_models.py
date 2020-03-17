@@ -397,12 +397,10 @@ def test_nan_params_detection(tmpdir):
 
     class NanParamModel(LightTrainDataloader, TestModelBase):
 
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == test_step:
+        def on_after_backward(self):
+            if self.global_step == test_step:
                 # simulate parameter that became nan
-                self.c_d1.bias[0] = torch.as_tensor(math.nan)
-            return output
+                torch.nn.init.constant_(self.c_d1.bias, math.nan)
 
     hparams = tutils.get_hparams()
 
