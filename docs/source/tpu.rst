@@ -5,9 +5,13 @@ Lightning supports running on TPUs. At this moment, TPUs are only available
 on Google Cloud (GCP). For more information on TPUs
 `watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
 
+---------------
+
 Live demo
 ----------
 Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
+
+---------------
 
 TPU Terminology
 ---------------
@@ -19,12 +23,16 @@ A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
+---------------
+
 How to access TPUs
 -------------------
 To access TPUs there are two main ways.
 
 1. Using google colab.
 2. Using Google Cloud (GCP).
+
+---------------
 
 Colab TPUs
 -----------
@@ -33,16 +41,16 @@ hosted on GCP.
 
 To get a TPU on colab, follow these steps:
 
-1. Go to https://colab.research.google.com/.
+    1. Go to https://colab.research.google.com/.
 
-2. Click "new notebook" (bottom right of pop-up).
+    2. Click "new notebook" (bottom right of pop-up).
 
-3. Click runtime > change runtime settings. Select Python 3,
-and hardware accelerator "TPU". This will give you a TPU with 8 cores.
+    3. Click runtime > change runtime settings. Select Python 3,
+    and hardware accelerator "TPU". This will give you a TPU with 8 cores.
 
-4. Next, insert this code into the first cell and execute. This
-will install the xla library that interfaces between PyTorch and
-the TPU.
+    4. Next, insert this code into the first cell and execute. This
+    will install the xla library that interfaces between PyTorch and
+    the TPU.
 
 .. code-block:: python
 
@@ -86,7 +94,8 @@ the TPU.
     !pip install "$TORCHVISION_WHEEL"
     !sudo apt-get install libomp5
     update.join()
-5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
+
+    5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
 
 .. code-block::
 
@@ -94,8 +103,19 @@ the TPU.
 
 6. Then set up your LightningModule as normal.
 
-7. TPUs require a DistributedSampler. That means you should change your
-train_dataloader (and val, train) code as follows.
+---------------
+
+DistributedSamplers
+-------------------
+Lightning automatically inserts the correct samplers - no need to do this yourself!
+
+Usually, with TPUs (and DDP), you would need to define a DistributedSampler to move the right
+chunk of data to the appropriate TPU. As mentioned, this is not needed in Lightning
+
+.. note:: Don't add distributedSamplers. Lightning does this automatically
+
+If for some reason you still need to, this is how to construct the sampler
+for TPU use
 
 .. code-block:: python
 
@@ -140,6 +160,15 @@ train_dataloader (and val, train) code as follows.
 
 That's it! Your model will train on all 8 TPU cores.
 
+---------------
+
+Distributed Backend with TPU
+----------------------------
+The ```distributed_backend``` option used for GPUs does not apply to TPUs.
+TPUs work in DDP mode by default (distributing over each core)
+
+---------------
+
 TPU Pod
 --------
 To train on more than 8 cores, your code actually doesn't change!
@@ -151,6 +180,8 @@ All you need to do is submit the following command:
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
+
+---------------
 
 16 bit precision
 -----------------
@@ -168,6 +199,7 @@ set the 16-bit flag.
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
+---------------
 
 About XLA
 ----------
