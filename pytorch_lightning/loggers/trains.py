@@ -33,6 +33,7 @@ import torch
 
 try:
     import trains
+    from trains.task import Task
 except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
@@ -55,6 +56,17 @@ class TrainsLogger(LightningLoggerBase):
         auto_connect_frameworks: If True, automatically patch to trains backend. Defaults to True.
         auto_resource_monitoring: If true, machine vitals will be
             sent along side the task scalars. Defaults to True.
+
+    Examples:
+        >>> logger = TrainsLogger(project_name="examples", task_name="my-test")  # doctest: +ELLIPSIS
+        TRAINS Task: ...
+        TRAINS results page: https://demoapp.trains.allegro.ai/.../log
+        >>> logger.log_metrics({"val_loss": 1.23}, step=0)
+        >>> logger.log_text("sample test")
+        sample test
+        >>> import numpy as np
+        >>> logger.log_artifact("confusion matrix", np.ones((2, 3)))
+        >>> logger.log_image("passed", "Image 1", np.random.randint(0, 255, (200, 150, 3)))
     """
 
     def __init__(
@@ -63,7 +75,7 @@ class TrainsLogger(LightningLoggerBase):
             output_uri: Optional[str] = None, auto_connect_arg_parser: bool = True,
             auto_connect_frameworks: bool = True, auto_resource_monitoring: bool = True) -> None:
         super().__init__()
-        self._trains = trains.Task.init(
+        self._trains = Task.init(
             project_name=project_name, task_name=task_name, task_type=task_type,
             reuse_last_task_id=reuse_last_task_id, output_uri=output_uri,
             auto_connect_arg_parser=auto_connect_arg_parser,
@@ -72,7 +84,7 @@ class TrainsLogger(LightningLoggerBase):
         )
 
     @property
-    def experiment(self) -> trains.Task:
+    def experiment(self) -> Task:
         r"""Actual TRAINS object. To use TRAINS features do the following.
 
         Example:
@@ -220,7 +232,7 @@ class TrainsLogger(LightningLoggerBase):
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
-        Args:
+        Arguments:
             name: Artifact name. Notice! it will override previous artifact
                 if name already exists
             artifact: Artifact object to upload. Currently supports:
@@ -279,4 +291,4 @@ class TrainsLogger(LightningLoggerBase):
         self._rank = 0
         self._trains = None
         if state:
-            self._trains = trains.Task.get_task(task_id=state)
+            self._trains = Task.get_task(task_id=state)

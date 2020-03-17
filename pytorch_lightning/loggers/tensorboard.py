@@ -6,7 +6,7 @@ from warnings import warn
 
 import torch
 from pkg_resources import parse_version
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
