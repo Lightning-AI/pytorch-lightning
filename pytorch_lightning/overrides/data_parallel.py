@@ -8,7 +8,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 
-def _find_tensors(obj):  # pragma: no cover
+def _find_tensors(obj):  # pragma: no-cover
     r"""
     Recursively find all tensors contained in the specified object.
     """
@@ -21,7 +21,7 @@ def _find_tensors(obj):  # pragma: no cover
     return []
 
 
-def get_a_var(obj):  # pragma: no cover
+def get_a_var(obj):  # pragma: no-cover
     if isinstance(obj, torch.Tensor):
         return obj
 
@@ -77,7 +77,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
-    def forward(self, *inputs, **kwargs):  # pragma: no cover
+    def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
@@ -114,7 +114,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         return output
 
 
-def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no cover
+def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no-cover
     r"""Applies each `module` in :attr:`modules` in parallel on arguments
     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
     on each of :attr:`devices`.

@@ -511,7 +511,7 @@ class TrainerDPMixin(ABC):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
-            if self.amp_level == 'O2':  # pragma: no cover
+            if self.amp_level == 'O2':  # pragma: no-cover
                 m = f"""
                 Amp level {self.amp_level} with DataParallel is not supported.
                 See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
