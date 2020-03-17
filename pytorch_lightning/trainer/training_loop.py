@@ -747,4 +747,3 @@ class TrainerTrainLoopMixin(ABC):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
-
