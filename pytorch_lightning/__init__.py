@@ -24,6 +24,9 @@ if __LIGHTNING_SETUP__:
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
+    from logging import getLogger
+    _logger = getLogger("lightning")
+
     from .core import LightningModule
     from .trainer import Trainer
     from .callbacks import Callback

@@ -24,7 +24,6 @@ Use the logger anywhere in you LightningModule as follows:
 
 """
 
-import logging as log
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -38,7 +37,8 @@ except ImportError:
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'
                       ' install it with `pip install trains`.')
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TrainsLogger(LightningLoggerBase):
