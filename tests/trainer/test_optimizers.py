@@ -10,9 +10,12 @@ from pytorch_lightning import Trainer
 from tests.models import (
     TestModelBase,
     LightTrainDataloader,
+    LightValidationStepMixin,
+    LightValidationMixin,
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
-    LightTestOptimizersWithMixedSchedulingMixin
+    LightTestOptimizersWithMixedSchedulingMixin,
+    LightTestReduceLROnPlateauMixin
 )
 
 
@@ -144,3 +147,35 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
     assert init_lr * 0.1 == adjusted_lr2, \
         'lr for optimizer 2 not adjusted correctly'
+
+
+def test_reduce_lr_on_plateau_scheduling(tmpdir):
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+            LightTestReduceLROnPlateauMixin,
+            LightTrainDataloader,
+            LightValidationMixin,
+            LightValidationStepMixin,
+            TestModelBase):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    results = trainer.fit(model)
+
+    assert trainer.lr_schedulers[0] == \
+        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='val_loss',
+             interval='epoch', frequency=1, reduce_on_plateau=True), \
+        'lr schduler was not correctly converted to dict'

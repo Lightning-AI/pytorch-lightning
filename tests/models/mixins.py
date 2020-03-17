@@ -213,6 +213,48 @@ class LightTestDataloader:
         return self._dataloader(train=False)
 
 
+class CustomInfDataloader:
+    def __init__(self, dataloader):
+        self.dataloader = dataloader
+        self.iter = iter(dataloader)
+        self.count = 0
+
+    def __iter__(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        if self.count >= 50:
+            raise StopIteration
+        self.count = self.count + 1
+        try:
+            return next(self.iter)
+        except StopIteration:
+            self.iter = iter(self.dataloader)
+            return next(self.iter)
+
+
+class LightInfTrainDataloader:
+    """Simple test dataloader."""
+
+    def train_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=True))
+
+
+class LightInfValDataloader:
+    """Simple test dataloader."""
+
+    def val_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=False))
+
+
+class LightInfTestDataloader:
+    """Simple test dataloader."""
+
+    def test_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=False))
+
+
 class LightEmptyTestStep:
     """Empty test step."""
 
@@ -634,6 +676,16 @@ class LightTestOptimizersWithMixedSchedulingMixin:
 
         return [optimizer1, optimizer2], \
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
+
+
+class LightTestReduceLROnPlateauMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        return [optimizer], [lr_scheduler]
 
 
 def _get_output_metric(output, name):

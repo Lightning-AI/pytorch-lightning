@@ -1,5 +1,5 @@
 """
-Log using `neptune-logger <https://www.neptune.ml>`_
+Log using `neptune-logger <https://neptune.ai>`_
 
 .. _neptune:
 
@@ -30,12 +30,13 @@ class NeptuneLogger(LightningLoggerBase):
     """
 
     def __init__(self, api_key: Optional[str] = None, project_name: Optional[str] = None,
-                 offline_mode: bool = False, experiment_name: Optional[str] = None,
+                 close_after_fit: Optional[bool] = True, offline_mode: bool = False,
+                 experiment_name: Optional[str] = None,
                  upload_source_files: Optional[List[str]] = None, params: Optional[Dict[str, Any]] = None,
                  properties: Optional[Dict[str, Any]] = None, tags: Optional[List[str]] = None, **kwargs):
         r"""
 
-        Initialize a neptune.ml logger.
+        Initialize a neptune.ai logger.
 
         .. note:: Requires either an API Key (online mode) or a local directory path (offline mode)
 
@@ -44,10 +45,11 @@ class NeptuneLogger(LightningLoggerBase):
             # ONLINE MODE
             from pytorch_lightning.loggers import NeptuneLogger
             # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+            # We are using an api_key for the anonymous user "neptuner" but you can use your own.
 
             neptune_logger = NeptuneLogger(
-                api_key=os.environ["NEPTUNE_API_TOKEN"],
-                project_name="USER_NAME/PROJECT_NAME",
+                api_key="ANONYMOUS"
+                project_name="shared/pytorch-lightning-integration",
                 experiment_name="default", # Optional,
                 params={"max_epochs": 10}, # Optional,
                 tags=["pytorch-lightning","mlp"] # Optional,
@@ -85,40 +87,91 @@ class NeptuneLogger(LightningLoggerBase):
                 self.logger.experiment.log_artifact("model_checkpoint.pt", prediction_image) # log model checkpoint
                 self.logger.experiment.whatever_neptune_supports(...)
 
+        If you want to log objects after the training is finished use close_after_train=False:
+
+        .. code-block:: python
+
+            neptune_logger = NeptuneLogger(
+                ...
+                close_after_fit=False,
+                ...)
+            trainer = Trainer(logger=neptune_logger)
+            trainer.fit()
+
+            # Log test metrics
+            trainer.test(model)
+
+            # Log additional metrics
+            from sklearn.metrics import accuracy_score
+
+            accuracy = accuracy_score(y_true, y_pred)
+            neptune_logger.experiment.log_metric('test_accuracy', accuracy)
+
+            # Log charts
+            from scikitplot.metrics import plot_confusion_matrix
+            import matplotlib.pyplot as plt
+
+            fig, ax = plt.subplots(figsize=(16, 12))
+            plot_confusion_matrix(y_true, y_pred, ax=ax)
+            neptune_logger.experiment.log_image('confusion_matrix', fig)
+
+            # Save checkpoints folder
+            neptune_logger.experiment.log_artifact('my/checkpoints')
+
+            # When you are done, stop the experiment
+            neptune_logger.experiment.stop()
+
+        You can go and see an example experiment here:
+        https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts
+
         Args:
-            api_key (str | None): Required in online mode. Neputne API token, found on https://neptune.ml.
+            api_key: Required in online mode.
+                Neputne API token, found on https://neptune.ai
                 Read how to get your API key
-                https://docs.neptune.ml/python-api/tutorials/get-started.html#copy-api-token.
-            project_name (str): Required in online mode. Qualified name of a project in a form of
+                https://docs.neptune.ai/python-api/tutorials/get-started.html#copy-api-token.
+                It is recommended to keep it in the `NEPTUNE_API_TOKEN`
+                environment variable and then you can leave `api_key=None`
+            project_name: Required in online mode. Qualified name of a project in a form of
                "namespace/project_name" for example "tom/minst-classification".
                If None, the value of NEPTUNE_PROJECT environment variable will be taken.
-               You need to create the project in https://neptune.ml first.
-            offline_mode (bool): Optional default False. If offline_mode=True no logs will be send to neptune.
-               Usually used for debug purposes.
-            experiment_name (str|None): Optional. Editable name of the experiment.
-               Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
-            upload_source_files (list|None): Optional. List of source files to be uploaded.
-               Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
+               You need to create the project in https://neptune.ai first.
+            offline_mode: Optional default False. If offline_mode=True no logs will be send
+               to neptune. Usually used for debug purposes.
+            close_after_fit: Optional default True. If close_after_fit=False the experiment
+               will not be closed after training and additional metrics,
+               images or artifacts can be logged. Also, remember to close the experiment explicitly
+               by running neptune_logger.experiment.stop().
+            experiment_name: Optional. Editable name of the experiment.
+               Name is displayed in the experiment’s Details (Metadata section) and i
+               n experiments view as a column.
+            upload_source_files: Optional. List of source files to be uploaded.
+               Must be list of str or single str. Uploaded sources are displayed
+               in the experiment’s Source code tab.
                If None is passed, Python file from which experiment was created will be uploaded.
-               Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
+               Pass empty list ([]) to upload no files.
+               Unix style pathname pattern expansion is supported.
                For example, you can pass '\*.py'
                 to upload all python source files from the current directory.
                For recursion lookup use '\**/\*.py' (for Python 3.5 and later).
                For more information see glob library.
-            params (dict|None): Optional. Parameters of the experiment. After experiment creation params are read-only.
-               Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
-               viewed in experiments view as a column.
-            properties (dict|None): Optional default is {}. Properties of the experiment.
-               They are editable after experiment is created. Properties are displayed in the experiment’s Details and
+            params: Optional. Parameters of the experiment.
+               After experiment creation params are read-only.
+               Parameters are displayed in the experiment’s Parameters section and
                each key-value pair can be viewed in experiments view as a column.
-            tags (list|None): Optional default []. Must be list of str. Tags of the experiment.
+            properties: Optional default is {}. Properties of the experiment.
+               They are editable after experiment is created.
+               Properties are displayed in the experiment’s Details and
+               each key-value pair can be viewed in experiments view as a column.
+            tags: Optional default []. Must be list of str. Tags of the experiment.
                They are editable after experiment is created (see: append_tag() and remove_tag()).
-               Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
+               Tags are displayed in the experiment’s Details and can be viewed
+               in experiments view as a column.
         """
         super().__init__()
         self.api_key = api_key
         self.project_name = project_name
         self.offline_mode = offline_mode
+        self.close_after_fit = close_after_fit
         self.experiment_name = experiment_name
         self.upload_source_files = upload_source_files
         self.params = params
@@ -138,6 +191,12 @@ class NeptuneLogger(LightningLoggerBase):
 
         log.info(f'NeptuneLogger was initialized in {self.mode} mode')
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # cannot be pickled
+        state['_experiment'] = None
+        return state
+
     @property
     def experiment(self) -> Experiment:
         r"""
@@ -150,15 +209,14 @@ class NeptuneLogger(LightningLoggerBase):
 
         """
 
-        if self._experiment is not None:
-            return self._experiment
-        else:
-            self._experiment = neptune.create_experiment(name=self.experiment_name,
-                                                         params=self.params,
-                                                         properties=self.properties,
-                                                         tags=self.tags,
-                                                         upload_source_files=self.upload_source_files,
-                                                         **self._kwargs)
+        if self._experiment is None:
+            self._experiment = neptune.create_experiment(
+                name=self.experiment_name,
+                params=self.params,
+                properties=self.properties,
+                tags=self.tags,
+                upload_source_files=self.upload_source_files,
+                **self._kwargs)
         return self._experiment
 
     @rank_zero_only
@@ -184,7 +242,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        self.experiment.stop()
+        if self.close_after_fit:
+            self.experiment.stop()
 
     @property
     def name(self) -> str:

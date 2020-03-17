@@ -28,7 +28,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(max_epochs=hparams.epochs)
 
     # ------------------------
     # 3 START TRAINING

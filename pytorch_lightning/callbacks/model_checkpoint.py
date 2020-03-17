@@ -5,9 +5,9 @@ Model Checkpointing
 Automatically save model checkpoints during training.
 """
 
+import logging as log
 import os
 import shutil
-import logging as log
 import warnings
 import re
 
@@ -175,6 +175,10 @@ class ModelCheckpoint(Callback):
         return filepath
 
     def on_validation_end(self, trainer, pl_module):
+        # only run on main process
+        if trainer.proc_rank != 0:
+            return
+
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
         self.epochs_since_last_check += 1
