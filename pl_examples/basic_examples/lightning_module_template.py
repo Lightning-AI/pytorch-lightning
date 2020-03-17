@@ -225,7 +225,7 @@ class LightningTemplateModel(LightningModule):
         return self.__dataloader(train=False)
 
     @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
+    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
         Parameters you define here will be available to your model through self.hparams
         :param parent_parser:

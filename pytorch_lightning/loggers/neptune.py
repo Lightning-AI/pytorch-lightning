@@ -13,8 +13,8 @@ from typing import Optional, List, Dict, Any, Union, Iterable
 try:
     import neptune
     from neptune.experiments import Experiment
-except ImportError:
-    raise ImportError('You want to use `neptune` logger which is not installed yet,'
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `neptune` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install neptune-client`.')
 
 import torch

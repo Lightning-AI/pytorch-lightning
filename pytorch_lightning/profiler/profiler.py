@@ -95,7 +95,7 @@ class Profiler(BaseProfiler):
     def stop(self, action_name):
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(  # pragma: no cover
+            raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         start_time = self.current_actions.pop(action_name)
@@ -145,7 +145,7 @@ class AdvancedProfiler(BaseProfiler):
     def stop(self, action_name):
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(  # pragma: no cover
+            raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         pr.disable()

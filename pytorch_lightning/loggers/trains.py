@@ -34,8 +34,8 @@ import torch
 
 try:
     import trains
-except ImportError:
-    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
