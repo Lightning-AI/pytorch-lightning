@@ -228,7 +228,7 @@ When you init a new tensor in your code, just use type_as
 
         # put the z on the appropriate gpu or tpu core
         z = sample_noise()
-        z = z.type_as(x.type())
+        z = z.type_as(x)
 
 ----------
 

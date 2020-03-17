@@ -1,3 +1,4 @@
+import inspect
 import logging as log
 import os
 import sys
@@ -437,8 +438,6 @@ class Trainer(
 
     @classmethod
     def default_attributes(cls):
-        import inspect
-
         init_signature = inspect.signature(Trainer)
 
         args = {}
