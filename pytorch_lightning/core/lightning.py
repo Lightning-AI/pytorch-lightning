@@ -1,6 +1,5 @@
 import collections
 import inspect
-import logging as log
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -15,6 +14,7 @@ from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary

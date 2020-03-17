@@ -1,9 +1,9 @@
-import logging as log
 import math
 from abc import ABC, abstractmethod
 
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 EPSILON = 1e-6

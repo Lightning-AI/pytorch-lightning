@@ -1,5 +1,6 @@
-import logging as log
 from abc import ABC
+
+from pytorch_lightning import _logger as log
 
 try:
     from apex import amp
