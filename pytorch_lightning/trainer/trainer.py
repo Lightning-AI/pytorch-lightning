@@ -502,7 +502,7 @@ class Trainer(
         depr_arg_names = []
         for name, val in cls.__dict__.items():
             if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(name)
+                depr_arg_names.extend(val)
         return depr_arg_names
 
     @classmethod
