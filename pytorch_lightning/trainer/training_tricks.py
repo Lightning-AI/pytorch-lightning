@@ -1,8 +1,10 @@
 import logging as log
+import math
+import sys
 from abc import ABC, abstractmethod
 
 import torch
-import math
+from torch import Tensor
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
@@ -15,6 +17,7 @@ class TrainerTrainingTricksMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     gradient_clip_val: ...
+    precision: ...
 
     @abstractmethod
     def get_model(self):
@@ -50,6 +53,25 @@ class TrainerTrainingTricksMixin(ABC):
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 log.info(param, param.grad)
+
+    def detect_nan(self, loss: Tensor) -> None:
+        model = self.get_model()
+
+        # check if loss is nan
+        if not torch.isfinite(loss).all():
+            sys.exit(
+                'The loss returned in `training_step` is nan or inf.'
+                ' Will stop training.'
+            )
+        # check if a network weight is nan
+        for name, param in model.named_parameters():
+            if not torch.isfinite(param).all():
+                self.print_nan_gradients()
+                sys.exit(
+                    f'Detected nan and/or inf values in `{name}`.'
+                    ' Check your forward pass for numerically unstable operations.'
+                    ' Will stop training.',
+                )
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
         if isinstance(accumulate_grad_batches, dict):

@@ -201,7 +201,6 @@ class TrainerTrainLoopMixin(ABC):
     optimizers: ...
     accumulate_grad_batches: int
     use_amp: bool
-    print_nan_grads: ...
     track_grad_norm: ...
     model: LightningModule
     running_loss: ...
@@ -214,7 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     reload_dataloaders_every_epoch: bool
     progress_bar_refresh_rate: ...
     max_steps: int
-    max_steps: int
+    min_steps: int
     total_batch_idx: int
     checkpoint_callback: ...
 
@@ -257,7 +256,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def print_nan_gradients(self):
+    def detect_nan(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -574,9 +573,8 @@ class TrainerTrainLoopMixin(ABC):
                 # calculate loss
                 loss = optimizer_closure()
 
-                # nan grads
-                if self.print_nan_grads:
-                    self.print_nan_gradients()
+                # check if loss or model weights are nan
+                self.detect_nan(loss)
 
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value += loss.item()
@@ -715,9 +713,6 @@ class TrainerTrainLoopMixin(ABC):
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
-        # check if loss or model weights are nan
-        self.detect_nan(output[0])
-
         return output
 
     def update_learning_rates(self, interval):
@@ -753,18 +748,3 @@ class TrainerTrainLoopMixin(ABC):
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
 
-    def detect_nan(self, loss: Tensor) -> None:
-        # check if loss is nan
-        if not torch.isfinite(loss).all():
-            sys.exit(
-                'The loss returned in `training_step` is nan or inf.'
-                ' Will stop training.'
-            )
-        # check if a network weight is nan
-        for name, param in self.model.named_parameters():
-            if not torch.isfinite(param).all():
-                sys.exit(
-                    f'Detected nan and/or inf values in `{name}`.'
-                    ' Check your forward pass for numerically unstable operations.'
-                    ' Will stop training.',
-                )
