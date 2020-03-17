@@ -2,8 +2,8 @@ name: Automatic Rebase
 # https://github.com/marketplace/actions/automatic-rebase
 
 on:
-  issue_comment:
-    types: [created]
+  - pull_request
+
 jobs:
   rebase:
     name: Rebase

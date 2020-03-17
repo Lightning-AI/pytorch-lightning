@@ -1,13 +1,12 @@
-
+import logging as log
 from abc import ABC
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
-import logging as log
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerAMPMixin(ABC):

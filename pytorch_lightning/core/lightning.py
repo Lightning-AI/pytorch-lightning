@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.distributed import init_process_group
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
@@ -24,10 +24,10 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
@@ -859,7 +859,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        init_process_group('nccl', rank=proc_rank, world_size=world_size)
+        torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(
             self,

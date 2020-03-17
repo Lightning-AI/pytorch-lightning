@@ -100,7 +100,7 @@ from subprocess import call
 from typing import Union
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -177,7 +177,7 @@ class TrainerIOMixin(ABC):
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
-            dist.barrier()
+            torch_distrib.barrier()
 
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
