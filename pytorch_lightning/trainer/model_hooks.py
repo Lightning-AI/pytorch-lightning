@@ -11,7 +11,7 @@ class TrainerModelHooksMixin(ABC):
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
-    def is_overriden(self, f_name, model=None):
+    def is_overriden(self, f_name: str, model: LightningModule = None) -> bool:
         if model is None:
             model = self.get_model()
         super_object = LightningModule

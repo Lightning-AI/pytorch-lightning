@@ -85,21 +85,26 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    trainer = Trainer(logger=False)
     hparams = tutils.get_hparams()
 
     model = ModelVer0_6(hparams)
+
+    trainer = Trainer(logger=False)
     trainer.test(model)
     assert trainer.callback_metrics == {'test_loss': 0.6}
 
     # TODO: why dataloder is required if it is not used
+    trainer = Trainer(logger=False)
     result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.6}
 
     model = ModelVer0_7(hparams)
+
+    trainer = Trainer(logger=False)
     trainer.test(model)
     assert trainer.callback_metrics == {'test_loss': 0.7}
 
     # TODO: why dataloder is required if it is not used
+    trainer = Trainer(logger=False)
     result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.7}
