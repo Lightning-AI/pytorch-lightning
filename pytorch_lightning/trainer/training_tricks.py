@@ -48,13 +48,13 @@ class TrainerTrainingTricksMixin(ABC):
             for p in parameters:
                 p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
-    def print_nan_gradients(self):
+    def print_nan_gradients(self) -> None:
         model = self.get_model()
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 log.info(param, param.grad)
 
-    def detect_nan(self, loss: Tensor) -> None:
+    def detect_nan_tensors(self, loss: Tensor) -> None:
         model = self.get_model()
 
         # check if loss is nan
