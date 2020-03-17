@@ -58,7 +58,7 @@ class TrainsLogger(LightningLoggerBase):
             sent along side the task scalars. Defaults to True.
 
     Examples:
-        >>> logger = TrainsLogger(project_name="examples", task_name="my-test")  # doctest: +ELLIPSIS
+        >>> logger = TrainsLogger("examples", "my-test", output_uri=".")  # doctest: +ELLIPSIS
         TRAINS Task: ...
         TRAINS results page: https://demoapp.trains.allegro.ai/.../log
         >>> logger.log_metrics({"val_loss": 1.23}, step=0)
@@ -66,7 +66,7 @@ class TrainsLogger(LightningLoggerBase):
         sample test
         >>> import numpy as np
         >>> logger.log_artifact("confusion matrix", np.ones((2, 3)))
-        >>> logger.log_image("passed", "Image 1", np.random.randint(0, 255, (200, 150, 3)))
+        >>> logger.log_image("passed", "Image 1", np.random.randint(0, 255, (200, 150, 3), dtype=np.uint8))
     """
 
     def __init__(

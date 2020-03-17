@@ -16,7 +16,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Log to local file system in TensorBoard format
 
-    Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
+    Implemented using :class:`tensorboardX.SummaryWriter`. Logs are saved to
     `os.path.join(save_dir, name, version)`
 
     .. _tf-logger:
@@ -110,7 +110,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
-            from torch.utils.tensorboard.summary import hparams
+            from tensorboardX.summary import hparams
             exp, ssi, sei = hparams(sanitized_params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
