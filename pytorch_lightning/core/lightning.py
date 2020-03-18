@@ -1,6 +1,5 @@
 import collections
 import inspect
-import logging as log
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -15,6 +14,7 @@ from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -1396,7 +1396,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(

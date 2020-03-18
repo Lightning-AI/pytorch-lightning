@@ -1,5 +1,4 @@
 import inspect
-import logging as log
 import os
 import sys
 import warnings
@@ -14,8 +13,8 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
@@ -26,11 +25,7 @@ from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device
-)
+from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin

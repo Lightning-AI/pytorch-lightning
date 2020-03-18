@@ -122,7 +122,6 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 """
 
 import copy
-import logging as log
 import warnings
 from abc import ABC, abstractmethod
 from typing import Callable
@@ -131,6 +130,7 @@ from typing import Union, List
 import numpy as np
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
