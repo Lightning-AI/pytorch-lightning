@@ -133,16 +133,12 @@ in your model.
 """
 
 import copy
-import logging as log
-import sys
 import warnings
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
 
 import numpy as np
-import torch
-from torch import Tensor
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
