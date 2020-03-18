@@ -12,7 +12,7 @@ def test_trains_logger(tmpdir):
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
+    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
@@ -34,7 +34,7 @@ def test_trains_pickle(tmpdir):
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
 
-    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
+    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
