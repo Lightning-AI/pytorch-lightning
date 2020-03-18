@@ -73,10 +73,10 @@ class LightningLoggerBase(ABC):
             {'a/b': 123}
         """
 
-        def _dict_generator(_dict, prefixes=None):
+        def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
-            if isinstance(_dict, dict):
-                for key, value in _dict.items():
+            if isinstance(input_dict, dict):
+                for key, value in input_dict.items():
                     if isinstance(value, (dict, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
@@ -84,7 +84,7 @@ class LightningLoggerBase(ABC):
                     else:
                         yield prefixes + [key, value if value is not None else str(None)]
             else:
-                yield prefixes + [_dict if _dict is None else str(_dict)]
+                yield prefixes + [input_dict if input_dict is None else str(input_dict)]
 
         return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
