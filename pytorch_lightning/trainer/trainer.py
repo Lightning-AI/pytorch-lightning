@@ -604,10 +604,6 @@ class Trainer(
                 self.load_spawn_weights(model)
                 self.model = model
 
-                # load weights if not interrupted
-                self.load_spawn_weights(model)
-                self.model = model
-
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
@@ -627,10 +623,6 @@ class Trainer(
 
             # train
             xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
-
-            # load weights if not interrupted
-            self.load_spawn_weights(model)
-            self.model = model
 
             # load weights if not interrupted
             self.load_spawn_weights(model)
@@ -941,7 +933,6 @@ class _PatchDataLoader(object):
     Args:
         dataloader: Dataloader object to return when called.
     '''
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
