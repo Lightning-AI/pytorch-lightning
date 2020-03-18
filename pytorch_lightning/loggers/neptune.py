@@ -6,7 +6,6 @@ Log using `neptune-logger <https://neptune.ai>`_
 NeptuneLogger
 --------------
 """
-import logging as log
 from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
@@ -20,6 +19,7 @@ except ImportError:  # pragma: no-cover
 import torch
 from torch import is_tensor
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 

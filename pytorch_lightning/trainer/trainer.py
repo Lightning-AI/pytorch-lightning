@@ -1,5 +1,4 @@
 import inspect
-import logging as log
 import os
 import sys
 import warnings
@@ -14,8 +13,8 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.profiler.profiler import BaseProfiler

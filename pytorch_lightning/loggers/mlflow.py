@@ -23,7 +23,6 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
-import logging as log
 from argparse import Namespace
 from time import time
 from typing import Optional, Dict, Any, Union
@@ -35,6 +34,7 @@ except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `mlflow` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install mlflow`.')
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 

@@ -1,6 +1,5 @@
 import cProfile
 import io
-import logging as log
 import pstats
 import time
 from abc import ABC, abstractmethod
@@ -8,6 +7,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
+
+from pytorch_lightning import _logger as log
 
 
 class BaseProfiler(ABC):

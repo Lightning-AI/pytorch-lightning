@@ -5,11 +5,11 @@ Stop training when a monitored quantity has stopped improving.
 
 """
 
-import logging as log
 import warnings
 
 import numpy as np
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 
 
