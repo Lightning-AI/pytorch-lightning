@@ -65,6 +65,12 @@ class LightningLoggerBase(ABC):
 
         Returns:
             Flatten dict.
+
+        Examples:
+            >>> LightningLoggerBase._flatten_dict({'a': {'b': 'c'}})
+            {'a/b': 'c'}
+            >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
+            {'a/b': 123}
         """
 
         def _dict_generator(_dict, prefixes=None):
