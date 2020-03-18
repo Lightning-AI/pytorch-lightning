@@ -12,10 +12,11 @@ def test_trains_logger(tmpdir):
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
+    TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
                                  files_host='http://integration.trains.allegro.ai:8081',
                                  web_host='http://integration.trains.allegro.ai:8080', )
-    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
+    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
@@ -37,10 +38,11 @@ def test_trains_pickle(tmpdir):
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
+    TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
                                  files_host='http://integration.trains.allegro.ai:8081',
                                  web_host='http://integration.trains.allegro.ai:8080', )
-    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
+    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
