@@ -50,28 +50,6 @@ def test_hparams_save_load(tmpdir):
     )
 
 
-def test_hparams_save_load(tmpdir):
-    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=2,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    assert result == 1
-
-    # try to load the model now
-    pretrained_model = tutils.load_model_from_checkpoint(
-        trainer.checkpoint_callback.dirpath,
-        module_class=DictHparamsModel
-    )
-
-
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
