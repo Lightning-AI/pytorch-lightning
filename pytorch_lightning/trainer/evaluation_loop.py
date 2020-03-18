@@ -327,7 +327,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self):
         # when testing make sure user defined a test step
-
         if self.mode is TrainerMode.TESTING and not self.is_overriden('test_step'):
             m = "You called `.test()` without defining model's `.test_step()`." \
                 " Please define and try again"
@@ -416,8 +415,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # Validation/Test end callbacks
         if self.mode is TrainerMode.TESTING:
             self.on_test_end()
-        else:
-            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -426,7 +423,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.mode is TrainerMode.TESTING and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-        elif self.mode is TrainerMode.VALIDATING and len(self.val_dataloaders) > 1:
+        elif self.mode is not TrainerMode.TESTING and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

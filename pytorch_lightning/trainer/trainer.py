@@ -918,9 +918,7 @@ class Trainer(
 
             self._fit(test_model)
         else:
-            self.run_evaluation(test_mode=True)
-
-        self.testing = False
+            self.run_evaluation()
 
         self.mode = TrainerMode.TRAINING
 
