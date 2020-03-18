@@ -366,7 +366,7 @@ def test_nan_loss_detection(tmpdir):
             output = super().training_step(batch, batch_idx)
             if batch_idx == test_step:
                 if isinstance(output, dict):
-                    output['loss'] /= 0  # make loss infinite
+                    output['loss'] *= torch.tensor(math.inf)  # make loss infinite
                 else:
                     output /= 0
             return output
@@ -380,7 +380,7 @@ def test_nan_loss_detection(tmpdir):
         max_steps=(test_step + 1),
     )
 
-    with pytest.raises(SystemExit, match=r'.*The loss returned in `training_step` is nan or inf.*'):
+    with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
         trainer.fit(model)
         assert trainer.global_step == test_step
 
@@ -406,7 +406,7 @@ def test_nan_params_detection(tmpdir):
         max_steps=(test_step + 1),
     )
 
-    with pytest.raises(SystemExit, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
+    with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
         trainer.fit(model)
         assert trainer.global_step == test_step
 
