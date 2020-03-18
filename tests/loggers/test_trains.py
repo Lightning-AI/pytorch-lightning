@@ -12,7 +12,10 @@ def test_trains_logger(tmpdir):
 
     hparams = tutils.get_hparams()
     model = LightningTestModel(hparams)
-    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
+    TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
+                                 files_host='http://integration.trains.allegro.ai:8081',
+                                 web_host='http://integration.trains.allegro.ai:8080', )
+    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
@@ -24,6 +27,7 @@ def test_trains_logger(tmpdir):
     result = trainer.fit(model)
 
     print('result finished')
+    logger.finalize()
     assert result == 1, "Training failed"
 
 
@@ -33,8 +37,10 @@ def test_trains_pickle(tmpdir):
 
     # hparams = tutils.get_hparams()
     # model = LightningTestModel(hparams)
-
-    logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
+    TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
+                                 files_host='http://integration.trains.allegro.ai:8081',
+                                 web_host='http://integration.trains.allegro.ai:8080', )
+    logger = TrainsLogger(project_name="examples", task_name="pytorch lightning test")
 
     trainer_options = dict(
         default_save_path=tmpdir,
@@ -46,3 +52,5 @@ def test_trains_pickle(tmpdir):
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
+    trainer2.logger.finalize()
+    logger.finalize()
