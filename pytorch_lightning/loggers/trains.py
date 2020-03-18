@@ -34,7 +34,7 @@ import torch
 
 try:
     import trains
-    from trains.task import Task
+    from trains import Task
 except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
@@ -270,7 +270,7 @@ class TrainsLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status: str) -> None:
+    def finalize(self, status: str = None) -> None:
         if not self._trains:
             return None
         self._trains.close()
@@ -290,6 +290,25 @@ class TrainsLogger(LightningLoggerBase):
         if not self._trains:
             return None
         return self._trains.id
+
+    @classmethod
+    def set_credentials(cls, api_host: str = None, web_host: str = None, files_host: str = None,
+                        key: str = None, secret: str = None) -> None:
+        """
+        Set new default TRAINS-server host and credentials
+        These configurations could be overridden by either OS environment variables
+        or trains.conf configuration file
+
+        Notice! credentials needs to be set *prior* to Logger initialization
+
+        :param api_host: Trains API server url, example: host='http://localhost:8008'
+        :param web_host: Trains WEB server url, example: host='http://localhost:8080'
+        :param files_host: Trains Files server url, example: host='http://localhost:8081'
+        :param key: user key/secret pair, example: key='thisisakey123'
+        :param secret: user key/secret pair, example: secret='thisisseceret123'
+        """
+        Task.set_credentials(api_host=api_host, web_host=web_host, files_host=files_host,
+                             key=key, secret=secret)
 
     def __getstate__(self) -> Union[str, None]:
         if not self._trains:
