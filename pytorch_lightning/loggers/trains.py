@@ -23,7 +23,9 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_trains_supports(...)
 
 """
-
+import PIL
+import numpy
+import pandas
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -216,7 +218,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_artifact(
             self, name: str,
-            artifact: Union[str, Path, Dict[str, Any], 'pandas.DataFrame', 'numpy.ndarray', 'PIL.Image.Image'],
+            artifact: Union[str, Path, Dict[str, Any], 'pandas.DataFrame', 'numpy.ndarray', 'PIL.Image'],
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
