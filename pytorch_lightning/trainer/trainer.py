@@ -120,7 +120,6 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
-            **kwargs
     ):
         r"""
 
