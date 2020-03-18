@@ -426,8 +426,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 root_gpu = self.data_parallel_device_ids[0]
 
                 # set cuda device to root gpu
-                # related to https://github.com/PyTorchLightning/pytorch-lightning/issues/958
-                # Refer: https://github.com/pytorch/pytorch/issues/9871#issuecomment-408304190
                 root_device = (torch.device("cuda", root_gpu)
                                if root_gpu >= 0 else torch.device("cpu"))
                 torch.cuda.set_device(root_device)
