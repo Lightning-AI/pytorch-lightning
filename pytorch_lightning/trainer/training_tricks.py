@@ -70,7 +70,6 @@ class TrainerTrainingTricksMixin(ABC):
                 raise ValueError(
                     f'Detected nan and/or inf values in `{name}`.'
                     ' Check your forward pass for numerically unstable operations.'
-                    ' Will stop training.',
                 )
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
