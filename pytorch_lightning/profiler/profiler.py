@@ -1,12 +1,14 @@
-from contextlib import contextmanager
-from collections import defaultdict
-import time
-import numpy as np
 import cProfile
-import pstats
 import io
+import pstats
+import time
 from abc import ABC, abstractmethod
-import logging as log
+from collections import defaultdict
+from contextlib import contextmanager
+
+import numpy as np
+
+from pytorch_lightning import _logger as log
 
 
 class BaseProfiler(ABC):

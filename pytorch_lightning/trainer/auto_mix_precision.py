@@ -1,13 +1,13 @@
-
 from abc import ABC
+
+from pytorch_lightning import _logger as log
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
-import logging as log
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerAMPMixin(ABC):

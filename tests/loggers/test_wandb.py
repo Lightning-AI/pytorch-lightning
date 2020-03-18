@@ -1,8 +1,8 @@
 import os
 import pickle
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer

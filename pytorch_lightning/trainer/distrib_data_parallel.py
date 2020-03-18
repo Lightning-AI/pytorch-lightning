@@ -113,7 +113,6 @@ When the script starts again, Lightning will:
 
 """
 
-import logging as log
 import os
 import re
 import warnings
@@ -121,8 +120,8 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 import torch
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:

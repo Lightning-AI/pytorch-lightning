@@ -6,7 +6,6 @@ CometLogger
 -------------
 """
 
-import logging as log
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 
@@ -27,8 +26,9 @@ except ImportError:
 import torch
 from torch import is_tensor
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from .base import LightningLoggerBase, rank_zero_only
 
 
 class CometLogger(LightningLoggerBase):

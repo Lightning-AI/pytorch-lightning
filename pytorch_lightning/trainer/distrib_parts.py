@@ -334,13 +334,12 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
-from abc import ABC, abstractmethod
-import logging as log
 import os
-import signal
+from abc import ABC, abstractmethod
 
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,

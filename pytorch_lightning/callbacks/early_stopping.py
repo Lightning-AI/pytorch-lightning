@@ -5,12 +5,12 @@ Stop training when a monitored quantity has stopped improving.
 
 """
 
-import logging as log
 import warnings
 
 import numpy as np
 
 from .base import Callback
+from pytorch_lightning import _logger as log
 
 
 class EarlyStopping(Callback):

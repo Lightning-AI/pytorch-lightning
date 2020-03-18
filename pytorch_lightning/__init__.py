@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.7.1'
+__version__ = '0.7.2-dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -24,6 +24,9 @@ if __LIGHTNING_SETUP__:
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
+    from logging import getLogger
+    _logger = getLogger("lightning")
+
     from .core import LightningModule
     from .trainer import Trainer
     from .callbacks import Callback

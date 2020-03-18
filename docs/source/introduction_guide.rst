@@ -33,7 +33,7 @@ Lightning Philosophy
 Lightning factors DL/ML code into three types:
 
 - Research code
-- Engineerng code
+- Engineering code
 - Non-essential code
 
 Research code
@@ -472,7 +472,7 @@ First, change the runtime to TPU (and reinstall lightning).
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
-.. code-block:: python
+.. code-block::
 
     import collections
     from datetime import datetime, timedelta

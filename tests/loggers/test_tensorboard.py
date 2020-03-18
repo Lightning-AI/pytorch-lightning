@@ -1,4 +1,5 @@
 import pickle
+from argparse import Namespace
 
 import pytest
 import torch
@@ -108,6 +109,9 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "float": 0.3,
         "int": 1,
         "string": "abc",
-        "bool": True
+        "bool": True,
+        "list": [1, 2, 3],
+        "namespace": Namespace(foo=3),
+        "layer": torch.nn.BatchNorm1d
     }
     logger.log_hyperparams(hparams)

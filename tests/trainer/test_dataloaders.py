@@ -2,6 +2,7 @@ import pytest
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.models import (
     TestModelBase,
     LightningTestModel,
@@ -13,8 +14,83 @@ from tests.models import (
     LightValStepFitMultipleDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
+    LightInfTrainDataloader,
+    LightInfValDataloader,
+    LightInfTestDataloader
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+
+
+def test_dataloader_config_errors(tmpdir):
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # percent check < 0
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        train_percent_check=-0.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    with pytest.raises(ValueError):
+        trainer.fit(model)
+
+    # percent check > 1
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        train_percent_check=1.1,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    with pytest.raises(ValueError):
+        trainer.fit(model)
+
+    # int val_check_interval > num batches
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_check_interval=10000
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    with pytest.raises(ValueError):
+        trainer.fit(model)
+
+    # float val_check_interval > 1
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_check_interval=1.1
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+
+    with pytest.raises(ValueError):
+        trainer.fit(model)
 
 
 def test_multiple_val_dataloader(tmpdir):
@@ -96,7 +172,7 @@ def test_multiple_test_dataloader(tmpdir):
 
 
 def test_train_dataloaders_passed_to_fit(tmpdir):
-    """ Verify that train dataloader can be passed to fit """
+    """Verify that train dataloader can be passed to fit """
     tutils.reset_seed()
 
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
@@ -116,7 +192,9 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True))
-    results = trainer.fit(model, **fit_options)
+    result = trainer.fit(model, **fit_options)
+
+    assert result == 1
 
 
 def test_train_val_dataloaders_passed_to_fit(tmpdir):
@@ -146,13 +224,14 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False))
 
-    results = trainer.fit(model, **fit_options)
+    result = trainer.fit(model, **fit_options)
+    assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
-        f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
-    """ Verify train, val & test dataloader can be passed to fit """
+    """Verify train, val & test dataloader can be passed to fit """
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -181,14 +260,15 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
                        val_dataloaders=model._dataloader(train=False),
                        test_dataloaders=model._dataloader(train=False))
 
-    results = trainer.fit(model, **fit_options)
+    result = trainer.fit(model, **fit_options)
 
     trainer.test()
 
+    assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
-        f"val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+        f'val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 1, \
-        f"test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
+        f'test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -224,9 +304,9 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     trainer.test()
 
     assert len(trainer.val_dataloaders) == 2, \
-        f"Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 2, \
-        f"Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -265,40 +345,20 @@ def test_mixing_of_dataloader_options(tmpdir):
     trainer.test()
 
     assert len(trainer.val_dataloaders) == 1, \
-        f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 1, \
-        f"test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
+        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 def test_inf_train_dataloader(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningTestModel):
-        def train_dataloader(self):
-            dataloader = self._dataloader(train=True)
-
-            class CustomInfDataLoader:
-                def __init__(self, dataloader):
-                    self.dataloader = dataloader
-                    self.iter = iter(dataloader)
-                    self.count = 0
-
-                def __iter__(self):
-                    self.count = 0
-                    return self
-
-                def __next__(self):
-                    if self.count >= 5:
-                        raise StopIteration
-                    self.count = self.count + 1
-                    try:
-                        return next(self.iter)
-                    except StopIteration:
-                        self.iter = iter(self.dataloader)
-                        return next(self.iter)
-
-            return CustomInfDataLoader(dataloader)
+    class CurrentTestModel(
+        LightInfTrainDataloader,
+        LightningTestModel
+    ):
+        pass
 
     hparams = tutils.get_hparams()
     model = CurrentTestModel(hparams)
@@ -316,9 +376,77 @@ def test_inf_train_dataloader(tmpdir):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        val_check_interval=50,
+        val_check_interval=50
     )
     result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
+def test_inf_val_dataloader(tmpdir):
+    """Test inf val data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightInfValDataloader,
+        LightningTestModel
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            val_percent_check=0.5
+        )
+        trainer.fit(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
+def test_inf_test_dataloader(tmpdir):
+    """Test inf test data loader (e.g. IterableDataset)"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightInfTestDataloader,
+        LightningTestModel,
+        LightTestFitSingleTestDataloadersMixin
+    ):
+        pass
+
+    hparams = tutils.get_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_save_path=tmpdir,
+            max_epochs=1,
+            test_percent_check=0.5
+        )
+        trainer.test(model)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+    trainer.test(model)
 
     # verify training completed
     assert result == 1
