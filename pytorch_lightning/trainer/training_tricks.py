@@ -67,7 +67,7 @@ class TrainerTrainingTricksMixin(ABC):
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():
                 self.print_nan_gradients()
-                sys.exit(
+                raise ValueError(
                     f'Detected nan and/or inf values in `{name}`.'
                     ' Check your forward pass for numerically unstable operations.'
                     ' Will stop training.',
