@@ -580,7 +580,7 @@ class Trainer(
         self.mode = TrainerMode.TRAINING
         return self._fit(model)
 
-    def _fit(self, model, train_dataloader=None, val_dataloader=None, test_dataloader=None):
+    def _fit(self, model):
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
