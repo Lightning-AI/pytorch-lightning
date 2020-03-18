@@ -942,8 +942,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-        Some things to note:
-
+        .. note:: Some things to note:
             - Lightning calls ``.backward()`` and ``.step()`` on each optimizer
              and learning rate scheduler as needed.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically
@@ -956,7 +955,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
              default .step() schedule, override the `optimizer_step` hook.
             - If you only want to call a learning rate scheduler every `x` step or epoch,
              or want to monitor a custom metric, you can specify these in a dictionary:
-
                 .. code-block:: python
 
                     {
