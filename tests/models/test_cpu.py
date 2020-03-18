@@ -1,3 +1,4 @@
+import platform
 import warnings
 
 import pytest
@@ -40,6 +41,8 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.reset_seed()
