@@ -20,13 +20,10 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys
-    sys.stderr.write('Partial import of `torchlightning` during the build process.\n')
+    sys.stdout.write('Partial import of `torchlightning` during the build process.\n')
     # We are not importing the rest of the scikit during the build
     # process, as it may not be compiled yet
 else:
-    from logging import getLogger
-    _logger = getLogger("lightning")
-
     from .core import LightningModule
     from .trainer import Trainer
     from .callbacks import Callback
@@ -39,3 +36,8 @@ else:
         'data_loader'
     ]
     # __call__ = __all__
+
+
+from logging import getLogger
+
+_logger = getLogger("lightning")
