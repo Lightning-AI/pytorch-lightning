@@ -303,7 +303,8 @@ class Trainer(
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
-                          " NaN grads will be printed automatically when detected.", DeprecationWarning)
+                          " NaN grads will be printed automatically when detected.",
+                          DeprecationWarning)
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
