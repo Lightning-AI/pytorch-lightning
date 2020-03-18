@@ -40,7 +40,7 @@ def main(hparams):
     # ------------------------
     if hparams.validating or hparams.testing:
         assert hparams.checkpoint != '', 'Please specify checkpoint for evaluation'
-        model.load_from_checkpoint(hparams.checkpoint)
+        model = model.load_from_checkpoint(hparams.checkpoint)
 
         if hparams.validating:
             trainer.validate(model)

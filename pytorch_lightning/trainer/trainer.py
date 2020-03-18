@@ -780,8 +780,9 @@ class Trainer(
         self.register_slurm_signal_handlers()
 
         # print model summary
-        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
+        # TODO: remove testing condition because model.summarize() is wiping out the weights
+        if self.proc_rank == 0 and self.weights_summary is not None \
+                and self.mode is not TrainerMode.TESTING and self.mode is not TrainerMode.VALIDATING:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
@@ -799,10 +800,10 @@ class Trainer(
         self.restore_weights(model)
 
         # when testing requested only run test and return
-        if self.testing:
+        if self.mode is TrainerMode.VALIDATING or self.mode is TrainerMode.TESTING:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            self.run_evaluation(test_mode=True)
+            self.run_evaluation()
             return
 
         # check if we should run validation during training
@@ -822,7 +823,9 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-
+            eval_results = self.evaluate(model,
+                                         self.val_dataloaders,
+                                         self.num_sanity_val_steps)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
@@ -871,9 +874,20 @@ class Trainer(
         """
         self.mode = TrainerMode.VALIDATING
         if model is not None:
+            self.model = model
             self._fit(model)
+        elif self.use_ddp or self.use_tpu:  # pragma: no cover
+            # attempt to load weights from a spawn
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            val_model = self.model
+            if os.path.exists(path):
+                val_model = self.load_spawn_weights(self.model)
+
+            self._fit(val_model)
         else:
             self.run_evaluation()
+
+        self.mode = TrainerMode.TRAINING
 
     def test(self, model: Optional[LightningModule] = None):
         r"""
@@ -902,7 +916,7 @@ class Trainer(
         self.mode = TrainerMode.TESTING
         if model is not None:
             self.model = model
-            self.fit(model)
+            self._fit(model)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
@@ -910,13 +924,13 @@ class Trainer(
             if os.path.exists(path):
                 test_model = self.load_spawn_weights(self.model)
 
-            self.fit(test_model)
+            self._fit(test_model)
         else:
             self.run_evaluation(test_mode=True)
 
         self.testing = False
 
-        self.testing = False
+        self.mode = TrainerMode.TRAINING
 
 
 class _PatchDataLoader(object):
@@ -928,3 +942,8 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
     '''
 
+    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+        self.dataloader = dataloader
+
+    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+        return self.dataloader

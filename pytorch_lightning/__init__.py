@@ -26,8 +26,8 @@ else:
     from logging import getLogger
     _logger = getLogger("lightning")
 
+    from pytorch_lightning.trainer import Trainer  # Initiaized first due to state
     from pytorch_lightning.core import LightningModule
-    from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
 

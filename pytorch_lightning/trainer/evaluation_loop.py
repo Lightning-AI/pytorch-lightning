@@ -267,7 +267,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx)
 
                 # on dp / ddp2 might still want to do something with the batch parts
-                if test_mode:
+                if self.mode is TrainerMode.TESTING:
                     if self.is_overriden('test_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
@@ -300,13 +300,13 @@ class TrainerEvaluationLoopMixin(ABC):
         # give model a chance to do something with the outputs (and method defined)
         model = self.get_model()
 
-        if test_mode and self.is_overriden('test_epoch_end'):
+        if self.mode is TrainerMode.TESTING and self.is_overriden('test_epoch_end'):
             eval_results = model.test_epoch_end(outputs)
         elif self.is_overriden('validation_epoch_end'):
             eval_results = model.validation_epoch_end(outputs)
 
         # TODO: remove in v 1.0.0
-        if test_mode and self.is_overriden('test_end'):
+        if self.mode is TrainerMode.TESTING and self.is_overriden('test_end'):
             eval_results = model.test_end(outputs)
             m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
                 'Use test_epoch_end instead.'
@@ -333,6 +333,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 " Please define and try again"
             raise MisconfigurationException(m)
 
+        elif self.mode is TrainerMode.VALIDATING and not self.is_overriden('validation_step'):
+            m = "You called `.validate()` without defining model's `.validation_step()`." \
+                " Please define and try again"
+            raise MisconfigurationException(m)
+
         # Validation/Test begin callbacks
         if self.mode is TrainerMode.TESTING:
             self.on_test_start()
@@ -350,7 +355,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
             dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
-        elif self.mode is TrainerMode.VALIDATING or self.mode is TrainerMode.TRAINING:
+        else:
             # val
             if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
                 self.reset_val_dataloader(model)
@@ -366,16 +371,14 @@ class TrainerEvaluationLoopMixin(ABC):
         # main progress bar will already be closed when testing so initial position is free
         position = 2 * self.process_position + (self.mode is not TrainerMode.TESTING)
         desc = 'Testing' if self.mode is TrainerMode.TESTING else 'Validating'
-        pbar = tqdm(desc=desc, total=max_batches, leave=self.mode is TrainerMode.TESTING, position=position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout)
+        total = max_batches if max_batches != float('inf') else None
+        pbar = tqdm(desc=desc, total=total, leave=self.mode is TrainerMode.TESTING, position=position,
+                    disable=not self.show_progress_bar, dynamic_ncols=True, file=sys.stdout)
         mode = "test" if self.mode is TrainerMode.TESTING else "val"
         setattr(self, f'{mode}_progress_bar', pbar)
 
         # run evaluation
-        eval_results = self.evaluate(self.model,
-                                     dataloaders,
-                                     max_batches)
+        eval_results = self.evaluate(self.model, dataloaders, max_batches)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
             eval_results)
 
@@ -383,10 +386,11 @@ class TrainerEvaluationLoopMixin(ABC):
         self.add_tqdm_metrics(prog_bar_metrics)
 
         # log results of test
-        if test_mode:
+        if self.mode is TrainerMode.TESTING or self.mode is TrainerMode.VALIDATING:
             if self.proc_rank == 0:
                 print('-' * 100)
-                print('TEST RESULTS')
+                mode = "TEST" if self.mode is TrainerMode.TESTING else "VALIDATION"
+                print(f'{mode} RESULTS')
                 print(prog_bar_metrics)
                 print('-' * 100)
 
@@ -412,6 +416,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # Validation/Test end callbacks
         if self.mode is TrainerMode.TESTING:
             self.on_test_end()
+        else:
+            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -420,7 +426,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.mode is TrainerMode.TESTING and len(self.test_dataloaders) > 1:
             args.append(dataloader_idx)
 
-
+        elif self.mode is TrainerMode.VALIDATING and len(self.val_dataloaders) > 1:
             args.append(dataloader_idx)
 
         # handle DP, DDP forward
@@ -442,9 +448,10 @@ class TrainerEvaluationLoopMixin(ABC):
             batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
 
-
+        # CPU, TPU or gpu step
+        if self.mode is TrainerMode.TESTING:
             output = model.test_step(*args)
-        elif self.mode is TrainerMode.VALIDATING or self.mode is TrainerMode.TRAINING:
+        else:
             output = model.validation_step(*args)
 
         return output
