@@ -6,12 +6,16 @@ name: torch-GPU
 
 steps:
 - name: build image
-  image: ubuntu:18.04
+  image: docker:latest
+  #volumes:
+  #    - name: docker_sock
+  #      path: /var/run/docker.soc
   commands:
     - docker image build -t lightning:devel -f tests/Dockerfile .
 
 - name: testing
   image: lightning:devel
+  pull: if-not-exists
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
@@ -30,3 +34,8 @@ steps:
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules #  --flake8
     - coverage report
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
+
+#volumes:
+#  - name: docker_sock
+#    host:
+#      path: /var/run/docker.sock
