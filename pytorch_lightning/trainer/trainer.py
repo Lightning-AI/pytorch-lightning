@@ -878,13 +878,14 @@ class Trainer(
 
 
 class _PatchDataLoader(object):
-    r'''
+    r"""
     Callable object for patching dataloaders passed into trainer.fit().
     Use this class to override model.*_dataloader() and be pickle-compatible.
 
     Args:
         dataloader: Dataloader object to return when called.
-    '''
+
+    """
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
