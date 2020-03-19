@@ -942,28 +942,27 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-        Some things to know
-
+        .. note:: Some things to note:
             - Lightning calls ``.backward()`` and ``.step()`` on each optimizer
-            and learning rate scheduler as needed.
-
+             and learning rate scheduler as needed.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically
-            handle the optimizers for you.
-
-            - If you use multiple optimizers, training_step will have an additional
-            ``optimizer_idx`` parameter.
-
-            - If you use LBFGS lightning handles the closure function automatically for you
-
+             handle the optimizers for you.
+            - If you use multiple optimizers, training_step will have an additional ``optimizer_idx`` parameter.
+            - If you use LBFGS lightning handles the closure function automatically for you.
             - If you use multiple optimizers, gradients will be calculated only
-            for the parameters of current optimizer at each training step.
-
+             for the parameters of current optimizer at each training step.
             - If you need to control how often those optimizers step or override the
-            default .step() schedule, override the `optimizer_step` hook.
-
+             default .step() schedule, override the `optimizer_step` hook.
             - If you only want to call a learning rate scheduler every `x` step or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_scheduler,
-                                                        interval='step' or 'epoch', frequency=x)
+             or want to monitor a custom metric, you can specify these in a dictionary:
+                .. code-block:: python
+
+                    {
+                        'scheduler': lr_scheduler,
+                        'interval': 'step'  # or 'epoch'
+                        'monitor': 'val_f1',
+                        'frequency': x
+                    }
 
         """
         return Adam(self.parameters(), lr=1e-3)
