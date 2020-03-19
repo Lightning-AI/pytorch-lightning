@@ -23,7 +23,7 @@ class LightningTemplateModel(LightningModule):
 
     Example:
 
-        >>> # define define simple Net for MNIST dataset
+        >>> # define simple Net for MNIST dataset
         >>> params = dict(
         ...     drop_prob=0.2,
         ...     batch_size=2,
