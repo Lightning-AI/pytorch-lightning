@@ -371,7 +371,7 @@ def test_nan_loss_detection(tmpdir):
                     output /= 0
             return output
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = InfLossModel(hparams)
 
     # fit model
@@ -398,7 +398,7 @@ def test_nan_params_detection(tmpdir):
                 # simulate parameter that became nan
                 torch.nn.init.constant_(self.c_d1.bias, math.nan)
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     model = NanParamModel(hparams)
     trainer = Trainer(

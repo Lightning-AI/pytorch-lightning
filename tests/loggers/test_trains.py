@@ -36,7 +36,7 @@ def test_trains_pickle(tmpdir):
     """Verify that pickling trainer with TRAINS logger works."""
     tutils.reset_seed()
 
-    # hparams = tutils.get_hparams()
+    # hparams = tutils.get_default_hparams()
     # model = LightningTestModel(hparams)
     TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
