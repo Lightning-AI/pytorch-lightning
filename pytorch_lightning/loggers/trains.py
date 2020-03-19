@@ -1,5 +1,5 @@
 """
-Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>'_
+Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_
 
 .. code-block:: python
 
