@@ -1,8 +1,8 @@
 import pickle
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_testtube_logger(tmpdir):

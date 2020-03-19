@@ -1,10 +1,10 @@
 import os
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightTrainDataloader,
     LightValidationMixin,

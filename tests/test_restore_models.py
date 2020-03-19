@@ -5,11 +5,11 @@ import os
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     LightningTestModel,
     LightningTestModelWithoutHyperparametersArg,
     LightningTestModelWithUnusedHyperparametersArg

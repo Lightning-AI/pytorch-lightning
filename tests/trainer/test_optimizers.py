@@ -4,10 +4,10 @@ import os
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightTrainDataloader,
     LightValidationStepMixin,

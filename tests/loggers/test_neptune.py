@@ -4,10 +4,10 @@ from unittest.mock import patch, MagicMock
 
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_neptune_logger(tmpdir):

@@ -1,10 +1,10 @@
 import os
 import pickle
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_mlflow_logger(tmpdir):

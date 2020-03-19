@@ -1,9 +1,9 @@
 import pytest
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightningTestModel,
     LightEmptyTestStep,

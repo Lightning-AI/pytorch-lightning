@@ -6,7 +6,7 @@ from argparse import Namespace
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     TestModelBase,
     DictHparamsModel,
     LightningTestModel,
@@ -355,7 +355,7 @@ def test_model_checkpoint_options(tmpdir):
     os.mkdir(save_dir)
 
     # -----------------
-    # CASE K=4 (save all 4 models)
+    # CASE K=4 (save all 4 base)
     # multiple checkpoints within same epoch
 
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
