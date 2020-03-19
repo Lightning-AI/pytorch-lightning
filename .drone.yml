@@ -6,6 +6,7 @@ name: torch-GPU
 
 steps:
 - name: build image
+  image: ubuntu:18.04
   commands:
     - docker image build -t lightning:devel -f tests/Dockerfile .
 
