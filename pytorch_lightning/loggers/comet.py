@@ -16,11 +16,11 @@ try:
     from comet_ml import BaseExperiment as CometBaseExperiment
     try:
         from comet_ml.api import API
-    except ImportError:
+    except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
-        from comet_ml.papi import API
-except ImportError:
-    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+        from comet_ml.papi import API  # pragma: no-cover
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install comet-ml`.')
 
 import torch
@@ -163,6 +163,7 @@ class CometLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         self.experiment.log_parameters(params)
 
     @rank_zero_only

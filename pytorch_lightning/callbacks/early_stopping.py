@@ -9,8 +9,8 @@ import warnings
 
 import numpy as np
 
-from .base import Callback
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks.base import Callback
 
 
 class EarlyStopping(Callback):

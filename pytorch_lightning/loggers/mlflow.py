@@ -29,8 +29,9 @@ from typing import Optional, Dict, Any, Union
 
 try:
     import mlflow
-except ImportError:
-    raise ImportError('You want to use `mlflow` logger which is not installed yet,'
+    from mlflow.tracking import MlflowClient
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `mlflow` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install mlflow`.')
 
 from pytorch_lightning import _logger as log
@@ -50,13 +51,13 @@ class MLFlowLogger(LightningLoggerBase):
             tags (dict): todo this param
         """
         super().__init__()
-        self._mlflow_client = mlflow.tracking.MlflowClient(tracking_uri)
+        self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None
         self.tags = tags
 
     @property
-    def experiment(self) -> mlflow.tracking.MlflowClient:
+    def experiment(self) -> MlflowClient:
         r"""
 
         Actual mlflow object. To use mlflow features do the following.
@@ -88,6 +89,7 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         for k, v in params.items():
             self.experiment.log_param(self.run_id, k, v)
 

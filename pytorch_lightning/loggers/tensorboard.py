@@ -8,7 +8,7 @@ import torch
 from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -19,14 +19,12 @@ class TensorBoardLogger(LightningLoggerBase):
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``
 
-    Example
-    ------------------
+    Example:
+        .. code-block:: python
 
-    .. code-block:: python
-
-        logger = TensorBoardLogger("tb_logs", name="my_model")
-        trainer = Trainer(logger=logger)
-        trainer.train(model)
+            logger = TensorBoardLogger("tb_logs", name="my_model")
+            trainer = Trainer(logger=logger)
+            trainer.train(model)
 
     Args:
         save_dir: Save directory
@@ -99,6 +97,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         sanitized_params = self._sanitize_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):

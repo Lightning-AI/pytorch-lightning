@@ -941,7 +941,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                                  'interval': 'step'}  # called after each training step
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
-
+                           
         Note:
 
             Some things to know:
@@ -966,6 +966,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - If you only want to call a learning rate scheduler every `x` step or epoch,
               you can input this as 'frequency' key: dict(scheduler=lr_scheduler,
               interval='step' or 'epoch', frequency=x)
+
+                    {
+                        'scheduler': lr_scheduler,
+                        'interval': 'step'  # or 'epoch'
+                        'monitor': 'val_f1',
+                        'frequency': x
+                    }
 
         """
         return Adam(self.parameters(), lr=1e-3)

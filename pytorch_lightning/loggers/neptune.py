@@ -12,8 +12,8 @@ from typing import Optional, List, Dict, Any, Union, Iterable
 try:
     import neptune
     from neptune.experiments import Experiment
-except ImportError:
-    raise ImportError('You want to use `neptune` logger which is not installed yet,'
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `neptune` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install neptune-client`.')
 
 import torch
@@ -222,6 +222,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         for key, val in params.items():
             self.experiment.set_property(f'param__{key}', val)
 

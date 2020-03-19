@@ -109,7 +109,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
-            print_nan_grads: bool = False,
+            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: str = 'full',
             weights_save_path: Optional[str] = None,
             amp_level: str = 'O1',
@@ -215,7 +215,10 @@ class Trainer(
 
             precision: Full precision (32), half precision (16).
 
-            print_nan_grads: Prints gradients with nan values
+            print_nan_grads:
+                .. warning:: .. deprecated:: 0.7.2
+                    Has no effect. When detected, NaN grads will be printed automatically.
+                    Will remove 0.9.0.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -304,7 +307,13 @@ class Trainer(
                           "`num_sanity_val_steps` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.nb_sanity_val_steps = nb_sanity_val_steps
-        self.print_nan_grads = print_nan_grads
+
+        # Backward compatibility, TODO: remove in v0.9.0
+        if print_nan_grads:
+            warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
+                          " NaN grads will be printed automatically when detected.",
+                          DeprecationWarning)
+
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
         self.shown_warnings = set()
@@ -606,7 +615,7 @@ class Trainer(
         elif self.single_gpu:
             self.single_gpu_train(model)
 
-        elif self.use_tpu:  # pragma: no cover
+        elif self.use_tpu:  # pragma: no-cover
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
@@ -863,7 +872,7 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no cover
+        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             test_model = self.model
