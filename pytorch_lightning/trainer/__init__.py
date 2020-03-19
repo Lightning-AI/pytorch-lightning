@@ -271,7 +271,7 @@ Example::
 .. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
 
 unit_test
-^^^^^^^^^^^^
+^^^^^^^^^
 
 Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
 
