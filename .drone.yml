@@ -7,9 +7,9 @@ name: torch-GPU
 steps:
 - name: build image
   image: docker:latest
-  #volumes:
-  #    - name: docker_sock
-  #      path: /var/run/docker.soc
+  volumes:
+      - name: docker_sock
+        path: /var/run/docker.soc
   commands:
     - docker image build -t lightning:devel -f tests/Dockerfile .
 
@@ -35,7 +35,7 @@ steps:
     - coverage report
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
 
-#volumes:
-#  - name: docker_sock
-#    host:
-#      path: /var/run/docker.sock
+volumes:
+  - name: docker_sock
+    host:
+      path: /var/run/docker.sock
