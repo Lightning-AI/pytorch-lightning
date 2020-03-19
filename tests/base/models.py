@@ -1,5 +1,6 @@
 import os
 from collections import OrderedDict
+from typing import Dict
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,6 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from typing import Dict
 
 try:
     from test_tube import HyperOptArgumentParser

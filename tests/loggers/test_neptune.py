@@ -1,5 +1,4 @@
 import pickle
-
 from unittest.mock import patch, MagicMock
 
 import torch

@@ -1,9 +1,3 @@
-import math
-import os
-
-import pytest
-import torch
-
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
