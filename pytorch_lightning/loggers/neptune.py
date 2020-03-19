@@ -222,6 +222,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         for key, val in params.items():
             self.experiment.set_property(f'param__{key}', val)
 
