@@ -10,6 +10,10 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
 
+from logging import getLogger
+
+_logger = getLogger("lightning")
+
 try:
     # This variable is injected in the __builtins__ by the build
     # process. It used to enable importing subpackages of skimage when
@@ -36,8 +40,3 @@ else:
         'data_loader'
     ]
     # __call__ = __all__
-
-
-from logging import getLogger
-
-_logger = getLogger("lightning")
