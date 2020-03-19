@@ -99,6 +99,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         sanitized_params = self._sanitize_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
