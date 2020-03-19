@@ -225,13 +225,15 @@ class TrainsLogger(LightningLoggerBase):
             name: Artifact name. Notice! it will override previous artifact
                 if name already exists
             artifact: Artifact object to upload. Currently supports:
+
                 - string / pathlib2.Path are treated as path to artifact file to upload
-                    If wildcard or a folder is passed, zip file containing the
-                    local files will be created and uploaded
+                  If wildcard or a folder is passed, zip file containing the
+                  local files will be created and uploaded
                 - dict will be stored as .json file and uploaded
                 - pandas.DataFrame will be stored as .csv.gz (compressed CSV file) and uploaded
                 - numpy.ndarray will be stored as .npz and uploaded
                 - PIL.Image will be stored to .png file and uploaded
+
             metadata:
                 Simple key/value dictionary to store on the artifact. Defaults to None.
             delete_after_upload:
