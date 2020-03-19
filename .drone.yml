@@ -5,8 +5,12 @@ type: docker
 name: torch-GPU
 
 steps:
+- name: build image
+  commands:
+    - docker image build -t lightning:devel -f tests/Dockerfile .
+
 - name: testing
-  image: pytorch/pytorch:1.3-cuda10.1-cudnn7-runtime
+  image: lightning:devel
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:

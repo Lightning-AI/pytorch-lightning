@@ -42,9 +42,8 @@ coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examp
 # print coverage stats
 coverage report -m
 
-# exporting resulys
+# exporting results
 coverage xml
-codecov -t 17327163-8cca-4a5d-86c8-ca5f2ef700bc  -v
 ```
 
 
