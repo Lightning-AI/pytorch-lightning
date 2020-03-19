@@ -6,9 +6,7 @@ import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import (
-    TensorBoardLogger
-)
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests.models import LightningTestModel
 
 

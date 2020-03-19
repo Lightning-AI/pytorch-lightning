@@ -878,6 +878,6 @@ Trainer class
 
 """
 
-from .trainer import Trainer
+from pytorch_lightning.trainer.trainer import Trainer
 
 __all__ = ['Trainer']

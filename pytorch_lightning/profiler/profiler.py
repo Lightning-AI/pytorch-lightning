@@ -18,17 +18,11 @@ class BaseProfiler(ABC):
 
     @abstractmethod
     def start(self, action_name):
-        """
-        Defines how to start recording an action.
-        """
-        pass
+        """Defines how to start recording an action."""
 
     @abstractmethod
     def stop(self, action_name):
-        """
-        Defines how to record the duration once an action is complete.
-        """
-        pass
+        """Defines how to record the duration once an action is complete."""
 
     @contextmanager
     def profile(self, action_name):
@@ -62,9 +56,7 @@ class BaseProfiler(ABC):
                 break
 
     def describe(self):
-        """
-        Logs a profile report after the conclusion of the training run.
-        """
+        """Logs a profile report after the conclusion of the training run."""
         pass
 
 
@@ -104,7 +96,7 @@ class Profiler(BaseProfiler):
     def stop(self, action_name):
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(
+            raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         start_time = self.current_actions.pop(action_name)
@@ -154,7 +146,7 @@ class AdvancedProfiler(BaseProfiler):
     def stop(self, action_name):
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(
+            raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         pr.disable()
