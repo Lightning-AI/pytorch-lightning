@@ -19,8 +19,6 @@ class TensorBoardLogger(LightningLoggerBase):
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``
 
-    .. _tf-logger:
-
     Example
     ------------------
 

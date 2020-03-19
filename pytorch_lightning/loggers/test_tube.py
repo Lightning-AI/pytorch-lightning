@@ -24,8 +24,6 @@ class TestTubeLogger(LightningLoggerBase):
     ):
         r"""
 
-        .. _testTube:
-
         Example
         ----------
 
