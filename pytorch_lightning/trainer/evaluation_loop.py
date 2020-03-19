@@ -291,7 +291,8 @@ class TrainerEvaluationLoopMixin(ABC):
             outputs = outputs[0]
 
         # give model a chance to do something with the outputs (and method defined)
-        model = self.get_model()  # if you call evaluate on given model, ths getter gives None
+        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
+            model = model.module
 
         # TODO: remove in v1.0.0
         if test_mode and self.is_overriden('test_end', model=model):
