@@ -840,7 +840,7 @@ class Trainer(
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (:class:`.LightningModule`): The model to test.
+            model: The model to test.
 
         Example::
 
