@@ -94,8 +94,6 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     assert trainer.callback_metrics == {'test_loss': 0.6}
 
     trainer = Trainer(logger=False)
-    # TODO: the model is need for DDP testing as it taken from `.get_model()`
-    trainer.model = model
     # TODO: why `dataloder` is required if it is not used
     result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.6}
@@ -107,8 +105,6 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     assert trainer.callback_metrics == {'test_loss': 0.7}
 
     trainer = Trainer(logger=False)
-    # TODO: the model is need for DDP testing as it taken from `.get_model()`
-    trainer.model = model
     # TODO: why `dataloder` is required if it is not used
     result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.7}

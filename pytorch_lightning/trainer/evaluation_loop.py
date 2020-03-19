@@ -124,15 +124,16 @@ In this second case, the options you pass to trainer will be used when running
 """
 
 import sys
+import warnings
 from abc import ABC, abstractmethod
 from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-import warnings
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
