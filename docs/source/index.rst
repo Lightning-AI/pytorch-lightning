@@ -11,6 +11,7 @@ PyTorch Lightning Documentation
    :name: start
    :caption: Start Here
 
+   new-project
    introduction_guide
 
 .. toctree::
