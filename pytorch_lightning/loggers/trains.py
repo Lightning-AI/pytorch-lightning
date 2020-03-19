@@ -32,7 +32,6 @@ from typing import Any, Dict, Optional, Union
 
 try:
     import trains
-    import pandas as pd
     from PIL.Image import Image
 except ImportError:
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'
@@ -217,7 +216,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_artifact(
             self, name: str,
-            artifact: Union[str, Path, Dict[str, Any], pd.DataFrame, np.ndarray, Image],
+            artifact: Union[str, Path, Dict[str, Any], np.ndarray, Image],
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
