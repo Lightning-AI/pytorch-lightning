@@ -72,12 +72,12 @@ class ModelSummary(object):
         with torch.no_grad():
 
             for _, m in mods:
-                if isinstance(input_, (list, tuple)):  # pragma: no cover
+                if isinstance(input_, (list, tuple)):  # pragma: no-cover
                     out = m(*input_)
                 else:
                     out = m(input_)
 
-                if isinstance(input_, (list, tuple)):  # pragma: no cover
+                if isinstance(input_, (list, tuple)):  # pragma: no-cover
                     in_size = []
                     for x in input_:
                         if isinstance(x, list):
@@ -89,7 +89,7 @@ class ModelSummary(object):
 
                 in_sizes.append(in_size)
 
-                if isinstance(out, (list, tuple)):  # pragma: no cover
+                if isinstance(out, (list, tuple)):  # pragma: no-cover
                     out_size = np.asarray([x.size() for x in out])
                 else:
                     out_size = np.array(out.size())
@@ -206,7 +206,7 @@ def _format_summary_table(*cols) -> str:
     return summary
 
 
-def print_mem_stack() -> None:  # pragma: no cover
+def print_mem_stack() -> None:  # pragma: no-cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -215,7 +215,7 @@ def print_mem_stack() -> None:  # pragma: no cover
             pass
 
 
-def count_mem_items() -> Tuple[int, int]:  # pragma: no cover
+def count_mem_items() -> Tuple[int, int]:  # pragma: no-cover
     num_params = 0
     num_tensors = 0
     for obj in gc.get_objects():

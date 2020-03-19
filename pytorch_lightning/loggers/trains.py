@@ -33,8 +33,9 @@ import torch
 
 try:
     import trains
-except ImportError:
-    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'
+    from trains import Task
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
 
 from pytorch_lightning import _logger as log
@@ -55,24 +56,49 @@ class TrainsLogger(LightningLoggerBase):
         auto_connect_frameworks: If True, automatically patch to trains backend. Defaults to True.
         auto_resource_monitoring: If true, machine vitals will be
             sent along side the task scalars. Defaults to True.
+
+    Examples:
+        >>> logger = TrainsLogger("lightning_log", "my-test", output_uri=".")  # doctest: +ELLIPSIS
+        TRAINS Task: ...
+        TRAINS results page: https://demoapp.trains.allegro.ai/.../log
+        >>> logger.log_metrics({"val_loss": 1.23}, step=0)
+        >>> logger.log_text("sample test")
+        sample test
+        >>> import numpy as np
+        >>> logger.log_artifact("confusion matrix", np.ones((2, 3)))
+        >>> logger.log_image("passed", "Image 1", np.random.randint(0, 255, (200, 150, 3), dtype=np.uint8))
     """
 
+    _bypass = False
+
     def __init__(
-            self, project_name: Optional[str] = None, task_name: Optional[str] = None,
-            task_type: str = 'training', reuse_last_task_id: bool = True,
-            output_uri: Optional[str] = None, auto_connect_arg_parser: bool = True,
-            auto_connect_frameworks: bool = True, auto_resource_monitoring: bool = True) -> None:
+            self,
+            project_name: Optional[str] = None,
+            task_name: Optional[str] = None,
+            task_type: str = 'training',
+            reuse_last_task_id: bool = True,
+            output_uri: Optional[str] = None,
+            auto_connect_arg_parser: bool = True,
+            auto_connect_frameworks: bool = True,
+            auto_resource_monitoring: bool = True
+    ) -> None:
         super().__init__()
-        self._trains = trains.Task.init(
-            project_name=project_name, task_name=task_name, task_type=task_type,
-            reuse_last_task_id=reuse_last_task_id, output_uri=output_uri,
-            auto_connect_arg_parser=auto_connect_arg_parser,
-            auto_connect_frameworks=auto_connect_frameworks,
-            auto_resource_monitoring=auto_resource_monitoring
-        )
+        if self._bypass:
+            self._trains = None
+        else:
+            self._trains = Task.init(
+                project_name=project_name,
+                task_name=task_name,
+                task_type=task_type,
+                reuse_last_task_id=reuse_last_task_id,
+                output_uri=output_uri,
+                auto_connect_arg_parser=auto_connect_arg_parser,
+                auto_connect_frameworks=auto_connect_frameworks,
+                auto_resource_monitoring=auto_resource_monitoring
+            )
 
     @property
-    def experiment(self) -> trains.Task:
+    def experiment(self) -> Task:
         r"""Actual TRAINS object. To use TRAINS features do the following.
 
         Example:
@@ -88,7 +114,7 @@ class TrainsLogger(LightningLoggerBase):
         """
         ID is a uuid (string) representing this specific experiment in the entire system.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
         return self._trains.id
 
@@ -100,7 +126,7 @@ class TrainsLogger(LightningLoggerBase):
             params:
                 The hyperparameters that passed through the model.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
         if not params:
             return
@@ -121,7 +147,7 @@ class TrainsLogger(LightningLoggerBase):
                 then the elements will be logged as "title" and "series" respectively.
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
 
         if not step:
@@ -153,7 +179,7 @@ class TrainsLogger(LightningLoggerBase):
             value: The value to log.
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
 
         if not step:
@@ -171,7 +197,7 @@ class TrainsLogger(LightningLoggerBase):
         Args:
             text: The value of the log (data-point).
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
 
         self._trains.get_logger().report_text(text)
@@ -196,7 +222,7 @@ class TrainsLogger(LightningLoggerBase):
             step:
                 Step number at which the metrics should be recorded. Defaults to None.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
 
         if not step:
@@ -220,7 +246,7 @@ class TrainsLogger(LightningLoggerBase):
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
-        Args:
+        Arguments:
             name: Artifact name. Notice! it will override previous artifact
                 if name already exists
             artifact: Artifact object to upload. Currently supports:
@@ -237,7 +263,7 @@ class TrainsLogger(LightningLoggerBase):
                 If True local artifact will be deleted (only applies if artifact_object is a
                 local file). Defaults to False.
         """
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
 
         self._trains.upload_artifact(
@@ -249,8 +275,8 @@ class TrainsLogger(LightningLoggerBase):
         pass
 
     @rank_zero_only
-    def finalize(self, status: str) -> None:
-        if not self._trains:
+    def finalize(self, status: str = None) -> None:
+        if self._bypass or not self._trains:
             return None
         self._trains.close()
         self._trains = None
@@ -260,23 +286,52 @@ class TrainsLogger(LightningLoggerBase):
         """
         Name is a human readable non-unique name (str) of the experiment.
         """
-        if not self._trains:
-            return None
+        if self._bypass or not self._trains:
+            return ''
         return self._trains.name
 
     @property
     def version(self) -> Union[str, None]:
-        if not self._trains:
+        if self._bypass or not self._trains:
             return None
         return self._trains.id
 
+    @classmethod
+    def set_credentials(cls, api_host: str = None, web_host: str = None, files_host: str = None,
+                        key: str = None, secret: str = None) -> None:
+        """
+        Set new default TRAINS-server host and credentials
+        These configurations could be overridden by either OS environment variables
+        or trains.conf configuration file
+
+        Notice! credentials needs to be set *prior* to Logger initialization
+
+        :param api_host: Trains API server url, example: host='http://localhost:8008'
+        :param web_host: Trains WEB server url, example: host='http://localhost:8080'
+        :param files_host: Trains Files server url, example: host='http://localhost:8081'
+        :param key: user key/secret pair, example: key='thisisakey123'
+        :param secret: user key/secret pair, example: secret='thisisseceret123'
+        """
+        Task.set_credentials(api_host=api_host, web_host=web_host, files_host=files_host,
+                             key=key, secret=secret)
+
+    @classmethod
+    def set_bypass_mode(cls, bypass: bool) -> None:
+        """
+        set_bypass_mode will bypass all outside communication, and will drop all logs.
+        Should only be used in "standalone mode", when there is no access to the *trains-server*
+
+        :param bypass: If True, all outside communication is skipped
+        """
+        cls._bypass = bypass
+
     def __getstate__(self) -> Union[str, None]:
-        if not self._trains:
-            return None
+        if self._bypass or not self._trains:
+            return ''
         return self._trains.id
 
     def __setstate__(self, state: str) -> None:
         self._rank = 0
         self._trains = None
         if state:
-            self._trains = trains.Task.get_task(task_id=state)
+            self._trains = Task.get_task(task_id=state)

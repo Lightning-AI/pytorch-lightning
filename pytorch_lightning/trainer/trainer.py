@@ -598,7 +598,7 @@ class Trainer(
         elif self.single_gpu:
             self.single_gpu_train(model)
 
-        elif self.use_tpu:  # pragma: no cover
+        elif self.use_tpu:  # pragma: no-cover
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
@@ -855,7 +855,7 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no cover
+        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

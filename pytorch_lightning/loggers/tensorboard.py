@@ -8,7 +8,7 @@ import torch
 from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -21,14 +21,12 @@ class TensorBoardLogger(LightningLoggerBase):
 
     .. _tf-logger:
 
-    Example
-    ------------------
+    Example:
+        .. code-block:: python
 
-    .. code-block:: python
-
-        logger = TensorBoardLogger("tb_logs", name="my_model")
-        trainer = Trainer(logger=logger)
-        trainer.train(model)
+            logger = TensorBoardLogger("tb_logs", name="my_model")
+            trainer = Trainer(logger=logger)
+            trainer.train(model)
 
     Args:
         save_dir (str): Save directory
