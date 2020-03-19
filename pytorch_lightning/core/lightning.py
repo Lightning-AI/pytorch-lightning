@@ -81,11 +81,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             x (object): The thing to print
 
         Examples:
-        .. code-block:: python
+            .. code-block:: python
 
-            # example if we were using this model as a feature extractor
-            def forward(self, x):
-                self.print(x, 'in loader')
+                # example if we were using this model as a feature extractor
+                def forward(self, x):
+                    self.print(x, 'in loader')
 
         """
         if self.trainer.proc_rank == 0:
