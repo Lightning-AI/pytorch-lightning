@@ -24,7 +24,7 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys  # pragma: no-cover
-    sys.stderr.write('Partial import of `torchlightning` during the build process.\n')  # pragma: no-cover
+    sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
     from pytorch_lightning.core import LightningModule
