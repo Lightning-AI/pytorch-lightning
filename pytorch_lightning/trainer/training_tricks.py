@@ -1,9 +1,11 @@
-import logging as log
+import math
+import sys
 from abc import ABC, abstractmethod
 
 import torch
-import math
+from torch import Tensor
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 EPSILON = 1e-6
@@ -15,6 +17,7 @@ class TrainerTrainingTricksMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     gradient_clip_val: ...
+    precision: ...
 
     @abstractmethod
     def get_model(self):
@@ -45,11 +48,28 @@ class TrainerTrainingTricksMixin(ABC):
             for p in parameters:
                 p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
 
-    def print_nan_gradients(self):
+    def print_nan_gradients(self) -> None:
         model = self.get_model()
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 log.info(param, param.grad)
+
+    def detect_nan_tensors(self, loss: Tensor) -> None:
+        model = self.get_model()
+
+        # check if loss is nan
+        if not torch.isfinite(loss).all():
+            raise ValueError(
+                'The loss returned in `training_step` is nan or inf.'
+            )
+        # check if a network weight is nan
+        for name, param in model.named_parameters():
+            if not torch.isfinite(param).all():
+                self.print_nan_gradients()
+                raise ValueError(
+                    f'Detected nan and/or inf values in `{name}`.'
+                    ' Check your forward pass for numerically unstable operations.'
+                )
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
         if isinstance(accumulate_grad_batches, dict):

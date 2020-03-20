@@ -1,13 +1,12 @@
 import pickle
+from argparse import Namespace
 
 import pytest
 import torch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import (
-    TensorBoardLogger
-)
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests.models import LightningTestModel
 
 
@@ -108,6 +107,10 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "float": 0.3,
         "int": 1,
         "string": "abc",
-        "bool": True
+        "bool": True,
+        "dict": {'a': {'b': 'c'}},
+        "list": [1, 2, 3],
+        "namespace": Namespace(foo=Namespace(bar='buzz')),
+        "layer": torch.nn.BatchNorm1d
     }
     logger.log_hyperparams(hparams)

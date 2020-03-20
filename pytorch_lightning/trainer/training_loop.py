@@ -119,23 +119,33 @@ When this flag is enabled each batch is split into sequences of size truncated_b
     trainer = Trainer(truncated_bptt_steps=2)
 
 
-"""
+NaN detection and intervention
+------------------------------
+In every forward pass in training, Lightning will check that
 
-from typing import Callable
+1. the loss you return in `training_step` is finite (not NaN and not +/-inf)
+2. the model parameters have finite values.
+
+Lightning will terminate the training loop with an error message if NaN or infinite
+values are detected. If this happens, you should investigate numerically unstable operations
+in your model.
+
+"""
 
 import copy
 import warnings
-import logging as log
 from abc import ABC, abstractmethod
+from typing import Callable
 from typing import Union, List
 
 import numpy as np
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.callbacks.base import Callback
 
 try:
     from apex import amp
@@ -188,7 +198,6 @@ class TrainerTrainLoopMixin(ABC):
     optimizers: ...
     accumulate_grad_batches: int
     use_amp: bool
-    print_nan_grads: ...
     track_grad_norm: ...
     model: LightningModule
     running_loss: ...
@@ -201,7 +210,7 @@ class TrainerTrainLoopMixin(ABC):
     reload_dataloaders_every_epoch: bool
     progress_bar_refresh_rate: ...
     max_steps: int
-    max_steps: int
+    min_steps: int
     total_batch_idx: int
     checkpoint_callback: ...
 
@@ -224,10 +233,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_infinite_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def run_evaluation(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -244,7 +249,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def print_nan_gradients(self):
+    def detect_nan_tensors(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -310,7 +315,7 @@ class TrainerTrainLoopMixin(ABC):
 
                 total_val_batches = 0
                 is_val_epoch = False
-                if not self.disable_validation:
+                if not self.disable_validation and self.num_training_batches != float('inf'):
                     # val can be checked multiple times in epoch
                     is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
                     val_checks_per_epoch = self.num_training_batches // self.val_check_batch
@@ -324,8 +329,8 @@ class TrainerTrainLoopMixin(ABC):
                 if self.unit_test:
                     # limit the number of batches to 2 (1 train and 1 val) in unit_test
                     num_iterations = 2
-                elif self.is_infinite_dataloader(self.train_dataloader):
-                    # for infinite train loader, the progress bar never ends
+                elif self.total_batches == float('inf'):
+                    # for infinite train or val loader, the progress bar never ends
                     num_iterations = None
                 else:
                     num_iterations = self.total_batches
@@ -334,7 +339,7 @@ class TrainerTrainLoopMixin(ABC):
                 # .reset() doesn't work on disabled progress bar so we should check
                 if not self.main_progress_bar.disable:
                     self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}' if not self.is_infinite_dataloader(self.train_dataloader) else ''
+                desc = f'Epoch {epoch + 1}'
                 self.main_progress_bar.set_description(desc)
 
                 # -----------------
@@ -561,9 +566,8 @@ class TrainerTrainLoopMixin(ABC):
                 # calculate loss
                 loss = optimizer_closure()
 
-                # nan grads
-                if self.print_nan_grads:
-                    self.print_nan_gradients()
+                # check if loss or model weights are nan
+                self.detect_nan_tensors(loss)
 
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value += loss.item()

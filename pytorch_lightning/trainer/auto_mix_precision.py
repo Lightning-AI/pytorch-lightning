@@ -1,13 +1,13 @@
-
 from abc import ABC
+
+from pytorch_lightning import _logger as log
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
-import logging as log
+else:
+    APEX_AVAILABLE = True
 
 
 class TrainerAMPMixin(ABC):
@@ -21,7 +21,7 @@ class TrainerAMPMixin(ABC):
         if self.use_amp:
             log.info('Using 16bit precision.')
 
-        if use_amp and not APEX_AVAILABLE:  # pragma: no cover
+        if use_amp and not APEX_AVAILABLE:  # pragma: no-cover
             msg = """
             You set `use_amp=True` but do not have apex installed.
             Install apex first using this guide and rerun with use_amp=True:

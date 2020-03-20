@@ -8,15 +8,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- 
+- Added support for hierarchical `dict` ([#1152](https://github.com/PyTorchLightning/pytorch-lightning/pull/1152))
+- Added `TrainsLogger` class ([#1122](https://github.com/PyTorchLightning/pytorch-lightning/pull/1122))
+- Added type hints to `pytorch_lightning.core` ([#946](https://github.com/PyTorchLightning/pytorch-lightning/pull/946))
+- Added support for IterableDataset in validation and testing ([#1104](https://github.com/PyTorchLightning/pytorch-lightning/pull/1104))
+- Added support for non-primitive types in hparams for TensorboardLogger ([#1130](https://github.com/PyTorchLightning/pytorch-lightning/pull/1130))
+- Added a check that stops the training when loss or weights contain NaN or inf values. ([#1097](https://github.com/PyTorchLightning/pytorch-lightning/pull/1097))
 
 ### Changed
 
--
+- Renamed `fast_dev_run` to `unit_test` ([#1087](https://github.com/PyTorchLightning/pytorch-lightning/pull/1087))
 
 ### Deprecated
 
--
+- Deprecated Trainer argument `print_nan_grads` ([#1097](https://github.com/PyTorchLightning/pytorch-lightning/pull/1097))
 
 ### Removed
 
@@ -24,25 +29,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed bug related to type cheking of `ReduceLROnPlateau` lr schedulers([#1114](https://github.com/PyTorchLightning/pytorch-lightning/issues/1114))
+- Fixed a bug to ensure lightning checkpoints to be backward compatible ([#1132](https://github.com/PyTorchLightning/pytorch-lightning/pull/1132))
 
 ## [0.7.1] - 2020-03-07
-
-### Added
-
-- _None_
-
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
 
 ### Fixed
 
@@ -80,6 +70,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Improved `NeptuneLogger` by adding `close_after_fit` argument to allow logging after training([#908](https://github.com/PyTorchLightning/pytorch-lightning/pull/1084))
 - Changed default TQDM to use `tqdm.auto` for prettier outputs in IPython notebooks ([#752](https://github.com/PyTorchLightning/pytorch-lightning/pull/752))
 - Changed `pytorch_lightning.logging` to `pytorch_lightning.loggers` ([#767](https://github.com/PyTorchLightning/pytorch-lightning/pull/767))
 - Moved the default `tqdm_dict` definition from Trainer to `LightningModule`, so it can be overridden by the user ([#749](https://github.com/PyTorchLightning/pytorch-lightning/pull/749))
@@ -209,10 +200,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `tng_dataloader`
 
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed an issue where the number of batches was off by one during training
@@ -234,10 +221,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Changed default for `amp_level` to `O1`
-
-### Deprecated
-
-- _None_
 
 ### Removed
 
@@ -270,14 +253,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disabled auto GPU loading when restoring weights to prevent out of memory errors
 - Changed logging, early stopping and checkpointing to occur by default
 
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug with samplers that do not specify `set_epoch`
@@ -287,10 +262,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [0.5.0] - 2019-09-26
 
-### Added
-
-- _None_
-
 ### Changed
 
 - Changed `data_batch` argument to `batch` throughout
@@ -299,14 +270,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `on_tng_metrics` method to `on_training_metrics`
 - Changed `gradient_clip` argument to `gradient_clip_val`
 - Changed `add_log_row_interval` to `row_log_interval`
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
 
 ### Fixed
 
@@ -329,14 +292,6 @@ memory utilization
 - Changed gpu API to take integers as well (e.g. `gpus=2` instead of `gpus=[0, 1]`)
 - All models now loaded on to CPU to avoid device and out of memory issues in PyTorch
 
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug where data types that implement `.to` but not `.cuda` would not be properly moved onto the GPU
@@ -350,40 +305,16 @@ memory utilization
 - Added `GradientAccumulationScheduler` callback which can be used to schedule changes to the number of accumulation batches
 - Added option to skip the validation sanity check by setting `nb_sanity_val_steps = 0`
 
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug when setting `nb_sanity_val_steps = 0`
 
 ## [0.4.7] - 2019-08-24
 
-### Added
-
-- _None_
-
 ### Changed
 
 - Changed the default `val_check_interval` to `1.0`
 - Changed defaults for `nb_val_batches`, `nb_tng_batches` and `nb_test_batches` to 0
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
 
 ### Fixed
 
@@ -402,18 +333,6 @@ memory utilization
 - Added support for data to be given as a `dict` or `list` with a single gpu
 - Added support for `configure_optimizers` to return a single optimizer, two list (optimizers and schedulers), or a single list
 
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug where returning just an optimizer list (i.e. without schedulers) from `configure_optimizers` would throw an `Exception`
@@ -423,22 +342,6 @@ memory utilization
 ### Added
 
 - Added `optimizer_step` method that can be overridden to change the standard optimizer behaviour
-
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
-### Fixed
-
-- _None_
 
 ## [0.4.4] - 2019-08-12
 
@@ -452,14 +355,6 @@ memory utilization
 - `validation_step` and `val_dataloader` are now optional
 - `lr_scheduler` is now activated after epoch
 
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug where a warning would show when using `lr_scheduler` in `torch>1.1.0`
@@ -467,69 +362,21 @@ memory utilization
 
 ## [0.4.3] - 2019-08-10
 
-### Added
-
-- _None_
-
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
 - Fixed a bug where accumulate gradients would scale the loss incorrectly
 
 ## [0.4.2] - 2019-08-08
 
-### Added
-
-- _None_
-
 ### Changed
 
 - Changed install requirement to `torch==1.2.0`
 
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
-### Fixed
-
-- _None_
-
 ## [0.4.1] - 2019-08-08
-
-### Added
-
-- _None_
 
 ### Changed
 
 - Changed install requirement to `torch==1.1.0`
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
-### Fixed
-
-- _None_
 
 ## [0.4.0] - 2019-08-08
 
@@ -542,10 +389,6 @@ memory utilization
 
 - Changed `training_step` and `validation_step`, outputs will no longer be automatically reduced
 
-### Deprecated
-
-- _None_
-
 ### Removed
 
 - Removed need for `Experiment` object in `Trainer`
@@ -554,49 +397,15 @@ memory utilization
 
 - Fixed issues with reducing outputs from generative models (such as images and text)
 
-## [0.3.6.1] - 2019-07-27
-
-### Added
-
-- _None_
-
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
-### Fixed
-
-- Fixed a bug where `Experiment` object was not process safe, potentially causing logs to be overwritten
-
 ## [0.3.6] - 2019-07-25
 
 ### Added
 
 - Added a decorator to do lazy data loading internally
 
-### Changed
-
-- _None_
-
-### Deprecated
-
-- _None_
-
-### Removed
-
-- _None_
-
 ### Fixed
 
-- _None_
+- Fixed a bug where `Experiment` object was not process safe, potentially causing logs to be overwritten
 
 ## [0.3.5] - 2019-MM-DD
 

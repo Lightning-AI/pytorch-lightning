@@ -113,7 +113,6 @@ When the script starts again, Lightning will:
 
 """
 
-import logging as log
 import os
 import re
 import warnings
@@ -121,8 +120,8 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 import torch
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -209,7 +208,7 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp2 = False
 
         # throw error to force user ddp or ddp2 choice
-        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
+        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
             w = 'DataParallel does not support num_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
                 'To silence this warning set distributed_backend=ddp' \

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 These flags are useful to help debug a model.
 
@@ -74,5 +75,7 @@ Lightning automatically logs gpu usage to the test tube logs.
 """
 
 
+=======
+>>>>>>> upstream/master
 class MisconfigurationException(Exception):
     pass

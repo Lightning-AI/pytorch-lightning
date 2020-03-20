@@ -1,20 +1,22 @@
+import inspect
 import os
 import sys
 import warnings
-import logging as log
-from typing import Union, Optional, List, Dict, Tuple, Iterable
 from argparse import ArgumentParser
+from typing import Union, Optional, List, Dict, Tuple, Iterable
 
 import torch
 from torch import optim
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.profiler.profiler import BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
@@ -35,9 +37,6 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.callbacks import Callback
-
 
 try:
     from apex import amp
@@ -88,7 +87,7 @@ class Trainer(
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             show_progress_bar: bool = True,
-            progress_bar_refresh_rate: int = 50,
+            progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
@@ -110,7 +109,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
-            print_nan_grads: bool = False,
+            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: str = 'full',
             weights_save_path: Optional[str] = None,
             amp_level: str = 'O1',
@@ -209,7 +208,10 @@ class Trainer(
 
             precision: Full precision (32), half precision (16).
 
-            print_nan_grads: Prints gradients with nan values
+            print_nan_grads:
+                .. warning:: .. deprecated:: 0.7.2
+                    Has no effect. When detected, NaN grads will be printed automatically.
+                    Will remove 0.9.0.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -297,7 +299,13 @@ class Trainer(
                           "`num_sanity_val_steps` since v0.5.0"
                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.nb_sanity_val_steps = nb_sanity_val_steps
-        self.print_nan_grads = print_nan_grads
+
+        # Backward compatibility, TODO: remove in v0.9.0
+        if print_nan_grads:
+            warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
+                          " NaN grads will be printed automatically when detected.",
+                          DeprecationWarning)
+
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
         self.shown_warnings = set()
@@ -438,8 +446,6 @@ class Trainer(
 
     @classmethod
     def default_attributes(cls):
-        import inspect
-
         init_signature = inspect.signature(Trainer)
 
         args = {}
@@ -601,7 +607,7 @@ class Trainer(
         elif self.single_gpu:
             self.single_gpu_train(model)
 
-        elif self.use_tpu:  # pragma: no cover
+        elif self.use_tpu:  # pragma: no-cover
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
@@ -709,8 +715,8 @@ class Trainer(
                 if 'scheduler' not in scheduler:
                     raise ValueError(f'Lr scheduler should have key `scheduler`',
                                      ' with item being a lr scheduler')
-                scheduler['reduce_on_plateau'] = \
-                    isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau)
+                scheduler['reduce_on_plateau'] = isinstance(
+                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
 
                 lr_schedulers.append({**default_config, **scheduler})
 
@@ -750,7 +756,7 @@ class Trainer(
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
-            dist.barrier()
+            torch_distrib.barrier()
 
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
@@ -858,7 +864,7 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no cover
+        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

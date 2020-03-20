@@ -32,3 +32,4 @@ dependencies:
         - comet_ml>=1.0.56
         - wandb>=0.8.21
         - neptune-client>=0.4.4
+        - trains>=0.13.3

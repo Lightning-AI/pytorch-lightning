@@ -16,7 +16,7 @@ Force training for min or max epochs
 -------------------------------------
 It can be useful to force training for a minimum number of epochs or limit to a max number.
 
-.. note:: See: :ref:`trainer`
+.. seealso:: :ref:`trainer`
 
 .. code-block:: python
 

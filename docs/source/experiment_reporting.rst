@@ -22,7 +22,7 @@ Control log writing frequency
 Writing to a logger  can be expensive. In Lightning you can set the interval at which you
 want to log using this trainer flag.
 
-.. note:: See: :ref:`trainer`
+.. seealso:: :ref:`trainer`
 
 .. code-block:: python
 
@@ -32,7 +32,7 @@ want to log using this trainer flag.
 Log metrics
 ^^^^^^^^^^^
 
-To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
+To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, TRAINS, etc...)
 
 1. training_epoch_end, validation_epoch_end, test_epoch_end will all log anything in the "log" key of the return dict.
 

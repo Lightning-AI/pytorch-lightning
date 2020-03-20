@@ -82,8 +82,8 @@ Supported Loggers
 """
 from os import environ
 
-from .base import LightningLoggerBase, LoggerCollection, rank_zero_only
-from .tensorboard import TensorBoardLogger
+from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection, rank_zero_only
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 __all__ = ['TensorBoardLogger']
 
@@ -91,31 +91,43 @@ try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
-    from .comet import CometLogger
+    from pytorch_lightning.loggers.comet import CometLogger
+except ImportError:  # pragma: no-cover
+    del environ["COMET_DISABLE_AUTO_LOGGING"]  # pragma: no-cover
+else:
     __all__.append('CometLogger')
-except ImportError:
-    del environ["COMET_DISABLE_AUTO_LOGGING"]
 
 try:
-    from .mlflow import MLFlowLogger
+    from pytorch_lightning.loggers.mlflow import MLFlowLogger
+except ImportError:  # pragma: no-cover
+    pass  # pragma: no-cover
+else:
     __all__.append('MLFlowLogger')
-except ImportError:
-    pass
 
 try:
-    from .neptune import NeptuneLogger
+    from pytorch_lightning.loggers.neptune import NeptuneLogger
+except ImportError:  # pragma: no-cover
+    pass  # pragma: no-cover
+else:
     __all__.append('NeptuneLogger')
-except ImportError:
-    pass
 
 try:
-    from .test_tube import TestTubeLogger
+    from pytorch_lightning.loggers.test_tube import TestTubeLogger
+except ImportError:  # pragma: no-cover
+    pass  # pragma: no-cover
+else:
     __all__.append('TestTubeLogger')
-except ImportError:
-    pass
 
 try:
-    from .wandb import WandbLogger
+    from pytorch_lightning.loggers.wandb import WandbLogger
+except ImportError:  # pragma: no-cover
+    pass  # pragma: no-cover
+else:
     __all__.append('WandbLogger')
-except ImportError:
-    pass
+
+try:
+    from pytorch_lightning.loggers.trains import TrainsLogger
+except ImportError:  # pragma: no-cover
+    pass  # pragma: no-cover
+else:
+    __all__.append('TrainsLogger')
