@@ -472,7 +472,7 @@ First, change the runtime to TPU (and reinstall lightning).
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
-.. code-block::
+.. code-block:: python
 
     import collections
     from datetime import datetime, timedelta
@@ -503,6 +503,8 @@ Next, install the required xla library (adds support for PyTorch on TPUs)
 
     update = threading.Thread(target=update_server_xrt)
     update.start()
+
+.. code-block::
 
     # Install Colab TPU compat PyTorch/TPU wheels and dependencies
     !pip uninstall -y torch torchvision
