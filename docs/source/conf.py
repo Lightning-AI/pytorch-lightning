@@ -126,14 +126,14 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    # deprecated/renamed:
-    # TODO: remove in v0.8.0
-    'pytorch_lightning.loggers.comet_logger.rst',
-    'pytorch_lightning.loggers.mlflow_logger.rst',
-    'pytorch_lightning.loggers.test_tube_logger.rst',
-    'pytorch_lightning.callbacks.pt_callbacks.rst',
-
+    'pl_examples.*',
     'modules.rst',
+
+    # deprecated/renamed:
+    'pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
+    'pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
+    'pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
+    'pytorch_lightning.callbacks.pt_callbacks.rst',         # TODO: remove in v0.8.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
