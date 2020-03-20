@@ -981,7 +981,8 @@ And pass the callbacks into the trainer
 
     Trainer(callbacks=[MyPrintingCallback()])
 
-.. note:: See full list of 12+ hooks in the `Callback docs <callbacks.rst#callback-class>`_
+.. note::
+    See full list of 12+ hooks in the :ref:`callbacks`.
 
 ---------
 
