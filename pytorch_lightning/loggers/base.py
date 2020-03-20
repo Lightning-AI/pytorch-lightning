@@ -32,7 +32,6 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
-        pass
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -42,7 +41,6 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        pass
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -54,6 +52,39 @@ class LightningLoggerBase(ABC):
             params = {}
 
         return params
+
+    @staticmethod
+    def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+        """Flatten hierarchical dict e.g. {'a': {'b': 'c'}} -> {'a/b': 'c'}.
+
+        Args:
+            params: Dictionary contains hparams
+            delimiter: Delimiter to express the hierarchy. Defaults to '/'.
+
+        Returns:
+            Flatten dict.
+
+        Examples:
+            >>> LightningLoggerBase._flatten_dict({'a': {'b': 'c'}})
+            {'a/b': 'c'}
+            >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
+            {'a/b': 123}
+        """
+
+        def _dict_generator(input_dict, prefixes=None):
+            prefixes = prefixes[:] if prefixes else []
+            if isinstance(input_dict, dict):
+                for key, value in input_dict.items():
+                    if isinstance(value, (dict, Namespace)):
+                        value = vars(value) if isinstance(value, Namespace) else value
+                        for d in _dict_generator(value, prefixes + [key]):
+                            yield d
+                    else:
+                        yield prefixes + [key, value if value is not None else str(None)]
+            else:
+                yield prefixes + [input_dict if input_dict is None else str(input_dict)]
+
+        return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -85,7 +116,6 @@ class LightningLoggerBase(ABC):
         Args:
             params: argparse.Namespace containing the hyperparameters
         """
-        pass
 
     def save(self) -> None:
         """Save log data."""
@@ -117,13 +147,11 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
-        pass
 
     @property
     @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
-        pass
 
 
 class LoggerCollection(LightningLoggerBase):

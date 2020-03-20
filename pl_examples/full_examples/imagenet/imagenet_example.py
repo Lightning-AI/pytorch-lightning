@@ -181,7 +181,7 @@ class ImageNetLightningModel(LightningModule):
         return val_loader
 
     @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no cover
+    def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = argparse.ArgumentParser(parents=[parent_parser])
         parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18', choices=MODEL_NAMES,
                             help='model architecture: ' +

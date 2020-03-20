@@ -119,6 +119,17 @@ When this flag is enabled each batch is split into sequences of size truncated_b
     trainer = Trainer(truncated_bptt_steps=2)
 
 
+NaN detection and intervention
+------------------------------
+In every forward pass in training, Lightning will check that
+
+1. the loss you return in `training_step` is finite (not NaN and not +/-inf)
+2. the model parameters have finite values.
+
+Lightning will terminate the training loop with an error message if NaN or infinite
+values are detected. If this happens, you should investigate numerically unstable operations
+in your model.
+
 """
 
 import copy
@@ -187,7 +198,6 @@ class TrainerTrainLoopMixin(ABC):
     optimizers: ...
     accumulate_grad_batches: int
     use_amp: bool
-    print_nan_grads: ...
     track_grad_norm: ...
     model: LightningModule
     running_loss: ...
@@ -200,7 +210,7 @@ class TrainerTrainLoopMixin(ABC):
     reload_dataloaders_every_epoch: bool
     progress_bar_refresh_rate: ...
     max_steps: int
-    max_steps: int
+    min_steps: int
     total_batch_idx: int
     checkpoint_callback: ...
 
@@ -239,7 +249,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def print_nan_gradients(self):
+    def detect_nan_tensors(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -272,7 +282,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
-                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
+                      ' but will start from "0" in v0.8.0.', RuntimeWarning)
 
         # get model
         model = self.get_model()
@@ -556,9 +566,8 @@ class TrainerTrainLoopMixin(ABC):
                 # calculate loss
                 loss = optimizer_closure()
 
-                # nan grads
-                if self.print_nan_grads:
-                    self.print_nan_gradients()
+                # check if loss or model weights are nan
+                self.detect_nan_tensors(loss)
 
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value += loss.item()

@@ -347,6 +347,7 @@ Example::
 gradient_clip:
 
 .. warning:: .. deprecated:: 0.5.0
+
     Use `gradient_clip_val` instead. Will remove 0.8.0.
 
 log_gpu_memory
@@ -412,6 +413,7 @@ Example::
 max_nb_epochs:
 
 .. warning:: .. deprecated:: 0.5.0
+
     Use `max_epochs` instead. Will remove 0.8.0.
 
 min_epochs
@@ -475,6 +477,7 @@ Example::
 nb_gpu_nodes:
 
 .. warning:: .. deprecated:: 0.5.0
+
     Use `num_nodes` instead. Will remove 0.8.0.
 
 num_sanity_val_steps
@@ -495,6 +498,7 @@ Example::
 nb_sanity_val_steps:
 
 .. warning:: .. deprecated:: 0.5.0
+
     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
 num_tpu_cores
@@ -674,11 +678,13 @@ Example::
 add_row_log_interval:
 
 .. warning:: .. deprecated:: 0.5.0
+
     Use `row_log_interval` instead. Will remove 0.8.0.
 
 use_amp:
 
 .. warning:: .. deprecated:: 0.7.0
+
     Use `precision` instead. Will remove 0.9.0.
 
 show_progress_bar
@@ -878,6 +884,6 @@ Trainer class
 
 """
 
-from .trainer import Trainer
+from pytorch_lightning.trainer.trainer import Trainer
 
 __all__ = ['Trainer']

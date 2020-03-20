@@ -203,7 +203,7 @@ class TestModelBase(LightningModule):
         return loader
 
     @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
+    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
         Parameters you define here will be available to your model through self.hparams
         :param parent_parser:
@@ -225,8 +225,7 @@ class TestModelBase(LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
+                        options=[0.0001, 0.0005, 0.001, 0.005], tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str,
                         options=['adam'], tunable=False)
         # if using 2 nodes with 4 gpus each the batch size here
