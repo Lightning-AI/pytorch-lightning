@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](docs/source/_static/images/lightning_logo.svg)
+![Logo](docs/source/_images/logos/lightning_logo.svg)
 
 # PyTorch Lightning
 
@@ -83,7 +83,7 @@ If you're just getting into deep learning, we recommend you learn PyTorch first!
 Everything in Blue!   
 This is how lightning separates the science (red) from the engineering (blue).
 
-![Overview](docs/source/_static/images/pl_overview.gif)
+![Overview](docs/source/_images/general/pl_overview.gif)
 
 ## How much effort is it to convert?
 If your code is not a huge mess you should be able to organize it into a LightningModule in less than 1 hour.
@@ -239,7 +239,7 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Comet.ml
 - ...  
 
-![tensorboard-support](docs/source/_static/images/tf_loss.png)
+![tensorboard-support](docs/source/_images/general/tf_loss.png)
 
 
 ## Lightning automates 40+ parts of DL/ML research
