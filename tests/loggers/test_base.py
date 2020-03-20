@@ -138,13 +138,13 @@ def test_adding_step_key(tmpdir):
         return decorated
 
     model, hparams = tutils.get_model()
-    model.validation_end = _validation_end
+    model.validation_epoch_end = _validation_end
     trainer_options = dict(
         max_epochs=4,
         default_save_path=tmpdir,
         train_percent_check=0.001,
         val_percent_check=0.01,
-        num_sanity_val_steps=0
+        num_sanity_val_steps=0,
     )
     trainer = Trainer(**trainer_options)
     trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
