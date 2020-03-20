@@ -114,7 +114,7 @@ However, when using a cluster, Lightning will NOT set these flags (and you shoul
 
 16 bit precision can cut your memory footprint by half. If using volta architecture GPUs
  it can give a dramatic training speed-up as well.
- First, install apex (if install fails, look `here <https://github.com/NVIDIA/apex>`_::
+ First, install apex (if install fails, look `here <https://github.com/NVIDIA/apex>`__)::
 
     $ git clone https://github.com/NVIDIA/apex
     $ cd apex
@@ -276,7 +276,7 @@ in a `HyperOptArgumentParser
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
 The full examples are
-`here <https://git.io/Jv87p>`_.
+`here <https://git.io/Jv87p>`__.
 
 .. code-block:: python
 
