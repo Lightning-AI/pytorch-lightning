@@ -182,7 +182,8 @@ class TrainerDDPMixin(ABC):
 
         if distributed_backend is None:
             if self.num_gpus == 0:
-                return
+                if self.num_nodes > 1 or self.num_processes > 1:
+                    self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
                 self.single_gpu = True
             elif self.num_gpus > 1:
@@ -192,7 +193,7 @@ class TrainerDDPMixin(ABC):
                 self.use_dp = True
         elif distributed_backend == "dp":
             if self.num_gpus == 0:
-                return
+                pass
             elif self.num_gpus == 1:
                 self.single_gpu = True
                 self.use_dp = True
@@ -200,7 +201,8 @@ class TrainerDDPMixin(ABC):
                 self.use_dp = True
         elif distributed_backend == "ddp":
             if self.num_gpus == 0:
-                return
+                if self.num_nodes > 1 or self.num_processes > 1:
+                    self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
                 self.single_gpu = True
                 self.use_ddp = True
@@ -209,10 +211,14 @@ class TrainerDDPMixin(ABC):
                 self.num_processes = self.num_gpus
         elif distributed_backend == "ddp2":
             if self.num_gpus == 0:
-                return
+                pass
             elif self.num_gpus >= 1:
                 self.use_ddp2 = True
         elif distributed_backend == "ddp_cpu":
+            if self.num_gpus > 0:
+                m = 'You requested one or more GPUs, but set the backend ' \
+                    'to ddp_cpu. Training will not use GPUs.'
+                warnings.warn(m)
             self.use_ddp = True
             self.data_parallel_device_ids = None
             self.on_gpu = False

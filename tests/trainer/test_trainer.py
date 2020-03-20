@@ -737,6 +737,30 @@ def test_trainer_config_nogpu_ddp():
     assert trainer.num_processes == 1
 
 
+def test_trainer_config_nogpu_multiprocess_ddp():
+    """Fall back to ddp_cpu if num_processes is specified"""
+    trainer = Trainer(distributed_backend="ddp", num_processes=2, gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
+    assert trainer.single_gpu is False
+    assert trainer.num_processes == 2
+
+
+def test_trainer_config_nogpu_multinode_ddp():
+    """Fall back to ddp_cpu if num_nodes is >1"""
+    trainer = Trainer(distributed_backend="ddp", num_nodes=2, gpus=None)
+    assert trainer.use_dp is False
+    assert trainer.use_ddp is True
+    assert trainer.use_ddp2 is False
+    assert trainer.num_gpus == 0
+    assert trainer.on_gpu is False
+    assert trainer.single_gpu is False
+    assert trainer.num_processes == 1
+
+
 def test_trainer_config_nogpu_ddp_cpu():
     trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=None)
     assert trainer.use_dp is False
@@ -798,7 +822,8 @@ def test_trainer_config_single_gpu_ddp():
 
 @pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
 def test_trainer_config_single_gpu_ddp_cpu():
-    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=1)
+    with pytest.warns(UserWarning):
+        trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=1)
     assert trainer.use_dp is False
     assert trainer.use_ddp is True
     assert trainer.use_ddp2 is False
