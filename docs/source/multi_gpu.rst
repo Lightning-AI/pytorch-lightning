@@ -38,7 +38,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
-        z = z.type_as(x.type())
+        z = z.type_as(x)
 
 Remove samplers
 ^^^^^^^^^^^^^^^

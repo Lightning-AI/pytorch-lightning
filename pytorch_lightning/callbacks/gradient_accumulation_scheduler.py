@@ -6,7 +6,7 @@ Change gradient accumulation factor according to scheduling.
 
 import warnings
 
-from .base import Callback
+from pytorch_lightning.callbacks.base import Callback
 
 
 class GradientAccumulationScheduler(Callback):

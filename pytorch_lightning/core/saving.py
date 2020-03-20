@@ -1,8 +1,9 @@
 import csv
-import logging as log
 import os
 from argparse import Namespace
 from typing import Union, Dict, Any
+
+from pytorch_lightning import _logger as log
 
 
 class ModelIO(object):

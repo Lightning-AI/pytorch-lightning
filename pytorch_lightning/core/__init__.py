@@ -107,9 +107,10 @@ Training loop structure
 -----------------------
 
 The general pattern is that each loop (training, validation, test loop)
-has 2 methods:
+has 3 methods:
 
 - ``` ___step ```
+- ``` ___step_end ```
 - ``` ___epoch_end```
 
 To show how lightning calls these, let's use the validation loop as an example
@@ -125,6 +126,28 @@ To show how lightning calls these, let's use the validation loop as an example
     # do something with the outputs for all batches
     # like calculate validation set accuracy or loss
     validation_epoch_end(val_outs)
+
+if we use dp or ddp2 mode, we can also define the ```XXX_step_end``` method to operate
+on all parts of the batch
+
+.. code-block:: python
+
+    val_outs = []
+    for val_batch in val_data:
+        batches = split_batch(val_batch)
+        dp_outs = []
+        for sub_batch in batches:
+            dp_out = validation_step(sub_batch)
+            dp_outs.append(dp_out)
+
+        out = validation_step_end(dp_outs)
+        val_outs.append(out)
+
+    # do something with the outputs for all batches
+    # like calculate validation set accuracy or loss
+    validation_epoch_end(val_outs)
+
+.. note:: ```training_step_end``` is not available yet but coming in the next release.
 
 Add validation loop
 ^^^^^^^^^^^^^^^^^^^
@@ -228,7 +251,7 @@ When you init a new tensor in your code, just use type_as
 
         # put the z on the appropriate gpu or tpu core
         z = sample_noise()
-        z = z.type_as(x.type())
+        z = z.type_as(x)
 
 ----------
 
@@ -312,8 +335,8 @@ LightningModule Class
 
 """
 
-from .decorators import data_loader
-from .lightning import LightningModule
+from pytorch_lightning.core.decorators import data_loader
+from pytorch_lightning.core.lightning import LightningModule
 
 __all__ = ['LightningModule', 'data_loader']
 # __call__ = __all__

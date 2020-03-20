@@ -1,6 +1,5 @@
 import collections
 import inspect
-import logging as log
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -8,13 +7,14 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 from torch import Tensor
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -24,10 +24,10 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
@@ -859,7 +859,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
+        torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(
             self,
@@ -942,28 +942,27 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-        Some things to know
-
+        .. note:: Some things to note:
             - Lightning calls ``.backward()`` and ``.step()`` on each optimizer
-            and learning rate scheduler as needed.
-
+             and learning rate scheduler as needed.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically
-            handle the optimizers for you.
-
-            - If you use multiple optimizers, training_step will have an additional
-            ``optimizer_idx`` parameter.
-
-            - If you use LBFGS lightning handles the closure function automatically for you
-
+             handle the optimizers for you.
+            - If you use multiple optimizers, training_step will have an additional ``optimizer_idx`` parameter.
+            - If you use LBFGS lightning handles the closure function automatically for you.
             - If you use multiple optimizers, gradients will be calculated only
-            for the parameters of current optimizer at each training step.
-
+             for the parameters of current optimizer at each training step.
             - If you need to control how often those optimizers step or override the
-            default .step() schedule, override the `optimizer_step` hook.
-
+             default .step() schedule, override the `optimizer_step` hook.
             - If you only want to call a learning rate scheduler every `x` step or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_scheduler,
-                                                        interval='step' or 'epoch', frequency=x)
+             or want to monitor a custom metric, you can specify these in a dictionary:
+                .. code-block:: python
+
+                    {
+                        'scheduler': lr_scheduler,
+                        'interval': 'step'  # or 'epoch'
+                        'monitor': 'val_f1',
+                        'frequency': x
+                    }
 
         """
         return Adam(self.parameters(), lr=1e-3)
@@ -1396,7 +1395,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(
