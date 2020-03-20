@@ -1,0 +1,31 @@
+pull_request_rules:
+
+  - name: Automatic merge on approval
+    conditions:
+      - "#approved-reviews-by>=3"
+      - "#review-requested=0"
+      - "#changes-requested-reviews-by=0"
+      - status-success=continuous-integration/drone/pr
+      - "status-success~=^ci/circleci:"
+      - "status-success~=ubuntu"
+      - "status-success~=macOS"
+      - "status-success~=windows"
+      - "status-success~=^codecov"
+      - "status-success~=docs"
+      - -conflict
+      - base=master
+    actions:
+      delete_head_branch: {}
+      merge:
+        strict: true  # https://doc.mergify.io/merge-action.html#strict-merge
+        strict_method: rebase
+        method: squash
+      comment:
+        message: Great job! =)
+
+  - name: warn on conflicts
+    conditions:
+      - conflict
+    actions:
+      comment:
+        message: This pull request is now in conflict... :(
