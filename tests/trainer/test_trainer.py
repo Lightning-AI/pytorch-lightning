@@ -24,7 +24,7 @@ from tests.models import (
     LightValidationStepMixin,
     LightValidationMultipleDataloadersMixin,
     LightTrainDataloader,
-    LightTestDataloader,
+    LightTestStepMixin,
 )
 
 
@@ -601,7 +601,7 @@ def test_testpass_overrides(tmpdir):
     class LocalModel(LightTrainDataloader, TestModelBase):
         pass
 
-    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
+    class LocalModelNoEnd(LightTrainDataloader, LightTestStepMixin, LightEmptyTestStep, TestModelBase):
         pass
 
     class LocalModelNoStep(LightTrainDataloader, TestModelBase):

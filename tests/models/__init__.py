@@ -30,8 +30,8 @@ from .mixins import (
 
 
 class LightningTestModel(LightTrainDataloader,
-                         LightValidationMixin,
-                         LightTestMixin,
+                         LightValidationStepMixin,
+                         LightTestStepMixin,
                          TestModelBase):
     """Most common test case. Validation and test dataloaders."""
 

@@ -223,7 +223,40 @@ class LightningTemplateModel(LightningModule):
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
+    
+    def test_step(self, batch, batch_idx):
+        """
+        Lightning calls this during testing
+        :param batch:
+        :return:
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self.forward(x)
 
+        loss_val = self.loss(y, y_hat)
+
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        val_acc = torch.tensor(val_acc)
+
+        if self.on_gpu:
+            val_acc = val_acc.cuda(loss_val.device.index)
+
+        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
+        if self.trainer.use_dp or self.trainer.use_ddp2:
+            loss_val = loss_val.unsqueeze(0)
+            val_acc = val_acc.unsqueeze(0)
+
+        output = OrderedDict({
+            'test_loss': loss_val,
+            'test_acc': val_acc,
+        })
+
+        # can also return just a scalar instead of a dict (return loss_val)
+        return output
+    
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
