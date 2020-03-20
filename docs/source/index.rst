@@ -95,3 +95,17 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+
+.. This is here to make sphinx aware of the modules but not throw an error/warning
+.. toctree::
+   :hidden:
+
+   pytorch_lightning.core
+   pytorch_lightning.callbacks
+   pytorch_lightning.loggers
+   pytorch_lightning.overrides
+   pytorch_lightning.profiler
+   pytorch_lightning.trainer
+   pytorch_lightning.utilities

@@ -127,6 +127,7 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
+    'pytorch_lightning.rst',
     'pl_examples.*',
     'modules.rst',
 
@@ -134,7 +135,10 @@ exclude_patterns = [
     'pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
     'pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
     'pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
-    'pytorch_lightning.callbacks.pt_callbacks.rst',         # TODO: remove in v0.8.0
+    'pytorch_lightning.callbacks.pt_callbacks.*',           # TODO: remove in v0.8.0
+    'pytorch_lightning.pt_overrides.*',                     # TODO: remove in v0.8.0
+    'pytorch_lightning.root_module.*',                      # TODO: remove in v0.8.0
+    'pytorch_lightning.logging.*',                          # TODO: remove in v0.8.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
