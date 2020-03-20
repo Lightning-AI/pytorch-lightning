@@ -16,7 +16,8 @@ Force training for min or max epochs
 -------------------------------------
 It can be useful to force training for a minimum number of epochs or limit to a max number.
 
-.. seealso:: :ref:`trainer`
+.. seealso::
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
 .. code-block:: python
 
