@@ -288,7 +288,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def validation_step(self, *args, **kwargs) -> Dict[str, Tensor]:
@@ -434,7 +435,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def validation_end(self, outputs):
@@ -656,7 +658,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def test_end(self, outputs):
