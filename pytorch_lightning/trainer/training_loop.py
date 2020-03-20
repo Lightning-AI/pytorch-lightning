@@ -308,7 +308,7 @@ class TrainerTrainLoopMixin(ABC):
             for epoch in range(self.current_epoch, self.max_epochs):
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:
-                    self.reset_train_dataloader(self.get_model())
+                    self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
