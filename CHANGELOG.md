@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed bug related to type cheking of `ReduceLROnPlateau` lr schedulers([#1114](https://github.com/PyTorchLightning/pytorch-lightning/issues/1114))
 - Fixed a bug to ensure lightning checkpoints to be backward compatible ([#1132](https://github.com/PyTorchLightning/pytorch-lightning/pull/1132))
+- Fixed a bug that created an extra dataloader with reload_dataloaders_every_epoch active ([#1181](https://github.com/PyTorchLightning/pytorch-lightning/issues/1181)
 
 ## [0.7.1] - 2020-03-07
 
