@@ -217,6 +217,7 @@ class Trainer(
 
             print_nan_grads:
                 .. warning:: .. deprecated:: 0.7.2
+
                     Has no effect. When detected, NaN grads will be printed automatically.
                     Will remove 0.9.0.
 
