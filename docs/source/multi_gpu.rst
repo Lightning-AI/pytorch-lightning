@@ -1,5 +1,7 @@
+.. _multi-gpu-training:
+
 Multi-GPU training
-===================
+==================
 Lightning supports multiple ways of doing distributed training.
 
 Preparing your code
@@ -235,7 +237,7 @@ Validation and test step also have the same option when using dp
             ...
 
 Implement Your Own Distributed (DDP) training
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
 
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.

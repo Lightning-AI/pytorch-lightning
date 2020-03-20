@@ -218,11 +218,11 @@ class TrainerEvaluationLoopMixin(ABC):
     def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
         """Run evaluation code.
 
-        :param model: PT model
-        :param dataloaders: list of PT dataloaders
-        :param max_batches: Scalar
-        :param test_mode
-        :return:
+        Args:
+            model: PT model
+            dataloaders: list of PT dataloaders
+            max_batches: Scalar
+            test_mode:
         """
         # enable eval mode
         model.zero_grad()
