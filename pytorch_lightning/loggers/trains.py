@@ -23,17 +23,17 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_trains_supports(...)
 
 """
-import numpy as np
-
-import torch
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+import numpy as np
+import torch
+from PIL.Image import Image
+
 try:
     import trains
     from trains import Task
-    from PIL.Image import Image
 except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
