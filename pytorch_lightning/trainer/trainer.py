@@ -163,6 +163,8 @@ class Trainer(
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
 
+            overfit_pct: How much of training-, validation-, and test dataset to check.
+
             track_grad_norm: -1 no tracking. Otherwise tracks that norm
 
             check_val_every_n_epoch: Check val every n train epochs.
@@ -194,8 +196,6 @@ class Trainer(
             val_percent_check: How much of validation dataset to check.
 
             test_percent_check: How much of test dataset to check.
-
-            overfit_pct: How much of training-, validation-, and test dataset to check.
 
             val_check_interval: How often within one training epoch to check the validation set
 
