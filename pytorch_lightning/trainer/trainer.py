@@ -88,7 +88,6 @@ class Trainer(
             log_gpu_memory: Optional[str] = None,
             show_progress_bar: bool = True,
             progress_bar_refresh_rate: int = 1,
-            overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
@@ -102,6 +101,7 @@ class Trainer(
             train_percent_check: float = 1.0,
             val_percent_check: float = 1.0,
             test_percent_check: float = 1.0,
+            overfit_pct: float = 0.0,
             val_check_interval: float = 1.0,
             log_save_interval: int = 100,
             row_log_interval: int = 10,
@@ -194,6 +194,8 @@ class Trainer(
             val_percent_check: How much of validation dataset to check.
 
             test_percent_check: How much of test dataset to check.
+
+            overfit_pct: How much of training-, validation-, and test dataset to check.
 
             val_check_interval: How often within one training epoch to check the validation set
 
