@@ -101,4 +101,4 @@ class TrainerDeprecatedAPITillVer0_8(ABC):
         warnings.warn("Attribute `fast_dev_run` has renamed to "
                       "`unit_test` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
-        self.fast_dev_run = unit_test
+        self.unit_test = unit_test

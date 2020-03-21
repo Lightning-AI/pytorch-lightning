@@ -91,6 +91,7 @@ class Trainer(
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
+            fast_dev_run=None,  # backward compatible, todo: remove in v0.8.0
             unit_test: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
@@ -166,6 +167,11 @@ class Trainer(
             track_grad_norm: -1 no tracking. Otherwise tracks that norm
 
             check_val_every_n_epoch: Check val every n train epochs.
+
+            fast_dev_run:
+                .. warning:: .. deprecated:: 0.7.0
+
+                    Use `unit_test` instead. Will remove 0.9.0.
 
             unit_test: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
 
@@ -320,6 +326,12 @@ class Trainer(
         self.shown_warnings = set()
 
         self.unit_test = unit_test
+        # Backward compatibility, TODO: remove in v0.8.0
+        if fast_dev_run is not None:
+            warnings.warn("Argument `fast_dev_run` has renamed to `unit_test` since v0.5.0"
+                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            self.fast_dev_run = fast_dev_run
+
         if self.unit_test:
             self.num_sanity_val_steps = 1
             self.max_epochs = 1
