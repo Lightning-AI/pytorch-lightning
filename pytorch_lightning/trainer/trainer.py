@@ -807,7 +807,8 @@ class Trainer(
         self.restore_weights(model)
 
         # when testing requested only run test and return
-        if self.testing:
+        # Also, Include test batch validation in unit_test run
+        if self.testing or self.unit_test:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
             self.run_evaluation(test_mode=True)
