@@ -2,13 +2,13 @@ Debugging
 =========
 The following are flags that make debugging much easier.
 
-Fast dev run
-------------
+Unit test
+---------
 This flag runs a "unit test" by running 1 training batch and 1 validation batch.
 The point is to detect any bugs in the training/validation loop without having to wait for
 a full epoch to crash.
 
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run`
+(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.unit_test`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. code-block:: python
