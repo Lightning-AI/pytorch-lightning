@@ -44,7 +44,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
       ...
 
       logs = {'train_loss': loss}
-      results = {'log': logs}
+      results = {'loss': loss, 'log': logs}
       return results
 
    def validation_epoch_end(self, outputs):
