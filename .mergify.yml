@@ -13,6 +13,7 @@ pull_request_rules:
       - "status-success~=^codecov"
       - "status-success~=docs"
       - -conflict
+      - -closed
       - base=master
     actions:
       delete_head_branch: {}
