@@ -865,21 +865,7 @@ class Trainer(
             trainer.validate(model)
         """
         self.mode = TrainerMode.VALIDATING
-        if model is not None:
-            self.model = model
-            self._fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no cover
-            # attempt to load weights from a spawn
-            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
-            val_model = self.model
-            if os.path.exists(path):
-                val_model = self.load_spawn_weights(self.model)
-
-            self._fit(val_model)
-        else:
-            self.run_evaluation()
-
-        self.mode = TrainerMode.TRAINING
+        self._evaluation(model)
 
     def test(self, model: Optional[LightningModule] = None):
         r"""
@@ -906,6 +892,9 @@ class Trainer(
             trainer.test(model)
         """
         self.mode = TrainerMode.TESTING
+        self._evaluation(model)
+
+    def _evaluation(self, model):
         if model is not None:
             self.model = model
             self._fit(model)
