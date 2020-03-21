@@ -95,4 +95,4 @@ However, the dataloaders will start from the first batch again (if you shuffled 
     y_hat = model(x)
 
 A LightningModule is no different than a nn.Module. This means you can load it and use it for
-predictions as you would a nn.Module.
+predictions as you would in a nn.Module.

@@ -843,7 +843,7 @@ class Trainer(
     def validate(self, model: Optional[LightningModule] = None):
         r"""
 
-        Separates from fit to make sure you never run on your test set until you want to.
+        Separates from fit to make sure you never run on your validation set until you want to.
 
         Args:
             model: The model to test.
