@@ -319,7 +319,7 @@ in the LightningModule
 
       def training_step(self, batch, batch_idx):
         x, y = batch
-        logits = self.forward(x)
+        logits = self(x)
         loss = F.nll_loss(logits, y)
         return {'loss': loss}
         # return loss (also works)
@@ -371,7 +371,7 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 
       def training_step(self, batch, batch_idx):
         x, y = batch
-        logits = self.forward(x)
+        logits = self(x)
         loss = F.nll_loss(logits, y)
 
         # add logging
@@ -684,7 +684,7 @@ sample split in the `train_dataloader` method.
     class LitMNIST(pl.LightningModule):
       def validation_step(self, batch, batch_idx):
         x, y = batch
-        logits = self.forward(x)
+        logits = self(x)
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
@@ -740,7 +740,7 @@ Just like the validation loop, we define exactly the same steps for testing:
     class LitMNIST(pl.LightningModule):
       def test_step(self, batch, batch_idx):
         x, y = batch
-        logits = self.forward(x)
+        logits = self(x)
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
@@ -827,7 +827,7 @@ within it.
 
       def training_step(self, batch, batch_idx):
         x, y = batch
-        logits = self.forward(x)
+        logits = self(x)
         loss = F.nll_loss(logits, y)
         return loss
 
@@ -855,7 +855,7 @@ In this case, we've set this LightningModel to predict logits. But we could also
 
       def training_step(self, batch, batch_idx):
         x, y = batch
-        out, l1_feats, l2_feats, l3_feats = self.forward(x)
+        out, l1_feats, l2_feats, l3_feats = self(x)
         logits = torch.log_softmax(out, dim=1)
         ce_loss = F.nll_loss(logits, y)
         loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
@@ -880,7 +880,7 @@ Or maybe we have a model that we use to do generation
       def training_step(self, batch, batch_idx):
         x, y = batch
         representation = self.encoder(x)
-        imgs = self.forward(representation)
+        imgs = self(representation)
 
         loss = perceptual_loss(imgs, x)
         return loss

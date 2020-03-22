@@ -26,12 +26,12 @@ class CoolModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'training_loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'val_loss': self.my_loss(y_hat, y)}
 
     def validation_epoch_end(self, outputs):

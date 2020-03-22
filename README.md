@@ -200,7 +200,7 @@ def validation_step(self, batch, batch_idx):
     x, y = batch
     
     # or as basic as a CNN classification
-    out = self.forward(x)
+    out = self(x)
     loss = my_loss(out, y)
     return {'loss': loss} 
 ```
