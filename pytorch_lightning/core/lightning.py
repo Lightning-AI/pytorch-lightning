@@ -1345,6 +1345,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 to the checkpoint.
                 However, if your checkpoint weights don't have the hyperparameters saved,
                 use this method to pass in a .csv file with the hparams you'd like to use.
+                The .csv file can only have primitive type parameters.
                 These will be converted into a argparse.Namespace and passed into your
                 LightningModule for use.
 
@@ -1383,8 +1384,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if tags_csv is not None:
             # add the hparams from csv file to checkpoint
             hparams = load_hparams_from_tags_csv(tags_csv)
-            hparams.__setattr__('on_gpu', False)
-            checkpoint['hparams'] = vars(hparams)
+            hparams['on_gpu'] = False
+            checkpoint['hparams'] = hparams
 
         model = cls._load_model_state(checkpoint)
         return model
@@ -1396,8 +1397,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = checkpoint.get('hparams_type') == 'namespace'
-                hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
+                hparams_type = checkpoint.get('hparams_type')
+                if hparams_type == 'namespace':
+                    hparams = Namespace(**ckpt_hparams)
             else:
                 warnings.warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ "
