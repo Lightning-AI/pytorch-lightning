@@ -23,7 +23,8 @@ def advanced_profiler():
 
 def sleep_generator(durations):
     """
-    the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it takes to call __next__
+    the profile_iterable method needs an iterable in which we can ensure that we're
+    properly timing how long it takes to call __next__
     """
     for duration in durations:
         time.sleep(duration)
