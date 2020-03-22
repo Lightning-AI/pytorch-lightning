@@ -88,7 +88,7 @@ class Profiler(BaseProfiler):
 
     def start(self, action_name):
         if action_name in self.current_actions:
-            raise ValueError(  # pragma: no-cover
+            raise ValueError(
                 f"Attempted to start {action_name} which has already started."
             )
         self.current_actions[action_name] = time.monotonic()
@@ -96,7 +96,7 @@ class Profiler(BaseProfiler):
     def stop(self, action_name):
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(  # pragma: no-cover
+            raise ValueError(
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         start_time = self.current_actions.pop(action_name)
