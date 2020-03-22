@@ -34,14 +34,9 @@ def test_tbd_remove_in_v0_8_0_trainer():
         'max_nb_epochs': 'max_epochs',
         'min_nb_epochs': 'min_epochs',
         'nb_sanity_val_steps': 'num_sanity_val_steps',
-        'fast_dev_run': 'unit_test',
-
     }
     # skip 0 since it may be interested as False
     kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
-    # Override unit_test attributes for max_epochs and num_sanity_val_step
-    kwargs['max_nb_epochs'] = 1
-    kwargs['nb_sanity_val_steps'] = 1
 
     trainer = Trainer(**kwargs)
 
@@ -61,6 +56,23 @@ def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.logging.neptune import NeptuneLogger  # noqa: F402
     from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
     from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
+
+
+def test_tbd_remove_in_v0_9_0_trainer():
+    mapping_old_new = {
+        'fast_dev_run': 'unit_test',
+    }
+    # skip 0 since it may be interested as False
+    kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
+
+    trainer = Trainer(**kwargs)
+
+    for attr_old in mapping_old_new:
+        attr_new = mapping_old_new[attr_old]
+        assert kwargs[attr_old] == getattr(trainer, attr_old), \
+            'Missing deprecated attribute "%s"' % attr_old
+        assert kwargs[attr_old] == getattr(trainer, attr_new), \
+            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):

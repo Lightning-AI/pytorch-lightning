@@ -91,7 +91,6 @@ class Trainer(
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
             check_val_every_n_epoch: int = 1,
-            fast_dev_run=None,  # backward compatible, todo: remove in v0.8.0
             unit_test: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
@@ -121,6 +120,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            fast_dev_run=None,  # backward compatible, todo: remove in v0.8.0
             **kwargs
     ):
         r"""
@@ -169,7 +169,7 @@ class Trainer(
             check_val_every_n_epoch: Check val every n train epochs.
 
             fast_dev_run:
-                .. warning:: .. deprecated:: 0.7.0
+                .. warning:: .. deprecated:: 0.7.2
 
                     Use `unit_test` instead. Will remove 0.9.0.
 
@@ -328,18 +328,13 @@ class Trainer(
         self.unit_test = unit_test
         # Backward compatibility, TODO: remove in v0.8.0
         if fast_dev_run is not None:
-            warnings.warn("Argument `fast_dev_run` has renamed to `unit_test` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
             self.fast_dev_run = fast_dev_run
 
         if self.unit_test:
             self.num_sanity_val_steps = 1
             self.max_epochs = 1
-            m = '''
-            Running in unit_test mode: will run a full train,
-            val loop using a single batch
-            '''
-            log.info(m)
+            log.info("Running in unit_test mode: will run a full train,"
+                     " val and test loop using a single batch")
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -909,6 +904,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

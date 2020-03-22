@@ -90,15 +90,15 @@ class TrainerDeprecatedAPITillVer0_8(ABC):
 
     @property
     def fast_dev_run(self):
-        """Back compatibility, will be removed in v0.8.0"""
-        warnings.warn("Attribute `fast_dev_run` has renamed to `unit_test ` since v0.5.0"
-                      " and this method will be removed in v0.8.0", DeprecationWarning)
+        """Back compatibility, will be removed in v0.9.0"""
+        warnings.warn("Attribute `fast_dev_run` has renamed to `unit_test ` since v0.7.2"
+                      " and this method will be removed in v0.9.0", DeprecationWarning)
         return self.unit_test
 
     @fast_dev_run.setter
     def fast_dev_run(self, unit_test):
-        """Back compatibility, will be removed in v0.8.0"""
+        """Back compatibility, will be removed in v0.9.0"""
         warnings.warn("Attribute `fast_dev_run` has renamed to "
-                      "`unit_test` since v0.5.0"
-                      " and this method will be removed in v0.8.0", DeprecationWarning)
+                      "`unit_test` since v0.7.2"
+                      " and this method will be removed in v0.9.0", DeprecationWarning)
         self.unit_test = unit_test
