@@ -88,7 +88,7 @@ class Profiler(BaseProfiler):
 
     def start(self, action_name):
         if action_name in self.current_actions:
-            raise ValueError(
+            raise ValueError(  # pragma: no-cover
                 f"Attempted to start {action_name} which has already started."
             )
         self.current_actions[action_name] = time.monotonic()
