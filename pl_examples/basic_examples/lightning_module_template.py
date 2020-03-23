@@ -223,40 +223,39 @@ class LightningTemplateModel(LightningModule):
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
-    
+
     def test_step(self, batch, batch_idx):
         """
-        Lightning calls this during testing
+        Lightning calls this during testing, similar to val_step
         :param batch:
+        :return:val
+        """
+        output = self.validation_step(batch, batch_idx)
+        # Rename output keys
+        output['test_loss'] = output.pop('val_loss')
+        output['test_acc'] = output.pop('val_acc')
+
+        return output
+
+    def test_epoch_end(self, outputs):
+        """
+        Called at the end of test to aggregate outputs, similar to validation_epoch_end
+        :param outputs: list of individual outputs of each validation step
         :return:
         """
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        results = self.validation_step_end(outputs)
 
-        loss_val = self.loss(y, y_hat)
+        # Rename output
+        tqdm_dict = results['progress_bar']
+        tqdm_dict['test_loss'] = tqdm_dict.pop('val_loss')
+        tqdm_dict['test_acc'] = tqdm_dict.pop('val_acc')
 
-        # acc
-        labels_hat = torch.argmax(y_hat, dim=1)
-        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        val_acc = torch.tensor(val_acc)
+        results['progress_bar'] = tqdm_dict
+        results['log'] = tqdm_dict
+        results['test_loss'] = results.pop('val_loss')
 
-        if self.on_gpu:
-            val_acc = val_acc.cuda(loss_val.device.index)
+        return results
 
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-            val_acc = val_acc.unsqueeze(0)
-
-        output = OrderedDict({
-            'test_loss': loss_val,
-            'test_acc': val_acc,
-        })
-
-        # can also return just a scalar instead of a dict (return loss_val)
-        return output
-    
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
