@@ -64,6 +64,9 @@ class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
     def val_dataloader(self):
         return self._dataloader(train=False)
 
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
+        return {'val_loss': 0.6}
+
     def validation_end(self, outputs):
         return {'val_loss': 0.6}
 
@@ -76,6 +79,9 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
     # todo: this shall not be needed while evaluate asks for dataloader explicitly
     def val_dataloader(self):
         return self._dataloader(train=False)
+
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
+        return {'val_loss': 0.7}
 
     def validation_end(self, outputs):
         return {'val_loss': 0.7}
