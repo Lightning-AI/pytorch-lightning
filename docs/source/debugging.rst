@@ -8,7 +8,7 @@ This flag runs a "unit test" by running 1 training batch, 1 validation batch and
 The point is to detect any bugs in the training/validation/test loop without having to wait for
 a full epoch to crash.
 
-(.. seealso:: paramref :`~pytorch_lightning.trainer.trainer.Trainer.unit_test`
+(.. seealso::paramref:`~pytorch_lightning.trainer.trainer.Trainer.unit_test`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. code-block:: python
