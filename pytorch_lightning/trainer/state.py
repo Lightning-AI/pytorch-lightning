@@ -2,6 +2,6 @@ import enum
 
 
 class TrainerMode(enum.Enum):
-    TRAINING = enum.auto()
-    VALIDATING = enum.auto()
-    TESTING = enum.auto()
+    TRAINING = 1
+    VALIDATING = 2
+    TESTING = 3
