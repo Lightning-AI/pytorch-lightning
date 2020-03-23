@@ -12,6 +12,7 @@ pull_request_rules:
       - "status-success~=windows"
       - "status-success~=^codecov"
       - "status-success~=docs"
+      - "#status-success=27"
       - -conflict
       - -closed
       - base=master
