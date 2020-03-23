@@ -577,10 +577,6 @@ class Trainer(
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
 
-        self.mode = TrainerMode.TRAINING
-        return self._fit(model)
-
-    def _fit(self, model):
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
@@ -897,7 +893,7 @@ class Trainer(
     def _evaluation(self, model):
         if model is not None:
             self.model = model
-            self._fit(model)
+            self.fit(model)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
@@ -905,7 +901,7 @@ class Trainer(
             if os.path.exists(path):
                 test_model = self.load_spawn_weights(self.model)
 
-            self._fit(test_model)
+            self.fit(test_model)
         else:
             self.run_evaluation()
 
