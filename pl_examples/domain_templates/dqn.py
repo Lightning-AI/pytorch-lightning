@@ -16,6 +16,7 @@ from torch.utils.data.dataset import IterableDataset
 
 class DQN(nn.Module):
     """ Simple MLP network"""
+
     def __init__(self, obs_size, n_actions, hidden_size=128):
         super(DQN, self).__init__()
         self.net = nn.Sequential(
@@ -36,6 +37,7 @@ Experience = collections.namedtuple(
 
 class ExperienceBuffer:
     """Replay Buffer for storing past experiences allowing the agent to learn from them"""
+
     def __init__(self, capacity: int) -> None:
         self.buffer = collections.deque(maxlen=capacity)
 
@@ -58,6 +60,7 @@ class RLDataset(IterableDataset):
     Iterable Dataset containing the ExperienceBuffer
     which will be updated with new experiences during training
     """
+
     def __init__(self, buffer: ExperienceBuffer, sample_size: int = 200) -> None:
         self.buffer = buffer
         self.sample_size = sample_size
@@ -72,6 +75,7 @@ class Agent:
     """
     Base Agent class handeling the interaction with the environment
     """
+
     def __init__(self, env: gym.Env, exp_buffer: ExperienceBuffer) -> None:
         self.env = env
         self.exp_buffer = exp_buffer
