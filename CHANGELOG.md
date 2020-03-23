@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 - Deprecated Trainer argument `print_nan_grads` ([#1097](https://github.com/PyTorchLightning/pytorch-lightning/pull/1097))
+- Deprecated Trainer argument `fast_dev_run` ([#1087](https://github.com/PyTorchLightning/pytorch-lightning/pull/1087))
 
 ### Removed
 

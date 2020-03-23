@@ -27,6 +27,15 @@ def test_tbd_remove_in_v0_8_0_module_imports():
     from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
 
 
+def _assert_trainer_atribs(trainer, mapping_old_new, kwargs):
+    for attr_old in mapping_old_new:
+        attr_new = mapping_old_new[attr_old]
+        assert kwargs[attr_old] == getattr(trainer, attr_old), \
+            'Missing deprecated attribute "%s"' % attr_old
+        assert kwargs[attr_old] == getattr(trainer, attr_new), \
+            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+
+
 def test_tbd_remove_in_v0_8_0_trainer():
     mapping_old_new = {
         'gradient_clip': 'gradient_clip_val',
@@ -40,12 +49,7 @@ def test_tbd_remove_in_v0_8_0_trainer():
 
     trainer = Trainer(**kwargs)
 
-    for attr_old in mapping_old_new:
-        attr_new = mapping_old_new[attr_old]
-        assert kwargs[attr_old] == getattr(trainer, attr_old), \
-            'Missing deprecated attribute "%s"' % attr_old
-        assert kwargs[attr_old] == getattr(trainer, attr_new), \
-            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+    _assert_trainer_atribs(trainer, mapping_old_new, kwargs)
 
 
 def test_tbd_remove_in_v0_9_0_module_imports():
@@ -67,12 +71,7 @@ def test_tbd_remove_in_v0_9_0_trainer():
 
     trainer = Trainer(**kwargs)
 
-    for attr_old in mapping_old_new:
-        attr_new = mapping_old_new[attr_old]
-        assert kwargs[attr_old] == getattr(trainer, attr_old), \
-            'Missing deprecated attribute "%s"' % attr_old
-        assert kwargs[attr_old] == getattr(trainer, attr_new), \
-            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+    _assert_trainer_atribs(trainer, mapping_old_new, kwargs)
 
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):

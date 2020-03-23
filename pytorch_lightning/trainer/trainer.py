@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.distrib_parts import (
 )
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -69,6 +69,7 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerDeprecatedAPITillVer0_8,
+    TrainerDeprecatedAPITillVer0_9,
 ):
 
     def __init__(
@@ -120,7 +121,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
-            fast_dev_run=None,  # backward compatible, todo: remove in v0.8.0
+            fast_dev_run=None,  # backward compatible, todo: remove in v0.9.0
             **kwargs
     ):
         r"""
