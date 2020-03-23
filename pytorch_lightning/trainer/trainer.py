@@ -141,7 +141,9 @@ class Trainer(
             gradient_clip_val: 0 means don't clip.
 
             gradient_clip:
-                .. warning:: deprecated 0.7.0 Use `gradient_clip_val` instead. Will remove 0.9.0.
+                .. warning:: .. deprecated:: 0.7.0
+
+                    Use `gradient_clip_val` instead. Will remove 0.9.0.
 
             process_position: orders the tqdm bar when running multiple models on same machine.
 
@@ -149,6 +151,7 @@ class Trainer(
 
             nb_gpu_nodes:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
@@ -173,12 +176,14 @@ class Trainer(
 
             max_nb_epochs:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `max_epochs` instead. Will remove 0.9.0.
 
             min_epochs: Force training for at least these many epochs
 
             min_nb_epochs:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `min_epochs` instead. Will remove 0.9.0.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
@@ -199,18 +204,21 @@ class Trainer(
 
             add_row_log_interval:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
             distributed_backend: The distributed backend to use.
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `precision` instead. Will remove 0.9.0.
 
             precision: Full precision (32), half precision (16).
 
             print_nan_grads:
                 .. warning:: .. deprecated:: 0.7.2
+
                     Has no effect. When detected, NaN grads will be printed automatically.
                     Will remove 0.9.0.
 
@@ -224,6 +232,7 @@ class Trainer(
 
             nb_sanity_val_steps:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
@@ -504,10 +513,10 @@ class Trainer(
     def tng_tqdm_dic(self):
         """Read-only for tqdm metrics.
 
-        :return: dictionary
-
         .. warning:: .. deprecated:: 0.5.0
-                    Use `training_tqdm_dict` instead. Will remove 0.8.0.
+
+            Use `training_tqdm_dict` instead. Will remove 0.8.0.
+
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
@@ -869,7 +878,7 @@ class Trainer(
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (:class:`.LightningModule`): The model to test.
+            model: The model to test.
 
         Example::
 
@@ -909,13 +918,14 @@ class Trainer(
 
 
 class _PatchDataLoader(object):
-    r'''
+    r"""
     Callable object for patching dataloaders passed into trainer.fit().
     Use this class to override model.*_dataloader() and be pickle-compatible.
 
     Args:
         dataloader: Dataloader object to return when called.
-    '''
+
+    """
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

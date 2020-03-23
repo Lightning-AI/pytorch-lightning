@@ -10,6 +10,10 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
 
+from logging import getLogger
+
+_logger = getLogger("lightning")
+
 try:
     # This variable is injected in the __builtins__ by the build
     # process. It used to enable importing subpackages of skimage when
@@ -20,13 +24,10 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys  # pragma: no-cover
-    sys.stderr.write('Partial import of `torchlightning` during the build process.\n')  # pragma: no-cover
+    sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
-    from logging import getLogger
-    _logger = getLogger("lightning")
-
-    from pytorch_lightning.trainer import Trainer  # Initiaized first due to state
+    from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.core import LightningModule
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
