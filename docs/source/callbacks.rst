@@ -1,6 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
+.. _callbacks:
+
 Callbacks
 =========
 
