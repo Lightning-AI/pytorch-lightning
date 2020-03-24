@@ -1,8 +1,7 @@
 import glob
 import math
 import os
-from argparse import ArgumentParser, Namespace
-from unittest import mock
+from argparse import Namespace
 
 import pytest
 import torch
@@ -251,6 +250,7 @@ def test_dp_output_reduce():
 
 def test_model_checkpoint_options(tmpdir):
     """Test ModelCheckpoint options."""
+
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
@@ -624,23 +624,3 @@ def test_testpass_overrides(tmpdir):
 
     model = LightningTestModel(hparams)
     Trainer().test(model)
-
-
-@mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=Namespace(**Trainer.default_attributes()))
-def test_default_args(tmpdir):
-    """Tests default argument parser for Trainer"""
-    tutils.reset_seed()
-
-    # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
-
-    parser = ArgumentParser(add_help=False)
-    args = parser.parse_args()
-    args.logger = logger
-
-    args.max_epochs = 5
-    trainer = Trainer.from_argparse_args(args)
-
-    assert isinstance(trainer, Trainer)
-    assert trainer.max_epochs == 5
