@@ -549,8 +549,8 @@ Example::
 
 overfit_pct
 ^^^^^^^^^^^
-Uses this much data of all datasets.
-Useful for quickly debugging or trying to overfit on purpose
+Uses this much data of all datasets (training, validation, test).
+Useful for quickly debugging or trying to overfit on purpose.
 
 Example::
 
@@ -559,6 +559,19 @@ Example::
 
     # use only 1% of the train, test, val datasets
     trainer = Trainer(overfit_pct=0.01)
+
+    # equivalent:
+    trainer = Trainer(
+        train_percent_check=0.01,
+        val_percent_check=0.01,
+        test_percent_check=0.01
+    )
+
+See Also:
+    - `train_percent_check`_
+    - `val_percent_check`_
+    - `test_percent_check`_
+
 
 precision
 ^^^^^^^^^
