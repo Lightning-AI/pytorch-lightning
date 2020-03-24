@@ -547,10 +547,10 @@ In this method we do all the preparation we need to do once (instead of on every
         return DataLoader(self.train_dataset, batch_size=64)
 
       def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=64)
+        return DataLoader(self.val_dataset, batch_size=64)
 
       def test_dataloader(self):
-        return DataLoader(self.mnist_test, batch_size=64)
+        return DataLoader(self.test_dataset, batch_size=64)
 
 The `prepare_data` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).

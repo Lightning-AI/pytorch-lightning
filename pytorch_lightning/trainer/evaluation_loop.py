@@ -126,6 +126,7 @@ In this second case, the options you pass to trainer will be used when running
 import sys
 import warnings
 from abc import ABC, abstractmethod
+from pprint import pprint
 from typing import Callable
 
 import torch
@@ -376,7 +377,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.proc_rank == 0:
                 print('-' * 100)
                 print('TEST RESULTS')
-                print(prog_bar_metrics)
+                pprint(prog_bar_metrics)
                 print('-' * 100)
 
         # log metrics
