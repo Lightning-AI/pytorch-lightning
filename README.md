@@ -137,7 +137,7 @@ In summary, you:
     class LitSystem(pl.LightningModule):
     
         def __init__(self):
-            super(CoolSystem, self).__init__()
+            super(LitSystem, self).__init__()
             # not the best model...
             self.l1 = torch.nn.Linear(28 * 28, 10)
     
@@ -152,7 +152,7 @@ In summary, you:
  ```python
  from pytorch_lightning import Trainer
 
- model = CoolSystem()
+ model = LitSystem()
 
  # most basic trainer, uses good defaults
  trainer = Trainer()    
