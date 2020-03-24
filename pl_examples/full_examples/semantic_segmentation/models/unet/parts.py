@@ -8,6 +8,7 @@ class DoubleConv(nn.Module):
     Double Convolution and BN and ReLU
     (3x3 conv -> BN -> ReLU) ** 2
     '''
+
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.net = nn.Sequential(
@@ -27,6 +28,7 @@ class Down(nn.Module):
     '''
     Combination of MaxPool2d and DoubleConv in series
     '''
+
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.net = nn.Sequential(
@@ -44,6 +46,7 @@ class Up(nn.Module):
     followed by concatenation of feature map from contracting path,
     followed by double 3x3 convolution.
     '''
+
     def __init__(self, in_ch, out_ch, bilinear=False):
         super().__init__()
         self.upsample = None
