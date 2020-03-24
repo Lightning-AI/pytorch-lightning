@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](docs/source/_static/images/lightning_logo.svg)
+![Logo](docs/source/_images/logos/lightning_logo.svg)
 
 # PyTorch Lightning
 
@@ -31,9 +31,9 @@ removed until codecov badge isn't empy. likely a config error showing nothing on
 | :---: | :---: | :---: | :---: | :---: |
 | Linux py3.6 [CPU] | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) |
 | Linux py3.7 [GPU] | <center>—</center> | <center>—</center> | <center>—</center> | [![Build Status](http://35.192.60.23/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://35.192.60.23/PyTorchLightning/pytorch-lightning) |
-| Linux py3.6 / py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
-| OSX py3.6 / py3.7| ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
-| Windows py3.6 / py3.7 | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) | <center>—</center> | <center>—</center> | ![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push) |
+| Linux py3.6 / py3.7 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | <center>—</center> | <center>—</center> | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
+| OSX py3.6 / py3.7| [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | <center>—</center> | <center>—</center> | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
+| Windows py3.6 / py3.7 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | <center>—</center> | <center>—</center> | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
 
 </center>
 
@@ -83,7 +83,7 @@ If you're just getting into deep learning, we recommend you learn PyTorch first!
 Everything in Blue!   
 This is how lightning separates the science (red) from the engineering (blue).
 
-![Overview](docs/source/_static/images/pl_overview.gif)
+![Overview](docs/source/_images/general/pl_overview.gif)
 
 ## How much effort is it to convert?
 If your code is not a huge mess you should be able to organize it into a LightningModule in less than 1 hour.
@@ -239,7 +239,7 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Comet.ml
 - ...  
 
-![tensorboard-support](docs/source/_static/images/tf_loss.png)
+![tensorboard-support](docs/source/_images/general/tf_loss.png)
 
 
 ## Lightning automates 40+ parts of DL/ML research
