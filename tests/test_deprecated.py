@@ -67,7 +67,7 @@ def test_tbd_remove_in_v0_9_0_trainer():
         'fast_dev_run': 'unit_test',
     }
     # skip 0 since it may be interested as False
-    kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
+    kwargs = {'fast_dev_run': True}
 
     trainer = Trainer(**kwargs)
 
