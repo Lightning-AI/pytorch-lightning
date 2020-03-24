@@ -878,6 +878,14 @@ class Trainer(
         self.testing = False
 
     def check_model_configuration(self, model: LightningModule):
+        r"""
+        Checks that the model is configured correctly before training is started.
+
+        Args:
+            model: The model to test.
+
+        """
+        # Check training_step, train_dataloader, configure_optimizer methods
         if not self.is_overriden('training_step', model):
             m = ('No training_step() method defined. Lightning expects as minimum '
                  'a training_step() and training_dataloader() to be defined.')
@@ -893,6 +901,7 @@ class Trainer(
                  'to Adam optimizer with learning rate set to 0.0001.')
             warnings.warn(m)
 
+        # Check val_dataloader, validation_step and validation_epoch_end
         if self.is_overriden('val_dataloader', model):
             if not self.is_overriden('validation_step', model):
                 m = ('You have passed in a val_dataloader() but have not defined '
@@ -904,7 +913,13 @@ class Trainer(
                          'a validation_step(), you may also want to define '
                          'validation_epoch_end() for accumulating stats')
                     warnings.warn(m)
+        else:
+            if self.is_overriden('validation_step', model):
+                m = ('You have defined validation_step(), but have not passed '
+                     'in a val_dataloader().')
+                raise MisconfigurationException(m)
 
+        # Check test_dataloader, test_step and test_epoch_end
         if self.is_overriden('test_dataloader', model):
             if not self.is_overriden('test_step', model):
                 m = ('You have passed in a test_dataloader() but have not defined '
@@ -916,6 +931,11 @@ class Trainer(
                          'a test_step(), you may also want to define '
                          'test_epoch_end() for accumulating stats')
                     warnings.warn(m)
+        else:
+            if self.is_overriden('test_step', model):
+                m = ('You have defined test_step, but have not passed in '
+                     'a test_dataloader().')
+                raise MisconfigurationException(m)
 
 
 class _PatchDataLoader(object):
@@ -931,10 +951,7 @@ class _PatchDataLoader(object):
         self.dataloader = dataloader
 
         # Assign __code__, needed for checking if method has been overriden
-        if isinstance(self.dataloader, (list, tuple)):
-            self.__code__ = self.dataloader[0].__iter__.__code__
-        else:
-            self.__code__ = self.dataloader.__iter__.__code__
+        self.__code__ = self.__call__.__code__
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader

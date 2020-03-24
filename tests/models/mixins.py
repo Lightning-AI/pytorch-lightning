@@ -405,6 +405,9 @@ class LightTestStepMultipleDataloadersMixin:
 class LightTestFitSingleTestDataloadersMixin:
     """Test fit single test dataloaders mixin."""
 
+    def test_dataloader(self):
+        return self._dataloader(train=False)
+
     def test_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop

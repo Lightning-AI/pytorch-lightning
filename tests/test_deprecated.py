@@ -70,6 +70,9 @@ class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
     def validation_end(self, outputs):
         return {'val_loss': 0.6}
 
+    def test_dataloader(self):
+        return self._dataloader(train=False)
+
     def test_end(self, outputs):
         return {'test_loss': 0.6}
 
@@ -85,6 +88,9 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
     def validation_end(self, outputs):
         return {'val_loss': 0.7}
+
+    def test_dataloader(self):
+        return self._dataloader(train=False)
 
     def test_end(self, outputs):
         return {'test_loss': 0.7}
