@@ -2,10 +2,10 @@ import os
 
 import pytest
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     LightningTestModel,
 )
 
@@ -17,7 +17,7 @@ def test_amp_single_gpu(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -40,7 +40,7 @@ def test_no_amp_single_gpu(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -66,7 +66,7 @@ def test_amp_gpu_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -93,7 +93,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     tutils.set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -105,7 +105,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     )
 
     # exp file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -136,14 +136,14 @@ def test_cpu_model_with_amp(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
         precision=16
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tutils.run_model_test(trainer_options, model, on_gpu=False)
@@ -157,7 +157,7 @@ def test_amp_gpu_dp(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=1,

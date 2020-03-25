@@ -2,8 +2,11 @@
 
 from pytorch_lightning import Trainer
 
+import tests.base.utils as tutils
+from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
 
-def test_to_be_removed_in_v0_8_0_module_imports():
+
+def test_tbd_remove_in_v0_8_0_module_imports():
     from pytorch_lightning.logging.comet_logger import CometLogger  # noqa: F811
     from pytorch_lightning.logging.mlflow_logger import MLFlowLogger  # noqa: F811
     from pytorch_lightning.logging.test_tube_logger import TestTubeLogger  # noqa: F811
@@ -24,7 +27,7 @@ def test_to_be_removed_in_v0_8_0_module_imports():
     from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
 
 
-def test_to_be_removed_in_v0_8_0_trainer():
+def test_tbd_remove_in_v0_8_0_trainer():
     mapping_old_new = {
         'gradient_clip': 'gradient_clip_val',
         'nb_gpu_nodes': 'num_nodes',
@@ -45,7 +48,7 @@ def test_to_be_removed_in_v0_8_0_trainer():
             'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
 
-def test_to_be_removed_in_v0_9_0_module_imports():
+def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.core.decorators import data_loader  # noqa: F811
 
     from pytorch_lightning.logging.comet import CometLogger  # noqa: F402
@@ -53,3 +56,55 @@ def test_to_be_removed_in_v0_9_0_module_imports():
     from pytorch_lightning.logging.neptune import NeptuneLogger  # noqa: F402
     from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
     from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
+
+
+class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
+
+    # todo: this shall not be needed while evaluate asks for dataloader explicitly
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+    def validation_end(self, outputs):
+        return {'val_loss': 0.6}
+
+    def test_end(self, outputs):
+        return {'test_loss': 0.6}
+
+
+class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
+
+    # todo: this shall not be needed while evaluate asks for dataloader explicitly
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+    def validation_end(self, outputs):
+        return {'val_loss': 0.7}
+
+    def test_end(self, outputs):
+        return {'test_loss': 0.7}
+
+
+def test_tbd_remove_in_v1_0_0_model_hooks():
+    hparams = tutils.get_default_hparams()
+
+    model = ModelVer0_6(hparams)
+
+    trainer = Trainer(logger=False)
+    trainer.test(model)
+    assert trainer.callback_metrics == {'test_loss': 0.6}
+
+    trainer = Trainer(logger=False)
+    # TODO: why `dataloder` is required if it is not used
+    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    assert result == {'val_loss': 0.6}
+
+    model = ModelVer0_7(hparams)
+
+    trainer = Trainer(logger=False)
+    trainer.test(model)
+    assert trainer.callback_metrics == {'test_loss': 0.7}
+
+    trainer = Trainer(logger=False)
+    # TODO: why `dataloder` is required if it is not used
+    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    assert result == {'val_loss': 0.7}

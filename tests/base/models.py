@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-
-from tests.models.datasets import TestingMNIST
+from torchvision import transforms
+from torchvision.datasets import MNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -24,6 +24,22 @@ import urllib.request
 opener = urllib.request.build_opener()
 opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 urllib.request.install_opener(opener)
+
+
+class TestingMNIST(MNIST):
+
+    def __init__(self, root, train=True, transform=None, target_transform=None,
+                 download=False, num_samples=8000):
+        super().__init__(
+            root,
+            train=train,
+            transform=transform,
+            target_transform=target_transform,
+            download=download
+        )
+        # take just a subset of MNIST dataset
+        self.data = self.data[:num_samples]
+        self.targets = self.targets[:num_samples]
 
 
 class DictHparamsModel(LightningModule):
@@ -46,7 +62,7 @@ class DictHparamsModel(LightningModule):
 
     def train_dataloader(self):
         return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
-                                       normalize=(0.5, 1.0)), batch_size=32)
+                                       transform=transforms.ToTensor()), batch_size=32)
 
 
 class TestModelBase(LightningModule):
@@ -158,18 +174,21 @@ class TestModelBase(LightningModule):
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         else:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-        # test returning only 1 list instead of 2
-        return optimizer
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
         _ = TestingMNIST(root=self.hparams.data_root, train=True,
-                         normalize=(0.5, 1.0), download=True, num_samples=2000)
+                         transform=transform, download=True, num_samples=2000)
 
     def _dataloader(self, train):
         # init data generators
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               normalize=(0.5, 1.0), download=False, num_samples=2000)
+                               transform=transform, download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size
@@ -181,37 +200,3 @@ class TestModelBase(LightningModule):
         )
 
         return loader
-
-    @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
-        """
-        Parameters you define here will be available to your model through self.hparams
-        :param parent_parser:
-        :param root_dir:
-        :return:
-        """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
-
-        # param overwrites
-        # parser.set_defaults(gradient_clip_val=5.0)
-
-        # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28 * 28, type=int)
-        parser.add_argument('--out_features', default=10, type=int)
-        # use 500 for CPU, 50000 for GPU to see speed difference
-        parser.add_argument('--hidden_dim', default=50000, type=int)
-        # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-        # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str,
-                        options=['adam'], tunable=False)
-        # if using 2 nodes with 4 gpus each the batch size here
-        #  (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256 * 8, type=int,
-                        options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all GPUs being used across all nodes')
-        return parser

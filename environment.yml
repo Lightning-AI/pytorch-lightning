@@ -1,4 +1,6 @@
+# This is Conda environment file
 # Usage: `conda env update -f environment.yml`
+
 channels:
     - conda-forge
     - pytorch

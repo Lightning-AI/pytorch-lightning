@@ -3,33 +3,30 @@ import os
 import sys
 import warnings
 from argparse import ArgumentParser
-from typing import Union, Optional, List, Dict, Tuple, Iterable
+from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
+import distutils
 
 import torch
-from torch import optim
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
+from torch import optim
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 from pytorch_lightning.profiler.profiler import BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device
-)
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
+from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
+from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -70,6 +67,11 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerDeprecatedAPITillVer0_8,
 ):
+    DEPRECATED_IN_0_8 = (
+        'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
+        'add_row_log_interval', 'nb_sanity_val_steps'
+    )
+    DEPRECATED_IN_0_9 = ('use_amp',)
 
     def __init__(
             self,
@@ -140,7 +142,9 @@ class Trainer(
             gradient_clip_val: 0 means don't clip.
 
             gradient_clip:
-                .. warning:: deprecated 0.7.0 Use `gradient_clip_val` instead. Will remove 0.9.0.
+                .. warning:: .. deprecated:: 0.7.0
+
+                    Use `gradient_clip_val` instead. Will remove 0.9.0.
 
             process_position: orders the tqdm bar when running multiple models on same machine.
 
@@ -148,6 +152,7 @@ class Trainer(
 
             nb_gpu_nodes:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
@@ -159,6 +164,8 @@ class Trainer(
             show_progress_bar: If true shows tqdm progress bar
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps)
+
+            overfit_pct: How much of training-, validation-, and test dataset to check.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that norm
 
@@ -172,12 +179,14 @@ class Trainer(
 
             max_nb_epochs:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `max_epochs` instead. Will remove 0.9.0.
 
             min_epochs: Force training for at least these many epochs
 
             min_nb_epochs:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `min_epochs` instead. Will remove 0.9.0.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
@@ -198,18 +207,21 @@ class Trainer(
 
             add_row_log_interval:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
             distributed_backend: The distributed backend to use.
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `precision` instead. Will remove 0.9.0.
 
             precision: Full precision (32), half precision (16).
 
             print_nan_grads:
                 .. warning:: .. deprecated:: 0.7.2
+
                     Has no effect. When detected, NaN grads will be printed automatically.
                     Will remove 0.9.0.
 
@@ -223,6 +235,7 @@ class Trainer(
 
             nb_sanity_val_steps:
                 .. warning:: .. deprecated:: 0.7.0
+
                     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
@@ -456,20 +469,90 @@ class Trainer(
         return args
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        """Extend existing argparse by default `Trainer` attributes."""
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
+        r"""Scans the Trainer signature and returns argument names, types and default values.
 
-        trainer_default_params = Trainer.default_attributes()
+        Returns:
+            List with tuples of 3 values:
+            (argument name, set with argument types, argument default value).
 
-        # TODO: get "help" from docstring :)
+        Examples:
+            >>> args = Trainer.get_init_arguments_and_types()
+            >>> import pprint
+            >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+            [('accumulate_grad_batches',
+              (<class 'int'>, typing.Dict[int, int], typing.List[list]),
+              1),
+             ...
+             ('callbacks', (<class 'pytorch_lightning.callbacks.base.Callback'>,), []),
+             ('check_val_every_n_epoch', (<class 'int'>,), 1),
+             ...
+             ('max_epochs', (<class 'int'>,), 1000),
+             ...
+             ('precision', (<class 'int'>,), 32),
+             ('print_nan_grads', (<class 'bool'>,), False),
+             ('process_position', (<class 'int'>,), 0),
+             ('profiler',
+              (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+               <class 'NoneType'>),
+              None),
+            ...
+        """
+        trainer_default_params = inspect.signature(cls).parameters
+        name_type_default = []
         for arg in trainer_default_params:
-            parser.add_argument(
-                f'--{arg}',
-                default=trainer_default_params[arg],
-                dest=arg,
-                help='autogenerated by pl.Trainer'
-            )
+            arg_type = trainer_default_params[arg].annotation
+            arg_default = trainer_default_params[arg].default
+            try:
+                arg_types = tuple(arg_type.__args__)
+            except AttributeError:
+                arg_types = (arg_type,)
+
+            name_type_default.append((arg, arg_types, arg_default))
+
+        return name_type_default
+
+    @classmethod
+    def get_deprecated_arg_names(cls) -> List:
+        """Returns a list with deprecated Trainer arguments."""
+        depr_arg_names = []
+        for name, val in cls.__dict__.items():
+            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
+                depr_arg_names.extend(val)
+        return depr_arg_names
+
+    @classmethod
+    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
+        r"""Extends existing argparse by default `Trainer` attributes.
+
+        Args:
+            parent_parser:
+                The custom cli arguments parser, which will be extended by
+                the Trainer default arguments.
+
+        Only arguments of the allowed types (str, float, int, bool) will
+        extend the `parent_parser`.
+        """
+        parser = ArgumentParser(parents=[parent_parser], add_help=False, )
+
+        depr_arg_names = cls.get_deprecated_arg_names()
+
+        allowed_types = (str, float, int, bool)
+        # TODO: get "help" from docstring :)
+        for arg, arg_types, arg_default in cls.get_init_arguments_and_types():
+            if arg not in depr_arg_names:
+                for allowed_type in allowed_types:
+                    if allowed_type in arg_types:
+                        if allowed_type is bool:
+                            allowed_type = lambda x: bool(distutils.util.strtobool(x))
+                        parser.add_argument(
+                            f'--{arg}',
+                            default=arg_default,
+                            type=allowed_type,
+                            dest=arg,
+                            help='autogenerated by pl.Trainer'
+                        )
+                        break
 
         return parser
 
@@ -503,10 +586,10 @@ class Trainer(
     def tng_tqdm_dic(self):
         """Read-only for tqdm metrics.
 
-        :return: dictionary
-
         .. warning:: .. deprecated:: 0.5.0
-                    Use `training_tqdm_dict` instead. Will remove 0.8.0.
+
+            Use `training_tqdm_dict` instead. Will remove 0.8.0.
+
         """
         warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
@@ -841,7 +924,7 @@ class Trainer(
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
-            model (:class:`.LightningModule`): The model to test.
+            model: The model to test.
 
         Example::
 
@@ -879,13 +962,14 @@ class Trainer(
 
 
 class _PatchDataLoader(object):
-    r'''
+    r"""
     Callable object for patching dataloaders passed into trainer.fit().
     Use this class to override model.*_dataloader() and be pickle-compatible.
 
     Args:
         dataloader: Dataloader object to return when called.
-    '''
+
+    """
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

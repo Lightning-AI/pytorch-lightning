@@ -1,5 +1,5 @@
 """
-Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>'_
+Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_
 
 .. code-block:: python
 
@@ -23,13 +23,13 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_trains_supports(...)
 
 """
-
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
+from PIL.Image import Image
 
 try:
     import trains
@@ -205,7 +205,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_image(
             self, title: str, series: str,
-            image: Union[str, np.ndarray, 'PIL.Image', torch.Tensor],
+            image: Union[str, np.ndarray, Image, torch.Tensor],
             step: Optional[int] = None) -> None:
         """Log Debug image in TRAINS experiment
 
@@ -242,7 +242,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def log_artifact(
             self, name: str,
-            artifact: Union[str, Path, Dict[str, Any], 'pandas.DataFrame', 'numpy.ndarray', 'PIL.Image.Image'],
+            artifact: Union[str, Path, Dict[str, Any], np.ndarray, Image],
             metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
         """Save an artifact (file/object) in TRAINS experiment storage.
 
@@ -250,13 +250,15 @@ class TrainsLogger(LightningLoggerBase):
             name: Artifact name. Notice! it will override previous artifact
                 if name already exists
             artifact: Artifact object to upload. Currently supports:
+
                 - string / pathlib2.Path are treated as path to artifact file to upload
-                    If wildcard or a folder is passed, zip file containing the
-                    local files will be created and uploaded
+                  If wildcard or a folder is passed, zip file containing the
+                  local files will be created and uploaded
                 - dict will be stored as .json file and uploaded
                 - pandas.DataFrame will be stored as .csv.gz (compressed CSV file) and uploaded
                 - numpy.ndarray will be stored as .npz and uploaded
                 - PIL.Image will be stored to .png file and uploaded
+
             metadata:
                 Simple key/value dictionary to store on the artifact. Defaults to None.
             delete_after_upload:

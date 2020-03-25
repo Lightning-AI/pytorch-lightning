@@ -2,6 +2,7 @@ Hooks
 =====
 
 .. automodule:: pytorch_lightning.core.hooks
+    :noindex:
 
 Hooks lifecycle
 ---------------
