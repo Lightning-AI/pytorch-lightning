@@ -1,8 +1,10 @@
-import os
 import logging
+import os
 import urllib.request
+from typing import Tuple
 
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset
 
 
@@ -48,7 +50,7 @@ class MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Tuple[Tensor, int]:
         img = self.data[index].float().unsqueeze(0)
         target = int(self.targets[index])
 
@@ -57,19 +59,19 @@ class MNIST(Dataset):
 
         return img, target
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
     @property
-    def processed_folder(self):
+    def processed_folder(self) -> str:
         return os.path.join(self.root, 'MNIST', 'processed')
 
-    def _check_exists(self):
+    def _check_exists(self) -> bool:
         train_file = os.path.join(self.processed_folder, self.TRAIN_FILE_NAME)
         test_file = os.path.join(self.processed_folder, self.TEST_FILE_NAME)
         return os.path.exists(train_file) and os.path.exists(test_file)
 
-    def download(self):
+    def download(self) -> None:
         """Download the MNIST data if it doesn't exist in processed_folder already."""
 
         if self._check_exists():
@@ -83,7 +85,7 @@ class MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
 
-def normalize_tensor(tensor, mean=0.0, std=1.0):
+def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
     tensor = tensor.clone()
     mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
     std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
