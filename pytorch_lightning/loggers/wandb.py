@@ -108,7 +108,7 @@ class WandbLogger(LightningLoggerBase):
             wandb.join(exit_code)
         except TypeError:
             wandb.join()
-    return exit_code
+        return exit_code
 
     @property
     def name(self) -> str:
