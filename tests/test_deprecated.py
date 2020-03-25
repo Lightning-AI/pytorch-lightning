@@ -2,8 +2,8 @@
 
 from pytorch_lightning import Trainer
 
-import tests.models.utils as tutils
-from tests.models import TestModelBase, LightTrainDataloader, LightEmptyTestStep
+import tests.base.utils as tutils
+from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
 
 
 def test_tbd_remove_in_v0_8_0_module_imports():
@@ -85,7 +85,7 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     model = ModelVer0_6(hparams)
 
