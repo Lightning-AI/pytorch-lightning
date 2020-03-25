@@ -887,55 +887,51 @@ class Trainer(
         """
         # Check training_step, train_dataloader, configure_optimizer methods
         if not self.is_overriden('training_step', model):
-            m = ('No training_step() method defined. Lightning expects as minimum '
-                 'a training_step() and training_dataloader() to be defined.')
-            raise MisconfigurationException(m)
+            raise MisconfigurationException('No training_step() method defined.'
+                                            ' Lightning expects as minimum a `training_step()` and'
+                                            ' `training_dataloader()` to be defined.')
 
         if not self.is_overriden('train_dataloader', model):
-            m = ('No train_dataloader() defined. Lightning expects as minimum '
-                 'a training_step() and training_dataloader() to be defined.')
-            raise MisconfigurationException(m)
+            raise MisconfigurationException('No train_dataloader() defined.'
+                                            ' Lightning expects as minimum a `training_step()` and'
+                                            ' `training_dataloader()` to be defined.')
 
         if not self.is_overriden('configure_optimizers', model):
-            m = ('configure_optimizers() method not defined by user, will default '
-                 'to Adam optimizer with learning rate set to 0.0001.')
-            warnings.warn(m)
+            warnings.warn('`configure_optimizers()` method not defined by user,'
+                          ' will default to Adam optimizer with learning rate set to 0.0001.',
+                          RuntimeWarning)
 
         # Check val_dataloader, validation_step and validation_epoch_end
         if self.is_overriden('val_dataloader', model):
             if not self.is_overriden('validation_step', model):
-                m = ('You have passed in a val_dataloader() but have not defined '
-                     'validation_step()')
-                raise MisconfigurationException(m)
+                raise MisconfigurationException('You have passed in a `val_dataloader()`'
+                                                ' but have not defined `validation_step()`.')
             else:
                 if not self.is_overriden('validation_epoch_end', model):
-                    m = ('You have defined a val_dataloader() and have defined '
-                         'a validation_step(), you may also want to define '
-                         'validation_epoch_end() for accumulating stats')
-                    warnings.warn(m)
+                    warnings.warn('You have defined a `val_dataloader()` and have'
+                                  ' defined a `validation_step()`, you may also want to'
+                                  ' define `validation_epoch_end()` for accumulating stats.',
+                                  RuntimeWarning)
         else:
             if self.is_overriden('validation_step', model):
-                m = ('You have defined validation_step(), but have not passed '
-                     'in a val_dataloader().')
-                raise MisconfigurationException(m)
+                raise MisconfigurationException('You have defined `validation_step()`,'
+                                                ' but have not passed in a val_dataloader().')
 
         # Check test_dataloader, test_step and test_epoch_end
         if self.is_overriden('test_dataloader', model):
             if not self.is_overriden('test_step', model):
-                m = ('You have passed in a test_dataloader() but have not defined '
-                     'test_step()')
-                raise MisconfigurationException(m)
+                raise MisconfigurationException('You have passed in a `test_dataloader()`'
+                                                ' but have not defined `test_step()`.')
             else:
                 if not self.is_overriden('test_epoch_end', model):
-                    m = ('You have defined a test_dataloader() and have defined '
-                         'a test_step(), you may also want to define '
-                         'test_epoch_end() for accumulating stats')
-                    warnings.warn(m)
+                    warnings.warn('You have defined a `test_dataloader()` and'
+                                  ' have defined a `test_step()`, you may also want to'
+                                  ' define `test_epoch_end()` for accumulating stats.',
+                                  RuntimeWarning)
         else:
             if self.is_overriden('test_step', model):
-                m = ('You have defined test_step, but have not passed in '
-                     'a test_dataloader().')
-                raise MisconfigurationException(m)
+                raise MisconfigurationException('You have defined `test_step()`,'
+                                                ' but have not passed in a `test_dataloader()`.')
 
 
 class _PatchDataLoader(object):
