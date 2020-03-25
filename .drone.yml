@@ -25,4 +25,4 @@ steps:
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --doctest-modules #  --flake8
     - coverage report
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
-    - python tests/run_diagnostics.py
+    - python tests/collect_env_details.py

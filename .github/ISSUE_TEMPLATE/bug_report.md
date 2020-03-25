@@ -40,12 +40,12 @@ Minimal means having the shortest code but still preserving the bug. -->
 ### Environment
 
 Please copy and paste the output from our
-[environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/run_diagnostics.py)
+[environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py)
 (or fill out the checklist below manually).
 
 You can get the script and run it with:
 ```
-wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/run_diagnostics.py
+wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py
 # For security purposes, please check the contents of collect_env.py before running it.
 python collect_env.py
 ```

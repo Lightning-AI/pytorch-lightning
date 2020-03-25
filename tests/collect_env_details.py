@@ -6,13 +6,16 @@ This server mainly to get detail info for better bug reporting.
 
 import os
 import re
+import sys
 import platform
 
 import numpy
-import pytorch_lightning
 import tensorboard
 import torch
 import tqdm
+
+sys.path.append(os.path.abspath('..'))
+import pytorch_lightning  # noqa: E402
 
 LEVEL_OFFSET = '\t'
 KEY_PADDING = 20
