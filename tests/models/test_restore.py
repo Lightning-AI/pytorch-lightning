@@ -5,11 +5,11 @@ import os
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     LightningTestModel,
     LightningTestModelWithoutHyperparametersArg,
     LightningTestModelWithUnusedHyperparametersArg
@@ -24,11 +24,11 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # exp file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -72,11 +72,11 @@ def test_running_test_pretrained_model(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -111,7 +111,7 @@ def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -158,11 +158,11 @@ def test_running_test_pretrained_model_dp(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -202,7 +202,7 @@ def test_dp_resume(tmpdir):
 
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
@@ -213,7 +213,7 @@ def test_dp_resume(tmpdir):
     )
 
     # get logger
-    logger = tutils.get_test_tube_logger(tmpdir, debug=False)
+    logger = tutils.get_default_testtube_logger(tmpdir, debug=False)
 
     # exp file to get weights
     # logger file to get weights
@@ -241,7 +241,7 @@ def test_dp_resume(tmpdir):
     trainer.hpc_save(tmpdir, logger)
 
     # init new trainer
-    new_logger = tutils.get_test_tube_logger(tmpdir, version=logger.version)
+    new_logger = tutils.get_default_testtube_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
     trainer_options['train_percent_check'] = 0.5
@@ -277,11 +277,11 @@ def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_epochs=1,

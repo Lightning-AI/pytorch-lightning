@@ -4,16 +4,16 @@ from argparse import Namespace
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_tensorboard_logger(tmpdir):
     """Verify that basic functionality of Tensorboard logger works."""
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
