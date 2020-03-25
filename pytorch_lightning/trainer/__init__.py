@@ -705,7 +705,7 @@ use_amp:
 show_progress_bar
 ^^^^^^^^^^^^^^^^^
 
-.. warning:: .. deprecated:: 0.7.0
+.. warning:: .. deprecated:: 0.7.2
     Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check

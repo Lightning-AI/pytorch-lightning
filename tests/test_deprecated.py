@@ -47,6 +47,7 @@ def test_tbd_remove_in_v0_8_0_trainer():
         assert kwargs[attr_old] == getattr(trainer, attr_new), \
             'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
+
 def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.core.decorators import data_loader  # noqa: F811
 
