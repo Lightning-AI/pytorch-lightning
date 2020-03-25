@@ -12,6 +12,9 @@ class TrainerCallbackConfigMixin(ABC):
     #  the proper values/initialisation should be done in child class
     default_save_path: str
     logger: Union[LightningLoggerBase, bool]
+    weights_save_path: str
+    ckpt_path: str
+    checkpoint_callback: ModelCheckpoint
 
     @property
     @abstractmethod
@@ -29,6 +32,7 @@ class TrainerCallbackConfigMixin(ABC):
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
+        ckpt_path = self.default_save_path
         if self.checkpoint_callback is True:
             # init a default one
             if self.logger is not None:
@@ -44,18 +48,27 @@ class TrainerCallbackConfigMixin(ABC):
             else:
                 ckpt_path = os.path.join(self.default_save_path, "checkpoints")
 
+            # when no val step is defined, use 'loss' otherwise 'val_loss'
+            train_step_only = not self.is_overriden('validation_step')
+            monitor_key = 'loss' if train_step_only else 'val_loss'
+
+            self.ckpt_path = ckpt_path
+            os.makedirs(ckpt_path, exist_ok=True)
             self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path
+                filepath=ckpt_path,
+                monitor=monitor_key
             )
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
+
+        self.ckpt_path = ckpt_path
 
         if self.checkpoint_callback:
             # set the path for the callbacks
             self.checkpoint_callback.save_function = self.save_checkpoint
 
             # if checkpoint callback used, then override the weights path
-            self.weights_save_path = self.checkpoint_callback.filepath
+            self.weights_save_path = self.checkpoint_callback.dirpath
 
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:

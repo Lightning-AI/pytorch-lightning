@@ -34,21 +34,18 @@ class CoolModel(pl.LightningModule):
         y_hat = self.forward(x)
         return {'val_loss': self.my_loss(y_hat, y)}
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x for x in outputs['val_loss']]).mean()
         return avg_loss
 
     def configure_optimizers(self):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
-    @pl.data_loader
     def train_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=True), batch_size=32)
 
-    @pl.data_loader
     def val_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)
 
-    @pl.data_loader
     def test_dataloader(self):
         return DataLoader(MNIST('path/to/save', train=False), batch_size=32)

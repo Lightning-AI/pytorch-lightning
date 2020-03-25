@@ -1,14 +1,20 @@
-import logging as log
+r"""
+Early Stopping
+==============
+Stop training when a monitored quantity has stopped improving.
+
+"""
+
 import warnings
 
 import numpy as np
 
-from .base import Callback
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks.base import Callback
 
 
 class EarlyStopping(Callback):
     r"""
-    Stop training when a monitored quantity has stopped improving.
 
     Args:
         monitor (str): quantity to be monitored. Default: ``'val_loss'``.
@@ -63,8 +69,6 @@ class EarlyStopping(Callback):
 
         self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
-
-        self.on_train_start(None, None)
 
     def check_metrics(self, logs):
         monitor_val = logs.get(self.monitor)

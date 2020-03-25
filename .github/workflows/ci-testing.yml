@@ -1,6 +1,15 @@
 name: CI testing
 
-on: [push, pull_request]
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
@@ -17,7 +26,7 @@ jobs:
     # https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
@@ -56,13 +65,14 @@ jobs:
         pip --version
         pip list
 
-    - name: Lint and Tests
+    - name: Tests
       # env:
       #   TOXENV: py${{ matrix.python-version }}
       run: |
         # tox --sitepackages
-        flake8 .
+        # flake8 .
         coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        coverage report
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master

@@ -1,5 +1,5 @@
-from typing import Callable
 from abc import ABC
+from typing import Callable
 
 from pytorch_lightning.callbacks import Callback
 
@@ -12,25 +12,15 @@ class TrainerCallbackHookMixin(ABC):
         self.callbacks: list[Callback] = []
         self.get_model: Callable = ...
 
-    def on_init_start(self, trainer):
-        """Called when the trainer initialization begins."""
+    def on_init_start(self):
+        """Called when the trainer initialization begins, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_init_start(trainer)
+            callback.on_init_start(self)
 
-    def on_init_end(self, trainer):
-        """Called when the trainer initialization ends."""
+    def on_init_end(self):
+        """Called when the trainer initialization ends, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_init_end(trainer)
-
-    def on_fit_start(self):
-        """Called when the fit begins."""
-        for callback in self.callbacks:
-            callback.on_fit_start(self, self.get_model())
-
-    def on_fit_end(self):
-        """Called when the fit ends."""
-        for callback in self.callbacks:
-            callback.on_fit_end(self, self.get_model())
+            callback.on_init_end(self)
 
     def on_epoch_start(self):
         """Called when the epoch begins."""

@@ -1,8 +1,7 @@
 from collections import OrderedDict
 
 import torch
-
-from pytorch_lightning.core.decorators import data_loader
+from torch import optim
 
 
 class LightValidationStepMixin:
@@ -64,7 +63,7 @@ class LightValidationMixin(LightValidationStepMixin):
     when val_dataloader returns a single dataloader
     """
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -163,7 +162,7 @@ class LightValidationMultipleDataloadersMixin(LightValidationStepMultipleDataloa
     when val_dataloader returns multiple dataloaders
     """
 
-    def validation_end(self, outputs):
+    def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -212,6 +211,48 @@ class LightTestDataloader:
 
     def test_dataloader(self):
         return self._dataloader(train=False)
+
+
+class CustomInfDataloader:
+    def __init__(self, dataloader):
+        self.dataloader = dataloader
+        self.iter = iter(dataloader)
+        self.count = 0
+
+    def __iter__(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        if self.count >= 50:
+            raise StopIteration
+        self.count = self.count + 1
+        try:
+            return next(self.iter)
+        except StopIteration:
+            self.iter = iter(self.dataloader)
+            return next(self.iter)
+
+
+class LightInfTrainDataloader:
+    """Simple test dataloader."""
+
+    def train_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=True))
+
+
+class LightInfValDataloader:
+    """Simple test dataloader."""
+
+    def val_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=False))
+
+
+class LightInfTestDataloader:
+    """Simple test dataloader."""
+
+    def test_dataloader(self):
+        return CustomInfDataloader(self._dataloader(train=False))
 
 
 class LightEmptyTestStep:
@@ -271,7 +312,7 @@ class LightTestStepMixin(LightTestDataloader):
 class LightTestMixin(LightTestStepMixin):
     """Ritch test mixin."""
 
-    def test_end(self, outputs):
+    def test_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -561,7 +602,7 @@ class LightValStepFitMultipleDataloadersMixin:
 
 class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
 
-    def test_end(self, outputs):
+    def test_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
         :param outputs: list of individual outputs of each validation step
@@ -596,6 +637,55 @@ class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
         tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
         result = {'progress_bar': tqdm_dict}
         return result
+
+
+class LightTestOptimizerWithSchedulingMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
+        return [optimizer], [lr_scheduler]
+
+
+class LightTestMultipleOptimizersWithSchedulingMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+            optimizer2 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+            optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+        lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+        return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+
+class LightTestOptimizersWithMixedSchedulingMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+            optimizer2 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer1 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+            optimizer2 = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 4, gamma=0.1)
+        lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+        return [optimizer1, optimizer2], \
+            [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
+
+
+class LightTestReduceLROnPlateauMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        return [optimizer], [lr_scheduler]
 
 
 def _get_output_metric(output, name):

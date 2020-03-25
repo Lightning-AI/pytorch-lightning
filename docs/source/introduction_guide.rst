@@ -11,6 +11,8 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
 
+---------
+
 Goal of this guide
 ------------------
 This guide walks through the major parts of the library to help you understand
@@ -18,25 +20,38 @@ what each parts does. But at the end of the day, you write the same PyTorch code
 into the LightningModule template which means you keep ALL the flexibility without having to deal with
 any of the boilerplate code
 
-To show how Lightning works, we'll start with an MNIST classifier and move into
-a Variational Autoencoder and a Generative Adversarial Network (GAN).
+To show how Lightning works, we'll start with an MNIST classifier. We'll end showing how
+to use inheritance to very quickly create an AutoEncoder.
 
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
+
+---------
 
 Lightning Philosophy
 --------------------
 Lightning factors DL/ML code into three types:
 
-1. Core research code.
-2. Engineering code.
-3. Non-essential research code.
+- Research code
+- Engineering code
+- Non-essential code
 
 Research code
 ^^^^^^^^^^^^^
 In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
-
 In Lightning, this code is abstracted out by the `LightningModule`.
+
+.. code-block:: python
+
+    l1 = nn.Linear(...)
+    l2 = nn.Linear(...)
+    decoder = Decoder()
+
+    x1 = l1(x)
+    x2 = l2(x2)
+    out = decoder(features, x)
+
+    loss = perceptual_loss(x1, x2, x) + CE(out, x)
 
 Engineering code
 ^^^^^^^^^^^^^^^^
@@ -46,6 +61,18 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 
 In Lightning, this code is abstracted out by the `Trainer`.
 
+.. code-block:: python
+
+    model.cuda(0)
+    x = x.cuda(0)
+
+    distributed = DistributedParallel(model)
+
+    with gpu_zero:
+        download_data()
+
+    dist.barrier()
+
 Non-essential code
 ^^^^^^^^^^^^^^^^^^
 This is code that helps the research but isn't relevant to the research code. Some examples might be:
@@ -53,6 +80,15 @@ This is code that helps the research but isn't relevant to the research code. So
 2. Log to tensorboard.
 
 In Lightning this code is abstracted out by `Callbacks`.
+
+.. code-block:: python
+
+    # log samples
+    z = Q.rsample()
+    generated = decoder(z)
+    self.experiment.log('images', generated)
+
+---------
 
 Elements of a research project
 ------------------------------
@@ -80,10 +116,10 @@ a 3-layer neural network.
     from torch import nn
     import pytorch_lightning as pl
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
 
       def __init__(self):
-        super(CoolMNIST, self).__init__()
+        super(LitMNIST, self).__init__()
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(28 * 28, 128)
@@ -118,7 +154,7 @@ EXACTLY the same as you would a PyTorch Module.
 
 .. code-block:: default
 
-    net = CoolMNIST()
+    net = LitMNIST()
     x = torch.Tensor(1, 1, 28, 28)
     out = net(x)
 
@@ -146,7 +182,8 @@ Here's the PyTorch code for loading MNIST
 
     # transforms
     # prepare transforms standard to MNIST
-    transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    transform=transforms.Compose([transforms.ToTensor(),
+                                  transforms.Normalize((0.1307,), (0.3081,))])
 
     # data
     mnist_train = MNIST(os.getcwd(), train=True, download=True)
@@ -162,16 +199,62 @@ the LightningModule
     import os
     from torchvision import datasets, transforms
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
         return DataLoader(mnist_train, batch_size=64)
 
 Notice the code is exactly the same, except now the training dataloading has been organized by the LightningModule
 under the `train_dataloader` method. This is great because if you run into a project that uses Lightning and want
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
+
+Usually though, we want to separate the things that write to disk in data-processing from
+things like transforms which happen in memory.
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+      def prepare_data(self):
+        # download only
+        MNIST(os.getcwd(), train=True, download=True)
+
+      def train_dataloader(self):
+        # no download, just transform
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
+        return DataLoader(mnist_train, batch_size=64)
+
+Doing it in the `prepare_data` method ensures that when you have
+multiple GPUs you won't overwrite the data. This is a contrived example
+but it gets more complicated with things like NLP or Imagenet.
+
+In general fill these methods with the following:
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+      def prepare_data(self):
+        # stuff here is done once at the very beginning of training
+        # before any distributed training starts
+
+        # download stuff
+        # save to disk
+        # etc...
+
+      def train_dataloader(self):
+        # data transforms
+        # dataset creation
+        # return a DataLoader
+
+
 
 Optimizer
 ^^^^^^^^^
@@ -182,7 +265,7 @@ In PyTorch we do it as follows:
 .. code-block:: python
 
     from torch.optim import Adam
-    optimizer = Adam(CoolMNIST().parameters(), lr=1e-3)
+    optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
 In Lightning we do the same but organize it under the configure_optimizers method.
@@ -190,7 +273,7 @@ If you don't define this, Lightning will automatically use `Adam(self.parameters
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
 
       def configure_optimizers(self):
         return Adam(self.parameters(), lr=1e-3)
@@ -232,7 +315,7 @@ in the LightningModule
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
 
       def training_step(self, batch, batch_idx):
         x, y = batch
@@ -243,6 +326,8 @@ in the LightningModule
 
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
+
+---------
 
 Training
 --------
@@ -257,9 +342,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def __init__(self):
-        super(CoolMNIST, self).__init__()
+        super(LitMNIST, self).__init__()
         self.layer_1 = torch.nn.Linear(28 * 28, 128)
         self.layer_2 = torch.nn.Linear(128, 256)
         self.layer_3 = torch.nn.Linear(256, 10)
@@ -276,7 +361,8 @@ For clarity, we'll recall that the full LightningModule now looks like this.
         return x
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
         return DataLoader(mnist_train, batch_size=64)
 
@@ -295,11 +381,14 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
 
+Train on CPU
+^^^^^^^^^^^^
+
 .. code-block:: python
 
     from pytorch_lightning import Trainer
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer()
     trainer.fit(model)
 
@@ -307,6 +396,9 @@ You should see the following weights summary and progress bar
 
 .. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
+
+Logging
+^^^^^^^
 
 When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
 But you could have also logged by calling:
@@ -323,12 +415,16 @@ Which will generate automatic tensorboard logs.
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
 
+But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
+
+GPU training
+^^^^^^^^^^^^
 
 But the beauty is all the magic you can do with the trainer flags. For instance, to run this model on a GPU:
 
 .. code-block:: python
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(gpus=1)
     trainer.fit(model)
 
@@ -336,11 +432,14 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. figure:: /_images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
-Or you can also train on multiple GPUs (not on colab though)
+Multi-GPU training
+^^^^^^^^^^^^^^^^^^
+
+Or you can also train on multiple GPUs.
 
 .. code-block:: python
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(gpus=8)
     trainer.fit(model)
 
@@ -349,11 +448,19 @@ Or multiple nodes
 .. code-block:: python
 
     # (32 GPUs)
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model)
 
-And even TPUs. Let's do it on the colab!
+Refer to the `distributed computing guide for more details <multi_gpu.rst>`_.
+
+TPUs
+^^^^
+Did you know you can use PyTorch on TPUs? It's very hard to do, but we've
+worked with the xla team to use their awesome library to get this to work
+out of the box!
+
+Let's train on Colab (`full demo available here <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_)
 
 First, change the runtime to TPU (and reinstall lightning).
 
@@ -365,7 +472,7 @@ First, change the runtime to TPU (and reinstall lightning).
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
-.. code-block:: default
+.. code-block:: python
 
     import collections
     from datetime import datetime, timedelta
@@ -397,6 +504,8 @@ Next, install the required xla library (adds support for PyTorch on TPUs)
     update = threading.Thread(target=update_server_xrt)
     update.start()
 
+.. code-block::
+
     # Install Colab TPU compat PyTorch/TPU wheels and dependencies
     !pip uninstall -y torch torchvision
     !gsutil cp "$DIST_BUCKET/$TORCH_WHEEL" .
@@ -412,29 +521,47 @@ In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU c
 of this program. This means that without taking any care you will download the dataset N times which
 will cause all sorts of issues.
 
-To solve this problem, move the download code to the `prepare_data` method in the LightningModule
+To solve this problem, move the download code to the `prepare_data` method in the LightningModule.
+In this method we do all the preparation we need to do once (instead of on every gpu).
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def prepare_data(self):
-        MNIST(os.getcwd(), train=True, download=True, transform=transform)
+        # transform
+        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
+        # download
+        mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
+        mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
+
+        # train/val split
+        mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
+
+        # assign to use in dataloaders
+        self.train_dataset = mnist_train
+        self.val_dataset = mnist_val
+        self.test_dataset = mnist_test
 
       def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
-        return DataLoader(mnist_train, batch_size=64)
+        return DataLoader(self.train_dataset, batch_size=64)
+
+      def val_dataloader(self):
+        return DataLoader(self.val_dataset, batch_size=64)
+
+      def test_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=64)
 
 The `prepare_data` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).
 
 .. note:: Lightning inserts the correct DistributedSampler for distributed training. No need to add yourself!
 
-Now we can train the LightningModule on a TPU wihout doing anything else!
+Now we can train the LightningModule on a TPU without doing anything else!
 
 .. code-block:: python
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(num_tpu_cores=8)
     trainer.fit(model)
 
@@ -448,8 +575,78 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
-Validation loop
+---------
+
+Hyperparameters
 ---------------
+Normally, we don't hard-code the values to a model. We usually use the command line to
+modify the network.
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+
+    # parametrize the network
+    parser.add_argument('--layer_1_dim', type=int, default=128)
+    parser.add_argument('--layer_2_dim', type=int, default=256)
+    parser.add_argument('--batch_size', type=int, default=64)
+
+    args = parser.parse_args()
+
+Now we can parametrize the LightningModule.
+
+.. code-block:: python
+    :emphasize-lines: 5,6,7,12,14
+
+    class LitMNIST(pl.LightningModule):
+      def __init__(self, hparams):
+        super(LitMNIST, self).__init__()
+        self.hparams = hparams
+
+        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
+        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
+        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+
+      def forward(self, x):
+        ...
+
+      def train_dataloader(self):
+        ...
+        return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
+
+      def configure_optimizers(self):
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+
+    hparams = parse_args()
+    model = LitMNIST(hparams)
+
+.. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
+    model using those hparams exactly.
+
+And we can also add all the flags available in the Trainer to the Argparser.
+
+.. code-block:: python
+
+    # add all the available Trainer options to the ArgParser
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+
+And now you can start your program with
+
+.. code-block:: bash
+
+    # now you can use any trainer flag
+    $ python main.py --num_nodes 2 --gpus 8
+
+
+For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
+
+---------
+
+Validating
+----------
 
 For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
@@ -472,11 +669,11 @@ metrics we care about, generate samples or add more to our logs.
             loss = loss(y_hat, x)               # validation_step
             outputs.append({'val_loss': loss})  # validation_step
 
-        full_loss = outputs.mean()              # validation_end
+        full_loss = outputs.mean()              # validation_epoch_end
 
 Since the `validation_step` processes a single batch,
-in Lightning we also have a `validation_end` method which allows you to compute
-statistics on the full dataset and not just the batch.
+in Lightning we also have a `validation_epoch_end` method which allows you to compute
+statistics on the full dataset after an epoch of validation data and not just the batch.
 
 In addition, we define a `val_dataloader` method which tells the trainer what data to use for validation.
 Notice we split the train split of MNIST into train, validation. We also have to make sure to do the
@@ -484,27 +681,29 @@ sample split in the `train_dataloader` method.
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
-      def validation_end(self, outputs):
+      def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
       def val_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+        transform=transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+        mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                            transform=transform)
         _, mnist_val = random_split(mnist_train, [55000, 5000])
         mnist_val = DataLoader(mnist_val, batch_size=64)
         return mnist_val
 
 Again, we've just organized the regular PyTorch code into two steps, the `validation_step` method which
-operates on a single batch and the `validation_end` method to compute statistics on all batches.
+operates on a single batch and the `validation_epoch_end` method to compute statistics on all batches.
 
 If you have these methods defined, Lightning will call them automatically. Now we can train
 while checking the validation set.
@@ -513,7 +712,7 @@ while checking the validation set.
 
     from pytorch_lightning import Trainer
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(num_tpu_cores=8)
     trainer.fit(model)
 
@@ -523,27 +722,29 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
-Testing loop
-------------
+---------
+
+Testing
+-------
 Once our research is done and we're about to publish or deploy a model, we normally want to figure out
 how it will generalize in the "real world." For this, we use a held-out split of the data for testing.
 
 Just like the validation loop, we define exactly the same steps for testing:
 
 - test_step
-- test_end
+- test_epoch_end
 - test_dataloader
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class LitMNIST(pl.LightningModule):
       def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y)
         return {'val_loss': loss}
 
-      def test_end(self, outputs):
+      def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
@@ -562,22 +763,37 @@ Once you train your model simply call `.test()`.
 
     from pytorch_lightning import Trainer
 
-    model = CoolMNIST()
+    model = LitMNIST()
     trainer = Trainer(num_tpu_cores=8)
     trainer.fit(model)
 
     # run test set
     trainer.test()
 
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+        --------------------------------------------------------------
+        TEST RESULTS
+        {'test_loss': tensor(1.1703, device='cuda:0')}
+        --------------------------------------------------------------
+
 You can also run the test from a saved lightning model
 
 .. code-block:: python
 
-    model = CoolMNIST.load_from_checkpoint(PATH)
+    model = LitMNIST.load_from_checkpoint(PATH)
     trainer = Trainer(num_tpu_cores=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
+
+.. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
+
+---------
 
 Predicting
 ----------
@@ -586,7 +802,7 @@ and use it for prediction.
 
 .. code-block:: python
 
-    model = CoolMNIST.load_from_checkpoint(PATH)
+    model = LitMNIST.load_from_checkpoint(PATH)
     x = torch.Tensor(1, 1, 28, 28)
     out = model(x)
 
@@ -596,7 +812,7 @@ within it.
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTClassifier(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -615,11 +831,17 @@ within it.
         loss = F.nll_loss(logits, y)
         return loss
 
+.. code-block:: python
+
+    model = MNISTClassifier()
+    x = mnist_image()
+    logits = model(x)
+
 In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
 
 .. code-block:: python
 
-    class CoolMNIST(pl.LightningModule):
+    class MNISTRepresentator(pl.LightningModule):
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -639,6 +861,136 @@ In this case, we've set this LightningModel to predict logits. But we could also
         loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
         return loss
 
+.. code-block:: python
+
+    model = MNISTRepresentator.load_from_checkpoint(PATH)
+    x = mnist_image()
+    feature_maps = model(x)
+
+Or maybe we have a model that we use to do generation
+
+.. code-block:: python
+
+    class LitMNISTDreamer(pl.LightningModule):
+
+      def forward(self, z):
+        imgs = self.decoder(z)
+        return imgs
+
+      def training_step(self, batch, batch_idx):
+        x, y = batch
+        representation = self.encoder(x)
+        imgs = self.forward(representation)
+
+        loss = perceptual_loss(imgs, x)
+        return loss
+
+.. code-block:: python
+
+    model = LitMNISTDreamer.load_from_checkpoint(PATH)
+    z = sample_noise()
+    generated_imgs = model(z)
+
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
+
+---------
+
+Extensibility
+-------------
+Although lightning makes everything super simple, it doesn't sacrifice any flexibility or control.
+Lightning offers multiple ways of managing the training state.
+
+Training overrides
+^^^^^^^^^^^^^^^^^^
+
+Any part of the training, validation and testing loop can be modified.
+For instance, if you wanted to do your own backward pass, you would override the
+default implementation
+
+.. code-block:: python
+
+    def backward(self, use_amp, loss, optimizer):
+        if use_amp:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+With your own
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+        def backward(self, use_amp, loss, optimizer):
+            # do a custom way of backward
+            loss.backward(retain_graph=True)
+
+Or if you wanted to initialize ddp in a different way than the default one
+
+.. code-block:: python
+
+    def configure_ddp(self, model, device_ids):
+        # Lightning DDP simply routes to test_step, val_step, etc...
+        model = LightningDistributedDataParallel(
+            model,
+            device_ids=device_ids,
+            find_unused_parameters=True
+        )
+        return model
+
+you could do your own:
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+        def configure_ddp(self, model, device_ids):
+
+            model = Horovod(model)
+            # model = Ray(model)
+            return model
+
+Every single part of training is configurable this way.
+For a full list look at `lightningModule <lightning-module.rst>`_.
+
+---------
+
+Callbacks
+---------
+Another way to add arbitrary functionality is to add a custom callback
+for hooks that you might care about
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    class MyPrintingCallback(pl.Callback):
+
+        def on_init_start(self, trainer):
+            print('Starting to init trainer!')
+
+        def on_init_end(self, trainer):
+            print('trainer is init now')
+
+        def on_train_end(self, trainer, pl_module):
+            print('do something when training ends')
+
+And pass the callbacks into the trainer
+
+.. code-block:: python
+
+    Trainer(callbacks=[MyPrintingCallback()])
+
+.. note::
+    See full list of 12+ hooks in the :ref:`callbacks`.
+
+---------
+
+.. include:: child_modules.rst
+
+---------
+
+.. include:: transfer_learning.rst
 

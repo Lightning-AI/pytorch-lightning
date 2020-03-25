@@ -114,7 +114,7 @@ However, when using a cluster, Lightning will NOT set these flags (and you shoul
 
 16 bit precision can cut your memory footprint by half. If using volta architecture GPUs
  it can give a dramatic training speed-up as well.
- First, install apex (if install fails, look `here <https://github.com/NVIDIA/apex>`_::
+ First, install apex (if install fails, look `here <https://github.com/NVIDIA/apex>`__)::
 
     $ git clone https://github.com/NVIDIA/apex
     $ cd apex
@@ -276,7 +276,7 @@ in a `HyperOptArgumentParser
 
 Here is an example where you run a grid search of 9 combinations of hyperparams.
 The full examples are
-`here <https://git.io/Jv87p>`_.
+`here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/multi_node_examples>`__.
 
 .. code-block:: python
 
@@ -334,12 +334,12 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
-from abc import ABC, abstractmethod
-import logging as log
 import os
+from abc import ABC, abstractmethod
 
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -489,12 +489,16 @@ class TrainerDPMixin(ABC):
 
         # init 16 bit for TPU
         if self.precision == 16:
-            os.environ['XLA_USE_BF16'] = 1
+            os.environ['XLA_USE_BF16'] = str(1)
 
         m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
             f'global rank: {self.tpu_global_core_rank}'
         log.info(m)
+
+        # continue training routine
         self.run_pretrain_routine(model)
+
+        self.save_spawn_weights(model)
 
     def dp_train(self, model):
 

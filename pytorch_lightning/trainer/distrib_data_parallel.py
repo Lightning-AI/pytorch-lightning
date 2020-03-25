@@ -113,7 +113,6 @@ When the script starts again, Lightning will:
 
 """
 
-import logging as log
 import os
 import re
 import warnings
@@ -121,8 +120,8 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 import torch
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -145,6 +144,7 @@ class TrainerDDPMixin(ABC):
     use_amp: bool
     amp_level: str
     use_tpu: bool
+    default_save_path: str
 
     @property
     @abstractmethod
@@ -208,7 +208,7 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp2 = False
 
         # throw error to force user ddp or ddp2 choice
-        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):  # pragma: no cover
+        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
             w = 'DataParallel does not support num_nodes > 1. ' \
                 'Switching to DistributedDataParallel for you. ' \
                 'To silence this warning set distributed_backend=ddp' \
@@ -339,6 +339,38 @@ class TrainerDDPMixin(ABC):
 
         # continue training routine
         self.run_pretrain_routine(model)
+
+        # when ddp ends, we save the model
+        self.save_spawn_weights(model)
+
+    def save_spawn_weights(self, model):
+        """
+        Dump a temporary checkpoint after ddp ends to get weights out of the process
+        :param model:
+        :return:
+        """
+        if self.proc_rank == 0:
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            self.save_checkpoint(path)
+
+    def load_spawn_weights(self, original_model):
+        """
+        Load the temp weights saved in the process
+        To recover the trained model from the ddp process we load the saved weights
+        :param model:
+        :return:
+        """
+        # load weights saved in ddp
+        path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+        loaded_model = original_model.__class__.load_from_checkpoint(path)
+
+        # copy loaded weights to old model
+        original_model.load_state_dict(loaded_model.state_dict())
+
+        # remove ddp weights
+        os.remove(path)
+
+        return loaded_model
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:

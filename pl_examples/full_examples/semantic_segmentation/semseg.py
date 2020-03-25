@@ -1,18 +1,15 @@
 import os
 from argparse import ArgumentParser
-from collections import OrderedDict
-from PIL import Image
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
 import torchvision.transforms as transforms
+from PIL import Image
+from models.unet.model import UNet
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
-from models.unet.model import UNet
 
 
 class KITTI(Dataset):
@@ -37,6 +34,7 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
     '''
+
     def __init__(
         self,
         root_path,
@@ -123,6 +121,7 @@ class SegModel(pl.LightningModule):
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     '''
+
     def __init__(self, hparams):
         super(SegModel, self).__init__()
         self.root_path = hparams.root

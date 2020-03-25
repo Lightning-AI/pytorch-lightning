@@ -1,16 +1,64 @@
 """
-A LightningModule is a strict superclass of torch.nn.Module but provides an interface to standardize
-the "ingredients" for a research or production system.
+A LightningModule organizes your PyTorch code into the following sections:
 
-- The model/system definition (__init__)
-- The model/system computations (forward)
-- What happens in the training loop (training_step, training_end)
-- What happens in the validation loop (validation_step, validation_end)
-- What happens in the test loop (test_step, test_end)
-- What optimizers to use (configure_optimizers)
-- What data to use (train_dataloader, val_dataloader, test_dataloader)
+.. figure:: /_images/lightning_module/pt_to_pl.png
+   :alt: Convert from PyTorch to Lightning
 
-Most methods are optional. Here's a minimal example.
+
+Notice a few things.
+
+    1. It's the SAME code.
+    2. The PyTorch code IS NOT abstracted - just organized.
+    3. All the other code that not in the LightningModule has been automated for you by the trainer
+         .. code-block:: python
+
+            net = Net()
+            trainer = Trainer()
+            trainer.fit(net)
+
+    4. There are no .cuda() or .to() calls... Lightning does these for you.
+        .. code-block:: python
+
+            # don't do in lightning
+            x = torch.Tensor(2, 3)
+            x = x.cuda()
+            x = x.to(device)
+
+            # do this instead
+            x = x  # leave it alone!
+
+            # or to init a new tensor
+            new_x = torch.Tensor(2, 3)
+            new_x = new_x.type_as(x.type())
+
+    5. There are no samplers for distributed, Lightning also does this for you.
+        .. code-block:: python
+
+            # Don't do in Lightning...
+            data = MNIST(...)
+            sampler = DistributedSampler(data)
+            DataLoader(data, sampler=sampler)
+
+            # do this instead
+            data = MNIST(...)
+            DataLoader(data)
+
+    6. A LightingModule is a torch.nn.Module but with added functionality. Use it as such!
+        .. code-block:: python
+
+            net = Net.load_from_checkpoint(PATH)
+            net.freeze()
+            out = net(x)
+
+Thus, to use Lightning, you just need to organize your code which takes about 30 minutes,
+(and let's be real, you probably should do anyhow).
+
+------------
+
+Minimal Example
+---------------
+
+Here are the only required methods.
 
 .. code-block:: python
 
@@ -23,10 +71,10 @@ Most methods are optional. Here's a minimal example.
 
     import pytorch_lightning as pl
 
-    class CoolModel(pl.LightningModule):
+    class LitModel(pl.LightningModule):
 
         def __init__(self):
-            super(CoolModel, self).__init__()
+            super(LitModel, self).__init__()
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):
@@ -37,68 +85,258 @@ Most methods are optional. Here's a minimal example.
             y_hat = self.forward(x)
             return {'loss': F.cross_entropy(y_hat, y)}
 
-        def validation_step(self, batch, batch_idx):
-            # OPTIONAL
-            x, y = batch
-            y_hat = self.forward(x)
-            return {'val_loss': F.cross_entropy(y_hat, y)}
-
-        def validation_end(self, outputs):
-            # OPTIONAL
-            val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
-            return {'val_loss': val_loss_mean}
-
-        def test_step(self, batch, batch_idx):
-            # OPTIONAL
-            x, y = batch
-            y_hat = self.forward(x)
-            return {'test_loss': F.cross_entropy(y_hat, y)}
-
-        def test_end(self, outputs):
-            # OPTIONAL
-            test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
-            return {'test_loss': test_loss_mean}
-
-        def configure_optimizers(self):
-            # REQUIRED
-            return torch.optim.Adam(self.parameters(), lr=0.02)
-
-        @pl.data_loader
         def train_dataloader(self):
             return DataLoader(MNIST(os.getcwd(), train=True, download=True,
                               transform=transforms.ToTensor()), batch_size=32)
 
-        @pl.data_loader
-        def val_dataloader(self):
-            # OPTIONAL
-            # can also return a list of val dataloaders
-            return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
 
-        @pl.data_loader
-        def test_dataloader(self):
-            # OPTIONAL
-            # can also return a list of test dataloaders
-            return DataLoader(MNIST(os.getcwd(), train=False, download=True,
-                              transform=transforms.ToTensor()), batch_size=32)
-
-Once you've defined the LightningModule, fit  it using a trainer.
+Which you can train by doing:
 
 .. code-block:: python
 
    trainer = pl.Trainer()
-   model = CoolModel()
+   model = LitModel()
 
    trainer.fit(model)
 
+----------
+
+Training loop structure
+-----------------------
+
+The general pattern is that each loop (training, validation, test loop)
+has 3 methods:
+
+- ``` ___step ```
+- ``` ___step_end ```
+- ``` ___epoch_end```
+
+To show how lightning calls these, let's use the validation loop as an example
+
+.. code-block:: python
+
+    val_outs = []
+    for val_batch in val_data:
+        # do something with each batch
+        out = validation_step(val_batch)
+        val_outs.append(out)
+
+    # do something with the outputs for all batches
+    # like calculate validation set accuracy or loss
+    validation_epoch_end(val_outs)
+
+if we use dp or ddp2 mode, we can also define the ```XXX_step_end``` method to operate
+on all parts of the batch
+
+.. code-block:: python
+
+    val_outs = []
+    for val_batch in val_data:
+        batches = split_batch(val_batch)
+        dp_outs = []
+        for sub_batch in batches:
+            dp_out = validation_step(sub_batch)
+            dp_outs.append(dp_out)
+
+        out = validation_step_end(dp_outs)
+        val_outs.append(out)
+
+    # do something with the outputs for all batches
+    # like calculate validation set accuracy or loss
+    validation_epoch_end(val_outs)
+
+.. note:: ```training_step_end``` is not available yet but coming in the next release.
+
+Add validation loop
+^^^^^^^^^^^^^^^^^^^
+
+Thus, if we wanted to add a validation loop you would add this to your LightningModule
+
+.. code-block:: python
+
+        class LitModel(pl.LightningModule):
+            def validation_step(self, batch, batch_idx):
+                x, y = batch
+                y_hat = self.forward(x)
+                return {'val_loss': F.cross_entropy(y_hat, y)}
+
+            def validation_epoch_end(self, outputs):
+                val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
+                return {'val_loss': val_loss_mean}
+
+            def val_dataloader(self):
+                # can also return a list of val dataloaders
+                return DataLoader(...)
+
+Add test loop
+^^^^^^^^^^^^^
+
+.. code-block:: python
+
+        class LitModel(pl.LightningModule):
+            def test_step(self, batch, batch_idx):
+                x, y = batch
+                y_hat = self.forward(x)
+                return {'test_loss': F.cross_entropy(y_hat, y)}
+
+            def test_epoch_end(self, outputs):
+                test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
+                return {'test_loss': test_loss_mean}
+
+            def test_dataloader(self):
+                # can also return a list of test dataloaders
+                return DataLoader(...)
+
+However, the test loop won't ever be called automatically to make sure you
+don't run your test data by accident. Instead you have to explicitly call:
+
+.. code-block:: python
+
+    # call after training
+    trainer = Trainer()
+    trainer.fit(model)
+    trainer.test()
+
+    # or call with pretrained model
+    model = MyLightningModule.load_from_checkpoint(PATH)
+    trainer = Trainer()
+    trainer.test(model)
+
+----------
+
+Training_step_end method
+------------------------
+When using dataParallel or distributedDataParallel2, the training_step
+will be operating on a portion of the batch. This is normally ok but in special
+cases like calculating NCE loss using negative samples, we might want to
+perform a softmax across all samples in the batch.
+
+For these types of situations, each loop has an additional ```__step_end``` method
+which allows you to operate on the pieces of the batch
+
+.. code-block:: python
+
+        training_outs = []
+        for train_batch in train_data:
+            # dp, ddp2 splits the batch
+            sub_batches = split_batches_for_dp(batch)
+
+            # run training_step on each piece of the batch
+            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
+
+            # do softmax with all pieces
+            out = training_step_end(batch_parts_outputs)
+            training_outs.append(out)
+
+        # do something with the outputs for all batches
+        # like calculate validation set accuracy or loss
+        training_epoch_end(val_outs)
+
+----------
+
+Remove cuda calls
+-----------------
+In a LightningModule, all calls to ```.cuda()```
+and ```.to(device)``` should be removed. Lightning will do these
+automatically. This will allow your code to work on CPUs, TPUs and GPUs.
+
+When you init a new tensor in your code, just use type_as
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+
+        # put the z on the appropriate gpu or tpu core
+        z = sample_noise()
+        z = z.type_as(x)
+
+----------
+
+Data preparation
+----------------
+Data preparation in PyTorch follows 5 steps:
+
+    1. Download
+    2. Clean and (maybe) save to disk
+    3. Load inside dataset
+    4. Apply transforms (rotate, tokenize, etc...)
+    5. Wrap inside a dataloader
+
+When working in distributed settings, steps 1 and 2 have to be done
+from a single GPU, otherwise you will overwrite these files from
+every GPU. The lightningModule has the ```prepare_data``` method to
+allow for this
+
+.. code-block:: python
+
+    def prepare_data(self):
+        # download
+        mnist_train = MNIST(os.getcwd(), train=True, download=True,
+                            transform=transforms.ToTensor())
+        mnist_test = MNIST(os.getcwd(), train=False, download=True,
+                            transform=transforms.ToTensor())
+
+        # train/val split
+        mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
+
+        # assign to use in dataloaders
+        self.train_dataset = mnist_train
+        self.val_dataset = mnist_val
+        self.test_dataset = mnist_test
+
+      def train_dataloader(self):
+        return DataLoader(self.train_dataset, batch_size=64)
+
+      def val_dataloader(self):
+        return DataLoader(self.mnist_val, batch_size=64)
+
+      def test_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=64)
+
+.. note:: ``prepare_data`` is called once.
+
+.. note:: Do anything with data that needs to happen ONLY once here, like download, tokenize, etc...
+
+Lifecycle
+---------
+The methods in the LightningModule are called in this order:
+
+    1. ```__init__```
+    2. ```prepare_data```
+    3. ```configure_optimizers```
+    4. ```train_dataloader```
+
+    If you define a validation loop then
+
+    5. ```val_dataloader```
+
+    And if you define a test loop:
+
+    6. ```test_dataloader```
+
+.. note:: ``test_dataloader`` is only called with ``.test()``
+
+In every epoch, the loop methods are called in this frequency:
+
+1. ```validation_step``` called every batch
+2. ```validation_epoch_end``` called every epoch
+
+Live demo
+---------
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
 
+LightningModule Class
+---------------------
+
 """
 
-from .decorators import data_loader
-from .lightning import LightningModule
+from pytorch_lightning.core.decorators import data_loader
+from pytorch_lightning.core.lightning import LightningModule
 
 __all__ = ['LightningModule', 'data_loader']
 # __call__ = __all__

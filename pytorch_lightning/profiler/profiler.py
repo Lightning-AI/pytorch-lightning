@@ -1,12 +1,14 @@
-from contextlib import contextmanager
-from collections import defaultdict
-import time
-import numpy as np
 import cProfile
-import pstats
 import io
+import pstats
+import time
 from abc import ABC, abstractmethod
-import logging as log
+from collections import defaultdict
+from contextlib import contextmanager
+
+import numpy as np
+
+from pytorch_lightning import _logger as log
 
 
 class BaseProfiler(ABC):
@@ -16,17 +18,11 @@ class BaseProfiler(ABC):
 
     @abstractmethod
     def start(self, action_name):
-        """
-        Defines how to start recording an action.
-        """
-        pass
+        """Defines how to start recording an action."""
 
     @abstractmethod
     def stop(self, action_name):
-        """
-        Defines how to record the duration once an action is complete.
-        """
-        pass
+        """Defines how to record the duration once an action is complete."""
 
     @contextmanager
     def profile(self, action_name):
@@ -60,9 +56,7 @@ class BaseProfiler(ABC):
                 break
 
     def describe(self):
-        """
-        Logs a profile report after the conclusion of the training run.
-        """
+        """Logs a profile report after the conclusion of the training run."""
         pass
 
 
@@ -152,7 +146,7 @@ class AdvancedProfiler(BaseProfiler):
     def stop(self, action_name):
         pr = self.profiled_actions.get(action_name)
         if pr is None:
-            raise ValueError(
+            raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         pr.disable()

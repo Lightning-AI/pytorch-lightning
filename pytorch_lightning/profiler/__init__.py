@@ -16,7 +16,7 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_after_backward
 - optimizer_step
 - on_batch_end
-- training_end
+- training_step_end
 - on_training_end
 
 Enable simple profiling
@@ -113,7 +113,7 @@ to track and the profiler will record performance for code executed within this 
 
 """
 
-from .profiler import Profiler, AdvancedProfiler, PassThroughProfiler
+from pytorch_lightning.profiler.profiler import Profiler, AdvancedProfiler, PassThroughProfiler
 
 __all__ = [
     'Profiler',

@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.datasets import MNIST
+from typing import Dict
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -16,8 +16,14 @@ except ImportError:
     # TODO: this should be discussed and moved out of this package
     raise ImportError('Missing test-tube package.')
 
-from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
+
+# TODO: remove after getting own MNIST
+# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
+import urllib.request
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
 
 
 class TestingMNIST(MNIST):
@@ -34,6 +40,29 @@ class TestingMNIST(MNIST):
         # take just a subset of MNIST dataset
         self.data = self.data[:num_samples]
         self.targets = self.targets[:num_samples]
+
+
+class DictHparamsModel(LightningModule):
+
+    def __init__(self, hparams: Dict):
+        super(DictHparamsModel, self).__init__()
+        self.hparams = hparams
+        self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.forward(x)
+        return {'loss': F.cross_entropy(y_hat, y)}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    def train_dataloader(self):
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
+                                       transform=transforms.ToTensor()), batch_size=32)
 
 
 class TestModelBase(LightningModule):
@@ -101,7 +130,7 @@ class TestModelBase(LightningModule):
         nll = F.nll_loss(logits, labels)
         return nll
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx=None):
         """
         Lightning calls this inside the training loop
         :param batch:
@@ -174,7 +203,7 @@ class TestModelBase(LightningModule):
         return loader
 
     @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
+    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
         Parameters you define here will be available to your model through self.hparams
         :param parent_parser:
@@ -196,8 +225,7 @@ class TestModelBase(LightningModule):
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
         # training params (opt)
         parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005],
-                        tunable=False)
+                        options=[0.0001, 0.0005, 0.001, 0.005], tunable=False)
         parser.opt_list('--optimizer_name', default='adam', type=str,
                         options=['adam'], tunable=False)
         # if using 2 nodes with 4 gpus each the batch size here

@@ -5,20 +5,20 @@ r"""
 WandbLogger
 -------------
 """
-import argparse
 import os
-from typing import Optional, List, Dict
+from argparse import Namespace
+from typing import Optional, List, Dict, Union, Any
 
 import torch.nn as nn
 
 try:
     import wandb
     from wandb.wandb_run import Run
-except ImportError:
-    raise ImportError('You want to use `wandb` logger which is not installed yet,'
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install wandb`.')
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class WandbLogger(LightningLoggerBase):
@@ -91,18 +91,24 @@ class WandbLogger(LightningLoggerBase):
         wandb.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        params = self._convert_params(params)
         self.experiment.config.update(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         if step is not None:
             metrics['global_step'] = step
         self.experiment.log(metrics)
 
     @rank_zero_only
-    def finalize(self, status: str = 'success'):
-        return 0
+    def finalize(self, status: str = 'success') -> None:
+        try:
+            exit_code = 0 if status == 'success' else 1
+            wandb.join(exit_code)
+        except TypeError:
+            wandb.join()
+    return exit_code
 
     @property
     def name(self) -> str:

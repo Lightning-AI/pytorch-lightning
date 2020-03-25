@@ -1,13 +1,15 @@
 Hooks
------
+=====
 
 .. automodule:: pytorch_lightning.core.hooks
+    :noindex:
 
-Full list of hooks
-
+Hooks lifecycle
+---------------
 
 Training set-up
-================
+^^^^^^^^^^^^^^^
+
 - init_ddp_connection
 - init_optimizers
 - configure_apex
@@ -19,13 +21,13 @@ Training set-up
 - restore_weights
 
 Training loop
-=============
+^^^^^^^^^^^^^
 
 - on_epoch_start
 - on_batch_start
 - tbptt_split_batch
 - training_step
-- training_end (optional)
+- training_step_end (optional)
 - backward
 - on_after_backward
 - optimizer.step()
@@ -33,7 +35,7 @@ Training loop
 - on_epoch_end
 
 Validation loop
-===============
+^^^^^^^^^^^^^^^
 
 - model.zero_grad()
 - model.eval()
@@ -45,7 +47,7 @@ Validation loop
 - on_post_performance_check
 
 Test loop
-=========
+^^^^^^^^^
 
 - model.zero_grad()
 - model.eval()

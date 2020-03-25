@@ -1,9 +1,11 @@
+import math
 import warnings
 
+import pytest
 import torch
 
 import tests.models.utils as tutils
-from pytorch_lightning import Trainer, data_loader
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
@@ -26,7 +28,6 @@ def test_early_stopping_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        print_nan_grads=True,
         show_progress_bar=True,
         logger=tutils.get_test_tube_logger(tmpdir),
         train_percent_check=0.1,
@@ -48,7 +49,6 @@ def test_lbfgs_cpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=2,
-        print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
         train_percent_check=1.0,
@@ -68,7 +68,6 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
-        print_nan_grads=True,
         show_progress_bar=False,
         train_percent_check=0.01,
         val_percent_check=0.01,
@@ -251,7 +250,6 @@ def test_all_features_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        print_nan_grads=True,
         show_progress_bar=False,
         logger=tutils.get_test_tube_logger(tmpdir),
         accumulate_grad_batches=2,
@@ -357,6 +355,64 @@ def test_single_gpu_model(tmpdir):
     )
 
     tutils.run_model_test(trainer_options, model)
+
+
+def test_nan_loss_detection(tmpdir):
+    test_step = 8
+
+    class InfLossModel(LightTrainDataloader, TestModelBase):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            if batch_idx == test_step:
+                if isinstance(output, dict):
+                    output['loss'] *= torch.tensor(math.inf)  # make loss infinite
+                else:
+                    output /= 0
+            return output
+
+    hparams = tutils.get_hparams()
+    model = InfLossModel(hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=(test_step + 1),
+    )
+
+    with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
+        trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    for param in model.parameters():
+        assert torch.isfinite(param).all()
+
+
+def test_nan_params_detection(tmpdir):
+    test_step = 8
+
+    class NanParamModel(LightTrainDataloader, TestModelBase):
+
+        def on_after_backward(self):
+            if self.global_step == test_step:
+                # simulate parameter that became nan
+                torch.nn.init.constant_(self.c_d1.bias, math.nan)
+
+    hparams = tutils.get_hparams()
+
+    model = NanParamModel(hparams)
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=(test_step + 1),
+    )
+
+    with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
+        trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    # after aborting the training loop, model still has nan-valued params
+    params = torch.cat([param.view(-1) for param in model.parameters()])
+    assert not torch.isfinite(params).all()
 
 
 # if __name__ == '__main__':

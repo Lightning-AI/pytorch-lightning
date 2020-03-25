@@ -1,23 +1,26 @@
-'''
+"""
 Generates a summary of a model's layers and dimensionality
-'''
+"""
 
 import gc
-import logging as log
 import os
 import subprocess
 from subprocess import PIPE
+from typing import Tuple, Dict, Union, List
 
 import numpy as np
 import torch
+from torch.nn import Module
+
+import pytorch_lightning as pl
+
+from pytorch_lightning import _logger as log
 
 
 class ModelSummary(object):
 
-    def __init__(self, model, mode='full'):
-        '''
-        Generates summaries of model layers and dimensions.
-        '''
+    def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
+        """ Generates summaries of model layers and dimensions. """
         self.model = model
         self.mode = mode
         self.in_sizes = []
@@ -31,7 +34,7 @@ class ModelSummary(object):
     def __repr__(self):
         return self.summary.__str__()
 
-    def named_modules(self):
+    def named_modules(self) -> List[Tuple[str, Module]]:
         if self.mode == 'full':
             mods = self.model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
@@ -42,8 +45,8 @@ class ModelSummary(object):
             mods = []
         return list(mods)
 
-    def get_variable_sizes(self):
-        '''Run sample input through each layer to get output sizes'''
+    def get_variable_sizes(self) -> None:
+        """ Run sample input through each layer to get output sizes """
         mods = self.named_modules()
         in_sizes = []
         out_sizes = []
@@ -69,12 +72,12 @@ class ModelSummary(object):
         with torch.no_grad():
 
             for _, m in mods:
-                if isinstance(input_, (list, tuple)):  # pragma: no cover
+                if isinstance(input_, (list, tuple)):  # pragma: no-cover
                     out = m(*input_)
                 else:
                     out = m(input_)
 
-                if isinstance(input_, (list, tuple)):  # pragma: no cover
+                if isinstance(input_, (list, tuple)):  # pragma: no-cover
                     in_size = []
                     for x in input_:
                         if isinstance(x, list):
@@ -86,7 +89,7 @@ class ModelSummary(object):
 
                 in_sizes.append(in_size)
 
-                if isinstance(out, (list, tuple)):  # pragma: no cover
+                if isinstance(out, (list, tuple)):  # pragma: no-cover
                     out_size = np.asarray([x.size() for x in out])
                 else:
                     out_size = np.array(out.size())
@@ -98,8 +101,8 @@ class ModelSummary(object):
         self.out_sizes = out_sizes
         assert len(in_sizes) == len(out_sizes)
 
-    def get_layer_names(self):
-        '''Collect Layer Names'''
+    def get_layer_names(self) -> None:
+        """ Collect Layer Names """
         mods = self.named_modules()
         names = []
         layers = []
@@ -112,8 +115,8 @@ class ModelSummary(object):
         self.layer_names = names
         self.layer_types = layer_types
 
-    def get_parameter_sizes(self):
-        '''Get sizes of all parameters in `model`'''
+    def get_parameter_sizes(self) -> None:
+        """ Get sizes of all parameters in `model` """
         mods = self.named_modules()
         sizes = []
         for _, m in mods:
@@ -123,8 +126,8 @@ class ModelSummary(object):
 
         self.param_sizes = sizes
 
-    def get_parameter_nums(self):
-        '''Get number of parameters in each layer'''
+    def get_parameter_nums(self) -> None:
+        """ Get number of parameters in each layer """
         param_nums = []
         for mod in self.param_sizes:
             all_params = 0
@@ -133,12 +136,12 @@ class ModelSummary(object):
             param_nums.append(all_params)
         self.param_nums = param_nums
 
-    def make_summary(self):
-        '''
+    def make_summary(self) -> None:
+        """
         Makes a summary listing with:
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
-        '''
+        """
         arrays = [['Name', self.layer_names],
                   ['Type', self.layer_types],
                   ['Params', list(map(get_human_readable_count, self.param_nums))]]
@@ -147,9 +150,8 @@ class ModelSummary(object):
             arrays.append(['Out sizes', self.out_sizes])
 
         self.summary = _format_summary_table(*arrays)
-        return
 
-    def summarize(self):
+    def summarize(self) -> None:
         self.get_layer_names()
         self.get_parameter_sizes()
         self.get_parameter_nums()
@@ -159,12 +161,12 @@ class ModelSummary(object):
         self.make_summary()
 
 
-def _format_summary_table(*cols):
-    '''
+def _format_summary_table(*cols) -> str:
+    """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
     string defining the summary table that are nicely formatted.
-    '''
+    """
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
@@ -204,7 +206,7 @@ def _format_summary_table(*cols):
     return summary
 
 
-def print_mem_stack():  # pragma: no cover
+def print_mem_stack() -> None:  # pragma: no-cover
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -213,7 +215,7 @@ def print_mem_stack():  # pragma: no cover
             pass
 
 
-def count_mem_items():  # pragma: no cover
+def count_mem_items() -> Tuple[int, int]:  # pragma: no-cover
     num_params = 0
     num_tensors = 0
     for obj in gc.get_objects():
@@ -230,11 +232,12 @@ def count_mem_items():  # pragma: no cover
     return num_params, num_tensors
 
 
-def get_memory_profile(mode):
-    """
-    'all' means return memory for all gpus
-    'min_max' means return memory for max and min
-    :param mode:
+def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
+    """ Get a profile of the current memory usage.
+
+    :param mode: There are two modes:
+        - 'all' means return memory for all gpus
+        - 'min_max' means return memory for max and min
     :return:
     """
     memory_map = get_gpu_memory_map()
@@ -248,14 +251,12 @@ def get_memory_profile(mode):
     return memory_map
 
 
-def get_gpu_memory_map():
+def get_gpu_memory_map() -> Dict[str, int]:
     """Get the current gpu usage.
 
-    Returns
-    -------
-    usage: dict
-        Keys are device ids as integers.
-        Values are memory usage as integers in MB.
+    Return:
+        A dictionary in which the keys are device ids as integers and
+        values are memory usage as integers in MB.
     """
     result = subprocess.run(
         [
@@ -273,7 +274,7 @@ def get_gpu_memory_map():
     return gpu_memory_map
 
 
-def get_human_readable_count(number):
+def get_human_readable_count(number: int) -> str:
     """
     Abbreviates an integer number with K, M, B, T for thousands, millions,
     billions and trillions, respectively.

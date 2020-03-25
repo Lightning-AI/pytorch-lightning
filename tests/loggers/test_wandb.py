@@ -1,8 +1,8 @@
 import os
 import pickle
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 
 import tests.models.utils as tutils
 from pytorch_lightning import Trainer
@@ -24,8 +24,8 @@ def test_wandb_logger(wandb):
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_once_with({'global_step': 3, 'acc': 1.0})
 
-    logger.log_hyperparams('test')
-    wandb.init().config.update.assert_called_once_with('test')
+    logger.log_hyperparams({'test': None})
+    wandb.init().config.update.assert_called_once_with({'test': None})
 
     logger.watch('model', 'log', 10)
     wandb.watch.assert_called_once_with('model', log='log', log_freq=10)
