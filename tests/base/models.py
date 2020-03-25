@@ -18,13 +18,6 @@ except ImportError:
 
 from pytorch_lightning.core.lightning import LightningModule
 
-# TODO: remove after getting own MNIST
-# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
-import urllib.request
-opener = urllib.request.build_opener()
-opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-urllib.request.install_opener(opener)
-
 
 class TestingMNIST(MNIST):
 
