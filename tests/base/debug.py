@@ -1,14 +1,15 @@
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
+from tests.base.datasets import MNIST
 
 
 # from test_models import assert_ok_test_acc, load_model, \
 #     clear_save_dir, get_default_testtube_logger, get_default_hparams, init_save_dir, \
 #     init_checkpoint_callback, reset_seed, set_random_master_port
+
 
 
 class CoolModel(pl.LightningModule):
