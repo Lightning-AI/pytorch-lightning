@@ -103,12 +103,7 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str = 'success') -> None:
-        try:
-            exit_code = 0 if status == 'success' else 1
-            wandb.join(exit_code)
-        except TypeError:
-            wandb.join()
-        return exit_code
+        return 0
 
     @property
     def name(self) -> str:
