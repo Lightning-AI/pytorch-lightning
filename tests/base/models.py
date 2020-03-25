@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torchvision import transforms
-from torchvision.datasets import MNIST
+
+from tests.base.datasets import MNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -28,13 +28,12 @@ urllib.request.install_opener(opener)
 
 class TestingMNIST(MNIST):
 
-    def __init__(self, root, train=True, transform=None, target_transform=None,
+    def __init__(self, root, train=True, normalize=(0.5, 1.0),
                  download=False, num_samples=8000):
         super().__init__(
             root,
             train=train,
-            transform=transform,
-            target_transform=target_transform,
+            normalize=normalize,
             download=download
         )
         # take just a subset of MNIST dataset
@@ -61,8 +60,7 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
-                                       transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True), batch_size=32)
 
 
 class TestModelBase(LightningModule):
@@ -178,17 +176,13 @@ class TestModelBase(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         _ = TestingMNIST(root=self.hparams.data_root, train=True,
-                         transform=transform, download=True, num_samples=2000)
+                         download=True, num_samples=2000)
 
     def _dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=False, num_samples=2000)
+                               download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size
