@@ -8,7 +8,7 @@ import torch
 from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from .base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -17,24 +17,28 @@ class TensorBoardLogger(LightningLoggerBase):
     Log to local file system in TensorBoard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
-    ``os.path.join(save_dir, name, version)``
+    `os.path.join(save_dir, name, version)`
 
-    Example:
-        .. code-block:: python
+    .. _tf-logger:
 
-            logger = TensorBoardLogger("tb_logs", name="my_model")
-            trainer = Trainer(logger=logger)
-            trainer.train(model)
+    Example
+    ------------------
+
+    .. code-block:: python
+
+        logger = TensorBoardLogger("tb_logs", name="my_model")
+        trainer = Trainer(logger=logger)
+        trainer.train(model)
 
     Args:
-        save_dir: Save directory
-        name: Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
+        save_dir (str): Save directory
+        name (str): Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
             subdirectory is used.
-        version: Experiment version. If version is not specified the logger inspects the save
+        version (int|str): Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise version_${version} is used.
-        \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
+        \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
     NAME_CSV_TAGS = 'meta_tags.csv'
@@ -97,8 +101,6 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
-        params = self._flatten_dict(params)
-        sanitized_params = self._sanitize_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
@@ -108,14 +110,13 @@ class TensorBoardLogger(LightningLoggerBase):
             )
         else:
             from torch.utils.tensorboard.summary import hparams
-            exp, ssi, sei = hparams(sanitized_params, {})
+            exp, ssi, sei = hparams(params, {})
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
-
         # some alternative should be added
-        self.tags.update(sanitized_params)
+        self.tags.update(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
