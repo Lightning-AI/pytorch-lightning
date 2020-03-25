@@ -19,7 +19,24 @@ from pytorch_lightning.core import LightningModule
 
 class LightningTemplateModel(LightningModule):
     """
-    Sample model to show how to define a template
+    Sample model to show how to define a template.
+
+    Example:
+
+        >>> # define simple Net for MNIST dataset
+        >>> params = dict(
+        ...     drop_prob=0.2,
+        ...     batch_size=2,
+        ...     in_features=28 * 28,
+        ...     learning_rate=0.001 * 8,
+        ...     optimizer_name='adam',
+        ...     data_root='./datasets',
+        ...     out_features=10,
+        ...     hidden_dim=1000,
+        ... )
+        >>> from argparse import Namespace
+        >>> hparams = Namespace(**params)
+        >>> model = LightningTemplateModel(hparams)
     """
 
     def __init__(self, hparams):

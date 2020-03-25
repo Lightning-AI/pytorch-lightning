@@ -9,10 +9,11 @@ class UNet(nn.Module):
     Link - https://arxiv.org/abs/1505.04597
 
     Parameters:
-    num_classes (int) - Number of output classes required (default 19 for KITTI dataset)
-    bilinear (bool) - Whether to use bilinear interpolation or transposed
-    convolutions for upsampling.
+        num_classes (int) - Number of output classes required (default 19 for KITTI dataset)
+        bilinear (bool) - Whether to use bilinear interpolation or transposed
+        convolutions for upsampling.
     '''
+
     def __init__(self, num_classes=19, bilinear=False):
         super().__init__()
         self.layer1 = DoubleConv(3, 64)
