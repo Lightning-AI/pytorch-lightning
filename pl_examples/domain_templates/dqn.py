@@ -1,17 +1,18 @@
 from typing import Tuple, OrderedDict, List
 
-import pytorch_lightning as pl
 import argparse
-import gym
-import numpy as np
 import collections
 
+import gym
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
+
+import pytorch_lightning as pl
 
 
 class DQN(nn.Module):
