@@ -15,11 +15,12 @@ class MNIST(Dataset):
     https://github.com/pytorch/vision/blob/build/v0.5.0/torchvision/datasets/mnist.py
 
     Args:
-        root (string): Root directory of dataset where ``MNIST/processed/training.pt``
+        root: Root directory of dataset where ``MNIST/processed/training.pt``
             and  ``MNIST/processed/test.pt`` exist.
-        train (bool, optional): If True, creates dataset from ``training.pt``,
+        train: If ``True``, creates dataset from ``training.pt``,
             otherwise from ``test.pt``.
-        download (bool, optional): If true, downloads the dataset from the internet and
+        normalize: mean and std deviation of the MNIST dataset.
+        download: If true, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
     """
