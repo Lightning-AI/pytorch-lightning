@@ -11,7 +11,6 @@ from tests.base.datasets import MNIST
 #     init_checkpoint_callback, reset_seed, set_random_master_port
 
 
-
 class CoolModel(pl.LightningModule):
 
     def __init(self):
