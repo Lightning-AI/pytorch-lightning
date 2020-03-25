@@ -225,12 +225,7 @@ class DQNLightning(pl.LightningModule):
 
     def get_device(self, batch) -> str:
         """Retrieve device currently being used by minibatch"""
-        if self.on_gpu:
-            device = batch[0].device.index
-        else:
-            device = 'cpu'
-
-        return device
+        return batch[0].device.index if self.on_gpu else 'cpu'
 
 
 def main(hparams) -> None:
