@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from tests.base.datasets import MNIST
+from tests.base.datasets import TestingMNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -17,21 +17,6 @@ except ImportError:
     raise ImportError('Missing test-tube package.')
 
 from pytorch_lightning.core.lightning import LightningModule
-
-
-class TestingMNIST(MNIST):
-
-    def __init__(self, root, train=True, normalize=(0.5, 1.0),
-                 download=False, num_samples=8000):
-        super().__init__(
-            root,
-            train=train,
-            normalize=normalize,
-            download=download
-        )
-        # take just a subset of MNIST dataset
-        self.data = self.data[:num_samples]
-        self.targets = self.targets[:num_samples]
 
 
 class DictHparamsModel(LightningModule):

@@ -91,7 +91,7 @@ def normalize_tensor(tensor, mean=0.0, std=1.0):
 
 class TestingMNIST(MNIST):
 
-    def __init__(self, root, train=True, normalize=None, download=False, num_samples=8000):
+    def __init__(self, root, train=True, normalize=(0.5, 1.0), download=False, num_samples=8000):
         super().__init__(
             root,
             train=train,
