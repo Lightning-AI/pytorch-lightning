@@ -45,7 +45,7 @@ class LightningTemplateModel(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTemplateModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size

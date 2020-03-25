@@ -119,7 +119,7 @@ a 3-layer neural network.
     class LitMNIST(pl.LightningModule):
 
       def __init__(self):
-        super(LitMNIST, self).__init__()
+        super().__init__()
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(28 * 28, 128)
@@ -344,7 +344,7 @@ For clarity, we'll recall that the full LightningModule now looks like this.
 
     class LitMNIST(pl.LightningModule):
       def __init__(self):
-        super(LitMNIST, self).__init__()
+        super().__init__()
         self.layer_1 = torch.nn.Linear(28 * 28, 128)
         self.layer_2 = torch.nn.Linear(128, 256)
         self.layer_3 = torch.nn.Linear(256, 10)
@@ -602,7 +602,7 @@ Now we can parametrize the LightningModule.
 
     class LitMNIST(pl.LightningModule):
       def __init__(self, hparams):
-        super(LitMNIST, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
@@ -993,4 +993,3 @@ And pass the callbacks into the trainer
 ---------
 
 .. include:: transfer_learning.rst
-
