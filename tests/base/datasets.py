@@ -48,7 +48,7 @@ class MNIST(Dataset):
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
     def __getitem__(self, index):
-        img, target = self.data[index].unsqueeze(0), int(self.targets[index])
+        img, target = self.data[index].float().unsqueeze(0), int(self.targets[index])
 
         if self.normalize is not None:
             img = normalize_tensor(img, mean=self.normalize[0], std=self.normalize[1])
