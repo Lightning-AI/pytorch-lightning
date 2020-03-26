@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 import pytorch_lightning as pl
-from pl_examples.basic_examples.lightning_module_template import LightningTemplateModel
+from pl_examples.models.lightning_module_template import LightningTemplateModel
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -28,7 +28,7 @@ def main(hparams):
     trainer = pl.Trainer(
         gpus=2,
         num_nodes=2,
-        distributed_backend='ddp'
+        distributed_backend='ddp2'
     )
 
     # ------------------------
