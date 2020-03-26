@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 - Removed duplicated module `pytorch_lightning.utilities.arg_parse` for loading CLI arguments ([#1167](https://github.com/PyTorchLightning/pytorch-lightning/issues/1167))
-- Removed torchvision dependency in tests ([#986](https://github.com/PyTorchLightning/pytorch-lightning/issues/986))
+- Added own MNIST dataset and dropped `torchvision` dependency in tests ([#986](https://github.com/PyTorchLightning/pytorch-lightning/issues/986))
 
 ### Fixed
 
