@@ -16,10 +16,10 @@ tensorboard --logdir default
 
 import pytorch_lightning as pl
 
-from typing import Tuple, OrderedDict, List
+from typing import Tuple, List
 
 import argparse
-import collections
+from collections import OrderedDict, deque, namedtuple
 
 import gym
 import numpy as np
@@ -54,7 +54,7 @@ class DQN(nn.Module):
 
 
 # Named tuple for storing experience steps gathered in training
-Experience = collections.namedtuple(
+Experience = namedtuple(
     'Experience', field_names=['state', 'action', 'reward',
                                'done', 'new_state'])
 
@@ -68,7 +68,7 @@ class ReplayBuffer:
     """
 
     def __init__(self, capacity: int) -> None:
-        self.buffer = collections.deque(maxlen=capacity)
+        self.buffer = deque(maxlen=capacity)
 
     def __len__(self) -> None:
         return len(self.buffer)
@@ -290,7 +290,7 @@ class DQNLightning(pl.LightningModule):
                'reward': torch.tensor(reward).to(device),
                'steps': torch.tensor(self.global_step).to(device)}
 
-        return collections.OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
+        return OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
 
     def configure_optimizers(self) -> List[Optimizer]:
         """ Initialize Adam optimizer"""
