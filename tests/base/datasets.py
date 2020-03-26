@@ -69,7 +69,7 @@ class MNIST(Dataset):
     def _check_exists(self) -> bool:
         train_file = os.path.join(self.processed_folder, self.TRAIN_FILE_NAME)
         test_file = os.path.join(self.processed_folder, self.TEST_FILE_NAME)
-        return os.path.exists(train_file) and os.path.exists(test_file)
+        return os.path.isfile(train_file) and os.path.isfile(test_file)
 
     def download(self) -> None:
         """Download the MNIST data if it doesn't exist in processed_folder already."""
