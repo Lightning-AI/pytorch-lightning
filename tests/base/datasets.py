@@ -50,9 +50,9 @@ class MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, int]:
-        img = self.data[index].float().unsqueeze(0)
-        target = int(self.targets[index])
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+        img = self.data[idx].float().unsqueeze(0)
+        target = int(self.targets[idx])
 
         if self.normalize is not None:
             img = normalize_tensor(img, mean=self.normalize[0], std=self.normalize[1])
