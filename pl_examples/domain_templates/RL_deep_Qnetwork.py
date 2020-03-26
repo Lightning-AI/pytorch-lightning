@@ -1,4 +1,6 @@
 """
+# Deep Reinforcement Learning: Deep Q-network (DQN)
+
 this example is based off https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
 Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 
