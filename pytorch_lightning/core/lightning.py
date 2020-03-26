@@ -1520,8 +1520,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
+        # call .item() only once but store elements without graphs
+        running_training_loss = self.trainer.running_loss.mean().cpu().item()
         tqdm_dict = {
-            'loss': '{:.3f}'.format(self.trainer.avg_loss)
+            'loss': '{:.3f}'.format(running_training_loss)
         }
 
         if self.trainer.truncated_bptt_steps is not None:
