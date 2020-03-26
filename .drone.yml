@@ -6,7 +6,7 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: nvcr.io/nvidia/pytorch:20.02-py3
+  image: pytorch/pytorch:1.4-cuda10.1-cudnn7-runtime
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
@@ -16,12 +16,12 @@ steps:
     - pip install pip -U
     - pip --version
     - nvidia-smi
-    #- pip install torch==1.3
+    - bash ./tests/install_AMP.sh
     - pip install -r requirements.txt --user
     - pip install coverage pytest pytest-cov pytest-flake8 codecov
     - pip install -r ./tests/requirements.txt --user
     - pip list
     - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
-    - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules #  --flake8
+    - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --doctest-modules #  --flake8
     - coverage report
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG

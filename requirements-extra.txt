@@ -1,3 +1,5 @@
+# extended list of package dependencies to reach full functionality
+
 neptune-client>=0.4.4
 comet-ml>=1.0.56
 mlflow>=1.0.0

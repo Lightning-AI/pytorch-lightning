@@ -6,7 +6,7 @@ from argparse import Namespace
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     TestModelBase,
     DictHparamsModel,
     LightningTestModel,
@@ -53,7 +53,7 @@ def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
@@ -61,7 +61,7 @@ def test_no_val_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_epochs=1,
@@ -97,11 +97,11 @@ def test_no_val_end_module(tmpdir):
     class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     trainer_options = dict(
         max_epochs=1,
@@ -189,7 +189,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         # clear gradients
         optimizer.zero_grad()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     schedule = {1: 2, 3: 4}
 
@@ -209,10 +209,10 @@ def test_gradient_accumulation_scheduling(tmpdir):
 def test_loading_meta_tags(tmpdir):
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # save tags
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -254,7 +254,7 @@ def test_model_checkpoint_options(tmpdir):
     def mock_save_function(filepath):
         open(filepath, 'a').close()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     _ = LightningTestModel(hparams)
 
     # simulated losses
@@ -355,7 +355,7 @@ def test_model_checkpoint_options(tmpdir):
     os.mkdir(save_dir)
 
     # -----------------
-    # CASE K=4 (save all 4 models)
+    # CASE K=4 (save all 4 base)
     # multiple checkpoints within same epoch
 
     checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
@@ -401,7 +401,7 @@ def test_model_checkpoint_options(tmpdir):
 def test_model_freeze_unfreeze():
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     model.freeze()
@@ -414,7 +414,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
@@ -474,7 +474,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
     tutils.reset_seed()
-    model, _ = tutils.get_model()
+    model, _ = tutils.get_default_model()
 
     # define train epoch to 5% of data
     train_percent = 0.05
@@ -530,7 +530,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer_options.update(dict(
         default_save_path=tmpdir,
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
-        val_check_interval=20,
+        val_check_interval=2,
         min_epochs=1,
         max_epochs=10
     ))
@@ -571,7 +571,7 @@ def test_benchmark_option(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # verify torch.backends.cudnn.benchmark is not turned on
@@ -596,7 +596,7 @@ def test_benchmark_option(tmpdir):
 
 
 def test_testpass_overrides(tmpdir):
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     class LocalModel(LightTrainDataloader, TestModelBase):
         pass
