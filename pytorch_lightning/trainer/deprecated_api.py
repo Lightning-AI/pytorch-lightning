@@ -106,4 +106,3 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
         """Back compatibility, will be removed in v0.9.0"""
         warnings.warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
                       " and this method will be removed in v0.9.0", DeprecationWarning)
-        self.show_progress_bar = tf

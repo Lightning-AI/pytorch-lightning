@@ -477,7 +477,7 @@ class TrainerDPMixin(ABC):
         self.tpu_global_core_rank = xm.get_ordinal()
 
         # avoid duplicating progress bar
-        self.show_progress_bar = self.show_progress_bar and self.tpu_global_core_rank == 0
+        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if self.tpu_global_core_rank == 0 else 0
 
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
