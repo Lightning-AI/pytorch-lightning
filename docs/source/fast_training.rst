@@ -70,9 +70,8 @@ test_percent_check will be overwritten by overfit_pct if overfit_pct > 0.
     trainer = Trainer(test_percent_check=0.1)
 
 Use validation data subset
---------------------------------------------
-If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
-val_percent_check will be overwritten by overfit_pct if overfit_pct > 0
+--------------------------
+If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag.
 
 .. code-block:: python
 
@@ -81,3 +80,6 @@ val_percent_check will be overwritten by overfit_pct if overfit_pct > 0
 
     # check 10% only
     trainer = Trainer(val_percent_check=0.1)
+
+.. note:: ``val_percent_check`` will be overwritten by ``overfit_pct`` if ``overfit_pct`` > 0 and ignored if
+    ``fast_dev_run=True``.
