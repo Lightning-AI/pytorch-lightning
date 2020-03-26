@@ -24,7 +24,8 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
+from pytorch_lightning.trainer.deprecated_api import (TrainerDeprecatedAPITillVer0_8,
+                                                      TrainerDeprecatedAPITillVer0_9)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
@@ -66,12 +67,13 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerDeprecatedAPITillVer0_8,
+    TrainerDeprecatedAPITillVer0_9,
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
         'add_row_log_interval', 'nb_sanity_val_steps'
     )
-    DEPRECATED_IN_0_9 = ('use_amp',)
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
 
     def __init__(
             self,
@@ -88,7 +90,7 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.8.0
+            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
@@ -416,12 +418,11 @@ class Trainer(
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
-        # Backward compatibility, TODO: remove in v0.8.0
-        if show_progress_bar is not None:
-            warnings.warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.1"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
+        # backward compatibility
+        if show_progress_bar is not None:
+            self.show_progress_bar = show_progress_bar
 
         # logging
         self.log_save_interval = log_save_interval
@@ -566,10 +567,6 @@ class Trainer(
 
         params = vars(args)
         return cls(**params)
-
-    @property
-    def show_progress_bar(self) -> bool:
-        return self.progress_bar_refresh_rate >= 1
 
     @property
     def num_gpus(self) -> int:
