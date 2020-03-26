@@ -770,7 +770,8 @@ class Trainer(
         # two lists, optimizer + lr schedulers
         elif len(optimizers) == 2 and isinstance(optimizers[0], list):
             optimizers, lr_schedulers = optimizers
-            lr_schedulers = self.configure_schedulers(lr_schedulers)
+            if not self.use_amp:
+                lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers
 
         # single list or tuple, multiple optimizer

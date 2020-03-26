@@ -163,6 +163,10 @@ class TrainerDDPMixin(ABC):
     def init_optimizers(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def configure_schedulers(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def init_tpu(self):
         # turn off all the GPU stuff
         self.distributed_backend = None
@@ -325,6 +329,7 @@ class TrainerDDPMixin(ABC):
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
+            self.lr_schedulers = self.configure_schedulers(self.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':

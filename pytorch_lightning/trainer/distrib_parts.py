@@ -390,6 +390,10 @@ class TrainerDPMixin(ABC):
     def init_optimizers(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def configure_schedulers(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module
@@ -465,6 +469,7 @@ class TrainerDPMixin(ABC):
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
+            self.lr_schedulers = self.configure_schedulers(self.lr_schedulers)
 
         self.run_pretrain_routine(model)
 
@@ -520,6 +525,7 @@ class TrainerDPMixin(ABC):
                 raise MisconfigurationException(m)
             else:
                 model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
+                self.lr_schedulers = self.configure_schedulers(self.lr_schedulers)
 
         # create list of device ids
         device_ids = self.data_parallel_device_ids
