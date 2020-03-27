@@ -32,7 +32,7 @@ Now we can parametrize the LightningModule.
 
     class LitMNIST(pl.LightningModule):
       def __init__(self, hparams):
-        super(LitMNIST, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
@@ -140,7 +140,7 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
 
     class LitMNIST(pl.LightningModule):
       def __init__(self, hparams):
-        super(LitMNIST, self).__init__()
+        super().__init__()
         self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
 
         @staticmethod
@@ -151,7 +151,7 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
 
     class GoodGAN(pl.LightningModule):
       def __init__(self, hparams):
-        super(GoodGAN, self).__init__()
+        super().__init__()
         self.encoder = Encoder(layers=hparams.encoder_layers)
 
         @staticmethod

@@ -33,7 +33,7 @@ else:
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
-        super(LightningModule, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         #: Current dtype
         self.dtype = torch.FloatTensor
