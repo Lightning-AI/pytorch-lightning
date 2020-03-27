@@ -113,11 +113,9 @@ to track and the profiler will record performance for code executed within this 
 
 """
 
-from pytorch_lightning.debugging.exceptions import MisconfigurationException
-from pytorch_lightning.debugging.profilers import BaseProfiler, Profiler, AdvancedProfiler, PassThroughProfiler
+from pytorch_lightning.profiling.profilers import Profiler, AdvancedProfiler, PassThroughProfiler, BaseProfiler
 
 __all__ = [
-    'MisconfigurationException',
     'BaseProfiler',
     'Profiler',
     'AdvancedProfiler',

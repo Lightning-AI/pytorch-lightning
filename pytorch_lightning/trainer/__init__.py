@@ -611,15 +611,15 @@ Example::
     # default used by the Trainer
     trainer = Trainer(process_position=0)
 
-profiler
-^^^^^^^^
+profiling
+^^^^^^^^^
 To profile individual steps during training and assist in identifying bottlenecks.
 
 See the `profiler documentation <profiler.rst>`_. for more details.
 
 Example::
 
-    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+    from pytorch_lightning.profiling import Profiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)

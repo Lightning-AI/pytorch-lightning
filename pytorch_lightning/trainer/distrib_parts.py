@@ -344,7 +344,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp

@@ -122,7 +122,7 @@ from typing import Union
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp

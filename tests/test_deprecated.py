@@ -57,8 +57,6 @@ def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
     from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
 
-    from pytorch_lightning.profiler import Profiler, AdvancedProfiler  # noqa: F402
-
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 

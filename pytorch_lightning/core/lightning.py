@@ -20,7 +20,7 @@ from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
