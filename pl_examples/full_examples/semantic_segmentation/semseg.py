@@ -143,7 +143,7 @@ class SegModel(pl.LightningModule):
         img, mask = batch
         img = img.float()
         mask = mask.long()
-        out = self.forward(img)
+        out = self(img)
         loss_val = F.cross_entropy(out, mask, ignore_index=250)
         return {'loss': loss_val}
 

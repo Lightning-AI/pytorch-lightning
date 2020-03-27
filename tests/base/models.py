@@ -54,7 +54,7 @@ class DictHparamsModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'loss': F.cross_entropy(y_hat, y)}
 
     def configure_optimizers(self):
@@ -140,7 +140,7 @@ class TestModelBase(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)

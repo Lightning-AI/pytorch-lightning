@@ -105,7 +105,7 @@ class GAN(LightningModule):
                 z = z.cuda(imgs.device.index)
 
             # generate images
-            self.generated_imgs = self.forward(z)
+            self.generated_imgs = self(z)
 
             # log sampled images
             # sample_imgs = self.generated_imgs[:6]
@@ -179,7 +179,7 @@ class GAN(LightningModule):
             z = z.cuda(self.last_imgs.device.index)
 
         # log sampled images
-        sample_imgs = self.forward(z)
+        sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
         self.logger.experiment.add_image(f'generated_images', grid, self.current_epoch)
 

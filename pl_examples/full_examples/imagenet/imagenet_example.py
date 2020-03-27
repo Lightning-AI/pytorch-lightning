@@ -42,7 +42,7 @@ class ImageNetLightningModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, target = batch
-        output = self.forward(images)
+        output = self(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
@@ -65,7 +65,7 @@ class ImageNetLightningModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         images, target = batch
-        output = self.forward(images)
+        output = self(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
