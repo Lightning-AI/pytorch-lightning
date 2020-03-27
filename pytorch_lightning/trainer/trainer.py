@@ -909,7 +909,7 @@ class Trainer(
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
                     disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout)
+                    file=sys.stdout, smoothing=0)
         self.main_progress_bar = pbar
 
         # clear cache before training

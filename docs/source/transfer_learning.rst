@@ -97,7 +97,7 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
     class BertMNLIFinetuner(pl.LightningModule):
 
     def __init__(self):
-        super(BertMNLIFinetuner, self).__init__()
+        super().__init__()
 
         self.bert = BertModel.from_pretrained('bert-base-cased', output_attentions=True)
         self.W = nn.Linear(bert.config.hidden_size, 3)

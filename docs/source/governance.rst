@@ -12,4 +12,5 @@ Core Maintainers
 ----------------
 - Nic Eggert (`neggert <https://github.com/neggert>`_)
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
+- Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Tullie Murrell (`tullie <https://github.com/tullie>`_)

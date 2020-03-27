@@ -74,7 +74,7 @@ Here are the only required methods.
     class LitModel(pl.LightningModule):
 
         def __init__(self):
-            super(LitModel, self).__init__()
+            super().__init__()
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):

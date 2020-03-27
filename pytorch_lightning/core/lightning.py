@@ -33,7 +33,7 @@ else:
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
-        super(LightningModule, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         #: Current dtype
         self.dtype = torch.FloatTensor
@@ -220,6 +220,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             You can also return a -1 instead of a dict to stop the current loop. This is useful
              if you want to break out of the current training epoch early.
+
+        Notes:
+            The presented loss value in progress bar is smooth (average) over last values,
+             so it differs from values set in train/validation step.
         """
 
     def training_end(self, *args, **kwargs):
@@ -303,7 +307,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(train_batch)
-                val_outs.append(out
+                val_outs.append(out)
                 validation_epoch_end(val_outs)
 
         Args:
