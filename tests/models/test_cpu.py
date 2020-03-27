@@ -14,6 +14,7 @@ from tests.base import (
     LightTrainDataloader,
     LightningTestModel,
     LightTestMixin,
+    LightValidationMixin
 )
 
 
@@ -154,6 +155,55 @@ def test_running_test_without_val(tmpdir):
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)
+
+
+def test_disabled_validation():
+    """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
+    tutils.reset_seed()
+
+    class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
+
+        validation_step_invoked = False
+        validation_end_invoked = False
+
+        def validation_step(self, *args, **kwargs):
+            self.validation_step_invoked = True
+            return super().validation_step(*args, **kwargs)
+
+        def validation_end(self, *args, **kwargs):
+            self.validation_end_invoked = True
+            return super().validation_end(*args, **kwargs)
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=2,
+        train_percent_check=0.4,
+        val_percent_check=0.0,
+        fast_dev_run=False,
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # check that val_percent_check=0 turns off validation
+    assert result == 1, 'training failed to complete'
+    assert trainer.current_epoch == 1
+    assert not model.validation_step_invoked, '`validation_step` should not run when `val_percent_check=0`'
+    assert not model.validation_end_invoked, '`validation_end` should not run when `val_percent_check=0`'
+
+    # check that val_percent_check has no influence when fast_dev_run is turned on
+    model = CurrentModel(hparams)
+    trainer_options.update(fast_dev_run=True)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+    assert trainer.current_epoch == 0
+    assert model.validation_step_invoked, 'did not run `validation_step` with `fast_dev_run=True`'
+    assert model.validation_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
 
 
 def test_single_gpu_batch_parse():
