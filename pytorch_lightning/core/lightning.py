@@ -33,7 +33,7 @@ else:
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
-        super(LightningModule, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         #: Current dtype
         self.dtype = torch.FloatTensor
@@ -97,7 +97,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Same as torch.nn.Module.forward(), however in Lightning you want this to define
         the  operations you want to use for prediction (ie: on a server or as a feature extractor).
 
-        Normally you'd call self.forward() from your training_step() method.
+        Normally you'd call self() from your training_step() method.
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
 
@@ -117,7 +117,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 def training_step(self, batch, batch_idx):
                     x, y = batch
-                    feature_maps = self.forward(x)
+                    feature_maps = self(x)
                     logits = self.classifier(feature_maps)
 
                     # ...
@@ -171,7 +171,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y, z = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, x)
 
                     logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
@@ -220,6 +220,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             You can also return a -1 instead of a dict to stop the current loop. This is useful
              if you want to break out of the current training epoch early.
+
+        Notes:
+            The presented loss value in progress bar is smooth (average) over last values,
+             so it differs from values set in train/validation step.
         """
 
     def training_end(self, *args, **kwargs):
@@ -266,7 +270,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -277,7 +281,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def training_step_end(self, outputs):
@@ -342,7 +346,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, y)
 
                     # log 6 example images
@@ -413,7 +417,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -424,7 +428,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def validation_epoch_end(self, outputs):
@@ -564,7 +568,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, y)
 
                     # log 6 example images
@@ -636,7 +640,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -647,7 +651,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def test_step_end(self, outputs):

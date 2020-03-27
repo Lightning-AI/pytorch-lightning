@@ -45,7 +45,7 @@ class TestingMNIST(MNIST):
 class DictHparamsModel(LightningModule):
 
     def __init__(self, hparams: Dict):
-        super(DictHparamsModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
         self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
 
@@ -54,7 +54,7 @@ class DictHparamsModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'loss': F.cross_entropy(y_hat, y)}
 
     def configure_optimizers(self):
@@ -140,7 +140,7 @@ class TestModelBase(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
