@@ -233,10 +233,12 @@ trainer.test()
 ## Visualization
 Lightning has out-of-the-box integration with the popular logging/visualizing frameworks
 
-- Tensorboard
-- MLFlow
-- Neptune.ai
-- Comet.ml
+- [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html)
+- [MLFlow](https://mlflow.org/)
+- [Neptune.ai](https://neptune.ai/)
+- [Comet.ml](https://www.comet.ml/site/)
+- [Wandb](https://www.wandb.com/)
+- [Trains](https://github.com/allegroai/trains)
 - ...  
 
 ![tensorboard-support](docs/source/_images/general/tf_loss.png)
