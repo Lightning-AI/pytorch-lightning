@@ -345,7 +345,7 @@ def test_tbptt_cpu_model(tmpdir):
             y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
-            pred = self.forward(x_tensor.view(batch_size, truncated_bptt_steps))
+            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
             loss_val = torch.nn.functional.mse_loss(
                 pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {

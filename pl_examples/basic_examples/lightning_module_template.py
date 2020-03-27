@@ -106,7 +106,7 @@ class LightningTemplateModel(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
@@ -133,7 +133,7 @@ class LightningTemplateModel(LightningModule):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
