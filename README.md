@@ -99,7 +99,7 @@ If your code IS a mess, then you needed to clean up anyhow ;)
 Although your research/production project might start simple, once you add things like GPU AND TPU training, 16-bit precision, etc, you end up spending more time engineering than researching. Lightning automates AND rigorously tests those parts for you.
 
 ## Support
-- [7 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs.
+- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs. 
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
@@ -350,15 +350,15 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 
 #### Leads
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
-- Jirka Borovec [(Borda)](https://github.com/Borda) (-_-)
+- Jirka Borovec [(Borda)](https://github.com/Borda) (ghost :)
 - Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
 - Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
 
 #### Core Maintainers
 
 - Nick Eggert [(neggert)](https://github.com/neggert)
-- Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Jeff Ling [(jeffling)](https://github.com/jeffling)
+- Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 
 ## Bibtex
