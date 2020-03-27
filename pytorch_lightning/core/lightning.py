@@ -220,6 +220,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             You can also return a -1 instead of a dict to stop the current loop. This is useful
              if you want to break out of the current training epoch early.
+
+        Notes:
+            The presented loss value in progress bar is smooth (average) over last values,
+             so it differs from values set in train/validation step.
         """
 
     def training_end(self, *args, **kwargs):
