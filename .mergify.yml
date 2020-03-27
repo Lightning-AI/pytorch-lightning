@@ -43,9 +43,7 @@ pull_request_rules:
     conditions:
       # number of review approvals
       - "#approved-reviews-by<3"
-      # no waiting or assigned review
-      - review-requested!=@PyTorchLightning/core-contributors
     actions:
       request_reviews:
         teams:
-          - "@PyTorchLightning/core-contributors"
+          - core-contributors
