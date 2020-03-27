@@ -97,7 +97,7 @@ class PassThroughProfiler(BaseProfiler):
         return ""
 
 
-class Profiler(BaseProfiler):
+class SimpleProfiler(BaseProfiler):
     """
     This profiler simply records the duration of actions (in seconds) and reports
     the mean duration of each action and the total time spent over the entire training run.

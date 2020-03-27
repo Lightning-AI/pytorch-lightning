@@ -113,11 +113,11 @@ to track and the profiler will record performance for code executed within this 
 
 """
 
-from pytorch_lightning.profiling.profilers import Profiler, AdvancedProfiler, PassThroughProfiler, BaseProfiler
+from pytorch_lightning.profiling.profilers import SimpleProfiler, AdvancedProfiler, PassThroughProfiler, BaseProfiler
 
 __all__ = [
     'BaseProfiler',
-    'Profiler',
+    'SimpleProfiler',
     'AdvancedProfiler',
     'PassThroughProfiler',
 ]
