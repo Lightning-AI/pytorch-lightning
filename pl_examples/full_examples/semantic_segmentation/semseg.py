@@ -123,7 +123,7 @@ class SegModel(pl.LightningModule):
     '''
 
     def __init__(self, hparams):
-        super(SegModel, self).__init__()
+        super().__init__()
         self.root_path = hparams.root
         self.batch_size = hparams.batch_size
         self.learning_rate = hparams.lr
