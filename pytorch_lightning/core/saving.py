@@ -3,6 +3,7 @@ import collections
 import csv
 import logging as log
 import os
+import yaml
 from argparse import Namespace
 from typing import Union, Dict, Any, List
 
@@ -38,17 +39,24 @@ class ModelIO(object):
 
 
 def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
-    tags = {}
-
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')
-        return tags
+        return {}
 
     with open(tags_csv) as f:
         csv_reader = csv.reader(f, delimiter=',')
-        for key, value in list(csv_reader)[1:]:
-            value = convert(value)
-            merge_dict(tags, hierarchize(key.split('/'), value))
+        tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
+
+    return tags
+
+
+def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+    if not os.path.isfile(config_yaml):
+        log.warning(f'Missing Tags: {config_yaml}.')
+        return {}
+
+    with open(config_yaml) as f:
+       tags = yaml.load(f, Loader=yaml.SafeLoader)
 
     return tags
 
@@ -58,18 +66,3 @@ def convert(val: str) -> Union[int, float, bool, str]:
         return ast.literal_eval(val)
     except ValueError:
         return val
-
-
-def hierarchize(keys: List[str], value: Optional[int, float, bool, str] = None) -> Dict[str, Any]:
-    if len(keys) == 1:
-        return {keys[0]: value}
-    else:
-        return {keys[0]: hierarchize(keys[1:], value)}
-
-
-def merge_dict(base_dict: Dict[str: Any], input_dict: Dict[str: Any]) -> None:
-    for k, v in input_dict.items():
-        if k in base_dict and isinstance(base_dict[k], dict) and isinstance(input_dict[k], dict):
-            merge_dict(base_dict[k], input_dict[k])
-        else:
-            base_dict[k] = input_dict[k]

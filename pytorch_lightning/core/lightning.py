@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
@@ -1307,6 +1307,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             tags_csv: Optional[str] = None,
+            hparams_file: Optional[str] = None
     ) -> 'LightningModule':
         r"""
 
@@ -1382,9 +1383,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if tags_csv is not None:
-            # add the hparams from csv file to checkpoint
-            hparams = load_hparams_from_tags_csv(tags_csv)
-            hparams['on_gpu'] = False
+            hparams_file = tags_csv
+            warnings.warn('tags_csv argument is deprecated, use hparams_file argument instead.')
+
+        if hparams_file is not None:
+            extension = hparams_file.split('.')[-1]
+            if extension.lower() in ['csv']:
+                hparams = load_hparams_from_tags_csv(hparams_file)
+            elif extension.lower() in ['yml', 'yaml']:
+                hparams = load_hparams_from_yaml(hparams_file)
+            else:
+                raise ValueError('.csv, .yml or .yaml is required for hparams_file')
+
+            # overwrite hparams by the given file
             checkpoint['hparams'] = hparams
 
         model = cls._load_model_state(checkpoint)
@@ -1398,7 +1409,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if cls_takes_hparams:
             if ckpt_hparams is not None:
                 hparams_type = checkpoint.get('hparams_type')
-                if hparams_type == 'namespace':
+                if hparams_type.lower() == 'namespace':
                     hparams = Namespace(**ckpt_hparams)
             else:
                 warnings.warn(
@@ -1406,7 +1417,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     f"contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"
                 )
-                hparams = Namespace()
+                hparams = {}
         else:  # The user's LightningModule does not define a hparams argument
             if ckpt_hparams is None:
                 hparams = None
