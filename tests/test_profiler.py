@@ -1,10 +1,10 @@
-import tempfile
 import time
 from pathlib import Path
 
 import numpy as np
 import pytest
-from pytorch_lightning.profiler import AdvancedProfiler, Profiler
+
+from pytorch_lightning.debugging import AdvancedProfiler, Profiler
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
 

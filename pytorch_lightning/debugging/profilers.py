@@ -82,8 +82,13 @@ class Profiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self):
+    def __init__(self, output_filename: str = None):
+        """
+        :param output_filename (str): optionally save profile results to file instead of printing
+            to std out when training is finished.
+        """
         self.current_actions = {}
+        self.output_filename = output_filename
         self.recorded_durations = defaultdict(list)
 
     def start(self, action_name: str) -> None:
