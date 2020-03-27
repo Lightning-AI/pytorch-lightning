@@ -22,8 +22,12 @@ pull_request_rules:
     actions:
       delete_head_branch: {}
       merge:
-        strict: true  # https://doc.mergify.io/merge-action.html#strict-merge
-        strict_method: rebase
+        # https://doc.mergify.io/merge-action.html#strict-merge
+        # (on head branch) $ git merge --no-ff base
+        # (on head branch) # Wait for CI to go green
+        # (on head branch) # Squash all commits
+        # (on base branch) $ git merge --ff head
+        strict: true
         method: squash
       comment:
         message: Great job! =)
