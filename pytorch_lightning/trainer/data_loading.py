@@ -6,7 +6,7 @@ from torch.utils.data import SequentialSampler, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.debugging import MisconfigurationException
 
 try:
     from apex import amp

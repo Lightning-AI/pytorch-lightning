@@ -200,16 +200,16 @@ class AdvancedProfiler(BaseProfiler):
         pr.disable()
 
     def summary(self) -> str:
-        self.recorded_stats = {}
+        recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()
             ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
             ps.print_stats(self.line_count_restriction)
-            self.recorded_stats[action_name] = s.getvalue()
+            recorded_stats[action_name] = s.getvalue()
 
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
-        for action, stats in self.recorded_stats.items():
+        for action, stats in recorded_stats.items():
             output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
 
         return output_string

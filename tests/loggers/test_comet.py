@@ -8,7 +8,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.debugging import MisconfigurationException
 from tests.base import LightningTestModel
 
 
