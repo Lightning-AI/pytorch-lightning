@@ -3,7 +3,8 @@ from unittest.mock import MagicMock
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import LightningLoggerBase, rank_zero_only, LoggerCollection
+from pytorch_lightning.loggers import LightningLoggerBase, rank_zero_only, \
+    LoggerCollection
 from tests.base import LightningTestModel
 
 
@@ -54,6 +55,16 @@ class CustomLogger(LightningLoggerBase):
     @property
     def version(self):
         return "1"
+
+
+class StoreHistoryCustomLogger(CustomLogger):
+    def __init__(self):
+        super().__init__()
+        self.history = []
+
+    @rank_zero_only
+    def log_metrics(self, metrics, step):
+        self.history.append((step, metrics))
 
 
 def test_custom_logger(tmpdir):
@@ -153,5 +164,29 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer = Trainer(**trainer_options)
-    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(
+        trainer.logger.log_metrics)
     trainer.fit(model)
+
+
+def test_with_accumulate_grad_batches():
+    """Checks if the logging is performed once for `accumulate_grad_batches`
+    steps.
+    """
+    hparams = tutils.get_default_hparams()
+    model = LightningTestModel(hparams)
+
+    logger = StoreHistoryCustomLogger()
+
+    trainer_options = dict(
+        max_epochs=1,
+        logger=logger,
+        accumulate_grad_batches=4,
+        row_log_interval=1
+    )
+
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    steps_logged = [step[0] for step in logger.history]
+    assert len(set(steps_logged)) == len(steps_logged)
