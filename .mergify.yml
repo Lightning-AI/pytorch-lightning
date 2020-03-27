@@ -38,3 +38,14 @@ pull_request_rules:
     actions:
       comment:
         message: This pull request is now in conflict... :(
+
+  - name: add core reviewer
+    conditions:
+      # number of review approvals
+      - "#approved-reviews-by<3"
+      # no waiting or assigned review
+      - review-requested!=@PyTorchLightning/core-contributors
+    actions:
+      request_reviews:
+        teams:
+          - "@PyTorchLightning/core-contributors"
