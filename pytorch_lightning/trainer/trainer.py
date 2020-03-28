@@ -715,8 +715,8 @@ class Trainer(
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            opts = self.init_optimizers(model.configure_optimizers())
-            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+                self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
 

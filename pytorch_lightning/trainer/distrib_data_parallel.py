@@ -305,8 +305,8 @@ class TrainerDDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        opts = self.init_optimizers(model.configure_optimizers())
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+            self.init_optimizers(model.configure_optimizers())
 
         # MODEL
         # copy model to each gpu
