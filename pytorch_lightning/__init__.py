@@ -10,9 +10,10 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
 
-from logging import getLogger
+import logging as python_logging
 
-_logger = getLogger("lightning")
+_logger = python_logging.getLogger("lightning")
+python_logging.basicConfig(level=python_logging.INFO)
 
 try:
     # This variable is injected in the __builtins__ by the build
