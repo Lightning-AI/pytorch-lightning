@@ -196,6 +196,7 @@ class TrainerTrainLoopMixin(ABC):
     total_batches: int
     truncated_bptt_steps: ...
     optimizers: ...
+    optimizer_frequencies: ...
     accumulate_grad_batches: int
     use_amp: bool
     track_grad_norm: ...
@@ -515,8 +516,22 @@ class TrainerTrainLoopMixin(ABC):
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
+            def get_optimizers_iterable():
+                if not self.optimizer_frequencies:
+                    return enumerate(self.optimizers)
+
+                optimizer_freq_cumsum = np.cumsum(self.optimizer_frequencies)
+                optimizers_loop_length = optimizer_freq_cumsum[-1]
+                current_place_in_loop = self.total_batch_idx % optimizers_loop_length
+
+                # find optimzier index by looking for the first {item > current_place} in the cumsum list
+                for opt_idx, v in enumerate(optimizer_freq_cumsum):
+                    if v > current_place_in_loop:
+                        # return an iterable list of one tuple
+                        return [(opt_idx, self.optimizers[opt_idx])]
+
             # call training_step once per optimizer
-            for opt_idx, optimizer in enumerate(self.optimizers):
+            for opt_idx, optimizer in get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's paramaters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.optimizers) > 1:
