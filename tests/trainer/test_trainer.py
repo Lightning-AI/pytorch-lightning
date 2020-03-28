@@ -248,7 +248,20 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-def test_model_checkpoint_options(tmpdir):
+
+@pytest.mark.parametrize(["save_top_k", "file_prefix", "expected_files"], [
+    pytest.param(-1, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
+                 id="CASE K=-1  (all)"),
+    pytest.param(1, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
+                 id="CASE K=1 (2.5, epoch 4)"),
+    pytest.param(2, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
+                 id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
+    pytest.param(4, '', {'epoch=1.ckpt', 'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt'},
+                 id="CASE K=4 (save all 4 base)"),
+    pytest.param(3, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
+                 id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
+])
+def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_files):
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath):
@@ -258,13 +271,9 @@ def test_model_checkpoint_options(tmpdir):
     _ = LightningTestModel(hparams)
 
     # simulated losses
-    save_dir = os.path.join(tmpdir, '1')
-    os.mkdir(save_dir)
     losses = [10, 9, 2.8, 5, 2.5]
 
-    # -----------------
-    # CASE K=-1  (all)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=-1, verbose=1)
+    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
@@ -274,127 +283,13 @@ def test_model_checkpoint_options(tmpdir):
         trainer.callback_metrics = {'val_loss': loss}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
-    file_lists = set(os.listdir(save_dir))
+    file_lists = set(os.listdir(tmpdir))
 
-    assert len(file_lists) == len(losses), "Should save all models when save_top_k=-1"
+    assert len(file_lists) == len(expected_files), \
+        "Should save %i models when save_top_k=%i" % (len(expected_files), save_top_k)
 
     # verify correct naming
-    for fname in {'epoch=4.ckpt',
-                  'epoch=3.ckpt',
-                  'epoch=2.ckpt',
-                  'epoch=1.ckpt',
-                  'epoch=0.ckpt'}:
-        assert fname in file_lists
-
-    save_dir = os.path.join(tmpdir, '2')
-    os.mkdir(save_dir)
-
-    # -----------------
-    # CASE K=0 (none)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=0, verbose=1)
-    checkpoint_callback.save_function = mock_save_function
-    trainer = Trainer()
-
-    # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
-
-    file_lists = os.listdir(save_dir)
-
-    assert len(file_lists) == 0, "Should save 0 models when save_top_k=0"
-
-    save_dir = os.path.join(tmpdir, '3')
-    os.mkdir(save_dir)
-
-    # -----------------
-    # CASE K=1 (2.5, epoch 4)
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=1, verbose=1, prefix='test_prefix_')
-    checkpoint_callback.save_function = mock_save_function
-    trainer = Trainer()
-
-    # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
-
-    file_lists = set(os.listdir(save_dir))
-
-    assert len(file_lists) == 1, "Should save 1 model when save_top_k=1"
-    assert 'test_prefix_epoch=4.ckpt' in file_lists
-
-    save_dir = os.path.join(tmpdir, '4')
-    os.mkdir(save_dir)
-
-    # -----------------
-    # CASE K=2 (2.5 epoch 4, 2.8 epoch 2)
-    # make sure other files don't get deleted
-
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=2, verbose=1)
-    open(f"{save_dir}/other_file.ckpt", 'a').close()
-    checkpoint_callback.save_function = mock_save_function
-    trainer = Trainer()
-
-    # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
-
-    file_lists = set(os.listdir(save_dir))
-
-    assert len(file_lists) == 3, 'Should save 2 model when save_top_k=2'
-    for fname in {'epoch=4.ckpt',
-                  'epoch=2.ckpt',
-                  'other_file.ckpt'}:
-        assert fname in file_lists
-
-    save_dir = os.path.join(tmpdir, '5')
-    os.mkdir(save_dir)
-
-    # -----------------
-    # CASE K=4 (save all 4 base)
-    # multiple checkpoints within same epoch
-
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=4, verbose=1)
-    checkpoint_callback.save_function = mock_save_function
-    trainer = Trainer()
-
-    # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
-
-    file_lists = set(os.listdir(save_dir))
-
-    assert len(file_lists) == 4, 'Should save all 4 models when save_top_k=4 within same epoch'
-
-    save_dir = os.path.join(tmpdir, '6')
-    os.mkdir(save_dir)
-
-    # -----------------
-    # CASE K=3 (save the 2nd, 3rd, 4th model)
-    # multiple checkpoints within same epoch
-
-    checkpoint_callback = ModelCheckpoint(save_dir, save_top_k=3, verbose=1)
-    checkpoint_callback.save_function = mock_save_function
-    trainer = Trainer()
-
-    # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
-
-    file_lists = set(os.listdir(save_dir))
-
-    assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    for fname in {'epoch=2.ckpt',
-                  'epoch=3.ckpt',
-                  'epoch=4.ckpt'}:
+    for fname in expected_files:
         assert fname in file_lists
 
 

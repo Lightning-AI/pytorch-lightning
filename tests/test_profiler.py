@@ -35,7 +35,11 @@ def advanced_profiler():
     return profiler
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_simple_profiler_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -50,7 +54,11 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
     )
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -94,7 +102,11 @@ def test_simple_profiler_value_errors(simple_profiler):
     simple_profiler.stop(action)
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
     for duration in expected:
@@ -112,7 +124,11 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
     )
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
