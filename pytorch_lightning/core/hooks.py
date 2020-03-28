@@ -1,6 +1,6 @@
 """
-Hooks
-=====
+Model Hooks
+===========
 
 There are cases when you might want to do something different at different parts of the training/validation loop.
  To enable a hook, simply override the method in your LightningModule and the trainer will call it at the correct time.
@@ -22,10 +22,10 @@ from torch.optim.optimizer import Optimizer
 
 try:
     from apex import amp
-
-    APEX_AVAILABLE = True
 except ImportError:
     APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class ModelHooks(torch.nn.Module):

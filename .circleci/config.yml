@@ -11,7 +11,6 @@ references:
       name: Install Dependences
       command: |
         pip install "$TORCH_VERSION" --user
-        # this is temporal fix til test-tube is not merged and released
         pip install -r requirements.txt --user
         sudo pip install pytest pytest-cov pytest-flake8
         pip install -r ./tests/requirements.txt --user
@@ -21,7 +20,16 @@ references:
      name: Testing
      command: |
        python --version ; pip --version ; pip list
-       py.test pytorch_lightning tests pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+       py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+     no_output_timeout: 15m
+
+  examples: &examples
+   run:
+     name: PL Examples
+     command: |
+       pip install -r ./pl_examples/requirements.txt --user
+       python --version ; pip --version ; pip list
+       py.test pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 15m
 
   install_pkg: &install_pkg
@@ -56,7 +64,7 @@ references:
        pip install -r requirements.txt --user
        sudo pip install -r docs/requirements.txt
        # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
-       cd docs; make clean ; make html --debug --jobs 2
+       cd docs; make clean ; make html --debug --jobs 2 SPHINXOPTS="-W"
 
 jobs:
 
@@ -84,10 +92,8 @@ jobs:
       - TORCH_VERSION: "torch"
     steps: &steps
       - checkout
-
       - *install_deps
       - *tests
-
       - store_test_results:
           path: test-reports
       - store_artifacts:
@@ -121,6 +127,16 @@ jobs:
       - TORCH_VERSION: "torch>=1.4, <1.5"
     steps: *steps
 
+  Examples:
+    docker:
+      - image: circleci/python:3.7
+    environment:
+        - TORCH_VERSION: "torch"
+    steps:
+      - checkout
+      - *install_deps
+      - *examples
+
   Install-pkg:
     docker:
       - image: circleci/python:3.7
@@ -141,3 +157,4 @@ workflows:
       - PyTorch-v1.3
       - PyTorch-v1.4
       - Install-pkg
+      - Examples

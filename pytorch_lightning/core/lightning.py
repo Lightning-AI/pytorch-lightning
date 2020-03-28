@@ -1,6 +1,5 @@
 import collections
 import inspect
-import logging as log
 import os
 import warnings
 from abc import ABC, abstractmethod
@@ -8,13 +7,14 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -24,16 +24,16 @@ from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
-    XLA_AVAILABLE = True
-
 except ImportError:
     XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
-        super(LightningModule, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         #: Current dtype
         self.dtype = torch.FloatTensor
@@ -81,11 +81,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             x (object): The thing to print
 
         Examples:
-        .. code-block:: python
+            .. code-block:: python
 
-            # example if we were using this model as a feature extractor
-            def forward(self, x):
-                self.print(x, 'in loader')
+                # example if we were using this model as a feature extractor
+                def forward(self, x):
+                    self.print(x, 'in loader')
 
         """
         if self.trainer.proc_rank == 0:
@@ -97,7 +97,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Same as torch.nn.Module.forward(), however in Lightning you want this to define
         the  operations you want to use for prediction (ie: on a server or as a feature extractor).
 
-        Normally you'd call self.forward() from your training_step() method.
+        Normally you'd call self() from your training_step() method.
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
 
@@ -117,7 +117,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                 def training_step(self, batch, batch_idx):
                     x, y = batch
-                    feature_maps = self.forward(x)
+                    feature_maps = self(x)
                     logits = self.classifier(feature_maps)
 
                     # ...
@@ -171,7 +171,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y, z = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, x)
 
                     logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
@@ -220,6 +220,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             You can also return a -1 instead of a dict to stop the current loop. This is useful
              if you want to break out of the current training epoch early.
+
+        Notes:
+            The presented loss value in progress bar is smooth (average) over last values,
+             so it differs from values set in train/validation step.
         """
 
     def training_end(self, *args, **kwargs):
@@ -266,7 +270,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -277,7 +281,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def training_step_end(self, outputs):
@@ -288,7 +292,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def validation_step(self, *args, **kwargs) -> Dict[str, Tensor]:
@@ -302,7 +307,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(train_batch)
-                val_outs.append(out
+                val_outs.append(out)
                 validation_epoch_end(val_outs)
 
         Args:
@@ -341,7 +346,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, y)
 
                     # log 6 example images
@@ -412,7 +417,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -423,7 +428,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def validation_epoch_end(self, outputs):
@@ -434,7 +439,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def validation_end(self, outputs):
@@ -562,7 +568,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     x, y = batch
 
                     # implement your own
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.loss(out, y)
 
                     # log 6 example images
@@ -634,7 +640,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     loss = self.softmax(out)
                     loss = nce_loss(loss)
                     return {'loss': loss}
@@ -645,7 +651,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # batch is 1/num_gpus big
                     x, y = batch
 
-                    out = self.forward(x)
+                    out = self(x)
                     return {'out': out}
 
                 def test_step_end(self, outputs):
@@ -656,7 +662,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loss = nce_loss(loss)
                     return {'loss': loss}
 
-        .. seealso:: see the `multi-gpu guide for more details <multi_gpu.rst#caveats>`_.
+        .. seealso::
+            see the :ref:`multi-gpu-training` guide for more details.
         """
 
     def test_end(self, outputs):
@@ -859,7 +866,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
-        dist.init_process_group('nccl', rank=proc_rank, world_size=world_size)
+        torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(
             self,
@@ -942,28 +949,38 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-        Some things to know
+        Note:
+
+            Some things to know:
 
             - Lightning calls ``.backward()`` and ``.step()`` on each optimizer
-            and learning rate scheduler as needed.
+              and learning rate scheduler as needed.
 
             - If you use 16-bit precision (``precision=16``), Lightning will automatically
-            handle the optimizers for you.
+              handle the optimizers for you.
 
             - If you use multiple optimizers, training_step will have an additional
-            ``optimizer_idx`` parameter.
+              ``optimizer_idx`` parameter.
 
             - If you use LBFGS lightning handles the closure function automatically for you
 
             - If you use multiple optimizers, gradients will be calculated only
-            for the parameters of current optimizer at each training step.
+              for the parameters of current optimizer at each training step.
 
             - If you need to control how often those optimizers step or override the
-            default .step() schedule, override the `optimizer_step` hook.
+              default .step() schedule, override the `optimizer_step` hook.
 
             - If you only want to call a learning rate scheduler every `x` step or epoch,
-            you can input this as 'frequency' key: dict(scheduler=lr_scheduler,
-                                                        interval='step' or 'epoch', frequency=x)
+              or want to monitor a custom metric, you can specify these in a dictionary:
+
+              .. code-block:: python
+
+                  {
+                      'scheduler': lr_scheduler,
+                      'interval': 'step'  # or 'epoch'
+                      'monitor': 'val_f1',
+                      'frequency': x
+                  }
 
         """
         return Adam(self.parameters(), lr=1e-3)
@@ -1396,7 +1413,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = checkpoint.get('hparams_type') == 'namespace'
+                is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 warnings.warn(

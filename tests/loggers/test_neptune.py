@@ -1,20 +1,19 @@
 import pickle
-
 from unittest.mock import patch, MagicMock
 
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_neptune_logger(tmpdir):
     """Verify that basic functionality of neptune logger works."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     logger = NeptuneLogger(offline_mode=True)
 
@@ -103,7 +102,7 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     def _run_training(logger):

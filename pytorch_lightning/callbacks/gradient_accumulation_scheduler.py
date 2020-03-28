@@ -6,7 +6,7 @@ Change gradient accumulation factor according to scheduling.
 
 import warnings
 
-from .base import Callback
+from pytorch_lightning.callbacks.base import Callback
 
 
 class GradientAccumulationScheduler(Callback):
@@ -15,7 +15,9 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}
-            .. warning:: Epochs indexing starts from "1" until v0.6.x,
+
+            .. warning::
+                Epochs indexing starts from "1" until v0.6.x,
                 but will start from "0" in v0.8.0.
 
     Example::

@@ -7,7 +7,8 @@ Comet.ml
 `Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
 To use CometLogger as your logger do the following.
 
-.. note:: See: :ref:`comet` docs.
+.. seealso::
+    :class:`~pytorch_lightning.loggers.CometLogger` docs.
 
 .. code-block:: python
 
@@ -38,7 +39,8 @@ Neptune.ai
 `Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
 To use Neptune.ai as your logger do the following.
 
-.. note:: See: :ref:`neptune` docs.
+.. seealso::
+    :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
 
 .. code-block:: python
 
@@ -68,7 +70,8 @@ allegro.ai TRAINS
 `allegro.ai <https://github.com/allegroai/trains/>`_ is a third-party logger.
 To use TRAINS as your logger do the following.
 
-.. note:: See: :ref:`trains` docs.
+.. seealso::
+    :class:`~pytorch_lightning.loggers.TrainsLogger` docs.
 
 .. code-block:: python
 
@@ -95,7 +98,8 @@ Tensorboard
 
 To use `Tensorboard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
-.. note:: See: TensorBoardLogger :ref:`tf-logger`
+.. seealso::
+    :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
 
 .. code-block:: python
 
@@ -121,7 +125,8 @@ Test Tube
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a tensorboard logger but with nicer file structure.
 To use TestTube as your logger do the following.
 
-.. note:: See: TestTube :ref:`testTube`
+.. seealso::
+    :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
 
 .. code-block:: python
 
@@ -146,7 +151,8 @@ Wandb
 `Wandb <https://www.wandb.com/>`_ is a third-party logger.
 To use Wandb as your logger do the following.
 
-.. note:: See: :ref:`wandb` docs
+.. seealso::
+    :class:`~pytorch_lightning.loggers.WandbLogger` docs.
 
 .. code-block:: python
 
@@ -167,7 +173,7 @@ The Wandb logger is available anywhere except ``__init__`` in your LightningModu
 
 
 Multiple Loggers
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 PyTorch-Lightning supports use of multiple loggers, just pass a list to the `Trainer`.
 

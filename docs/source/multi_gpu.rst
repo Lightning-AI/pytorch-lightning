@@ -1,5 +1,7 @@
+.. _multi-gpu-training:
+
 Multi-GPU training
-===================
+==================
 Lightning supports multiple ways of doing distributed training.
 
 Preparing your code
@@ -205,7 +207,7 @@ to illustrate why this is needed, let's look at dataparallel
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(batch)
+        y_hat = self(batch)
 
         # on dp or ddp2 if we did softmax now it would be wrong
         # because batch is actually a piece of the full batch
@@ -235,7 +237,7 @@ Validation and test step also have the same option when using dp
             ...
 
 Implement Your Own Distributed (DDP) training
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
 
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.

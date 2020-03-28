@@ -25,7 +25,7 @@ from pytorch_lightning.trainer import Trainer
 
 class Generator(nn.Module):
     def __init__(self, latent_dim, img_shape):
-        super(Generator, self).__init__()
+        super().__init__()
         self.img_shape = img_shape
 
         def block(in_feat, out_feat, normalize=True):
@@ -52,7 +52,7 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
     def __init__(self, img_shape):
-        super(Discriminator, self).__init__()
+        super().__init__()
 
         self.model = nn.Sequential(
             nn.Linear(int(np.prod(img_shape)), 512),
@@ -73,7 +73,7 @@ class Discriminator(nn.Module):
 class GAN(LightningModule):
 
     def __init__(self, hparams):
-        super(GAN, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         # networks
@@ -105,7 +105,7 @@ class GAN(LightningModule):
                 z = z.cuda(imgs.device.index)
 
             # generate images
-            self.generated_imgs = self.forward(z)
+            self.generated_imgs = self(z)
 
             # log sampled images
             # sample_imgs = self.generated_imgs[:6]
@@ -179,7 +179,7 @@ class GAN(LightningModule):
             z = z.cuda(self.last_imgs.device.index)
 
         # log sampled images
-        sample_imgs = self.forward(z)
+        sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
         self.logger.experiment.add_image(f'generated_images', grid, self.current_epoch)
 

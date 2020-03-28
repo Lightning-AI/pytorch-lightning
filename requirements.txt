@@ -1,4 +1,6 @@
-tqdm>=4.35.0
+# the default package dependencies
+
+tqdm>=4.41.0
 numpy>=1.16.4
 torch>=1.1
 tensorboard>=1.14

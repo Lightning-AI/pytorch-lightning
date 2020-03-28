@@ -11,7 +11,8 @@ Enable Early Stopping
 ---------------------
 There are two ways to enable early stopping.
 
-.. note:: See: :ref:`trainer`
+.. seealso::
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
 .. code-block:: python
 
@@ -35,4 +36,5 @@ To disable early stopping pass ``False`` to the `early_stop_callback`.
 Note that ``None`` will not disable early stopping but will lead to the
 default behaviour.
 
-.. note:: See: :ref:`trainer`
+.. seealso::
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`

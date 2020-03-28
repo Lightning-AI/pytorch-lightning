@@ -1,17 +1,20 @@
+import math
 import warnings
 
+import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
 )
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightTrainDataloader,
     LightningTestModel,
     LightTestMixin,
+    LightValidationMixin
 )
 
 
@@ -26,14 +29,13 @@ def test_early_stopping_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        print_nan_grads=True,
         show_progress_bar=True,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1,
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -48,14 +50,13 @@ def test_lbfgs_cpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         max_epochs=2,
-        print_nan_grads=True,
         show_progress_bar=False,
         weights_summary='top',
         train_percent_check=1.0,
         val_percent_check=0.2,
     )
 
-    model, hparams = tutils.get_model(use_test_model=True, lbfgs=True)
+    model, hparams = tutils.get_default_model(lbfgs=True)
     tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
 
 
@@ -68,13 +69,12 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
-        print_nan_grads=True,
         show_progress_bar=False,
         train_percent_check=0.01,
         val_percent_check=0.01,
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test_no_loggers(trainer_options, model)
 
     # test freeze on cpu
@@ -86,11 +86,11 @@ def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -98,7 +98,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        max_epochs=4,
+        max_epochs=8,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -115,7 +115,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer)
+    tutils.assert_ok_model_acc(trainer, thr=0.35)
 
 
 def test_running_test_without_val(tmpdir):
@@ -125,11 +125,11 @@ def test_running_test_without_val(tmpdir):
     class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -155,6 +155,55 @@ def test_running_test_without_val(tmpdir):
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)
+
+
+def test_disabled_validation():
+    """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
+    tutils.reset_seed()
+
+    class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
+
+        validation_step_invoked = False
+        validation_end_invoked = False
+
+        def validation_step(self, *args, **kwargs):
+            self.validation_step_invoked = True
+            return super().validation_step(*args, **kwargs)
+
+        def validation_end(self, *args, **kwargs):
+            self.validation_end_invoked = True
+            return super().validation_end(*args, **kwargs)
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentModel(hparams)
+
+    trainer_options = dict(
+        show_progress_bar=False,
+        max_epochs=2,
+        train_percent_check=0.4,
+        val_percent_check=0.0,
+        fast_dev_run=False,
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # check that val_percent_check=0 turns off validation
+    assert result == 1, 'training failed to complete'
+    assert trainer.current_epoch == 1
+    assert not model.validation_step_invoked, '`validation_step` should not run when `val_percent_check=0`'
+    assert not model.validation_end_invoked, '`validation_end` should not run when `val_percent_check=0`'
+
+    # check that val_percent_check has no influence when fast_dev_run is turned on
+    model = CurrentModel(hparams)
+    trainer_options.update(fast_dev_run=True)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+    assert trainer.current_epoch == 0
+    assert model.validation_step_invoked, 'did not run `validation_step` with `fast_dev_run=True`'
+    assert model.validation_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
 
 
 def test_single_gpu_batch_parse():
@@ -205,7 +254,7 @@ def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
@@ -231,13 +280,13 @@ def test_cpu_model(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
@@ -251,16 +300,15 @@ def test_all_features_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        print_nan_grads=True,
         show_progress_bar=False,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -297,7 +345,7 @@ def test_tbptt_cpu_model(tmpdir):
             y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
-            pred = self.forward(x_tensor.view(batch_size, truncated_bptt_steps))
+            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
             loss_val = torch.nn.functional.mse_loss(
                 pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
@@ -322,7 +370,7 @@ def test_tbptt_cpu_model(tmpdir):
         early_stop_callback=False
     )
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     hparams.batch_size = batch_size
     hparams.in_features = truncated_bptt_steps
     hparams.hidden_dim = truncated_bptt_steps
@@ -345,7 +393,7 @@ def test_single_gpu_model(tmpdir):
         warnings.warn('test_single_gpu_model cannot run.'
                       ' Rerun on a GPU node to run this test')
         return
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     trainer_options = dict(
         default_save_path=tmpdir,
@@ -357,6 +405,64 @@ def test_single_gpu_model(tmpdir):
     )
 
     tutils.run_model_test(trainer_options, model)
+
+
+def test_nan_loss_detection(tmpdir):
+    test_step = 8
+
+    class InfLossModel(LightTrainDataloader, TestModelBase):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            if batch_idx == test_step:
+                if isinstance(output, dict):
+                    output['loss'] *= torch.tensor(math.inf)  # make loss infinite
+                else:
+                    output /= 0
+            return output
+
+    hparams = tutils.get_default_hparams()
+    model = InfLossModel(hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=(test_step + 1),
+    )
+
+    with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
+        trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    for param in model.parameters():
+        assert torch.isfinite(param).all()
+
+
+def test_nan_params_detection(tmpdir):
+    test_step = 8
+
+    class NanParamModel(LightTrainDataloader, TestModelBase):
+
+        def on_after_backward(self):
+            if self.global_step == test_step:
+                # simulate parameter that became nan
+                torch.nn.init.constant_(self.c_d1.bias, math.nan)
+
+    hparams = tutils.get_default_hparams()
+
+    model = NanParamModel(hparams)
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_steps=(test_step + 1),
+    )
+
+    with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
+        trainer.fit(model)
+        assert trainer.global_step == test_step
+
+    # after aborting the training loop, model still has nan-valued params
+    params = torch.cat([param.view(-1) for param in model.parameters()])
+    assert not torch.isfinite(params).all()
 
 
 # if __name__ == '__main__':

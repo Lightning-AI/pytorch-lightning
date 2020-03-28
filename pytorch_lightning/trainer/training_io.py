@@ -17,7 +17,7 @@ To modify the behavior of checkpointing pass in your own callback.
     # DEFAULTS used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_best_only=True,
+        save_top_k=1,
         verbose=True,
         monitor='val_loss',
         mode='min',
@@ -89,7 +89,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 """
 
-import logging as log
 import os
 import re
 import signal
@@ -100,8 +99,9 @@ from subprocess import call
 from typing import Union
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
@@ -177,7 +177,7 @@ class TrainerIOMixin(ABC):
         # wait for all models to restore weights
         if self.use_ddp or self.use_ddp2:
             # wait for all processes to catch up
-            dist.barrier()
+            torch_distrib.barrier()
 
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
@@ -206,7 +206,7 @@ class TrainerIOMixin(ABC):
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
-    def sig_handler(self, signum, frame):  # pragma: no cover
+    def sig_handler(self, signum, frame):  # pragma: no-cover
         if self.proc_rank == 0:
             # save weights
             log.info('handling SIGUSR1')

@@ -21,7 +21,7 @@ class LightValidationStepMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -114,7 +114,7 @@ class LightValidationStepMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -273,7 +273,7 @@ class LightTestStepMixin(LightTestDataloader):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -360,7 +360,7 @@ class LightTestStepMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -413,7 +413,7 @@ class LightTestFitSingleTestDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -460,7 +460,7 @@ class LightTestFitMultipleTestDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -512,7 +512,7 @@ class LightValStepFitSingleDataloaderMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -558,7 +558,7 @@ class LightValStepFitMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -676,6 +676,16 @@ class LightTestOptimizersWithMixedSchedulingMixin:
 
         return [optimizer1, optimizer2], \
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
+
+
+class LightTestReduceLROnPlateauMixin:
+    def configure_optimizers(self):
+        if self.hparams.optimizer_name == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
+        else:
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        return [optimizer], [lr_scheduler]
 
 
 def _get_output_metric(output, name):

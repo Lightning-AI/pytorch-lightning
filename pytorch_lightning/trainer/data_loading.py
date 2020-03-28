@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch.utils.data import SequentialSampler, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
@@ -224,7 +224,7 @@ class TrainerDataLoadingMixin(ABC):
         # get the function we'll use to get data
         if self.use_ddp or self.use_ddp2:
             # all processes wait until data download has happened
-            dist.barrier()
+            torch_distrib.barrier()
 
         # data download/load on TPU
         elif self.use_tpu and XLA_AVAILABLE:
