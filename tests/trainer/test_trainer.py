@@ -363,8 +363,8 @@ def test_model_checkpoint_options(tmpdir):
     trainer = Trainer()
 
     # emulate callback's calls during the training
-    for loss in losses:
-        trainer.current_epoch = 0
+    for i, loss in enumerate(losses):
+        trainer.current_epoch = i
         trainer.callback_metrics = {'val_loss': loss}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
@@ -384,17 +384,17 @@ def test_model_checkpoint_options(tmpdir):
     trainer = Trainer()
 
     # emulate callback's calls during the training
-    for loss in losses:
-        trainer.current_epoch = 0
+    for i, loss in enumerate(losses):
+        trainer.current_epoch = i
         trainer.callback_metrics = {'val_loss': loss}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(save_dir))
 
     assert len(file_lists) == 3, 'Should save 3 models when save_top_k=3'
-    for fname in {'epoch=0.ckpt',
-                  'epoch=0.ckpt',
-                  'epoch=0.ckpt'}:
+    for fname in {'epoch=2.ckpt',
+                  'epoch=3.ckpt',
+                  'epoch=4.ckpt'}:
         assert fname in file_lists
 
 
