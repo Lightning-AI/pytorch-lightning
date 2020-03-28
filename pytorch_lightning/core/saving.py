@@ -1,5 +1,8 @@
+import ast
+import collections
 import csv
 import os
+import yaml
 from argparse import Namespace
 from typing import Union, Dict, Any
 
@@ -79,30 +82,31 @@ def update_hparams(hparams: dict, updates: dict) -> None:
             hparams.update({k: v})
 
 
-def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
+def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')
-        return Namespace()
+        return {}
 
     with open(tags_csv) as f:
         csv_reader = csv.reader(f, delimiter=',')
         tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
-    ns = Namespace(**tags)
-    return ns
+
+    return tags
+
+
+def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+    if not os.path.isfile(config_yaml):
+        log.warning(f'Missing Tags: {config_yaml}.')
+        return {}
+
+    with open(config_yaml) as f:
+       tags = yaml.load(f, Loader=yaml.SafeLoader)
+
+    return tags
 
 
 def convert(val: str) -> Union[int, float, bool, str]:
-    constructors = [int, float, str]
-
-    if isinstance(val, str):
-        if val.lower() == 'true':
-            return True
-        if val.lower() == 'false':
-            return False
-
-    for c in constructors:
-        try:
-            return c(val)
-        except ValueError:
-            pass
-    return val
+    try:
+        return ast.literal_eval(val)
+    except ValueError:
+        return val

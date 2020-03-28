@@ -5,6 +5,7 @@ TensorBoard
 
 import csv
 import os
+import yaml
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 from warnings import warn
@@ -42,7 +43,6 @@ class TensorBoardLogger(LightningLoggerBase):
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
-    NAME_CSV_TAGS = 'meta_tags.csv'
 
     def __init__(self,
                  save_dir: str,
@@ -55,8 +55,8 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
 
         self._experiment = None
-        self.tags = {}
-        self._kwargs = kwargs
+        self.hparams = {}
+        self.kwargs = kwargs
 
     @property
     def root_dir(self) -> str:
@@ -104,8 +104,13 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
                         metrics: Optional[Dict[str, Any]] = None) -> None:
         params = self._convert_params(params)
+
+        # store params to output
+        self.hparams.update(params)
+
+        # format params into the suitable for tensorboard
         params = self._flatten_dict(params)
-        sanitized_params = self._sanitize_params(params)
+        params = self._sanitize_params(params)
 
         if parse_version(torch.__version__) < parse_version("1.3.0"):
             warn(
@@ -118,7 +123,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
             if metrics is None:
                 metrics = {}
-            exp, ssi, sei = hparams(sanitized_params, metrics)
+            exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
@@ -127,9 +132,6 @@ class TensorBoardLogger(LightningLoggerBase):
             if metrics:
                 # necessary for hparam comparison with metrics
                 self.log_metrics(metrics)
-
-        # some alternative should be added
-        self.tags.update(sanitized_params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -152,15 +154,11 @@ class TensorBoardLogger(LightningLoggerBase):
             dir_path = self.save_dir
 
         # prepare the file path
-        meta_tags_path = os.path.join(dir_path, self.NAME_CSV_TAGS)
+        hparams_file = os.path.join(dir_path, 'hparams.yaml')
 
         # save the metatags file
-        with open(meta_tags_path, 'w', newline='') as csvfile:
-            fieldnames = ['key', 'value']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({'key': 'key', 'value': 'value'})
-            for k, v in self.tags.items():
-                writer.writerow({'key': k, 'value': v})
+        with open(hparams_file, 'w', newline='') as f:
+            yaml.dump(self.hparams, f)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
