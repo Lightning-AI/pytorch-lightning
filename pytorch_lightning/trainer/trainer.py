@@ -490,6 +490,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
               (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
