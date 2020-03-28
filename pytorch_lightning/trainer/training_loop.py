@@ -473,7 +473,8 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-        if not self.is_overriden('validation_step'):
+        # in case validation step is missing and you are not running fast-dev to duplicate last batch
+        if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
 
             if self.enable_early_stop:
