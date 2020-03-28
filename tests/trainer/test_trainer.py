@@ -248,7 +248,6 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-
 @pytest.mark.parametrize(["save_top_k", "file_prefix", "expected_files"], [
     pytest.param(-1, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
                  id="CASE K=-1  (all)"),
