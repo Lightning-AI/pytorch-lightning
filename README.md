@@ -353,6 +353,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jirka Borovec [(Borda)](https://github.com/Borda) (ghost :)
 - Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
 - Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
+- Justus Schock [(justusschock)](https://github.com/justusschock) (Former Core Member PyTorch Ignite)
 
 #### Core Maintainers
 
