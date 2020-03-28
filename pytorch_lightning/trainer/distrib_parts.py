@@ -459,7 +459,9 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        opts = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
+
 
         if self.use_amp:
             # An example
@@ -485,7 +487,9 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        opts = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
+
 
         # init 16 bit for TPU
         if self.precision == 16:
@@ -504,7 +508,8 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        opts = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
 
         model.cuda(self.root_gpu)
 
