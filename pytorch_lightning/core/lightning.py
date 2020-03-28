@@ -799,7 +799,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             proc_rank: The current process rank within the node.
-            world_size: Number of GPUs being use across all nodes. (num_nodes*nb_gpu_nodes).
+            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
 
         Examples:
             .. code-block:: python
