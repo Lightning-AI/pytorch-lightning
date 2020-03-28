@@ -336,7 +336,8 @@ class TrainerIOMixin(ABC):
             elif checkpoint['hparams_type'] == 'Namespace':
                 checkpoint['hparams'] = vars(model.hparams)
             else:
-                raise ValueError('The acceptable hparams type is dict or argparse.Namespace.')
+                raise ValueError(
+                    f'The acceptable hparams type is dict or argparse.Namespace, not {checkpoint["hparams_type"]}')
         else:
             warnings.warn(
                 "Did not find hyperparameters at model.hparams. Saving checkpoint without"
