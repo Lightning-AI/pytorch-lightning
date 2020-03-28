@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 

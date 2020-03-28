@@ -9,7 +9,7 @@ import torch
 from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -18,28 +18,24 @@ class TensorBoardLogger(LightningLoggerBase):
     Log to local file system in TensorBoard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
-    `os.path.join(save_dir, name, version)`
+    ``os.path.join(save_dir, name, version)``
 
-    .. _tf-logger:
+    Example:
+        .. code-block:: python
 
-    Example
-    ------------------
-
-    .. code-block:: python
-
-        logger = TensorBoardLogger("tb_logs", name="my_model")
-        trainer = Trainer(logger=logger)
-        trainer.train(model)
+            logger = TensorBoardLogger("tb_logs", name="my_model")
+            trainer = Trainer(logger=logger)
+            trainer.train(model)
 
     Args:
-        save_dir (str): Save directory
-        name (str): Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
+        save_dir: Save directory
+        name: Experiment name. Defaults to "default".  If it is the empty string then no per-experiment
             subdirectory is used.
-        version (int|str): Experiment version. If version is not specified the logger inspects the save
+        version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise version_${version} is used.
-        \**kwargs  (dict): Other arguments are passed directly to the :class:`SummaryWriter` constructor.
+        \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
 

@@ -1,10 +1,10 @@
 import pickle
 from unittest.mock import MagicMock
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, rank_zero_only, LoggerCollection
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_logger_collection():
@@ -57,7 +57,7 @@ class CustomLogger(LightningLoggerBase):
 
 
 def test_custom_logger(tmpdir):
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     logger = CustomLogger()
@@ -78,7 +78,7 @@ def test_custom_logger(tmpdir):
 
 
 def test_multiple_loggers(tmpdir):
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     logger1 = CustomLogger()
@@ -137,14 +137,14 @@ def test_adding_step_key(tmpdir):
 
         return decorated
 
-    model, hparams = tutils.get_model()
-    model.validation_end = _validation_end
+    model, hparams = tutils.get_default_model()
+    model.validation_epoch_end = _validation_end
     trainer_options = dict(
         max_epochs=4,
         default_save_path=tmpdir,
         train_percent_check=0.001,
         val_percent_check=0.01,
-        num_sanity_val_steps=0
+        num_sanity_val_steps=0,
     )
     trainer = Trainer(**trainer_options)
     trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)

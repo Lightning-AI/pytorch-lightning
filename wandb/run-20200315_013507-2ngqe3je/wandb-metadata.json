@@ -1,0 +1,26 @@
+{
+    "root": "/home/ubuntu/pytorch-lightning",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/S-aiueo32/pytorch-lightning.git",
+        "commit": "fc7fe7c7df076b36170323b4a703447895c43b47"
+    },
+    "email": "s.aiueo32@gmail.com",
+    "startedAt": "2020-03-15T01:35:07.838227",
+    "host": "ip-172-31-4-111",
+    "username": "ubuntu",
+    "executable": "/home/ubuntu/.local/share/virtualenvs/pytorch-lightning-b7N5Sd-S/bin/python3.7",
+    "os": "Linux-4.4.0-1102-aws-x86_64-with-debian-stretch-sid",
+    "python": "3.7.4",
+    "gpu": "Tesla K80",
+    "gpu_count": 1,
+    "cpu_count": 4,
+    "cuda": "10.0.130",
+    "args": [],
+    "state": "running",
+    "jobType": null,
+    "mode": "run",
+    "name": "dauntless-microwave-5",
+    "project": "pl-dev",
+    "heartbeatAt": "2020-03-15T01:35:09.406494"
+}

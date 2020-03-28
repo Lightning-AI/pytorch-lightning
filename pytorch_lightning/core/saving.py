@@ -1,11 +1,12 @@
 import ast
 import collections
 import csv
-import logging as log
 import os
 import yaml
 from argparse import Namespace
 from typing import Union, Dict, Any, List
+
+from pytorch_lightning import _logger as log
 
 
 class ModelIO(object):

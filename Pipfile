@@ -1,0 +1,26 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipython = "*"
+jupyterlab = "*"
+pylint = "*"
+
+[packages]
+tqdm = ">=4.35.0"
+numpy = ">=1.16.4"
+torch = ">=1.1"
+tensorboard = ">=1.14"
+future = ">=0.17.1"
+neptune-client = ">=0.4.4"
+comet-ml = ">=1.0.56"
+mlflow = ">=1.0.0"
+test-tube = ">=0.7.5"
+wandb = ">=0.8.21"
+hydra-core = "*"
+torchvision = "*"
+
+[requires]
+python_version = "3.7"

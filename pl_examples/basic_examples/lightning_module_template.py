@@ -1,7 +1,6 @@
 """
 Example template for defining a system
 """
-import logging as log
 import os
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -14,12 +13,30 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 
 
 class LightningTemplateModel(LightningModule):
     """
-    Sample model to show how to define a template
+    Sample model to show how to define a template.
+
+    Example:
+
+        >>> # define simple Net for MNIST dataset
+        >>> params = dict(
+        ...     drop_prob=0.2,
+        ...     batch_size=2,
+        ...     in_features=28 * 28,
+        ...     learning_rate=0.001 * 8,
+        ...     optimizer_name='adam',
+        ...     data_root='./datasets',
+        ...     out_features=10,
+        ...     hidden_dim=1000,
+        ... )
+        >>> from argparse import Namespace
+        >>> hparams = Namespace(**params)
+        >>> model = LightningTemplateModel(hparams)
     """
 
     def __init__(self, hparams):
@@ -28,7 +45,7 @@ class LightningTemplateModel(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTemplateModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -89,7 +106,7 @@ class LightningTemplateModel(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
@@ -116,7 +133,7 @@ class LightningTemplateModel(LightningModule):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -225,7 +242,7 @@ class LightningTemplateModel(LightningModule):
         return self.__dataloader(train=False)
 
     @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no cover
+    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
         Parameters you define here will be available to your model through self.hparams
         :param parent_parser:

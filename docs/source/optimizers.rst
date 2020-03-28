@@ -19,6 +19,20 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    def configure_optimizers(self):
       return [Adam(...), SGD(...)], [ReduceLROnPlateau(), LambdaLR()]
 
+   # Same as above with additional params passed to the first scheduler
+   def configure_optimizers(self):
+      optimizers = [Adam(...), SGD(...)]
+      schedulers = [
+         {
+            'scheduler': ReduceLROnPlateau(mode='max', patience=7),
+            'monitor': 'val_recall', # Default: val_loss
+            'interval': 'epoch',
+            'frequency': 1
+         },
+         LambdaLR()
+      ]
+      return optimizers, schedulers
+
 
 Use multiple optimizers (like GANs)
 -------------------------------------

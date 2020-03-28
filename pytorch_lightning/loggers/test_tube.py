@@ -3,11 +3,11 @@ from typing import Optional, Dict, Any, Union
 
 try:
     from test_tube import Experiment
-except ImportError:
-    raise ImportError('You want to use `test_tube` logger which is not installed yet,'
+except ImportError:  # pragma: no-cover
+    raise ImportError('You want to use `test_tube` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install test-tube`.')
 
-from .base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -23,8 +23,6 @@ class TestTubeLogger(LightningLoggerBase):
             debug: bool = False, version: Optional[int] = None, create_git_tag: bool = False
     ):
         r"""
-
-        .. _testTube:
 
         Example
         ----------

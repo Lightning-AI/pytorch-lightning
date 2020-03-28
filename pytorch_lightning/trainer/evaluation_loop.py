@@ -124,15 +124,17 @@ In this second case, the options you pass to trainer will be used when running
 """
 
 import sys
+import warnings
 from abc import ABC, abstractmethod
+from pprint import pprint
 from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-import warnings
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 
 try:
@@ -215,14 +217,14 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def evaluate(self, model, dataloaders, max_batches, test_mode: bool = False):
+    def evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
         """Run evaluation code.
 
-        :param model: PT model
-        :param dataloaders: list of PT dataloaders
-        :param max_batches: Scalar
-        :param test_mode
-        :return:
+        Args:
+            model: PT model
+            dataloaders: list of PT dataloaders
+            max_batches: Scalar
+            test_mode:
         """
         # enable eval mode
         model.zero_grad()
@@ -248,7 +250,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = dataloader.per_device_loader(device)
 
             for batch_idx, batch in enumerate(dataloader):
-                if batch is None:  # pragma: no cover
+                if batch is None:
                     continue
 
                 # stop short when on fast_dev_run (sets max_batch=1)
@@ -291,24 +293,23 @@ class TrainerEvaluationLoopMixin(ABC):
             outputs = outputs[0]
 
         # give model a chance to do something with the outputs (and method defined)
-        model = self.get_model()
+        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
+            model = model.module
 
-        if test_mode and self.is_overriden('test_epoch_end'):
-            eval_results = model.test_epoch_end(outputs)
-        elif self.is_overriden('validation_epoch_end'):
-            eval_results = model.validation_epoch_end(outputs)
-
-        # TODO: remove in v 1.0.0
-        if test_mode and self.is_overriden('test_end'):
+        # TODO: remove in v1.0.0
+        if test_mode and self.is_overriden('test_end', model=model):
             eval_results = model.test_end(outputs)
-            m = 'test_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use test_epoch_end instead.'
-            warnings.warn(m, DeprecationWarning)
-        elif self.is_overriden('validation_end'):
+            warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use `test_epoch_end` instead.', DeprecationWarning)
+        elif self.is_overriden('validation_end', model=model):
             eval_results = model.validation_end(outputs)
-            m = 'validation_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use validation_epoch_end instead.'
-            warnings.warn(m, DeprecationWarning)
+            warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use `validation_epoch_end` instead.', DeprecationWarning)
+
+        if test_mode and self.is_overriden('test_epoch_end', model=model):
+            eval_results = model.test_epoch_end(outputs)
+        elif self.is_overriden('validation_epoch_end', model=model):
+            eval_results = model.validation_epoch_end(outputs)
 
         # enable train mode again
         model.train()
@@ -376,7 +377,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.proc_rank == 0:
                 print('-' * 100)
                 print('TEST RESULTS')
-                print(prog_bar_metrics)
+                pprint(prog_bar_metrics)
                 print('-' * 100)
 
         # log metrics

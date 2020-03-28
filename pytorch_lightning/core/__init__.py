@@ -74,7 +74,7 @@ Here are the only required methods.
     class LitModel(pl.LightningModule):
 
         def __init__(self):
-            super(LitModel, self).__init__()
+            super().__init__()
             self.l1 = torch.nn.Linear(28 * 28, 10)
 
         def forward(self, x):
@@ -82,7 +82,7 @@ Here are the only required methods.
 
         def training_step(self, batch, batch_idx):
             x, y = batch
-            y_hat = self.forward(x)
+            y_hat = self(x)
             return {'loss': F.cross_entropy(y_hat, y)}
 
         def train_dataloader(self):
@@ -107,9 +107,10 @@ Training loop structure
 -----------------------
 
 The general pattern is that each loop (training, validation, test loop)
-has 2 methods:
+has 3 methods:
 
 - ``` ___step ```
+- ``` ___step_end ```
 - ``` ___epoch_end```
 
 To show how lightning calls these, let's use the validation loop as an example
@@ -126,6 +127,28 @@ To show how lightning calls these, let's use the validation loop as an example
     # like calculate validation set accuracy or loss
     validation_epoch_end(val_outs)
 
+if we use dp or ddp2 mode, we can also define the ```XXX_step_end``` method to operate
+on all parts of the batch
+
+.. code-block:: python
+
+    val_outs = []
+    for val_batch in val_data:
+        batches = split_batch(val_batch)
+        dp_outs = []
+        for sub_batch in batches:
+            dp_out = validation_step(sub_batch)
+            dp_outs.append(dp_out)
+
+        out = validation_step_end(dp_outs)
+        val_outs.append(out)
+
+    # do something with the outputs for all batches
+    # like calculate validation set accuracy or loss
+    validation_epoch_end(val_outs)
+
+.. note:: ```training_step_end``` is not available yet but coming in the next release.
+
 Add validation loop
 ^^^^^^^^^^^^^^^^^^^
 
@@ -136,7 +159,7 @@ Thus, if we wanted to add a validation loop you would add this to your Lightning
         class LitModel(pl.LightningModule):
             def validation_step(self, batch, batch_idx):
                 x, y = batch
-                y_hat = self.forward(x)
+                y_hat = self(x)
                 return {'val_loss': F.cross_entropy(y_hat, y)}
 
             def validation_epoch_end(self, outputs):
@@ -155,7 +178,7 @@ Add test loop
         class LitModel(pl.LightningModule):
             def test_step(self, batch, batch_idx):
                 x, y = batch
-                y_hat = self.forward(x)
+                y_hat = self(x)
                 return {'test_loss': F.cross_entropy(y_hat, y)}
 
             def test_epoch_end(self, outputs):
@@ -312,8 +335,8 @@ LightningModule Class
 
 """
 
-from .decorators import data_loader
-from .lightning import LightningModule
+from pytorch_lightning.core.decorators import data_loader
+from pytorch_lightning.core.lightning import LightningModule
 
 __all__ = ['LightningModule', 'data_loader']
 # __call__ = __all__

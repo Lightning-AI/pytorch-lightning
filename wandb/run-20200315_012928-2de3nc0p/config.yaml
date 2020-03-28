@@ -1,0 +1,11 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.8.29
+    is_jupyter_run: true
+    python_version: 3.7.4
+foo:
+  desc: null
+  value: Namespace(bar='buzz')

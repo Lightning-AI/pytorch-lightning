@@ -1,0 +1,99 @@
+diff --git a/pytorch_lightning/loggers/base.py b/pytorch_lightning/loggers/base.py
+index 127afee..d832216 100644
+--- a/pytorch_lightning/loggers/base.py
++++ b/pytorch_lightning/loggers/base.py
+@@ -60,6 +60,15 @@ class LightningLoggerBase(ABC):
+ 
+     @staticmethod
+     def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
++        """Flatten hierarchical dict e.g. {'a': {'b': 'c'}} -> {'a/b': 'c'}.
++
++        Args:
++            params: Dictionary contains hparams
++            delimiter: Delimiter to express the hierarchy. Defaults to '/'.
++
++        Returns:
++            Flatten dict.
++        """
+ 
+         def _dict_generator(_dict, prefixes=None):
+             prefixes = prefixes[:] if prefixes else []
+diff --git a/pytorch_lightning/loggers/comet.py b/pytorch_lightning/loggers/comet.py
+index a7e8118..34bd249 100644
+--- a/pytorch_lightning/loggers/comet.py
++++ b/pytorch_lightning/loggers/comet.py
+@@ -163,6 +163,7 @@ class CometLogger(LightningLoggerBase):
+     @rank_zero_only
+     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+         params = self._convert_params(params)
++        params = self._flatten_dict(params)
+         self.experiment.log_parameters(params)
+ 
+     @rank_zero_only
+diff --git a/pytorch_lightning/loggers/mlflow.py b/pytorch_lightning/loggers/mlflow.py
+index ed878a0..b6449f4 100644
+--- a/pytorch_lightning/loggers/mlflow.py
++++ b/pytorch_lightning/loggers/mlflow.py
+@@ -88,6 +88,7 @@ class MLFlowLogger(LightningLoggerBase):
+     @rank_zero_only
+     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+         params = self._convert_params(params)
++        params = self._flatten_dict(params)
+         for k, v in params.items():
+             self.experiment.log_param(self.run_id, k, v)
+ 
+diff --git a/pytorch_lightning/loggers/neptune.py b/pytorch_lightning/loggers/neptune.py
+index 372d215..08f9613 100644
+--- a/pytorch_lightning/loggers/neptune.py
++++ b/pytorch_lightning/loggers/neptune.py
+@@ -222,6 +222,7 @@ class NeptuneLogger(LightningLoggerBase):
+     @rank_zero_only
+     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+         params = self._convert_params(params)
++        params = self._flatten_dict(params)
+         for key, val in params.items():
+             self.experiment.set_property(f'param__{key}', val)
+ 
+diff --git a/pytorch_lightning/loggers/tensorboard.py b/pytorch_lightning/loggers/tensorboard.py
+index 662ecdf..864c3ee 100644
+--- a/pytorch_lightning/loggers/tensorboard.py
++++ b/pytorch_lightning/loggers/tensorboard.py
+@@ -101,6 +101,7 @@ class TensorBoardLogger(LightningLoggerBase):
+     @rank_zero_only
+     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+         params = self._convert_params(params)
++        params = self._flatten_dict(params)
+         sanitized_params = self._sanitize_params(params)
+ 
+         if parse_version(torch.__version__) < parse_version("1.3.0"):
+diff --git a/pytorch_lightning/loggers/test_tube.py b/pytorch_lightning/loggers/test_tube.py
+index fbb57de..7d99fca 100644
+--- a/pytorch_lightning/loggers/test_tube.py
++++ b/pytorch_lightning/loggers/test_tube.py
+@@ -96,6 +96,7 @@ class TestTubeLogger(LightningLoggerBase):
+         # TODO: HACK figure out where this is being set to true
+         self.experiment.debug = self.debug
+         params = self._convert_params(params)
++        params = self._flatten_dict(params)
+         self.experiment.argparse(Namespace(**params))
+ 
+     @rank_zero_only
+diff --git a/pytorch_lightning/loggers/trains.py b/pytorch_lightning/loggers/trains.py
+index a56c6c1..c30dc52 100644
+--- a/pytorch_lightning/loggers/trains.py
++++ b/pytorch_lightning/loggers/trains.py
+@@ -105,10 +105,10 @@ class TrainsLogger(LightningLoggerBase):
+             return None
+         if not params:
+             return
+-        if isinstance(params, dict):
+-            self._trains.connect(params)
+-        else:
+-            self._trains.connect(vars(params))
++
++        params = self._convert_params(params)
++        params = self._flatten_dict(params)
++        self._trains.connect(params)
+ 
+     @rank_zero_only
+     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:

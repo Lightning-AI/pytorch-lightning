@@ -1,0 +1,26 @@
+{
+    "root": "/home/ubuntu/pytorch-lightning",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/S-aiueo32/pytorch-lightning.git",
+        "commit": "29ae37c78ca279a3e9ae2924389d5a981b0abd5a"
+    },
+    "email": "s.aiueo32@gmail.com",
+    "startedAt": "2020-03-14T15:23:05.834250",
+    "host": "ip-172-31-4-111",
+    "username": "ubuntu",
+    "executable": "/home/ubuntu/.local/share/virtualenvs/pytorch-lightning-b7N5Sd-S/bin/python3.7",
+    "os": "Linux-4.4.0-1102-aws-x86_64-with-debian-stretch-sid",
+    "python": "3.7.4",
+    "gpu": "Tesla K80",
+    "gpu_count": 1,
+    "cpu_count": 4,
+    "cuda": "10.0.130",
+    "args": [],
+    "state": "running",
+    "jobType": null,
+    "mode": "run",
+    "name": "cinnamon-tart-1",
+    "project": "pl-dev",
+    "heartbeatAt": "2020-03-14T15:23:06.935229"
+}

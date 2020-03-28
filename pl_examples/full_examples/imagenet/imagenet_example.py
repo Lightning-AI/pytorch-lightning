@@ -33,7 +33,7 @@ class ImageNetLightningModel(LightningModule):
         """
         TODO: add docstring here
         """
-        super(ImageNetLightningModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
         self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
 
@@ -42,7 +42,7 @@ class ImageNetLightningModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, target = batch
-        output = self.forward(images)
+        output = self(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
@@ -65,7 +65,7 @@ class ImageNetLightningModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         images, target = batch
-        output = self.forward(images)
+        output = self(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
@@ -181,7 +181,7 @@ class ImageNetLightningModel(LightningModule):
         return val_loader
 
     @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no cover
+    def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = argparse.ArgumentParser(parents=[parent_parser])
         parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18', choices=MODEL_NAMES,
                             help='model architecture: ' +
