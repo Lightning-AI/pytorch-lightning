@@ -63,7 +63,7 @@ def test_multi_gpu_model_ddp(tmpdir):
 
 
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
-    """Make sure DDP works with dataloaders passed to fit()"""
+    """Make sure DDP works with dataloaders passed to `fit()`."""
     if not tutils.can_run_gpu_test():
         return
 

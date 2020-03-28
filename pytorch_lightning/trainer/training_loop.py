@@ -699,20 +699,20 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            m = 'training_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use training_epoch_end instead'
-            warnings.warn(m, DeprecationWarning)
+            warnings.warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use training_epoch_end instead', DeprecationWarning)
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
         return output
 
-    def update_learning_rates(self, interval):
-        ''' Update learning rates
+    def update_learning_rates(self, interval: str):
+        """Update learning rates.
+
         Args:
-            interval (str): either 'epoch' or 'step'.
-        '''
+            interval: either 'epoch' or 'step'.
+        """
         if not self.lr_schedulers:
             return
 
@@ -728,10 +728,11 @@ class TrainerTrainLoopMixin(ABC):
                     monitor_val = self.callback_metrics.get(monitor_key)
                     if monitor_val is None:
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
-                            f'which is not available. Available metrics are: {avail_metrics}. ' \
-                            'Condition can be set using `monitor` key in lr scheduler dict'
-                        raise MisconfigurationException(m)
+                        raise MisconfigurationException(
+                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                            f' which is not available. Available metrics are: {avail_metrics}.'
+                            ' Condition can be set using `monitor` key in lr scheduler dict'
+                        )
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()

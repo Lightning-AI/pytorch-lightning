@@ -327,11 +327,8 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 1
             self.max_epochs = 1
-            m = '''
-            Running in fast_dev_run mode: will run a full train,
-            val loop using a single batch
-            '''
-            log.info(m)
+            log.info('Running in fast_dev_run mode: will run a full train,'
+                     ' val loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -739,22 +736,22 @@ class Trainer(
         # functions to overwrite with these implementations
         if train_dataloader is not None:
             if not self.is_overriden('training_step', model):
-                m = 'You called .fit() with a train_dataloader but did not define training_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `train_dataloader` but did not define `training_step()`')
 
             model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             if not self.is_overriden('validation_step', model):
-                m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `val_dataloaders` but did not define `validation_step()`')
 
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
             if not self.is_overriden('test_step', model):
-                m = 'You called .fit() with a test_dataloaders but did not define test_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `test_dataloaders` but did not define `test_step()`')
 
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
@@ -855,8 +852,7 @@ class Trainer(
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                m = "weights_summary can be None, 'full' or 'top'"
-                raise MisconfigurationException(m)
+                raise MisconfigurationException("weights_summary can be None, 'full' or 'top'")
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights

@@ -128,11 +128,12 @@ class AdvancedProfiler(BaseProfiler):
 
     def __init__(self, output_filename=None, line_count_restriction=1.0):
         """
-        :param output_filename (str): optionally save profile results to file instead of printing
-            to std out when training is finished.
-        :param line_count_restriction (int|float): this can be used to limit the number of functions
-            reported for each action. either an integer (to select a count of lines),
-            or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+        Args:
+            output_filename: optionally save profile results to file instead of printing
+                to std out when training is finished.
+            line_count_restriction: this can be used to limit the number of functions
+                reported for each action. either an integer (to select a count of lines),
+                or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
         """
         self.profiled_actions = {}
         self.output_filename = output_filename

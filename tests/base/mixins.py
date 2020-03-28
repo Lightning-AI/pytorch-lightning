@@ -14,11 +14,7 @@ class LightValidationStepMixin:
         return self._dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        """
-        Lightning calls this inside the validation loop
-        :param batch:
-        :return:
-        """
+        """Lightning calls this inside the validation loop."""
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)
@@ -66,8 +62,9 @@ class LightValidationMixin(LightValidationStepMixin):
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
+
+        Args:
+            outputs: list of individual outputs of each validation step
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
