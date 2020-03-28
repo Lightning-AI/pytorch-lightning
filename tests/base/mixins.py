@@ -206,6 +206,13 @@ class LightTrainDataloader:
         return self._dataloader(train=True)
 
 
+class LightValidationDataloader:
+    """Simple validation dataloader."""
+
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+
 class LightTestDataloader:
     """Simple test dataloader."""
 

@@ -18,6 +18,7 @@ from tests.base.mixins import (
     LightValStepFitSingleDataloaderMixin,
     LightValStepFitMultipleDataloadersMixin,
     LightTrainDataloader,
+    LightValidationDataloader,
     LightTestDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
@@ -25,7 +26,7 @@ from tests.base.mixins import (
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
-    LightTestReduceLROnPlateauMixin
+    LightTestReduceLROnPlateauMixin,
 )
 
 
