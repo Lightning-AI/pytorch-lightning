@@ -462,7 +462,6 @@ class TrainerDPMixin(ABC):
         opts = self.init_optimizers(model.configure_optimizers())
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
 
-
         if self.use_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
@@ -489,7 +488,6 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         opts = self.init_optimizers(model.configure_optimizers())
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = opts
-
 
         # init 16 bit for TPU
         if self.precision == 16:

@@ -770,11 +770,7 @@ class Trainer(
             return [optim_conf], [], []
 
         # two lists, optimizer + lr schedulers
-        elif (
-            isinstance(optim_conf, (list, tuple)) and
-            len(optim_conf) == 2 and
-            isinstance(optim_conf[0], list)
-        ):
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
             optimizers, lr_schedulers = optim_conf
             lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers, []
@@ -788,10 +784,7 @@ class Trainer(
             return [optimizer], lr_schedulers, []
 
         # multiple dictionaries
-        elif (
-            isinstance(optim_conf, (list, tuple)) and
-            isinstance(optim_conf[0], dict)
-        ):
+        elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
             optimizers, lr_schedulers, optimizer_frequencies = [], [], []
             for optimizer_dict in optim_conf:
                 optimizers.append(optimizer_dict["optimizer"])
@@ -1010,6 +1003,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
