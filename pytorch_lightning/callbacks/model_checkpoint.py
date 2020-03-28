@@ -180,11 +180,11 @@ class ModelCheckpoint(Callback):
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
-
         if self.save_top_k == 0:
             # no models are saved
             return
-        if self.epoch_last_check and (self.epoch_last_check - epoch) < self.period:
+        if self.epoch_last_check is not None and (epoch - self.epoch_last_check) < self.period:
+            # skipping in this term
             return
 
         self.epoch_last_check = epoch
@@ -200,17 +200,11 @@ class ModelCheckpoint(Callback):
             current = metrics.get(self.monitor)
 
             if current is None:
-                warnings.warn(
-                    f'Can save best model only with {self.monitor} available,'
-                    ' skipping.', RuntimeWarning)
-            else:
-                if self.check_monitor_top_k(current):
-                    self._do_check_save(filepath, current, epoch)
-                else:
-                    if self.verbose > 0:
-                        log.info(
-                            f'\nEpoch {epoch:05d}: {self.monitor}'
-                            f' was not in top {self.save_top_k}')
+                warnings.warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
+            elif self.check_monitor_top_k(current):
+                self._do_check_save(filepath, current, epoch)
+            elif self.verbose > 0:
+                log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
 
         else:
             if self.verbose > 0:

@@ -452,8 +452,7 @@ class TrainerTrainLoopMixin(ABC):
             # CHECKPOINTING, EARLY STOPPING
             # ---------------
             # save checkpoint even when no test or val step are defined
-            train_step_only = not self.is_overriden('validation_step')
-            if self.fast_dev_run or should_check_val or train_step_only:
+            if self.fast_dev_run or should_check_val:
                 self.call_checkpoint_callback()
 
                 if self.enable_early_stop:
@@ -473,6 +472,12 @@ class TrainerTrainLoopMixin(ABC):
             # requested in the batches
             if early_stop_epoch or self.fast_dev_run:
                 break
+
+        if not self.is_overriden('validation_step'):
+            self.call_checkpoint_callback()
+
+            if self.enable_early_stop:
+                self.early_stop_callback.check_metrics(self.callback_metrics)
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
