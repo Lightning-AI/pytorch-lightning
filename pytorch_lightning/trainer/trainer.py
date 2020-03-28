@@ -18,7 +18,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiling import SimpleProfiler, PassThroughProfiler, BaseProfiler
+from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
