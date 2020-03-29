@@ -74,9 +74,11 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     assert all(durations < PROFILER_OVERHEAD_MAX_TOLERANCE)
 
 
-def test_simple_profiler_describe(simple_profiler):
+def test_simple_profiler_describe(caplog, simple_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     simple_profiler.describe()
+
+    assert "Profiler Report" in caplog.text
 
 
 def test_simple_profiler_value_errors(simple_profiler):
