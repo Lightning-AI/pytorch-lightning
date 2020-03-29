@@ -10,6 +10,7 @@ import torch
 
 MetricsT = Dict[str, float]
 
+
 class LoggerAggStrategyError(Exception):
     def __init__(self, strategy: str):
         self._strategy = strategy
