@@ -489,10 +489,10 @@ class Trainer(
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
-              (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+              (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
                <class 'NoneType'>),
               None),
-            ...
+             ...
         """
         trainer_default_params = inspect.signature(cls).parameters
         name_type_default = []

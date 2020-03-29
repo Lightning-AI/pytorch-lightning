@@ -152,10 +152,15 @@ class SimpleProfiler(BaseProfiler):
         output_string += os.linesep
         return output_string
 
+    def describe(self):
+        """Logs a profile report after the conclusion of the training run."""
+        super().describe()
+        if self.output_file:
+            self.output_file.flush()
+
     def __del__(self):
         """Close profiler's stream."""
         if self.output_file:
-            self.output_file.flush()
             self.output_file.close()
 
 
@@ -214,8 +219,13 @@ class AdvancedProfiler(BaseProfiler):
 
         return output_string
 
+    def describe(self):
+        """Logs a profile report after the conclusion of the training run."""
+        super().describe()
+        if self.output_file:
+            self.output_file.flush()
+
     def __del__(self):
         """Close profiler's stream."""
         if self.output_file:
-            self.output_file.flush()
             self.output_file.close()

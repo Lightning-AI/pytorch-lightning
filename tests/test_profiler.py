@@ -1,4 +1,4 @@
-import tempfile
+import os
 import time
 from pathlib import Path
 
@@ -30,8 +30,8 @@ def simple_profiler():
 
 
 @pytest.fixture
-def advanced_profiler():
-    profiler = AdvancedProfiler()
+def advanced_profiler(tmpdir):
+    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
     return profiler
 
 
@@ -168,12 +168,9 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
-    # log to stdout
+    # log to stdout and print to file
     advanced_profiler.describe()
-    # print to file
-    advanced_profiler.output_filename = Path(tmpdir, "profiler.txt")
-    advanced_profiler.describe()
-    data = Path(advanced_profiler.output_filename).read_text()
+    data = Path(advanced_profiler.output_fname).read_text()
     assert len(data) > 0
 
 
