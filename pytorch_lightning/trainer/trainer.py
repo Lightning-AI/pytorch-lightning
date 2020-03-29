@@ -10,6 +10,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch import optim
+from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
@@ -714,7 +715,7 @@ class Trainer(
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers = self.init_optimizers(model)
 
             self.run_pretrain_routine(model)
 
@@ -760,8 +761,14 @@ class Trainer(
 
     def init_optimizers(
             self,
-            optimizers: Union[Optimizer, Tuple[List, List], List[Optimizer], Tuple[Optimizer]]
+            model: LightningModule
     ) -> Tuple[List, List]:
+        optimizers = model.configure_optimizers()
+
+        if optimizers is None:
+            warnings.warn('`LightningModule.configure_optimizers` is not overriden or returned `None`,'
+                          'defaulting to Adam optimizer with `lr=1e-3`', UserWarning)
+            optimizers = Adam(model.parameters(), lr=1e-3)
 
         # single output, single optimizer
         if isinstance(optimizers, Optimizer):

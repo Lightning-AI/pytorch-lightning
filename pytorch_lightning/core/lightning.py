@@ -10,7 +10,6 @@ import torch
 import torch.distributed as torch_distrib
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
@@ -983,7 +982,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
-        return Adam(self.parameters(), lr=1e-3)
 
     def optimizer_step(
             self,

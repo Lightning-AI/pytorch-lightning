@@ -96,30 +96,44 @@ def test_optimizer_return_options():
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
     opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    optim, lr_sched = trainer.init_optimizers(opt_a)
+
+    model.configure_optimizers = lambda: opt_a
+    optim, lr_sched = trainer.init_optimizers(model)
     assert len(optim) == 1 and len(lr_sched) == 0
 
     # opt tuple
-    opts = (opt_a, opt_b)
-    optim, lr_sched = trainer.init_optimizers(opts)
-    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    model.configure_optimizers = lambda: (opt_a, opt_b)
+    optim, lr_sched = trainer.init_optimizers(model)
+    assert len(optim) == 2 and optim[0] == opt_a and optim[1] == opt_b
     assert len(lr_sched) == 0
 
     # opt list
-    opts = [opt_a, opt_b]
-    optim, lr_sched = trainer.init_optimizers(opts)
-    assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
+    model.configure_optimizers = lambda: [opt_a, opt_b]
+    optim, lr_sched = trainer.init_optimizers(model)
+    assert len(optim) == 2 and optim[0] == opt_a and optim[1] == opt_b
     assert len(lr_sched) == 0
 
     # opt tuple of lists
     scheduler = torch.optim.lr_scheduler.StepLR(opt_a, 10)
-    opts = ([opt_a], [scheduler])
-    optim, lr_sched = trainer.init_optimizers(opts)
+    model.configure_optimizers = lambda: ([opt_a], [scheduler])
+    optim, lr_sched = trainer.init_optimizers(model)
     assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0][0] and \
+    assert optim[0] == opt_a and \
         lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
                             frequency=1, reduce_on_plateau=False,
                             monitor='val_loss')
+
+
+def test_default_optimizer_warning():
+    tutils.reset_seed()
+
+    trainer = Trainer()
+    model, hparams = tutils.get_default_model()
+
+    model.configure_optimizers = lambda: None
+
+    with pytest.warns(UserWarning, match='Adam optimizer with `lr=1e-3`'):
+        _, __ = trainer.init_optimizers(model)
 
 
 def test_cpu_slurm_save_load(tmpdir):
