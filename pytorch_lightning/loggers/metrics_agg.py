@@ -6,26 +6,34 @@ MetricsT = Dict[str, float]
 MetricsAggFnT = Callable[[Sequence[MetricsT]], MetricsT]
 
 
-def merge_two_dicts(d1: Mapping, d2: Mapping, fn: Callable[[float, float], float]) -> Dict:
+def merge_two_dicts(d1: Mapping, d2: Mapping, fn: Callable[[float, float], float], default_value: float = 0) -> Dict:
     """Merges two dictionaries values with the given function.
 
     Args:
-        d1 (dict): First dictionary
-        d2 (dict): Second dictionary
-        fn: Function which will be applied to two values from the same key of both dicts.
+        d1 (dict):
+            First dictionary
+        d2 (dict):
+            Second dictionary
+        fn:
+            Function which will be applied to two values from the same key of both dicts.
+        default_value (float):
+            If value is presented only in one dict, it will be aggregated with `default_value`.
 
     Returns (dict):
         Dictionary with merged values.
 
     Examples:
         >>> import pprint
-        >>> d1 = {'a': 1.7, 'b': 2.0}
+        >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1}
         >>> d2 = {'a': 1.1, 'b': 2.2}
         >>> fn = max
         >>> pprint.pprint(merge_two_dicts(d1, d2, fn))
-        {'a': 1.7, 'b': 2.2}
+        {'a': 1.7, 'b': 2.2, 'c': 1}
     """
-    return {key: fn(value, d2[key]) for key, value in d1.items()}
+
+    all_keys = list(set(d1.keys()).union(set(d2.keys())))
+
+    return {key: fn(d1.get(key, default_value), d2.get(key, default_value)) for key in all_keys}
 
 
 def metrics_agg_simple(metrics_to_agg: Sequence[MetricsT], fn: Callable[[float, float], float]) -> MetricsT:
