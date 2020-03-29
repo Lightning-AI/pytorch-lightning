@@ -256,11 +256,11 @@ def test_model_saving_loading(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        tags_csv=tags_path
+        hparams_file=hparams_path
     )
     model_2.eval()
 

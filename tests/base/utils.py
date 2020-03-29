@@ -126,14 +126,14 @@ def get_data_path(expt_logger, path_dir=None):
 def load_model(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
     # load trained model
     path_expt_dir = get_data_path(logger, path_dir=path_expt)
-    tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
+    hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
 
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
     trained_model = module_class.load_from_checkpoint(
         checkpoint_path=weights_dir,
-        tags_csv=tags_path
+        hparams_file=hparams_path
     )
 
     assert trained_model is not None, 'loading model failed'
