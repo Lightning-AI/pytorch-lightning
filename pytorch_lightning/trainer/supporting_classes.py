@@ -9,10 +9,14 @@ class TensorRunningMean(object):
     def __init__(self, window_length):
         self.window_length = window_length
         self.reset()
+        self.last_idx = 0
 
     def reset(self):
         self.memory = torch.Tensor(self.window_length)
         self.current_idx = 0
+
+    def last(self):
+        return self.memory[self.last_idx]
 
     def append(self, x):
         # map proper type for memory if they don't match
@@ -22,6 +26,7 @@ class TensorRunningMean(object):
         # store without grads
         with torch.no_grad():
             self.memory[self.current_idx] = x
+            self.last_idx = self.current_idx
 
         # increase index
         self.current_idx += 1
