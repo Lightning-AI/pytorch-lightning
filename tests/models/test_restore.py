@@ -16,10 +16,9 @@ from tests.base import (
 )
 
 
+@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_ddp(tmpdir):
     """Verify `test()` on pretrained model."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -151,12 +150,10 @@ def test_load_model_from_checkpoint(tmpdir):
     tutils.assert_ok_model_acc(new_trainer)
 
 
+@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_dp(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -195,10 +192,9 @@ def test_running_test_pretrained_model_dp(tmpdir):
     tutils.assert_ok_model_acc(new_trainer)
 
 
+@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
 
