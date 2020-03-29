@@ -15,8 +15,10 @@ def test_pytorch_parity(tmpdir):
     :param tmpdir:
     :return:
     """
-    lightning_outs, pl_times = lightning_loop(ParityMNIST, 3, 2)
-    manual_outs, pt_times = vanilla_loop(ParityMNIST, 3, 2)
+    num_epochs = 2
+    num_rums = 3
+    lightning_outs, pl_times = lightning_loop(ParityMNIST, num_rums, num_epochs)
+    manual_outs, pt_times = vanilla_loop(ParityMNIST, num_rums, num_epochs)
 
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
