@@ -400,8 +400,8 @@ class TrainerTrainLoopMixin(ABC):
             train_dataloader = train_dataloader.per_device_loader(device)
 
         # run epoch
-        for batch_idx, batch in self.profiler.profile_iterable(
-            enumerate(train_dataloader), "get_train_batch"
+        for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
+            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
@@ -429,8 +429,10 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            should_check_val = not self.disable_validation and can_check_epoch
-            should_check_val = should_check_val and (is_val_check_batch or early_stop_epoch)
+            can_check_val = not self.disable_validation and can_check_epoch
+            should_check_val = is_val_check_batch or early_stop_epoch
+            should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
+            should_check_val = can_check_val and should_check_val
 
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
@@ -740,3 +742,16 @@ class TrainerTrainLoopMixin(ABC):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
         self.on_validation_end()
+
+
+def _with_is_last(iterable):
+    """Pass through values from the given iterable with an added boolean indicating if this is the last item.
+    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
+    it = iter(iterable)
+    last = next(it)
+    for val in it:
+        # yield last and has next
+        yield last, False
+        last = val
+    # yield last, no longer has next
+    yield last, True
