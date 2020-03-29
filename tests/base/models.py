@@ -206,7 +206,7 @@ class ParityMNIST(LightningModule):
 
     def __init__(self):
         super(ParityMNIST, self).__init__()
-        self.c_d1 = nn.Linear(in_features=28*28, out_features=128)
+        self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
         self.c_d1_bn = nn.BatchNorm1d(128)
         self.c_d1_drop = nn.Dropout(0.3)
         self.c_d2 = nn.Linear(in_features=128, out_features=10)
