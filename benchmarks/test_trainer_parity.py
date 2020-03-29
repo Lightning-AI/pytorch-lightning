@@ -1,13 +1,48 @@
-import numpy as np
+import os
 import time
 
+import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import MNIST
 
+from pytorch_lightning import Trainer, LightningModule
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer
-from tests.base import (
-    ParityMNIST,
-)
+
+
+class ParityMNIST(LightningModule):
+
+    def __init__(self):
+        super(ParityMNIST, self).__init__()
+        self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
+        self.c_d1_bn = nn.BatchNorm1d(128)
+        self.c_d1_drop = nn.Dropout(0.3)
+        self.c_d2 = nn.Linear(in_features=128, out_features=10)
+
+    def forward(self, x):
+        x = x.view(x.size(0), -1)
+        x = self.c_d1(x)
+        x = torch.tanh(x)
+        x = self.c_d1_bn(x)
+        x = self.c_d1_drop(x)
+        x = self.c_d2(x)
+        return x
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        return {'loss': loss}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    def train_dataloader(self):
+        return DataLoader(MNIST(os.getcwd(), train=True, download=True,
+                                transform=transforms.ToTensor()), batch_size=32)
 
 
 def test_pytorch_parity(tmpdir):
