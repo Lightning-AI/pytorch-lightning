@@ -100,7 +100,8 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             show_progress_bar=False,
             weights_summary=None,
             gpus=1,
-            early_stop_callback=False
+            early_stop_callback=False,
+            checkpoint_callback=False
         )
         trainer.fit(model)
 
