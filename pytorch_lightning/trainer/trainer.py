@@ -557,7 +557,8 @@ class Trainer(
                 for allowed_type in allowed_types:
                     if allowed_type in arg_types:
                         if allowed_type is bool:
-                            def allowed_type(x): return bool(distutils.util.strtobool(x))
+                            def allowed_type(x):
+                                return bool(distutils.util.strtobool(x))
                         parser.add_argument(
                             f'--{arg}',
                             default=arg_default,
