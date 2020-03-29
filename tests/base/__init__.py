@@ -2,7 +2,7 @@
 
 import torch
 
-from tests.base.models import TestModelBase, DictHparamsModel
+from tests.base.models import TestModelBase, DictHparamsModel, ParityMNIST
 from tests.base.mixins import (
     LightEmptyTestStep,
     LightValidationStepMixin,
