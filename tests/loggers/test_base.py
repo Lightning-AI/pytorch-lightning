@@ -170,9 +170,7 @@ class StoreHistoryCustomLogger(CustomLogger):
 
 
 def test_with_accumulate_grad_batches():
-    """Checks if the logging is performed once for `accumulate_grad_batches`
-    steps.
-    """
+    """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 

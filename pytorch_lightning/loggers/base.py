@@ -53,11 +53,14 @@ class LightningLoggerBase(ABC):
             self._metrics_to_agg.append(collections.Counter(metrics))
             return None
 
-        agg_mets = functools.reduce(lambda c1, c2: c1 + c2, self._metrics_to_agg)
-        agg_mets = {k: v / len(self._metrics_to_agg) for k, v in agg_mets.items()}
+        if len(self._metrics_to_agg) > 0:
+            agg_mets = functools.reduce(lambda c1, c2: c1 + c2, self._metrics_to_agg)
+            agg_mets = {k: v / len(self._metrics_to_agg) for k, v in agg_mets.items()}
+        else:
+            agg_mets = None
 
         self._metrics_to_agg = [collections.Counter(metrics)]
-
+        self._prev_step = step
         return agg_mets
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
