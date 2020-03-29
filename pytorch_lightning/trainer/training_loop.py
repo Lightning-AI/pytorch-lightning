@@ -326,6 +326,9 @@ class TrainerTrainLoopMixin(ABC):
                 # total batches includes multiple val checks
                 self.total_batches = self.num_training_batches + total_val_batches
 
+                # changing gradient according accumulation_scheduler
+                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+
                 # stores accumulated grad fractions per batch
                 self.batch_loss_value = TensorRunningMean(
                     window_length=self.accumulate_grad_batches
@@ -385,8 +388,7 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('on_epoch_start'):
             # callbacks
             self.on_epoch_start()
-            # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+
             # model hooks
             if self.is_function_implemented('on_epoch_start'):
                 self.get_model().on_epoch_start()
