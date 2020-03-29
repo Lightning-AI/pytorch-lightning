@@ -962,14 +962,14 @@ class Trainer(
         """
         # Check training_step, train_dataloader, configure_optimizer methods
         if not self.is_overriden('training_step', model):
-            raise MisconfigurationException('No training_step() method defined.'
-                                            ' Lightning expects as minimum a `training_step()` and'
-                                            ' `training_dataloader()` to be defined.')
+            raise MisconfigurationException(
+                'No `training_step()` method defined. Lightning expects as minimum a `training_step()` and'
+                ' `training_dataloader()` to be defined.')
 
         if not self.is_overriden('train_dataloader', model):
-            raise MisconfigurationException('No train_dataloader() defined.'
-                                            ' Lightning expects as minimum a `training_step()` and'
-                                            ' `training_dataloader()` to be defined.')
+            raise MisconfigurationException(
+                'No `train_dataloader()` defined. Lightning expects as minimum a `training_step()` and'
+                ' `training_dataloader()` to be defined.')
 
         if not self.is_overriden('configure_optimizers', model):
             warnings.warn('`configure_optimizers()` method not defined by user,'
