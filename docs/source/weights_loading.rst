@@ -84,9 +84,7 @@ To save your own checkpoint call:
 Checkpoint Loading
 ------------------
 
-You might want to not only load a model but also continue training it. Use this method to
-restore the trainer state as well. This will continue from the epoch and global step you last left off.
-However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
+To load a model along with its weights, biases and hyperparameters use following method:
 
 .. code-block:: python
 
@@ -96,3 +94,7 @@ However, the dataloaders will start from the first batch again (if you shuffled 
 
 A LightningModule is no different than a nn.Module. This means you can load it and use it for
 predictions as you would a nn.Module.
+
+
+.. note:: To restore the trainer state as well use
+    :meth:`pytorch_lightning.trainer.trainer.Trainer.resume_from_checkpoint`.
