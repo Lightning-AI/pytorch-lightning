@@ -43,6 +43,7 @@ class TensorBoardLogger(LightningLoggerBase):
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
+    NAME_HPARAMS_FILE = 'hparams.yaml'
 
     def __init__(self,
                  save_dir: str,
@@ -154,7 +155,7 @@ class TensorBoardLogger(LightningLoggerBase):
             dir_path = self.save_dir
 
         # prepare the file path
-        hparams_file = os.path.join(dir_path, 'hparams.yaml')
+        hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file
         with open(hparams_file, 'w', newline='') as f:
