@@ -18,6 +18,7 @@ from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.base import (
+    ParityMNIST,
     TestModelBase,
     DictHparamsModel,
     LightningTestModel,
@@ -35,12 +36,12 @@ def test_pytorch_parity(tmpdir):
     :param tmpdir:
     :return:
     """
-    lightning_outs, pl_times = lightning_loop(TestModelBase, num_runs, num_epochs)
-    manual_outs, pt_times = vanilla_loop(TestModelBase, num_runs, num_epochs)
+    lightning_outs, pl_times = lightning_loop(ParityMNIST, 3, 2)
+    manual_outs, pt_times = vanilla_loop(ParityMNIST, 3, 2)
 
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
-    np.testing.assert_almost_equal(pl_out, pt_out, 5)
+        np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
 
 def set_seed(seed):
@@ -54,7 +55,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     errors = []
     times = []
 
@@ -113,8 +114,13 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
 
         # init model parts
         model = MODEL()
-        trainer = Trainer(max_epochs=num_epochs, show_progress_bar=False, weights_summary=None,
-                             gpus=1, early_stop_callback=False)
+        trainer = Trainer(
+            max_epochs=num_epochs,
+            show_progress_bar=False,
+            weights_summary=None,
+            gpus=1,
+            early_stop_callback=False
+        )
         trainer.fit(model)
 
         final_loss = trainer.running_loss[-1]
