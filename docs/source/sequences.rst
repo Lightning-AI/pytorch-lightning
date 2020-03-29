@@ -7,8 +7,7 @@ Packed sequences as inputs
 ----------------------------
 When using PackedSequence, do 2 things:
 
-1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn
-(example above shows the list implementation).
+1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. code-block:: python
@@ -42,8 +41,8 @@ Lightning can handle TBTT automatically via this flag.
 .. note:: If you need to modify how the batch is split,
     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
 
-.. note:: Using this feature requires updating your LightningModule's
-    :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
+.. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
+    a `hiddens` arg.
 
 Iterable Datasets
 ---------------------------------------
