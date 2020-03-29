@@ -904,24 +904,25 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    def configure_optimizers(self) -> Union[
+    def configure_optimizers(self) -> Optional[Union[
         Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], List]
-    ]:
+    ]]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
 
-        If you don't define this method Lightning will automatically use Adam(lr=1e-3)
+        If you don't define this method Lightning will run **without any optimizer**.
 
-        Return: any of these 3 options:
+        Return: any of these 4 options:
             - Single optimizer
             - List or Tuple - List of optimizers
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers
+            - None - Fit will run without any optimizer
 
         Examples:
             .. code-block:: python
 
-                # most cases (default if not defined)
+                # most cases
                 def configure_optimizers(self):
                     opt = Adam(self.parameters(), lr=1e-3)
                     return opt

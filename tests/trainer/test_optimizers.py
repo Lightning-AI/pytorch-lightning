@@ -12,7 +12,8 @@ from tests.base import (
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
-    LightTestReduceLROnPlateauMixin
+    LightTestReduceLROnPlateauMixin,
+    LightTestNoneOptimizerMixin
 )
 
 
@@ -215,7 +216,7 @@ def test_optimizer_return_options():
                             monitor='val_loss')
 
 
-def test_default_optimizer_warning():
+def test_none_optimizer_warning():
     tutils.reset_seed()
 
     trainer = Trainer()
@@ -223,5 +224,33 @@ def test_default_optimizer_warning():
 
     model.configure_optimizers = lambda: None
 
-    with pytest.warns(UserWarning, match='Adam optimizer with `lr=1e-3`'):
+    with pytest.warns(UserWarning, match='will run with no optimizer'):
         _, __ = trainer.init_optimizers(model)
+
+
+def test_none_optimizer(tmpdir):
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+            LightTestNoneOptimizerMixin,
+            LightTrainDataloader,
+            TestModelBase):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1

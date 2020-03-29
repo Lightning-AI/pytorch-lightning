@@ -9,9 +9,6 @@ import distutils
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
-from torch import optim
-from torch.optim import Adam
-from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -31,6 +28,7 @@ from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_id
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
+from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -55,6 +53,7 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerOptimizersMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
@@ -758,68 +757,6 @@ class Trainer(
                 raise MisconfigurationException(m)
 
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
-
-    def init_optimizers(
-            self,
-            model: LightningModule
-    ) -> Tuple[List, List]:
-        optimizers = model.configure_optimizers()
-
-        if optimizers is None:
-            warnings.warn('`LightningModule.configure_optimizers` is not overriden or returned `None`,'
-                          'defaulting to Adam optimizer with `lr=1e-3`', UserWarning)
-            optimizers = Adam(model.parameters(), lr=1e-3)
-
-        # single output, single optimizer
-        if isinstance(optimizers, Optimizer):
-            return [optimizers], []
-
-        # two lists, optimizer + lr schedulers
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
-            optimizers, lr_schedulers = optimizers
-            lr_schedulers = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers
-
-        # single list or tuple, multiple optimizer
-        elif isinstance(optimizers, (list, tuple)):
-            return optimizers, []
-
-        # unknown configuration
-        else:
-            raise ValueError('Unknown configuration for model optimizers. Output'
-                             'from model.configure_optimizers() should either be:'
-                             '* single output, single torch.optim.Optimizer'
-                             '* single output, list of torch.optim.Optimizer'
-                             '* two outputs, first being a list of torch.optim.Optimizer',
-                             'second being a list of torch.optim.lr_scheduler')
-
-    def configure_schedulers(self, schedulers: list):
-        # Convert each scheduler into dict sturcture with relevant information
-        lr_schedulers = []
-        default_config = {'interval': 'epoch',  # default every epoch
-                          'frequency': 1,  # default every epoch/batch
-                          'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-                          'monitor': 'val_loss'}  # default value to monitor for ReduceLROnPlateau
-        for scheduler in schedulers:
-            if isinstance(scheduler, dict):
-                if 'scheduler' not in scheduler:
-                    raise ValueError(f'Lr scheduler should have key `scheduler`',
-                                     ' with item being a lr scheduler')
-                scheduler['reduce_on_plateau'] = isinstance(
-                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
-
-                lr_schedulers.append({**default_config, **scheduler})
-
-            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                lr_schedulers.append({**default_config, 'scheduler': scheduler,
-                                      'reduce_on_plateau': True})
-
-            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                lr_schedulers.append({**default_config, 'scheduler': scheduler})
-            else:
-                raise ValueError(f'Input {scheduler} to lr schedulers '
-                                 'is a invalid input.')
-        return lr_schedulers
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
