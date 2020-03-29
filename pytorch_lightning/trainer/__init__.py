@@ -195,7 +195,7 @@ Example::
     # default used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_best_only=True,
+        save_top_k=True,
         verbose=True,
         monitor='val_loss',
         mode='min',
@@ -595,12 +595,11 @@ Example::
 print_nan_grads
 ^^^^^^^^^^^^^^^
 
-Prints gradients with nan values
+.. warning:: .. deprecated:: 0.7.2.
 
-Example::
+    Has no effect. When detected, NaN grads will be printed automatically.
+    Will remove 0.9.0.
 
-    # default used by the Trainer
-    trainer = Trainer(print_nan_grads=False)
 
 process_position
 ^^^^^^^^^^^^^^^^

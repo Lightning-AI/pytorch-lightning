@@ -35,7 +35,7 @@ To modify the behavior of checkpointing pass in your own callback.
     # DEFAULTS used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_best_only=True,
+        save_top_k=True,
         verbose=True,
         monitor='val_loss',
         mode='min',

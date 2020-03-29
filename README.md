@@ -17,7 +17,7 @@
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-May%2006-<COLOR>.svg)](https://shields.io/)
 
-<!-- 
+<!--
 removed until codecov badge isn't empy. likely a config error showing nothing on master.
 [![codecov](https://codecov.io/gh/Borda/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/Borda/pytorch-lightning)
 -->
@@ -39,21 +39,21 @@ removed until codecov badge isn't empy. likely a config error showing nothing on
 
 Simple installation from PyPI
 ```bash
-pip install pytorch-lightning  
+pip install pytorch-lightning
 ```
 
-## Docs   
-- [master](https://pytorch-lightning.readthedocs.io/en/latest)  
+## Docs
+- [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
-## Demo  
-[MNIST, GAN, BERT on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)   
+## Demo
+[MNIST, GAN, BERT on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
 
 ## What is it?
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework. 
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework.
 
 To use Lightning, first refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
 
@@ -62,10 +62,10 @@ To use Lightning, first refactor your research code into a [LightningModule](htt
 And Lightning automates the rest using the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
 
-Lightning guarantees riguously tested, correct, modern best practices for the automated parts.  
+Lightning guarantees riguously tested, correct, modern best practices for the automated parts.
 
-## How flexible is it?  
-As you see, you're just organizing your PyTorch code - there's no abstraction. 
+## How flexible is it?
+As you see, you're just organizing your PyTorch code - there's no abstraction.
 
 And for the stuff that the Trainer abstracts out you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backwards pass.
 
@@ -78,9 +78,9 @@ For anything else you might need, we have an extensive [callback system](https:/
 
 If you're just getting into deep learning, we recommend you learn PyTorch first! Once you've implemented a few models, come back and use all the advanced features of Lightning :)
 
-## What does lightning control for me?   
+## What does lightning control for me?
 
-Everything in Blue!   
+Everything in Blue!
 This is how lightning separates the science (red) from the engineering (blue).
 
 ![Overview](docs/source/_images/general/pl_overview.gif)
@@ -92,33 +92,33 @@ If your code IS a mess, then you needed to clean up anyhow ;)
 [Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
 
 
-## Starting a new project?   
-[Use our seed-project aimed at reproducibility!](https://github.com/PytorchLightning/pytorch-lightning-conference-seed)     
+## Starting a new project?
+[Use our seed-project aimed at reproducibility!](https://github.com/PytorchLightning/pytorch-lightning-conference-seed)
 
 ## Why do I want to use lightning?
 Although your research/production project might start simple, once you add things like GPU AND TPU training, 16-bit precision, etc, you end up spending more time engineering than researching. Lightning automates AND rigorously tests those parts for you.
 
 ## Support
-- [7 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs. 
+- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs. 
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
 ---
- 
-## README Table of Contents        
-- [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)     
-- [What lightning automates](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)    
-- [Tensorboard integration](https://github.com/PytorchLightning/pytorch-lightning#tensorboard)    
-- [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)    
-- [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)    
+
+## README Table of Contents
+- [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)
+- [What lightning automates](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
+- [Tensorboard integration](https://github.com/PytorchLightning/pytorch-lightning#tensorboard)
+- [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)
+- [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)
 - [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
 - [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
 - [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
-- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)   
-- [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)   
+- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)
+- [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)
 - [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
-- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)    
+- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
 
 ---
 
@@ -127,23 +127,23 @@ Here's how you would organize a realistic PyTorch project into Lightning.
 
 ![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg)
 
-The LightningModule defines a *system* such as seq-2-seq, GAN, etc... 
-It can ALSO define a simple classifier.   
+The LightningModule defines a *system* such as seq-2-seq, GAN, etc...
+It can ALSO define a simple classifier.
 
 In summary, you:
 
 1. Define a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
 ```python
     class LitSystem(pl.LightningModule):
-    
+
         def __init__(self):
-            super(LitSystem, self).__init__()
+            super().__init__()
             # not the best model...
             self.l1 = torch.nn.Linear(28 * 28, 10)
-    
+
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
-            
+
         def training_step(self, batch, batch_idx):
             ...
 ```
@@ -155,12 +155,12 @@ In summary, you:
  model = LitSystem()
 
  # most basic trainer, uses good defaults
- trainer = Trainer()    
- trainer.fit(model)   
+ trainer = Trainer()
+ trainer.fit(model)
  ```
- 
+
 [Check out the COLAB demo here](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
- 
+
 ## What types of research works?
 Anything! Remember, that this is just organized PyTorch code.
 The Training step defines the core complexity found in the training loop.
@@ -171,10 +171,10 @@ The Training step defines the core complexity found in the training loop.
 # define what happens for training here
 def training_step(self, batch, batch_idx):
     x, y = batch
-    
+
     # define your own forward and loss calculation
     hidden_states = self.encoder(x)
-     
+
     # even as complex as a seq-2-seq + attn model
     # (this is just a toy, non-working example to illustrate)
     start_token = '<SOS>'
@@ -182,37 +182,37 @@ def training_step(self, batch, batch_idx):
     loss = 0
     for step in range(max_seq_len):
         attn_context = self.attention_nn(hidden_states, start_token)
-        pred = self.decoder(start_token, attn_context, last_hidden) 
+        pred = self.decoder(start_token, attn_context, last_hidden)
         last_hidden = pred
         pred = self.predict_nn(pred)
         loss += self.loss(last_hidden, y[step])
-        
+
     #toy example as well
     loss = loss / max_seq_len
-    return {'loss': loss} 
+    return {'loss': loss}
 ```
 
-#### Or as basic as CNN image classification     
+#### Or as basic as CNN image classification
 
 ```python
 # define what happens for validation here
-def validation_step(self, batch, batch_idx):    
+def validation_step(self, batch, batch_idx):
     x, y = batch
-    
+
     # or as basic as a CNN classification
-    out = self.forward(x)
+    out = self(x)
     loss = my_loss(out, y)
-    return {'loss': loss} 
+    return {'loss': loss}
 ```
 
 And without changing a single line of code, you could run on CPUs
-```python   
+```python
 trainer = Trainer(max_epochs=1)
 ```
 
 
 Or GPUs
-```python   
+```python
 # 8 GPUs
 trainer = Trainer(max_epochs=1, gpus=8)
 
@@ -221,7 +221,7 @@ trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
 ```
 
 Or TPUs
-```python 
+```python
 trainer = Trainer(num_tpu_cores=8)
 ```
 
@@ -233,10 +233,12 @@ trainer.test()
 ## Visualization
 Lightning has out-of-the-box integration with the popular logging/visualizing frameworks
 
-- Tensorboard
-- MLFlow
-- Neptune.ai
-- Comet.ml
+- [Tensorboard](https://pytorch.org/docs/stable/tensorboard.html)
+- [MLFlow](https://mlflow.org/)
+- [Neptune.ai](https://neptune.ai/)
+- [Comet.ml](https://www.comet.ml/site/)
+- [Wandb](https://www.wandb.com/)
+- [Trains](https://github.com/allegroai/trains)
 - ...  
 
 ![tensorboard-support](docs/source/_images/general/tf_loss.png)
@@ -251,10 +253,10 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Checkpointing
 - Experiment management
 - [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
-  
 
-## Examples   
-Check out this awesome list of research papers and implementations done with Lightning. 
+
+## Examples
+Check out this awesome list of research papers and implementations done with Lightning.
 
 - [Contextual Emotion Detection (DoubleDistilBert)](https://github.com/PyTorchLightning/emotion_transformer)
 - [Generative Adversarial Network](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0)
@@ -270,58 +272,58 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
 
-## Tutorials   
+## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
 Or jump straight into [our tutorials](https://pytorch-lightning.readthedocs.io/en/latest/#tutorials).
 
 ---
 
-## Asking for help    
-Welcome to the Lightning community!   
+## Asking for help
+Welcome to the Lightning community!
 
-If you have any questions, feel free to:   
-1. [read the docs](https://pytorch-lightning.rtfd.io/en/latest/).     
-2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).   
-3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.   
+If you have any questions, feel free to:
+1. [read the docs](https://pytorch-lightning.rtfd.io/en/latest/).
+2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).
+3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.
 4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ).
 
----   
-## FAQ    
-**How do I use Lightning for rapid research?**   
-[Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)  
+---
+## FAQ
+**How do I use Lightning for rapid research?**
+[Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
-**Why was Lightning created?**     
+**Why was Lightning created?**
 Lightning has 3 goals in mind:
 
-1. Maximal flexibility while abstracting out the common boilerplate across research projects.   
-2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.   
-3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.    
+1. Maximal flexibility while abstracting out the common boilerplate across research projects.
+2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.
+3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
 
-**How does Lightning compare with Ignite and fast.ai?**     
-[Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).   
+**How does Lightning compare with Ignite and fast.ai?**
+[Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
 
-**Is this another library I have to learn?**    
-Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!   
+**Is this another library I have to learn?**
+Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!
 
-**Are there plans to support Python 2?**          
-Nope.     
+**Are there plans to support Python 2?**
+Nope.
 
-**Are there plans to support virtualenv?**    
-Nope. Please use anaconda or miniconda.    
+**Are there plans to support virtualenv?**
+Nope. Please use anaconda or miniconda.
 
-**Which PyTorch versions do you support?**    
-- **PyTorch 1.1.0**       
-    ```bash    
-    # install pytorch 1.1.0 using the official instructions   
-    
-    # install test-tube 0.6.7.6 which supports 1.1.0   
-    pip install test-tube==0.6.7.6   
-    
-    # install latest Lightning version without upgrading deps    
+**Which PyTorch versions do you support?**
+- **PyTorch 1.1.0**
+    ```bash
+    # install pytorch 1.1.0 using the official instructions
+
+    # install test-tube 0.6.7.6 which supports 1.1.0
+    pip install test-tube==0.6.7.6
+
+    # install latest Lightning version without upgrading deps
     pip install -U --no-deps pytorch-lightning
-    ```     
+    ```
 - **PyTorch 1.2.0, 1.3.0,**
-    Install via pip as normal   
+    Install via pip as normal
 
 ## Custom installation
 
@@ -348,15 +350,16 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 
 #### Leads
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
-- Jirka Borovec [(Borda)](https://github.com/Borda) (-_-)
+- Jirka Borovec [(Borda)](https://github.com/Borda) (ghost :)
 - Ethan Harris [(ethanwharris)](https://github.com/ethanwharris) (Torchbearer founder)
 - Matthew Painter [(MattPainter01)](https://github.com/MattPainter01) (Torchbearer founder)
+- Justus Schock [(justusschock)](https://github.com/justusschock) (Former Core Member PyTorch Ignite)
 
 #### Core Maintainers
 
 - Nick Eggert [(neggert)](https://github.com/neggert)
-- Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Jeff Ling [(jeffling)](https://github.com/jeffling)
+- Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 
 ## Bibtex

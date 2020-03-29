@@ -867,7 +867,8 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not self.is_overriden('validation_step') and not self.fast_dev_run
+        self.disable_validation = not (self.is_overriden('validation_step') and self.val_percent_check > 0) \
+            and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -899,7 +900,7 @@ class Trainer(
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
                     disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout)
+                    file=sys.stdout, smoothing=0)
         self.main_progress_bar = pbar
 
         # clear cache before training
