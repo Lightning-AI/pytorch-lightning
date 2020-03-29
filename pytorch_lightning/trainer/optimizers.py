@@ -19,7 +19,7 @@ class TrainerOptimizersMixin(ABC):
 
         if optimizers is None:
             warnings.warn('`LightningModule.configure_optimizers` is not overriden or returned `None`,'
-                          'this fit will run with no optimizer', UserWarning)
+                          ' this fit will run with no optimizer', UserWarning)
             optimizers = _MockOptimizer()
 
             # single output, single optimizer
