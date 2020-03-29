@@ -1,10 +1,22 @@
 import argparse
+import collections
+import functools
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Counter
 
 import torch
+
+MetricsT = Dict[str, float]
+
+class LoggerAggStrategyError(Exception):
+    def __init__(self, strategy: str):
+        self._strategy = strategy
+
+    def __repr__(self):
+        return f'Unknown aggregation strategy: {self._strategy}. ' \
+               f'Allowed values are: {LightningLoggerBase.AGG_STRATEGIES}'
 
 
 def rank_zero_only(fn: Callable):
@@ -25,22 +37,69 @@ def rank_zero_only(fn: Callable):
 class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
-    def __init__(self):
+    AGG_STRATEGIES = ('avg', 'sum', None)
+
+    def __init__(self, agg_strategy: Optional[str] = None):
+        """
+        Args:
+            agg_strategy (str, optional):
+                How to aggregate metrics, which belong to the same step. Could be on of: 'avg', 'sum' or None.
+                Default is None: metrics will be logged on each step (even on the equals ones).
+        """
         self._rank = 0
+        self._agg_strategy = agg_strategy
+        self._prev_step = -1
+        self._metrics_to_agg: List[Counter[str, float]] = []
+
+        if self._agg_strategy not in self.AGG_STRATEGIES:
+            raise LoggerAggStrategyError(self._agg_strategy)
 
     @property
     @abstractmethod
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
 
-    @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        """Record metrics.
+    def _agg_metrics(self, metrics: MetricsT, step: Optional[int] = None) -> Optional[MetricsT]:
+        """Aggregates metrics with respect to the logger's metrics aggregation strategy.
+
+        Args:
+             Check `log_metrics` method for the arguments description.
+
+        Returns (MetricsT, None):
+            Aggregated metrics. The return value could be None. In such case, metrics
+            are added to the aggregation list, but not aggregated yet.
+        """
+        if self._agg_strategy is None:
+            return metrics
+        elif step == self._prev_step:
+            self._metrics_to_agg.append(collections.Counter(metrics))
+            return None
+
+        agg_mets = functools.reduce(lambda c1, c2: c1 + c2, self._metrics_to_agg)
+
+        if self._agg_strategy == 'avg':
+            agg_mets = {k: v / len(self._metrics_to_agg) for k, v in agg_mets.items()}
+
+        self._metrics_to_agg = [collections.Counter(metrics)]
+
+        return agg_mets
+
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        """Aggregates and records metrics.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
+        metrics_to_log = self._agg_metrics(metrics=metrics, step=step)
+
+        if metrics_to_log is not None:
+            self.log_metrics(metrics=metrics_to_log, step=step)
+
+    @abstractmethod
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        """Records metrics"""
+        pass
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
