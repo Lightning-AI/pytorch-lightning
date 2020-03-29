@@ -3,6 +3,7 @@ import time
 
 import torch
 
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import (
     ParityMNIST,
@@ -15,6 +16,9 @@ def test_pytorch_parity(tmpdir):
     :param tmpdir:
     :return:
     """
+    if not tutils.can_run_gpu_test():
+        return
+
     num_epochs = 2
     num_rums = 3
     lightning_outs, pl_times = lightning_loop(ParityMNIST, num_rums, num_epochs)
