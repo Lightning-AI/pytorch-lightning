@@ -1,32 +1,11 @@
-import glob
-import math
-import os
-from argparse import Namespace
 import numpy as np
 import time
 
-import pytest
 import torch
 
-import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    ModelCheckpoint,
-)
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.debugging import MisconfigurationException
 from tests.base import (
     ParityMNIST,
-    TestModelBase,
-    DictHparamsModel,
-    LightningTestModel,
-    LightEmptyTestStep,
-    LightValidationStepMixin,
-    LightValidationMultipleDataloadersMixin,
-    LightTrainDataloader,
-    LightTestDataloader,
 )
 
 
