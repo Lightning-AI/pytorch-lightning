@@ -57,16 +57,6 @@ class CustomLogger(LightningLoggerBase):
         return "1"
 
 
-class StoreHistoryCustomLogger(CustomLogger):
-    def __init__(self):
-        super().__init__()
-        self.history = []
-
-    @rank_zero_only
-    def log_metrics(self, metrics, step):
-        self.history.append((step, metrics))
-
-
 def test_custom_logger(tmpdir):
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -167,6 +157,16 @@ def test_adding_step_key(tmpdir):
     trainer.logger.log_metrics = _log_metrics_decorator(
         trainer.logger.log_metrics)
     trainer.fit(model)
+
+
+class StoreHistoryCustomLogger(CustomLogger):
+    def __init__(self):
+        super().__init__()
+        self.history = []
+
+    @rank_zero_only
+    def log_metrics(self, metrics, step):
+        self.history.append((step, metrics))
 
 
 def test_with_accumulate_grad_batches():
