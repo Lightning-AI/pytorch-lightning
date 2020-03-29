@@ -7,7 +7,8 @@ Packed sequences as inputs
 ----------------------------
 When using PackedSequence, do 2 things:
 
-1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).
+1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn
+(example above shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. code-block:: python
@@ -41,5 +42,36 @@ Lightning can handle TBTT automatically via this flag.
 .. note:: If you need to modify how the batch is split,
     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
 
-.. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
-    a `hiddens` arg.
+.. note:: Using this feature requires updating your LightningModule's
+    :meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg.
+
+Iterable Datasets
+---------------------------------------
+Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
+option when using sequential data.
+
+.. note:: When using an IterableDataset you must set the val_check_interval when initializing the Trainer even when
+    there is no validation logic in place. This is due to the fact that the IterableDataset does not have a __len__ and
+    Lightning requires this to calculate the default validation interval.
+
+.. code-block:: python
+
+    # IterableDataset
+    class CustomDataset(IterableDataset):
+
+        def __init__(self, data):
+            self.data_source
+
+        def __iter__(self):
+            return iter(self.data_source)
+
+    # Setup DataLoader
+    def train_dataloader(self):
+        seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
+        iterable_dataset = CustomDataset(seq_data)
+
+        dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
+        return dataloader
+
+    # Set val_check_interval
+    trainer = pl.Trainer(val_check_interval=1000)
