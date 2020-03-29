@@ -919,7 +919,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
             - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
-            - Tuple of dictionaries as described, with an optional `frequncy` key.
+            - Tuple of dictionaries as described, with an optional `frequency` key.
 
         .. note:: The `frequency` value is an int corresponding to the number of sequential batches
             optimized with the specific optimizer. It should be given to none or to all of the optimizers.

@@ -785,18 +785,16 @@ class Trainer(
 
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
-            optimizers, lr_schedulers, optimizer_frequencies = [], [], []
-            for optimizer_dict in optim_conf:
-                optimizers.append(optimizer_dict["optimizer"])
-                lr_schedulers.append(optimizer_dict.get("lr_scheduler", None))
-                optimizer_frequencies.append(optimizer_dict.get("frequency", None))
+            optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            # take only lr wif exists and ot they are defined - not None
+            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")]
+            # take only freq wif exists and ot they are defined - not None
+            optimizer_frequencies = [opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")]
 
             # clean scheduler list
-            lr_schedulers = [x for x in lr_schedulers if x is not None]
             if lr_schedulers:
                 lr_schedulers = self.configure_schedulers(lr_schedulers)
             # assert that if frequencies are present, they are given for all optimizers
-            optimizer_frequencies = [x for x in optimizer_frequencies if x is not None]
             if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
                 raise ValueError("A frequency must be given to each optimizer.")
             return optimizers, lr_schedulers, optimizer_frequencies

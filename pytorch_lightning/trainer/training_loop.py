@@ -518,17 +518,15 @@ class TrainerTrainLoopMixin(ABC):
 
             def get_optimizers_iterable():
                 if not self.optimizer_frequencies:
-                    return enumerate(self.optimizers)
+                    return list(enumerate(self.optimizers))
 
                 optimizer_freq_cumsum = np.cumsum(self.optimizer_frequencies)
                 optimizers_loop_length = optimizer_freq_cumsum[-1]
                 current_place_in_loop = self.total_batch_idx % optimizers_loop_length
 
                 # find optimzier index by looking for the first {item > current_place} in the cumsum list
-                for opt_idx, v in enumerate(optimizer_freq_cumsum):
-                    if v > current_place_in_loop:
-                        # return an iterable list of one tuple
-                        return [(opt_idx, self.optimizers[opt_idx])]
+                opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
+                return [(opt_idx, self.optimizers[opt_idx])]
 
             # call training_step once per optimizer
             for opt_idx, optimizer in get_optimizers_iterable():
