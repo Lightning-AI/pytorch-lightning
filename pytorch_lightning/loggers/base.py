@@ -2,7 +2,7 @@ import argparse
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence
 
 import torch
 
@@ -27,10 +27,10 @@ def rank_zero_only(fn: Callable):
 class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
-    def __init__(self, metrics_agg_fn: metrics_agg.MetricsAggFnT = metrics_agg.metrics_agg_avg):
+    def __init__(self, metrics_agg_fn: Callable[[Sequence[Dict[str, float]]], float] = metrics_agg.metrics_agg_avg):
         self._rank = 0
         self._prev_step = -1
-        self._metrics_to_agg: List[metrics_agg.MetricsT] = []
+        self._metrics_to_agg: List[Dict[str, float]] = []
         self._metrics_agg_fn = metrics_agg_fn
 
     @property
@@ -38,7 +38,7 @@ class LightningLoggerBase(ABC):
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
 
-    def _agg_metrics(self, metrics: metrics_agg.MetricsT, step: Optional[int] = None) -> Optional[metrics_agg.MetricsT]:
+    def _agg_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> Optional[Dict[str, float]]:
         """Aggregates metrics.
 
         Args:
@@ -61,7 +61,7 @@ class LightningLoggerBase(ABC):
         self._prev_step = step
         return agg_mets
 
-    def agg_and_log_metrics(self, metrics: metrics_agg.MetricsT, step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics.
         This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
@@ -75,7 +75,7 @@ class LightningLoggerBase(ABC):
             self.log_metrics(metrics=metrics_to_log, step=step)
 
     @abstractmethod
-    def log_metrics(self, metrics: metrics_agg.MetricsT, step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
         metrics for one specific `step`, use the `agg_and_log_metrics` method.
