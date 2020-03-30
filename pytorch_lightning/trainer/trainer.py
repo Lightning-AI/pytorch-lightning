@@ -122,7 +122,6 @@ class Trainer(
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
-            reload_train_dataloader_every_epoch: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             **kwargs
     ):
@@ -246,11 +245,7 @@ class Trainer(
 
             profiler:  To profile individual steps during training and assist in
 
-            reload_train_dataloader_every_epoch: Set to True to reload dataloaders every epoch
-
-            reload_dataloaders_every_epoch:
-                .. warning:: .. deprecated:: 0.7.2
-                    Use `reload_train_dataloader_every_epoch` instead. Will remove 0.9.0.
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
             benchmark: If true enables cudnn.benchmark.
         """
@@ -324,13 +319,7 @@ class Trainer(
                           " NaN grads will be printed automatically when detected.",
                           DeprecationWarning)
 
-        self.reload_train_dataloader_every_epoch = reload_train_dataloader_every_epoch
-        # Backward compatibility, TODO: remove in v0.9.0
-        if reload_dataloaders_every_epoch is not None:
-            warnings.warn("Argument `reload_dataloaders_every_epoch` has renamed to "
-                          "`reload_train_dataloader_every_epoch` since v0.7.2"
-                          " and will be removed in v0.9.0", DeprecationWarning)
-            self.reload_train_dataloader_every_epoch = reload_dataloaders_every_epoch
+        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint

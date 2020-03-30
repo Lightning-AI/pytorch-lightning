@@ -1157,7 +1157,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             PyTorch DataLoader
 
         Return a dataloader. It will not be called every epoch unless you set
-        ```Trainer(reload_train_dataloader_every_epoch=True)```.
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
@@ -1201,7 +1201,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""
 
         Return a dataloader. It will not be called every epoch unless you set
-        ```Trainer(reload_train_dataloader_every_epoch=True)```.
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
@@ -1243,7 +1243,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""
 
         Return a dataloader. It will not be called every epoch unless you set
-        ```Trainer(reload_train_dataloader_every_epoch=True)```.
+        ```Trainer(reload_dataloaders_every_epoch=True)```.
 
         It's recommended that all data downloads and preparation happen in prepare_data().
 
