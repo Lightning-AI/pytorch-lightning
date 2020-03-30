@@ -16,7 +16,7 @@ from tests.base import (
 )
 
 
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_ddp(tmpdir):
     """Verify `test()` on pretrained model."""
 
@@ -150,7 +150,7 @@ def test_load_model_from_checkpoint(tmpdir):
     tutils.assert_ok_model_acc(new_trainer)
 
 
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_dp(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
@@ -192,7 +192,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     tutils.assert_ok_model_acc(new_trainer)
 
 
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
 

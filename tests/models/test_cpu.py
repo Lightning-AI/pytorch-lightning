@@ -206,7 +206,7 @@ def test_disabled_validation():
     assert model.validation_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
 
 
-@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     tutils.reset_seed()
 

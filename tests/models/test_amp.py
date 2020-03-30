@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -10,7 +11,7 @@ from tests.base import (
 )
 
 
-@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_single_gpu(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -31,7 +32,7 @@ def test_amp_single_gpu(tmpdir):
 
 
 @pytest.mark.spawn
-@pytest.mark.skipif(not tutils.can_run_gpu_test(), reason="test requires GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_no_amp_single_gpu(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -54,7 +55,7 @@ def test_no_amp_single_gpu(tmpdir):
     assert result == 1
 
 
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -76,7 +77,7 @@ def test_amp_gpu_ddp(tmpdir):
 
 
 @pytest.mark.spawn
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
@@ -142,7 +143,7 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 @pytest.mark.spawn
-@pytest.mark.skipif(tutils.can_run_gpu_test() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_dp(tmpdir):
     """Make sure DP + AMP work."""
     tutils.reset_seed()
