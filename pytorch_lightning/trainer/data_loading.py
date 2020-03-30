@@ -91,15 +91,12 @@ class TrainerDataLoadingMixin(ABC):
                 )
                 dl_args['shuffle'] = False
             else:
-                if train:
-                    sampler = DistributedSampler(dataloader.dataset)
-                    dl_args['shuffle'] = False
-                else:
-                    sampler = SequentialSampler(dataloader.dataset)
+                sampler = DistributedSampler(dataloader.dataset)
+                dl_args['shuffle'] = False
 
             dl_args['sampler'] = sampler
-
             dataloader = DataLoader(**dl_args)
+
         return dataloader
 
     def reset_train_dataloader(self, model: LightningModule) -> None:
