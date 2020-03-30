@@ -6,6 +6,7 @@ class TensorRunningMean(object):
     Tracks a running mean without graph references.
     Round robbin for the mean
     """
+
     def __init__(self, window_length):
         self.window_length = window_length
         self.reset()
