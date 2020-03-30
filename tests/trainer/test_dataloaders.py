@@ -373,11 +373,19 @@ def test_inf_train_dataloader(tmpdir):
         )
         trainer.fit(model)
 
-    # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
         val_check_interval=50
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
     )
     result = trainer.fit(model)
 
