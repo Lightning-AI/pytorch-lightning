@@ -54,7 +54,5 @@ class TensorRunningMean(object):
             self.rotated = True
 
     def mean(self):
-        if self.last_idx is None:
-            return
-        avg = self.memory.mean() if self.rotated else self.memory[:self.current_idx].mean()
-        return avg
+        if self.last_idx is not None:
+            return self.memory.mean() if self.rotated else self.memory[:self.current_idx].mean()
