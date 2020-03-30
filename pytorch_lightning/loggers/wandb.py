@@ -94,7 +94,7 @@ class WandbLogger(LightningLoggerBase):
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
-        wandb.watch(model, log=log, log_freq=log_freq)
+        self.experiment.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
