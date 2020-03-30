@@ -282,7 +282,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
-                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
+                      ' but will start from "0" in v0.8.0.', RuntimeWarning)
 
         # get model
         model = self.get_model()
@@ -308,7 +308,7 @@ class TrainerTrainLoopMixin(ABC):
             for epoch in range(self.current_epoch, self.max_epochs):
                 # reset train dataloader
                 if self.reload_train_dataloader_every_epoch:
-                    self.reset_train_dataloader(self.get_model())
+                    self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
