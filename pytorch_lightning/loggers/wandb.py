@@ -101,10 +101,6 @@ class WandbLogger(LightningLoggerBase):
             metrics['global_step'] = step
         self.experiment.log(metrics)
 
-    @rank_zero_only
-    def finalize(self, status: str = 'success') -> None:
-        return 0
-
     @property
     def name(self) -> str:
         return self.experiment.project_name()
