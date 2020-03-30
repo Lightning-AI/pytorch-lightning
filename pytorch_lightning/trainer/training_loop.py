@@ -146,6 +146,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.trainer.supporting_classes import TensorRunningMean
 
 try:
     from apex import amp
@@ -324,7 +325,14 @@ class TrainerTrainLoopMixin(ABC):
 
                 # total batches includes multiple val checks
                 self.total_batches = self.num_training_batches + total_val_batches
-                self.batch_loss_value = 0  # accumulated grads
+
+                # changing gradient according accumulation_scheduler
+                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+
+                # stores accumulated grad fractions per batch
+                self.batch_loss_value = TensorRunningMean(
+                    window_length=self.accumulate_grad_batches
+                )
 
                 if self.fast_dev_run:
                     # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
@@ -380,8 +388,7 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('on_epoch_start'):
             # callbacks
             self.on_epoch_start()
-            # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+
             # model hooks
             if self.is_function_implemented('on_epoch_start'):
                 self.get_model().on_epoch_start()
@@ -572,7 +579,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.detect_nan_tensors(loss)
 
                 # track total loss for logging (avoid mem leaks)
-                self.batch_loss_value += loss.item()
+                self.batch_loss_value.append(loss)
 
                 # gradient update with accumulated gradients
                 if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -595,9 +602,10 @@ class TrainerTrainLoopMixin(ABC):
                                              optimizer, opt_idx, optimizer_closure)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.batch_loss_value)
-                    self.batch_loss_value = 0
-                    self.avg_loss = np.mean(self.running_loss[-100:])
+                    self.running_loss.append(self.batch_loss_value.mean())
+
+                    # reset for next set of accumulated grads
+                    self.batch_loss_value.reset()
 
         # Batch end events
         with self.profiler.profile('on_batch_end'):
