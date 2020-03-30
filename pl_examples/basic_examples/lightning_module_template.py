@@ -262,13 +262,12 @@ class LightningTemplateModel(LightningModule):
         """
         results = self.validation_step_end(outputs)
 
-        # Rename output
-        tqdm_dict = results['progress_bar']
-        tqdm_dict['test_loss'] = tqdm_dict.pop('val_loss')
-        tqdm_dict['test_acc'] = tqdm_dict.pop('val_acc')
-
-        results['progress_bar'] = tqdm_dict
-        results['log'] = tqdm_dict
+        # rename some keys
+        results['progress_bar'].update({
+            'test_loss': results['progress_bar'].pop('val_loss'),
+            'test_acc': results['progress_bar'].pop('val_acc'),
+        })
+        results['log'] = results['progress_bar']
         results['test_loss'] = results.pop('val_loss')
 
         return results
