@@ -631,7 +631,7 @@ Example::
     trainer = Trainer(progress_bar_refresh_rate=1)
 
 
-reload_dataloaders_every_epoch
+reload_train_dataloader_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Set to True to reload dataloaders every epoch.
 

@@ -207,7 +207,7 @@ class TrainerTrainLoopMixin(ABC):
     batch_idx: int
     precision: ...
     train_dataloader: DataLoader
-    reload_dataloaders_every_epoch: bool
+    reload_train_dataloader_every_epoch: bool
     progress_bar_refresh_rate: ...
     max_steps: int
     min_steps: int
@@ -288,8 +288,8 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
 
         # load data
-        # if reload_dataloaders_every_epoch, this is moved to the epoch loop
-        if not self.reload_dataloaders_every_epoch:
+        # if reload_train_dataloader_every_epoch, this is moved to the epoch loop
+        if not self.reload_train_dataloader_every_epoch:
             self.reset_train_dataloader(model)
         self.reset_val_dataloader(model)
 
@@ -307,7 +307,7 @@ class TrainerTrainLoopMixin(ABC):
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
                 # reset train dataloader
-                if self.reload_dataloaders_every_epoch:
+                if self.reload_train_dataloader_every_epoch:
                     self.reset_train_dataloader(self.get_model())
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if self.use_ddp \

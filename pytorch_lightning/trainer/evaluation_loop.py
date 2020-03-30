@@ -170,7 +170,7 @@ class TrainerEvaluationLoopMixin(ABC):
     test_dataloaders: DataLoader
     val_dataloaders: DataLoader
     use_tpu: bool
-    reload_dataloaders_every_epoch: ...
+    reload_train_dataloader_every_epoch: ...
     progress_bar_refresh_rate: ...
 
     # Callback system
@@ -337,14 +337,14 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # select dataloaders
         if test_mode:
-            if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
+            if self.reload_train_dataloader_every_epoch or self.test_dataloaders is None:
                 self.reset_test_dataloader(model)
 
             dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
         else:
             # val
-            if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
+            if self.reload_train_dataloader_every_epoch or self.val_dataloaders is None:
                 self.reset_val_dataloader(model)
 
             dataloaders = self.val_dataloaders
