@@ -243,7 +243,7 @@ class Trainer(
 
             reload_train_dataloader_every_epoch: Set to True to reload dataloaders every epoch
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
+            reload_dataloaders_every_epoch:
                 .. warning:: .. deprecated:: 0.7.2
                     Use `reload_train_dataloader_every_epoch` instead. Will remove 0.9.0.
 
