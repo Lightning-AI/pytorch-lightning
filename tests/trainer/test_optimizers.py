@@ -1,13 +1,7 @@
-import math
-import os
-
-import pytest
-import torch
-
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightTrainDataloader,
     LightValidationStepMixin,
@@ -29,7 +23,7 @@ def test_optimizer_with_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -68,7 +62,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -111,7 +105,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -160,7 +154,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
             TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta

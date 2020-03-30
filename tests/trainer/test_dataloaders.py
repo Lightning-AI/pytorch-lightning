@@ -1,9 +1,9 @@
 import pytest
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
+from tests.base import (
     TestModelBase,
     LightningTestModel,
     LightEmptyTestStep,
@@ -29,7 +29,7 @@ def test_dataloader_config_errors(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # percent check < 0
@@ -104,7 +104,7 @@ def test_multiple_val_dataloader(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -143,7 +143,7 @@ def test_multiple_test_dataloader(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -178,7 +178,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # logger file to get meta
     trainer_options = dict(
@@ -208,7 +208,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # logger file to get meta
     trainer_options = dict(
@@ -243,7 +243,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # logger file to get meta
     trainer_options = dict(
@@ -282,7 +282,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     # logger file to get meta
     trainer_options = dict(
@@ -321,7 +321,7 @@ def test_mixing_of_dataloader_options(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
@@ -360,7 +360,7 @@ def test_inf_train_dataloader(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # fit model
@@ -372,11 +372,19 @@ def test_inf_train_dataloader(tmpdir):
         )
         trainer.fit(model)
 
-    # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
         val_check_interval=50
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1
     )
     result = trainer.fit(model)
 
@@ -394,7 +402,7 @@ def test_inf_val_dataloader(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # fit model
@@ -428,7 +436,7 @@ def test_inf_test_dataloader(tmpdir):
     ):
         pass
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
     # fit model

@@ -3,20 +3,16 @@ import os
 import pytest
 import torch
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    ModelCheckpoint,
-)
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from tests.models import (
-    LightningTestModel,
-)
+from tests.base import LightningTestModel
 
 PRETEND_N_OF_GPUS = 16
 
@@ -29,7 +25,7 @@ def test_multi_gpu_model_ddp2(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=True,
@@ -52,7 +48,7 @@ def test_multi_gpu_model_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
@@ -74,7 +70,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(default_save_path=tmpdir,
                            show_progress_bar=False,
                            max_epochs=1,
@@ -95,7 +91,7 @@ def test_optimizer_return_options():
     tutils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -130,11 +126,11 @@ def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
     version = logger.version
 
     trainer_options = dict(
@@ -173,7 +169,7 @@ def test_cpu_slurm_save_load(tmpdir):
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False, version=version)
+    logger = tutils.get_default_testtube_logger(tmpdir, False, version=version)
 
     trainer_options = dict(
         max_epochs=1,
@@ -206,7 +202,7 @@ def test_multi_gpu_none_backend(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
@@ -227,7 +223,7 @@ def test_multi_gpu_model_dp(tmpdir):
     if not tutils.can_run_gpu_test():
         return
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,

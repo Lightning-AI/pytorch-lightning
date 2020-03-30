@@ -7,14 +7,14 @@ import pytorch_lightning as pl
 
 
 # from test_models import assert_ok_test_acc, load_model, \
-#     clear_save_dir, get_test_tube_logger, get_hparams, init_save_dir, \
+#     clear_save_dir, get_default_testtube_logger, get_default_hparams, init_save_dir, \
 #     init_checkpoint_callback, reset_seed, set_random_master_port
 
 
 class CoolModel(pl.LightningModule):
 
     def __init(self):
-        super(CoolModel, self).__init__()
+        super().__init__()
         # not the best model...
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
@@ -26,12 +26,12 @@ class CoolModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'training_loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'val_loss': self.my_loss(y_hat, y)}
 
     def validation_epoch_end(self, outputs):

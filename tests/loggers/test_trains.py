@@ -1,16 +1,16 @@
 import pickle
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TrainsLogger
-from tests.models import LightningTestModel
+from tests.base import LightningTestModel
 
 
 def test_trains_logger(tmpdir):
     """Verify that basic functionality of TRAINS logger works."""
     tutils.reset_seed()
 
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
@@ -36,7 +36,7 @@ def test_trains_pickle(tmpdir):
     """Verify that pickling trainer with TRAINS logger works."""
     tutils.reset_seed()
 
-    # hparams = tutils.get_hparams()
+    # hparams = tutils.get_default_hparams()
     # model = LightningTestModel(hparams)
     TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',

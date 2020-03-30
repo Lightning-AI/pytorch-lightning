@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-import tests.models.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
 
@@ -15,7 +15,7 @@ def test_default_args(tmpdir):
     tutils.reset_seed()
 
     # logger file to get meta
-    logger = tutils.get_test_tube_logger(tmpdir, False)
+    logger = tutils.get_default_testtube_logger(tmpdir, False)
 
     parser = ArgumentParser(add_help=False)
     args = parser.parse_args()

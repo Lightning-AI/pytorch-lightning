@@ -2,8 +2,8 @@
 
 from pytorch_lightning import Trainer
 
-import tests.models.utils as tutils
-from tests.models import TestModelBase, LightTrainDataloader, LightEmptyTestStep
+import tests.base.utils as tutils
+from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
 
 
 def test_tbd_remove_in_v0_8_0_module_imports():
@@ -85,7 +85,7 @@ class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    hparams = tutils.get_hparams()
+    hparams = tutils.get_default_hparams()
 
     model = ModelVer0_6(hparams)
 
@@ -95,7 +95,7 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     trainer = Trainer(logger=False)
     # TODO: why `dataloder` is required if it is not used
-    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.6}
 
     model = ModelVer0_7(hparams)
@@ -106,5 +106,5 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     trainer = Trainer(logger=False)
     # TODO: why `dataloder` is required if it is not used
-    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.7}

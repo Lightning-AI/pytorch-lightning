@@ -1,5 +1,6 @@
 import os
 from collections import OrderedDict
+from typing import Dict
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,6 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from typing import Dict
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -45,7 +45,7 @@ class TestingMNIST(MNIST):
 class DictHparamsModel(LightningModule):
 
     def __init__(self, hparams: Dict):
-        super(DictHparamsModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
         self.l1 = torch.nn.Linear(hparams.get('in_features'), hparams['out_features'])
 
@@ -54,7 +54,7 @@ class DictHparamsModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'loss': F.cross_entropy(y_hat, y)}
 
     def configure_optimizers(self):
@@ -140,7 +140,7 @@ class TestModelBase(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
@@ -174,9 +174,8 @@ class TestModelBase(LightningModule):
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         else:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-        # test returning only 1 list instead of 2
-        return optimizer
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
@@ -201,36 +200,3 @@ class TestModelBase(LightningModule):
         )
 
         return loader
-
-    @staticmethod
-    def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
-        """
-        Parameters you define here will be available to your model through self.hparams
-        :param parent_parser:
-        :param root_dir:
-        :return:
-        """
-        parser = HyperOptArgumentParser(strategy=parent_parser.strategy, parents=[parent_parser])
-
-        # param overwrites
-        # parser.set_defaults(gradient_clip_val=5.0)
-
-        # network params
-        parser.opt_list('--drop_prob', default=0.2, options=[0.2, 0.5], type=float, tunable=False)
-        parser.add_argument('--in_features', default=28 * 28, type=int)
-        parser.add_argument('--out_features', default=10, type=int)
-        # use 500 for CPU, 50000 for GPU to see speed difference
-        parser.add_argument('--hidden_dim', default=50000, type=int)
-        # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-        # training params (opt)
-        parser.opt_list('--learning_rate', default=0.001 * 8, type=float,
-                        options=[0.0001, 0.0005, 0.001, 0.005], tunable=False)
-        parser.opt_list('--optimizer_name', default='adam', type=str,
-                        options=['adam'], tunable=False)
-        # if using 2 nodes with 4 gpus each the batch size here
-        #  (256) will be 256 / (2*8) = 16 per gpu
-        parser.opt_list('--batch_size', default=256 * 8, type=int,
-                        options=[32, 64, 128, 256], tunable=False,
-                        help='batch size will be divided over all GPUs being used across all nodes')
-        return parser

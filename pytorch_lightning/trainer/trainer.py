@@ -34,6 +34,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.trainer.supporting_classes import TensorRunningMean
 
 try:
     from apex import amp
@@ -340,8 +341,7 @@ class Trainer(
 
         # training bookeeping
         self.total_batch_idx = 0
-        self.running_loss = []
-        self.avg_loss = 0
+        self.running_loss = TensorRunningMean(window_length=20)
         self.batch_idx = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
@@ -876,7 +876,8 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not self.is_overriden('validation_step') and not self.fast_dev_run
+        self.disable_validation = not (self.is_overriden('validation_step') and self.val_percent_check > 0) \
+            and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -892,10 +893,10 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model,
-                                         self.val_dataloaders,
-                                         self.num_sanity_val_steps,
-                                         False)
+            eval_results = self._evaluate(model,
+                                          self.val_dataloaders,
+                                          self.num_sanity_val_steps,
+                                          False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
@@ -908,7 +909,7 @@ class Trainer(
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
                     disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout)
+                    file=sys.stdout, smoothing=0)
         self.main_progress_bar = pbar
 
         # clear cache before training
