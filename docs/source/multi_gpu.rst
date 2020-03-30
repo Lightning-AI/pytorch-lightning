@@ -207,7 +207,7 @@ to illustrate why this is needed, let's look at dataparallel
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(batch)
+        y_hat = self(batch)
 
         # on dp or ddp2 if we did softmax now it would be wrong
         # because batch is actually a piece of the full batch

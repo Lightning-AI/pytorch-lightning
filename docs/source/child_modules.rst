@@ -24,7 +24,7 @@ that change in the `Autoencoder` model are the init, forward, training, validati
             x, _ = batch
 
             representation = self.encoder(x)
-            x_hat = self.forward(representation)
+            x_hat = self(representation)
 
             loss = MSE(x, x_hat)
             return loss
@@ -38,7 +38,7 @@ that change in the `Autoencoder` model are the init, forward, training, validati
         def _shared_eval(self, batch, batch_idx, prefix):
             x, y = batch
             representation = self.encoder(x)
-            x_hat = self.forward(representation)
+            x_hat = self(representation)
 
             loss = F.nll_loss(logits, y)
             return {f'{prefix}_loss': loss}

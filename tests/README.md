@@ -13,8 +13,8 @@ To run all tests do the following:
 git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
 
-# install module locally
-pip install -e .
+# install AMP support
+bash tests/install_AMP.sh
 
 # install dev deps
 pip install -r tests/requirements.txt
@@ -36,15 +36,13 @@ Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex 
 cd pytorch-lightning
 
 # generate coverage (coverage is also installed as part of dev dependencies under tests/requirements.txt)
-pip install coverage
 coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
 
 # print coverage stats
 coverage report -m
 
-# exporting resulys
+# exporting results
 coverage xml
-codecov -t 17327163-8cca-4a5d-86c8-ca5f2ef700bc  -v
 ```
 
 
