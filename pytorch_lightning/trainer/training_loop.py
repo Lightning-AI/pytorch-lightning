@@ -146,7 +146,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.trainer.supporting_classes import TensorRunningMean
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp

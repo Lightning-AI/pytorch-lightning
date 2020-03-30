@@ -34,7 +34,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.trainer.supporting_classes import TensorRunningMean
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp
