@@ -22,6 +22,10 @@ jobs:
         os: [ubuntu-18.04, windows-2016, macOS-10.15]
         python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
+        exclude:
+          # excludes node 4 on macOS
+          - python-version: 3.8
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -37,11 +41,6 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
-
-    - name: python 3.8 >> min pytorch 1.2
-      if: matrix.python-version == 3.8
-      run: |
-        python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch>=1.2') ; open('requirements.txt', 'w').write(req)"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
