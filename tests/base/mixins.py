@@ -252,6 +252,16 @@ class LightInfTestDataloader:
         return CustomInfDataloader(self._dataloader(train=False))
 
 
+class LightZeroLenDataloader:
+    """ Simple dataloader that has zero length. """
+
+    def train_dataloader(self):
+        dataloader = self._dataloader(train=True)
+        dataloader.dataset.data = dataloader.dataset.data[:0]
+        dataloader.dataset.targets = dataloader.dataset.targets[:0]
+        return dataloader
+
+
 class LightEmptyTestStep:
     """Empty test step."""
 
