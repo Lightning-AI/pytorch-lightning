@@ -39,15 +39,9 @@ Lightning will restore the session if you pass a logger with the same version an
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.loggers import TestTubeLogger
 
-    logger = TestTubeLogger(
-        save_dir='./savepath',
-        version=1  # An existing version with a saved checkpoint
-    )
     trainer = Trainer(
-        logger=logger,
-        default_save_path='./savepath'
+        resume_from_checkpoint=PATH
     )
 
     # this fit call loads model weights and trainer state

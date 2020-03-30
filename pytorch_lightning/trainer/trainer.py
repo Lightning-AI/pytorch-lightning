@@ -34,6 +34,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp
@@ -337,8 +338,7 @@ class Trainer(
 
         # training bookeeping
         self.total_batch_idx = 0
-        self.running_loss = []
-        self.avg_loss = 0
+        self.running_loss = TensorRunningMean(window_length=20)
         self.batch_idx = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
@@ -889,10 +889,10 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model,
-                                         self.val_dataloaders,
-                                         self.num_sanity_val_steps,
-                                         False)
+            eval_results = self._evaluate(model,
+                                          self.val_dataloaders,
+                                          self.num_sanity_val_steps,
+                                          False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars

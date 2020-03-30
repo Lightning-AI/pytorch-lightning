@@ -48,7 +48,7 @@ def info_system():
 
 def info_cuda():
     return {
-        'GPU': set([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]),
+        'GPU': [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
         # 'nvidia_driver': get_nvidia_driver_version(run_lambda),
         'available': torch.cuda.is_available(),
         'version': torch.version.cuda,

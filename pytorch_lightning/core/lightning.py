@@ -1324,6 +1324,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             tags_csv: Optional[str] = None,
+            *args, **kwargs
     ) -> 'LightningModule':
         r"""
 
@@ -1346,6 +1347,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path: Path to checkpoint.
+            model_args: Any keyword args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -1387,6 +1389,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     tags_csv='/path/to/hparams_file.csv'
                 )
 
+                # or load passing whatever args the model takes to load
+                MyLightningModule.load_from_checkpoint(
+                    'path/to/checkpoint.ckpt',
+                    learning_rate=0.1,
+                    layers=2,
+                    pretrained_model=some_model
+                )
+
                 # predict
                 pretrained_model.eval()
                 pretrained_model.freeze()
@@ -1403,11 +1413,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             hparams.__setattr__('on_gpu', False)
             checkpoint['hparams'] = vars(hparams)
 
-        model = cls._load_model_state(checkpoint)
+        model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any]) -> 'LightningModule':
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
         cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
         ckpt_hparams = checkpoint.get('hparams')
 
@@ -1433,7 +1443,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # load the state_dict on the model automatically
         model_args = [hparams] if hparams else []
-        model = cls(*model_args)
+        if len(model_args) > 0:
+            model = cls(*model_args)
+        else:
+            model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
@@ -1524,8 +1537,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
+        # call .item() only once but store elements without graphs
+        running_train_loss = self.trainer.running_loss.mean()
+        avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
         tqdm_dict = {
-            'loss': '{:.3f}'.format(self.trainer.avg_loss)
+            'loss': '{:.3f}'.format(avg_training_loss)
         }
 
         if self.trainer.truncated_bptt_steps is not None:

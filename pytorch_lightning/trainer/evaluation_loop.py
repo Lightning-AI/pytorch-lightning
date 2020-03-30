@@ -217,7 +217,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
+    def _evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
         """Run evaluation code.
 
         Args:
@@ -365,7 +365,7 @@ class TrainerEvaluationLoopMixin(ABC):
         setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation
-        eval_results = self.evaluate(self.model, dataloaders, max_batches, test_mode)
+        eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
             eval_results)
 
