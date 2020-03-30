@@ -43,14 +43,14 @@ class BaseMetric(torch.nn.Module, ABC):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
-        return sync_collections(super().__call__(*args, **kwargs),
-                                group=self.reduce_group,
-                                reduce_op=self.reduce_op)
+        return _sync_collections(super().__call__(*args, **kwargs),
+                                 group=self.reduce_group,
+                                 reduce_op=self.reduce_op)
 
 
-def sync_ddp(result: Union[torch.Tensor, numbers.Number],
-             group: Any = torch.distributed.group.WORLD,
-             reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> torch.Tensor:
+def _sync_ddp(result: Union[torch.Tensor, numbers.Number],
+              group: Any = torch.distributed.group.WORLD,
+              reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
 
@@ -77,12 +77,12 @@ def sync_ddp(result: Union[torch.Tensor, numbers.Number],
     return result
 
 
-def sync_collections(result: Union[torch.Tensor, numbers.Number,
-                                   Mapping, Sequence],
-                     group: Any = torch.distributed.group.WORLD,
-                     reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM
-                     ) -> Union[torch.Tensor, numbers.Number,
-                                Mapping, Sequence]:
+def _sync_collections(result: Union[torch.Tensor, numbers.Number,
+                                    Mapping, Sequence],
+                      group: Any = torch.distributed.group.WORLD,
+                      reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM
+                      ) -> Union[torch.Tensor, numbers.Number,
+                                 Mapping, Sequence]:
     """
     Recursively applies sync_ddp to collections
 
@@ -98,7 +98,7 @@ def sync_collections(result: Union[torch.Tensor, numbers.Number,
     # function adapted from torch.utils.data._utils.collate
     elem_type = type(result)
 
-    func = partial(sync_collections, group=group, reduce_op=reduce_op)
+    func = partial(_sync_collections, group=group, reduce_op=reduce_op)
 
     # convert numpy to tensor if possible
     if elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
@@ -109,7 +109,7 @@ def sync_collections(result: Union[torch.Tensor, numbers.Number,
             result = torch.as_tensor(result)
 
     if isinstance(result, (torch.Tensor, numbers.Number)):
-        return sync_ddp(result, group=group, reduce_op=reduce_op)
+        return _sync_ddp(result, group=group, reduce_op=reduce_op)
 
     elif isinstance(result, Mapping):
         return elem_type({key: func(result[key]) for key in result})
