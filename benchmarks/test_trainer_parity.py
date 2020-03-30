@@ -142,7 +142,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
         )
         trainer.fit(model)
 
-        final_loss = trainer.running_loss[-1]
+        final_loss = trainer.running_loss.last().item()
         errors.append(final_loss)
 
         time_end = time.perf_counter()
