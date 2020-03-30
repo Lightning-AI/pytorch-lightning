@@ -47,7 +47,7 @@ class ParityMNIST(LightningModule):
 
 def test_pytorch_parity(tmpdir):
     """
-    Verify that the same pytorch and lightning models achieve the same results
+    Verify that the same  pytorch and lightning models achieve the same results
     :param tmpdir:
     :return:
     """
