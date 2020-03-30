@@ -31,9 +31,9 @@ def merge_two_dicts(d1: Mapping, d2: Mapping, fn: Callable[[float, float], float
         {'a': 1.7, 'b': 2.2, 'c': 1}
     """
 
-    all_keys = list(set(d1.keys()).union(set(d2.keys())))
-
-    return {key: fn(d1.get(key, default_value), d2.get(key, default_value)) for key in all_keys}
+    keys = set(list(d1.keys()) + list(d2.keys()))
+    dx = {k: fn([v for v in (d1.get(k), d2.get(k)) if v]) for k in keys}
+    return dx
 
 
 def metrics_agg_simple(metrics_to_agg: Sequence[MetricsT], fn: Callable[[float, float], float]) -> MetricsT:
