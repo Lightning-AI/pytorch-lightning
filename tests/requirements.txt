@@ -2,7 +2,6 @@
 -r ../requirements-extra.txt
 
 # extended list of dependencies dor development and run lint and tests
-torchvision>=0.4.0, < 0.5  # the 0.5. has some issues with torch JIT
 tox
 coverage
 codecov
@@ -12,4 +11,3 @@ pytest-flake8
 flake8
 check-manifest
 twine==1.13.0
-pillow<7.0.0

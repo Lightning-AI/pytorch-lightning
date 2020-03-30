@@ -210,18 +210,6 @@ def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def can_run_gpu_test():
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return False
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return False
-    return True
-
-
 def reset_seed():
     seed = RANDOM_SEEDS.pop()
     torch.manual_seed(seed)

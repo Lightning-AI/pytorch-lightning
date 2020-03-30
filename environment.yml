@@ -15,7 +15,6 @@ dependencies:
     - future>=0.17.1
 
     # For dev and testing
-    - torchvision>=0.4.0
     - tox
     - coverage
     - codecov
@@ -26,7 +25,6 @@ dependencies:
     - autopep8
     - check-manifest
     - twine==1.13.0
-    - pillow<7.0.0
 
     - pip:
         - test-tube>=0.7.5
