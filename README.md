@@ -62,7 +62,7 @@ To use Lightning, first refactor your research code into a [LightningModule](htt
 And Lightning automates the rest using the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
 
-Lightning guarantees riguously tested, correct, modern best practices for the automated parts.
+Lightning guarantees rigorously tested, correct, modern best practices for the automated parts.
 
 ## How flexible is it?
 As you see, you're just organizing your PyTorch code - there's no abstraction.
@@ -303,7 +303,7 @@ Lightning has 3 goals in mind:
 [Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
 
 **Is this another library I have to learn?**
-Nope! We use pure Pytorch everywhere and don't add unecessary abstractions!
+Nope! We use pure Pytorch everywhere and don't add unnecessary abstractions!
 
 **Are there plans to support Python 2?**
 Nope.
