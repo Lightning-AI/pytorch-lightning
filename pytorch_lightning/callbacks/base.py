@@ -1,6 +1,6 @@
 r"""
 Callback Base
-==============
+=============
     Abstract base class used to build new callbacks.
 """
 

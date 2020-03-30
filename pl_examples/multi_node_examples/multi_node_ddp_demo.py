@@ -16,11 +16,7 @@ np.random.seed(SEED)
 
 
 def main(hparams):
-    """
-    Main training routine specific for this project
-    :param hparams:
-    :return:
-    """
+    """Main training routine specific for this project."""
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------

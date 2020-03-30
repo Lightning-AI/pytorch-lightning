@@ -42,16 +42,10 @@ class DictHparamsModel(LightningModule):
 
 
 class TestModelBase(LightningModule):
-    """
-    Base LightningModule for testing. Implements only the required
-    interface
-    """
+    """Base LightningModule for testing. Implements only the required interface."""
 
-    def __init__(self, hparams, force_remove_distributed_sampler=False):
-        """
-        Pass in parsed HyperOptArgumentParser to the model
-        :param hparams:
-        """
+    def __init__(self, hparams, force_remove_distributed_sampler: bool = False):
+        """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
         super().__init__()
         self.hparams = hparams
@@ -71,10 +65,7 @@ class TestModelBase(LightningModule):
     # MODEL SETUP
     # ---------------------
     def __build_model(self):
-        """
-        Layout model
-        :return:
-        """
+        """Layout model."""
         self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
                               out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
@@ -87,11 +78,7 @@ class TestModelBase(LightningModule):
     # TRAINING
     # ---------------------
     def forward(self, x):
-        """
-        No special modification required for lightning, define as you normally would
-        :param x:
-        :return:
-        """
+        """No special modification required for lightning, define as you normally would."""
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
@@ -107,11 +94,7 @@ class TestModelBase(LightningModule):
         return nll
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
-        """
-        Lightning calls this inside the training loop
-        :param batch:
-        :return:
-        """
+        """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
