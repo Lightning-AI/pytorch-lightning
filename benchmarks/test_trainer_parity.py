@@ -2,6 +2,7 @@ import os
 import time
 
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,7 +11,6 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from pytorch_lightning import Trainer, LightningModule
-import tests.base.utils as tutils
 
 
 class ParityMNIST(LightningModule):
@@ -45,15 +45,13 @@ class ParityMNIST(LightningModule):
                                 transform=transforms.ToTensor()), batch_size=32)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir):
     """
     Verify that the same  pytorch and lightning models achieve the same results
     :param tmpdir:
     :return:
     """
-    if not tutils.can_run_gpu_test():
-        return
-
     num_epochs = 2
     num_rums = 3
     lightning_outs, pl_times = lightning_loop(ParityMNIST, num_rums, num_epochs)
