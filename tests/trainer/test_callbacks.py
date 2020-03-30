@@ -1,7 +1,7 @@
+import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import EarlyStopping
-import tests.base.utils as tutils
 from tests.base import (
     LightTrainDataloader,
     LightTestMixin,
@@ -160,10 +160,9 @@ def test_early_stopping_without_val_step(tmpdir):
     class ModelWithoutValStep(LightTrainDataloader, TestModelBase):
 
         def training_step(self, *args, **kwargs):
-            import time
             output = super().training_step(*args, **kwargs)
             loss = output['loss']  # could be anything else
-            output['log'].update({'my_train_metric': loss})
+            output.update({'my_train_metric': loss})
             return output
 
     hparams = tutils.get_default_hparams()
