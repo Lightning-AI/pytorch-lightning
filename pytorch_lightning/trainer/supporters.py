@@ -11,6 +11,8 @@ class TensorRunningMean(object):
         >>> accum.last(), accum.mean()
         (None, None)
         >>> accum.append(torch.tensor(1.5))
+        >>> accum.last(), accum.mean()
+        (tensor(1.5000), tensor(1.5000))
         >>> accum.append(torch.tensor(2.5))
         >>> accum.last(), accum.mean()
         (tensor(2.5000), tensor(2.))
@@ -27,7 +29,7 @@ class TensorRunningMean(object):
         self.rotated: bool = False
 
     def reset(self) -> None:
-        self.memory = TensorRunningMean(self.window_length) * 0
+        self = TensorRunningMean(self.window_length)
 
     def last(self):
         if self.last_idx:
@@ -53,4 +55,7 @@ class TensorRunningMean(object):
             self.rotated = True
 
     def mean(self):
-        return self.memory.mean()
+        if self.last_idx is None:
+            return None
+        avg = self.memory.mean() if self.rotated else self.memory[:self.current_idx].mean()
+        return avg
