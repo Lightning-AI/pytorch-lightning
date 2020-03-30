@@ -30,8 +30,7 @@ def _has_len(dataloader: DataLoader) -> bool:
     it is a finite dataloader or infinite dataloader """
     try:
         # try getting the length
-        val = len(dataloader)
-        if val == 0:
+        if len(dataloader) == 0:
             raise ValueError('Dataloader returned 0 length. Please make sure'
                              ' that your Dataloader atleast returns 1 batch')
         return True
