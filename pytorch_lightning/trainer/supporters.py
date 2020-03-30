@@ -32,9 +32,8 @@ class TensorRunningMean(object):
         self = TensorRunningMean(self.window_length)
 
     def last(self):
-        if self.last_idx:
+        if self.last_idx is not None:
             return self.memory[self.last_idx]
-        return None
 
     def append(self, x):
         # map proper type for memory if they don't match
@@ -56,6 +55,6 @@ class TensorRunningMean(object):
 
     def mean(self):
         if self.last_idx is None:
-            return None
+            return
         avg = self.memory.mean() if self.rotated else self.memory[:self.current_idx].mean()
         return avg
