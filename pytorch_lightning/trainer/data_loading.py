@@ -74,12 +74,6 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
-
-        # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
-            return dataloader
-
-        # don't add sampler when user gives one
         if dataloader.sampler is not None:
             return dataloader
 
