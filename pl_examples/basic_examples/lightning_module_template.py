@@ -111,10 +111,6 @@ class LightningTemplateModel(LightningModule):
         # calculate loss
         loss_val = self.loss(y, y_hat)
 
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-
         tqdm_dict = {'train_loss': loss_val}
         output = OrderedDict({
             'loss': loss_val,
@@ -144,11 +140,6 @@ class LightningTemplateModel(LightningModule):
 
         if self.on_gpu:
             val_acc = val_acc.cuda(loss_val.device.index)
-
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-            val_acc = val_acc.unsqueeze(0)
 
         output = OrderedDict({
             'val_loss': loss_val,
