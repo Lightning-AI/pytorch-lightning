@@ -94,7 +94,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.epochs_since_last_check = 0
+        self.epoch_last_check = None
         self.prefix = prefix
         self.best_k_models = {}
         # {filename: monitor}
@@ -139,21 +139,20 @@ class ModelCheckpoint(Callback):
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according define template.
 
-        Examples
-        --------
-        >>> tmpdir = os.path.dirname(__file__)
-        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
-        >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
-        'epoch=0.ckpt'
-        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
-        >>> os.path.basename(ckpt.format_checkpoint_name(5, {}))
-        'epoch=005.ckpt'
-        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
-        >>> os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456)))
-        'epoch=2-val_loss=0.12.ckpt'
-        >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
-        >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
-        'missing=0.ckpt'
+        Examples:
+            >>> tmpdir = os.path.dirname(__file__)
+            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            'epoch=0.ckpt'
+            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
+            >>> os.path.basename(ckpt.format_checkpoint_name(5, {}))
+            'epoch=005.ckpt'
+            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
+            >>> os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456)))
+            'epoch=2-val_loss=0.12.ckpt'
+            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            'missing=0.ckpt'
         """
         # check if user passed in keys to the string
         groups = re.findall(r'(\{.*?)[:\}]', self.filename)
@@ -181,41 +180,36 @@ class ModelCheckpoint(Callback):
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
-        self.epochs_since_last_check += 1
-
         if self.save_top_k == 0:
             # no models are saved
             return
-        if self.epochs_since_last_check >= self.period:
-            self.epochs_since_last_check = 0
+        if self.epoch_last_check is not None and (epoch - self.epoch_last_check) < self.period:
+            # skipping in this term
+            return
 
-            filepath = self.format_checkpoint_name(epoch, metrics)
-            version_cnt = 0
-            while os.path.isfile(filepath):
-                filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
-                # this epoch called before
-                version_cnt += 1
+        self.epoch_last_check = epoch
 
-            if self.save_top_k != -1:
-                current = metrics.get(self.monitor)
+        filepath = self.format_checkpoint_name(epoch, metrics)
+        version_cnt = 0
+        while os.path.isfile(filepath):
+            filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
+            # this epoch called before
+            version_cnt += 1
 
-                if current is None:
-                    warnings.warn(
-                        f'Can save best model only with {self.monitor} available,'
-                        ' skipping.', RuntimeWarning)
-                else:
-                    if self.check_monitor_top_k(current):
-                        self._do_check_save(filepath, current, epoch)
-                    else:
-                        if self.verbose > 0:
-                            log.info(
-                                f'\nEpoch {epoch:05d}: {self.monitor}'
-                                f' was not in top {self.save_top_k}')
+        if self.save_top_k != -1:
+            current = metrics.get(self.monitor)
 
-            else:
-                if self.verbose > 0:
-                    log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
-                self._save_model(filepath)
+            if current is None:
+                warnings.warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
+            elif self.check_monitor_top_k(current):
+                self._do_check_save(filepath, current, epoch)
+            elif self.verbose > 0:
+                log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
+
+        else:
+            if self.verbose > 0:
+                log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+            self._save_model(filepath)
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth

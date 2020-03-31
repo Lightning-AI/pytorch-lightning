@@ -18,8 +18,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.profiler.profiler import BaseProfiler
+from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -33,7 +32,8 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp
@@ -81,9 +81,7 @@ class Trainer(
             callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             process_position: int = 0,
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
@@ -95,8 +93,6 @@ class Trainer(
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             max_epochs: int = 1000,
             min_epochs: int = 1,
             max_steps: Optional[int] = None,
@@ -109,19 +105,23 @@ class Trainer(
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend: Optional[str] = None,
-            use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: str = 'full',
+            weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
             amp_level: str = 'O1',
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
+            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
+            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+            use_amp=False,  # backward compatible, todo: remove in v0.9.0
+            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             **kwargs
     ):
         r"""
@@ -327,11 +327,8 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 1
             self.max_epochs = 1
-            m = '''
-            Running in fast_dev_run mode: will run a full train,
-            val loop using a single batch
-            '''
-            log.info(m)
+            log.info('Running in fast_dev_run mode: will run a full train,'
+                     ' val loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
@@ -340,8 +337,7 @@ class Trainer(
 
         # training bookeeping
         self.total_batch_idx = 0
-        self.running_loss = []
-        self.avg_loss = 0
+        self.running_loss = TensorRunningMean(window_length=20)
         self.batch_idx = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
@@ -368,7 +364,7 @@ class Trainer(
 
         # configure profiler
         if profiler is True:
-            profiler = Profiler()
+            profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
@@ -494,10 +490,10 @@ class Trainer(
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
-              (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+              (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
                <class 'NoneType'>),
               None),
-            ...
+             ...
         """
         trainer_default_params = inspect.signature(cls).parameters
         name_type_default = []
@@ -741,22 +737,22 @@ class Trainer(
         # functions to overwrite with these implementations
         if train_dataloader is not None:
             if not self.is_overriden('training_step', model):
-                m = 'You called .fit() with a train_dataloader but did not define training_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `train_dataloader` but did not define `training_step()`')
 
             model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             if not self.is_overriden('validation_step', model):
-                m = 'You called .fit() with a val_dataloaders but did not define validation_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `val_dataloaders` but did not define `validation_step()`')
 
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
             if not self.is_overriden('test_step', model):
-                m = 'You called .fit() with a test_dataloaders but did not define test_step()'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'You called `.fit()` with a `test_dataloaders` but did not define `test_step()`')
 
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
@@ -885,8 +881,7 @@ class Trainer(
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                m = "weights_summary can be None, 'full' or 'top'"
-                raise MisconfigurationException(m)
+                raise MisconfigurationException("weights_summary can be None, 'full' or 'top'")
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -923,10 +918,10 @@ class Trainer(
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
 
-            eval_results = self.evaluate(model,
-                                         self.val_dataloaders,
-                                         self.num_sanity_val_steps,
-                                         False)
+            eval_results = self._evaluate(model,
+                                          self.val_dataloaders,
+                                          self.num_sanity_val_steps,
+                                          False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars

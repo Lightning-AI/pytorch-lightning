@@ -122,7 +122,7 @@ from typing import Union
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -199,10 +199,9 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
-                m = 'You requested multiple GPUs but did not specify a backend' \
-                    'Trainer(distributed_backend=dp) (or ddp, ddp2)' \
-                    'Setting distributed_backend=dp for you'
-                warnings.warn(m)
+                warnings.warn('You requested multiple GPUs but did not specify a backend, e.g.'
+                              ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
+                              ' Setting distributed_backend=dp for you.')
                 self.use_dp = True
                 self.use_ddp = False
                 self.use_ddp2 = False

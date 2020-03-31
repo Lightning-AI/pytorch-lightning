@@ -344,7 +344,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -493,9 +493,8 @@ class TrainerDPMixin(ABC):
         if self.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
-            f'global rank: {self.tpu_global_core_rank}'
-        log.info(m)
+        log.info(f'INIT TPU local core: {self.tpu_local_core_rank},'
+                 f' global rank: {self.tpu_global_core_rank}')
 
         # continue training routine
         self.run_pretrain_routine(model)
@@ -515,12 +514,10 @@ class TrainerDPMixin(ABC):
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp:
             if self.amp_level == 'O2':
-                m = f"""
-                Amp level {self.amp_level} with DataParallel is not supported.
-                See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-                We recommend you switch to ddp if you want to use amp
-                """
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    f'Amp level {self.amp_level} with DataParallel is not supported.'
+                    f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
+                    f' We recommend you switch to ddp if you want to use amp')
             else:
                 model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
 
@@ -587,11 +584,10 @@ def sanitize_gpu_ids(gpus):
     all_available_gpus = get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            message = f"""
-            You requested GPUs: {gpus}
-            But your machine only has: {all_available_gpus}
-            """
-            raise MisconfigurationException(message)
+            raise MisconfigurationException(f"""
+                You requested GPUs: {gpus}
+                But your machine only has: {all_available_gpus}
+            """)
     return gpus
 
 

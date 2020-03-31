@@ -101,14 +101,6 @@ class WandbLogger(LightningLoggerBase):
             metrics['global_step'] = step
         self.experiment.log(metrics)
 
-    @rank_zero_only
-    def finalize(self, status: str = 'success') -> None:
-        try:
-            exit_code = 0 if status == 'success' else 1
-            wandb.join(exit_code)
-        except TypeError:
-            wandb.join()
-
     @property
     def name(self) -> str:
         return self.experiment.project_name()
