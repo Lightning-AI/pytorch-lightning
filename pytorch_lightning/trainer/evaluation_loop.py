@@ -405,7 +405,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 self.reset_test_dataloader(model)
         else:
             # val
-            if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
+            if self.reload_dataloaders_every_epoch:
                 self.reset_val_dataloader(model)
 
         # Validation/Test end callbacks
