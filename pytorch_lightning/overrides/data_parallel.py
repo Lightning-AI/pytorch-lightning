@@ -165,7 +165,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                     output = module.validation_step(*input, **kwargs)
 
                 if module.use_dp or module.use_ddp2:
-                    output['loss'] = output['loss'].unsqueeze(0)
+                    auto_squeeze_dim_zeros(output)
                 # ---------------
 
             with lock:
@@ -202,3 +202,15 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             raise output
         outputs.append(output)
     return outputs
+
+
+def auto_squeeze_dim_zeros(output):
+    """
+    In DP or DDP2 we need to unsqueeze dim 0
+    :param output:
+    :return:
+    """
+    for k, v in output:
+        is_scalar = len(v.size())
+        if is_scalar:
+            output[k] = output[k].unsqueeze(0)
