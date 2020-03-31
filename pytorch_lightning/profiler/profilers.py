@@ -115,9 +115,7 @@ class SimpleProfiler(BaseProfiler):
         self.output_fname = output_filename
         self.output_file = open(self.output_fname, 'w') if self.output_fname else None
 
-        streaming_out = [log.info]
-        if self.output_file:
-            streaming_out.append(self.output_file.write)
+        streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
@@ -186,9 +184,7 @@ class AdvancedProfiler(BaseProfiler):
         self.output_fname = output_filename
         self.output_file = open(self.output_fname, 'w') if self.output_fname else None
 
-        streaming_out = [log.info]
-        if self.output_file:
-            streaming_out.append(self.output_file.write)
+        streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
