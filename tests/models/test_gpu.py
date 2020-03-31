@@ -119,19 +119,17 @@ def test_optimizer_return_options():
     opts = ([opt_a], [scheduler_a])
     optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
-    assert optim[0] == opts[0][0] and \
-        lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                            frequency=1, reduce_on_plateau=False,
-                            monitor='val_loss')
+    assert optim[0] == opts[0][0]
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
 
     # opt single dictionary
     opts = {"optimizer": opt_a, "lr_scheduler": scheduler_a}
     optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
-    assert optim[0] == opt_a and \
-        lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                            frequency=1, reduce_on_plateau=False,
-                            monitor='val_loss')
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
 
     # opt multiple dictionaries with frequencies
     opts = (
@@ -140,10 +138,9 @@ def test_optimizer_return_options():
     )
     optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
-    assert optim[0] == opt_a and \
-        lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                            frequency=1, reduce_on_plateau=False,
-                            monitor='val_loss')
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
     assert freq == [1, 5]
 
 
