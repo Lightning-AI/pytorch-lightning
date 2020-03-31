@@ -29,9 +29,10 @@ steps:
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
     - python tests/collect_env_details.py
 
-  trigger:
-    branch: master
-    event:
-      include:
-      - push
-      - pull_request
+trigger:
+  branch:
+    - master
+  event:
+    include:
+    - push
+    - pull_request
