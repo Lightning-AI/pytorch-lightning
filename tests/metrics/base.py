@@ -6,7 +6,7 @@ import torch
 import torch.distributed as dist
 
 import tests.base.utils as tutils
-from pytorch_lightning.metrics.metric import _sync_ddp, _sync_collections
+from pytorch_lightning.metrics.metric import _sync_ddp, _sync_collections, BaseMetric
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2,
@@ -125,3 +125,36 @@ def test_sync_collections_ddp():
 
 def test_sync_collections_no_ddp():
     _sync_collections_test(False)
+
+
+def _test_base_metric(is_ddp):
+    class DummyMetric(BaseMetric):
+        def __init__(self):
+            super().__init__(name='Dummy')
+
+        def forward(self):
+            return 1.
+
+    dummy_metric = DummyMetric()
+
+    assert dummy_metric.name == 'Dummy'
+    metric_val = dummy_metric()
+
+    if is_ddp:
+        expected = dist.get_world_size()
+    else:
+        expected = 1.
+
+    assert isinstance(metric_val, torch.Tensor), \
+        'The result value should be synced and reduced which would promote the type from number to tensor'
+    assert metric_val.item() == expected, 'Invalid Value for reduction'
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2,
+                    'Not enough GPUs to test with ddp')
+def test_base_metric_ddp():
+    _test_base_metric(True)
+
+
+def test_base_metric_no_ddp():
+    _test_base_metric(False)
