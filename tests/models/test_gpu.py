@@ -93,30 +93,52 @@ def test_optimizer_return_options():
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
     opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    optim, lr_sched = trainer.init_optimizers(opt_a)
-    assert len(optim) == 1 and len(lr_sched) == 0
+    scheduler_a = torch.optim.lr_scheduler.StepLR(opt_a, 10)
+    scheduler_b = torch.optim.lr_scheduler.StepLR(opt_b, 10)
+
+    # single optimizer
+    optim, lr_sched, freq = trainer.init_optimizers(opt_a)
+    assert len(optim) == 1 and len(lr_sched) == 0 and len(freq) == 0
 
     # opt tuple
     opts = (opt_a, opt_b)
-    optim, lr_sched = trainer.init_optimizers(opts)
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert len(lr_sched) == 0
+    assert len(lr_sched) == 0 and len(freq) == 0
 
     # opt list
     opts = [opt_a, opt_b]
-    optim, lr_sched = trainer.init_optimizers(opts)
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert len(lr_sched) == 0
+    assert len(lr_sched) == 0 and len(freq) == 0
 
-    # opt tuple of lists
-    scheduler = torch.optim.lr_scheduler.StepLR(opt_a, 10)
-    opts = ([opt_a], [scheduler])
-    optim, lr_sched = trainer.init_optimizers(opts)
-    assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0][0] and \
-        lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
-                            frequency=1, reduce_on_plateau=False,
-                            monitor='val_loss')
+    # opt tuple of 2 lists
+    opts = ([opt_a], [scheduler_a])
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
+    assert optim[0] == opts[0][0]
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+
+    # opt single dictionary
+    opts = {"optimizer": opt_a, "lr_scheduler": scheduler_a}
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+
+    # opt multiple dictionaries with frequencies
+    opts = (
+        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
+        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
+    )
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+    assert freq == [1, 5]
 
 
 def test_cpu_slurm_save_load(tmpdir):
