@@ -112,11 +112,11 @@ class TestingMNIST(MNIST):
     Examples:
         >>> dataset = TestingMNIST(os.getcwd(), download=True)
         >>> len(dataset)
-        1200
+        900
     """
 
     def __init__(self, root: str, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2, 3)):
+                 num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2)):
         super().__init__(
             root,
             train=train,

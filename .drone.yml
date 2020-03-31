@@ -7,10 +7,12 @@ name: torch-GPU
 steps:
 - name: testing
   image: pytorch/pytorch:1.4-cuda10.1-cudnn7-runtime
+
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
+
   commands:
     - python --version
     - pip install pip -U
@@ -26,3 +28,10 @@ steps:
     - coverage report
     - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
     - python tests/collect_env_details.py
+
+  trigger:
+    branch: master
+    event:
+      include:
+      - push
+      - pull_request
