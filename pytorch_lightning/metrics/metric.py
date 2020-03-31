@@ -117,5 +117,6 @@ def _sync_collections(result: Union[torch.Tensor, numbers.Number,
         return elem_type(*(func(r) for r in result))
     elif isinstance(result, Sequence) and not isinstance(result, str):
         return elem_type([func(r) for r in result])
+    # not possible to reduce this type
     else:
-        return func(result)
+        return result
