@@ -210,7 +210,7 @@ def auto_squeeze_dim_zeros(output):
     :param output:
     :return:
     """
-    for k, v in output:
+    for k, v in output.items():
         is_scalar = len(v.size())
         if is_scalar:
             output[k] = output[k].unsqueeze(0)
