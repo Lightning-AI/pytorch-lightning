@@ -914,10 +914,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         If you don't define this method Lightning will automatically use Adam(lr=1e-3)
 
-        Return: any of these 3 options:
-            - Single optimizer
-            - List or Tuple - List of optimizers
-            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers
+        Return: any of these 5 options:
+            - Single optimizer.
+            - List or Tuple - List of optimizers.
+            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
+            - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
+            - Tuple of dictionaries as described, with an optional `frequency` key.
+
+        Note:
+            The `frequency` value is an int corresponding to the number of sequential batches
+            optimized with the specific optimizer. It should be given to none or to all of the optimizers.
+            There is difference between passing multiple optimizers in a list,
+            and passing multiple optimizers in dictionaries with a frequency of 1:
+            In the former case, all optimizers will operate on the given batch in each optimization step.
+            In the latter, only one optimizer will operate on the given batch at every step.
 
         Examples:
             .. code-block:: python
@@ -948,6 +958,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                                  'interval': 'step'}  # called after each training step
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
+
+                # example with optimizer frequencies
+                # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
+                # https://arxiv.org/abs/1704.00028
+                def configure_optimizers(self):
+                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                    n_critic = 5
+                    return (
+                        {'optimizer': dis_opt, 'frequency': n_critic},
+                        {'optimizer': gen_opt, 'frequency': 1}
+                    )
 
         Note:
 

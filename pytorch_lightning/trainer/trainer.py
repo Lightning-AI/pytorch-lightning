@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 from argparse import ArgumentParser
-from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
+from typing import Union, Optional, List, Dict, Tuple, Iterable, Any, Sequence
 import distutils
 
 import torch
@@ -354,6 +354,7 @@ class Trainer(
         self.disable_validation = False
         self.lr_schedulers = []
         self.optimizers = None
+        self.optimizer_frequencies = []
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
@@ -710,7 +711,8 @@ class Trainer(
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+                self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
 
@@ -756,31 +758,59 @@ class Trainer(
 
     def init_optimizers(
             self,
-            optimizers: Union[Optimizer, Tuple[List, List], List[Optimizer], Tuple[Optimizer]]
-    ) -> Tuple[List, List]:
+            optim_conf: Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]
+    ) -> Tuple[List, List, List]:
 
         # single output, single optimizer
-        if isinstance(optimizers, Optimizer):
-            return [optimizers], []
+        if isinstance(optim_conf, Optimizer):
+            return [optim_conf], [], []
 
         # two lists, optimizer + lr schedulers
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
-            optimizers, lr_schedulers = optimizers
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+            optimizers, lr_schedulers = optim_conf
             lr_schedulers = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers
+            return optimizers, lr_schedulers, []
+
+        # single dictionary
+        elif isinstance(optim_conf, dict):
+            optimizer = optim_conf["optimizer"]
+            lr_scheduler = optim_conf.get("lr_scheduler", [])
+            if lr_scheduler:
+                lr_schedulers = self.configure_schedulers([lr_scheduler])
+            return [optimizer], lr_schedulers, []
+
+        # multiple dictionaries
+        elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+            optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            # take only lr wif exists and ot they are defined - not None
+            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")]
+            # take only freq wif exists and ot they are defined - not None
+            optimizer_frequencies = [opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")]
+
+            # clean scheduler list
+            if lr_schedulers:
+                lr_schedulers = self.configure_schedulers(lr_schedulers)
+            # assert that if frequencies are present, they are given for all optimizers
+            if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
+                raise ValueError("A frequency must be given to each optimizer.")
+            return optimizers, lr_schedulers, optimizer_frequencies
 
         # single list or tuple, multiple optimizer
-        elif isinstance(optimizers, (list, tuple)):
-            return optimizers, []
+        elif isinstance(optim_conf, (list, tuple)):
+            return list(optim_conf), [], []
 
         # unknown configuration
         else:
-            raise ValueError('Unknown configuration for model optimizers. Output'
-                             'from model.configure_optimizers() should either be:'
-                             '* single output, single torch.optim.Optimizer'
-                             '* single output, list of torch.optim.Optimizer'
-                             '* two outputs, first being a list of torch.optim.Optimizer',
-                             'second being a list of torch.optim.lr_scheduler')
+            raise ValueError(
+                'Unknown configuration for model optimizers.'
+                ' Output from `model.configure_optimizers()` should either be:'
+                ' * single output, single `torch.optim.Optimizer`'
+                ' * single output, list of `torch.optim.Optimizer`'
+                ' * single output, a dictionary with `optimizer` key (`torch.optim.Optimizer`)'
+                '    and an optional `lr_scheduler` key (`torch.optim.lr_scheduler`)'
+                ' * two outputs, first being a list of `torch.optim.Optimizer` second being'
+                '    a list of `torch.optim.lr_scheduler`'
+                ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
     def configure_schedulers(self, schedulers: list):
         # Convert each scheduler into dict sturcture with relevant information
@@ -966,6 +996,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
