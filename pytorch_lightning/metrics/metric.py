@@ -40,7 +40,7 @@ class BaseMetric(torch.nn.Module, ABC):
             metric value
 
         """
-        raise NotImplementedError
+        pass
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         return _sync_collections(super().__call__(*args, **kwargs),
