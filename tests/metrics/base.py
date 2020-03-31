@@ -9,8 +9,7 @@ import tests.base.utils as tutils
 from pytorch_lightning.metrics.metric import _sync_ddp, _sync_collections, BaseMetric
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2,
-                    'Not enough GPUs to test sync reduce')
+@pytest.mark.skipif(torch.cuda.device_count() < 2, "test requires multi-GPU machine")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
     tutils.reset_seed()
@@ -33,7 +32,7 @@ def test_sync_reduce_ddp():
     dist.destroy_process_group()
 
 
-def test_sync_reduce_no_ddp():
+def test_sync_reduce_simple():
     """Make sure sync-reduce works without DDP"""
     tensor = torch.tensor([1.], device='cpu')
 
@@ -72,8 +71,7 @@ def _sync_collections_test(is_ddp: bool):
         'd': ntc(bar=torch.tensor([5. * factor])),
         'e': torch.tensor([10. * factor]),
         'f': 'this_is_a_dummy_str',
-        'g': torch.tensor([12. * factor])
-
+        'g': torch.tensor([12. * factor]),
     }
 
     reduced = _sync_collections(to_reduce)
@@ -125,7 +123,7 @@ def test_sync_collections_ddp():
     dist.destroy_process_group()
 
 
-def test_sync_collections_no_ddp():
+def test_sync_collections_simple():
     _sync_collections_test(False)
 
 
@@ -158,5 +156,5 @@ def test_base_metric_ddp():
     _test_base_metric(True)
 
 
-def test_base_metric_no_ddp():
+def test_base_metric_simple():
     _test_base_metric(False)
