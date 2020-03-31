@@ -21,12 +21,14 @@ def test_sync_reduce_ddp():
     tensor = torch.tensor([1.], device='cuda:0')
 
     reduced_tensor = _sync_ddp(tensor)
-    assert reduced_tensor.item() == dist.get_world_size(), 'Sync-Reduce does not work properly with DDP and Tensors'
+    assert reduced_tensor.item() == dist.get_world_size(), \
+        'Sync-Reduce does not work properly with DDP and Tensors'
 
     number = 1.
     reduced_number = _sync_ddp(number)
     assert isinstance(reduced_number, torch.Tensor), 'When reducing a number we should get a tensor out'
-    assert reduced_number.item() == dist.get_world_size(), 'Sync-Reduce does not work properly with DDP and Numbers'
+    assert reduced_number.item() == dist.get_world_size(), \
+        'Sync-Reduce does not work properly with DDP and Numbers'
 
     dist.destroy_process_group()
 
