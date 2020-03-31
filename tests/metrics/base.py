@@ -37,7 +37,8 @@ def test_sync_reduce_no_ddp():
 
     reduced_tensor = _sync_ddp(tensor)
 
-    assert torch.allclose(tensor, reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
+    assert torch.allclose(tensor,
+                          reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
 
     number = 1.
     reduced_number = _sync_ddp(number)
@@ -81,7 +82,8 @@ def _sync_collections_test(is_ddp: bool):
         'At least one type was not correctly preserved'
 
     assert isinstance(reduced['a'], torch.Tensor), 'Reduction Result of a Tensor should be a Tensor'
-    assert torch.allclose(expected_result['a'], reduced['a']), 'Reduction of a tensor does not yield the expected value'
+    assert torch.allclose(expected_result['a'],
+                          reduced['a']), 'Reduction of a tensor does not yield the expected value'
 
     assert isinstance(reduced['b'], list), 'Reduction Result of a list should be a list'
     assert all([torch.allclose(x, y) for x, y in zip(reduced['b'], expected_result['b'])]), \
@@ -92,7 +94,8 @@ def _sync_collections_test(is_ddp: bool):
         'At least one value of tuple reduction did not come out as expected'
 
     assert isinstance(reduced['d'], ntc), 'Type Consistency for named tuple not given'
-    assert isinstance(reduced['d'].bar, torch.Tensor), 'Failure in type promotion while reducing fields of named tuples'
+    assert isinstance(reduced['d'].bar,
+                      torch.Tensor), 'Failure in type promotion while reducing fields of named tuples'
     assert torch.allclose(reduced['d'].bar, expected_result['d'].bar)
 
     assert isinstance(reduced['e'], torch.Tensor), 'Type Promotion in reduction of numpy arrays failed'
@@ -103,7 +106,8 @@ def _sync_collections_test(is_ddp: bool):
     assert reduced['f'] == expected_result['f'], 'String not preserved during reduction'
 
     assert isinstance(reduced['g'], torch.Tensor), 'Reduction of a number should result in a tensor'
-    assert torch.allclose(reduced['g'], expected_result['g']), 'Reduction of a number did not yield the desired result'
+    assert torch.allclose(reduced['g'],
+                          expected_result['g']), 'Reduction of a number did not yield the desired result'
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2,
