@@ -26,9 +26,13 @@ else:
 
 
 def _has_len(dataloader: DataLoader) -> bool:
+    """ Checks if a given Dataloader has __len__ method implemented i.e. if
+    it is a finite dataloader or infinite dataloader """
     try:
         # try getting the length
-        _ = len(dataloader)
+        if len(dataloader) == 0:
+            raise ValueError('Dataloader returned 0 length. Please make sure'
+                             ' that your Dataloader atleast returns 1 batch')
         return True
     except TypeError:
         return False
@@ -91,15 +95,12 @@ class TrainerDataLoadingMixin(ABC):
                 )
                 dl_args['shuffle'] = False
             else:
-                if train:
-                    sampler = DistributedSampler(dataloader.dataset)
-                    dl_args['shuffle'] = False
-                else:
-                    sampler = SequentialSampler(dataloader.dataset)
+                sampler = DistributedSampler(dataloader.dataset)
+                dl_args['shuffle'] = False
 
             dl_args['sampler'] = sampler
-
             dataloader = DataLoader(**dl_args)
+
         return dataloader
 
     def reset_train_dataloader(self, model: LightningModule) -> None:

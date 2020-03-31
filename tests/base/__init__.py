@@ -27,6 +27,7 @@ from tests.base.mixins import (
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
     LightTestReduceLROnPlateauMixin,
+    LightZeroLenDataloader
 )
 
 
@@ -41,7 +42,7 @@ class LightningTestModel(LightTrainDataloader,
 
 
 class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
-    """ without hparams argument in constructor """
+    """Without hparams argument in constructor """
 
     def __init__(self):
         import tests.base.utils as tutils
@@ -52,7 +53,7 @@ class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
 
 
 class LightningTestModelWithUnusedHyperparametersArg(LightningTestModelWithoutHyperparametersArg):
-    """ has hparams argument in constructor but is not used """
+    """It has hparams argument in constructor but is not used."""
 
     def __init__(self, hparams):
         super().__init__()

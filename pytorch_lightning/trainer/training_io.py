@@ -143,15 +143,12 @@ class TrainerIOMixin(ABC):
     # --------------------
     # CHECK-POINTING
     # --------------------
-    def restore_weights(self, model):
+    def restore_weights(self, model: LightningModule):
         """
         We attempt to restore weights in this order:
         1. HPC weights.
         2. if no HPC weights restore checkpoint_path weights
         3. otherwise don't restore weights
-
-        :param model:
-        :return:
         """
         # clear cache before restore
         if self.on_gpu:
@@ -230,17 +227,17 @@ class TrainerIOMixin(ABC):
     # --------------------
     # MODEL SAVE CHECKPOINT
     # --------------------
-    def _atomic_save(self, checkpoint, filepath):
+    def _atomic_save(self, checkpoint, filepath: str):
         """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
         This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
         saving is finished.
 
         Args:
-            checkpoint (object): The object to save.
+            checkpoint: The object to save.
                 Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
                 accepts.
-            filepath (str|pathlib.Path): The path to which the checkpoint will be saved.
+            filepath: The path to which the checkpoint will be saved.
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
@@ -260,7 +257,7 @@ class TrainerIOMixin(ABC):
 
                 self._atomic_save(checkpoint, filepath)
 
-    def restore(self, checkpoint_path, on_gpu):
+    def restore(self, checkpoint_path: str, on_gpu: bool):
         """
         Restore training state from checkpoint.
         Also restores all training state like:
@@ -268,10 +265,6 @@ class TrainerIOMixin(ABC):
         - callbacks
         - schedulers
         - optimizer
-        :param checkpoint_path:
-        :param on_gpu:
-
-        :return:
         """
 
         # if on_gpu:
@@ -341,12 +334,8 @@ class TrainerIOMixin(ABC):
     # --------------------
     # HPC IO
     # --------------------
-    def restore_hpc_weights_if_needed(self, model):
-        """
-        If there is a set of hpc weights, use as signal to restore model
-        :param model:
-        :return:
-        """
+    def restore_hpc_weights_if_needed(self, model: LightningModule):
+        """If there is a set of hpc weights, use as signal to restore model."""
         did_restore = False
 
         # look for hpc weights

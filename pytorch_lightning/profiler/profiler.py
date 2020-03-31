@@ -17,15 +17,15 @@ class BaseProfiler(ABC):
     """
 
     @abstractmethod
-    def start(self, action_name):
+    def start(self, action_name: str) -> None:
         """Defines how to start recording an action."""
 
     @abstractmethod
-    def stop(self, action_name):
+    def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
     @contextmanager
-    def profile(self, action_name):
+    def profile(self, action_name: str) -> None:
         """
         Yields a context manager to encapsulate the scope of a profiled action.
 
@@ -43,7 +43,7 @@ class BaseProfiler(ABC):
         finally:
             self.stop(action_name)
 
-    def profile_iterable(self, iterable, action_name):
+    def profile_iterable(self, iterable, action_name: str) -> None:
         iterator = iter(iterable)
         while True:
             try:
@@ -55,7 +55,7 @@ class BaseProfiler(ABC):
                 self.stop(action_name)
                 break
 
-    def describe(self):
+    def describe(self) -> None:
         """Logs a profile report after the conclusion of the training run."""
         pass
 
@@ -69,10 +69,10 @@ class PassThroughProfiler(BaseProfiler):
     def __init__(self):
         pass
 
-    def start(self, action_name):
+    def start(self, action_name: str) -> None:
         pass
 
-    def stop(self, action_name):
+    def stop(self, action_name: str) -> None:
         pass
 
 
@@ -86,14 +86,14 @@ class Profiler(BaseProfiler):
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
 
-    def start(self, action_name):
+    def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
             raise ValueError(
                 f"Attempted to start {action_name} which has already started."
             )
         self.current_actions[action_name] = time.monotonic()
 
-    def stop(self, action_name):
+    def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
             raise ValueError(
@@ -103,7 +103,7 @@ class Profiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def describe(self):
+    def describe(self) -> None:
         output_string = "\n\nProfiler Report\n"
 
         def log_row(action, mean, total):
@@ -126,24 +126,25 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename=None, line_count_restriction=1.0):
+    def __init__(self, output_filename: str = None, line_count_restriction: float = 1.0):
         """
-        :param output_filename (str): optionally save profile results to file instead of printing
-            to std out when training is finished.
-        :param line_count_restriction (int|float): this can be used to limit the number of functions
-            reported for each action. either an integer (to select a count of lines),
-            or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+        Args:
+            output_filename: optionally save profile results to file instead of printing
+                to std out when training is finished.
+            line_count_restriction: this can be used to limit the number of functions
+                reported for each action. either an integer (to select a count of lines),
+                or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
         """
         self.profiled_actions = {}
         self.output_filename = output_filename
         self.line_count_restriction = line_count_restriction
 
-    def start(self, action_name):
+    def start(self, action_name: str) -> None:
         if action_name not in self.profiled_actions:
             self.profiled_actions[action_name] = cProfile.Profile()
         self.profiled_actions[action_name].enable()
 
-    def stop(self, action_name):
+    def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
             raise ValueError(  # pragma: no-cover
@@ -151,7 +152,7 @@ class AdvancedProfiler(BaseProfiler):
             )
         pr.disable()
 
-    def describe(self):
+    def describe(self) -> None:
         self.recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()

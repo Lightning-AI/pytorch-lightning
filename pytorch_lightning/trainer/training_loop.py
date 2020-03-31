@@ -146,7 +146,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.debugging import MisconfigurationException
-from pytorch_lightning.trainer.supporting_classes import TensorRunningMean
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp
@@ -367,8 +367,8 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 # TODO wrap this logic into the callback
-                if self.enable_early_stop and not self.disable_validation and is_val_epoch:
-                    if ((met_min_epochs and met_min_steps) or self.fast_dev_run):
+                if self.enable_early_stop:
+                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         should_stop = self.early_stop_callback.on_epoch_end(self, self.get_model())
                         # stop training
                         stop = should_stop and met_min_epochs
@@ -461,8 +461,7 @@ class TrainerTrainLoopMixin(ABC):
             # CHECKPOINTING, EARLY STOPPING
             # ---------------
             # save checkpoint even when no test or val step are defined
-            train_step_only = not self.is_overriden('validation_step')
-            if self.fast_dev_run or should_check_val or train_step_only:
+            if self.fast_dev_run or should_check_val:
                 self.call_checkpoint_callback()
 
                 if self.enable_early_stop:
@@ -482,6 +481,13 @@ class TrainerTrainLoopMixin(ABC):
             # requested in the batches
             if early_stop_epoch or self.fast_dev_run:
                 break
+
+        # in case validation step is missing and you are not running fast-dev to duplicate last batch
+        if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
+            self.call_checkpoint_callback()
+
+            if self.enable_early_stop:
+                self.early_stop_callback.check_metrics(self.callback_metrics)
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
@@ -709,20 +715,20 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            m = 'training_end was deprecated in 0.7.0 and will be removed 1.0.0. ' \
-                'Use training_epoch_end instead'
-            warnings.warn(m, DeprecationWarning)
+            warnings.warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                          ' Use training_epoch_end instead', DeprecationWarning)
 
         # format and reduce outputs accordingly
         output = self.process_output(output, train=True)
 
         return output
 
-    def update_learning_rates(self, interval):
-        ''' Update learning rates
+    def update_learning_rates(self, interval: str):
+        """Update learning rates.
+
         Args:
-            interval (str): either 'epoch' or 'step'.
-        '''
+            interval: either 'epoch' or 'step'.
+        """
         if not self.lr_schedulers:
             return
 
@@ -738,10 +744,11 @@ class TrainerTrainLoopMixin(ABC):
                     monitor_val = self.callback_metrics.get(monitor_key)
                     if monitor_val is None:
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        m = f'ReduceLROnPlateau conditioned on metric {monitor_key} ' \
-                            f'which is not available. Available metrics are: {avail_metrics}. ' \
-                            'Condition can be set using `monitor` key in lr scheduler dict'
-                        raise MisconfigurationException(m)
+                        raise MisconfigurationException(
+                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                            f' which is not available. Available metrics are: {avail_metrics}.'
+                            ' Condition can be set using `monitor` key in lr scheduler dict'
+                        )
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
