@@ -8,9 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchvision.datasets import MNIST
 
 from pytorch_lightning import Trainer, LightningModule
+from tests.base.datasets import TestingMNIST
 
 
 class ParityMNIST(LightningModule):
@@ -41,8 +41,12 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-                                transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(TestingMNIST(os.getcwd(),
+                                       train=True,
+                                       download=True,
+                                       num_samples=1000,
+                                       digits=list(range(5))),
+                          batch_size=32)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

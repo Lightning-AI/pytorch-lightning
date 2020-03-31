@@ -2,7 +2,7 @@ import itertools
 import logging
 import os
 import urllib.request
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Sequence
 
 import torch
 from torch import Tensor
@@ -116,7 +116,7 @@ class TestingMNIST(MNIST):
     """
 
     def __init__(self, root: str, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 300, digits: Optional[Tuple] = (0, 1, 2, 3)):
+                 num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2, 3)):
         super().__init__(
             root,
             train=train,
