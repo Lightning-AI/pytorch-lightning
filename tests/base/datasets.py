@@ -1,7 +1,8 @@
+import itertools
 import logging
 import os
 import urllib.request
-from typing import Tuple
+from typing import Tuple, Optional
 
 import torch
 from torch import Tensor
@@ -94,8 +95,28 @@ def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Ten
 
 
 class TestingMNIST(MNIST):
+    """Constrain image dataset
 
-    def __init__(self, root, train=True, normalize=(0.5, 1.0), download=False, num_samples=8000):
+    Args:
+        root: Root directory of dataset where ``MNIST/processed/training.pt``
+            and  ``MNIST/processed/test.pt`` exist.
+        train: If ``True``, creates dataset from ``training.pt``,
+            otherwise from ``test.pt``.
+        normalize: mean and std deviation of the MNIST dataset.
+        download: If true, downloads the dataset from the internet and
+            puts it in root directory. If dataset is already downloaded, it is not
+            downloaded again.
+        num_samples: number of examples per seelcted class/digget
+        digits: list selected MNIST digits/classes
+
+    Examples:
+        >>> dataset = TestingMNIST(os.getcwd(), download=True)
+        >>> len(dataset)
+        1200
+    """
+
+    def __init__(self, root: str, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False,
+                 num_samples: int = 300, digits: Optional[Tuple] = (0, 1, 2, 3)):
         super().__init__(
             root,
             train=train,
@@ -103,5 +124,20 @@ class TestingMNIST(MNIST):
             download=download
         )
         # take just a subset of MNIST dataset
-        self.data = self.data[:num_samples]
-        self.targets = self.targets[:num_samples]
+        if not digits:
+            digits = list(range(10))
+        if (num_samples * len(digits)) >= 60000:
+            # asking for complete dataset
+            return
+        classes = {d: 0 for d in digits}
+        indexes = []
+        for idx, target in enumerate(self.targets):
+            label = target.item()
+            if classes.get(label, float('inf')) >= num_samples:
+                continue
+            indexes.append(idx)
+            classes[label] += 1
+            if all(classes[k] >= num_samples for k in classes):
+                break
+        self.data = self.data[indexes]
+        self.targets = self.targets[indexes]
