@@ -921,7 +921,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
             - Tuple of dictionaries as described, with an optional `frequency` key.
 
-        .. note:: The `frequency` value is an int corresponding to the number of sequential batches
+        Note:
+            The `frequency` value is an int corresponding to the number of sequential batches
             optimized with the specific optimizer. It should be given to none or to all of the optimizers.
             There is difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
