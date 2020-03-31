@@ -113,7 +113,7 @@ class Trainer(
             use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: str = 'full',
+            weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
             amp_level: str = 'O1',
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
