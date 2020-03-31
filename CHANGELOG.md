@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## Metrics Package (will be added to unreleased, once it's finished)
+- Added base-metric ([#1293](https://github.com/PyTorchLightning/pytorch-lightning/pull/1232))
+
 ## [unreleased] - YYYY-MM-DD
 
 ### Added
