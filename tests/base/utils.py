@@ -180,7 +180,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=LightningTestModel
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.35):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.5):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -205,7 +205,7 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.35):
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
-def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
+def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
     acc = trainer.training_tqdm_dict[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
