@@ -13,6 +13,11 @@ steps:
     CODECOV_TOKEN:
       from_secret: codecov_token
 
+  volumes:
+    # Mount pip cache from host
+    - name: pip_cache
+      path: /root/.cache/pip
+
   commands:
     - python --version
     - pip install pip -U
@@ -36,3 +41,8 @@ trigger:
     include:
     - push
     - pull_request
+
+volumes:
+  - name: pip_cache
+    host:
+      path: /tmp/cache/drone/pip
