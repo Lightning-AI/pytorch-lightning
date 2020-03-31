@@ -80,3 +80,46 @@ def test_base_metric_ddp():
 
 def test_base_metric_no_ddp():
     _test_base_metric(False)
+
+
+def _check_dtype_and_device(metric, dtype=None, device=None):
+    result_val = metric()
+    if dtype is not None:
+        assert metric.dtype == dtype, 'Metric has incorrect datatype'
+        assert result_val.dtype == dtype, 'Tensor has incorrect datatype'
+    if device is not None:
+        assert metric.device == device, 'Metric lies on incorrect device'
+        assert result_val.device == device, 'Tensor lies on incorrect device'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), 'GPUs required for testing')
+def test_metric_device_changes():
+    class DummyMetric(BaseMetric):
+        def __init__(self):
+            super().__init__(name='Dummy')
+
+        def forward(self):
+            return torch.tensor([1.])
+
+    metric = DummyMetric()
+
+    for device in ['cpu'] + ['cuda:%d' % idx for idx in range(torch.cuda.device_count())]:
+        for dtype in [torch.float, torch.long, torch.int8]:
+            metric.to(device=device, dtype=dtype)
+            _check_dtype_and_device(metric, device=device, dtype=dtype)
+
+    metric.cuda(0)
+    _check_dtype_and_device(metric, None, 'cuda:0')
+    metric.cpu()
+    _check_dtype_and_device(metric, None, 'cpu')
+
+    # move to gpu for half conversion
+    metric.cuda(0)
+    metric.half()
+    _check_dtype_and_device(metric, torch.half, None)
+    metric.float()
+    _check_dtype_and_device(metric, torch.float, None)
+    metric.double()
+    _check_dtype_and_device(metric, torch.double, None)
+    metric.type(torch.float)
+    _check_dtype_and_device(metric, torch.float, None)
