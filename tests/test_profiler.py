@@ -1,10 +1,10 @@
-import tempfile
+import os
 import time
 from pathlib import Path
 
 import numpy as np
 import pytest
-from pytorch_lightning.profiler import AdvancedProfiler, Profiler
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
 
@@ -25,13 +25,13 @@ def _sleep_generator(durations):
 
 @pytest.fixture
 def simple_profiler():
-    profiler = Profiler()
+    profiler = SimpleProfiler()
     return profiler
 
 
 @pytest.fixture
-def advanced_profiler():
-    profiler = AdvancedProfiler()
+def advanced_profiler(tmpdir):
+    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
     return profiler
 
 
@@ -168,12 +168,9 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
-    # log to stdout
+    # log to stdout and print to file
     advanced_profiler.describe()
-    # print to file
-    advanced_profiler.output_filename = Path(tmpdir, "profiler.txt")
-    advanced_profiler.describe()
-    data = Path(advanced_profiler.output_filename).read_text()
+    data = Path(advanced_profiler.output_fname).read_text()
     assert len(data) > 0
 
 
