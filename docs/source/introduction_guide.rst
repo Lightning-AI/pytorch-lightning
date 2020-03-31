@@ -269,7 +269,6 @@ In PyTorch we do it as follows:
 
 
 In Lightning we do the same but organize it under the configure_optimizers method.
-If you don't define this, Lightning will automatically use `Adam(self.parameters(), lr=1e-3)`.
 
 .. code-block:: python
 
@@ -277,6 +276,17 @@ If you don't define this, Lightning will automatically use `Adam(self.parameters
 
       def configure_optimizers(self):
         return Adam(self.parameters(), lr=1e-3)
+
+.. note:: The LightningModule itself has the parameters, so pass in self.parameters()
+
+However, if you have multiple optimizers use the matching parameters
+
+.. code-block:: python
+
+    class LitMNIST(pl.LightningModule):
+
+      def configure_optimizers(self):
+        return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
 
 Training step
 ^^^^^^^^^^^^^
