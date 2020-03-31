@@ -74,6 +74,9 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
+        if dataloader.sampler is not None:
+            return dataloader
+
         if self.use_ddp or self.use_ddp2 or self.use_tpu:
             dl_args = {
                 'dataset': dataloader.dataset,
