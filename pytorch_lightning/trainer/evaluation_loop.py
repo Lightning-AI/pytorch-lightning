@@ -424,7 +424,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(self.data_parallel_device_ids, list):
                 root_gpu = self.data_parallel_device_ids[0]
                 root_device = (torch.device("cuda", root_gpu)
-                               if root_gpu >= 0 else torch.device("cpu"))
+                               if root_gpu else torch.device("cpu"))
                 torch.cuda.set_device(root_device)
             else:
                 raise RuntimeError(
