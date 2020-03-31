@@ -1,4 +1,3 @@
-import math
 import warnings
 
 import pytest
@@ -14,7 +13,6 @@ from tests.base import (
     LightTrainDataloader,
     LightningTestModel,
     LightTestMixin,
-    LightValidationMixin
 )
 
 

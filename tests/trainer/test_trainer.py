@@ -24,6 +24,7 @@ from tests.base import (
     LightValidationMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
+    LightValidationMixin,
 )
 
 
