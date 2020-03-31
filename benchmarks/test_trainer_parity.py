@@ -41,8 +41,7 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(os.getcwd(),
-                                       train=True,
+        return DataLoader(TestingMNIST(train=True,
                                        download=True,
                                        num_samples=1000,
                                        digits=list(range(5))),

@@ -1,4 +1,3 @@
-import itertools
 import logging
 import os
 import urllib.request
@@ -7,6 +6,11 @@ from typing import Tuple, Optional, Sequence
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+
+from tests import TEST_ROOT
+
+#: local path to test datasets
+PATH_DATASETS = os.path.join(TEST_ROOT, 'Datasets')
 
 
 class MNIST(Dataset):
@@ -36,7 +40,7 @@ class MNIST(Dataset):
     TRAIN_FILE_NAME = 'training.pt'
     TEST_FILE_NAME = 'test.pt'
 
-    def __init__(self, root: str, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False):
+    def __init__(self, root: str = PATH_DATASETS, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False):
         super(MNIST, self).__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -110,12 +114,13 @@ class TestingMNIST(MNIST):
         digits: list selected MNIST digits/classes
 
     Examples:
-        >>> dataset = TestingMNIST(os.getcwd(), download=True)
+        >>> dataset = TestingMNIST(download=True)
         >>> len(dataset)
         900
     """
 
-    def __init__(self, root: str, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False,
+    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
+                 normalize: tuple = (0.5, 1.0), download: bool = False,
                  num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2)):
         super().__init__(
             root,

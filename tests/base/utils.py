@@ -10,6 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
 from tests.base import LightningTestModel
+from tests.base.datasets import PATH_DATASETS
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
@@ -99,7 +100,7 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
         'in_features': 28 * 28,
         'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
-        'data_root': os.path.join(tests_dir, 'datasets'),
+        'data_root': PATH_DATASETS,
         'out_features': 10,
         'hidden_dim': 1000,
     }
