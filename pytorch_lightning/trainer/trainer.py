@@ -806,12 +806,14 @@ class Trainer(
         # unknown configuration
         else:
             raise ValueError(
-                'Unknown configuration for model optimizers. Output from `model.configure_optimizers()` should either be:'
+                'Unknown configuration for model optimizers.'
+                ' Output from `model.configure_optimizers()` should either be:'
                 ' * single output, single `torch.optim.Optimizer`'
                 ' * single output, list of `torch.optim.Optimizer`'
                 ' * single output, a dictionary with `optimizer` key (`torch.optim.Optimizer`)'
                 '    and an optional `lr_scheduler` key (`torch.optim.lr_scheduler`)'
-                ' * two outputs, first being a list of `torch.optim.Optimizer` second being a list of `torch.optim.lr_scheduler`'
+                ' * two outputs, first being a list of `torch.optim.Optimizer` second being'
+                '    a list of `torch.optim.lr_scheduler`'
                 ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
     def configure_schedulers(self, schedulers: list):

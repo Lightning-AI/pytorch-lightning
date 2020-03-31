@@ -617,7 +617,6 @@ class TrainerTrainLoopMixin(ABC):
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
         return 0, grad_norm_dic, all_log_metrics
-       
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
             # call training_step once per optimizer
