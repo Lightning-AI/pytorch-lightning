@@ -94,8 +94,8 @@ jobs:
       - checkout
       - python/load-cache
       - *install_deps
-      - *tests
       - python/save-cache
+      - *tests
       - store_test_results:
           path: test-reports
       - store_artifacts:

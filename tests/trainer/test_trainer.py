@@ -363,7 +363,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         trainer_options['max_epochs'] = 2
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
-        assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
+        assert state['global_step'] + next_model.num_batches_seen == training_batches * trainer_options['max_epochs']
 
 
 def _init_steps_model():
@@ -389,7 +389,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # define less train steps than epochs
     trainer_options.update(dict(
         default_save_path=tmpdir,
-        max_epochs=2,
+        max_epochs=3,
         max_steps=num_train_samples + 10
     ))
 
@@ -403,7 +403,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # define less train epochs than steps
     trainer_options.update(dict(
-        max_epochs=1,
+        max_epochs=2,
         max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
     ))
 
@@ -413,8 +413,8 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer.max_epochs \
-        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.global_step == num_train_samples * trainer.max_epochs
+    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
