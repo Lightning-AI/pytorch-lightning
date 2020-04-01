@@ -21,7 +21,7 @@ references:
      command: |
        python --version ; pip --version ; pip list
        py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 15m
+     no_output_timeout: 30m
 
   examples: &examples
    run:
@@ -30,7 +30,7 @@ references:
        pip install -r ./pl_examples/requirements.txt --user
        python --version ; pip --version ; pip list
        py.test pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 15m
+     no_output_timeout: 20m
 
   install_pkg: &install_pkg
     run:
@@ -53,8 +53,10 @@ references:
    run:
      name: Formatting
      command: |
-       python --version ; pip --version ; pip list
-       flake8
+       python --version ; pip --version
+       sudo pip install flake8 -q
+       pip list
+       flake8 .
 
   make_docs: &make_docs
    run:
@@ -82,12 +84,11 @@ jobs:
         - TORCH_VERSION: "torch"
     steps:
       - checkout
-      - *install_deps
       - *format
 
   PyTorch:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.6
     environment:
       - TORCH_VERSION: "torch"
     steps: &steps
@@ -95,14 +96,16 @@ jobs:
       - restore_cache:
           keys:
             # when lock file changes, use increasingly general patterns to restore cache
-            - pip-packages-{{ $TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
-            - pip-packages-{{ $TORCH_VERSION }}-
-            - pip-packages-
+            - pip-packages--{{ .Environment.CIRCLE_JOB }}
+            - pip-packages--
       - *install_deps
       - save_cache:
+          key: pip-packages--{{ .Environment.CIRCLE_JOB }}
           paths:
-            - ~/.local/share/virtualenvs/venv  # this path depends on where pipenv creates a virtualenv
-          key: pip-packages-v1-{{ $TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
+            # this path depends on where pipenv creates a virtualenv
+            - "~/.cache/pip"
+            - "/usr/local/lib/python3.6/site-packages"
+            - "/usr/local/lib/site-python"
       - *tests
       - store_test_results:
           path: test-reports

@@ -16,7 +16,7 @@ steps:
   volumes:
     # Mount pip cache from host
     - name: pip_cache
-      path: /root/.cache/pip
+      path: /opt/conda/lib/python3.7/site-packages
 
   commands:
     - python --version

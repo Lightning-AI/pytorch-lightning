@@ -40,7 +40,8 @@ class MNIST(Dataset):
     TRAIN_FILE_NAME = 'training.pt'
     TEST_FILE_NAME = 'test.pt'
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = False):
+    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
+                 normalize: tuple = (0.5, 1.0), download: bool = False):
         super(MNIST, self).__init__()
         self.root = root
         self.train = train  # training set or test set
