@@ -34,7 +34,7 @@ def test_hparams_save_load(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
     )
 
     # fit model
@@ -197,7 +197,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_epochs=4,
+                      max_epochs=2,
                       default_save_path=tmpdir)
 
     # for the test
@@ -360,7 +360,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         state = torch.load(check)
 
         # Resume training
-        trainer_options['max_epochs'] = 4
+        trainer_options['max_epochs'] = 2
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
         assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
@@ -389,7 +389,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # define less train steps than epochs
     trainer_options.update(dict(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         max_steps=num_train_samples + 10
     ))
 
@@ -403,7 +403,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # define less train epochs than steps
     trainer_options.update(dict(
-        max_epochs=2,
+        max_epochs=1,
         max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
     ))
 
@@ -427,7 +427,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=10
+        max_epochs=5
     ))
 
     # define less min steps than 1 epoch

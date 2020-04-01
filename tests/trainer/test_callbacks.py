@@ -173,7 +173,7 @@ def test_early_stopping_without_val_step(tmpdir):
         default_save_path=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
-        max_epochs=10,
+        max_epochs=5,
     )
 
     trainer = Trainer(**trainer_options)

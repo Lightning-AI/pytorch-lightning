@@ -1,8 +1,8 @@
-# Python CircleCI 2.0 configuration file
+# Python CircleCI 2.1 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2.0
+version: 2.1
 
 references:
 
