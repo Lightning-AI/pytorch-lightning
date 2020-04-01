@@ -250,8 +250,11 @@ You must configure your job submission script correctly for the trainer to work.
 .. note:: When running in DDP mode, any errors in your code will show up as an NCCL issue.
  Set the `NCCL_DEBUG=INFO` flag to see the ACTUAL error.
 
-Finally, make sure to add a distributed sampler to your dataset. The distributed sampler copies a
- portion of your dataset onto each GPU. (World_size = gpus_per_node * nb_nodes).
+Normally now you would need to add a distributed sampler to your dataset, however
+Lightning automates this for you. But if you still need to set a sampler Lightning will
+not interfere nor automate it.
+
+Here's an example of how to add your own sampler (again no need with Lightning).
 
 .. code-block:: python
 
@@ -459,7 +462,8 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+            self.init_optimizers(model.configure_optimizers())
 
         if self.use_amp:
             # An example
@@ -485,7 +489,8 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+            self.init_optimizers(model.configure_optimizers())
 
         # init 16 bit for TPU
         if self.precision == 16:
@@ -503,7 +508,8 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+            self.init_optimizers(model.configure_optimizers())
 
         model.cuda(self.root_gpu)
 
