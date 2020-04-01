@@ -93,19 +93,19 @@ jobs:
       - TORCH_VERSION: "torch"
     steps: &steps
       - checkout
-      - restore_cache:
-          keys:
-            # when lock file changes, use increasingly general patterns to restore cache
-            - pip-packages--{{ .Environment.CIRCLE_JOB }}
-            - pip-packages--
+      #- restore_cache:
+      #    keys:
+      #      # when lock file changes, use increasingly general patterns to restore cache
+      #      - pip-packages--{{ .Environment.CIRCLE_JOB }}
+      #      - pip-packages--
       - *install_deps
-      - save_cache:
-          key: pip-packages--{{ .Environment.CIRCLE_JOB }}
-          paths:
-            # this path depends on where pipenv creates a virtualenv
-            - "~/.cache/pip"
-            - "/usr/local/lib/python3.6/site-packages"
-            - "/usr/local/lib/site-python"
+      #- save_cache:
+      #    key: pip-packages--{{ .Environment.CIRCLE_JOB }}
+      #    paths:
+      #      # this path depends on where pipenv creates a virtualenv
+      #      - "~/.cache/pip"
+      #      - "/usr/local/lib/python3.6/site-packages"
+      #      - "/usr/local/lib/site-python"
       - *tests
       - store_test_results:
           path: test-reports
