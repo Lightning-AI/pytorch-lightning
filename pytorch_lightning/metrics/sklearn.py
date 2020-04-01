@@ -384,6 +384,7 @@ class Precision(SklearnMetric):
     The best value is 1 and the worst value is 0.
 
     """
+
     def __init__(self, labels: Optional[Sequence] = None,
                  pos_labels: Union[str, int] = 1,
                  average: Optional[str] = 'binary',
@@ -648,6 +649,7 @@ class AUROC(SklearnMetric):
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
     """
+
     def __init__(self, average: Optional[str] = 'macro',
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM
