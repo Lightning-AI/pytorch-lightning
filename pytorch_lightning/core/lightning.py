@@ -232,6 +232,78 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Deprecated in v0.7.0. use training_step_end instead
         """
 
+    def training_epoch_end(
+            self,
+            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
+        """Called at the end of training epoch with the outputs of all training_steps
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+
+            train_outs = []
+            for train_batch in train_data:
+                out = training_step(train_batch)
+                train_outs.append(out)
+            training_epoch_end(val_outs)
+
+        Args:
+            outputs: List of outputs you defined in training_step, or if there are multiple
+            dataloaders, a list containing a list of outputs for each dataloader
+
+        Return:
+            Dict or OrderedDict (dict): Dict has the following optional keys:
+            progress_bar -> Dict for progress bar display. Must have only tensors
+            log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+
+        .. note:: If you this method is not overridden, this won't be called.
+
+        - The outputs here are strictly for logging or progress bar.
+        - If you don't need to display anything, don't return anything.
+        - If you want to manually set current step, you can specify the 'step' key in the 'log' Dict
+
+        Examples:
+            With a single dataloader
+
+            .. code-block:: python
+
+                def training_epoch_end(self, outputs):
+                    train_acc_mean = 0
+                    for output in outputs:
+                        train_acc_mean += output['train_acc']
+
+                    train_acc_mean /= len(outputs)
+
+                    # log training accuracy at the end of an epoch
+                    results = {
+                        'log': {'train_acc': train_acc_mean.item()}
+                    }
+                    return results
+
+            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+            one entry per dataloader, while the inner list contains the individual outputs of
+            each validation step for that dataloader.
+
+            .. code-block:: python
+
+                def training_epoch_end(self, outputs):
+                    train_acc_mean = 0
+                    i = 0
+                    for dataloader_outputs in outputs:
+                        for output in dataloader_outputs:
+                            train_acc_mean += output['train_acc']
+                            i += 1
+
+                    train_acc_mean /= i
+
+                    # log training accuracy at the end of an epoch
+                    results = {
+                        'log': {'train_acc': train_acc_mean.item(), 'step': self.current_epoch}
+                    }
+                    return results
+        """
+
     def training_step_end(self, *args, **kwargs) -> Dict[
         str, Union[Tensor, Dict[str, Tensor]]
     ]:
@@ -454,7 +526,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
-        Called at end of validation epoch with the output of all validation_steps
+        Called at end of validation epoch with the outputs of all validation_steps
 
         .. code-block:: python
 
@@ -463,7 +535,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(train_batch)
-                train_outs.append(out)
+                val_outs.append(out)
             validation_epoch_end(val_outs)
 
         Args:
@@ -494,7 +566,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     val_acc_mean /= len(outputs)
                     tqdm_dict = {'val_acc': val_acc_mean.item()}
 
-                    # show val_loss and val_acc in progress bar but only log val_loss
+                    # show val_acc in progress bar but only log val_loss
                     results = {
                         'progress_bar': tqdm_dict,
                         'log': {'val_acc': val_acc_mean.item()}

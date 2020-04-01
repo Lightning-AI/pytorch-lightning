@@ -145,6 +145,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningMean
 
@@ -385,6 +386,9 @@ class TrainerTrainLoopMixin(ABC):
 
     def run_training_epoch(self):
 
+        # get model
+        model = self.get_model()
+
         # Epoch start events
         with self.profiler.profile('on_epoch_start'):
             # callbacks
@@ -407,6 +411,9 @@ class TrainerTrainLoopMixin(ABC):
             train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
             train_dataloader = train_dataloader.per_device_loader(device)
 
+        # bookkeeping
+        outputs = []
+
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
             enumerate(_with_is_last(train_dataloader)), "get_train_batch"
@@ -423,8 +430,9 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            output = self.run_training_batch(batch, batch_idx)
-            batch_result, grad_norm_dic, batch_step_metrics = output
+            _outputs = self.run_training_batch(batch, batch_idx)
+            batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
+            outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -482,6 +490,17 @@ class TrainerTrainLoopMixin(ABC):
             # requested in the batches
             if early_stop_epoch or self.fast_dev_run:
                 break
+
+        # process epoch outputs
+        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
+            model = model.module
+
+        if self.is_overriden('training_epoch_end', model=model):
+            epoch_output = model.training_epoch_end(outputs)
+            _, _, log_epoch_metrics, callback_epoch_metrics, _ = self.process_output(
+                epoch_output)
+            self.log_metrics(log_epoch_metrics, {})
+            self.callback_metrics.update(callback_epoch_metrics)
 
         # in case validation step is missing and you are not running fast-dev to duplicate last batch
         if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
@@ -545,14 +564,13 @@ class TrainerTrainLoopMixin(ABC):
                 def optimizer_closure():
                     # forward pass
                     with self.profiler.profile('model_forward'):
-                        output = self.training_forward(
+                        output_dict = self.training_forward(
                             split_batch, batch_idx, opt_idx, self.hiddens)
 
-                    closure_loss = output[0]
-                    progress_bar_metrics = output[1]
-                    log_metrics = output[2]
-                    callback_metrics = output[3]
-                    self.hiddens = output[4]
+                        # format and reduce outputs accordingly
+                        processed_output = self.process_output(output_dict, train=True)
+
+                    closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = processed_output
 
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
@@ -576,10 +594,10 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss
+                    return closure_loss, output_dict
 
                 # calculate loss
-                loss = optimizer_closure()
+                loss, batch_output = optimizer_closure()
 
                 # check if loss or model weights are nan
                 self.detect_nan_tensors(loss)
@@ -605,7 +623,8 @@ class TrainerTrainLoopMixin(ABC):
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
                         model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx, optimizer_closure)
+                                             optimizer, opt_idx,
+                                             lambda: optimizer_closure()[0])
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean())
@@ -632,7 +651,7 @@ class TrainerTrainLoopMixin(ABC):
         # track all metrics for callbacks
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, all_log_metrics
+        return 0, grad_norm_dic, all_log_metrics, batch_output
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
@@ -730,9 +749,6 @@ class TrainerTrainLoopMixin(ABC):
 
             warnings.warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
                           ' Use training_epoch_end instead', DeprecationWarning)
-
-        # format and reduce outputs accordingly
-        output = self.process_output(output, train=True)
 
         return output
 
