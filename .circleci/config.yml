@@ -147,6 +147,8 @@ jobs:
       - *create_pkg
       - *install_pkg
 
+orbs:
+  python: circleci/python@0.2.1
 
 workflows:
   version: 2
