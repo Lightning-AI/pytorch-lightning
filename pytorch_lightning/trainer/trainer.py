@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 from argparse import ArgumentParser
-from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
+from typing import Union, Optional, List, Dict, Tuple, Iterable, Any, Sequence
 import distutils
 
 import torch
@@ -18,8 +18,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-from pytorch_lightning.profiler.profiler import BaseProfiler
+from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -33,7 +32,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
@@ -82,9 +81,7 @@ class Trainer(
             callbacks: List[Callback] = [],
             default_save_path: Optional[str] = None,
             gradient_clip_val: float = 0,
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             process_position: int = 0,
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
@@ -96,8 +93,6 @@ class Trainer(
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             max_epochs: int = 1000,
             min_epochs: int = 1,
             max_steps: Optional[int] = None,
@@ -110,19 +105,23 @@ class Trainer(
             row_log_interval: int = 10,
             add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend: Optional[str] = None,
-            use_amp=False,  # backward compatible, todo: remove in v0.9.0
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: str = 'full',
+            weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
             amp_level: str = 'O1',
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
+            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
+            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+            use_amp=False,  # backward compatible, todo: remove in v0.9.0
+            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             **kwargs
     ):
         r"""
@@ -355,6 +354,7 @@ class Trainer(
         self.disable_validation = False
         self.lr_schedulers = []
         self.optimizers = None
+        self.optimizer_frequencies = []
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
@@ -364,7 +364,7 @@ class Trainer(
 
         # configure profiler
         if profiler is True:
-            profiler = Profiler()
+            profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
 
         # configure early stop callback
@@ -490,10 +490,10 @@ class Trainer(
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
-              (<class 'pytorch_lightning.profiler.profiler.BaseProfiler'>,
+              (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
                <class 'NoneType'>),
               None),
-            ...
+             ...
         """
         trainer_default_params = inspect.signature(cls).parameters
         name_type_default = []
@@ -714,7 +714,8 @@ class Trainer(
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+                self.init_optimizers(model.configure_optimizers())
 
             self.run_pretrain_routine(model)
 
@@ -748,31 +749,59 @@ class Trainer(
 
     def init_optimizers(
             self,
-            optimizers: Union[Optimizer, Tuple[List, List], List[Optimizer], Tuple[Optimizer]]
-    ) -> Tuple[List, List]:
+            optim_conf: Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]
+    ) -> Tuple[List, List, List]:
 
         # single output, single optimizer
-        if isinstance(optimizers, Optimizer):
-            return [optimizers], []
+        if isinstance(optim_conf, Optimizer):
+            return [optim_conf], [], []
 
         # two lists, optimizer + lr schedulers
-        elif len(optimizers) == 2 and isinstance(optimizers[0], list):
-            optimizers, lr_schedulers = optimizers
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+            optimizers, lr_schedulers = optim_conf
             lr_schedulers = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers
+            return optimizers, lr_schedulers, []
+
+        # single dictionary
+        elif isinstance(optim_conf, dict):
+            optimizer = optim_conf["optimizer"]
+            lr_scheduler = optim_conf.get("lr_scheduler", [])
+            if lr_scheduler:
+                lr_schedulers = self.configure_schedulers([lr_scheduler])
+            return [optimizer], lr_schedulers, []
+
+        # multiple dictionaries
+        elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+            optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            # take only lr wif exists and ot they are defined - not None
+            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")]
+            # take only freq wif exists and ot they are defined - not None
+            optimizer_frequencies = [opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")]
+
+            # clean scheduler list
+            if lr_schedulers:
+                lr_schedulers = self.configure_schedulers(lr_schedulers)
+            # assert that if frequencies are present, they are given for all optimizers
+            if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
+                raise ValueError("A frequency must be given to each optimizer.")
+            return optimizers, lr_schedulers, optimizer_frequencies
 
         # single list or tuple, multiple optimizer
-        elif isinstance(optimizers, (list, tuple)):
-            return optimizers, []
+        elif isinstance(optim_conf, (list, tuple)):
+            return list(optim_conf), [], []
 
         # unknown configuration
         else:
-            raise ValueError('Unknown configuration for model optimizers. Output'
-                             'from model.configure_optimizers() should either be:'
-                             '* single output, single torch.optim.Optimizer'
-                             '* single output, list of torch.optim.Optimizer'
-                             '* two outputs, first being a list of torch.optim.Optimizer',
-                             'second being a list of torch.optim.lr_scheduler')
+            raise ValueError(
+                'Unknown configuration for model optimizers.'
+                ' Output from `model.configure_optimizers()` should either be:'
+                ' * single output, single `torch.optim.Optimizer`'
+                ' * single output, list of `torch.optim.Optimizer`'
+                ' * single output, a dictionary with `optimizer` key (`torch.optim.Optimizer`)'
+                '    and an optional `lr_scheduler` key (`torch.optim.lr_scheduler`)'
+                ' * two outputs, first being a list of `torch.optim.Optimizer` second being'
+                '    a list of `torch.optim.lr_scheduler`'
+                ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
     def configure_schedulers(self, schedulers: list):
         # Convert each scheduler into dict sturcture with relevant information
@@ -1014,6 +1043,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

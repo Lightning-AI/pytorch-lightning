@@ -145,7 +145,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
@@ -197,6 +197,7 @@ class TrainerTrainLoopMixin(ABC):
     total_batches: int
     truncated_bptt_steps: ...
     optimizers: ...
+    optimizer_frequencies: ...
     accumulate_grad_batches: int
     use_amp: bool
     track_grad_norm: ...
@@ -530,8 +531,7 @@ class TrainerTrainLoopMixin(ABC):
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
-            # call training_step once per optimizer
-            for opt_idx, optimizer in enumerate(self.optimizers):
+            for opt_idx, optimizer in self._get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's paramaters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.optimizers) > 1:
@@ -633,6 +633,19 @@ class TrainerTrainLoopMixin(ABC):
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
         return 0, grad_norm_dic, all_log_metrics
+
+    def _get_optimizers_iterable(self):
+        if not self.optimizer_frequencies:
+            # call training_step once per optimizer
+            return list(enumerate(self.optimizers))
+
+        optimizer_freq_cumsum = np.cumsum(self.optimizer_frequencies)
+        optimizers_loop_length = optimizer_freq_cumsum[-1]
+        current_place_in_loop = self.total_batch_idx % optimizers_loop_length
+
+        # find optimzier index by looking for the first {item > current_place} in the cumsum list
+        opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
+        return [(opt_idx, self.optimizers[opt_idx])]
 
     def run_training_teardown(self):
         self.main_progress_bar.close()

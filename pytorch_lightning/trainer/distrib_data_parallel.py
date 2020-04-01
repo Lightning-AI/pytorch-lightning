@@ -122,7 +122,7 @@ from typing import Union
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -304,7 +304,8 @@ class TrainerDDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
+            self.init_optimizers(model.configure_optimizers())
 
         # MODEL
         # copy model to each gpu
