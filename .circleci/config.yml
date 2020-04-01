@@ -95,14 +95,14 @@ jobs:
       - restore_cache:
           keys:
             # when lock file changes, use increasingly general patterns to restore cache
-            - pip-packages-{{ TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
-            - pip-packages-{{ TORCH_VERSION }}-
+            - pip-packages-{{ $TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
+            - pip-packages-{{ $TORCH_VERSION }}-
             - pip-packages-
       - *install_deps
       - save_cache:
           paths:
             - ~/.local/share/virtualenvs/venv  # this path depends on where pipenv creates a virtualenv
-          key: pip-packages-v1-{{ TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
+          key: pip-packages-v1-{{ $TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
       - *tests
       - store_test_results:
           path: test-reports
