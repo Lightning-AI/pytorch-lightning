@@ -988,18 +988,18 @@ class Trainer(
         # Check training_step, train_dataloader, configure_optimizer methods
         if not self.is_overriden('training_step', model):
             raise MisconfigurationException(
-                'No `training_step()` method defined. Lightning expects as minimum a `training_step()` and'
-                ' `training_dataloader()` to be defined.')
+                'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
 
         if not self.is_overriden('train_dataloader', model):
             raise MisconfigurationException(
-                'No `train_dataloader()` defined. Lightning expects as minimum a `training_step()` and'
-                ' `training_dataloader()` to be defined.')
+                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
 
         if not self.is_overriden('configure_optimizers', model):
-            warnings.warn('`configure_optimizers()` method not defined by user,'
-                          ' will default to Adam optimizer with learning rate set to 0.0001.',
-                          RuntimeWarning)
+            raise MisconfigurationException(
+                'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
 
         # Check val_dataloader, validation_step and validation_epoch_end
         if self.is_overriden('val_dataloader', model):

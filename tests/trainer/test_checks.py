@@ -2,7 +2,7 @@ import pytest
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
     TestModelBase,
     LightValidationDataloader,
@@ -44,6 +44,25 @@ def test_error_on_no_train_dataloader(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel(hparams)
+        trainer.fit(model)
+
+
+def test_error_on_no_configure_optimizers(tmpdir):
+    """ Test that an error is thrown when no `configure_optimizers()` is defined """
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightTrainDataloader, LightningModule):
+        def forward(self, x):
+            pass
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            pass
+
+    trainer_options = dict(default_save_path=tmpdir, max_epochs=1)
+    trainer = Trainer(**trainer_options)
+
+    with pytest.raises(MisconfigurationException):
+        model = CurrentTestModel()
         trainer.fit(model)
 
 
