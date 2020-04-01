@@ -1,8 +1,8 @@
-# Python CircleCI 2.1 configuration file
+# Python CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2.1
+version: 2.0
 
 references:
 
@@ -10,10 +10,10 @@ references:
     run:
       name: Install Dependences
       command: |
-        pip install "$TORCH_VERSION" --user
-        pip install -r requirements.txt --user -q
+        pip install "$TORCH_VERSION"
+        pip install -r requirements.txt -q
         sudo pip install pytest pytest-cov pytest-flake8 -q
-        pip install -r ./tests/requirements.txt --user -q
+        pip install -r ./tests/requirements.txt -q
 
   tests: &tests
    run:
@@ -92,9 +92,17 @@ jobs:
       - TORCH_VERSION: "torch"
     steps: &steps
       - checkout
-      - python/load-cache
+      - restore_cache:
+          keys:
+            # when lock file changes, use increasingly general patterns to restore cache
+            - pip-packages-{{ TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
+            - pip-packages-{{ TORCH_VERSION }}-
+            - pip-packages-
       - *install_deps
-      - python/save-cache
+      - save_cache:
+          paths:
+            - ~/.local/share/virtualenvs/venv  # this path depends on where pipenv creates a virtualenv
+          key: pip-packages-v1-{{ TORCH_VERSION }}-{{ checksum "Pipfile.lock" }}
       - *tests
       - store_test_results:
           path: test-reports
@@ -136,9 +144,7 @@ jobs:
         - TORCH_VERSION: "torch"
     steps:
       - checkout
-      - python/load-cache
       - *install_deps
-      - python/save-cache
       - *examples
 
   Install-pkg:
@@ -149,8 +155,8 @@ jobs:
       - *create_pkg
       - *install_pkg
 
-orbs:
-  python: circleci/python@0.2.1
+#orbs:
+#  python: circleci/python@0.2.1
 
 workflows:
   version: 2
