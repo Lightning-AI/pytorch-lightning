@@ -1,10 +1,9 @@
 import numbers
 from collections import namedtuple
 
-import torch
 import numpy as np
+import torch
 
-from pytorch_lightning.metrics.metric import _sync_ddp_to_device_type
 from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 
 
@@ -21,18 +20,18 @@ def test_recursive_application_to_collection():
     }
 
     expected_result = {
-        'a': torch.tensor([1.]),
-        'b': [torch.tensor([2.])],
-        'c': (torch.tensor([100.]),),
-        'd': ntc(bar=torch.tensor([5.])),
-        'e': torch.tensor([10.]),
+        'a': torch.tensor([2.]),
+        'b': [torch.tensor([4.])],
+        'c': (torch.tensor([200.]),),
+        'd': ntc(bar=torch.tensor([10.])),
+        'e': torch.tensor([20.]),
         'f': 'this_is_a_dummy_str',
-        'g': torch.tensor([12.])
+        'g': torch.tensor([24.])
 
     }
 
-    reduced = apply_to_collection((torch.Tensor, numbers.Number),
-                                  _sync_ddp_to_device_type, device='cpu', dtype=torch.float)
+    reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray),
+                                  lambda x: x * 2)
 
     assert isinstance(reduced, dict), ' Type Consistency of dict not preserved'
     assert all([x in reduced for x in to_reduce.keys()]), 'Not all entries of the dict were preserved'
