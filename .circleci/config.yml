@@ -136,7 +136,9 @@ jobs:
         - TORCH_VERSION: "torch"
     steps:
       - checkout
+      - python/load-cache
       - *install_deps
+      - python/save-cache
       - *examples
 
   Install-pkg:
