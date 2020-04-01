@@ -1,4 +1,4 @@
-name: PypiRelease
+name: PyPI Release
 
 on: [push]
 
