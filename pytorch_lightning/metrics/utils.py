@@ -1,5 +1,5 @@
 import numbers
-from typing import Union, Any, Optional
+from typing import Union, Any, Callable
 
 import numpy as np
 import torch
@@ -8,8 +8,19 @@ from torch.utils.data._utils.collate import default_convert
 from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 
 
-def _apply_to_inputs(func_to_apply, *dec_args, **dec_kwargs):
+def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
+    """
+    Decorator function to apply a function to all inputs of a function.
+    Args:
+        func_to_apply: the function to apply to the inputs
+        *dec_args: positional arguments for the function to be applied
+        **dec_kwargs: keyword arguments for the function to be applied
+
+    Returns:
+        the decorated function
+    """
     def decorator_fn(func_to_decorate):
+        # actual function applying the give function to inputs
         def new_func(*args, **kwargs):
             args = func_to_apply(args, *dec_args, **dec_kwargs)
             kwargs = func_to_apply(kwargs, *dec_args, **dec_kwargs)
@@ -20,8 +31,19 @@ def _apply_to_inputs(func_to_apply, *dec_args, **dec_kwargs):
     return decorator_fn
 
 
-def _apply_to_outputs(func_to_apply, *dec_args, **dec_kwargs):
+def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
+    """
+    Decorator function to apply a function to all outputs of a function.
+    Args:
+        func_to_apply: the function to apply to the outputs
+        *dec_args: positional arguments for the function to be applied
+        **dec_kwargs: keyword arguments for the function to be applied
+
+    Returns:
+        the decorated function
+    """
     def decorator_fn(function_to_decorate):
+        # actual function applying the give function to outputs
         def new_func(*args, **kwargs):
             result = function_to_decorate(*args, **kwargs)
             return func_to_apply(result, *dec_args, **dec_kwargs)
@@ -66,7 +88,19 @@ def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> 
     return data
 
 
-def _numpy_metric_conversion(func_to_decorate):
+def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
+    """
+    Decorator Handling the argument conversion for metrics working on numpy.
+    All inputs of the decorated function will be converted to numpy and all
+    outputs will be converted to Tensors
+
+    Args:
+        func_to_decorate: the function whose inputs and outputs shall be converted
+
+    Returns:
+        the decorated function
+
+    """
     # Applies collection conversion from tensor to numpy to all inputs
     # we need to include numpy arrays here, since otherwise they will also be treated as sequences
     func_convert_inputs = _apply_to_inputs(
@@ -76,7 +110,18 @@ def _numpy_metric_conversion(func_to_decorate):
     return func_convert_in_out
 
 
-def _tensor_metric_conversion(func_to_decorate):
+def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
+    """
+    Decorator Handling the argument conversion for metrics working on tensors.
+    All inputs and outputs of the decorated function will be converted to tensors
+
+    Args:
+        func_to_decorate: the function whose inputs and outputs shall be converted
+
+    Returns:
+        the decorated function
+
+    """
     # Converts all inputs to tensor if possible
     func_convert_inputs = _apply_to_inputs(_convert_to_tensor)(func_to_decorate)
     # convert all outputs to tensor if possible
@@ -92,8 +137,6 @@ def _sync_ddp(result: Union[torch.Tensor],
 
     Args:
         result: the value to sync and reduce (typically tensor or number)
-        device: the device to put the synced and reduced value to
-        dtype: the datatype to convert the synced and reduced value to
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum
 
@@ -112,7 +155,23 @@ def _sync_ddp(result: Union[torch.Tensor],
 
 
 def numpy_metric(group: Any = torch.distributed.group.WORLD,
-                 reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM):
+                 reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> Callable:
+    """
+    This decorator shall be used on all function metrics working on numpy arrays.
+
+    It handles the argument conversion and DDP reduction for metrics working on numpy.
+    All inputs of the decorated function will be converted to numpy and all
+    outputs will be converted to Tensors.
+    In DDP Training all output tensors will be reduced according to the given rules.
+
+    Args:
+        group: the process group to gather results from. Defaults to all processes (world)
+        reduce_op: the reduction operation. Defaults to sum
+
+    Returns:
+        the decorated function
+
+    """
     def decorator_fn(func_to_decorate):
         return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
                                  group=group,
@@ -122,7 +181,22 @@ def numpy_metric(group: Any = torch.distributed.group.WORLD,
 
 
 def tensor_metric(group: Any = torch.distributed.group.WORLD,
-                  reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM):
+                  reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> Callable:
+    """
+    This decorator shall be used on all function metrics working on tensors.
+
+    It handles the argument conversion and DDP reduction for metrics working on tensors.
+    All inputs and outputs of the decorated function will be converted to tensors .
+    In DDP Training all output tensors will be reduced according to the given rules.
+
+    Args:
+       group: the process group to gather results from. Defaults to all processes (world)
+       reduce_op: the reduction operation. Defaults to sum
+
+    Returns:
+       the decorated function
+
+    """
     def decorator_fn(func_to_decorate):
         return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
                                  group=group,
