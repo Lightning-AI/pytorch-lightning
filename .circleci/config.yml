@@ -10,10 +10,10 @@ references:
     run:
       name: Install Dependences
       command: |
-        pip install "$TORCH_VERSION" --user
-        pip install -r requirements.txt --user
-        sudo pip install pytest pytest-cov pytest-flake8
-        pip install -r ./tests/requirements.txt --user
+        pip install "$TORCH_VERSION"
+        pip install -r requirements.txt -q
+        sudo pip install pytest pytest-cov pytest-flake8 -q
+        pip install -r ./tests/requirements.txt -q
 
   tests: &tests
    run:
@@ -21,7 +21,7 @@ references:
      command: |
        python --version ; pip --version ; pip list
        py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 15m
+     no_output_timeout: 30m
 
   examples: &examples
    run:
@@ -30,7 +30,7 @@ references:
        pip install -r ./pl_examples/requirements.txt --user
        python --version ; pip --version ; pip list
        py.test pl_examples -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 15m
+     no_output_timeout: 20m
 
   install_pkg: &install_pkg
     run:
@@ -53,8 +53,10 @@ references:
    run:
      name: Formatting
      command: |
-       python --version ; pip --version ; pip list
-       flake8
+       python --version ; pip --version
+       sudo pip install flake8 -q
+       pip list
+       flake8 .
 
   make_docs: &make_docs
    run:
@@ -82,45 +84,56 @@ jobs:
         - TORCH_VERSION: "torch"
     steps:
       - checkout
-      - *install_deps
       - *format
 
   PyTorch:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.6
     environment:
       - TORCH_VERSION: "torch"
     steps: &steps
       - checkout
+      #- restore_cache:
+      #    keys:
+      #      # when lock file changes, use increasingly general patterns to restore cache
+      #      - pip-packages--{{ .Environment.CIRCLE_JOB }}
+      #      - pip-packages--
       - *install_deps
+      #- save_cache:
+      #    key: pip-packages--{{ .Environment.CIRCLE_JOB }}
+      #    paths:
+      #      # this path depends on where pipenv creates a virtualenv
+      #      - "~/.cache/pip"
+      #      - "/usr/local/lib/python3.6/site-packages"
+      #      - "/usr/local/lib/site-python"
       - *tests
       - store_test_results:
           path: test-reports
       - store_artifacts:
           path: test-reports
 
-  PyTorch-v1.1:
+  PyTorch-v1_1:
     docker:
       - image: circleci/python:3.6
     environment:
       - TORCH_VERSION: "torch>=1.1, <1.2"
     steps: *steps
 
-  PyTorch-v1.2:
+  PyTorch-v1_2:
     docker:
       - image: circleci/python:3.6
     environment:
       - TORCH_VERSION: "torch>=1.2, <1.3"
     steps: *steps
 
-  PyTorch-v1.3:
+  PyTorch-v1_3:
     docker:
       - image: circleci/python:3.6
     environment:
       - TORCH_VERSION: "torch>=1.3, <1.4"
     steps: *steps
 
-  PyTorch-v1.4:
+  PyTorch-v1_4:
     docker:
       - image: circleci/python:3.6
     environment:
@@ -145,6 +158,8 @@ jobs:
       - *create_pkg
       - *install_pkg
 
+#orbs:
+#  python: circleci/python@0.2.1
 
 workflows:
   version: 2
@@ -152,9 +167,9 @@ workflows:
     jobs:
       - Formatting
       - Build-Docs
-      - PyTorch-v1.1
-      - PyTorch-v1.2
-      - PyTorch-v1.3
-      - PyTorch-v1.4
+      - PyTorch-v1_1
+      - PyTorch-v1_2
+      - PyTorch-v1_3
+      - PyTorch-v1_4
       - Install-pkg
       - Examples

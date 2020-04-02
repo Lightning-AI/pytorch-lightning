@@ -10,6 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
 from tests.base import LightningTestModel
+from tests.base.datasets import PATH_DATASETS
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
@@ -99,7 +100,7 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
         'in_features': 28 * 28,
         'learning_rate': 0.001 * 8,
         'optimizer_name': 'adam',
-        'data_root': os.path.join(tests_dir, 'datasets'),
+        'data_root': PATH_DATASETS,
         'out_features': 10,
         'hidden_dim': 1000,
     }
@@ -180,7 +181,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=LightningTestModel
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.35):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.5):
     # run prediction on 1 batch
     for batch in dataloader:
         break
@@ -205,7 +206,7 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.35):
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
-def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
+def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
     acc = trainer.training_tqdm_dict[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"

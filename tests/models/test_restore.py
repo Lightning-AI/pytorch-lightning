@@ -166,7 +166,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=4,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -203,7 +203,7 @@ def test_dp_resume(tmpdir):
 
     trainer_options = dict(
         show_progress_bar=True,
-        max_epochs=3,
+        max_epochs=1,
         gpus=2,
         distributed_backend='dp',
     )
