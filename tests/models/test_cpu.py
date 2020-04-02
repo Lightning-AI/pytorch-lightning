@@ -54,7 +54,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_default_model(lbfgs=True)
-    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
+    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.5)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -112,7 +112,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, thr=0.35)
+    tutils.assert_ok_model_acc(trainer, thr=0.5)
 
 
 def test_running_test_without_val(tmpdir):

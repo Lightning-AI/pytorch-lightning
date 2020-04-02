@@ -165,7 +165,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        max_epochs=4,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -201,7 +201,7 @@ def test_dp_resume(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        max_epochs=3,
+        max_epochs=1,
         gpus=2,
         distributed_backend='dp',
     )
