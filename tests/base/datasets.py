@@ -30,6 +30,11 @@ class MNIST(Dataset):
         download: If true, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
+
+    Examples:
+        >>> dataset = MNIST(download=True)
+        >>> len(dataset)
+        60000
     """
 
     RESOURCES = (
@@ -39,22 +44,22 @@ class MNIST(Dataset):
 
     TRAIN_FILE_NAME = 'training.pt'
     TEST_FILE_NAME = 'test.pt'
+    cache_folder_name = 'complete'
 
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
                  normalize: tuple = (0.5, 1.0), download: bool = False):
-        super(MNIST, self).__init__()
+        super().__init__()
         self.root = root
         self.train = train  # training set or test set
         self.normalize = normalize
 
-        if download:
-            self.download()
+        self.prepare_data(download)
 
-        if not self._check_exists():
+        if not self._check_exists(self.cached_folder_path):
             raise RuntimeError('Dataset not found.')
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
-        self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
+        self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
@@ -69,25 +74,30 @@ class MNIST(Dataset):
         return len(self.data)
 
     @property
-    def processed_folder(self) -> str:
-        return os.path.join(self.root, 'MNIST', 'processed')
+    def cached_folder_path(self) -> str:
+        return os.path.join(self.root, 'MNIST', self.cache_folder_name)
 
-    def _check_exists(self) -> bool:
-        train_file = os.path.join(self.processed_folder, self.TRAIN_FILE_NAME)
-        test_file = os.path.join(self.processed_folder, self.TEST_FILE_NAME)
-        return os.path.isfile(train_file) and os.path.isfile(test_file)
+    def _check_exists(self, data_folder: str) -> bool:
+        existing = True
+        for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
+            existing = existing and os.path.isfile(os.path.join(data_folder, fname))
+        return existing
 
-    def download(self) -> None:
-        """Download the MNIST data if it doesn't exist in processed_folder already."""
+    def prepare_data(self, download: bool):
+        if download:
+            self._download(self.cached_folder_path)
 
-        if self._check_exists():
+    def _download(self, data_folder: str) -> None:
+        """Download the MNIST data if it doesn't exist in cached_folder_path already."""
+
+        if self._check_exists(data_folder):
             return
 
-        os.makedirs(self.processed_folder, exist_ok=True)
+        os.makedirs(data_folder, exist_ok=True)
 
         for url in self.RESOURCES:
             logging.info(f'Downloading {url}')
-            fpath = os.path.join(self.processed_folder, os.path.basename(url))
+            fpath = os.path.join(data_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
 
 
@@ -123,21 +133,26 @@ class TestingMNIST(MNIST):
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
                  normalize: tuple = (0.5, 1.0), download: bool = False,
                  num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2)):
+
+        # number of examples per class
+        self.num_samples = num_samples
+        # take just a subset of MNIST dataset
+        self.digits = digits if digits else list(range(10))
+
+        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in self.digits) + f'_nb-{self.num_samples}'
+
         super().__init__(
             root,
             train=train,
             normalize=normalize,
             download=download
         )
-        # take just a subset of MNIST dataset
-        if not digits:
-            digits = list(range(10))
-        if (num_samples * len(digits)) >= 60000:
-            # asking for complete dataset
-            return
+
+    @staticmethod
+    def _prepare_subset(full_data, full_targets, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
-        for idx, target in enumerate(self.targets):
+        for idx, target in enumerate(full_targets):
             label = target.item()
             if classes.get(label, float('inf')) >= num_samples:
                 continue
@@ -145,5 +160,17 @@ class TestingMNIST(MNIST):
             classes[label] += 1
             if all(classes[k] >= num_samples for k in classes):
                 break
-        self.data = self.data[indexes]
-        self.targets = self.targets[indexes]
+        data = full_data[indexes]
+        targets = full_targets[indexes]
+        return data, targets
+
+    def prepare_data(self, download) -> None:
+        if self._check_exists(self.cached_folder_path):
+            return
+        if download:
+            self._download(super().cached_folder_path)
+
+        for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
+            data, targets = torch.load(os.path.join(super().cached_folder_path, fname))
+            data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
+            torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
