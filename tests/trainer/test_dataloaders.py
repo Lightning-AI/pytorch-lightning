@@ -1,4 +1,5 @@
 import pytest
+import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -482,3 +483,41 @@ def test_error_on_zero_len_dataloader(tmpdir):
             test_percent_check=0.5
         )
         trainer.fit(model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_reinit_for_subclass():
+
+    class CustomDataLoader(torch.utils.data.DataLoader):
+        def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
+                     batch_sampler=None, num_workers=0, collate_fn=None,
+                     pin_memory=False, drop_last=False, timeout=0,
+                     worker_init_fn=None, dummy_kwarg=None):
+            super().__init__(dataset,
+                             batch_size,
+                             shuffle,
+                             sampler,
+                             batch_sampler,
+                             num_workers,
+                             collate_fn,
+                             pin_memory,
+                             drop_last,
+                             timeout,
+                             worker_init_fn)
+
+            self.dummy_kwarg = dummy_kwarg
+
+    trainer = Trainer(gpus=[0, 1],
+                      num_nodes=1,
+                      distributed_backend='ddp')
+
+    class CustomDummyObj:
+        sampler = None
+
+    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
+
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    assert isinstance(result, torch.utils.data.DataLoader)
+    assert isinstance(result, CustomDataLoader)
+    assert hasattr(result, 'dummy_kwarg')
