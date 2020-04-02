@@ -23,13 +23,13 @@ class UNet(nn.Module):
         layers = [DoubleConv(3, features_start)]
 
         feats = features_start
-        for _ in range(num_layers-1):
-            layers.append(Down(feats, feats*2))
-            feats*=2
-        
-        for _ in range(num_layers-1):
-            layers.append(Up(feats, feats//2))
-            feats//=2
+        for _ in range(num_layers - 1):
+            layers.append(Down(feats, feats * 2))
+            feats *= 2
+
+        for _ in range(num_layers - 1):
+            layers.append(Up(feats, feats // 2))
+            feats //= 2
 
         layers.append(nn.Conv2d(feats, num_classes, kernel_size=1))
 
@@ -42,5 +42,5 @@ class UNet(nn.Module):
             xi.append(layer(xi[-1]))
         # Up path
         for i, layer in enumerate(self.layers[self.num_layers:-1]):
-            xi[-1] = layer(xi[-1], xi[-2-i])
+            xi[-1] = layer(xi[-1], xi[-2 - i])
         return self.layers[-1](xi[-1])
