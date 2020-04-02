@@ -92,34 +92,6 @@ class Metric(torch.nn.Module, ABC):
         Returns:
             Module: self
 
-        Example::
-
-            >>> linear = nn.Linear(2, 2)
-            >>> linear.weight
-            Parameter containing:
-            tensor([[ 0.1913, -0.3420],
-                    [-0.5113, -0.2325]])
-            >>> linear.to(torch.double)
-            Linear(in_features=2, out_features=2, bias=True)
-            >>> linear.weight
-            Parameter containing:
-            tensor([[ 0.1913, -0.3420],
-                    [-0.5113, -0.2325]], dtype=torch.float64)
-            >>> gpu1 = torch.device("cuda:1")
-            >>> linear.to(gpu1, dtype=torch.half, non_blocking=True)
-            Linear(in_features=2, out_features=2, bias=True)
-            >>> linear.weight
-            Parameter containing:
-            tensor([[ 0.1914, -0.3420],
-                    [-0.5112, -0.2324]], dtype=torch.float16, device='cuda:1')
-            >>> cpu = torch.device("cpu")
-            >>> linear.to(cpu)
-            Linear(in_features=2, out_features=2, bias=True)
-            >>> linear.weight
-            Parameter containing:
-            tensor([[ 0.1914, -0.3420],
-                    [-0.5112, -0.2324]], dtype=torch.float16)
-
         """
         device, dtype, non_blocking = torch._C._nn._parse_to(*args, **kwargs)
         if device is not None:
