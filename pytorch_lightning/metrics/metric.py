@@ -78,7 +78,7 @@ class Metric(torch.nn.Module, ABC):
 
         See below for examples.
 
-        .. note::
+        Note:
             This method modifies the module in-place.
 
         Args:
