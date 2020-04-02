@@ -308,8 +308,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added the flag `log_gpu_memory` to `Trainer` to deactivate logging of GPU
-  memory utilization
+- Added the flag `log_gpu_memory` to `Trainer` to deactivate logging of GPU memory utilization
 - Added SLURM resubmit functionality (port from test-tube)
 - Added optional weight_save_path to trainer to remove the need for a checkpoint_callback when using cluster training
 - Added option to use single gpu per node with `DistributedDataParallel`
