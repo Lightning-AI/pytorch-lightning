@@ -21,7 +21,6 @@ def test_amp_single_gpu(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=True,
         max_epochs=1,
         gpus=1,
         distributed_backend='ddp',
@@ -42,7 +41,6 @@ def test_no_amp_single_gpu(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=True,
         max_epochs=1,
         gpus=1,
         distributed_backend='dp',
@@ -66,7 +64,6 @@ def test_amp_gpu_ddp(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=True,
         max_epochs=1,
         gpus=2,
         distributed_backend='ddp',
@@ -90,7 +87,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        show_progress_bar=True,
         max_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
@@ -128,7 +124,7 @@ def test_cpu_model_with_amp(tmpdir):
 
     trainer_options = dict(
         default_save_path=tmpdir,
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,

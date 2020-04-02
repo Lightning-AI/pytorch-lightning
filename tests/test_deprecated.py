@@ -48,6 +48,15 @@ def test_tbd_remove_in_v0_8_0_trainer():
             'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
 
+def test_tbd_remove_in_v0_9_0_trainer():
+    # test show_progress_bar set by progress_bar_refresh_rate
+    trainer = Trainer(progress_bar_refresh_rate=0, show_progress_bar=True)
+    assert not getattr(trainer, 'show_progress_bar')
+
+    trainer = Trainer(progress_bar_refresh_rate=50, show_progress_bar=False)
+    assert getattr(trainer, 'show_progress_bar')
+
+
 def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.core.decorators import data_loader  # noqa: F811
 

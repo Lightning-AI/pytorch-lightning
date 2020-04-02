@@ -21,7 +21,8 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
+from pytorch_lightning.trainer.deprecated_api import (TrainerDeprecatedAPITillVer0_8,
+                                                      TrainerDeprecatedAPITillVer0_9)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
@@ -66,12 +67,13 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerDeprecatedAPITillVer0_8,
+    TrainerDeprecatedAPITillVer0_9,
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
         'add_row_log_interval', 'nb_sanity_val_steps'
     )
-    DEPRECATED_IN_0_9 = ('use_amp',)
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
 
     def __init__(
             self,
@@ -86,7 +88,7 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
-            show_progress_bar: bool = True,
+            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
@@ -161,9 +163,12 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            show_progress_bar: If true shows tqdm progress bar
+            show_progress_bar:
+                .. warning:: .. deprecated:: 0.7.2
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps)
+                        Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -414,7 +419,9 @@ class Trainer(
 
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
-        self.show_progress_bar = show_progress_bar
+        # backward compatibility
+        if show_progress_bar is not None:
+            self.show_progress_bar = show_progress_bar
 
         # logging
         self.log_save_interval = log_save_interval
@@ -820,7 +827,7 @@ class Trainer(
             pbar = tqdm(desc='Validation sanity check',
                         total=self.num_sanity_val_steps * len(self.val_dataloaders),
                         leave=False, position=2 * self.process_position,
-                        disable=not self.show_progress_bar, dynamic_ncols=True)
+                        disable=not self.progress_bar_refresh_rate, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
