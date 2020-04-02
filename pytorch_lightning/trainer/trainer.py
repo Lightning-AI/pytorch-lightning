@@ -274,7 +274,6 @@ class Trainer(
                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.gradient_clip = gradient_clip
 
-        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
@@ -318,6 +317,8 @@ class Trainer(
             warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
                           " NaN grads will be printed automatically when detected.",
                           DeprecationWarning)
+
+        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
