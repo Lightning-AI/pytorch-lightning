@@ -84,16 +84,10 @@ class TrainerDataLoadingMixin(ABC):
 
         if need_dist_sampler and no_sampler_added:
 
+            skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
+
             dl_args = {
-                'dataset': dataloader.dataset,
-                'batch_size': dataloader.batch_size,
-                'shuffle': False,
-                'num_workers': dataloader.num_workers,
-                'collate_fn': dataloader.collate_fn,
-                'pin_memory': dataloader.pin_memory,
-                'drop_last': dataloader.drop_last,
-                'timeout': dataloader.timeout,
-                'worker_init_fn': dataloader.worker_init_fn
+                k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') or k in skip_keys
             }
 
             if self.use_tpu:
@@ -102,13 +96,11 @@ class TrainerDataLoadingMixin(ABC):
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal()
                 )
-                dl_args['shuffle'] = False
             else:
                 sampler = DistributedSampler(dataloader.dataset)
-                dl_args['shuffle'] = False
 
             dl_args['sampler'] = sampler
-            dataloader = DataLoader(**dl_args)
+            dataloader = type(dataloader)(**dl_args)
 
         return dataloader
 
