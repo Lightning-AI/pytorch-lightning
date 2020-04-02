@@ -963,8 +963,5 @@ class _PatchDataLoader(object):
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
-        # Assign __code__, needed for checking if method has been overriden
-        self.__code__ = self.__call__.__code__
-
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
