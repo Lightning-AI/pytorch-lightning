@@ -1,10 +1,10 @@
 import numpy as np
 import torch
 
-from pytorch_lightning.metrics.metric import MetricBase, TensorMetricBase, NumpyMetricBase
+from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
 
 
-class DummyTensorMetric(TensorMetricBase):
+class DummyTensorMetric(TensorMetric):
     def __init__(self):
         super().__init__('dummy')
 
@@ -14,7 +14,7 @@ class DummyTensorMetric(TensorMetricBase):
         return 1.
 
 
-class DummyNumpyMetric(NumpyMetricBase):
+class DummyNumpyMetric(NumpyMetric):
     def __init__(self):
         super().__init__('dummy')
 
@@ -24,7 +24,7 @@ class DummyNumpyMetric(NumpyMetricBase):
         return 1.
 
 
-def _test_metric(metric: MetricBase):
+def _test_metric(metric: Metric):
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
 
     def change_and_check_device_dtype(device, dtype):
