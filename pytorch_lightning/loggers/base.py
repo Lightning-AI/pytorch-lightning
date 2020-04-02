@@ -1,12 +1,13 @@
 import argparse
+import functools
+import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping
 
+import numpy as np
 import torch
-
-from pytorch_lightning.loggers import metrics_agg
 
 
 def rank_zero_only(fn: Callable):
@@ -24,21 +25,72 @@ def rank_zero_only(fn: Callable):
     return wrapped_fn
 
 
+def merge_dicts(
+        dicts: Sequence[Mapping],
+        agg_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        dflt_func: Callable[[Sequence[float]], float] = np.mean
+) -> Dict:
+    """Merge a sequence with dictionaries into one dictionary by aggregating the
+    same keys with some given function.
+
+    Args:
+        dicts (list of dicts):
+            Sequence of dictionaries to be merged.
+        agg_funcs (dict, optional):
+            Mapping from key name to function. This function will aggregate a
+            list of values, obtained from the same key of all dictionaries.
+            If some key has no specified aggregation function, the default one
+            will be used. Default is: None (all keys will be aggregated by the
+            default function).
+        dflt_func (function):
+            Default function to aggregate keys, which are not presented in the
+            `agg_funcs` map.
+
+    Returns (dict):
+        Dictionary with merged values.
+
+    Examples:
+        >>> import pprint
+        >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1}
+        >>> d2 = {'a': 1.1, 'b': 2.2}
+        >>> d3 = {'a': 1.1, 'v': 2.3}
+        >>> dflt_func = min
+        >>> agg_funcs = {'a': np.mean, 'v': max}
+        >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
+        {'a': 1.3, 'b': 2.0, 'c': 1, 'v': 2.3}
+    """
+
+    keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
+    dx = {}
+    for k in keys:
+        fn = agg_funcs.get(k, dflt_func) if agg_funcs else dflt_func
+        agg_val = fn([v for v in [d.get(k) for d in dicts] if v is not None])
+        dx[k] = agg_val
+
+    return dx
+
+
 class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
-    def __init__(self, metrics_agg_fn: Callable[[Sequence[Dict[str, float]]], float] = metrics_agg.metrics_agg_avg):
+    def __init__(
+            self, agg_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            dflt_func: Callable[[Sequence[float]], float] = np.mean
+    ):
         self._rank = 0
         self._prev_step = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
-        self._metrics_agg_fn = metrics_agg_fn
+        self._agg_funcs = agg_funcs
+        self._dflt_func = dflt_func
 
     @property
     @abstractmethod
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
 
-    def _agg_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> Optional[Dict[str, float]]:
+    def _agg_metrics(
+            self, metrics: Dict[str, float], step: Optional[int] = None
+    ) -> Optional[Dict[str, float]]:
         """Aggregates metrics.
 
         Args:
@@ -53,7 +105,8 @@ class LightningLoggerBase(ABC):
             return None
 
         if len(self._metrics_to_agg) > 0:
-            agg_mets = self._metrics_agg_fn(self._metrics_to_agg)
+            agg_mets = merge_dicts(
+                self._metrics_to_agg, self._agg_funcs, self._dflt_func)
         else:
             agg_mets = None
 
