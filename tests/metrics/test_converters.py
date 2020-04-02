@@ -9,12 +9,7 @@ from pytorch_lightning.metrics.converters import _apply_to_inputs, _apply_to_out
     _tensor_metric_conversion, _sync_ddp, tensor_metric, numpy_metric
 
 
-@pytest.mark.parametrize(['args', 'kwargs'],
-                         [pytest.param([], {}),
-                          pytest.param([1., 2.], {}),
-                          pytest.param([], {'a': 1., 'b': 2.}),
-                          pytest.param([1., 2.], {'a': 1., 'b': 2.})])
-def test_apply_to_inputs(args, kwargs):
+def test_apply_to_inputs():
     def apply_fn(inputs, factor):
         if isinstance(inputs, (float, int)):
             return inputs * factor
@@ -24,22 +19,24 @@ def test_apply_to_inputs(args, kwargs):
             return [apply_fn(x, factor) for x in inputs]
 
     @_apply_to_inputs(apply_fn, factor=2.)
-    def test_fn(*func_args, **func_kwargs):
-        return func_args, func_kwargs
+    def test_fn(*args, **kwargs):
+        return args, kwargs
 
-    result_args, result_kwargs = test_fn(*args, **kwargs)
-    assert isinstance(result_args, (list, tuple))
-    assert isinstance(result_kwargs, dict)
-    assert len(result_args) == len(args)
-    assert len(result_kwargs) == len(kwargs)
-    assert all([k in result_kwargs for k in kwargs.keys()])
-    for arg, result_arg in zip(args, result_args):
-        assert arg * 2. == result_arg
+    for args in [[], [1., 2.]]:
+        for kwargs in [{}, {'a': 1., 'b': 2.}]:
+            result_args, result_kwargs = test_fn(*args, **kwargs)
+            assert isinstance(result_args, (list, tuple))
+            assert isinstance(result_kwargs, dict)
+            assert len(result_args) == len(args)
+            assert len(result_kwargs) == len(kwargs)
+            assert all([k in result_kwargs for k in kwargs.keys()])
+            for arg, result_arg in zip(args, result_args):
+                assert arg * 2. == result_arg
 
-    for key in kwargs.keys():
-        arg = kwargs[key]
-        result_arg = result_kwargs[key]
-        assert arg * 2. == result_arg
+            for key in kwargs.keys():
+                arg = kwargs[key]
+                result_arg = result_kwargs[key]
+                assert arg * 2. == result_arg
 
 
 def test_apply_to_outputs():
