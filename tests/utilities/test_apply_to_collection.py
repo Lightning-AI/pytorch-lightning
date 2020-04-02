@@ -9,6 +9,7 @@ from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 
 def test_recursive_application_to_collection():
     ntc = namedtuple('Foo', ['bar'])
+
     to_reduce = {
         'a': torch.tensor([1.]),  # Tensor
         'b': [torch.tensor([2.])],  # list
@@ -24,10 +25,9 @@ def test_recursive_application_to_collection():
         'b': [torch.tensor([4.])],
         'c': (torch.tensor([200.]),),
         'd': ntc(bar=torch.tensor([10.])),
-        'e': torch.tensor([20.]),
+        'e': np.array([20.]),
         'f': 'this_is_a_dummy_str',
-        'g': torch.tensor([24.])
-
+        'g': 24.
     }
 
     reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray),
@@ -52,16 +52,15 @@ def test_recursive_application_to_collection():
 
     assert isinstance(reduced['d'], ntc), 'Type Consistency for named tuple not given'
     assert isinstance(reduced['d'].bar,
-                      torch.Tensor), 'Failure in type promotion while reducing fields of named tuples'
-    assert torch.allclose(reduced['d'].bar, expected_result['d'].bar)
+                      numbers.Number), 'Failure in type promotion while reducing fields of named tuples'
+    assert reduced['d'].bar == expected_result['d'].bar
 
-    assert isinstance(reduced['e'], torch.Tensor), 'Type Promotion in reduction of numpy arrays failed'
-    assert torch.allclose(reduced['e'], expected_result['e']), \
+    assert isinstance(reduced['e'], np.ndarray), 'Type Promotion in reduction of numpy arrays failed'
+    assert reduced['e'] == expected_result['e'], \
         'Reduction of numpy array did not yield the expected result'
 
     assert isinstance(reduced['f'], str), 'A string should not be reduced'
     assert reduced['f'] == expected_result['f'], 'String not preserved during reduction'
 
-    assert isinstance(reduced['g'], torch.Tensor), 'Reduction of a number should result in a tensor'
-    assert torch.allclose(reduced['g'],
-                          expected_result['g']), 'Reduction of a number did not yield the desired result'
+    assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a tensor'
+    assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
