@@ -468,10 +468,6 @@ class Trainer(
             job_id = None
         return job_id
 
-    @property
-    def use_amp(self):
-        return self.precision == 16
-
     @classmethod
     def default_attributes(cls):
         init_signature = inspect.signature(Trainer)
