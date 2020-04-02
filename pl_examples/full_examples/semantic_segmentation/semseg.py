@@ -190,7 +190,7 @@ def main(hparams):
         logger = WandbLogger()
 
         # optional: log model topology
-        wandb_logger.watch(model.net)
+        logger.watch(model.net)
 
     # ------------------------
     # 3 INIT TRAINER
