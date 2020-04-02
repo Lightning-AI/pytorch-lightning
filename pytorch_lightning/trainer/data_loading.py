@@ -74,7 +74,16 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
-        if self.use_ddp or self.use_ddp2 or self.use_tpu:
+
+        # don't do anything if it's not a dataloader
+        if not isinstance(dataloader, DataLoader):
+            return dataloader
+
+        need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_tpu
+        no_sampler_added = dataloader.sampler is None
+
+        if need_dist_sampler and no_sampler_added:
+
             dl_args = {
                 'dataset': dataloader.dataset,
                 'batch_size': dataloader.batch_size,

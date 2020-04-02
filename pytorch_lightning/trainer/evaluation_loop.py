@@ -338,14 +338,14 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # select dataloaders
         if test_mode:
-            if self.reload_dataloaders_every_epoch or self.test_dataloaders is None:
+            if self.test_dataloaders is None:
                 self.reset_test_dataloader(model)
 
             dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches
         else:
             # val
-            if self.reload_dataloaders_every_epoch or self.val_dataloaders is None:
+            if self.val_dataloaders is None:
                 self.reset_val_dataloader(model)
 
             dataloaders = self.val_dataloaders
@@ -398,6 +398,15 @@ class TrainerEvaluationLoopMixin(ABC):
             self.test_progress_bar.close()
         else:
             self.val_progress_bar.close()
+
+        # eventual dataset reloading
+        if test_mode:
+            if self.reload_dataloaders_every_epoch:
+                self.reset_test_dataloader(model)
+        else:
+            # val
+            if self.reload_dataloaders_every_epoch:
+                self.reset_val_dataloader(model)
 
         # Validation/Test end callbacks
         if test_mode:

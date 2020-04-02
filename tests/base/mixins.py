@@ -203,6 +203,13 @@ class LightTrainDataloader:
         return self._dataloader(train=True)
 
 
+class LightValidationDataloader:
+    """Simple validation dataloader."""
+
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+
 class LightTestDataloader:
     """Simple test dataloader."""
 
@@ -411,6 +418,9 @@ class LightTestStepMultipleDataloadersMixin:
 
 class LightTestFitSingleTestDataloadersMixin:
     """Test fit single test dataloaders mixin."""
+
+    def test_dataloader(self):
+        return self._dataloader(train=False)
 
     def test_step(self, batch, batch_idx, *args, **kwargs):
         """
@@ -693,6 +703,11 @@ class LightTestReduceLROnPlateauMixin:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
+
+
+class LightTestNoneOptimizerMixin:
+    def configure_optimizers(self):
+        return None
 
 
 def _get_output_metric(output, name):
