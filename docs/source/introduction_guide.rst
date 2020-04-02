@@ -285,8 +285,8 @@ However, if you have multiple optimizers use the matching parameters
 
     class LitMNIST(pl.LightningModule):
 
-      def configure_optimizers(self):
-        return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
+        def configure_optimizers(self):
+            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
 
 Training step
 ^^^^^^^^^^^^^
