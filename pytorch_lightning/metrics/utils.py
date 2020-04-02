@@ -3,7 +3,7 @@ from typing import Union, Any, Callable
 
 import numpy as np
 import torch
-from torch.utils.data._utils.collate import default_convert
+from torch.utils.data._utils.collate import np_str_obj_array_pattern
 
 from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 
@@ -66,9 +66,11 @@ def _convert_to_tensor(data: Any) -> Any:
     """
     if isinstance(data, numbers.Number):
         return torch.tensor([data])
-
+    # is not array of object
+    elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
+        return torch.from_numpy(data)
     else:
-        return default_convert(data)
+        return data
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
@@ -123,7 +125,9 @@ def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
 
     """
     # Converts all inputs to tensor if possible
-    func_convert_inputs = _apply_to_inputs(_convert_to_tensor)(func_to_decorate)
+    # we need to include tensors here, since otherwise they will also be treated as sequences
+    func_convert_inputs = _apply_to_inputs(
+        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_tensor)(func_to_decorate)
     # convert all outputs to tensor if possible
     return _apply_to_outputs(_convert_to_tensor)(func_convert_inputs)
 
