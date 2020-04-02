@@ -446,6 +446,7 @@ class Trainer(
         self.precision = precision
 
         # Backward compatibility, TODO: remove in v0.9.0
+        self.use_amp = False
         if use_amp is not None:
             self.use_amp = use_amp
 
