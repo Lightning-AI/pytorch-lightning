@@ -18,6 +18,7 @@ from tests.base.mixins import (
     LightValStepFitSingleDataloaderMixin,
     LightValStepFitMultipleDataloadersMixin,
     LightTrainDataloader,
+    LightValidationDataloader,
     LightTestDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
