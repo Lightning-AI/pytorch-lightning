@@ -296,20 +296,25 @@ class TrainerEvaluationLoopMixin(ABC):
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
             model = model.module
 
-        # TODO: remove in v1.0.0
-        if test_mode and self.is_overriden('test_end', model=model):
-            eval_results = model.test_end(outputs)
-            warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                          ' Use `test_epoch_end` instead.', DeprecationWarning)
-        elif self.is_overriden('validation_end', model=model):
-            eval_results = model.validation_end(outputs)
-            warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                          ' Use `validation_epoch_end` instead.', DeprecationWarning)
+        if test_mode:
+            if self.is_overriden('test_end', model=model):
+                # TODO: remove in v1.0.0
+                eval_results = model.test_end(outputs)
+                warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                              ' Use `test_epoch_end` instead.', DeprecationWarning)
 
-        if test_mode and self.is_overriden('test_epoch_end', model=model):
-            eval_results = model.test_epoch_end(outputs)
-        elif self.is_overriden('validation_epoch_end', model=model):
-            eval_results = model.validation_epoch_end(outputs)
+            elif self.is_overriden('test_epoch_end', model=model):
+                eval_results = model.test_epoch_end(outputs)
+
+        else:
+            if self.is_overriden('validation_end', model=model):
+                # TODO: remove in v1.0.0
+                eval_results = model.validation_end(outputs)
+                warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                              ' Use `validation_epoch_end` instead.', DeprecationWarning)
+
+            elif self.is_overriden('validation_epoch_end', model=model):
+                eval_results = model.validation_epoch_end(outputs)
 
         # enable train mode again
         model.train()
