@@ -35,6 +35,8 @@ class MNIST(Dataset):
         >>> dataset = MNIST(download=True)
         >>> len(dataset)
         60000
+        >>> torch.bincount(dataset.targets)
+        tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
     """
 
     RESOURCES = (
@@ -127,19 +129,24 @@ class TestingMNIST(MNIST):
     Examples:
         >>> dataset = TestingMNIST(download=True)
         >>> len(dataset)
-        900
+        150
+        >>> sorted(set([d.item() for d in dataset.targets]))
+        [0, 1, 2]
+        >>> torch.bincount(dataset.targets)
+        tensor([100, 100, 100])
     """
 
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
                  normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 300, digits: Optional[Sequence] = (0, 1, 2)):
+                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
 
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
         self.digits = digits if digits else list(range(10))
 
-        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in self.digits) + f'_nb-{self.num_samples}'
+        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
+                                 + f'_nb-{self.num_samples}'
 
         super().__init__(
             root,
@@ -149,7 +156,8 @@ class TestingMNIST(MNIST):
         )
 
     @staticmethod
-    def _prepare_subset(full_data, full_targets, num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor,
+                        num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):
@@ -164,7 +172,7 @@ class TestingMNIST(MNIST):
         targets = full_targets[indexes]
         return data, targets
 
-    def prepare_data(self, download) -> None:
+    def prepare_data(self, download: bool) -> None:
         if self._check_exists(self.cached_folder_path):
             return
         if download:
