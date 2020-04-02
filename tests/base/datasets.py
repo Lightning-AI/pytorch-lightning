@@ -123,22 +123,22 @@ class TestingMNIST(MNIST):
         download: If true, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
-        num_samples: number of examples per seelcted class/digget
+        num_samples: number of examples per selected class/digit
         digits: list selected MNIST digits/classes
 
     Examples:
         >>> dataset = TestingMNIST(download=True)
         >>> len(dataset)
-        150
+        300
         >>> sorted(set([d.item() for d in dataset.targets]))
         [0, 1, 2]
         >>> torch.bincount(dataset.targets)
-        tensor([50, 50, 50])
+        tensor([100, 100, 100])
     """
 
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
                  normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 50, digits: Optional[Sequence] = (0, 1, 2)):
+                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
 
         # number of examples per class
         self.num_samples = num_samples
