@@ -28,7 +28,7 @@ jobs:
             requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -61,15 +61,15 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v1
       with:
-        path: tests/datasets # This path is specific to Ubuntu
+        path: tests/Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
         key: mnist-dataset
 
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
-        pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html
-        pip install -r ./tests/requirements.txt
+        pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
+        pip install -r ./tests/requirements.txt -q
         # pip install tox coverage
         python --version
         pip --version

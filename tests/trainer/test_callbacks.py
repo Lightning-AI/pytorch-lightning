@@ -173,11 +173,11 @@ def test_early_stopping_without_val_step(tmpdir):
         default_save_path=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
-        max_epochs=10,
+        max_epochs=5,
     )
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs - 1
+    assert trainer.current_epoch < trainer.max_epochs
