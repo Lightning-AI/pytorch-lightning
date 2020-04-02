@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 __all__ = ['AbstractMetric', 'TensorMetric', 'NumpyMetric']
 
 
-class AbstractMetric(torch.nn.Module, ABC):
+class Metric(torch.nn.Module, ABC):
     def __init__(self, name: str):
         """
         Abstract Base Class for metric implementation.
