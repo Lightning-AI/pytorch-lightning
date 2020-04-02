@@ -14,14 +14,10 @@ class LightValidationStepMixin:
         return self._dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        """
-        Lightning calls this inside the validation loop
-        :param batch:
-        :return:
-        """
+        """Lightning calls this inside the validation loop."""
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -66,8 +62,9 @@ class LightValidationMixin(LightValidationStepMixin):
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
+
+        Args:
+            outputs: list of individual outputs of each validation step
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
@@ -114,7 +111,7 @@ class LightValidationStepMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -206,6 +203,13 @@ class LightTrainDataloader:
         return self._dataloader(train=True)
 
 
+class LightValidationDataloader:
+    """Simple validation dataloader."""
+
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+
 class LightTestDataloader:
     """Simple test dataloader."""
 
@@ -255,6 +259,16 @@ class LightInfTestDataloader:
         return CustomInfDataloader(self._dataloader(train=False))
 
 
+class LightZeroLenDataloader:
+    """ Simple dataloader that has zero length. """
+
+    def train_dataloader(self):
+        dataloader = self._dataloader(train=True)
+        dataloader.dataset.data = dataloader.dataset.data[:0]
+        dataloader.dataset.targets = dataloader.dataset.targets[:0]
+        return dataloader
+
+
 class LightEmptyTestStep:
     """Empty test step."""
 
@@ -273,7 +287,7 @@ class LightTestStepMixin(LightTestDataloader):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -360,7 +374,7 @@ class LightTestStepMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -405,6 +419,9 @@ class LightTestStepMultipleDataloadersMixin:
 class LightTestFitSingleTestDataloadersMixin:
     """Test fit single test dataloaders mixin."""
 
+    def test_dataloader(self):
+        return self._dataloader(train=False)
+
     def test_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
@@ -413,7 +430,7 @@ class LightTestFitSingleTestDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -460,7 +477,7 @@ class LightTestFitMultipleTestDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_test = self.loss(y, y_hat)
 
@@ -512,7 +529,7 @@ class LightValStepFitSingleDataloaderMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -558,7 +575,7 @@ class LightValStepFitMultipleDataloadersMixin:
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -686,6 +703,11 @@ class LightTestReduceLROnPlateauMixin:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
+
+
+class LightTestNoneOptimizerMixin:
+    def configure_optimizers(self):
+        return None
 
 
 def _get_output_metric(output, name):

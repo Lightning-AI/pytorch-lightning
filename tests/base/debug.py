@@ -1,9 +1,9 @@
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
+from tests.base.datasets import MNIST
 
 
 # from test_models import assert_ok_test_acc, load_model, \
@@ -14,7 +14,7 @@ import pytorch_lightning as pl
 class CoolModel(pl.LightningModule):
 
     def __init(self):
-        super(CoolModel, self).__init__()
+        super().__init__()
         # not the best model...
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
@@ -26,12 +26,12 @@ class CoolModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'training_loss': self.my_loss(y_hat, y)}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x)
+        y_hat = self(x)
         return {'val_loss': self.my_loss(y_hat, y)}
 
     def validation_epoch_end(self, outputs):

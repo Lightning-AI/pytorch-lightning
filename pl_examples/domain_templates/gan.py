@@ -25,7 +25,7 @@ from pytorch_lightning.trainer import Trainer
 
 class Generator(nn.Module):
     def __init__(self, latent_dim, img_shape):
-        super(Generator, self).__init__()
+        super().__init__()
         self.img_shape = img_shape
 
         def block(in_feat, out_feat, normalize=True):
@@ -52,7 +52,7 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
     def __init__(self, img_shape):
-        super(Discriminator, self).__init__()
+        super().__init__()
 
         self.model = nn.Sequential(
             nn.Linear(int(np.prod(img_shape)), 512),
@@ -73,7 +73,7 @@ class Discriminator(nn.Module):
 class GAN(LightningModule):
 
     def __init__(self, hparams):
-        super(GAN, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         # networks
@@ -99,13 +99,10 @@ class GAN(LightningModule):
         if optimizer_idx == 0:
             # sample noise
             z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
-
-            # match gpu device (or keep as cpu)
-            if self.on_gpu:
-                z = z.cuda(imgs.device.index)
+            z = z.type_as(imgs)
 
             # generate images
-            self.generated_imgs = self.forward(z)
+            self.generated_imgs = self(z)
 
             # log sampled images
             # sample_imgs = self.generated_imgs[:6]
@@ -115,8 +112,7 @@ class GAN(LightningModule):
             # ground truth result (ie: all fake)
             # put on GPU because we created this tensor inside training_loop
             valid = torch.ones(imgs.size(0), 1)
-            if self.on_gpu:
-                valid = valid.cuda(imgs.device.index)
+            valid = valid.type_as(imgs)
 
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
@@ -134,15 +130,13 @@ class GAN(LightningModule):
 
             # how well can it label as real?
             valid = torch.ones(imgs.size(0), 1)
-            if self.on_gpu:
-                valid = valid.cuda(imgs.device.index)
+            valid = valid.type_as(imgs)
 
             real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
 
             # how well can it label as fake?
             fake = torch.zeros(imgs.size(0), 1)
-            if self.on_gpu:
-                fake = fake.cuda(imgs.device.index)
+            fake = fake.type_as(fake)
 
             fake_loss = self.adversarial_loss(
                 self.discriminator(self.generated_imgs.detach()), fake)
@@ -174,12 +168,10 @@ class GAN(LightningModule):
 
     def on_epoch_end(self):
         z = torch.randn(8, self.hparams.latent_dim)
-        # match gpu device (or keep as cpu)
-        if self.on_gpu:
-            z = z.cuda(self.last_imgs.device.index)
+        z = z.type_as(self.last_imgs)
 
         # log sampled images
-        sample_imgs = self.forward(z)
+        sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
         self.logger.experiment.add_image(f'generated_images', grid, self.current_epoch)
 

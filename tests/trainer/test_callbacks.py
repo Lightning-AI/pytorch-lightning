@@ -1,11 +1,12 @@
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import (
-    TestModelBase,
     LightTrainDataloader,
+    LightTestMixin,
     LightValidationMixin,
-    LightTestMixin
+    TestModelBase
 )
 
 
@@ -150,3 +151,33 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
+
+
+def test_early_stopping_without_val_step(tmpdir):
+    """Test that early stopping callback falls back to training metrics when no validation defined."""
+    tutils.reset_seed()
+
+    class ModelWithoutValStep(LightTrainDataloader, TestModelBase):
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            loss = output['loss']  # could be anything else
+            output.update({'my_train_metric': loss})
+            return output
+
+    hparams = tutils.get_default_hparams()
+    model = ModelWithoutValStep(hparams)
+
+    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        early_stop_callback=stopping,
+        overfit_pct=0.20,
+        max_epochs=10,
+    )
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+    assert trainer.current_epoch < trainer.max_epochs - 1

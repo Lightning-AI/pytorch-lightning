@@ -45,7 +45,7 @@ class LightningTemplateModel(LightningModule):
         :param hparams:
         """
         # init superclass
-        super(LightningTemplateModel, self).__init__()
+        super().__init__()
         self.hparams = hparams
 
         self.batch_size = hparams.batch_size
@@ -106,14 +106,10 @@ class LightningTemplateModel(LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
 
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
-
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
 
         tqdm_dict = {'train_loss': loss_val}
         output = OrderedDict({
@@ -133,7 +129,7 @@ class LightningTemplateModel(LightningModule):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
 
         loss_val = self.loss(y, y_hat)
 
@@ -144,11 +140,6 @@ class LightningTemplateModel(LightningModule):
 
         if self.on_gpu:
             val_acc = val_acc.cuda(loss_val.device.index)
-
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-            val_acc = val_acc.unsqueeze(0)
 
         output = OrderedDict({
             'val_loss': loss_val,
@@ -240,6 +231,37 @@ class LightningTemplateModel(LightningModule):
     def test_dataloader(self):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
+
+    def test_step(self, batch, batch_idx):
+        """
+        Lightning calls this during testing, similar to val_step
+        :param batch:
+        :return:val
+        """
+        output = self.validation_step(batch, batch_idx)
+        # Rename output keys
+        output['test_loss'] = output.pop('val_loss')
+        output['test_acc'] = output.pop('val_acc')
+
+        return output
+
+    def test_epoch_end(self, outputs):
+        """
+        Called at the end of test to aggregate outputs, similar to validation_epoch_end
+        :param outputs: list of individual outputs of each validation step
+        :return:
+        """
+        results = self.validation_step_end(outputs)
+
+        # rename some keys
+        results['progress_bar'].update({
+            'test_loss': results['progress_bar'].pop('val_loss'),
+            'test_acc': results['progress_bar'].pop('val_acc'),
+        })
+        results['log'] = results['progress_bar']
+        results['test_loss'] = results.pop('val_loss')
+
+        return results
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
