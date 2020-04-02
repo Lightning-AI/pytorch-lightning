@@ -87,7 +87,7 @@ class TrainerDataLoadingMixin(ABC):
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
             dl_args = {
-                k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') or k in skip_keys
+                k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
             }
 
             if self.use_tpu:
