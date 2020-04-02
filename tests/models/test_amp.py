@@ -125,7 +125,7 @@ def test_cpu_model_with_amp(tmpdir):
     trainer_options = dict(
         default_save_path=tmpdir,
         progress_bar_refresh_rate=0,
-        logger=tutils.get_test_tube_logger(tmpdir),
+        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
