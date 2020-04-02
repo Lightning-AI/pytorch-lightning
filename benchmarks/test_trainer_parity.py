@@ -45,7 +45,7 @@ class ParityMNIST(LightningModule):
                                        download=True,
                                        num_samples=500,
                                        digits=list(range(5))),
-                          batch_size=256)
+                          batch_size=128)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

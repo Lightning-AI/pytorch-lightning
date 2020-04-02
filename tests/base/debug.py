@@ -42,10 +42,10 @@ class CoolModel(pl.LightningModule):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True), batch_size=32)
+        return DataLoader(TestingMNIST(train=True, num_samples=100), batch_size=16)
 
     def val_dataloader(self):
-        return DataLoader(TestingMNIST(train=False), batch_size=32)
+        return DataLoader(TestingMNIST(train=False, num_samples=50), batch_size=16)
 
     def test_dataloader(self):
-        return DataLoader(TestingMNIST(train=False), batch_size=32)
+        return DataLoader(TestingMNIST(train=False, num_samples=50), batch_size=16)
