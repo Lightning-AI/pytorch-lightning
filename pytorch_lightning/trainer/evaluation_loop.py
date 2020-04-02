@@ -428,16 +428,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # single GPU data transfer
         if self.single_gpu:
-
+            # for single GPU put inputs on gpu manually
+            root_gpu = 0
             if isinstance(self.data_parallel_device_ids, list):
                 root_gpu = self.data_parallel_device_ids[0]
-                root_device = (torch.device("cuda", root_gpu)
-                               if root_gpu else torch.device("cpu"))
-                torch.cuda.set_device(root_device)
-            else:
-                raise RuntimeError(
-                    'Expected `data_parallel_device_ids` as a list, cannot determine root gpu.'
-                )
             batch = self.transfer_batch_to_gpu(batch, root_gpu)
             args[0] = batch
 
