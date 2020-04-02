@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from torchvision import transforms
-from torchvision.datasets import MNIST
+
+from tests.base.datasets import TestingMNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -17,29 +17,6 @@ except ImportError:
     raise ImportError('Missing test-tube package.')
 
 from pytorch_lightning.core.lightning import LightningModule
-
-# TODO: remove after getting own MNIST
-# TEMPORAL FIX, https://github.com/pytorch/vision/issues/1938
-import urllib.request
-opener = urllib.request.build_opener()
-opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-urllib.request.install_opener(opener)
-
-
-class TestingMNIST(MNIST):
-
-    def __init__(self, root, train=True, transform=None, target_transform=None,
-                 download=False, num_samples=8000):
-        super().__init__(
-            root,
-            train=train,
-            transform=transform,
-            target_transform=target_transform,
-            download=download
-        )
-        # take just a subset of MNIST dataset
-        self.data = self.data[:num_samples]
-        self.targets = self.targets[:num_samples]
 
 
 class DictHparamsModel(LightningModule):
@@ -61,21 +38,14 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True,
-                                       transform=transforms.ToTensor()), batch_size=32)
+        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True), batch_size=32)
 
 
 class TestModelBase(LightningModule):
-    """
-    Base LightningModule for testing. Implements only the required
-    interface
-    """
+    """Base LightningModule for testing. Implements only the required interface."""
 
-    def __init__(self, hparams, force_remove_distributed_sampler=False):
-        """
-        Pass in parsed HyperOptArgumentParser to the model
-        :param hparams:
-        """
+    def __init__(self, hparams, force_remove_distributed_sampler: bool = False):
+        """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
         super().__init__()
         self.hparams = hparams
@@ -95,10 +65,7 @@ class TestModelBase(LightningModule):
     # MODEL SETUP
     # ---------------------
     def __build_model(self):
-        """
-        Layout model
-        :return:
-        """
+        """Layout model."""
         self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
                               out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
@@ -111,11 +78,7 @@ class TestModelBase(LightningModule):
     # TRAINING
     # ---------------------
     def forward(self, x):
-        """
-        No special modification required for lightning, define as you normally would
-        :param x:
-        :return:
-        """
+        """No special modification required for lightning, define as you normally would."""
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
@@ -131,11 +94,7 @@ class TestModelBase(LightningModule):
         return nll
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
-        """
-        Lightning calls this inside the training loop
-        :param batch:
-        :return:
-        """
+        """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -178,17 +137,13 @@ class TestModelBase(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         _ = TestingMNIST(root=self.hparams.data_root, train=True,
-                         transform=transform, download=True, num_samples=2000)
+                         download=True, num_samples=2000)
 
     def _dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
         dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               transform=transform, download=False, num_samples=2000)
+                               download=False, num_samples=2000)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size

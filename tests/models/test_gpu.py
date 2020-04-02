@@ -11,16 +11,15 @@ from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import LightningTestModel
 
 PRETEND_N_OF_GPUS = 16
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp2(tmpdir):
     """Make sure DDP2 works."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -40,10 +39,9 @@ def test_multi_gpu_model_ddp2(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -62,10 +60,9 @@ def test_multi_gpu_model_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -160,12 +157,10 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
@@ -181,12 +176,10 @@ def test_multi_gpu_none_backend(tmpdir):
         tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_dp(tmpdir):
     """Make sure DP works."""
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(

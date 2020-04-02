@@ -57,6 +57,8 @@ def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
     from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
 
+    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler  # noqa: F402
+
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
 
@@ -95,7 +97,7 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     trainer = Trainer(logger=False)
     # TODO: why `dataloder` is required if it is not used
-    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.6}
 
     model = ModelVer0_7(hparams)
@@ -106,5 +108,5 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     trainer = Trainer(logger=False)
     # TODO: why `dataloder` is required if it is not used
-    result = trainer.evaluate(model, dataloaders=[[None]], max_batches=1)
+    result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': 0.7}

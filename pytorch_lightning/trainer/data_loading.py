@@ -6,7 +6,7 @@ from torch.utils.data import SequentialSampler, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -26,9 +26,13 @@ else:
 
 
 def _has_len(dataloader: DataLoader) -> bool:
+    """ Checks if a given Dataloader has __len__ method implemented i.e. if
+    it is a finite dataloader or infinite dataloader """
     try:
         # try getting the length
-        _ = len(dataloader)
+        if len(dataloader) == 0:
+            raise ValueError('Dataloader returned 0 length. Please make sure'
+                             ' that your Dataloader atleast returns 1 batch')
         return True
     except TypeError:
         return False
@@ -70,7 +74,16 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
-        if self.use_ddp or self.use_ddp2 or self.use_tpu:
+
+        # don't do anything if it's not a dataloader
+        if not isinstance(dataloader, DataLoader):
+            return dataloader
+
+        need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_tpu
+        no_sampler_added = dataloader.sampler is None
+
+        if need_dist_sampler and no_sampler_added:
+
             dl_args = {
                 'dataset': dataloader.dataset,
                 'batch_size': dataloader.batch_size,
@@ -91,15 +104,12 @@ class TrainerDataLoadingMixin(ABC):
                 )
                 dl_args['shuffle'] = False
             else:
-                if train:
-                    sampler = DistributedSampler(dataloader.dataset)
-                    dl_args['shuffle'] = False
-                else:
-                    sampler = SequentialSampler(dataloader.dataset)
+                sampler = DistributedSampler(dataloader.dataset)
+                dl_args['shuffle'] = False
 
             dl_args['sampler'] = sampler
-
             dataloader = DataLoader(**dl_args)
+
         return dataloader
 
     def reset_train_dataloader(self, model: LightningModule) -> None:
@@ -136,16 +146,19 @@ class TrainerDataLoadingMixin(ABC):
                     'If you want to disable validation set `val_percent_check` to 0.0 instead.')
         else:
             if not _has_len(self.train_dataloader):
-                raise MisconfigurationException(
-                    'When using an infinite DataLoader (e.g. with an IterableDataset or when '
-                    'DataLoader does not implement `__len__`) for `train_dataloader`, '
-                    '`Trainer(val_check_interval)` must be an int. An int k specifies checking '
-                    'validation every k training batches.')
+                if self.val_check_interval == 1.0:
+                    self.val_check_batch = float('inf')
+                else:
+                    raise MisconfigurationException(
+                        'When using an infinite DataLoader (e.g. with an IterableDataset or when '
+                        'DataLoader does not implement `__len__`) for `train_dataloader`, '
+                        '`Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies '
+                        'checking validation every k training batches.')
+            else:
+                self._percent_range_check('val_check_interval')
 
-            self._percent_range_check('val_check_interval')
-
-            self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
-            self.val_check_batch = max(1, self.val_check_batch)
+                self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
+                self.val_check_batch = max(1, self.val_check_batch)
 
     def _reset_eval_dataloader(self, model: LightningModule,
                                mode: str) -> Tuple[int, List[DataLoader]]:
