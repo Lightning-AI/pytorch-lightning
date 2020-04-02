@@ -136,7 +136,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1 ** 9 == adjusted_lr1, \
+    assert init_lr * 0.1 ** 0 == adjusted_lr1, \
         'lr for optimizer 1 not adjusted correctly'
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
     assert init_lr * 0.1 == adjusted_lr2, \

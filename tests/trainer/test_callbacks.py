@@ -180,4 +180,4 @@ def test_early_stopping_without_val_step(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs - 1
+    assert trainer.current_epoch < trainer.max_epochs

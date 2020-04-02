@@ -372,7 +372,7 @@ def _init_steps_model():
     model, _ = tutils.get_default_model()
 
     # define train epoch to 5% of data
-    train_percent = 0.05
+    train_percent = 0.5
     # get number of samples in 1 epoch
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
