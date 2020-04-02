@@ -695,6 +695,11 @@ class LightTestReduceLROnPlateauMixin:
         return [optimizer], [lr_scheduler]
 
 
+class LightTestNoneOptimizerMixin:
+    def configure_optimizers(self):
+        return None
+
+
 def _get_output_metric(output, name):
     if isinstance(output, dict):
         val = output[name]

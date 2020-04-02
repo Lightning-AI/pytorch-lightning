@@ -83,7 +83,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
-            trainer.init_optimizers(pretrained_model.configure_optimizers())
+            trainer.init_optimizers(pretrained_model)
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, logger)
