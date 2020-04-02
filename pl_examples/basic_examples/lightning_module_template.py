@@ -232,6 +232,37 @@ class LightningTemplateModel(LightningModule):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
 
+    def test_step(self, batch, batch_idx):
+        """
+        Lightning calls this during testing, similar to val_step
+        :param batch:
+        :return:val
+        """
+        output = self.validation_step(batch, batch_idx)
+        # Rename output keys
+        output['test_loss'] = output.pop('val_loss')
+        output['test_acc'] = output.pop('val_acc')
+
+        return output
+
+    def test_epoch_end(self, outputs):
+        """
+        Called at the end of test to aggregate outputs, similar to validation_epoch_end
+        :param outputs: list of individual outputs of each validation step
+        :return:
+        """
+        results = self.validation_step_end(outputs)
+
+        # rename some keys
+        results['progress_bar'].update({
+            'test_loss': results['progress_bar'].pop('val_loss'),
+            'test_acc': results['progress_bar'].pop('val_acc'),
+        })
+        results['log'] = results['progress_bar']
+        results['test_loss'] = results.pop('val_loss')
+
+        return results
+
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
