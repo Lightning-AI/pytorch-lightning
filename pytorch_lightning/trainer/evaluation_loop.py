@@ -163,7 +163,6 @@ class TrainerEvaluationLoopMixin(ABC):
     num_val_batches: int
     fast_dev_run: ...
     process_position: ...
-    show_progress_bar: ...
     process_output: ...
     training_tqdm_dict: ...
     proc_rank: int
@@ -278,7 +277,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
-                if batch_idx % self.progress_bar_refresh_rate == 0:
+                if self.progress_bar_refresh_rate >= 1 and batch_idx % self.progress_bar_refresh_rate == 0:
                     if test_mode:
                         self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
@@ -361,7 +360,7 @@ class TrainerEvaluationLoopMixin(ABC):
         desc = 'Testing' if test_mode else 'Validating'
         total = max_batches if max_batches != float('inf') else None
         pbar = tqdm(desc=desc, total=total, leave=test_mode, position=position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True, file=sys.stdout)
+                    disable=not self.progress_bar_refresh_rate, dynamic_ncols=True, file=sys.stdout)
         setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation

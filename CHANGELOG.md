@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Changed `progress_bar_refresh_rate` trainer flag to disable progress bar when set to 0. ([#1108](https://github.com/PyTorchLightning/pytorch-lightning/pull/1108))
 - Enhanced `load_from_checkpoint` to also forward params to the model ([#1307](https://github.com/PyTorchLightning/pytorch-lightning/pull/1307))
 - Updated references to self.forward() to instead use the `__call__` interface. ([#1211](https://github.com/PyTorchLightning/pytorch-lightning/pull/1211))
 - Added option to run without an optimizer by returning `None` from `configure_optimizers`. ([#1279](https://github.com/PyTorchLightning/pytorch-lightning/pull/1279))
@@ -42,6 +43,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 - Deprecated Trainer argument `print_nan_grads` ([#1097](https://github.com/PyTorchLightning/pytorch-lightning/pull/1097))
+- Deprecated Trainer argument `show_progress_bar` ([#1108](https://github.com/PyTorchLightning/pytorch-lightning/pull/1108))
 
 ### Removed
 
@@ -70,9 +72,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added automatic sampler setup. Depending on DDP or TPU, lightning configures the sampler correctly (user needs to do nothing)  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
-- Added `reload_dataloaders_every_epoch=False` flag for trainer. Some users require reloading data every epoch  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
-- Added `progress_bar_refresh_rate=50` flag for trainer. Throttle refresh rate on notebooks  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Added automatic sampler setup. Depending on DDP or TPU, lightning configures the sampler correctly (user needs to do nothing) ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Added `reload_dataloaders_every_epoch=False` flag for trainer. Some users require reloading data every epoch ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Added `progress_bar_refresh_rate=50` flag for trainer. Throttle refresh rate on notebooks ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
 - Updated governance docs
 - Added a check to ensure that the metric used for early stopping exists before training commences ([#542](https://github.com/PyTorchLightning/pytorch-lightning/pull/542))
 - Added `optimizer_idx` argument to `backward` hook ([#733](https://github.com/PyTorchLightning/pytorch-lightning/pull/733))
@@ -95,7 +97,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added TPU gradient clipping ([#963](https://github.com/PyTorchLightning/pytorch-lightning/pull/963))
 - Added max/min number of steps in `Trainer` ([#728](https://github.com/PyTorchLightning/pytorch-lightning/pull/728))
 
-
 ### Changed
 
 - Improved `NeptuneLogger` by adding `close_after_fit` argument to allow logging after training([#908](https://github.com/PyTorchLightning/pytorch-lightning/pull/1084))
@@ -107,9 +108,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Freezed models `hparams` as `Namespace` property ([#1029](https://github.com/PyTorchLightning/pytorch-lightning/pull/1029))
 - Dropped `logging` config in package init ([#1015](https://github.com/PyTorchLightning/pytorch-lightning/pull/1015))
 - Renames model steps ([#1051](https://github.com/PyTorchLightning/pytorch-lightning/pull/1051))
-    * `training_end` >> `training_epoch_end`
-    * `validation_end` >> `validation_epoch_end`
-    * `test_end` >> `test_epoch_end`
+  - `training_end` >> `training_epoch_end`
+  - `validation_end` >> `validation_epoch_end`
+  - `test_end` >> `test_epoch_end`
 - Refactor dataloading, supports infinite dataloader ([#955](https://github.com/PyTorchLightning/pytorch-lightning/pull/955))
 - Create single file in `TensorBoardLogger` ([#777](https://github.com/PyTorchLightning/pytorch-lightning/pull/777))
 
@@ -117,7 +118,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `pytorch_lightning.logging` ([#767](https://github.com/PyTorchLightning/pytorch-lightning/pull/767))
 - Deprecated `LightningModule.load_from_metrics` in favour of `LightningModule.load_from_checkpoint` ([#995](https://github.com/PyTorchLightning/pytorch-lightning/pull/995), [#1079](https://github.com/PyTorchLightning/pytorch-lightning/pull/1079))
-- Deprecated `@data_loader` decorator  ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
+- Deprecated `@data_loader` decorator ([#926](https://github.com/PyTorchLightning/pytorch-lightning/pull/926))
 - Deprecated model steps `training_end`, `validation_end` and `test_end` ([#1051](https://github.com/PyTorchLightning/pytorch-lightning/pull/1051), [#1056](https://github.com/PyTorchLightning/pytorch-lightning/pull/1056))
 
 ### Removed
@@ -307,9 +308,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added the flag `log_gpu_memory` to `Trainer` to deactivate logging of GPU
-memory utilization
-- Added SLURM resubmit functionality (port from test-tube)
+- Added the flag `log_gpu_memory` to `Trainer` to deactivate logging of GPU memory utilization
 - Added optional weight_save_path to trainer to remove the need for a checkpoint_callback when using cluster training
 - Added option to use single gpu per node with `DistributedDataParallel`
 

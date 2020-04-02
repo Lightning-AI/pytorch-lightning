@@ -99,7 +99,7 @@ def test_trainer_callback_system(tmpdir):
         'max_epochs': 1,
         'val_percent_check': 0.1,
         'train_percent_check': 0.2,
-        'show_progress_bar': False
+        'progress_bar_refresh_rate': 0
     }
 
     assert not test_callback.on_init_start_called
