@@ -1,3 +1,6 @@
+"""
+
+"""
 from typing import Optional
 from abc import ABC
 from pytorch_lightning.core.lightning import LightningModule
@@ -6,92 +9,145 @@ from tqdm.auto import tqdm
 from pytorch_lightning.callbacks import Callback
 from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
+import torch
+
 
 class TrainerLRFinderMixin(ABC):
-    def find_lr(self, 
+    def find_lr(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
-                min_lr: float = 1e-6, 
+                min_lr: float = 1e-8,
                 max_lr: float = 1,
                 num_iters: int = 100,
                 mode: str = 'exponential',
-                num_accumulation_steps = 10): 
-        
-        lr_finder = _LRFinder(mode, min_lr, max_lr, num_iters, num_accumulation_steps)
-        
+                num_accumulation_steps: int = 1):
+        r"""
+        find_lr enables the user to do a range test of good initial learning rates,
+        to reture the amount of guesswork in picking a good starting learning rate.
+
+        Args:
+            model: Model to do range testing for
+
+            train_dataloader: A Pytorch
+                DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            min_lr: minimum learning rate to investigate
+
+            max_lr: maximum learning rate to investigate
+
+            num_iters: number of learning rates to test
+
+            mode: search strategy, either 'linear' or 'exponential'. If set to
+                'linear' the learning rate will be searches by linearly increasing
+                after each batch. If set to 'exponential', will increase learning
+                rate logarithmic.
+
+            num_accumulation_steps: number of batches to calculate loss over.
+
+        Example::
+            # Setup model and trainer
+            model = MyModelClass(hparams)
+            trainer = pl.Trainer()
+
+            # Run lr finder
+            LRfinder = trainer.find_lr(model, ...)
+
+            # Inspect results
+            LRfinder.plot()
+            suggested_lr = LRfinder.suggest()
+
+            # Overwhite lr in model config
+            model.hparams.lr = suggest_lr
+
+            # Ready to train with new learning rate
+            trainer.fit(model)
+
+        """
+        # Initialize lr finder object (stores results)
+        lr_finder = _LRFinder(mode, min_lr, max_lr, num_iters)
+
         # Use special lr logger callback
         callbacks = self.callbacks
-        self.callbacks = [LRCallback(num_iters, 
-                                     num_accumulation_steps,
-                                     show_progress_bar=True)]
-        
+        self.callbacks = [_LRCallback(num_iters, show_progress_bar=True)]
+
         # No logging
         logger = self.logger
         self.logger = None
-        
+
         # Max step set to number of iterations
         max_steps = self.max_steps
         self.max_steps = num_iters
-        
-        # Progress bar does not make much sense
+
+        # Disable standard progress bar for fit
         show_progress_bar = self.show_progress_bar
         self.show_progress_bar = False
-        
+
+        # Accumulation of gradients
+        accumulate_grad_batches = self.accumulate_grad_batches
+        self.accumulate_grad_batches = num_accumulation_steps
+
+        # Configure optimizer and scheduler
         optimizer, _ = self.init_optimizers(model.configure_optimizers())
-        assert len(optimizer)==1, 'cannot find lr for more than 1 optimizer'
+        assert len(optimizer) == 1, 'cannot find lr for more than 1 optimizer'
         old_configure_optimizers = model.configure_optimizers
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizer[0])
-        
-        # Fit and log lr/loss
+
+        # Fit, lr/loss logged in callback
         self.fit(model)
-        
-        lr_finder.history.update({'lr': self.callbacks[0].lrs,
+
+        # Promt if we stopped early
+        if self.global_step != num_iters:
+            print('LR finder stopped early due to diverging loss.')
+
+        # Transfer results from callback to lr finder object
+        lr_finder.results.update({'lr': self.callbacks[0].lrs,
                                   'loss': self.callbacks[0].losses})
-        
-        # Finish by resetting variables
+
+        # Finish by resetting variables so trainer is ready to fit model
         self.logger = logger
         self.callbacks = callbacks
         self.max_steps = max_steps
         self.show_progress_bar = show_progress_bar
+        self.accumulate_grad_batches = accumulate_grad_batches
         model.configure_optimizers = old_configure_optimizers
-        
+
         return lr_finder
-        
+
+
 class _LRFinder(object):
-    def __init__(self, mode, lr_min, lr_max, num_iters, num_accumulation_steps):
+    def __init__(self, mode, lr_min, lr_max, num_iters):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
-        
+
         self.mode = mode
         self.lr_min = lr_min
         self.lr_max = lr_max
         self.num_iters = num_iters
-        self.num_accumulation_steps = num_accumulation_steps
-        
-        self.history = {}
-        
+
+        self.results = {}
+
     def _get_new_optimizer(self, optimizer):
         new_lrs = [self.lr_min] * len(optimizer.param_groups)
         for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
             param_group["lr"] = new_lr
             param_group["initial_lr"] = new_lr
-        
+
         args = (optimizer, self.lr_max, self.num_iters)
-        scheduler = LinearLR(*args) if self.mode == 'linear' else ExponentialLR(*args)
-        
+        scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+
         def configure_optimizers():
-            return [optimizer], [{'scheduler': scheduler, 
-                                  'interval': 'step',
-                                  'frequency': self.num_accumulation_steps}]
-        
+            return [optimizer], [{'scheduler': scheduler,
+                                  'interval': 'step'}]
+
         return configure_optimizers
-    
-    def plot(self, ax=None):
+
+    def plot(self, suggest=False, ax=None):
         import matplotlib.pyplot as plt
-        
-        lrs = self.history["lr"]
-        losses = self.history["loss"]
-        
+
+        lrs = self.results["lr"]
+        losses = self.results["loss"]
+
         fig = None
         if ax is None:
             fig, ax = plt.subplots()
@@ -102,77 +158,130 @@ class _LRFinder(object):
             ax.set_xscale("log")
         ax.set_xlabel("Learning rate")
         ax.set_ylabel("Loss")
-        
+
+        if suggest:
+            _ = self.suggestion()
+            if self._optimal_idx:
+                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
+                        markersize=10, marker='o', color='red')
+
         if fig is not None:
             plt.show()
 
         return ax
 
+    def suggestion(self):
+        try:
+            min_grad = (np.gradient(np.array(self.results["loss"]))).argmin()
+            self._optimal_idx = min_grad
+            return self.results["lr"][min_grad]
+        except Exception:
+            print('Failed to compute suggesting for lr.'
+                  'There might not be enough points.')
+            self._optimal_idx = None
 
-class LRCallback(Callback):
-    def __init__(self, num_iters, num_accumulation_steps, show_progress_bar=False):
+
+class _LRCallback(Callback):
+    def __init__(self, num_iters, show_progress_bar=False, beta=0.98):
         self.num_iters = num_iters
-        self.num_accumulation_steps = num_accumulation_steps
-        self.losses = [ ]
-        self.lrs = [ ]
+        self.beta = beta
+        self.losses = []
+        self.lrs = []
+        self.avg_loss = 0.0
+        self.best_loss = 0.0
         if show_progress_bar:
-            self.progress_bar = tqdm(desc='Finding best initial lr', 
-                                     total=num_iters*num_accumulation_steps)
+            self.progress_bar = tqdm(desc='Finding best initial lr',
+                                     total=num_iters)
         else:
             self.progress_bar = None
-            
+
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].get_last_lr())
-        
+        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].get_last_lr()[0])
+
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
-        self.losses.append(np.mean(trainer.running_loss[-self.num_accumulation_steps:]))
+        current_loss = trainer.running_loss[-1]
+        current_step = trainer.global_step + 1  # remove the +1 in 1.0
+
+        # Avg loss (loss with momentum) + smoothing
+        self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
+        smoothed_loss = self.avg_loss / (1 - self.beta**current_step)
+
+        # Check if we diverging
+        if current_step > 1 and smoothed_loss > 4 * self.best_loss:
+            trainer.max_steps = current_step  # stop signal
+
+        # Save best loss for diverging checking
+        if smoothed_loss < self.best_loss or current_step == 1:
+            self.best_loss = smoothed_loss
+
+        self.losses.append(smoothed_loss)
         if self.progress_bar:
             self.progress_bar.update()
-        
-class LinearLR(_LRScheduler):
-    """Linearly increases the learning rate between two boundaries over a number of
-    iterations.
+
+
+class _LinearLR(_LRScheduler):
+    """Linearly increases the learning rate between two boundaries
+    over a number of iterations.
     Arguments:
+
         optimizer (torch.optim.Optimizer): wrapped optimizer.
+
         end_lr (float): the final learning rate.
+
         num_iter (int): the number of iterations over which the test occurs.
+
         last_epoch (int, optional): the index of last epoch. Default: -1.
     """
 
-    def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
+    def __init__(self,
+                 optimizer: torch.optim.Optimizer,
+                 end_lr: float,
+                 num_iter: int,
+                 last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(LinearLR, self).__init__(optimizer, last_epoch)
+        super(_LinearLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
+
         if self.last_epoch > 0:
             return [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
-            return [base_lr for base_lr in self.base_lrs]    
+            return [base_lr for base_lr in self.base_lrs]
 
-class ExponentialLR(_LRScheduler):
-    """Exponentially increases the learning rate between two boundaries over a number of
-    iterations.
+
+class _ExponentialLR(_LRScheduler):
+    """Exponentially increases the learning rate between two boundaries
+    over a number of iterations.
+
     Arguments:
+
         optimizer (torch.optim.Optimizer): wrapped optimizer.
+
         end_lr (float): the final learning rate.
+
         num_iter (int): the number of iterations over which the test occurs.
+
         last_epoch (int, optional): the index of last epoch. Default: -1.
     """
 
-    def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
+    def __init__(self,
+                 optimizer: torch.optim.Optimizer,
+                 end_lr: float,
+                 num_iter: int,
+                 last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(ExponentialLR, self).__init__(optimizer, last_epoch)
+        super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
-        
+
         if self.last_epoch > 0:
             return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:

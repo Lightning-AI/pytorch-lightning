@@ -1,9 +1,9 @@
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
+from tests.base.datasets import MNIST
 
 
 # from test_models import assert_ok_test_acc, load_model, \

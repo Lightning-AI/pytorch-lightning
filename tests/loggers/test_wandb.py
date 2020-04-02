@@ -30,20 +30,6 @@ def test_wandb_logger(wandb):
     logger.watch('model', 'log', 10)
     wandb.watch.assert_called_once_with('model', log='log', log_freq=10)
 
-    logger.finalize('fail')
-    wandb.join.assert_called_once_with(1)
-
-    wandb.join.reset_mock()
-    logger.finalize('success')
-    wandb.join.assert_called_once_with(0)
-
-    wandb.join.reset_mock()
-    wandb.join.side_effect = TypeError
-    with pytest.raises(TypeError):
-        logger.finalize('any')
-
-    wandb.join.assert_called()
-
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
 

@@ -11,16 +11,15 @@ from pytorch_lightning.trainer.distrib_parts import (
     parse_gpu_ids,
     determine_root_gpu_device,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import LightningTestModel
 
 PRETEND_N_OF_GPUS = 16
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp2(tmpdir):
     """Make sure DDP2 works."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -40,10 +39,9 @@ def test_multi_gpu_model_ddp2(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -62,10 +60,9 @@ def test_multi_gpu_model_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-    if not tutils.can_run_gpu_test():
-        return
 
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -96,30 +93,52 @@ def test_optimizer_return_options():
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
     opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    optim, lr_sched = trainer.init_optimizers(opt_a)
-    assert len(optim) == 1 and len(lr_sched) == 0
+    scheduler_a = torch.optim.lr_scheduler.StepLR(opt_a, 10)
+    scheduler_b = torch.optim.lr_scheduler.StepLR(opt_b, 10)
+
+    # single optimizer
+    optim, lr_sched, freq = trainer.init_optimizers(opt_a)
+    assert len(optim) == 1 and len(lr_sched) == 0 and len(freq) == 0
 
     # opt tuple
     opts = (opt_a, opt_b)
-    optim, lr_sched = trainer.init_optimizers(opts)
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert len(lr_sched) == 0
+    assert len(lr_sched) == 0 and len(freq) == 0
 
     # opt list
     opts = [opt_a, opt_b]
-    optim, lr_sched = trainer.init_optimizers(opts)
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
     assert len(optim) == 2 and optim[0] == opts[0] and optim[1] == opts[1]
-    assert len(lr_sched) == 0
+    assert len(lr_sched) == 0 and len(freq) == 0
 
-    # opt tuple of lists
-    scheduler = torch.optim.lr_scheduler.StepLR(opt_a, 10)
-    opts = ([opt_a], [scheduler])
-    optim, lr_sched = trainer.init_optimizers(opts)
-    assert len(optim) == 1 and len(lr_sched) == 1
-    assert optim[0] == opts[0][0] and \
-        lr_sched[0] == dict(scheduler=scheduler, interval='epoch',
-                            frequency=1, reduce_on_plateau=False,
-                            monitor='val_loss')
+    # opt tuple of 2 lists
+    opts = ([opt_a], [scheduler_a])
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
+    assert optim[0] == opts[0][0]
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+
+    # opt single dictionary
+    opts = {"optimizer": opt_a, "lr_scheduler": scheduler_a}
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+
+    # opt multiple dictionaries with frequencies
+    opts = (
+        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
+        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
+    )
+    optim, lr_sched, freq = trainer.init_optimizers(opts)
+    assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
+    assert optim[0] == opt_a
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
+                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+    assert freq == [1, 5]
 
 
 def test_cpu_slurm_save_load(tmpdir):
@@ -195,12 +214,10 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
@@ -216,12 +233,10 @@ def test_multi_gpu_none_backend(tmpdir):
         tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_dp(tmpdir):
     """Make sure DP works."""
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(

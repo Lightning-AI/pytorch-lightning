@@ -33,11 +33,11 @@ def main(hparams):
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    #trainer.fit(model)
+    # trainer.fit(model)
     lr_finder = trainer.find_lr(model)
-    lr_finder.plot()
-    
-    #trainer.fit(model)
+    lr_finder.plot(suggest=True)
+
+    # trainer.fit(model)
 
 
 if __name__ == '__main__':

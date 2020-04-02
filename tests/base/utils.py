@@ -82,7 +82,8 @@ def run_model_test(trainer_options, model, on_gpu=True):
     if trainer.use_ddp or trainer.use_ddp2:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = trainer.init_optimizers(pretrained_model.configure_optimizers())
+        trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
+            trainer.init_optimizers(pretrained_model.configure_optimizers())
 
     # test HPC loading / saving
     trainer.hpc_save(save_dir, logger)
@@ -208,18 +209,6 @@ def assert_ok_model_acc(trainer, key='test_acc', thr=0.4):
     # this model should get 0.80+ acc
     acc = trainer.training_tqdm_dict[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
-
-
-def can_run_gpu_test():
-    if not torch.cuda.is_available():
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return False
-    if not torch.cuda.device_count() > 1:
-        warnings.warn('test_multi_gpu_model_ddp cannot run.'
-                      ' Rerun on a node with 2+ GPUs to run this test')
-        return False
-    return True
 
 
 def reset_seed():

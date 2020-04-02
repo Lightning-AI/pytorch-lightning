@@ -20,7 +20,7 @@ from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla.core.xla_model as xm
@@ -914,10 +914,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         If you don't define this method Lightning will automatically use Adam(lr=1e-3)
 
-        Return: any of these 3 options:
-            - Single optimizer
-            - List or Tuple - List of optimizers
-            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers
+        Return: any of these 5 options:
+            - Single optimizer.
+            - List or Tuple - List of optimizers.
+            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
+            - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
+            - Tuple of dictionaries as described, with an optional `frequency` key.
+
+        Note:
+            The `frequency` value is an int corresponding to the number of sequential batches
+            optimized with the specific optimizer. It should be given to none or to all of the optimizers.
+            There is difference between passing multiple optimizers in a list,
+            and passing multiple optimizers in dictionaries with a frequency of 1:
+            In the former case, all optimizers will operate on the given batch in each optimization step.
+            In the latter, only one optimizer will operate on the given batch at every step.
 
         Examples:
             .. code-block:: python
@@ -948,6 +958,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                                  'interval': 'step'}  # called after each training step
                     dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
                     return [gen_opt, dis_opt], [gen_sched, dis_sched]
+
+                # example with optimizer frequencies
+                # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
+                # https://arxiv.org/abs/1704.00028
+                def configure_optimizers(self):
+                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                    n_critic = 5
+                    return (
+                        {'optimizer': dis_opt, 'frequency': n_critic},
+                        {'optimizer': gen_opt, 'frequency': 1}
+                    )
 
         Note:
 
@@ -1324,6 +1346,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             tags_csv: Optional[str] = None,
+            *args, **kwargs
     ) -> 'LightningModule':
         r"""
 
@@ -1346,6 +1369,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             checkpoint_path: Path to checkpoint.
+            model_args: Any keyword args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -1387,6 +1411,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     tags_csv='/path/to/hparams_file.csv'
                 )
 
+                # or load passing whatever args the model takes to load
+                MyLightningModule.load_from_checkpoint(
+                    'path/to/checkpoint.ckpt',
+                    learning_rate=0.1,
+                    layers=2,
+                    pretrained_model=some_model
+                )
+
                 # predict
                 pretrained_model.eval()
                 pretrained_model.freeze()
@@ -1403,11 +1435,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             hparams.__setattr__('on_gpu', False)
             checkpoint['hparams'] = vars(hparams)
 
-        model = cls._load_model_state(checkpoint)
+        model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any]) -> 'LightningModule':
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
         cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
         ckpt_hparams = checkpoint.get('hparams')
 
@@ -1433,7 +1465,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # load the state_dict on the model automatically
         model_args = [hparams] if hparams else []
-        model = cls(*model_args)
+        if len(model_args) > 0:
+            model = cls(*model_args)
+        else:
+            model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
@@ -1524,8 +1559,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
+        # call .item() only once but store elements without graphs
+        running_train_loss = self.trainer.running_loss.mean()
+        avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
         tqdm_dict = {
-            'loss': '{:.3f}'.format(self.trainer.avg_loss)
+            'loss': '{:.3f}'.format(avg_training_loss)
         }
 
         if self.trainer.truncated_bptt_steps is not None:
