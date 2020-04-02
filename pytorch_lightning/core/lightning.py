@@ -4,13 +4,12 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
 
 import torch
 import torch.distributed as torch_distrib
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
@@ -905,21 +904,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    def configure_optimizers(self) -> Union[
-        Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], List]
-    ]:
+    def configure_optimizers(self) -> Optional[Union[
+        Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]
+    ]]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
 
-        If you don't define this method Lightning will automatically use Adam(lr=1e-3)
-
-        Return: any of these 5 options:
+        Return: any of these 6 options:
             - Single optimizer.
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
             - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
             - Tuple of dictionaries as described, with an optional `frequency` key.
+            - None - Fit will run without any optimizer.
 
         Note:
             The `frequency` value is an int corresponding to the number of sequential batches
@@ -932,7 +930,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Examples:
             .. code-block:: python
 
-                # most cases (default if not defined)
+                # most cases
                 def configure_optimizers(self):
                     opt = Adam(self.parameters(), lr=1e-3)
                     return opt
@@ -1005,7 +1003,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
-        return Adam(self.parameters(), lr=1e-3)
 
     def optimizer_step(
             self,

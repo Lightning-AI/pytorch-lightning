@@ -26,6 +26,7 @@ from tests.base.mixins import (
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
     LightTestReduceLROnPlateauMixin,
+    LightTestNoneOptimizerMixin,
     LightZeroLenDataloader
 )
 
