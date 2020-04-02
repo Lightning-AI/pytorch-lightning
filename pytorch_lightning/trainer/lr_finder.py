@@ -1,5 +1,5 @@
 """
-
+description
 """
 from typing import Optional
 from abc import ABC
@@ -58,7 +58,7 @@ class TrainerLRFinderMixin(ABC):
             suggested_lr = LRfinder.suggest()
 
             # Overwhite lr in model config
-            model.hparams.lr = suggest_lr
+            model.hparams.lr = suggested_lr
 
             # Ready to train with new learning rate
             trainer.fit(model)
@@ -88,12 +88,12 @@ class TrainerLRFinderMixin(ABC):
         self.accumulate_grad_batches = num_accumulation_steps
 
         # Configure optimizer and scheduler
-        optimizer, _ = self.init_optimizers(model.configure_optimizers())
+        optimizer, _, _ = self.init_optimizers(model.configure_optimizers())
         assert len(optimizer) == 1, 'cannot find lr for more than 1 optimizer'
-        old_configure_optimizers = model.configure_optimizers
+        configure_optimizers = model.configure_optimizers
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizer[0])
 
-        # Fit, lr/loss logged in callback
+        # Fit, lr & loss logged in callback
         self.fit(model)
 
         # Promt if we stopped early
@@ -110,7 +110,7 @@ class TrainerLRFinderMixin(ABC):
         self.max_steps = max_steps
         self.show_progress_bar = show_progress_bar
         self.accumulate_grad_batches = accumulate_grad_batches
-        model.configure_optimizers = old_configure_optimizers
+        model.configure_optimizers = configure_optimizers
 
         return lr_finder
 
@@ -201,7 +201,7 @@ class _LRCallback(Callback):
 
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
-        current_loss = trainer.running_loss[-1]
+        current_loss = trainer.running_loss.last().item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
         # Avg loss (loss with momentum) + smoothing
