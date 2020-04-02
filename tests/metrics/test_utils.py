@@ -23,9 +23,9 @@ def test_apply_to_inputs():
         return args, kwargs
 
     for args in [[], [1., 2.]]:
-        for kwargs in [{}, {1., 2.}]:
+        for kwargs in [{}, {'a': 1., 'b': 2.}]:
             result_args, result_kwargs = test_fn(*args, **kwargs)
-            assert isinstance(result_args, list)
+            assert isinstance(result_args, (list, tuple))
             assert isinstance(result_kwargs, dict)
             assert len(result_args) == len(args)
             assert len(result_kwargs) == len(kwargs)
@@ -34,7 +34,7 @@ def test_apply_to_inputs():
                 assert arg * 2. == result_arg
 
             for key in kwargs.keys():
-                arg = kwargs[key],
+                arg = kwargs[key]
                 result_arg = result_kwargs[key]
                 assert arg * 2. == result_arg
 
@@ -52,8 +52,9 @@ def test_apply_to_outputs():
 
 def test_convert_to_tensor():
     for test_item in [1., np.array([1.])]:
-        assert isinstance(_convert_to_tensor(test_item), torch.Tensor)
-        assert test_item.item() == 1.
+        result_tensor = _convert_to_tensor(test_item)
+        assert isinstance(result_tensor, torch.Tensor)
+        assert result_tensor.item() == 1.
 
 
 def test_convert_to_numpy():
@@ -95,7 +96,7 @@ def test_tensor_metric_conversion():
     assert result.item() == 5.
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, "test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
     tutils.reset_seed()
@@ -110,12 +111,6 @@ def test_sync_reduce_ddp():
     assert reduced_tensor.item() == dist.get_world_size(), \
         'Sync-Reduce does not work properly with DDP and Tensors'
 
-    number = 1.
-    reduced_number = _sync_ddp(number)
-    assert isinstance(reduced_number, torch.Tensor), 'When reducing a number we should get a tensor out'
-    assert reduced_number.item() == dist.get_world_size(), \
-        'Sync-Reduce does not work properly with DDP and Numbers'
-
     dist.destroy_process_group()
 
 
@@ -127,12 +122,6 @@ def test_sync_reduce_simple():
 
     assert torch.allclose(tensor,
                           reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
-
-    number = 1.
-
-    reduced_number = _sync_ddp(number)
-    assert isinstance(reduced_number, torch.Tensor), 'When reducing a number we should get a tensor out'
-    assert reduced_number.item() == number, 'Sync-Reduce does not work properly without DDP and Numbers'
 
 
 def _test_tensor_metric(is_ddp: bool):
@@ -156,7 +145,7 @@ def _test_tensor_metric(is_ddp: bool):
     assert result.item() == 5. * factor
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, "test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_tensor_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -191,7 +180,7 @@ def _test_numpy_metric(is_ddp: bool):
     assert result.item() == 5. * factor
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, "test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
