@@ -646,7 +646,7 @@ Example::
     # default used by the Trainer
     trainer = Trainer(progress_bar_refresh_rate=1)
 
-    #disable progress bar
+    # disable progress bar
     trainer = Trainer(progress_bar_refresh_rate=0)
 
 reload_dataloaders_every_epoch
