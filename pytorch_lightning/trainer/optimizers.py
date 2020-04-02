@@ -27,7 +27,8 @@ class TrainerOptimizersMixin(ABC):
             return [optim_conf], [], []
 
         # two lists, optimizer + lr schedulers
-        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
+                and isinstance(optim_conf[0], list):
             optimizers, lr_schedulers = optim_conf
             lr_schedulers = self.configure_schedulers(lr_schedulers)
             return optimizers, lr_schedulers, []
@@ -44,9 +45,13 @@ class TrainerOptimizersMixin(ABC):
         elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             # take only lr wif exists and ot they are defined - not None
-            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")]
+            lr_schedulers = [
+                opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")
+            ]
             # take only freq wif exists and ot they are defined - not None
-            optimizer_frequencies = [opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")]
+            optimizer_frequencies = [
+                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")
+            ]
 
             # clean scheduler list
             if lr_schedulers:
