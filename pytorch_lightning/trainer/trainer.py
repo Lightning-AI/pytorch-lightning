@@ -165,6 +165,7 @@ class Trainer(
 
             show_progress_bar:
                 .. warning:: .. deprecated:: 0.7.2
+
                         Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
