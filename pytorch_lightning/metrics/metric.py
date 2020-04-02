@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 import torch.distributed
@@ -28,20 +28,20 @@ class Metric(torch.nn.Module, ABC):
         self._device = torch.device('cpu')
 
     @property
-    def dtype(self):
+    def dtype(self) -> Union[str, torch.dtype]:
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: Any):
+    def dtype(self, new_dtype: Union[str, torch.dtype]):
         # Necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use metric.to(new_dtype).')
 
     @property
-    def device(self):
+    def device(self) -> Union[str, torch.device]:
         return self._device
 
     @device.setter
-    def device(self, new_device):
+    def device(self, new_device: Union[str, torch.device]):
         # Necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the device explicitly. Please use metric.to(new_device).')
 
@@ -56,7 +56,7 @@ class Metric(torch.nn.Module, ABC):
         """
         raise NotImplementedError
 
-    def to(self, *args, **kwargs):
+    def to(self, *args, **kwargs) -> torch.nn.Module:
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
@@ -102,7 +102,7 @@ class Metric(torch.nn.Module, ABC):
 
         return super().to(*args, **kwargs)
 
-    def cuda(self, device=None):
+    def cuda(self, device: Optional[int] = None) -> torch.nn.Module:
         """Moves all model parameters and buffers to the GPU.
 
         This also makes associated parameters and buffers different objects. So
@@ -120,7 +120,7 @@ class Metric(torch.nn.Module, ABC):
         self._device = torch.device('cuda', index=device)
         return super().cuda(device=device)
 
-    def cpu(self):
+    def cpu(self) -> torch.nn.Module:
         """Moves all model parameters and buffers to the CPU.
 
         Returns:
@@ -129,7 +129,7 @@ class Metric(torch.nn.Module, ABC):
         self._device = torch.device('cpu')
         return super().cpu()
 
-    def type(self, dst_type):
+    def type(self, dst_type: Union[str, torch.dtype]) -> torch.nn.Module:
         """Casts all parameters and buffers to :attr:`dst_type`.
 
         Arguments:
@@ -141,7 +141,7 @@ class Metric(torch.nn.Module, ABC):
         self._dtype = dst_type
         return super().type(dst_type=dst_type)
 
-    def float(self):
+    def float(self) -> torch.nn.Module:
         """Casts all floating point parameters and buffers to float datatype.
 
         Returns:
@@ -150,7 +150,7 @@ class Metric(torch.nn.Module, ABC):
         self._dtype = torch.float
         return super().float()
 
-    def double(self):
+    def double(self) -> torch.nn.Module:
         """Casts all floating point parameters and buffers to ``double`` datatype.
 
         Returns:
@@ -159,7 +159,7 @@ class Metric(torch.nn.Module, ABC):
         self._dtype = torch.double
         return super().double()
 
-    def half(self):
+    def half(self) -> torch.nn.Module:
         """Casts all floating point parameters and buffers to ``half`` datatype.
 
         Returns:
