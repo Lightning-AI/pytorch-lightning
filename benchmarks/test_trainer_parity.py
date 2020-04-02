@@ -43,7 +43,7 @@ class ParityMNIST(LightningModule):
     def train_dataloader(self):
         return DataLoader(TestingMNIST(train=True,
                                        download=True,
-                                       num_samples=1000,
+                                       num_samples=500,
                                        digits=list(range(5))),
                           batch_size=256)
 
