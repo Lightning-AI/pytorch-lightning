@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from models.unet.parts import DoubleConv, Down, Up
+from .parts import DoubleConv, Down, Up
 
 
 class UNet(nn.Module):
@@ -10,35 +10,37 @@ class UNet(nn.Module):
 
     Parameters:
         num_classes (int) - Number of output classes required (default 19 for KITTI dataset)
+        num_layers (int) - Number of layers in each side of U-net
+        features_start (int) - Number of features in first layer
         bilinear (bool) - Whether to use bilinear interpolation or transposed
-        convolutions for upsampling.
+            convolutions for upsampling.
     '''
 
-    def __init__(self, num_classes=19, bilinear=False):
+    def __init__(self, num_classes=19, num_layers=5, features_start=64, bilinear=False):
         super().__init__()
-        self.layer1 = DoubleConv(3, 64)
-        self.layer2 = Down(64, 128)
-        self.layer3 = Down(128, 256)
-        self.layer4 = Down(256, 512)
-        self.layer5 = Down(512, 1024)
+        self.num_layers = num_layers
 
-        self.layer6 = Up(1024, 512, bilinear=bilinear)
-        self.layer7 = Up(512, 256, bilinear=bilinear)
-        self.layer8 = Up(256, 128, bilinear=bilinear)
-        self.layer9 = Up(128, 64, bilinear=bilinear)
+        layers = [DoubleConv(3, features_start)]
 
-        self.layer10 = nn.Conv2d(64, num_classes, kernel_size=1)
+        feats = features_start
+        for _ in range(num_layers-1):
+            layers.append(Down(feats, feats*2))
+            feats*=2
+        
+        for _ in range(num_layers-1):
+            layers.append(Up(feats, feats//2))
+            feats//=2
+
+        layers.append(nn.Conv2d(feats, num_classes, kernel_size=1))
+
+        self.layers = nn.ModuleList(layers)
 
     def forward(self, x):
-        x1 = self.layer1(x)
-        x2 = self.layer2(x1)
-        x3 = self.layer3(x2)
-        x4 = self.layer4(x3)
-        x5 = self.layer5(x4)
-
-        x6 = self.layer6(x5, x4)
-        x6 = self.layer7(x6, x3)
-        x6 = self.layer8(x6, x2)
-        x6 = self.layer9(x6, x1)
-
-        return self.layer10(x6)
+        xi = [self.layers[0](x)]
+        # Down path
+        for layer in self.layers[1:self.num_layers]:
+            xi.append(layer(xi[-1]))
+        # Up path
+        for i, layer in enumerate(self.layers[self.num_layers:-1]):
+            xi[-1] = layer(xi[-1], xi[-2-i])
+        return self.layers[-1](xi[-1])
