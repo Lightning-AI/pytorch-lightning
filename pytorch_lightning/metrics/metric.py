@@ -7,7 +7,7 @@ import torch.distributed
 from pytorch_lightning.metrics.utils import tensor_metric, numpy_metric
 from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
 
-__all__ = ['AbstractMetric', 'TensorMetric', 'NumpyMetric']
+__all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 
 
 class Metric(torch.nn.Module, ABC):
@@ -197,7 +197,7 @@ class Metric(torch.nn.Module, ABC):
         return super().half()
 
 
-class TensorMetric(AbstractMetric):
+class TensorMetric(Metric):
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = torch.distributed.group.WORLD,
                  reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
@@ -222,7 +222,7 @@ class TensorMetric(AbstractMetric):
                                    lambda x: x.to(device=self.device, dtype=self.dtype))
 
 
-class NumpyMetric(AbstractMetric):
+class NumpyMetric(Metric):
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = torch.distributed.group.WORLD,
                  reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
