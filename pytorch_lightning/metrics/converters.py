@@ -1,3 +1,9 @@
+"""
+This file provides functions and decorators for automated input and output
+conversion to/from numpy.ndarray and torch.Tensor as well as utilities to
+sync tensors between different processes in a DDP scenario, when needed.
+"""
+
 import numbers
 from typing import Union, Any, Callable
 
@@ -19,6 +25,7 @@ def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callab
     Returns:
         the decorated function
     """
+
     def decorator_fn(func_to_decorate):
         # actual function applying the give function to inputs
         def new_func(*args, **kwargs):
@@ -42,6 +49,7 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
     Returns:
         the decorated function
     """
+
     def decorator_fn(function_to_decorate):
         # actual function applying the give function to outputs
         def new_func(*args, **kwargs):
@@ -69,8 +77,8 @@ def _convert_to_tensor(data: Any) -> Any:
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
         return torch.from_numpy(data)
-    else:
-        return data
+
+    raise TypeError("The given type ('%s') cannot be converted to a tensor!" % type(data).__name__)
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
@@ -87,7 +95,8 @@ def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> 
         return data.cpu().detach().numpy()
     elif isinstance(data, numbers.Number):
         return np.array([data])
-    return data
+
+    raise TypeError("The given type ('%s') cannot be converted to a numpy array!" % type(data).__name__)
 
 
 def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
@@ -103,7 +112,7 @@ def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
         the decorated function
 
     """
-    # Applies collection conversion from tensor to numpy to all inputs
+    # applies collection conversion from tensor to numpy to all inputs
     # we need to include numpy arrays here, since otherwise they will also be treated as sequences
     func_convert_inputs = _apply_to_inputs(
         apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)(func_to_decorate)
@@ -124,7 +133,7 @@ def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
         the decorated function
 
     """
-    # Converts all inputs to tensor if possible
+    # converts all inputs to tensor if possible
     # we need to include tensors here, since otherwise they will also be treated as sequences
     func_convert_inputs = _apply_to_inputs(
         apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_tensor)(func_to_decorate)
@@ -176,6 +185,7 @@ def numpy_metric(group: Any = torch.distributed.group.WORLD,
         the decorated function
 
     """
+
     def decorator_fn(func_to_decorate):
         return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
                                  group=group,
@@ -201,6 +211,8 @@ def tensor_metric(group: Any = torch.distributed.group.WORLD,
        the decorated function
 
     """
+
+
     def decorator_fn(func_to_decorate):
         return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
                                  group=group,
