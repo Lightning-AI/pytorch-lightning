@@ -15,8 +15,8 @@ class Metric(torch.nn.Module, ABC):
         """
         Abstract Base Class for metric implementation.
         Should be used to implement metrics that
-        1.) Return multiple Outputs
-        2.) Handle their own DDP sync
+        1. Return multiple Outputs
+        2. Handle their own DDP sync
 
         Args:
             name: the metric's name
