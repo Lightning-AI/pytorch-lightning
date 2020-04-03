@@ -60,8 +60,9 @@ class TrainerLRFinderMixin(ABC):
             LRfinder.plot()
             suggested_lr = LRfinder.suggest()
 
-            # Overwhite lr in model config
-            model.hparams.lr = suggested_lr
+            # Overwhite lr and create new model
+            hparams.lr = suggested_lr
+            model = MyModelClass(hparams)
 
             # Ready to train with new learning rate
             trainer.fit(model)
@@ -154,7 +155,7 @@ class _LRFinder(object):
 
         self.results = {}
 
-    def _get_new_optimizer(self, optimizer: torch.optim.Optimzer):
+    def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
         ''' Construct a new `configure_optimizers()` method, that has a optimizer
             with initial lr set to lr_min and a scheduler that will either
             linearly or exponentially increase the lr to lr_max in num_iters steps.
