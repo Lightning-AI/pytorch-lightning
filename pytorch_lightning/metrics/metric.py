@@ -92,6 +92,40 @@ class Metric(torch.nn.Module, ABC):
         Returns:
             Module: self
 
+        Example::
+            >>> class ExampleMetric(Metric):
+            ...     def __init__(self, weight: torch.Tensor):
+            ...         super().__init__('example')
+            ...         self.register_buffer('weight', weight)
+            ...     def forward(self, pred, target) -> torch.Tensor:
+            ...         return (pred - target) * self.weight
+            >>> metric = ExampleMetric(torch.rand(3, 4))
+            >>> metric.weight
+            tensor([[0.4242, 0.1002, 0.0840, 0.5361],
+                    [0.9062, 0.2759, 0.0258, 0.2173],
+                    [0.6806, 0.4048, 0.0426, 0.4487]])
+            >>> metric.to(torch.double)
+            ExampleMetric()
+            >>> metric.weight
+            tensor([[0.4242, 0.1002, 0.0840, 0.5361],
+                    [0.9062, 0.2759, 0.0258, 0.2173],
+                    [0.6806, 0.4048, 0.0426, 0.4487]], dtype=torch.float64)
+            >>> gpu1 = torch.device("cuda:1")
+            >>> metric.to(gpu1, dtype=torch.half, non_blocking=True)
+            ExampleMetric()
+            >>> metric.weight
+            tensor([[0.4242, 0.1002, 0.0840, 0.5361],
+                    [0.9062, 0.2759, 0.0258, 0.2173],
+                    [0.6806, 0.4048, 0.0426, 0.4487]], dtype=torch.float16, device='cuda:1')
+            >>> cpu = torch.device("cpu")
+            >>> metric.to(cpu)
+            ExampleMetric()
+            >>> metric.weight
+            tensor([[0.4242, 0.1002, 0.0840, 0.5361],
+                    [0.9062, 0.2759, 0.0258, 0.2173],
+                    [0.6806, 0.4048, 0.0426, 0.4487]], dtype=torch.float16)
+
+
         """
         device, dtype, non_blocking = torch._C._nn._parse_to(*args, **kwargs)
         if device is not None:
