@@ -1,15 +1,18 @@
 """
-description
+Trainer LearingRate Finder
 """
-from typing import Optional
 from abc import ABC
-from pytorch_lightning.core.lightning import LightningModule
-from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
-from pytorch_lightning.callbacks import Callback
-from torch.optim.lr_scheduler import _LRScheduler
+from typing import Optional
+
 import numpy as np
 import torch
+from torch.optim.lr_scheduler import _LRScheduler
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning import _logger as log
 
 
 class TrainerLRFinderMixin(ABC):
@@ -18,7 +21,7 @@ class TrainerLRFinderMixin(ABC):
                 train_dataloader: Optional[DataLoader] = None,
                 min_lr: float = 1e-8,
                 max_lr: float = 1,
-                num_iters: int = 100,
+                num_training: int = 100,
                 mode: str = 'exponential',
                 num_accumulation_steps: int = 1):
         r"""
@@ -36,7 +39,7 @@ class TrainerLRFinderMixin(ABC):
 
             max_lr: maximum learning rate to investigate
 
-            num_iters: number of learning rates to test
+            num_training: number of learning rates to test
 
             mode: search strategy, either 'linear' or 'exponential'. If set to
                 'linear' the learning rate will be searches by linearly increasing
@@ -65,11 +68,11 @@ class TrainerLRFinderMixin(ABC):
 
         """
         # Initialize lr finder object (stores results)
-        lr_finder = _LRFinder(mode, min_lr, max_lr, num_iters)
+        lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
         callbacks = self.callbacks
-        self.callbacks = [_LRCallback(num_iters, show_progress_bar=True)]
+        self.callbacks = [_LRCallback(num_training, show_progress_bar=True)]
 
         # No logging
         logger = self.logger
@@ -77,7 +80,7 @@ class TrainerLRFinderMixin(ABC):
 
         # Max step set to number of iterations
         max_steps = self.max_steps
-        self.max_steps = num_iters
+        self.max_steps = num_training
 
         # Disable standard progress bar for fit
         show_progress_bar = self.show_progress_bar
@@ -97,7 +100,7 @@ class TrainerLRFinderMixin(ABC):
         self.fit(model)
 
         # Promt if we stopped early
-        if self.global_step != num_iters:
+        if self.global_step != num_training:
             print('LR finder stopped early due to diverging loss.')
 
         # Transfer results from callback to lr finder object
@@ -116,6 +119,30 @@ class TrainerLRFinderMixin(ABC):
 
 
 class _LRFinder(object):
+    ''' LR finder object. This object stores the results of Trainer.lr_find().
+
+    Args:
+        mode: either `linear` or `exponential`, how to increase lr after each step
+
+        lr_min: lr to start search from
+
+        lr_max: lr to stop seach
+
+        num_iters: number of steps to take between lr_min and lr_max
+
+    Example::
+        # Run lr finder
+        lrfinder = trainer.find_lr(model)
+
+        # Results stored in
+        lrfinder.results
+
+        # Plot using
+        lrfinder.plot()
+
+        # Get suggestion
+        lr = lrfinder.suggestion()
+    '''
     def __init__(self, mode, lr_min, lr_max, num_iters):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
@@ -127,7 +154,15 @@ class _LRFinder(object):
 
         self.results = {}
 
-    def _get_new_optimizer(self, optimizer):
+    def _get_new_optimizer(self, optimizer: torch.optim.Optimzer):
+        ''' Construct a new `configure_optimizers()` method, that has a optimizer
+            with initial lr set to lr_min and a scheduler that will either
+            linearly or exponentially increase the lr to lr_max in num_iters steps.
+
+        Args:
+            optimizer: instance of `torch.optim.Optimizer`
+
+        '''
         new_lrs = [self.lr_min] * len(optimizer.param_groups)
         for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
             param_group["lr"] = new_lr
@@ -142,7 +177,15 @@ class _LRFinder(object):
 
         return configure_optimizers
 
-    def plot(self, suggest=False, ax=None):
+    def plot(self, suggest: bool = False, ax=None, show: bool = False):
+        ''' Plot results from lr_find run
+        Args:
+            suggest: if True, will mark suggested lr to use with a red point
+
+            ax: a matplotlib figure axes handle, if None will create new
+
+            show: if True, will show figure
+        '''
         import matplotlib.pyplot as plt
 
         lrs = self.results["lr"]
@@ -165,19 +208,26 @@ class _LRFinder(object):
                 ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
                         markersize=10, marker='o', color='red')
 
-        if fig is not None:
+        if fig is not None and show:
             plt.show()
 
         return ax
 
     def suggestion(self):
+        ''' This will propose a suggestion for choice of initial learning rate
+        as the point with the steepest negative gradient.
+
+        Returns:
+            lr: suggested initial learning rate to use
+
+        '''
         try:
             min_grad = (np.gradient(np.array(self.results["loss"]))).argmin()
             self._optimal_idx = min_grad
             return self.results["lr"][min_grad]
         except Exception:
-            print('Failed to compute suggesting for lr.'
-                  'There might not be enough points.')
+            log.warning('Failed to compute suggesting for `lr`.'
+                        ' There might not be enough points.')
             self._optimal_idx = None
 
 
@@ -189,11 +239,8 @@ class _LRCallback(Callback):
         self.lrs = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
-        if show_progress_bar:
-            self.progress_bar = tqdm(desc='Finding best initial lr',
-                                     total=num_iters)
-        else:
-            self.progress_bar = None
+        self.progress_bar = tqdm(desc='Finding best initial lr', total=num_iters) \
+            if show_progress_bar else None
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
@@ -226,13 +273,13 @@ class _LinearLR(_LRScheduler):
     over a number of iterations.
     Arguments:
 
-        optimizer (torch.optim.Optimizer): wrapped optimizer.
+        optimizer: wrapped optimizer.
 
-        end_lr (float): the final learning rate.
+        end_lr: the final learning rate.
 
-        num_iter (int): the number of iterations over which the test occurs.
+        num_iter: the number of iterations over which the test occurs.
 
-        last_epoch (int, optional): the index of last epoch. Default: -1.
+        last_epoch: the index of last epoch. Default: -1.
     """
 
     def __init__(self,
@@ -260,13 +307,13 @@ class _ExponentialLR(_LRScheduler):
 
     Arguments:
 
-        optimizer (torch.optim.Optimizer): wrapped optimizer.
+        optimizer: wrapped optimizer.
 
-        end_lr (float): the final learning rate.
+        end_lr: the final learning rate.
 
-        num_iter (int): the number of iterations over which the test occurs.
+        num_iter: the number of iterations over which the test occurs.
 
-        last_epoch (int, optional): the index of last epoch. Default: -1.
+        last_epoch: the index of last epoch. Default: -1.
     """
 
     def __init__(self,
