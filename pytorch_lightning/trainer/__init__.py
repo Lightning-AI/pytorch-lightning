@@ -668,7 +668,7 @@ Set to True to reload dataloaders every epoch.
 
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
-To resume training from a specific checkpoint pass in the path here.k
+To resume training from a specific checkpoint pass in the path here.
 
 Example::
 
