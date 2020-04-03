@@ -153,4 +153,3 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
         times.append(time_end - time_start)
 
     return errors, times
-
