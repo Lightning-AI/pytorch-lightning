@@ -39,8 +39,8 @@ def test_recursive_application_to_collection():
         'At least one type was not correctly preserved'
 
     assert isinstance(reduced['a'], torch.Tensor), 'Reduction Result of a Tensor should be a Tensor'
-    assert torch.allclose(expected_result['a'],
-                          reduced['a']), 'Reduction of a tensor does not yield the expected value'
+    assert torch.allclose(expected_result['a'], reduced['a']), \
+        'Reduction of a tensor does not yield the expected value'
 
     assert isinstance(reduced['b'], list), 'Reduction Result of a list should be a list'
     assert all([torch.allclose(x, y) for x, y in zip(reduced['b'], expected_result['b'])]), \
