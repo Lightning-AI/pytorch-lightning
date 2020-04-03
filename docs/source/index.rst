@@ -23,6 +23,7 @@ PyTorch Lightning Documentation
    hooks
    lightning-module
    loggers
+   metrics
    trainer
 
 .. toctree::
