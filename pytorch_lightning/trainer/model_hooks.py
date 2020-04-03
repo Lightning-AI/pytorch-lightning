@@ -20,8 +20,11 @@ class TrainerModelHooksMixin(ABC):
             # in case of calling deprecated method
             return False
 
+        instance_attr = getattr(model, method_name)
+        super_attr = getattr(super_object, method_name)
+
         # when code pointers are different, it was overriden
-        is_overriden = getattr(model, method_name).__code__ is not getattr(super_object, method_name).__code__
+        is_overriden = str(instance_attr.__code__) is not str(super_attr.__code__)
         return is_overriden
 
     def has_arg(self, f_name, arg_name):
