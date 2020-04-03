@@ -555,8 +555,10 @@ def test_disabled_validation():
     # check that val_percent_check=0 turns off validation
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 1
-    assert not model.validation_step_invoked, '`validation_step` should not run when `val_percent_check=0`'
-    assert not model.validation_epoch_end_invoked, '`validation_epoch_end` should not run when `val_percent_check=0`'
+    assert not model.validation_step_invoked, \
+        '`validation_step` should not run when `val_percent_check=0`'
+    assert not model.validation_epoch_end_invoked, \
+        '`validation_epoch_end` should not run when `val_percent_check=0`'
 
     # check that val_percent_check has no influence when fast_dev_run is turned on
     model = CurrentModel(hparams)
