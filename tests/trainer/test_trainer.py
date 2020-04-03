@@ -528,15 +528,15 @@ def test_disabled_validation():
     class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
 
         validation_step_invoked = False
-        validation_end_invoked = False
+        validation_epoch_end_invoked = False
 
         def validation_step(self, *args, **kwargs):
             self.validation_step_invoked = True
             return super().validation_step(*args, **kwargs)
 
-        def validation_end(self, *args, **kwargs):
-            self.validation_end_invoked = True
-            return super().validation_end(*args, **kwargs)
+        def validation_epoch_end(self, *args, **kwargs):
+            self.validation_epoch_end_invoked = True
+            return super().validation_epoch_end(*args, **kwargs)
 
     hparams = tutils.get_default_hparams()
     model = CurrentModel(hparams)
@@ -555,8 +555,10 @@ def test_disabled_validation():
     # check that val_percent_check=0 turns off validation
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 1
-    assert not model.validation_step_invoked, '`validation_step` should not run when `val_percent_check=0`'
-    assert not model.validation_end_invoked, '`validation_end` should not run when `val_percent_check=0`'
+    assert not model.validation_step_invoked, \
+        '`validation_step` should not run when `val_percent_check=0`'
+    assert not model.validation_epoch_end_invoked, \
+        '`validation_epoch_end` should not run when `val_percent_check=0`'
 
     # check that val_percent_check has no influence when fast_dev_run is turned on
     model = CurrentModel(hparams)
@@ -566,8 +568,10 @@ def test_disabled_validation():
 
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 0
-    assert model.validation_step_invoked, 'did not run `validation_step` with `fast_dev_run=True`'
-    assert model.validation_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
+    assert model.validation_step_invoked, \
+        'did not run `validation_step` with `fast_dev_run=True`'
+    assert model.validation_epoch_end_invoked, \
+        'did not run `validation_epoch_end` with `fast_dev_run=True`'
 
 
 def test_nan_loss_detection(tmpdir):
