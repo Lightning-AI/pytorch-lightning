@@ -101,7 +101,7 @@ class Metric(torch.nn.Module, ABC):
             ...         self.register_buffer('weight', weight)
             ...     def forward(self, pred, target) -> torch.Tensor:
             ...         return (pred - target) * self.weight
-            >>> torch.manual_seed(0)
+            >>> _ = torch.manual_seed(0)
             >>> metric = ExampleMetric(torch.rand(3, 4))
             >>> metric.weight
             tensor([[0.4963, 0.7682, 0.0885, 0.1320],
