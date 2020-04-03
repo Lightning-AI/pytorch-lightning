@@ -1,5 +1,5 @@
 """
-Example template for defining a system
+Example template for defining a system.
 """
 import os
 from argparse import ArgumentParser
@@ -41,8 +41,7 @@ class LightningTemplateModel(LightningModule):
 
     def __init__(self, hparams):
         """
-        Pass in parsed HyperOptArgumentParser to the model
-        :param hparams:
+        Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
         """
         # init superclass
         super().__init__()
@@ -61,8 +60,7 @@ class LightningTemplateModel(LightningModule):
     # ---------------------
     def __build_model(self):
         """
-        Layout model
-        :return:
+        Layout the model.
         """
         self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
                               out_features=self.hparams.hidden_dim)
@@ -77,11 +75,9 @@ class LightningTemplateModel(LightningModule):
     # ---------------------
     def forward(self, x):
         """
-        No special modification required for lightning, define as you normally would
-        :param x:
-        :return:
+        No special modification required for Lightning, define it as you normally would
+        in the `nn.Module` in vanilla PyTorch.
         """
-
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
@@ -98,9 +94,8 @@ class LightningTemplateModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         """
-        Lightning calls this inside the training loop
-        :param batch:
-        :return:
+        Lightning calls this inside the training loop with the data from the training dataloader
+        passed in as `batch`.
         """
         # forward pass
         x, y = batch
@@ -123,9 +118,8 @@ class LightningTemplateModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         """
-        Lightning calls this inside the validation loop
-        :param batch:
-        :return:
+        Lightning calls this inside the validation loop with the data from the validation dataloader
+        passed in as `batch`.
         """
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -151,9 +145,8 @@ class LightningTemplateModel(LightningModule):
 
     def validation_epoch_end(self, outputs):
         """
-        Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
+        Called at the end of validation to aggregate outputs.
+        :param outputs: list of individual outputs of each validation step.
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
@@ -187,8 +180,8 @@ class LightningTemplateModel(LightningModule):
     # ---------------------
     def configure_optimizers(self):
         """
-        return whatever optimizers we want here
-        :return: list of optimizers
+        Return whatever optimizers and learning rate schedulers you want here.
+        At least one optimizer is required.
         """
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
@@ -234,9 +227,8 @@ class LightningTemplateModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
         """
-        Lightning calls this during testing, similar to val_step
-        :param batch:
-        :return:val
+        Lightning calls this during testing, similar to `validation_step`,
+        with the data from the validation dataloader passed in as `batch`.
         """
         output = self.validation_step(batch, batch_idx)
         # Rename output keys
@@ -247,9 +239,8 @@ class LightningTemplateModel(LightningModule):
 
     def test_epoch_end(self, outputs):
         """
-        Called at the end of test to aggregate outputs, similar to validation_epoch_end
-        :param outputs: list of individual outputs of each validation step
-        :return:
+        Called at the end of test to aggregate outputs, similar to `validation_epoch_end`.
+        :param outputs: list of individual outputs of each test step
         """
         results = self.validation_step_end(outputs)
 
@@ -266,10 +257,7 @@ class LightningTemplateModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
-        Parameters you define here will be available to your model through self.hparams
-        :param parent_parser:
-        :param root_dir:
-        :return:
+        Parameters you define here will be available to your model through `self.hparams`.
         """
         parser = ArgumentParser(parents=[parent_parser])
 
