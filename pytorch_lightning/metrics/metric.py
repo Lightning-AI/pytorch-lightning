@@ -216,5 +216,5 @@ class NumpyMetric(Metric):
                                        reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   lambda x: x.to(device=self.device, dtype=self.dtype))
+        func_ = lambda x: x.to(device=self.device, dtype=self.dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, func_)
