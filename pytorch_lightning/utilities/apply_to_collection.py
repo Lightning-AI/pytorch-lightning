@@ -6,7 +6,6 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     """
     Recursively applies a function to all elements of a certain dtype.
 
-
     Args:
         data: the collection to apply the function to
         dtype: the given function will be applied to all elements of this dtype
