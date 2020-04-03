@@ -224,6 +224,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             The presented loss value in progress bar is smooth (average) over last values,
              so it differs from values set in train/validation step.
         """
+        warnings.warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
     def training_end(self, *args, **kwargs):
         """
@@ -1079,6 +1080,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
+        warnings.warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
             self,
@@ -1280,6 +1282,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return loader
 
         """
+        warnings.warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """Implement a PyTorch DataLoader.
