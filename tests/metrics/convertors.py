@@ -4,9 +4,9 @@ import torch
 import torch.distributed as dist
 
 import tests.base.utils as tutils
-from pytorch_lightning.metrics.convertors import _apply_to_inputs, _apply_to_outputs, \
-    _convert_to_tensor, _convert_to_numpy, _numpy_metric_conversion, \
-    _tensor_metric_conversion, _sync_ddp, tensor_metric, numpy_metric
+from pytorch_lightning.metrics.convertors import (
+    _apply_to_inputs, _apply_to_outputs, _convert_to_tensor, _convert_to_numpy,
+    _numpy_metric_conversion, tensor_metric_conversion, _sync_ddp, tensor_metric, numpy_metric)
 
 
 def test_apply_to_inputs():
