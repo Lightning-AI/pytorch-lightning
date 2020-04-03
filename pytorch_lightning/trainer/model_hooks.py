@@ -23,8 +23,12 @@ class TrainerModelHooksMixin(ABC):
         instance_attr = getattr(model, method_name)
         super_attr = getattr(super_object, method_name)
 
-        # when code pointers are different, it was overriden
-        is_overriden = instance_attr.__code__ is not super_attr.__code__
+        # when code pointers are different, it was implemented
+        if 'dataloader' in method_name:
+            import pdb; pdb.set_trace()
+            is_overriden = instance_attr.code != str(super_attr.__code__)
+        else:
+            is_overriden = instance_attr.__code__ is not super_attr.__code__
         return is_overriden
 
     def has_arg(self, f_name, arg_name):

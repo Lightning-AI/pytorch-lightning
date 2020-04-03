@@ -649,11 +649,11 @@ class Trainer(
         model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
-        # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
-
         # check that model is configured correctly
         self.check_model_configuration(model)
+
+        # set up the passed in dataloaders (if needed)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
 
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
@@ -907,7 +907,6 @@ class Trainer(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
 
-        import pdb; pdb.set_trace()
         if not self.is_overriden('train_dataloader', model):
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
@@ -963,6 +962,7 @@ class _PatchDataLoader(object):
 
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
+        self.code = str(self.__call__.__code__)
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
