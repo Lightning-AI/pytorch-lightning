@@ -128,8 +128,6 @@ def test_sync_reduce_ddp():
     worldsize = 2
     mp.spawn(ddp_test_fn, args=(worldsize,), nprocs=worldsize)
 
-    dist.destroy_process_group()
-
 
 def test_sync_reduce_simple():
     """Make sure sync-reduce works without DDP"""
@@ -167,15 +165,12 @@ def _ddp_test_tensor_metric(rank, worldsize):
     _test_tensor_metric(True)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_tensor_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
 
     world_size = 2
     mp.spawn(_ddp_test_tensor_metric, args=(world_size,), nprocs=world_size)
-
-    dist.destroy_process_group()
 
 
 def test_tensor_metric_simple():
@@ -208,13 +203,11 @@ def _ddp_test_numpy_metric(rank, worldsize):
     _test_numpy_metric(True)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
     world_size = 2
     mp.spawn(_ddp_test_numpy_metric, args=(world_size,), nprocs=world_size)
-    dist.destroy_process_group()
 
 
 def test_numpy_metric_simple():
