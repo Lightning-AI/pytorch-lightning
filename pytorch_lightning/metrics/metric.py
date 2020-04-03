@@ -113,14 +113,13 @@ class Metric(torch.nn.Module, ABC):
             tensor([[0.4963, 0.7682, 0.0885, 0.1320],
                     [0.3074, 0.6341, 0.4901, 0.8964],
                     [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float64)
-            >>> gpu1 = torch.device("cuda:1")
-            >>> metric.to(gpu1, dtype=torch.half, non_blocking=True)
+            >>> cpu = torch.device('cpu')
+            >>> metric.to(cpu, dtype=torch.half, non_blocking=True)
             ExampleMetric()
             >>> metric.weight
             tensor([[0.4963, 0.7682, 0.0885, 0.1320],
                     [0.3074, 0.6341, 0.4901, 0.8964],
-                    [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float16, device='cuda:1')
-            >>> cpu = torch.device("cpu")
+                    [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float16)
             >>> metric.to(cpu)
             ExampleMetric()
             >>> metric.weight
