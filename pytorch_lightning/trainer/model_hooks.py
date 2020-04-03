@@ -24,7 +24,7 @@ class TrainerModelHooksMixin(ABC):
         super_attr = getattr(super_object, method_name)
 
         # when code pointers are different, it was overriden
-        is_overriden = instance_attr.__code__.hash() is not super_attr.__code__.hash()
+        is_overriden = str(instance_attr.__code__).hash() is not str(super_attr.__code__).hash()
         return is_overriden
 
     def has_arg(self, f_name, arg_name):
