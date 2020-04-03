@@ -49,25 +49,45 @@ pip install pytorch-lightning
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Demo
-[MNIST, GAN, BERT on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+[MNIST, GAN, BERT, DQN on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
 
 ## What is it?
 Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework.
 
-To use Lightning, first refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
+In Lightning, you organize your code into 3 distinct categories:
+
+1. Research code (goes in the LightningModule).
+2. Engineering code (you delete, and is handled by the Trainer).
+3. Non-essential research code (logging, etc... this goes in Callbacks).
+
+Here's an example of how to refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
 
 ![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png)
 
-And Lightning automates the rest using the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
+The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
 
-Lightning guarantees rigorously tested, correct, modern best practices for the automated parts.
+## Testing Rigour
+All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
+
+In fact, we also train a few models using a vanilla PyTorch loop and compare with the same model trained using the Trainer to make sure we achieve the EXACT same results. [Check out the parity tests here](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/benchmarks).
+
+Overall, Lightning guarantees rigorously tested, correct, modern best practices for the automated parts.
 
 ## How flexible is it?
 As you see, you're just organizing your PyTorch code - there's no abstraction.
 
 And for the stuff that the Trainer abstracts out you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backwards pass.
+
+For example, here you could do your own backward pass
+
+```python
+def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                   second_order_closure=None):
+    optimizer.step()
+    optimizer.zero_grad()
+```
 
 For anything else you might need, we have an extensive [callback system](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#callbacks) you can use to add arbitrary functionality not implemented by our team in the Trainer.
 
