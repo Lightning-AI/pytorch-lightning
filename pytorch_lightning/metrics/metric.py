@@ -224,8 +224,11 @@ class TensorMetric(Metric):
                                         reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
+        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
+            return x.to(device=self.device, dtype=self.dtype)
+
         return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   lambda x: x.to(device=self.device, dtype=self.dtype))
+                                   _to_device_dtype)
 
 
 class NumpyMetric(Metric):
@@ -250,5 +253,8 @@ class NumpyMetric(Metric):
                                        reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
-        func_ = lambda x: x.to(device=self.device, dtype=self.dtype)
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, func_)
+        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
+            return x.to(device=self.device, dtype=self.dtype)
+
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
+                                   _to_device_dtype)
