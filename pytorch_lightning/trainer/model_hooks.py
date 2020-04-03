@@ -24,6 +24,7 @@ class TrainerModelHooksMixin(ABC):
         super_attr = getattr(super_object, method_name)
 
         # when code pointers are different, it was implemented
+        print(instance_attr)
         if not isinstance(instance_attr, function):
             import pdb; pdb.set_trace()
             is_overriden = instance_attr.code != str(super_attr.__code__)
