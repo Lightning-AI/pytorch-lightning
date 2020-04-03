@@ -73,8 +73,7 @@ def _convert_to_tensor(data: Any) -> Any:
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
-    """
-    converts all tensors and numpy arrays to numpy arrays
+    """Convert all tensors and numpy arrays to numpy arrays.
     Args:
         data: the tensor or array to convert to numpy
 
