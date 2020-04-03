@@ -55,7 +55,7 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
 
 def _convert_to_tensor(data: Any) -> Any:
     """
-    Maps all kind of collections and numbers to tensors
+    Maps all kind of collections and numbers to tensors.
 
     Args:
         data: the data to convert to tensor
