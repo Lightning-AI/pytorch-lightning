@@ -120,8 +120,8 @@ def test_sync_reduce_simple():
 
     reduced_tensor = _sync_ddp(tensor)
 
-    assert torch.allclose(tensor,
-                          reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
+    assert torch.allclose(tensor, reduced_tensor), \
+        'Sync-Reduce does not work properly without DDP and Tensors'
 
 
 def _test_tensor_metric(is_ddp: bool):
