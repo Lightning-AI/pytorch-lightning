@@ -568,8 +568,10 @@ def test_disabled_validation():
 
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 0
-    assert model.validation_step_invoked, 'did not run `validation_step` with `fast_dev_run=True`'
-    assert model.validation_epoch_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
+    assert model.validation_step_invoked, \
+        'did not run `validation_step` with `fast_dev_run=True`'
+    assert model.validation_epoch_end_invoked, \
+        'did not run `validation_epoch_end` with `fast_dev_run=True`'
 
 
 def test_nan_loss_detection(tmpdir):
