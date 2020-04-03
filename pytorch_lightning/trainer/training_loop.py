@@ -396,11 +396,11 @@ class TrainerTrainLoopMixin(ABC):
 
             # model hooks
             if self.is_function_implemented('on_epoch_start'):
-                self.get_model().on_epoch_start()
+                model.on_epoch_start()
 
         # reset train dataloader
         if self.reload_dataloaders_every_epoch:
-            self.reset_train_dataloader(self.get_model())
+            self.reset_train_dataloader(model)
 
         # track local dataloader so TPU can wrap each epoch
         train_dataloader = self.train_dataloader
@@ -424,7 +424,6 @@ class TrainerTrainLoopMixin(ABC):
 
             self.batch_idx = batch_idx
 
-            model = self.get_model()
             model.global_step = self.global_step
 
             # ---------------
@@ -497,8 +496,9 @@ class TrainerTrainLoopMixin(ABC):
 
         if self.is_overriden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(outputs)
-            _, _, log_epoch_metrics, callback_epoch_metrics, _ = self.process_output(
-                epoch_output)
+            _processed_outputs = self.process_output(epoch_output)
+            log_epoch_metrics = _processed_outputs[2]
+            callback_epoch_metrics = _processed_outputs[3]
             self.log_metrics(log_epoch_metrics, {})
             self.callback_metrics.update(callback_epoch_metrics)
 
@@ -515,7 +515,7 @@ class TrainerTrainLoopMixin(ABC):
             self.on_epoch_end()
             # model hooks
             if self.is_function_implemented('on_epoch_end'):
-                self.get_model().on_epoch_end()
+                model.on_epoch_end()
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
