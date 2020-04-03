@@ -49,7 +49,7 @@ pip install pytorch-lightning
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Demo
-[MNIST, GAN, BERT, DQN on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
+[MNIST, GAN, BERT, DQN on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)   
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
 
 ## What is it?
@@ -83,10 +83,11 @@ And for the stuff that the Trainer abstracts out you can [override any part](htt
 For example, here you could do your own backward pass
 
 ```python
-def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                   second_order_closure=None):
-    optimizer.step()
-    optimizer.zero_grad()
+class LitModel(LightningModule):
+  def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                     second_order_closure=None):
+      optimizer.step()
+      optimizer.zero_grad()
 ```
 
 For anything else you might need, we have an extensive [callback system](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#callbacks) you can use to add arbitrary functionality not implemented by our team in the Trainer.
