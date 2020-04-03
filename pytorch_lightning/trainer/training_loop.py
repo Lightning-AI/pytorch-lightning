@@ -432,7 +432,8 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             _outputs = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
-            outputs.append(batch_output)
+            # detach tensors in batch_output before appending to outputs
+            outputs.append(_recursive_detach(batch_output))
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -800,3 +801,29 @@ def _with_is_last(iterable):
         last = val
     # yield last, no longer has next
     yield last, True
+
+
+def _recursive_detach(in_dict):
+    """Detach all tensors in `in_dict`.
+
+    May operate recursively if some of the values in `in_dict` are dictionaries
+    which contain instances of `torch.Tensor`. Other types in `in_dict` are
+    not affected by this utility function.
+
+    Parameters
+    ----------
+    in_dict : dict
+
+    Returns
+    -------
+    out_dict : dict
+    """
+    out_dict = {}
+    for k, v in in_dict.items():
+        if isinstance(v, dict):
+            out_dict.update({k: _recursive_detach(v)})
+        elif callable(getattr(v, 'detach', None)):
+            out_dict.update({k: v.detach()})
+        else:
+            out_dict.update({k: v})
+        return out_dict

@@ -256,7 +256,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             progress_bar -> Dict for progress bar display. Must have only tensors
             log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
 
-        .. note:: If you this method is not overridden, this won't be called.
+        .. note:: If this method is not overridden, this won't be called.
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
