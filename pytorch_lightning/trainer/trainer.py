@@ -331,10 +331,10 @@ class Trainer(
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
-            self.num_sanity_val_steps = 1
+            self.num_sanity_val_steps = 0
             self.max_epochs = 1
             log.info('Running in fast_dev_run mode: will run a full train,'
-                     ' val loop using a single batch')
+                     ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_save_path = default_save_path
