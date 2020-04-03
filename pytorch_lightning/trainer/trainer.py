@@ -902,6 +902,7 @@ class Trainer(
 
         """
         # Check training_step, train_dataloader, configure_optimizer methods
+        import pdb; pdb.set_trace()
         if not self.is_overriden('training_step', model):
             raise MisconfigurationException(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
