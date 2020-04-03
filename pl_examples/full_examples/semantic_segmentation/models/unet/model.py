@@ -4,15 +4,15 @@ from models.unet.parts import DoubleConv, Down, Up
 
 
 class UNet(nn.Module):
-    '''
+    """
     Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation
     Link - https://arxiv.org/abs/1505.04597
 
     Parameters:
-        num_classes (int) - Number of output classes required (default 19 for KITTI dataset)
-        bilinear (bool) - Whether to use bilinear interpolation or transposed
-        convolutions for upsampling.
-    '''
+        num_classes (int): Number of output classes required (default 19 for KITTI dataset)
+        bilinear (bool): Whether to use bilinear interpolation or transposed
+            convolutions for upsampling.
+    """
 
     def __init__(self, num_classes=19, bilinear=False):
         super().__init__()

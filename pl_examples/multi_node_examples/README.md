@@ -8,13 +8,13 @@ To run this demo do the following:
 3. Choose a script to submit    
 
 #### DDP  
-Submit this job to run with distributedDataParallel (2 nodes, 2 gpus each)
+Submit this job to run with DistributedDataParallel (2 nodes, 2 gpus each)
 ```bash
 sbatch ddp_job_submit.sh YourEnv
 ```
 
 #### DDP2  
-Submit this job to run with a different implementation of distributedDataParallel.
+Submit this job to run with a different implementation of DistributedDataParallel.
 In this version, each node acts like DataParallel but syncs across nodes like DDP.
 ```bash
 sbatch ddp2_job_submit.sh YourEnv

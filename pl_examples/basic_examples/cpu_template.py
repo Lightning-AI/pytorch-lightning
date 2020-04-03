@@ -1,5 +1,5 @@
 """
-Runs a model on a single node across N-gpus.
+Runs a model on the CPU on a single node.
 """
 import os
 from argparse import ArgumentParser
