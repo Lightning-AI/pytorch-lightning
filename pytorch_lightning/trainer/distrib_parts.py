@@ -526,6 +526,9 @@ class TrainerDPMixin(ABC):
         if isinstance(device_ids, int):
             device_ids = list(range(device_ids))
 
+        # set dp device
+        torch.cuda.set_device(self.root_gpu)
+
         model = LightningDataParallel(model, device_ids=device_ids)
 
         self.run_pretrain_routine(model)
