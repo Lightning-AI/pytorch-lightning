@@ -228,7 +228,7 @@ class LightningTemplateModel(LightningModule):
     def test_step(self, batch, batch_idx):
         """
         Lightning calls this during testing, similar to `validation_step`,
-        with the data from the validation dataloader passed in as `batch`.
+        with the data from the test dataloader passed in as `batch`.
         """
         output = self.validation_step(batch, batch_idx)
         # Rename output keys
