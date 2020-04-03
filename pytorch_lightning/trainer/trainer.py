@@ -907,6 +907,7 @@ class Trainer(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
 
+        import pdb; pdb.set_trace()
         if not self.is_overriden('train_dataloader', model):
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
@@ -962,8 +963,6 @@ class _PatchDataLoader(object):
 
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
-
-        self.code = hash(self.__call__.__code__)
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
