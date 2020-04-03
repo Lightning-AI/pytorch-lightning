@@ -245,7 +245,7 @@ class Trainer(
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.k
+            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
 
             profiler:  To profile individual steps during training and assist in
 
