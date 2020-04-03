@@ -1,7 +1,8 @@
 """
 Deep Reinforcement Learning: Deep Q-network (DQN)
 
-This example is based off https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition/blob/master/Chapter06/02_dqn_pong.py
+This example is based on https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
+Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
