@@ -254,6 +254,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Dict or OrderedDict
             May contain the following optional keys:
+
                 - log (metrics to be added to the logger ; only tensors)
                 - any metric used in a callback (e.g. early stopping).
 
@@ -545,6 +546,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Return:
             Dict or OrderedDict
             May have the following optional keys:
+
                 - progress_bar (dict for progress bar display ; only tensors)
                 - log (dict of metrics to add to logger ; only tensors).
 
