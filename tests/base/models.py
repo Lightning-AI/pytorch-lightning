@@ -38,7 +38,7 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(os.getcwd(), train=True, download=True), batch_size=32)
+        return DataLoader(TestingMNIST(train=True, download=True), batch_size=16)
 
 
 class TestModelBase(LightningModule):
@@ -137,13 +137,11 @@ class TestModelBase(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        _ = TestingMNIST(root=self.hparams.data_root, train=True,
-                         download=True, num_samples=2000)
+        _ = TestingMNIST(root=self.hparams.data_root, train=True, download=True)
 
     def _dataloader(self, train):
         # init data generators
-        dataset = TestingMNIST(root=self.hparams.data_root, train=train,
-                               download=False, num_samples=2000)
+        dataset = TestingMNIST(root=self.hparams.data_root, train=train, download=False)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size

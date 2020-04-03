@@ -291,7 +291,9 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
 
         # load data
-        self.reset_train_dataloader(model)
+        # if reload_dataloaders_every_epoch, this is moved to the epoch loop
+        if not self.reload_dataloaders_every_epoch:
+            self.reset_train_dataloader(model)
         self.reset_val_dataloader(model)
 
         # Train start events
@@ -307,6 +309,9 @@ class TrainerTrainLoopMixin(ABC):
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
+                # reset train dataloader
+                if self.reload_dataloaders_every_epoch:
+                    self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if self.use_ddp \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
@@ -397,10 +402,6 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
-
-        # reset train dataloader
-        if self.reload_dataloaders_every_epoch:
-            self.reset_train_dataloader(model)
 
         # track local dataloader so TPU can wrap each epoch
         train_dataloader = self.train_dataloader
@@ -641,7 +642,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.get_model().on_batch_end()
 
         # update progress bar
-        if batch_idx % self.progress_bar_refresh_rate == 0:
+        if self.progress_bar_refresh_rate >= 1 and batch_idx % self.progress_bar_refresh_rate == 0:
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
 

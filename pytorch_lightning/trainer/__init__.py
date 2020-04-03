@@ -646,6 +646,8 @@ Example::
     # default used by the Trainer
     trainer = Trainer(progress_bar_refresh_rate=1)
 
+    # disable progress bar
+    trainer = Trainer(progress_bar_refresh_rate=0)
 
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -666,7 +668,7 @@ Set to True to reload dataloaders every epoch.
 
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
-To resume training from a specific checkpoint pass in the path here.k
+To resume training from a specific checkpoint pass in the path here.
 
 Example::
 
@@ -702,12 +704,9 @@ use_amp:
 show_progress_bar
 ^^^^^^^^^^^^^^^^^
 
-If true shows tqdm progress bar
+.. warning:: .. deprecated:: 0.7.2
 
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(show_progress_bar=True)
+    Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check
 ^^^^^^^^^^^^^^^^^^

@@ -34,7 +34,7 @@ def test_hparams_save_load(tmpdir):
     # logger file to get meta
     trainer_options = dict(
         default_save_path=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
     )
 
     # fit model
@@ -197,7 +197,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     trainer = Trainer(accumulate_grad_batches=schedule,
                       train_percent_check=0.1,
                       val_percent_check=0.1,
-                      max_epochs=4,
+                      max_epochs=2,
                       default_save_path=tmpdir)
 
     # for the test
@@ -332,7 +332,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     model = _new_model()
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.65,
         val_percent_check=1,
@@ -360,10 +360,10 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         state = torch.load(check)
 
         # Resume training
-        trainer_options['max_epochs'] = 4
+        trainer_options['max_epochs'] = 2
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
-        assert state['global_step'] + next_model.num_batches_seen == training_batches * 4
+        assert state['global_step'] + next_model.num_batches_seen == training_batches * trainer_options['max_epochs']
 
 
 def _init_steps_model():
@@ -372,7 +372,7 @@ def _init_steps_model():
     model, _ = tutils.get_default_model()
 
     # define train epoch to 5% of data
-    train_percent = 0.05
+    train_percent = 0.5
     # get number of samples in 1 epoch
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
@@ -389,7 +389,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # define less train steps than epochs
     trainer_options.update(dict(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=3,
         max_steps=num_train_samples + 10
     ))
 
@@ -413,8 +413,8 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer.max_epochs \
-        and trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.global_step == num_train_samples * trainer.max_epochs
+    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -427,7 +427,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=10
+        max_epochs=5
     ))
 
     # define less min steps than 1 epoch

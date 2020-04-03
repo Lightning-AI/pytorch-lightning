@@ -1,16 +1,14 @@
+import distutils
 import inspect
 import os
 import sys
 import warnings
 from argparse import ArgumentParser
-from typing import Union, Optional, List, Dict, Tuple, Iterable, Any, Sequence
-import distutils
+from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
-from torch import optim
-from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -23,17 +21,19 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8
+from pytorch_lightning.trainer.deprecated_api import (TrainerDeprecatedAPITillVer0_8,
+                                                      TrainerDeprecatedAPITillVer0_9)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
+from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.supporters import TensorRunningMean
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.supporters import TensorRunningMean
 
 try:
     from apex import amp
@@ -54,6 +54,7 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerOptimizersMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
@@ -66,12 +67,13 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerDeprecatedAPITillVer0_8,
+    TrainerDeprecatedAPITillVer0_9,
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
         'add_row_log_interval', 'nb_sanity_val_steps'
     )
-    DEPRECATED_IN_0_9 = ('use_amp',)
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
 
     def __init__(
             self,
@@ -86,7 +88,7 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
-            show_progress_bar: bool = True,
+            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
@@ -161,9 +163,12 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            show_progress_bar: If true shows tqdm progress bar
+            show_progress_bar:
+                .. warning:: .. deprecated:: 0.7.2
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps)
+                        Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -240,7 +245,7 @@ class Trainer(
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.k
+            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
 
             profiler:  To profile individual steps during training and assist in
 
@@ -274,7 +279,6 @@ class Trainer(
                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.gradient_clip = gradient_clip
 
-        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
@@ -318,6 +322,8 @@ class Trainer(
             warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
                           " NaN grads will be printed automatically when detected.",
                           DeprecationWarning)
+
+        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -413,7 +419,9 @@ class Trainer(
 
         # can't init progress bar here because starting a new process
         # means the progress_bar won't survive pickling
-        self.show_progress_bar = show_progress_bar
+        # backward compatibility
+        if show_progress_bar is not None:
+            self.show_progress_bar = show_progress_bar
 
         # logging
         self.log_save_interval = log_save_interval
@@ -651,6 +659,9 @@ class Trainer(
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
 
+        # check that model is configured correctly
+        self.check_model_configuration(model)
+
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
@@ -711,8 +722,7 @@ class Trainer(
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
-                self.init_optimizers(model.configure_optimizers())
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
             self.run_pretrain_routine(model)
 
@@ -736,109 +746,13 @@ class Trainer(
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
-            if not self.is_overriden('training_step', model):
-                raise MisconfigurationException(
-                    'You called `.fit()` with a `train_dataloader` but did not define `training_step()`')
-
             model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
-            if not self.is_overriden('validation_step', model):
-                raise MisconfigurationException(
-                    'You called `.fit()` with a `val_dataloaders` but did not define `validation_step()`')
-
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
-            if not self.is_overriden('test_step', model):
-                raise MisconfigurationException(
-                    'You called `.fit()` with a `test_dataloaders` but did not define `test_step()`')
-
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
-
-    def init_optimizers(
-            self,
-            optim_conf: Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]
-    ) -> Tuple[List, List, List]:
-
-        # single output, single optimizer
-        if isinstance(optim_conf, Optimizer):
-            return [optim_conf], [], []
-
-        # two lists, optimizer + lr schedulers
-        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
-            optimizers, lr_schedulers = optim_conf
-            lr_schedulers = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers, []
-
-        # single dictionary
-        elif isinstance(optim_conf, dict):
-            optimizer = optim_conf["optimizer"]
-            lr_scheduler = optim_conf.get("lr_scheduler", [])
-            if lr_scheduler:
-                lr_schedulers = self.configure_schedulers([lr_scheduler])
-            return [optimizer], lr_schedulers, []
-
-        # multiple dictionaries
-        elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
-            optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            # take only lr wif exists and ot they are defined - not None
-            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")]
-            # take only freq wif exists and ot they are defined - not None
-            optimizer_frequencies = [opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")]
-
-            # clean scheduler list
-            if lr_schedulers:
-                lr_schedulers = self.configure_schedulers(lr_schedulers)
-            # assert that if frequencies are present, they are given for all optimizers
-            if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
-                raise ValueError("A frequency must be given to each optimizer.")
-            return optimizers, lr_schedulers, optimizer_frequencies
-
-        # single list or tuple, multiple optimizer
-        elif isinstance(optim_conf, (list, tuple)):
-            return list(optim_conf), [], []
-
-        # unknown configuration
-        else:
-            raise ValueError(
-                'Unknown configuration for model optimizers.'
-                ' Output from `model.configure_optimizers()` should either be:'
-                ' * single output, single `torch.optim.Optimizer`'
-                ' * single output, list of `torch.optim.Optimizer`'
-                ' * single output, a dictionary with `optimizer` key (`torch.optim.Optimizer`)'
-                '    and an optional `lr_scheduler` key (`torch.optim.lr_scheduler`)'
-                ' * two outputs, first being a list of `torch.optim.Optimizer` second being'
-                '    a list of `torch.optim.lr_scheduler`'
-                ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
-
-    def configure_schedulers(self, schedulers: list):
-        # Convert each scheduler into dict sturcture with relevant information
-        lr_schedulers = []
-        default_config = {'interval': 'epoch',  # default every epoch
-                          'frequency': 1,  # default every epoch/batch
-                          'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-                          'monitor': 'val_loss'}  # default value to monitor for ReduceLROnPlateau
-        for scheduler in schedulers:
-            if isinstance(scheduler, dict):
-                if 'scheduler' not in scheduler:
-                    raise ValueError(f'Lr scheduler should have key `scheduler`',
-                                     ' with item being a lr scheduler')
-                scheduler['reduce_on_plateau'] = isinstance(
-                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
-
-                lr_schedulers.append({**default_config, **scheduler})
-
-            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                lr_schedulers.append({**default_config, 'scheduler': scheduler,
-                                      'reduce_on_plateau': True})
-
-            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                lr_schedulers.append({**default_config, 'scheduler': scheduler})
-            else:
-                raise ValueError(f'Input {scheduler} to lr schedulers '
-                                 'is a invalid input.')
-        return lr_schedulers
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -913,7 +827,7 @@ class Trainer(
             pbar = tqdm(desc='Validation sanity check',
                         total=self.num_sanity_val_steps * len(self.val_dataloaders),
                         leave=False, position=2 * self.process_position,
-                        disable=not self.show_progress_bar, dynamic_ncols=True)
+                        disable=not self.progress_bar_refresh_rate, dynamic_ncols=True)
             self.main_progress_bar = pbar
             # dummy validation progress bar
             self.val_progress_bar = tqdm(disable=True)
@@ -986,6 +900,62 @@ class Trainer(
 
         self.testing = False
 
+    def check_model_configuration(self, model: LightningModule):
+        r"""
+        Checks that the model is configured correctly before training is started.
+
+        Args:
+            model: The model to test.
+
+        """
+        # Check training_step, train_dataloader, configure_optimizer methods
+        if not self.is_overriden('training_step', model):
+            raise MisconfigurationException(
+                'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+
+        if not self.is_overriden('train_dataloader', model):
+            raise MisconfigurationException(
+                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+
+        if not self.is_overriden('configure_optimizers', model):
+            raise MisconfigurationException(
+                'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+
+        # Check val_dataloader, validation_step and validation_epoch_end
+        if self.is_overriden('val_dataloader', model):
+            if not self.is_overriden('validation_step', model):
+                raise MisconfigurationException('You have passed in a `val_dataloader()`'
+                                                ' but have not defined `validation_step()`.')
+            else:
+                if not self.is_overriden('validation_epoch_end', model):
+                    warnings.warn('You have defined a `val_dataloader()` and have'
+                                  ' defined a `validation_step()`, you may also want to'
+                                  ' define `validation_epoch_end()` for accumulating stats.',
+                                  RuntimeWarning)
+        else:
+            if self.is_overriden('validation_step', model):
+                raise MisconfigurationException('You have defined `validation_step()`,'
+                                                ' but have not passed in a val_dataloader().')
+
+        # Check test_dataloader, test_step and test_epoch_end
+        if self.is_overriden('test_dataloader', model):
+            if not self.is_overriden('test_step', model):
+                raise MisconfigurationException('You have passed in a `test_dataloader()`'
+                                                ' but have not defined `test_step()`.')
+            else:
+                if not self.is_overriden('test_epoch_end', model):
+                    warnings.warn('You have defined a `test_dataloader()` and'
+                                  ' have defined a `test_step()`, you may also want to'
+                                  ' define `test_epoch_end()` for accumulating stats.',
+                                  RuntimeWarning)
+        else:
+            if self.is_overriden('test_step', model):
+                raise MisconfigurationException('You have defined `test_step()`,'
+                                                ' but have not passed in a `test_dataloader()`.')
+
 
 class _PatchDataLoader(object):
     r"""
@@ -999,6 +969,9 @@ class _PatchDataLoader(object):
 
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
+
+        # Assign __code__, needed for checking if method has been overriden
+        self.__code__ = self.__call__.__code__
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
