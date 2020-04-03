@@ -11,13 +11,15 @@ __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 
 
 class Metric(torch.nn.Module, ABC):
+    """
+    Abstract Base Class for metric implementation.
+
+    Should be used to implement metrics that
+    1. Return multiple Outputs
+    2. Handle their own DDP sync
+    """
     def __init__(self, name: str):
         """
-        Abstract Base Class for metric implementation.
-        Should be used to implement metrics that
-        1. Return multiple Outputs
-        2. Handle their own DDP sync
-
         Args:
             name: the metric's name
 
@@ -204,13 +206,15 @@ class Metric(torch.nn.Module, ABC):
 
 
 class TensorMetric(Metric):
+    """
+    Base class for metric implementation operating directly on tensors.
+    All inputs and outputs will be casted to tensors if necessary.
+    Already handles DDP sync and input/output conversions.
+    """
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = torch.distributed.group.WORLD,
                  reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
         """
-        Base class for metric implementation operating directly on tensors.
-        All inputs and outputs will be casted to tensors if necessary.
-        Already handles DDP sync and input/output conversions
 
         Args:
             name: the metric's name
@@ -232,14 +236,16 @@ class TensorMetric(Metric):
 
 
 class NumpyMetric(Metric):
+    """
+    Base class for metric implementation operating on numpy arrays.
+    All inputs will be casted to numpy if necessary and all outputs will
+    be casted to tensors if necessary.
+    Already handles DDP sync and input/output conversions.
+    """
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = torch.distributed.group.WORLD,
                  reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
         """
-        Base class for metric implementation operating on numpy arrays.
-        All inputs will be casted to numpy if necessary and all outputs will
-        be casted to tensors if necessary.
-        Already handles DDP sync and input/output conversions
 
         Args:
             name: the metric's name
