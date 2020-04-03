@@ -4,10 +4,10 @@ import torch.nn.functional as F
 
 
 class DoubleConv(nn.Module):
-    '''
+    """
     Double Convolution and BN and ReLU
     (3x3 conv -> BN -> ReLU) ** 2
-    '''
+    """
 
     def __init__(self, in_ch, out_ch):
         super().__init__()
@@ -25,9 +25,9 @@ class DoubleConv(nn.Module):
 
 
 class Down(nn.Module):
-    '''
+    """
     Combination of MaxPool2d and DoubleConv in series
-    '''
+    """
 
     def __init__(self, in_ch, out_ch):
         super().__init__()
@@ -41,11 +41,11 @@ class Down(nn.Module):
 
 
 class Up(nn.Module):
-    '''
+    """
     Upsampling (by either bilinear interpolation or transpose convolutions)
     followed by concatenation of feature map from contracting path,
     followed by double 3x3 convolution.
-    '''
+    """
 
     def __init__(self, in_ch, out_ch, bilinear=False):
         super().__init__()

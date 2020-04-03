@@ -31,7 +31,7 @@ python gpu_template.py --gpus 2 --distributed_backend ddp
 ---
 #### DistributedDataParallel+DP (ddp2)    
 
-Train on multiple GPUs using DistributedDataParallel + dataparallel.
+Train on multiple GPUs using DistributedDataParallel + DataParallel.
 On a single node, uses all GPUs for 1 model. Then shares gradient information
 across nodes.   
 ```bash
