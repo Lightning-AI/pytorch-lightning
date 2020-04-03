@@ -1,17 +1,16 @@
 """
-# Deep Reinforcement Learning: Deep Q-network (DQN)
+Deep Reinforcement Learning: Deep Q-network (DQN)
 
-this example is based off https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
-Second-Edition/blob/master/Chapter06/02_dqn_pong.py
+This example is based off https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
 
-to run the template just run:
-python dqn.py
+To run the template just run:
+python reinforce_learn_Qnet.py
 
-After ~1500 steps, you will see the total_reward hitting the max score of 200. Open up tensor boards to
-see the metrics.
+After ~1500 steps, you will see the total_reward hitting the max score of 200. Open up TensorBoard to
+see the metrics:
 
 tensorboard --logdir default
 """
@@ -72,7 +71,7 @@ class ReplayBuffer:
     def __init__(self, capacity: int) -> None:
         self.buffer = deque(maxlen=capacity)
 
-    def __len__(self) -> None:
+    def __len__(self) -> int:
         return len(self.buffer)
 
     def append(self, experience: Experience) -> None:
@@ -128,7 +127,7 @@ class Agent:
         self.state = self.env.reset()
 
     def reset(self) -> None:
-        """ Resents the environment and updates the state"""
+        """Resets the environment and updates the state"""
         self.state = self.env.reset()
 
     def get_action(self, net: nn.Module, epsilon: float, device: str) -> int:
@@ -220,7 +219,7 @@ class DQNLightning(pl.LightningModule):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Passes in a state x through the network and gets the q_values of each action as an output
+        Passes in a state `x` through the network and gets the `q_values` of each action as an output
 
         Args:
             x: environment state
@@ -292,7 +291,7 @@ class DQNLightning(pl.LightningModule):
         return OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
 
     def configure_optimizers(self) -> List[Optimizer]:
-        """ Initialize Adam optimizer"""
+        """Initialize Adam optimizer"""
         optimizer = optim.Adam(self.net.parameters(), lr=self.hparams.lr)
         return [optimizer]
 
