@@ -962,7 +962,11 @@ class _PatchDataLoader(object):
 
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
-        self.code = str(self.__call__.__code__)
+
+        # cannot pickle __code__ so cannot verify if PatchDataloader
+        # exists which shows dataloader methods have been overwritten.
+        # so, we hack it by using the string representation
+        self.patch_loader_code = str(self.__call__.__code__)
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader

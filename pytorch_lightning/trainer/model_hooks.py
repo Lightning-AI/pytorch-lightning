@@ -24,8 +24,10 @@ class TrainerModelHooksMixin(ABC):
         super_attr = getattr(super_object, method_name)
 
         # when code pointers are different, it was implemented
-        if hasattr(instance_attr, 'code'):
-            import pdb; pdb.set_trace()
+        if hasattr(instance_attr, 'patch_loader_code'):
+            # cannot pickle __code__ so cannot verify if PatchDataloader
+            # exists which shows dataloader methods have been overwritten.
+            # so, we hack it by using the string representation
             is_overriden = instance_attr.code != str(super_attr.__code__)
         else:
             is_overriden = instance_attr.__code__ is not super_attr.__code__
