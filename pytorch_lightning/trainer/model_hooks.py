@@ -28,7 +28,7 @@ class TrainerModelHooksMixin(ABC):
             # cannot pickle __code__ so cannot verify if PatchDataloader
             # exists which shows dataloader methods have been overwritten.
             # so, we hack it by using the string representation
-            is_overriden = instance_attr.code != str(super_attr.__code__)
+            is_overriden = instance_attr.patch_loader_code != str(super_attr.__code__)
         else:
             is_overriden = instance_attr.__code__ is not super_attr.__code__
         return is_overriden
