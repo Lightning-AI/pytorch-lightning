@@ -649,11 +649,11 @@ class Trainer(
         model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
-        # check that model is configured correctly
-        self.check_model_configuration(model)
-
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+
+        # check that model is configured correctly
+        self.check_model_configuration(model)
 
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
