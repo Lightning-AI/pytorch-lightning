@@ -6,10 +6,10 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
-from models.unet.model import UNet
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
+from pl_examples.models.unet import UNet
 
 
 class KITTI(Dataset):
