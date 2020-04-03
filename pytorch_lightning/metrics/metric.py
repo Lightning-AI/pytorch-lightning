@@ -5,7 +5,7 @@ import torch
 import torch.distributed
 
 from pytorch_lightning.metrics.convertors import tensor_metric, numpy_metric
-from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 

@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 def test_recursive_application_to_collection():
