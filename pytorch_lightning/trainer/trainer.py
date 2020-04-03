@@ -963,7 +963,7 @@ class _PatchDataLoader(object):
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
-        self.code = str(self.__call__.__code__).hash()
+        self.code = hash(self.__call__.__code__)
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
