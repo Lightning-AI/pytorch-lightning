@@ -277,9 +277,6 @@ class DQNLightning(pl.LightningModule):
         # calculates training loss
         loss = self.dqn_mse_loss(batch)
 
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss = loss.unsqueeze(0)
-
         if done:
             self.total_reward = self.episode_reward
             self.episode_reward = 0

@@ -87,3 +87,22 @@ class TrainerDeprecatedAPITillVer0_8(ABC):
                       "`num_sanity_val_steps` since v0.5.0"
                       " and this method will be removed in v0.8.0", DeprecationWarning)
         self.num_sanity_val_steps = nb
+
+
+class TrainerDeprecatedAPITillVer0_9(ABC):
+
+    def __init__(self):
+        super().__init__()  # mixin calls super too
+
+    @property
+    def show_progress_bar(self):
+        """Back compatibility, will be removed in v0.9.0"""
+        warnings.warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
+                      " and this method will be removed in v0.9.0", DeprecationWarning)
+        return self.progress_bar_refresh_rate >= 1
+
+    @show_progress_bar.setter
+    def show_progress_bar(self, tf):
+        """Back compatibility, will be removed in v0.9.0"""
+        warnings.warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
+                      " and this method will be removed in v0.9.0", DeprecationWarning)

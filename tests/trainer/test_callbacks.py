@@ -99,7 +99,7 @@ def test_trainer_callback_system(tmpdir):
         'max_epochs': 1,
         'val_percent_check': 0.1,
         'train_percent_check': 0.2,
-        'show_progress_bar': False
+        'progress_bar_refresh_rate': 0
     }
 
     assert not test_callback.on_init_start_called
@@ -173,11 +173,11 @@ def test_early_stopping_without_val_step(tmpdir):
         default_save_path=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
-        max_epochs=10,
+        max_epochs=5,
     )
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs - 1
+    assert trainer.current_epoch < trainer.max_epochs

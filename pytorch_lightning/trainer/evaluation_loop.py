@@ -163,7 +163,6 @@ class TrainerEvaluationLoopMixin(ABC):
     num_val_batches: int
     fast_dev_run: ...
     process_position: ...
-    show_progress_bar: ...
     process_output: ...
     training_tqdm_dict: ...
     proc_rank: int
@@ -278,7 +277,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dl_outputs.append(output)
 
                 # batch done
-                if batch_idx % self.progress_bar_refresh_rate == 0:
+                if self.progress_bar_refresh_rate >= 1 and batch_idx % self.progress_bar_refresh_rate == 0:
                     if test_mode:
                         self.test_progress_bar.update(self.progress_bar_refresh_rate)
                     else:
@@ -296,20 +295,25 @@ class TrainerEvaluationLoopMixin(ABC):
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
             model = model.module
 
-        # TODO: remove in v1.0.0
-        if test_mode and self.is_overriden('test_end', model=model):
-            eval_results = model.test_end(outputs)
-            warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                          ' Use `test_epoch_end` instead.', DeprecationWarning)
-        elif self.is_overriden('validation_end', model=model):
-            eval_results = model.validation_end(outputs)
-            warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                          ' Use `validation_epoch_end` instead.', DeprecationWarning)
+        if test_mode:
+            if self.is_overriden('test_end', model=model):
+                # TODO: remove in v1.0.0
+                eval_results = model.test_end(outputs)
+                warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                              ' Use `test_epoch_end` instead.', DeprecationWarning)
 
-        if test_mode and self.is_overriden('test_epoch_end', model=model):
-            eval_results = model.test_epoch_end(outputs)
-        elif self.is_overriden('validation_epoch_end', model=model):
-            eval_results = model.validation_epoch_end(outputs)
+            elif self.is_overriden('test_epoch_end', model=model):
+                eval_results = model.test_epoch_end(outputs)
+
+        else:
+            if self.is_overriden('validation_end', model=model):
+                # TODO: remove in v1.0.0
+                eval_results = model.validation_end(outputs)
+                warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                              ' Use `validation_epoch_end` instead.', DeprecationWarning)
+
+            elif self.is_overriden('validation_epoch_end', model=model):
+                eval_results = model.validation_epoch_end(outputs)
 
         # enable train mode again
         model.train()
@@ -361,7 +365,7 @@ class TrainerEvaluationLoopMixin(ABC):
         desc = 'Testing' if test_mode else 'Validating'
         total = max_batches if max_batches != float('inf') else None
         pbar = tqdm(desc=desc, total=total, leave=test_mode, position=position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True, file=sys.stdout)
+                    disable=not self.progress_bar_refresh_rate, dynamic_ncols=True, file=sys.stdout)
         setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
 
         # run evaluation

@@ -281,7 +281,7 @@ class TrainerDDPMixin(ABC):
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
-        self.show_progress_bar = self.show_progress_bar and self.node_rank == 0 and gpu_idx == 0
+        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if self.node_rank == 0 and gpu_idx == 0 else 0
 
         # determine which process we are and world size
         if self.use_ddp:
@@ -304,8 +304,7 @@ class TrainerDDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = \
-            self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         # MODEL
         # copy model to each gpu

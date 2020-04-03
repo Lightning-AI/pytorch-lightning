@@ -20,8 +20,17 @@ class TrainerModelHooksMixin(ABC):
             # in case of calling deprecated method
             return False
 
-        # when code pointers are different, it was overriden
-        is_overriden = getattr(model, method_name).__code__ is not getattr(super_object, method_name).__code__
+        instance_attr = getattr(model, method_name)
+        super_attr = getattr(super_object, method_name)
+
+        # when code pointers are different, it was implemented
+        if hasattr(instance_attr, 'patch_loader_code'):
+            # cannot pickle __code__ so cannot verify if PatchDataloader
+            # exists which shows dataloader methods have been overwritten.
+            # so, we hack it by using the string representation
+            is_overriden = instance_attr.patch_loader_code != str(super_attr.__code__)
+        else:
+            is_overriden = instance_attr.__code__ is not super_attr.__code__
         return is_overriden
 
     def has_arg(self, f_name, arg_name):

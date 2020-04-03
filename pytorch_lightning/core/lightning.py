@@ -4,13 +4,12 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
 
 import torch
 import torch.distributed as torch_distrib
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.optim import Adam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
@@ -230,6 +229,78 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         Warnings:
             Deprecated in v0.7.0. use training_step_end instead
+        """
+
+    def training_epoch_end(
+            self,
+            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+    ) -> Dict[str, Dict[str, Tensor]]:
+        """Called at the end of training epoch with the outputs of all training_steps
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+
+            train_outs = []
+            for train_batch in train_data:
+                out = training_step(train_batch)
+                train_outs.append(out)
+            training_epoch_end(val_outs)
+
+        Args:
+            outputs: List of outputs you defined in training_step, or if there are multiple
+            dataloaders, a list containing a list of outputs for each dataloader
+
+        Return:
+            Dict or OrderedDict (dict): Dict has the following optional keys:
+            progress_bar -> Dict for progress bar display. Must have only tensors
+            log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+
+        .. note:: If this method is not overridden, this won't be called.
+
+        - The outputs here are strictly for logging or progress bar.
+        - If you don't need to display anything, don't return anything.
+        - If you want to manually set current step, you can specify the 'step' key in the 'log' Dict
+
+        Examples:
+            With a single dataloader
+
+            .. code-block:: python
+
+                def training_epoch_end(self, outputs):
+                    train_acc_mean = 0
+                    for output in outputs:
+                        train_acc_mean += output['train_acc']
+
+                    train_acc_mean /= len(outputs)
+
+                    # log training accuracy at the end of an epoch
+                    results = {
+                        'log': {'train_acc': train_acc_mean.item()}
+                    }
+                    return results
+
+            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+            one entry per dataloader, while the inner list contains the individual outputs of
+            each validation step for that dataloader.
+
+            .. code-block:: python
+
+                def training_epoch_end(self, outputs):
+                    train_acc_mean = 0
+                    i = 0
+                    for dataloader_outputs in outputs:
+                        for output in dataloader_outputs:
+                            train_acc_mean += output['train_acc']
+                            i += 1
+
+                    train_acc_mean /= i
+
+                    # log training accuracy at the end of an epoch
+                    results = {
+                        'log': {'train_acc': train_acc_mean.item(), 'step': self.current_epoch}
+                    }
+                    return results
         """
 
     def training_step_end(self, *args, **kwargs) -> Dict[
@@ -454,7 +525,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
-        Called at end of validation epoch with the output of all validation_steps
+        Called at end of validation epoch with the outputs of all validation_steps
 
         .. code-block:: python
 
@@ -463,7 +534,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(train_batch)
-                train_outs.append(out)
+                val_outs.append(out)
             validation_epoch_end(val_outs)
 
         Args:
@@ -494,7 +565,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     val_acc_mean /= len(outputs)
                     tqdm_dict = {'val_acc': val_acc_mean.item()}
 
-                    # show val_loss and val_acc in progress bar but only log val_loss
+                    # show val_acc in progress bar but only log val_loss
                     results = {
                         'progress_bar': tqdm_dict,
                         'log': {'val_acc': val_acc_mean.item()}
@@ -905,21 +976,20 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         return model, optimizers
 
-    def configure_optimizers(self) -> Union[
-        Optimizer, List[Optimizer], Tuple[Optimizer, ...], Tuple[List[Optimizer], List]
-    ]:
+    def configure_optimizers(self) -> Optional[Union[
+        Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]
+    ]]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
 
-        If you don't define this method Lightning will automatically use Adam(lr=1e-3)
-
-        Return: any of these 5 options:
+        Return: any of these 6 options:
             - Single optimizer.
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
             - Dictionary, with an `optimizer` key and (optionally) a `lr_scheduler` key.
             - Tuple of dictionaries as described, with an optional `frequency` key.
+            - None - Fit will run without any optimizer.
 
         Note:
             The `frequency` value is an int corresponding to the number of sequential batches
@@ -932,7 +1002,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Examples:
             .. code-block:: python
 
-                # most cases (default if not defined)
+                # most cases
                 def configure_optimizers(self):
                     opt = Adam(self.parameters(), lr=1e-3)
                     return opt
@@ -1005,7 +1075,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
-        return Adam(self.parameters(), lr=1e-3)
 
     def optimizer_step(
             self,

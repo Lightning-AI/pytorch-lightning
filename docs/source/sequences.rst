@@ -49,10 +49,10 @@ Iterable Datasets
 Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
 option when using sequential data.
 
-.. note:: When using an IterableDataset you must set the val_check_interval to an int (specifying the number of training
-    batches to run before validation) when initializing the Trainer even when there is no validation logic in place.
+.. note:: When using an IterableDataset you must set the val_check_interval to 1.0 (the default) or to an int
+    (specifying the number of training batches to run before validation) when initializing the Trainer.
     This is due to the fact that the IterableDataset does not have a __len__ and Lightning requires this to calculate
-    the default validation interval.
+    the validation interval when val_check_interval is less than one.
 
 .. code-block:: python
 
@@ -74,4 +74,4 @@ option when using sequential data.
         return dataloader
 
     # Set val_check_interval
-    trainer = pl.Trainer(val_check_interval=1000)
+    trainer = pl.Trainer()

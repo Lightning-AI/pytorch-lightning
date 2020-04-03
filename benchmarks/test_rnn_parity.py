@@ -1,4 +1,3 @@
-import os
 import time
 
 import numpy as np
@@ -6,46 +5,47 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
-from tests.base.datasets import TestingMNIST
 
 
-class ParityMNIST(LightningModule):
+class AverageDataset(Dataset):
+    def __init__(self, dataset_len=300, sequence_len=100):
+        self.dataset_len = dataset_len
+        self.sequence_len = sequence_len
+        self.input_seq = torch.randn(dataset_len, sequence_len, 10)
+        top, bottom = self.input_seq.chunk(2, -1)
+        self.output_seq = top + bottom.roll(shifts=1, dims=-1)
 
+    def __len__(self):
+        return self.dataset_len
+
+    def __getitem__(self, item):
+        return self.input_seq[item], self.output_seq[item]
+
+
+class ParityRNN(LightningModule):
     def __init__(self):
-        super(ParityMNIST, self).__init__()
-        self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
-        self.c_d1_bn = nn.BatchNorm1d(128)
-        self.c_d1_drop = nn.Dropout(0.3)
-        self.c_d2 = nn.Linear(in_features=128, out_features=10)
+        super(ParityRNN, self).__init__()
+        self.rnn = nn.LSTM(10, 20, batch_first=True)
+        self.linear_out = nn.Linear(in_features=20, out_features=5)
 
     def forward(self, x):
-        x = x.view(x.size(0), -1)
-        x = self.c_d1(x)
-        x = torch.tanh(x)
-        x = self.c_d1_bn(x)
-        x = self.c_d1_drop(x)
-        x = self.c_d2(x)
-        return x
+        seq, last = self.rnn(x)
+        return self.linear_out(seq)
 
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.mse_loss(y_hat, y)
         return {'loss': loss}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True,
-                                       download=True,
-                                       num_samples=500,
-                                       digits=list(range(5))),
-                          batch_size=128)
+        return DataLoader(AverageDataset(), batch_size=30)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -57,12 +57,12 @@ def test_pytorch_parity(tmpdir):
     """
     num_epochs = 2
     num_rums = 3
-    lightning_outs, pl_times = lightning_loop(ParityMNIST, num_rums, num_epochs)
-    manual_outs, pt_times = vanilla_loop(ParityMNIST, num_rums, num_epochs)
 
+    lightning_outs, pl_times = lightning_loop(ParityRNN, num_rums, num_epochs)
+    manual_outs, pt_times = vanilla_loop(ParityRNN, num_rums, num_epochs)
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
-        np.testing.assert_almost_equal(pl_out, pt_out, 5)
+        np.testing.assert_almost_equal(pl_out, pt_out, 8)
 
 
 def set_seed(seed):
@@ -141,7 +141,8 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             weights_summary=None,
             gpus=1,
             early_stop_callback=False,
-            checkpoint_callback=False
+            checkpoint_callback=False,
+            distributed_backend='dp',
         )
         trainer.fit(model)
 
