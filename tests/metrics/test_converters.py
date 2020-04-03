@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
 
 import tests.base.utils as tutils
 from pytorch_lightning.metrics.converters import (
@@ -100,17 +99,14 @@ def test_tensor_metric_conversion():
     assert result.item() == 5.
 
 
-def setup_ddp(rank, worldsize, ):
-    import os
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_sync_reduce_ddp():
+    """Make sure sync-reduce works with DDP"""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
 
-    os.environ['MASTER_ADDR'] = 'localhost'
+    dist.init_process_group('gloo')
 
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=worldsize)
-
-
-def ddp_test_fn(rank, worldsize):
-    setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.], device='cuda:0')
 
     reduced_tensor = _sync_ddp_if_available(tensor)
@@ -118,15 +114,7 @@ def ddp_test_fn(rank, worldsize):
     assert reduced_tensor.item() == dist.get_world_size(), \
         'Sync-Reduce does not work properly with DDP and Tensors'
 
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_sync_reduce_ddp():
-    """Make sure sync-reduce works with DDP"""
-    tutils.reset_seed()
-    tutils.set_random_master_port()
-
-    worldsize = 2
-    mp.spawn(ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    dist.destroy_process_group()
 
 
 def test_sync_reduce_simple():
@@ -160,17 +148,14 @@ def _test_tensor_metric(is_ddp: bool):
     assert result.item() == 5. * factor
 
 
-def _ddp_test_tensor_metric(rank, worldsize):
-    setup_ddp(rank, worldsize)
-    _test_tensor_metric(True)
-
-
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_tensor_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    world_size = 2
-    mp.spawn(_ddp_test_tensor_metric, args=(world_size,), nprocs=world_size)
+    dist.init_process_group('gloo')
+    _test_tensor_metric(True)
+    dist.destroy_process_group()
 
 
 def test_tensor_metric_simple():
@@ -198,16 +183,14 @@ def _test_numpy_metric(is_ddp: bool):
     assert result.item() == 5. * factor
 
 
-def _ddp_test_numpy_metric(rank, worldsize):
-    setup_ddp(rank, worldsize)
-    _test_numpy_metric(True)
-
-
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
-    world_size = 2
-    mp.spawn(_ddp_test_numpy_metric, args=(world_size,), nprocs=world_size)
+
+    dist.init_process_group('gloo')
+    _test_tensor_metric(True)
+    dist.destroy_process_group()
 
 
 def test_numpy_metric_simple():
