@@ -364,7 +364,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
-```
+```bibtex
 @misc{Falcon2019,
   author = {Falcon, W.A. et al.},
   title = {PyTorch Lightning},
