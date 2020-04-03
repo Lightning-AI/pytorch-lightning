@@ -74,9 +74,24 @@ class LightningLoggerBase(ABC):
     """Base class for experiment loggers."""
 
     def __init__(
-            self, agg_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            self,
+            agg_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
             dflt_func: Callable[[Sequence[float]], float] = np.mean
     ):
+        """
+        Args:
+            agg_funcs (dict, optional):
+                Dictionary which maps a metric name to a function, which will
+                aggregate the metric values for the same steps.
+            dflt_func (function):
+                Default function to aggregate metric values. If some metric name
+                is not presented in the `agg_funcs` dictionary, then the
+                `dflt_func` will be used for aggregation.
+
+        Notes:
+            `agg_func` and `dflt_func` are used only when one logs metrics with
+            `LightningLoggerBase.agg_and_log_metrics` method.
+        """
         self._rank = 0
         self._prev_step = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
@@ -94,9 +109,10 @@ class LightningLoggerBase(ABC):
         """Aggregates metrics.
 
         Args:
-             Check `log_metrics` method for the arguments description.
+            metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Step number at which the metrics should be recorded
 
-        Returns (MetricsT, None):
+        Returns (dict, None):
             Aggregated metrics. The return value could be None. In such case, metrics
             are added to the aggregation list, but not aggregated yet.
         """
@@ -120,7 +136,8 @@ class LightningLoggerBase(ABC):
         it aggregates them and logs only if metrics are ready to be logged.
 
         Args:
-             Check `log_metrics` method for the arguments description.
+            metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Step number at which the metrics should be recorded
         """
         metrics_to_log = self._agg_metrics(metrics=metrics, step=step)
 
