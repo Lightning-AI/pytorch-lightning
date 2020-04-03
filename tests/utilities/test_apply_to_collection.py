@@ -51,8 +51,8 @@ def test_recursive_application_to_collection():
         'At least one value of tuple reduction did not come out as expected'
 
     assert isinstance(reduced['d'], ntc), 'Type Consistency for named tuple not given'
-    assert isinstance(reduced['d'].bar,
-                      numbers.Number), 'Failure in type promotion while reducing fields of named tuples'
+    assert isinstance(reduced['d'].bar, numbers.Number), \
+        'Failure in type promotion while reducing fields of named tuples'
     assert reduced['d'].bar == expected_result['d'].bar
 
     assert isinstance(reduced['e'], np.ndarray), 'Type Promotion in reduction of numpy arrays failed'
