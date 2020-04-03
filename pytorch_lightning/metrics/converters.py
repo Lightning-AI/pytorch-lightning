@@ -78,8 +78,6 @@ def _convert_to_tensor(data: Any) -> Any:
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
         return torch.from_numpy(data)
-    elif isinstance(data, torch.Tensor):
-        return data
 
     raise TypeError(f"The given type ('{type(data).__name__}') cannot be converted to a tensor!")
 
@@ -97,8 +95,6 @@ def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> 
         return data.cpu().detach().numpy()
     elif isinstance(data, numbers.Number):
         return np.array([data])
-    elif isinstance(data, np.ndarray):
-        return data
 
     raise TypeError("The given type ('%s') cannot be converted to a numpy array!" % type(data).__name__)
 
