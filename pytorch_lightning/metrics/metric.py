@@ -4,7 +4,7 @@ from typing import Any, Optional, Union
 import torch
 import torch.distributed
 
-from pytorch_lightning.metrics.convertors import tensor_metric, numpy_metric
+from pytorch_lightning.metrics.converters import tensor_metric, numpy_metric
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
@@ -35,7 +35,7 @@ class Metric(torch.nn.Module, ABC):
 
     @dtype.setter
     def dtype(self, new_dtype: Union[str, torch.dtype]):
-        # Necessary to avoid infinite recursion
+        # necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use metric.to(new_dtype).')
 
     @property
@@ -107,25 +107,19 @@ class Metric(torch.nn.Module, ABC):
             tensor([[0.4963, 0.7682, 0.0885, 0.1320],
                     [0.3074, 0.6341, 0.4901, 0.8964],
                     [0.4556, 0.6323, 0.3489, 0.4017]])
-            >>> metric.to(torch.double)
+            >>> metric.to(torch.double) #doctest: +ELLIPSIS
             ExampleMetric()
             >>> metric.weight
-            tensor([[0.4963, 0.7682, 0.0885, 0.1320],
-                    [0.3074, 0.6341, 0.4901, 0.8964],
-                    [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float64)
+            tensor([[...]], dtype=torch.float64)
             >>> cpu = torch.device('cpu')
             >>> metric.to(cpu, dtype=torch.half, non_blocking=True)
             ExampleMetric()
-            >>> metric.weight
-            tensor([[0.4963, 0.7682, 0.0885, 0.1320],
-                    [0.3074, 0.6341, 0.4901, 0.8964],
-                    [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float16)
+            >>> metric.weight #doctest: +ELLIPSIS
+            tensor([[...]], dtype=torch.float16)
             >>> metric.to(cpu)
             ExampleMetric()
-            >>> metric.weight
-            tensor([[0.4963, 0.7682, 0.0885, 0.1320],
-                    [0.3074, 0.6341, 0.4901, 0.8964],
-                    [0.4556, 0.6323, 0.3489, 0.4017]], dtype=torch.float16)
+            >>> metric.weight #doctest: +ELLIPSIS
+            tensor([[...]], dtype=torch.float16)
 
 
         """
