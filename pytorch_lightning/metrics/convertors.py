@@ -69,8 +69,7 @@ def _convert_to_tensor(data: Any) -> Any:
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
         return torch.from_numpy(data)
-    else:
-        return data
+    return data
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
