@@ -15,6 +15,7 @@ from tests.base import (
     LightValStepFitMultipleDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
+    LightValidationDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
     LightInfTestDataloader,
@@ -483,6 +484,44 @@ def test_error_on_zero_len_dataloader(tmpdir):
             test_percent_check=0.5
         )
         trainer.fit(model)
+
+
+def test_warning_with_few_workers(tmpdir):
+    """ Test that error is raised if dataloader with only a few workers is used """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightValStepFitSingleDataloaderMixin,
+        LightTestFitSingleTestDataloadersMixin,
+        LightEmptyTestStep,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloaders=model._dataloader(train=False),
+                       test_dataloaders=model._dataloader(train=False))
+
+    trainer = Trainer(**trainer_options)
+
+    # fit model
+    with pytest.warns(UserWarning, match='train dataloader') and pytest.warns(UserWarning, match='val dataloader'):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(UserWarning, match='test dataloader'):
+        trainer.test()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
