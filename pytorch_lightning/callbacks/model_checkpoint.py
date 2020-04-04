@@ -38,7 +38,7 @@ class ModelCheckpoint(Callback):
                 ... )
 
         monitor: quantity to monitor.
-        verbose: verbosity mode. Default: ``False`` or ``True``.
+        verbose: verbosity mode. Default: ``False``.
         save_top_k: if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
