@@ -1,14 +1,13 @@
 import csv
 import os
 from argparse import Namespace
-from typing import Optional, Dict, Union, Any
+from typing import Any, Dict, Optional, Union
 from warnings import warn
 
 import torch
 from pkg_resources import parse_version
-from torch.utils.tensorboard import SummaryWriter
-
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from torch.utils.tensorboard import SummaryWriter
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -163,6 +162,10 @@ class TensorBoardLogger(LightningLoggerBase):
 
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
+
+        if not os.path.exists(root_dir):
+            return 0
+
         existing_versions = []
         for d in os.listdir(root_dir):
             if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
