@@ -204,7 +204,7 @@ class TrainsLogger(LightningLoggerBase):
             print(text)
             return
 
-        if self._trains:
+        if not self._trains:
             return
 
         self._trains.get_logger().report_text(text)
