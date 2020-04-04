@@ -34,19 +34,19 @@ def merge_dicts(
     same keys with some given function.
 
     Args:
-        dicts (list of dicts):
+        dicts:
             Sequence of dictionaries to be merged.
-        agg_funcs (dict, optional):
+        agg_funcs:
             Mapping from key name to function. This function will aggregate a
             list of values, obtained from the same key of all dictionaries.
             If some key has no specified aggregation function, the default one
             will be used. Default is: None (all keys will be aggregated by the
             default function).
-        dflt_func (function):
+        dflt_func:
             Default function to aggregate keys, which are not presented in the
             `agg_funcs` map.
 
-    Returns (dict):
+    Returns:
         Dictionary with merged values.
 
     Examples:
@@ -80,10 +80,10 @@ class LightningLoggerBase(ABC):
     ):
         """
         Args:
-            agg_funcs (dict, optional):
+            agg_funcs:
                 Dictionary which maps a metric name to a function, which will
                 aggregate the metric values for the same steps.
-            dflt_func (function):
+            dflt_func:
                 Default function to aggregate metric values. If some metric name
                 is not presented in the `agg_funcs` dictionary, then the
                 `dflt_func` will be used for aggregation.
@@ -112,7 +112,7 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
 
-        Returns (dict, None):
+        Returns:
             Aggregated metrics. The return value could be None. In such case, metrics
             are added to the aggregation list, but not aggregated yet.
         """
