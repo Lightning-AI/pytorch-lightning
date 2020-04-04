@@ -89,8 +89,6 @@ class TrainsLogger(LightningLoggerBase):
             print('TRAINS Task: running in bypass mode')
             print('TRAINS results page: disabled')
         else:
-            print('OS ENV GITHUB_ACTIONS="{}"\n{}'.format(
-                environ.get('GITHUB_ACTIONS'), list(environ.keys())))
             self._trains = Task.init(
                 project_name=project_name,
                 task_name=task_name,
