@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
 )
+from pytorch_lightning import Callback
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -630,3 +631,33 @@ def test_nan_params_detection(tmpdir):
     # after aborting the training loop, model still has nan-valued params
     params = torch.cat([param.view(-1) for param in model.parameters()])
     assert not torch.isfinite(params).all()
+
+
+def test_trainer_interrupted_flag(tmpdir):
+    """Test the flag denoting that a user interrupted training."""
+
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+
+    class InterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+
+        def on_batch_start(self, trainer, pl_module):
+            raise KeyboardInterrupt
+
+    interrupt_callback = InterruptCallback()
+
+    trainer_options = {
+        'callbacks': [],
+        'max_epochs': 1,
+        'val_percent_check': 0.1,
+        'train_percent_check': 0.2,
+        'progress_bar_refresh_rate': 0,
+        'logger': False,
+        'default_save_path': tmpdir,
+    }
+
+    trainer = Trainer(**trainer_options)
+    assert not trainer.interrupted
+    trainer.fit(model)
+    assert trainer.interrupted
