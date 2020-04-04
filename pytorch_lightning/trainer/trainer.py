@@ -446,9 +446,10 @@ class Trainer(
         self.precision = precision
 
         # Backward compatibility, TODO: remove in v0.9.0
-        self.use_amp = False
         if use_amp is not None:
-            self.use_amp = use_amp
+            warnings.warn("`use_amp` has been replaced by `precision` since v0.7.0"
+                          " and this argument will be removed in v0.9.0", DeprecationWarning)
+            self.precision = 16 if use_amp else 32
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
