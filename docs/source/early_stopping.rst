@@ -19,7 +19,6 @@ There are two ways to enable early stopping.
     # A) Set early_stop_callback to True. Will look for 'val_loss'
     # in validation_epoch_end() return dict. If it is not found an error is raised.
     >>> trainer = Trainer(early_stop_callback=True)
-
     # B) Or configure your own callback
     >>> early_stop_callback = EarlyStopping(
     ...    monitor='val_loss',

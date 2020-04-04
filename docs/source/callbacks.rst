@@ -21,7 +21,6 @@ Example:
 .. doctest::
 
     >>> import pytorch_lightning as pl
-
     >>> class MyPrintingCallback(pl.Callback):
     ...
     ...     def on_init_start(self, trainer):
