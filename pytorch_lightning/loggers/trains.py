@@ -59,7 +59,7 @@ class TrainsLogger(LightningLoggerBase):
             sent along side the task scalars. Defaults to True.
 
     Examples:
-        >>> logger = TrainsLogger("lightning_log", "my-lightning-test", output_uri=".")  # doctest: +ELLIPSIS
+        >>> logger = TrainsLogger("lightning_log", "lightning-test", output_uri=".")  # doctest: +ELLIPSIS
         TRAINS Task: ...
         TRAINS results page: ...
         >>> logger.log_metrics({"val_loss": 1.23}, step=0)
@@ -84,13 +84,13 @@ class TrainsLogger(LightningLoggerBase):
             auto_resource_monitoring: bool = True
     ) -> None:
         super().__init__()
-        print('OS ENV GITHUB_ACTIONS="{}"\n{}'.format(
-            environ.get('GITHUB_ACTIONS'), list(environ.keys())))
         if self.bypass_mode():
             self._trains = None
             print('TRAINS Task: running in bypass mode')
             print('TRAINS results page: disabled')
         else:
+            print('OS ENV GITHUB_ACTIONS="{}"\n{}'.format(
+                environ.get('GITHUB_ACTIONS'), list(environ.keys())))
             self._trains = Task.init(
                 project_name=project_name,
                 task_name=task_name,
