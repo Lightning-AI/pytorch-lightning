@@ -3,6 +3,7 @@ Model Checkpointing
 ===================
 
 Automatically save model checkpoints during training.
+
 """
 
 import os
@@ -27,17 +28,16 @@ class ModelCheckpoint(Callback):
             Example::
 
                 # no path
-                ModelCheckpoint()
-                #  saves like /my/path/epoch_0.ckpt
+                >>> ModelCheckpoint()
+                #  saves a file like: /my/path/epoch_0.ckpt
 
-                # save any arbitrary metrics like and val_loss, etc in name
-                ModelCheckpoint(filepath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
-                # saves file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
+                # save any arbitrary metrics like `val_loss`, etc. in name
+                >>> ModelCheckpoint(filepath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
+                # saves a file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
 
-
-        monitor (str): quantity to monitor.
-        verbose (bool): verbosity mode, False or True.
-        save_top_k (int): if `save_top_k == k`,
+        monitor: quantity to monitor.
+        verbose: verbosity mode. Default: ``False`` or ``True``.
+        save_top_k: if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
@@ -46,7 +46,7 @@ class ModelCheckpoint(Callback):
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with `v0`.
-        mode (str): one of {auto, min, max}.
+        mode: one of {auto, min, max}.
             If ``save_top_k != 0``, the decision
             to overwrite the current save file is made
             based on either the maximization or the
@@ -54,26 +54,26 @@ class ModelCheckpoint(Callback):
             this should be `max`, for `val_loss` this should
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
-        save_weights_only (bool): if True, then only the model's weights will be
-            saved (`model.save_weights(filepath)`), else the full model
-            is saved (`model.save(filepath)`).
-        period (int): Interval (number of epochs) between checkpoints.
+        save_weights_only: if ``True``, then only the model's weights will be
+            saved (``model.save_weights(filepath)``), else the full model
+            is saved (``model.save(filepath)``).
+        period: Interval (number of epochs) between checkpoints.
 
     Example::
 
-        from pytorch_lightning import Trainer
-        from pytorch_lightning.callbacks import ModelCheckpoint
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import ModelCheckpoint
 
-        # saves checkpoints to my_path whenever 'val_loss' has a new min
-        checkpoint_callback = ModelCheckpoint(filepath='my_path')
-        Trainer(checkpoint_callback=checkpoint_callback)
+        # saves checkpoints to 'my_path' whenever 'val_loss' has a new min
+        >>> checkpoint_callback = ModelCheckpoint(filepath='my_path')
+        >>> Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
-        ModelCheckpoint(filepath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
-        # saves file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
+        >>> ModelCheckpoint(filepath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
+        # saves a file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
     """
 
-    def __init__(self, filepath, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, filepath: str, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
@@ -137,9 +137,10 @@ class ModelCheckpoint(Callback):
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
-        """Generate a filename according define template.
+        """Generate a filename according to the defined template.
 
-        Examples:
+        Example::
+
             >>> tmpdir = os.path.dirname(__file__)
             >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))

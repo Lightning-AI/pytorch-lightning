@@ -15,25 +15,27 @@ An overall Lightning system should have:
 2. LightningModule for all research code.
 3. Callbacks for non-essential code.
 
-Example
 
-.. code-block:: python
+Example:
 
-    import pytorch_lightning as pl
+.. doctest::
 
-    class MyPrintingCallback(pl.Callback):
+    >>> import pytorch_lightning as pl
 
-        def on_init_start(self, trainer):
-            print('Starting to init trainer!')
-
-        def on_init_end(self, trainer):
-            print('trainer is init now')
-
-        def on_train_end(self, trainer, pl_module):
-            print('do something when training ends')
-
-    # pass to trainer
-    trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    >>> class MyPrintingCallback(pl.Callback):
+    ...
+    ...     def on_init_start(self, trainer):
+    ...         print('Starting to init trainer!')
+    ...
+    ...     def on_init_end(self, trainer):
+    ...         print('trainer is init now')
+    ...
+    ...     def on_train_end(self, trainer, pl_module):
+    ...         print('do something when training ends')
+    ...
+    >>> trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    Starting to init trainer!
+    trainer is init now
 
 We successfully extended functionality without polluting our super clean LightningModule research code
 
