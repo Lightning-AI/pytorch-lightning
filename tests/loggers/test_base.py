@@ -171,6 +171,7 @@ def test_adding_step_key(tmpdir):
 def test_with_accumulate_grad_batches():
     """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
     hparams = tutils.get_default_hparams()
+    hparams.batch_size = 8
     model = LightningTestModel(hparams)
 
     logger = StoreHistoryCustomLogger()
