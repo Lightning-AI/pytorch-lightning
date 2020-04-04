@@ -161,11 +161,11 @@ We welcome any useful contribution! For convinece here's a recommended workflow:
 
 1. **Is there a recommendation for branch names?**
     
-    We do not rely on on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feaure`, `docs`, `tests`, ...
+    We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feaure`, `docs`, `tests`, ...
 
-1. **How to rebase my PR?**
+2. **How to rebase my PR?**
     
-    We recommend to create a PR in separate branch the `master`, especially if you plan to submit several changes and do not want to wait till the fist one is resolved (we can work on them in parallel). Update your master with upstream (assume you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+    We recommend to create a PR in separate branch different from `master`, especially if you plan to submit several changes and do not want to wait until the fist one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
     ```bash
     git fetch --all --prune
     git checkout master
