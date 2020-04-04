@@ -29,10 +29,10 @@ class GradientAccumulationScheduler(Callback):
 
         # at epoch 5 start accumulating every 2 batches
         >>> accumulator = GradientAccumulationScheduler(scheduling={5: 2})
-        >>> Trainer(callbacks=[accumulator])
+        >>> trainer = Trainer(callbacks=[accumulator])
 
         # alternatively, pass the scheduling dict directly to the Trainer
-        >>> Trainer(accumulate_grad_batches={5: 2})
+        >>> trainer = Trainer(accumulate_grad_batches={5: 2})
     """
 
     def __init__(self, scheduling: dict):
