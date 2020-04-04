@@ -65,6 +65,7 @@ class ModelCheckpoint(Callback):
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
+
         # saves checkpoints to 'my/path/' whenever 'val_loss' has a new min
         >>> checkpoint_callback = ModelCheckpoint(filepath='my/path/')
         >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)

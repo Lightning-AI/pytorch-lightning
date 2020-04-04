@@ -26,6 +26,7 @@ class GradientAccumulationScheduler(Callback):
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
+
         # at epoch 5 start accumulating every 2 batches
         >>> accumulator = GradientAccumulationScheduler(scheduling={5: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
