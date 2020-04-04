@@ -110,6 +110,17 @@ def my_func(param_a: int, param_b: Optional[float] = None) -> str:
     return str(param_a + p)
 ```
 
+When updating the docs make sure to build them first locally and visually inspect the html files (in the browser) for 
+formatting errors. In certain cases, a missing blank line or a wrong indent can lead to a broken layout. 
+Run these commands 
+```bash
+cd docs
+pip install -r requirements.txt
+make html
+```
+and open `docs/build/html/index.html` in your browser.
+
+
 ### Testing
 
 Test your work locally to speed up your work since so you can focus only in particular (failing) test-cases.
