@@ -75,12 +75,10 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
-        msg = f'The dataloader, {name}, does not have many workers which may be a bottleneck. `' \
-              f'Consider increasing the value of the `num_workers` argument in the `' \
-              f'`DataLoader` init to improve performance.'
-
         if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2:
-            warnings.warn(msg)
+            warnings.warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck. `'
+                          'Consider increasing the value of the `num_workers` argument in the `' \
+                          `DataLoader` init to improve performance.')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
