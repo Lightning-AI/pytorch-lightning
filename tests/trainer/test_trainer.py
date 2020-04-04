@@ -648,7 +648,7 @@ def test_trainer_interrupted_flag(tmpdir):
     interrupt_callback = InterruptCallback()
 
     trainer_options = {
-        'callbacks': [],
+        'callbacks': [interrupt_callback],
         'max_epochs': 1,
         'val_percent_check': 0.1,
         'train_percent_check': 0.2,
