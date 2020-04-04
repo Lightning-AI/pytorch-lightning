@@ -7,7 +7,7 @@ Callbacks
 =========
 
 Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your LightningModule to run.
+logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
 An overall Lightning system should have:
 
@@ -37,7 +37,8 @@ Example:
     Starting to init trainer!
     trainer is init now
 
-We successfully extended functionality without polluting our super clean LightningModule research code
+We successfully extended functionality without polluting our super clean
+:class:`~pytorch_lightning.core.LightningModule` research code.
 
 ---------
 
