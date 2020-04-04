@@ -145,3 +145,25 @@ We welcome any useful contribution! For convinece here's a recommended workflow:
 4. Use tags in PR name for following cases:
     - **[blocked by #<number>]** if you work is depending on others changes
     - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime
+
+### Question & Answer
+
+1. **Is there a recommendation for branch names?**
+    
+    We do not rely on on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feaure`, `docs`, `tests`, ...
+
+1. **How to rebase my PR?**
+    
+    We recommend to create a PR in separate branch the `master`, especially if you plan to submit several changes and do not want to wait till the fist one is resolved (we can work on them in parallel). Update your master with upstream (assume you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+    ```bash
+    git fetch --all --prune
+    git checkout master
+    git merge upstream/master
+    ```
+    checkout your feature branch
+    ```bash
+    git checkout my-PR-branch
+    git rebase master
+    # follow git instructions to resolve conflists
+    git push -f
+    ```
