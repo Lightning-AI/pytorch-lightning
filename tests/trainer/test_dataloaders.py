@@ -517,7 +517,8 @@ def test_warning_with_few_workers(tmpdir):
     trainer = Trainer(**trainer_options)
 
     # fit model
-    with pytest.warns(UserWarning, match='train dataloader') and pytest.warns(UserWarning, match='val dataloader'):
+    with pytest.warns(UserWarning, match='train dataloader') and \
+         pytest.warns(UserWarning, match='val dataloader'):
         trainer.fit(model, **fit_options)
 
     with pytest.warns(UserWarning, match='test dataloader'):
