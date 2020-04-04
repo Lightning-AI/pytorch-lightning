@@ -84,6 +84,8 @@ class TrainsLogger(LightningLoggerBase):
             auto_resource_monitoring: bool = True
     ) -> None:
         super().__init__()
+        print('OS ENV GITHUB_ACTIONS="{}"\n{}'.format(
+            environ.get('GITHUB_ACTIONS'), list(environ.keys())))
         if self.bypass_mode():
             self._trains = None
             print('TRAINS Task: running in bypass mode')
