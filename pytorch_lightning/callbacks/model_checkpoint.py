@@ -29,11 +29,11 @@ class ModelCheckpoint(Callback):
 
                 # custom path
                 # saves a file like: /my/path/epoch_0.ckpt
-                >>> checkpoint_callback = ModelCheckpoint('/my/path/') # doctest: +IGNORE_EXCEPTION_DETAIL
+                >>> checkpoint = ModelCheckpoint('/my/path/') # doctest: +IGNORE_EXCEPTION_DETAIL
 
                 # save any arbitrary metrics like `val_loss`, etc. in name
                 # saves a file like: /my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
-                >>> checkpoint_callback = ModelCheckpoint(filepath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
+                >>> checkpoint = ModelCheckpoint(filepath='/my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}')
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False`` or ``True``.
@@ -65,12 +65,12 @@ class ModelCheckpoint(Callback):
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
 
         # saves checkpoints to '/my/path/' whenever 'val_loss' has a new min
-        >>> checkpoint_callback = ModelCheckpoint(filepath='/my/path/')
-        >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        >>> checkpoint = ModelCheckpoint(filepath='/my/path/')
+        >>> trainer = Trainer(checkpoint_callback=checkpoint)
 
         # save epoch and val_loss in name
-        # saves a file like: /my/path/here/sample-mnist_epoch=02_val_loss=0.32.ckpt
-        >>> checkpoint_callback = ModelCheckpoint(filepath='/my/path/here/sample-mnist_{epoch:02d}-{val_loss:.2f}')
+        # saves a file like: /my/path/sample-mnist_epoch=02_val_loss=0.32.ckpt
+        >>> checkpoint = ModelCheckpoint(filepath='/my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}')
 
     """
 
