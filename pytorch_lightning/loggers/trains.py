@@ -130,7 +130,7 @@ class TrainsLogger(LightningLoggerBase):
                 The hyperparameters that passed through the model.
         """
         if self.bypass_mode() or not self._trains:
-            return
+            return None
         if not params:
             return
 
@@ -151,7 +151,7 @@ class TrainsLogger(LightningLoggerBase):
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
         if self.bypass_mode() or not self._trains:
-            return
+            return None
 
         if not step:
             step = self._trains.get_last_iteration()
@@ -183,7 +183,7 @@ class TrainsLogger(LightningLoggerBase):
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
         if self.bypass_mode() or not self._trains:
-            return
+            return None
 
         if not step:
             step = self._trains.get_last_iteration()
@@ -230,7 +230,7 @@ class TrainsLogger(LightningLoggerBase):
                 Step number at which the metrics should be recorded. Defaults to None.
         """
         if self.bypass_mode() or not self._trains:
-            return
+            return None
 
         if not step:
             step = self._trains.get_last_iteration()
@@ -273,7 +273,7 @@ class TrainsLogger(LightningLoggerBase):
                 local file). Defaults to False.
         """
         if self.bypass_mode() or not self._trains:
-            return
+            return None
 
         self._trains.upload_artifact(
             name=name, artifact_object=artifact, metadata=metadata,
@@ -286,7 +286,7 @@ class TrainsLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str = None) -> None:
         if self.bypass_mode() or not self._trains:
-            return
+            return None
         self._trains.close()
         self._trains = None
 
@@ -335,7 +335,7 @@ class TrainsLogger(LightningLoggerBase):
         cls._bypass = bypass
 
     @classmethod
-    def bypass_mode(cls) -> bool:  # pragma: no-cover
+    def bypass_mode(cls) -> bool:
         """
         bypass_mode returns the bypass mode state.
         Notice GITHUB_ACTIONS env will automatically set bypass_mode to True
