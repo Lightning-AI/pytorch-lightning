@@ -364,6 +364,7 @@ class Trainer(
         self.global_step = 0
         self.current_epoch = 0
         self.total_batches = 0
+        self.interrupted = False
 
         # configure logger
         self.configure_logger(logger)
