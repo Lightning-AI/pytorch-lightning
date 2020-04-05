@@ -74,12 +74,14 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
 
 Manual saving
 ^^^^^^^^^^^^^
-
-To save your own checkpoint call:
+You can manually save checkpoints and restore your model from the checkpointed state.
 
 .. code-block:: python
 
-   model.save_checkpoint(PATH)
+    model = MyModel(hparams)
+    trainer.fit(model)
+    trainer.save_checkpoint("example.ckpt")
+    new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
 
 Checkpoint Loading
 ------------------
