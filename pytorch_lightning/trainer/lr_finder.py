@@ -1,5 +1,5 @@
 """
-Trainer LearingRate Finder
+Trainer Learning Rate Finder
 """
 from abc import ABC
 from typing import Optional
@@ -26,12 +26,12 @@ class TrainerLRFinderMixin(ABC):
                 num_accumulation_steps: int = 1):
         r"""
         find_lr enables the user to do a range test of good initial learning rates,
-        to reture the amount of guesswork in picking a good starting learning rate.
+        to reduce the amount of guesswork in picking a good starting learning rate.
 
         Args:
             model: Model to do range testing for
 
-            train_dataloader: A Pytorch
+            train_dataloader: A PyTorch
                 DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
 
@@ -42,9 +42,9 @@ class TrainerLRFinderMixin(ABC):
             num_training: number of learning rates to test
 
             mode: search strategy, either 'linear' or 'exponential'. If set to
-                'linear' the learning rate will be searches by linearly increasing
+                'linear' the learning rate will be searched by linearly increasing
                 after each batch. If set to 'exponential', will increase learning
-                rate logarithmic.
+                rate exponentially.
 
             num_accumulation_steps: number of batches to calculate loss over.
 
@@ -102,7 +102,7 @@ class TrainerLRFinderMixin(ABC):
 
         # Promt if we stopped early
         if self.global_step != num_training:
-            print('LR finder stopped early due to diverging loss.')
+            log.info('LR finder stopped early due to diverging loss.')
 
         # Transfer results from callback to lr finder object
         lr_finder.results.update({'lr': self.callbacks[0].lrs,
@@ -120,7 +120,7 @@ class TrainerLRFinderMixin(ABC):
 
 
 class _LRFinder(object):
-    ''' LR finder object. This object stores the results of Trainer.lr_find().
+    """ LR finder object. This object stores the results of Trainer.lr_find().
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
@@ -143,7 +143,7 @@ class _LRFinder(object):
 
         # Get suggestion
         lr = lrfinder.suggestion()
-    '''
+    """
     def __init__(self, mode, lr_min, lr_max, num_iters):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
@@ -156,14 +156,14 @@ class _LRFinder(object):
         self.results = {}
 
     def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
-        ''' Construct a new `configure_optimizers()` method, that has a optimizer
+        """ Construct a new `configure_optimizers()` method, that has a optimizer
             with initial lr set to lr_min and a scheduler that will either
             linearly or exponentially increase the lr to lr_max in num_iters steps.
 
         Args:
             optimizer: instance of `torch.optim.Optimizer`
 
-        '''
+        """
         new_lrs = [self.lr_min] * len(optimizer.param_groups)
         for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
             param_group["lr"] = new_lr
@@ -178,23 +178,19 @@ class _LRFinder(object):
 
         return configure_optimizers
 
-    def plot(self, suggest: bool = False, ax=None, show: bool = False):
-        ''' Plot results from lr_find run
+    def plot(self, suggest: bool = False, show: bool = False):
+        """ Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
-            ax: a matplotlib figure axes handle, if None will create new
-
             show: if True, will show figure
-        '''
+        """
         import matplotlib.pyplot as plt
 
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig = None
-        if ax is None:
-            fig, ax = plt.subplots()
+        fig, ax = plt.subplots()
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -209,19 +205,19 @@ class _LRFinder(object):
                 ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
                         markersize=10, marker='o', color='red')
 
-        if fig is not None and show:
+        if show:
             plt.show()
 
-        return ax
+        return fig
 
     def suggestion(self):
-        ''' This will propose a suggestion for choice of initial learning rate
+        """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 
         Returns:
             lr: suggested initial learning rate to use
 
-        '''
+        """
         try:
             min_grad = (np.gradient(np.array(self.results["loss"]))).argmin()
             self._optimal_idx = min_grad

@@ -6,19 +6,19 @@ for both better performance and faster convergence. Even optimizers such as
 `Adam` that are self-adjusting the learning rate can benefit from more optimal
 choices.
 
-To reduce the amount of guesswork conserning choosing a good initial learning
+To reduce the amount of guesswork concerning choosing a good initial learning
 rate, a learning rate finder can be used. As described in this (paper)[https://arxiv.org/abs/1506.01186], 
 a lr finder does a small run where the lr is increased after each processed
 batch and the corresponding loss is logged. The result of this is therefore a
 `lr` vs. `loss` plot that can be used as guidence for choosing a optimal
 initial lr. 
 
-Using Lightnings build in LR finder
+Using Lightnings build-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A typical use of the build in lr finder would look something like this. It is not
+A typical use of the build-in lr finder would look something like this. It is not
 recommended to pick the lr with the lowest loss, but instead choosing a point 
-point corresponds to 
+corresponding to the steepest decrease in loss.
 
 .. code-block:: python
 
@@ -44,7 +44,7 @@ point corresponds to
     # Fit model
     trainer.fit(model)
     
-The figure produced by `lrfinder.plot()` should look something like the figure
+The figure produced by ``lrfinder.plot()`` should look something like the figure
 below. It is recommended to not pick the learning rate that achives the lowest
 loss, but instead something in the middle of the sharpest downward slope (red point).
 This is the point returned py `lrfinder.suggestion()`.
