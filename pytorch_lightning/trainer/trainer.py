@@ -121,6 +121,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            auto_lr_find: bool = False,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
@@ -254,6 +255,9 @@ class Trainer(
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
+            auto_lr_find: If set to True, will initialy run a learning rate finder,
+                trying to optimize initial learning for faster convergence
+
             benchmark: If true enables cudnn.benchmark.
         """
 
@@ -327,6 +331,8 @@ class Trainer(
                           DeprecationWarning)
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+
+        self.auto_lr_find = auto_lr_find
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -669,6 +675,20 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
+
+        # Run learning rate finder:
+        if self.auto_lr_find:
+            lr_finder = self.lr_find(model)
+            lr = lr_finder.suggestion()
+            log.info(f'Learning rate set to {lr}')
+            if hasattr(model.hparams, 'lr'):
+                model.hparams.lr = lr
+            elif hasattr(model.hparams, 'learning_rate'):
+                model.hparams.learning_rate = lr
+            else:
+                raise MisconfigurationException(
+                    'When auto_lr_find is set to True, expects that hparams'
+                    ' either has field `lr` or `learning_rate` that can overridden')
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
