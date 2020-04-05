@@ -30,5 +30,5 @@ class TrainerAMPMixin(ABC):
             log.info('Using 16bit precision.')
 
     @property
-    def use_amp(self):
+    def use_amp(self) -> bool:
         return self.precision == 16 and APEX_AVAILABLE
