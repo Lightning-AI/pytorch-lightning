@@ -7,18 +7,28 @@ for both better performance and faster convergence. Even optimizers such as
 choices.
 
 To reduce the amount of guesswork concerning choosing a good initial learning
-rate, a learning rate finder can be used. As described in this (paper)[https://arxiv.org/abs/1506.01186], 
-a lr finder does a small run where the lr is increased after each processed
-batch and the corresponding loss is logged. The result of this is therefore a
-`lr` vs. `loss` plot that can be used as guidence for choosing a optimal
+rate, a `learning rate finder` can be used. As described in this `paper <https://arxiv.org/abs/1506.01186>`_ 
+a learning rate finder does a small run where the learning rate is increased 
+after each processed batch and the corresponding loss is logged. The result of 
+this is a `lr` vs. `loss` plot that can be used as guidence for choosing a optimal
 initial lr. 
 
 Using Lightnings build-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A typical use of the build-in lr finder would look something like this. It is not
-recommended to pick the lr with the lowest loss, but instead choosing a point 
-corresponding to the steepest decrease in loss.
+In the most basic use case, this feature can be enabled during trainer construction
+with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the lr finder
+will automatically be run before any training is done. The ``lr`` that is found
+and used will we written to the console and logged together with all other
+hyperparameters of the model.
+
+.. note:: It is expected that the ``hparams`` of the model either has a ``lr`` or
+    ``learning_rate`` field that can be overridden. If not an error will be thrown.
+
+If you want to inspect the results of the learning rate finder before doing any
+actual training or just play around with the parameters of the algorithm, this
+can be done by invoking the ``find_lr`` method of the trainer. A typical example
+of this would look like
 
 .. code-block:: python
 
@@ -32,7 +42,8 @@ corresponding to the steepest decrease in loss.
     lrfinder.results
     
     # Plot with
-    lrfinder.plot(suggest=True)
+    fig = lrfinder.plot(suggest=True)
+    fig.show()
     
     # Pick point based on plot, or get suggestion
     new_lr = lrfinder.suggestion()
@@ -47,7 +58,12 @@ corresponding to the steepest decrease in loss.
 The figure produced by ``lrfinder.plot()`` should look something like the figure
 below. It is recommended to not pick the learning rate that achives the lowest
 loss, but instead something in the middle of the sharpest downward slope (red point).
-This is the point returned py `lrfinder.suggestion()`.
-
+This is the point returned py ``lrfinder.suggestion()``.
 
 .. figure:: /_images/trainer/lr_finder.png
+
+The parameters of the algorithm can be seen below.
+
+.. autoclass:: pytorch_lightning.trainer.lr_finder.TrainerLRFinderMixin
+   :members: find_lr
+   :noindex:

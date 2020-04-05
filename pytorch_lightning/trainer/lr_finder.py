@@ -49,6 +49,7 @@ class TrainerLRFinderMixin(ABC):
             num_accumulation_steps: number of batches to calculate loss over.
 
         Example::
+
             # Setup model and trainer
             model = MyModelClass(hparams)
             trainer = pl.Trainer()
@@ -57,7 +58,7 @@ class TrainerLRFinderMixin(ABC):
             LRfinder = trainer.find_lr(model, ...)
 
             # Inspect results
-            LRfinder.plot()
+            fig = LRfinder.plot(); fig.show()
             suggested_lr = LRfinder.suggest()
 
             # Overwhite lr and create new model
@@ -98,7 +99,7 @@ class TrainerLRFinderMixin(ABC):
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizer[0])
 
         # Fit, lr & loss logged in callback
-        self.fit(model)
+        self.fit(model, train_dataloader=train_dataloader)
 
         # Promt if we stopped early
         if self.global_step != num_training:
