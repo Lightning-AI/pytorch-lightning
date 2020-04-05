@@ -1,7 +1,9 @@
 r"""
 Callback Base
 =============
-    Abstract base class used to build new callbacks.
+
+Abstract base class used to build new callbacks.
+
 """
 
 import abc

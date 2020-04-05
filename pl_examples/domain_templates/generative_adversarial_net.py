@@ -1,8 +1,8 @@
 """
 To run this template just do:
-python gan.py
+python generative_adversarial_net.py
 
-After a few epochs, launch tensorboard to see the images being generated at every batch.
+After a few epochs, launch TensorBoard to see the images being generated at every batch:
 
 tensorboard --logdir default
 """

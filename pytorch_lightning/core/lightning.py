@@ -224,6 +224,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             The presented loss value in progress bar is smooth (average) over last values,
              so it differs from values set in train/validation step.
         """
+        warnings.warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
     def training_end(self, *args, **kwargs):
         """
@@ -245,16 +246,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             for train_batch in train_data:
                 out = training_step(train_batch)
                 train_outs.append(out)
-            training_epoch_end(val_outs)
+            training_epoch_end(train_outs)
 
         Args:
             outputs: List of outputs you defined in training_step, or if there are multiple
-            dataloaders, a list containing a list of outputs for each dataloader
+                     dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            Dict or OrderedDict (dict): Dict has the following optional keys:
-            progress_bar -> Dict for progress bar display. Must have only tensors
-            log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+            Dict or OrderedDict
+            May contain the following optional keys:
+
+                - log (metrics to be added to the logger ; only tensors)
+                - any metric used in a callback (e.g. early stopping).
 
         .. note:: If this method is not overridden, this won't be called.
 
@@ -282,7 +285,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
-            each validation step for that dataloader.
+            each training step for that dataloader.
 
             .. code-block:: python
 
@@ -539,12 +542,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Args:
             outputs: List of outputs you defined in validation_step, or if there are multiple
-            dataloaders, a list containing a list of outputs for each dataloader
+                     dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            Dict or OrderedDict (dict): Dict has the following optional keys:
-            progress_bar -> Dict for progress bar display. Must have only tensors
-            log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+            Dict or OrderedDict
+            May have the following optional keys:
+
+                - progress_bar (dict for progress bar display ; only tensors)
+                - log (dict of metrics to add to logger ; only tensors).
 
         .. note:: If you didn't define a validation_step, this won't be called.
 
@@ -1075,6 +1080,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
+        warnings.warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
             self,
@@ -1276,6 +1282,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return loader
 
         """
+        warnings.warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """Implement a PyTorch DataLoader.

@@ -28,7 +28,7 @@ def test_wandb_logger(wandb):
     wandb.init().config.update.assert_called_once_with({'test': None})
 
     logger.watch('model', 'log', 10)
-    wandb.watch.assert_called_once_with('model', log='log', log_freq=10)
+    wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
@@ -50,6 +50,8 @@ def test_wandb_pickle(wandb):
     trainer_options = dict(max_epochs=1, logger=logger)
 
     trainer = Trainer(**trainer_options)
+    # Access the experiment to ensure it's created
+    trainer.logger.experiment
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 

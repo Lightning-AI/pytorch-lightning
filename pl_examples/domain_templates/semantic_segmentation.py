@@ -6,15 +6,15 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
-from models.unet.model import UNet
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
+from pl_examples.models.unet import UNet
 
 
 class KITTI(Dataset):
-    '''
-    Dataset Class for KITTI Semantic Segmentation Benchmark dataset
+    """
+    Class for KITTI Semantic Segmentation Benchmark dataset
     Dataset link - http://www.cvlibs.net/datasets/kitti/eval_semseg.php?benchmark=semantics2015
 
     There are 34 classes in the given labels. However, not all of them are useful for training
@@ -33,7 +33,7 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
-    '''
+    """
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class KITTI(Dataset):
             self.mask_list = None
 
     def __len__(self):
-        return(len(self.img_list))
+        return len(self.img_list)
 
     def __getitem__(self, idx):
         img = Image.open(self.img_list[idx])
@@ -89,9 +89,9 @@ class KITTI(Dataset):
             return img
 
     def encode_segmap(self, mask):
-        '''
+        """
         Sets void classes to zero so they won't be considered for training
-        '''
+        """
         for voidc in self.void_labels:
             mask[mask == voidc] = self.ignore_index
         for validc in self.valid_labels:
@@ -99,9 +99,9 @@ class KITTI(Dataset):
         return mask
 
     def get_filenames(self, path):
-        '''
+        """
         Returns a list of absolute paths to images inside given `path`
-        '''
+        """
         files_list = list()
         for filename in os.listdir(path):
             files_list.append(os.path.join(path, filename))
@@ -109,7 +109,7 @@ class KITTI(Dataset):
 
 
 class SegModel(pl.LightningModule):
-    '''
+    """
     Semantic Segmentation Module
 
     This is a basic semantic segmentation module implemented with Lightning.
@@ -120,7 +120,7 @@ class SegModel(pl.LightningModule):
     It uses the FCN ResNet50 model as an example.
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
-    '''
+    """
 
     def __init__(self, hparams):
         super().__init__()

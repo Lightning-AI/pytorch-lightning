@@ -65,10 +65,11 @@ class WandbLogger(LightningLoggerBase):
 
     def __getstate__(self):
         state = self.__dict__.copy()
+        # args needed to reload correct experiment
+        state['_id'] = self._experiment.id if self._experiment is not None else None
+
         # cannot be pickled
         state['_experiment'] = None
-        # args needed to reload correct experiment
-        state['_id'] = self.experiment.id
         return state
 
     @property
@@ -87,14 +88,14 @@ class WandbLogger(LightningLoggerBase):
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                id=self._id, resume='allow', tags=self._tags, entity=self._entity)
+                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity)
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self.save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
-        wandb.watch(model, log=log, log_freq=log_freq)
+        self.experiment.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
@@ -109,8 +110,11 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return self.experiment.project_name()
+        # don't create an experiment if we don't have one
+        name = self._experiment.project_name() if self._experiment else None
+        return name
 
     @property
     def version(self) -> str:
-        return self.experiment.id
+        # don't create an experiment if we don't have one
+        return self._experiment.id if self._experiment else None
