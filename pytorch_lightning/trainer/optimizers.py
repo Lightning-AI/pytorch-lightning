@@ -50,7 +50,7 @@ class TrainerOptimizersMixin(ABC):
             ]
             # take only freq wif exists and ot they are defined - not None
             optimizer_frequencies = [
-                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")
+                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency") is not None
             ]
 
             # clean scheduler list
