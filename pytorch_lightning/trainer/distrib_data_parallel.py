@@ -141,7 +141,6 @@ class TrainerDDPMixin(ABC):
     logger: Union[LightningLoggerBase, bool]
     data_parallel_device_ids: ...
     distributed_backend: str
-    use_amp: bool
     amp_level: str
     use_tpu: bool
     default_save_path: str
@@ -149,6 +148,11 @@ class TrainerDDPMixin(ABC):
     @property
     @abstractmethod
     def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @property
+    @abstractmethod
+    def use_amp(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
