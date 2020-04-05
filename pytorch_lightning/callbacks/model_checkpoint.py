@@ -213,11 +213,10 @@ class ModelCheckpoint(Callback):
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth
-        if len(self.best_k_models) == self.save_top_k:
+        if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
             delpath = self.kth_best_model
             self.best_k_models.pop(self.kth_best_model)
-            if self.save_top_k > 0:
-                self._del_model(delpath)
+            self._del_model(delpath)
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
