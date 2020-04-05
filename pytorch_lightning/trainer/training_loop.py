@@ -203,6 +203,7 @@ class TrainerTrainLoopMixin(ABC):
     use_amp: bool
     track_grad_norm: ...
     model: LightningModule
+    interrupted: bool
     running_loss: ...
     training_tqdm_dict: ...
     reduce_lr_on_plateau_scheduler: ...
@@ -387,6 +388,7 @@ class TrainerTrainLoopMixin(ABC):
 
         except KeyboardInterrupt:
             log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            self.interrupted = True
             self.run_training_teardown()
 
     def run_training_epoch(self):
