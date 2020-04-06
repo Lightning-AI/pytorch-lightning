@@ -21,8 +21,7 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import (TrainerDeprecatedAPITillVer0_8,
-                                                      TrainerDeprecatedAPITillVer0_9)
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
@@ -55,13 +54,13 @@ else:
 class Trainer(
     TrainerIOMixin,
     TrainerOptimizersMixin,
+    TrainerAMPMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerModelHooksMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerAMPMixin,
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
@@ -88,7 +87,6 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
             track_grad_norm: int = -1,
@@ -122,7 +120,8 @@ class Trainer(
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            use_amp=False,  # backward compatible, todo: remove in v0.9.0
+            use_amp=None,  # backward compatible, todo: remove in v0.9.0
+            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
             **kwargs
     ):
@@ -445,6 +444,12 @@ class Trainer(
         # 16 bit mixed precision training using apex
         self.amp_level = amp_level
         self.precision = precision
+
+        # Backward compatibility, TODO: remove in v0.9.0
+        if use_amp is not None:
+            warnings.warn("`use_amp` has been replaced by `precision` since v0.7.0"
+                          " and this argument will be removed in v0.9.0", DeprecationWarning)
+            self.precision = 16 if use_amp else 32
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 

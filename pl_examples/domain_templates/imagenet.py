@@ -226,7 +226,7 @@ def main(hparams):
         gpus=hparams.gpus,
         max_epochs=hparams.epochs,
         distributed_backend=hparams.distributed_backend,
-        use_amp=hparams.use_16bit
+        precision=16 if hparams.use_16bit else 32,
     )
     if hparams.evaluate:
         trainer.run_evaluation()

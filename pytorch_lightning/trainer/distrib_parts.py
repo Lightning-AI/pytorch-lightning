@@ -372,7 +372,6 @@ class TrainerDPMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_ddp: bool
-    use_amp: bool
     testing: bool
     single_gpu: bool
     root_gpu: ...
@@ -384,6 +383,11 @@ class TrainerDPMixin(ABC):
     tpu_global_core_rank: int
     use_tpu: bool
     data_parallel_device_ids: ...
+
+    @property
+    @abstractmethod
+    def use_amp(self) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def run_pretrain_routine(self, *args):

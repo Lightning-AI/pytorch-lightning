@@ -32,7 +32,7 @@ def main(hparams):
         max_epochs=hparams.epochs,
         gpus=hparams.gpus,
         distributed_backend=hparams.distributed_backend,
-        use_amp=hparams.use_16bit
+        precision=16 if hparams.use_16bit else 32,
     )
 
     # ------------------------
