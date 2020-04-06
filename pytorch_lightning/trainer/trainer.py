@@ -679,17 +679,7 @@ class Trainer(
 
         # Run learning rate finder:
         if self.auto_lr_find:
-            lr_finder = self.lr_find(model)
-            lr = lr_finder.suggestion()
-            log.info(f'Learning rate set to {lr}')
-            if hasattr(model.hparams, 'lr'):
-                model.hparams.lr = lr
-            elif hasattr(model.hparams, 'learning_rate'):
-                model.hparams.learning_rate = lr
-            else:
-                raise MisconfigurationException(
-                    'When auto_lr_find is set to True, expects that hparams'
-                    ' either has field `lr` or `learning_rate` that can overridden')
+            self._run_lr_finder_internally(model)
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process

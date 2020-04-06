@@ -9,13 +9,46 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import os
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerLRFinderMixin(ABC):
+    def _run_lr_finder_internally(self, model):
+        """ Call lr finder internally during Trainer.fit() """
+        lr_finder = self.lr_find(model)
+        lr = lr_finder.suggestion()
+        log.info(f'Learning rate set to {lr}')
+        if hasattr(model.hparams, 'lr'):
+            model.hparams.lr = lr
+        elif hasattr(model.hparams, 'learning_rate'):
+            model.hparams.learning_rate = lr
+        else:
+            raise MisconfigurationException(
+                'When auto_lr_find is set to True, expects that hparams'
+                ' either has field `lr` or `learning_rate` that can overridden')
+    
+    def _model_dump(self, filepath, model):
+        """ Dump model state, for restoring after lr finder """
+        checkpoint = model.state_dict()
+        if self.proc_rank == 0:
+            # do the actual save
+            try:
+                self._atomic_save(checkpoint, filepath)
+            except AttributeError:
+                if 'hparams' in checkpoint:
+                    del checkpoint['hparams']
+
+                self._atomic_save(checkpoint, filepath)
+    
+    def _model_restore(self, filepath, model):
+        """ Restore model state """
+        model.load_state_dict(torch.load(str(filepath)))
+    
     def find_lr(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
@@ -69,6 +102,8 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
+        save_path = self.default_save_path + '/lr_find_temp.ckpt'
+        
         # Initialize lr finder object (stores results)
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
@@ -85,18 +120,29 @@ class TrainerLRFinderMixin(ABC):
         self.max_steps = num_training
 
         # Disable standard progress bar for fit
-        show_progress_bar = self.show_progress_bar
-        self.show_progress_bar = False
+        progress_bar_refresh_rate = self.progress_bar_refresh_rate
+        self.progress_bar_refresh_rate = False
 
         # Accumulation of gradients
         accumulate_grad_batches = self.accumulate_grad_batches
         self.accumulate_grad_batches = num_accumulation_steps
 
+        # Disable standard checkpoint
+        checkpoint_callback = self.checkpoint_callback
+        self.checkpoint_callback = False
+        
+        # Dump model checkpoint
+        self._model_dump(save_path, model)
+        
         # Configure optimizer and scheduler
-        optimizer, _, _ = self.init_optimizers(model.configure_optimizers())
-        assert len(optimizer) == 1, 'cannot find lr for more than 1 optimizer'
+        optimizers, _, _ = self.init_optimizers(model)
+
+        if len(optimizers) != 1:
+            raise MisconfigurationException(
+                f'`model.configure_optimizers()` returned {len(optimizers)}, but'
+                ' learning rate finder only works with single optimizer')
         configure_optimizers = model.configure_optimizers
-        model.configure_optimizers = lr_finder._get_new_optimizer(optimizer[0])
+        model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
 
         # Fit, lr & loss logged in callback
         self.fit(model, train_dataloader=train_dataloader)
@@ -113,9 +159,14 @@ class TrainerLRFinderMixin(ABC):
         self.logger = logger
         self.callbacks = callbacks
         self.max_steps = max_steps
-        self.show_progress_bar = show_progress_bar
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.accumulate_grad_batches = accumulate_grad_batches
+        self.checkpoint_callback = checkpoint_callback
         model.configure_optimizers = configure_optimizers
+
+        # Reset model state
+        self._model_restore(save_path, model)
+        os.remove(save_path)
 
         return lr_finder
 
@@ -246,6 +297,9 @@ class _LRCallback(Callback):
 
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
+        if self.progress_bar:
+            self.progress_bar.update()
+        
         current_loss = trainer.running_loss.last().item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
@@ -256,14 +310,15 @@ class _LRCallback(Callback):
         # Check if we diverging
         if current_step > 1 and smoothed_loss > 4 * self.best_loss:
             trainer.max_steps = current_step  # stop signal
-
+            self.progress_bar.close()
+        
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
             self.best_loss = smoothed_loss
 
         self.losses.append(smoothed_loss)
-        if self.progress_bar:
-            self.progress_bar.update()
+        
+            
 
 
 class _LinearLR(_LRScheduler):
