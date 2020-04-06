@@ -298,6 +298,9 @@ class _LRFinder(object):
 
 
 class _LRCallback(Callback):
+    """ Special callback used by the learning rate finder. This callbacks log
+    the learning rate before each batch and log the corresponding loss after
+    each batch. """
     def __init__(self, num_iters, show_progress_bar=False, beta=0.98):
         self.num_iters = num_iters
         self.beta = beta

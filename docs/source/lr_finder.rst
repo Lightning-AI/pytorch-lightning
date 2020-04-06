@@ -51,9 +51,8 @@ of this would look like
     # Pick point based on plot, or get suggestion
     new_lr = lrfinder.suggestion()
     
-    # create new model with suggested lr
-    hparams.lr = new_lr
-    model = MyModelClass(hparams)
+    # update hparams of the model
+    model.hparams.lr = new_lr
     
     # Fit model
     trainer.fit(model)
