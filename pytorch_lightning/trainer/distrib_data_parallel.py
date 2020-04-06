@@ -275,10 +275,13 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
-        # node rank using relative slurm id
-        # otherwise default to node rank 0
+        # node rank using relative slurm id if under slurm management
+        # otherwise use given node rank or default to node rank 0
         try:
-            node_id = os.environ['SLURM_NODEID']
+            if self.is_slurm_managing_tasks:
+                node_id = os.environ['SLURM_NODEID']
+            else:
+                node_id = os.environ['RANK']
             self.node_rank = int(node_id)
         except Exception:
             self.node_rank = 0
@@ -305,7 +308,7 @@ class TrainerDDPMixin(ABC):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self
-        model.init_ddp_connection(self.proc_rank, self.world_size)
+        model.init_ddp_connection(self.proc_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
