@@ -924,7 +924,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
         """
-
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
 
