@@ -97,8 +97,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
         the operations you want to use for prediction (i.e.: on a server or as a feature extractor).
 
-        Normally you'd call ``self()`` from your
-        :meth:`training_step` method.
+        Normally you'd call ``self()`` from your :meth:`training_step` method.
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
 
@@ -159,7 +158,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         Return:
             Dict with loss key and optional log or progress bar keys.
-            When implementing training_step, return whatever you need in that step:
+            When implementing :meth:`training_step`, return whatever you need in that step:
 
             - loss -> tensor scalar **REQUIRED**
             - progress_bar -> Dict for progress bar display. Must have only tensors
@@ -234,8 +233,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
     def training_end(self, *args, **kwargs):
         """
         Warnings:
-            Deprecated in v0.7.0.
-            Use  :meth:`training_step_end` instead.
+            Deprecated in v0.7.0. Use  :meth:`training_step_end` instead.
         """
 
     def training_epoch_end(
@@ -254,8 +252,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in
-                :meth:`training_step`, or if there are
+            outputs: List of outputs you defined in :meth:`training_step`, or if there are
                 multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
@@ -462,7 +459,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             If you don't need to validate you don't need to implement this method.
 
         Note:
-            When the validation_step is called, the model has been put in eval mode
+            When the :meth:`validation_step` is called, the model has been put in eval mode
             and PyTorch gradients have been disabled. At the end of validation,
             the model goes back to training mode and gradients are enabled.
         """
@@ -561,7 +558,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             - log (dict of metrics to add to logger; only tensors).
 
         Note:
-            If you didn't define a validation_step, this won't be called.
+            If you didn't define a :meth:`validation_step`, this won't be called.
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
@@ -677,12 +674,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # return an optional dict
                     return output
 
-            If you pass in multiple validation datasets, ``test_step`` will have an additional
+            If you pass in multiple validation datasets, :meth:`test_step` will have an additional
             argument.
 
             .. code-block:: python
 
-                # CASE 2: multiple validation datasets
+                # CASE 2: multiple test datasets
                 def test_step(self, batch, batch_idx, dataset_idx):
                     # dataset_idx tells you which dataset this is.
 
@@ -690,7 +687,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             If you don't need to validate you don't need to implement this method.
 
         Note:
-            When the test_step is called, the model has been put in eval mode and
+            When the :meth:`test_step` is called, the model has been put in eval mode and
             PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
             to training mode and gradients are enabled.
         """
