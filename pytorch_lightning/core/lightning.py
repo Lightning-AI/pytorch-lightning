@@ -1603,7 +1603,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
         Note:
-            Lighting auto-restores global step, epoch, and train state including amp scaling.
+            Lightning auto-restores global step, epoch, and train state including amp scaling.
             There is no need for you to restore anything regarding training.
         """
 
@@ -1618,12 +1618,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Example:
             .. code-block:: python
 
+
                 def on_save_checkpoint(self, checkpoint):
                     # 99% of use cases you don't need to implement this method
                     checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 
         Note:
-            Lighting saves all aspects of training (epoch, global step, etc...)
+            Lightning saves all aspects of training (epoch, global step, etc...)
             including amp scaling.
             There is no need for you to store anything about training.
 
