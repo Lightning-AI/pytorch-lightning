@@ -33,7 +33,7 @@ class TrainerLRFinderMixin(ABC):
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                     ' could not find this as a field in model.hparams.')
+                    ' could not find this as a field in model.hparams.')
         else:
             if hasattr(model.hparams, 'lr'):
                 model.hparams.lr = lr
@@ -312,7 +312,7 @@ class _LRCallback(Callback):
         """ Called before each training batch, logs the lr that will be used """
         if self.show_progress_bar and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_iters)
-        
+
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     def on_batch_end(self, trainer, pl_module):
@@ -373,10 +373,11 @@ class _LinearLR(_LRScheduler):
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val
         return val
-    
+
     @property
     def lr(self):
         return self._lr
+
 
 class _ExponentialLR(_LRScheduler):
     """Exponentially increases the learning rate between two boundaries
@@ -412,8 +413,7 @@ class _ExponentialLR(_LRScheduler):
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val
         return val
-    
+
     @property
     def lr(self):
         return self._lr
-        
