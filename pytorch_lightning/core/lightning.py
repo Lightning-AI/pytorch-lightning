@@ -923,14 +923,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
-        Examples:
-            .. code-block:: python
-
-                if is_slurm_managing_tasks:
-                    self._init_slurm_connection()
-
-                torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
-
         """
 
         if is_slurm_managing_tasks:
