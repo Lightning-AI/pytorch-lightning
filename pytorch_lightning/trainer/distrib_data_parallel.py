@@ -278,10 +278,7 @@ class TrainerDDPMixin(ABC):
         # node rank using relative slurm id if under slurm management
         # otherwise use given node rank or default to node rank 0
         try:
-            if self.is_slurm_managing_tasks:
-                node_id = os.environ['SLURM_NODEID']
-            else:
-                node_id = os.environ['RANK']
+            node_id = os.environ['SLURM_NODEID'] if self.is_slurm_managing_tasks else os.environ['RANK']
             self.node_rank = int(node_id)
         except Exception:
             self.node_rank = 0
