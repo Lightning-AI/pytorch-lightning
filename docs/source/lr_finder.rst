@@ -22,8 +22,11 @@ will automatically be run before any training is done. The ``lr`` that is found
 and used will we written to the console and logged together with all other
 hyperparameters of the model.
 
-.. note:: It is expected that the ``hparams`` of the model either has a ``lr`` or
-    ``learning_rate`` field that can be overridden. If not an error will be thrown.
+.. note:: If ``auto_lr_find=True``, it is expected that the ``hparams`` of the 
+    model either has a ``lr`` or ``learning_rate`` field that can be overridden. 
+    Additionally ``auto_lr_find`` can be set to a string ``s``, which will then
+    try to override ``model.hparams.s``. In both cases, if the respective fields
+    are not found, an error will be thrown.
 
 If you want to inspect the results of the learning rate finder before doing any
 actual training or just play around with the parameters of the algorithm, this
@@ -67,3 +70,4 @@ The parameters of the algorithm can be seen below.
 .. autoclass:: pytorch_lightning.trainer.lr_finder.TrainerLRFinderMixin
    :members: find_lr
    :noindex:
+   :exclude-members: _atomic_save, _run_lr_finder_internally, _model_dump, _model_restore

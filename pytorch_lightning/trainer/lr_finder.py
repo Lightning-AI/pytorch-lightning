@@ -28,7 +28,12 @@ class TrainerLRFinderMixin(ABC):
         lr = lr_finder.suggestion()
         log.info(f'Learning rate set to {lr}')
         if isinstance(self.auto_lr_find, str):
-            setattr(model.hparams, self.auto_lr_find, lr)
+            if hasattr(model.hparams, self.auto_lr_find):
+                setattr(model.hparams, self.auto_lr_find, lr)
+            else:
+                raise MisconfigurationException(
+                    f'`auto_lr_find` was set to {self.auto_lr_find}, however'
+                     ' could not find this as a field in model.hparams.')
         else:
             if hasattr(model.hparams, 'lr'):
                 model.hparams.lr = lr
@@ -120,7 +125,7 @@ class TrainerLRFinderMixin(ABC):
 
         # Use special lr logger callback
         callbacks = self.callbacks
-        self.callbacks = [_LRCallback(num_training, show_progress_bar=False)]
+        self.callbacks = [_LRCallback(num_training, show_progress_bar=True)]
 
         # No logging
         logger = self.logger
@@ -300,12 +305,15 @@ class _LRCallback(Callback):
         self.lrs = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
-        self.progress_bar = tqdm(desc='Finding best initial lr', total=num_iters) \
-            if show_progress_bar else None
+        self.show_progress_bar = show_progress_bar
+        self.progress_bar = None
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].get_last_lr()[0])
+        if self.show_progress_bar and self.progress_bar is None:
+            self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_iters)
+        
+        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
@@ -322,7 +330,8 @@ class _LRCallback(Callback):
         # Check if we diverging
         if current_step > 1 and smoothed_loss > 4 * self.best_loss:
             trainer.max_steps = current_step  # stop signal
-            self.progress_bar.close()
+            if self.progress_bar:
+                self.progress_bar.close()
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
@@ -359,10 +368,15 @@ class _LinearLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            return [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
+            val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
-            return [base_lr for base_lr in self.base_lrs]
-
+            val = [base_lr for base_lr in self.base_lrs]
+        self._lr = val
+        return val
+    
+    @property
+    def lr(self):
+        return self._lr
 
 class _ExponentialLR(_LRScheduler):
     """Exponentially increases the learning rate between two boundaries
@@ -393,6 +407,13 @@ class _ExponentialLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
-            return [base_lr for base_lr in self.base_lrs]
+            val = [base_lr for base_lr in self.base_lrs]
+        self._lr = val
+        return val
+    
+    @property
+    def lr(self):
+        return self._lr
+        

@@ -121,7 +121,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: bool = False,
+            auto_lr_find: Union[bool, str] = False,
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
