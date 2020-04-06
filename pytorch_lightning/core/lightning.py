@@ -79,11 +79,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         Args:
             *args: The thing to print. Will be passed to Python's built-in print function.
             **kwargs: Will be passed to Python's built-in print function.
-        Example::
 
-            >>> class LitModel(LightningModule):
-            ...     def forward(self, x):
-            ...         self.print(x, 'in forward')
+        Example:
+
+            .. code-block:: python
+
+                def forward(self, x):
+                    self.print(x, 'in forward')
 
         """
         if self.trainer.proc_rank == 0:
