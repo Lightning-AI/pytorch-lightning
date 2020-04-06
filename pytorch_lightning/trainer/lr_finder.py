@@ -31,7 +31,7 @@ class TrainerLRFinderMixin(ABC):
             raise MisconfigurationException(
                 'When auto_lr_find is set to True, expects that hparams'
                 ' either has field `lr` or `learning_rate` that can overridden')
-    
+
     def _model_dump(self, filepath, model):
         """ Dump model state, for restoring after lr finder """
         checkpoint = model.state_dict()
@@ -44,11 +44,11 @@ class TrainerLRFinderMixin(ABC):
                     del checkpoint['hparams']
 
                 self._atomic_save(checkpoint, filepath)
-    
+
     def _model_restore(self, filepath, model):
         """ Restore model state """
         model.load_state_dict(torch.load(str(filepath)))
-    
+
     def find_lr(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
@@ -103,7 +103,7 @@ class TrainerLRFinderMixin(ABC):
 
         """
         save_path = self.default_save_path + '/lr_find_temp.ckpt'
-        
+
         # Initialize lr finder object (stores results)
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
@@ -130,10 +130,10 @@ class TrainerLRFinderMixin(ABC):
         # Disable standard checkpoint
         checkpoint_callback = self.checkpoint_callback
         self.checkpoint_callback = False
-        
+
         # Dump model checkpoint
         self._model_dump(save_path, model)
-        
+
         # Configure optimizer and scheduler
         optimizers, _, _ = self.init_optimizers(model)
 
@@ -299,7 +299,7 @@ class _LRCallback(Callback):
         """ Called when the training batch ends, logs the calculated loss """
         if self.progress_bar:
             self.progress_bar.update()
-        
+
         current_loss = trainer.running_loss.last().item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
@@ -311,14 +311,12 @@ class _LRCallback(Callback):
         if current_step > 1 and smoothed_loss > 4 * self.best_loss:
             trainer.max_steps = current_step  # stop signal
             self.progress_bar.close()
-        
+
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
             self.best_loss = smoothed_loss
 
         self.losses.append(smoothed_loss)
-        
-            
 
 
 class _LinearLR(_LRScheduler):
