@@ -1,7 +1,7 @@
 """
 Trainer Learning Rate Finder
 """
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 
 import numpy as np
@@ -18,19 +18,26 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerLRFinderMixin(ABC):
+    @abstractmethod
+    def _atomic_save(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def _run_lr_finder_internally(self, model):
         """ Call lr finder internally during Trainer.fit() """
-        lr_finder = self.lr_find(model)
+        lr_finder = self.find_lr(model)
         lr = lr_finder.suggestion()
         log.info(f'Learning rate set to {lr}')
-        if hasattr(model.hparams, 'lr'):
-            model.hparams.lr = lr
-        elif hasattr(model.hparams, 'learning_rate'):
-            model.hparams.learning_rate = lr
+        if isinstance(self.auto_lr_find, str):
+            setattr(model.hparams, self.auto_lr_find, lr)
         else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that hparams'
-                ' either has field `lr` or `learning_rate` that can overridden')
+            if hasattr(model.hparams, 'lr'):
+                model.hparams.lr = lr
+            elif hasattr(model.hparams, 'learning_rate'):
+                model.hparams.learning_rate = lr
+            else:
+                raise MisconfigurationException(
+                    'When auto_lr_find is set to True, expects that hparams'
+                    ' either has field `lr` or `learning_rate` that can overridden')
 
     def _model_dump(self, filepath, model):
         """ Dump model state, for restoring after lr finder """
@@ -104,12 +111,16 @@ class TrainerLRFinderMixin(ABC):
         """
         save_path = self.default_save_path + '/lr_find_temp.ckpt'
 
+        # Prevent going into infinite loop
+        auto_lr_find = self.auto_lr_find
+        self.auto_lr_find = False
+
         # Initialize lr finder object (stores results)
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
         callbacks = self.callbacks
-        self.callbacks = [_LRCallback(num_training, show_progress_bar=True)]
+        self.callbacks = [_LRCallback(num_training, show_progress_bar=False)]
 
         # No logging
         logger = self.logger
@@ -156,6 +167,7 @@ class TrainerLRFinderMixin(ABC):
                                   'loss': self.callbacks[0].losses})
 
         # Finish by resetting variables so trainer is ready to fit model
+        self.auto_lr_find = auto_lr_find
         self.logger = logger
         self.callbacks = callbacks
         self.max_steps = max_steps
