@@ -846,8 +846,10 @@ class Trainer(
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             # close progress bars
-            self.main_progress_bar.close()
             self.val_progress_bar.close()
+            self.val_progress_bar.clear()
+            self.main_progress_bar.close()
+            self.main_progress_bar.clear()
 
             if self.enable_early_stop:
                 self.early_stop_callback.check_metrics(callback_metrics)
