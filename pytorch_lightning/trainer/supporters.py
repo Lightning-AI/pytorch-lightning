@@ -2,9 +2,8 @@ import torch
 
 
 class TensorRunningAccum(object):
-    """
-    Tracks a running mean without graph references.
-    Round robbin for the mean
+    """Tracks a running accumulation values (min, max, mean) without graph
+    references.
 
     Examples:
         >>> accum = TensorRunningAccum(5)
@@ -38,7 +37,7 @@ class TensorRunningAccum(object):
             return self.memory[self.last_idx]
 
     def append(self, x):
-        """Add an element to the accumolator."""
+        """Add an element to the accumulator."""
         # ensure same device and type
         if self.memory.device != x.device or self.memory.type() != x.type():
             x = x.to(self.memory)
@@ -58,15 +57,19 @@ class TensorRunningAccum(object):
 
     def mean(self):
         """Get mean value from stored elements."""
-        if self.last_idx is not None:
-            return self.memory.mean() if self.rotated else self.memory[:self.current_idx].mean()
+        return self._agg_memory('mean')
 
     def max(self):
         """Get maximal value from stored elements."""
-        if self.last_idx is not None:
-            return self.memory.max() if self.rotated else self.memory[:self.current_idx].max()
+        return self._agg_memory('max')
 
     def min(self):
         """Get minimal value from stored elements."""
+        return self._agg_memory('min')
+
+    def _agg_memory(self, how: str):
         if self.last_idx is not None:
-            return self.memory.min() if self.rotated else self.memory[:self.current_idx].min()
+            if self.rotated:
+                return getattr(self.memory, how)()
+            else:
+                return getattr(self.memory[:self.current_idx], how)()
