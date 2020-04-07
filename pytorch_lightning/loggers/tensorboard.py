@@ -9,6 +9,7 @@ from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning import _logger as log
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -163,6 +164,11 @@ class TensorBoardLogger(LightningLoggerBase):
 
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
+
+        if not os.path.isdir(root_dir):
+            log.warning('Missing logger folder: %s', root_dir)
+            return 0
+
         existing_versions = []
         for d in os.listdir(root_dir):
             if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
