@@ -32,11 +32,11 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     )
 
     with pytest.raises(MisconfigurationException):
-        trainer.find_lr(model)
+        trainer.lr_find(model)
 
 
 def test_model_reset_correctly(tmpdir):
-    ''' Check that model weights are correctly reset after find_lr() '''
+    ''' Check that model weights are correctly reset after lr_find() '''
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -56,7 +56,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = model.state_dict()
 
-    _ = trainer.find_lr(model, num_training=5)
+    _ = trainer.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -66,7 +66,7 @@ def test_model_reset_correctly(tmpdir):
 
 
 def test_trainer_reset_correctly(tmpdir):
-    ''' Check that all trainer parameters are reset correctly after find_lr() '''
+    ''' Check that all trainer parameters are reset correctly after lr_find() '''
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -92,7 +92,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    _ = trainer.find_lr(model, num_training=5)
+    _ = trainer.lr_find(model, num_training=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -172,7 +172,7 @@ def test_call_to_trainer_method(tmpdir):
         max_epochs=1,
     )
 
-    lrfinder = trainer.find_lr(model)
+    lrfinder = trainer.lr_find(model)
     after_lr = lrfinder.suggestion()
     model.hparams.learning_rate = after_lr
     trainer.fit(model)

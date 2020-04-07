@@ -28,9 +28,9 @@ class TrainerLRFinderMixin(ABC):
 
     def _run_lr_finder_internally(self, model: LightningModule):
         """ Call lr finder internally during Trainer.fit() """
-        lr_finder = self.find_lr(model)
+        lr_finder = self.lr_find(model)
         lr = lr_finder.suggestion()
-        log.info(f'Learning rate set to {lr}')
+        # TODO: log lr.results to self.logger
         if isinstance(self.auto_lr_find, str):
             if hasattr(model.hparams, self.auto_lr_find):
                 setattr(model.hparams, self.auto_lr_find, lr)
@@ -47,8 +47,9 @@ class TrainerLRFinderMixin(ABC):
                 raise MisconfigurationException(
                     'When auto_lr_find is set to True, expects that hparams'
                     ' either has field `lr` or `learning_rate` that can overridden')
+        log.info(f'Learning rate set to {lr}')
 
-    def find_lr(self,
+    def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
                 min_lr: float = 1e-8,
@@ -57,7 +58,7 @@ class TrainerLRFinderMixin(ABC):
                 mode: str = 'exponential',
                 num_accumulation_steps: int = 1):
         r"""
-        find_lr enables the user to do a range test of good initial learning rates,
+        lr_find enables the user to do a range test of good initial learning rates,
         to reduce the amount of guesswork in picking a good starting learning rate.
 
         Args:
@@ -87,7 +88,7 @@ class TrainerLRFinderMixin(ABC):
             trainer = pl.Trainer()
 
             # Run lr finder
-            lr_finder = trainer.find_lr(model, ...)
+            lr_finder = trainer.lr_find(model, ...)
 
             # Inspect results
             fig = lr_finder.plot(); fig.show()
@@ -193,7 +194,7 @@ class _LRFinder(object):
 
     Example::
         # Run lr finder
-        lr_finder = trainer.find_lr(model)
+        lr_finder = trainer.lr_find(model)
 
         # Results stored in
         lr_finder.results
@@ -286,7 +287,9 @@ class _LRFinder(object):
             log.warning('Failed to compute suggesting for `lr`.'
                         ' There might not be enough points.')
             self._optimal_idx = None
-
+    
+    def __len__(self):
+        return len(self.results["lr"])
 
 class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log

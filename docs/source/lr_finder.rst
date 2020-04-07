@@ -30,7 +30,7 @@ hyperparameters of the model.
 
 If you want to inspect the results of the learning rate finder before doing any
 actual training or just play around with the parameters of the algorithm, this
-can be done by invoking the ``find_lr`` method of the trainer. A typical example
+can be done by invoking the ``lr_find`` method of the trainer. A typical example
 of this would look like
 
 .. code-block:: python
@@ -39,7 +39,7 @@ of this would look like
     trainer = pl.Trainer()
     
     # Run learning rate finder
-    lr_finder = trainer.find_lr(model)
+    lr_finder = trainer.lr_find(model)
     
     # Results can be found in
     lr_finder.results
@@ -67,6 +67,6 @@ This is the point returned py ``lr_finder.suggestion()``.
 The parameters of the algorithm can be seen below.
 
 .. autoclass:: pytorch_lightning.trainer.lr_finder.TrainerLRFinderMixin
-   :members: find_lr
+   :members: lr_find
    :noindex:
    :exclude-members: _run_lr_finder_internally, save_checkpoint, restore
