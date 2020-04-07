@@ -88,6 +88,20 @@ class TrainsLogger(LightningLoggerBase):
             self._trains = None
             print('TRAINS Task: running in bypass mode')
             print('TRAINS results page: disabled')
+
+            class _TaskStub(object):
+                def __call__(self, *args, **kwargs):
+                    return self
+
+                def __getattr__(self, attr):
+                    if attr in ('name', 'id'):
+                        return ''
+                    return self
+
+                def __setattr__(self, attr, val):
+                    pass
+
+            self._trains = _TaskStub()
         else:  # pragma: no cover
             self._trains = Task.init(
                 project_name=project_name,
@@ -117,9 +131,9 @@ class TrainsLogger(LightningLoggerBase):
         """
         ID is a uuid (string) representing this specific experiment in the entire system.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return None
-        # pragma: no cover
+
         return self._trains.id
 
     @rank_zero_only
@@ -130,11 +144,11 @@ class TrainsLogger(LightningLoggerBase):
             params:
                 The hyperparameters that passed through the model.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return
         if not params:
             return
-        # pragma: no cover
+
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         self._trains.connect(params)
@@ -151,9 +165,9 @@ class TrainsLogger(LightningLoggerBase):
                 then the elements will be logged as "title" and "series" respectively.
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return
-        # pragma: no cover
+
         if not step:
             step = self._trains.get_last_iteration()
 
@@ -183,9 +197,9 @@ class TrainsLogger(LightningLoggerBase):
             value: The value to log.
             step: Step number at which the metrics should be recorded. Defaults to None.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return
-        # pragma: no cover
+
         if not step:
             step = self._trains.get_last_iteration()
 
@@ -204,7 +218,7 @@ class TrainsLogger(LightningLoggerBase):
         if self.bypass_mode():
             print(text)
             return
-        # pragma: no cover
+
         if not self._trains:
             return
 
@@ -230,9 +244,9 @@ class TrainsLogger(LightningLoggerBase):
             step:
                 Step number at which the metrics should be recorded. Defaults to None.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return
-        # pragma: no cover
+
         if not step:
             step = self._trains.get_last_iteration()
 
@@ -273,9 +287,9 @@ class TrainsLogger(LightningLoggerBase):
                 If True local artifact will be deleted (only applies if artifact_object is a
                 local file). Defaults to False.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return
-        # pragma: no cover
+
         self._trains.upload_artifact(
             name=name, artifact_object=artifact, metadata=metadata,
             delete_after_upload=delete_after_upload
@@ -288,7 +302,7 @@ class TrainsLogger(LightningLoggerBase):
     def finalize(self, status: str = None) -> None:
         if self.bypass_mode() or not self._trains:
             return
-        # pragma: no cover
+
         self._trains.close()
         self._trains = None
 
@@ -297,16 +311,16 @@ class TrainsLogger(LightningLoggerBase):
         """
         Name is a human readable non-unique name (str) of the experiment.
         """
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return ''
-        # pragma: no cover
+
         return self._trains.name
 
     @property
     def version(self) -> Union[str, None]:
-        if self.bypass_mode() or not self._trains:
+        if not self._trains:
             return None
-        # pragma: no cover
+
         return self._trains.id
 
     @classmethod
@@ -352,7 +366,7 @@ class TrainsLogger(LightningLoggerBase):
     def __getstate__(self) -> Union[str, None]:
         if self.bypass_mode() or not self._trains:
             return ''
-        # pragma: no cover
+
         return self._trains.id
 
     def __setstate__(self, state: str) -> None:
