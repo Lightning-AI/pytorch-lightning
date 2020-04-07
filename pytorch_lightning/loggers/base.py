@@ -4,7 +4,7 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
 
 import numpy as np
 import torch
@@ -79,9 +79,9 @@ class LightningLoggerBase(ABC):
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger"""
 
-    def _agg_metrics(
+    def _aggregate_metrics(
             self, metrics: Dict[str, float], step: Optional[int] = None
-    ) -> Optional[Dict[str, float]]:
+    ) -> Tuple[int, Optional[Dict[str, float]]]:
         """Aggregates metrics.
 
         Args:
@@ -89,14 +89,24 @@ class LightningLoggerBase(ABC):
             step: Step number at which the metrics should be recorded
 
         Returns:
-            Aggregated metrics. The return value could be None. In such case, metrics
+            sStep and aggregated metrics. The return value could be None. In such case, metrics
             are added to the aggregation list, but not aggregated yet.
         """
         # if you still receiving metric from the same step, just accumulate it
         if step == self._prev_step:
             self._metrics_to_agg.append(metrics)
-            return None
+            return step, None
 
+        # compute the metrics
+        agg_step, agg_mets = self._finalize_agg_metrics()
+
+        # as new step received reset accumulator
+        self._metrics_to_agg = [metrics]
+        self._prev_step = step
+        return agg_step, agg_mets
+
+    def _finalize_agg_metrics(self):
+        """Aggregate accumulated metrics. This shall be called in close."""
         # compute the metrics
         if not self._metrics_to_agg:
             agg_mets = None
@@ -104,11 +114,7 @@ class LightningLoggerBase(ABC):
             agg_mets = self._metrics_to_agg[0]
         else:
             agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
-
-        # as new step received reset accumulator
-        self._metrics_to_agg = [metrics]
-        self._prev_step = step
-        return agg_mets
+        return self._prev_step, agg_mets
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics.
@@ -119,10 +125,10 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        metrics_to_log = self._agg_metrics(metrics=metrics, step=step)
+        agg_step, metrics_to_log = self._aggregate_metrics(metrics=metrics, step=step)
 
         if metrics_to_log is not None:
-            self.log_metrics(metrics=metrics_to_log, step=step)
+            self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -225,7 +231,10 @@ class LightningLoggerBase(ABC):
 
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""
-        pass
+        agg_step, metrics_to_log = self._finalize_agg_metrics()
+
+        if metrics_to_log is not None:
+            self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     @property
     def rank(self) -> int:

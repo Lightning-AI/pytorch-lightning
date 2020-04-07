@@ -1,5 +1,8 @@
 import pickle
+from collections import OrderedDict
 from unittest.mock import MagicMock
+
+import numpy as np
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -56,14 +59,16 @@ class CustomLogger(LightningLoggerBase):
         return "1"
 
 
-class StoreHistoryCustomLogger(CustomLogger):
+class StoreHistoryLogger(CustomLogger):
     def __init__(self):
         super().__init__()
-        self.history = []
+        self.history = {}
 
     @rank_zero_only
     def log_metrics(self, metrics, step):
-        self.history.append((step, metrics))
+        if step not in self.history:
+            self.history[step] = {}
+        self.history[step].update(metrics)
 
 
 def test_custom_logger(tmpdir):
@@ -170,21 +175,12 @@ def test_adding_step_key(tmpdir):
 
 def test_with_accumulate_grad_batches():
     """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
-    hparams = tutils.get_default_hparams()
-    hparams.batch_size = 8
-    model = LightningTestModel(hparams)
+    logger = StoreHistoryLogger()
 
-    logger = StoreHistoryCustomLogger()
+    np.random.seed(42)
+    for i, loss in enumerate(np.random.random(10)):
+        logger.agg_and_log_metrics({'loss': loss}, step=int(i / 5))
 
-    trainer_options = dict(
-        max_epochs=1,
-        logger=logger,
-        accumulate_grad_batches=4,
-        row_log_interval=1
-    )
-
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    steps_logged = [step[0] for step in logger.history]
-    assert len(set(steps_logged)) == len(steps_logged)
+    assert logger.history == {0: {'loss': 0.5623850983416314}}
+    logger.close()
+    assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
