@@ -287,9 +287,7 @@ class _LRFinder(object):
             log.warning('Failed to compute suggesting for `lr`.'
                         ' There might not be enough points.')
             self._optimal_idx = None
-    
-    def __len__(self):
-        return len(self.results["lr"])
+
 
 class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
