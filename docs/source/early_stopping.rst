@@ -45,7 +45,7 @@ is not defined.
 .. seealso::
     :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-Disable Early Stopping With Callbcks on Epoch End
+Disable Early Stopping With Callbacks on Epoch End
 ----------------------
 To disable early stopping pass ``False`` to the
 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.early_stop_callback`.
