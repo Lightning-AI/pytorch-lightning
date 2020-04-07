@@ -102,7 +102,7 @@ class TrainsLogger(LightningLoggerBase):
                     pass
 
             self._trains = _TaskStub()
-        else:  # pragma: no cover
+        else:
             self._trains = Task.init(
                 project_name=project_name,
                 task_name=task_name,
