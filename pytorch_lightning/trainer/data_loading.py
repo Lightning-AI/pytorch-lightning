@@ -1,8 +1,9 @@
+import warnings
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import SequentialSampler, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
@@ -73,6 +74,12 @@ class TrainerDataLoadingMixin(ABC):
         if not 0. <= value <= 1.:
             raise ValueError(msg)
 
+    def _worker_check(self, dataloader: DataLoader, name: str) -> None:
+        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2:
+            warnings.warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                          ' Consider increasing the value of the `num_workers` argument`'
+                          ' in the `DataLoader` init to improve performance.')
+
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
@@ -112,11 +119,13 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
+
         self.num_training_batches = 0
 
         # automatically add samplers
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
+        self._worker_check(self.train_dataloader, 'train dataloader')
         self._percent_range_check('train_percent_check')
 
         if not _has_len(self.train_dataloader):
@@ -176,10 +185,10 @@ class TrainerDataLoadingMixin(ABC):
         # determine number of batches
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
-            for dataloader in dataloaders:
+            for i, dataloader in enumerate(dataloaders):
+                self._worker_check(dataloader, f'{mode} dataloader {i}')
                 if not _has_len(dataloader):
                     num_batches = float('inf')
-                    break
 
             percent_check = getattr(self, f'{mode}_percent_check')
 

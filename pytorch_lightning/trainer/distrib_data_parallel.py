@@ -141,7 +141,6 @@ class TrainerDDPMixin(ABC):
     logger: Union[LightningLoggerBase, bool]
     data_parallel_device_ids: ...
     distributed_backend: str
-    use_amp: bool
     amp_level: str
     use_tpu: bool
     default_save_path: str
@@ -149,6 +148,11 @@ class TrainerDDPMixin(ABC):
     @property
     @abstractmethod
     def num_gpus(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @property
+    @abstractmethod
+    def use_amp(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -359,15 +363,19 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
-        # load weights saved in ddp
-        path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
-        loaded_model = original_model.__class__.load_from_checkpoint(path)
 
-        # copy loaded weights to old model
-        original_model.load_state_dict(loaded_model.state_dict())
+        loaded_model = original_model
 
-        # remove ddp weights
-        os.remove(path)
+        if self.proc_rank == 0:
+            # load weights saved in ddp
+            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            loaded_model = original_model.__class__.load_from_checkpoint(path)
+
+            # copy loaded weights to old model
+            original_model.load_state_dict(loaded_model.state_dict())
+
+            # remove ddp weights
+            os.remove(path)
 
         return loaded_model
 
