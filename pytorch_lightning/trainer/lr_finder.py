@@ -22,7 +22,7 @@ class TrainerLRFinderMixin(ABC):
     def _atomic_save(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _run_lr_finder_internally(self, model):
+    def _run_lr_finder_internally(self, model: LightningModule):
         """ Call lr finder internally during Trainer.fit() """
         lr_finder = self.find_lr(model)
         lr = lr_finder.suggestion()
@@ -44,7 +44,7 @@ class TrainerLRFinderMixin(ABC):
                     'When auto_lr_find is set to True, expects that hparams'
                     ' either has field `lr` or `learning_rate` that can overridden')
 
-    def _model_dump(self, filepath, model):
+    def _model_dump(self, filepath, model: ):
         """ Dump model state, for restoring after lr finder """
         checkpoint = model.state_dict()
         if self.proc_rank == 0:
@@ -100,13 +100,13 @@ class TrainerLRFinderMixin(ABC):
             trainer = pl.Trainer()
 
             # Run lr finder
-            LRfinder = trainer.find_lr(model, ...)
+            lr_finder = trainer.find_lr(model, ...)
 
             # Inspect results
-            fig = LRfinder.plot(); fig.show()
-            suggested_lr = LRfinder.suggest()
+            fig = lr_finder.plot(); fig.show()
+            suggested_lr = lr_finder.suggest()
 
-            # Overwhite lr and create new model
+            # Overwrite lr and create new model
             hparams.lr = suggested_lr
             model = MyModelClass(hparams)
 
@@ -163,7 +163,7 @@ class TrainerLRFinderMixin(ABC):
         # Fit, lr & loss logged in callback
         self.fit(model, train_dataloader=train_dataloader)
 
-        # Promt if we stopped early
+        # Prompt if we stopped early
         if self.global_step != num_training:
             log.info('LR finder stopped early due to diverging loss.')
 
@@ -198,29 +198,29 @@ class _LRFinder(object):
 
         lr_max: lr to stop seach
 
-        num_iters: number of steps to take between lr_min and lr_max
+        num_training: number of steps to take between lr_min and lr_max
 
     Example::
         # Run lr finder
-        lrfinder = trainer.find_lr(model)
+        lr_finder = trainer.find_lr(model)
 
         # Results stored in
-        lrfinder.results
+        lr_finder.results
 
         # Plot using
-        lrfinder.plot()
+        lr_finder.plot()
 
         # Get suggestion
-        lr = lrfinder.suggestion()
+        lr = lr_finder.suggestion()
     """
-    def __init__(self, mode, lr_min, lr_max, num_iters):
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
 
         self.mode = mode
         self.lr_min = lr_min
         self.lr_max = lr_max
-        self.num_iters = num_iters
+        self.num_training = num_training
 
         self.results = {}
 
@@ -301,8 +301,8 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch. """
-    def __init__(self, num_iters, show_progress_bar=False, beta=0.98):
-        self.num_iters = num_iters
+    def __init__(self, num_training: int, show_progress_bar: bool=False, beta: float=0.98):
+        self.num_training = num_training
         self.beta = beta
         self.losses = []
         self.lrs = []
