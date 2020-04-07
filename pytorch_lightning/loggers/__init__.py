@@ -80,7 +80,7 @@ Supported Loggers
 """
 from os import environ
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 __all__ = [

@@ -11,7 +11,8 @@ except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `test_tube` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install test-tube`.')
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
 class TestTubeLogger(LightningLoggerBase):

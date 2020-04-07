@@ -120,6 +120,7 @@ from typing import Union
 
 import torch
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import set_proc_rank, rank_zero_warn
@@ -146,6 +147,7 @@ class TrainerDDPMixin(ABC):
     on_gpu: bool
     num_gpu_nodes: int
     logger: Union[LightningLoggerBase, bool]
+    checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: str
     amp_level: str
@@ -326,8 +328,10 @@ class TrainerDDPMixin(ABC):
         set_proc_rank(self.proc_rank)
 
         # let the exp know the rank to avoid overwriting logs
-        if self.logger is not None:
+        if isinstance(self.logger, LightningLoggerBase):
             self.logger.rank = self.proc_rank
+        if isinstance(self.checkpoint_callback, ModelCheckpoint):
+            self.checkpoint_callback.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken

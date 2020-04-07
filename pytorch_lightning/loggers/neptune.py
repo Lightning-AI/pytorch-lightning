@@ -18,7 +18,8 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
 class NeptuneLogger(LightningLoggerBase):
