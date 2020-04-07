@@ -809,15 +809,3 @@ def test_trainer_config(trainer_kwargs, expected):
     assert trainer.on_gpu is expected["on_gpu"]
     assert trainer.single_gpu is expected["single_gpu"]
     assert trainer.num_processes == expected["num_processes"]
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
-def test_trainer_config_multi_gpu_ddp2():
-    trainer = Trainer(distributed_backend="ddp2", gpus=2)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is True
-    assert trainer.num_gpus == 2
-    assert trainer.single_gpu is False
-    assert trainer.on_gpu is True
-    assert trainer.num_processes == 1
