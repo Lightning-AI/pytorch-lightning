@@ -36,9 +36,9 @@ class TensorRunningMean(object):
             return self.memory[self.last_idx]
 
     def append(self, x):
-        # map proper type for memory if they don't match
-        if self.memory.type() != x.type():
-            self.memory.type_as(x)
+        # ensure same device and type
+        if self.memory.device != x.device or self.memory.type() != x.type():
+            x = x.to(self.memory)
 
         # store without grads
         with torch.no_grad():
