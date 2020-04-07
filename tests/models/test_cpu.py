@@ -48,7 +48,7 @@ def test_multi_cpu_model_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_model()
+    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_save_path=tmpdir,
         show_progress_bar=False,
