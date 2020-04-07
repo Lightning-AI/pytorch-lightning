@@ -19,7 +19,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class TrainerLRFinderMixin(ABC):
     @abstractmethod
-    def _atomic_save(self, *args):
+    def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def restore(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def _run_lr_finder_internally(self, model: LightningModule):
@@ -43,23 +47,6 @@ class TrainerLRFinderMixin(ABC):
                 raise MisconfigurationException(
                     'When auto_lr_find is set to True, expects that hparams'
                     ' either has field `lr` or `learning_rate` that can overridden')
-
-    def _model_dump(self, filepath, model: ):
-        """ Dump model state, for restoring after lr finder """
-        checkpoint = model.state_dict()
-        if self.proc_rank == 0:
-            # do the actual save
-            try:
-                self._atomic_save(checkpoint, filepath)
-            except AttributeError:
-                if 'hparams' in checkpoint:
-                    del checkpoint['hparams']
-
-                self._atomic_save(checkpoint, filepath)
-
-    def _model_restore(self, filepath, model):
-        """ Restore model state """
-        model.load_state_dict(torch.load(str(filepath)))
 
     def find_lr(self,
                 model: LightningModule,
@@ -147,8 +134,12 @@ class TrainerLRFinderMixin(ABC):
         checkpoint_callback = self.checkpoint_callback
         self.checkpoint_callback = False
 
+        # Required for saving the model
+        self.optimizers, self.schedulers = [], [],
+        self.model = model
+
         # Dump model checkpoint
-        self._model_dump(save_path, model)
+        self.save_checkpoint(str(save_path))
 
         # Configure optimizer and scheduler
         optimizers, _, _ = self.init_optimizers(model)
@@ -171,6 +162,10 @@ class TrainerLRFinderMixin(ABC):
         lr_finder.results.update({'lr': self.callbacks[0].lrs,
                                   'loss': self.callbacks[0].losses})
 
+        # Reset model state
+        self.restore(str(save_path), on_gpu=self.on_gpu)
+        os.remove(save_path)
+
         # Finish by resetting variables so trainer is ready to fit model
         self.auto_lr_find = auto_lr_find
         self.logger = logger
@@ -180,10 +175,6 @@ class TrainerLRFinderMixin(ABC):
         self.accumulate_grad_batches = accumulate_grad_batches
         self.checkpoint_callback = checkpoint_callback
         model.configure_optimizers = configure_optimizers
-
-        # Reset model state
-        self._model_restore(save_path, model)
-        os.remove(save_path)
 
         return lr_finder
 
@@ -227,7 +218,7 @@ class _LRFinder(object):
     def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
         """ Construct a new `configure_optimizers()` method, that has a optimizer
             with initial lr set to lr_min and a scheduler that will either
-            linearly or exponentially increase the lr to lr_max in num_iters steps.
+            linearly or exponentially increase the lr to lr_max in num_training steps.
 
         Args:
             optimizer: instance of `torch.optim.Optimizer`
@@ -238,7 +229,7 @@ class _LRFinder(object):
             param_group["lr"] = new_lr
             param_group["initial_lr"] = new_lr
 
-        args = (optimizer, self.lr_max, self.num_iters)
+        args = (optimizer, self.lr_max, self.num_training)
         scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
 
         def configure_optimizers():
@@ -301,7 +292,7 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch. """
-    def __init__(self, num_training: int, show_progress_bar: bool=False, beta: float=0.98):
+    def __init__(self, num_training: int, show_progress_bar: bool = False, beta: float = 0.98):
         self.num_training = num_training
         self.beta = beta
         self.losses = []
@@ -314,7 +305,7 @@ class _LRCallback(Callback):
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
         if self.show_progress_bar and self.progress_bar is None:
-            self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_iters)
+            self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 

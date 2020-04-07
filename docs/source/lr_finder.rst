@@ -69,4 +69,4 @@ The parameters of the algorithm can be seen below.
 .. autoclass:: pytorch_lightning.trainer.lr_finder.TrainerLRFinderMixin
    :members: find_lr
    :noindex:
-   :exclude-members: _atomic_save, _run_lr_finder_internally, _model_dump, _model_restore
+   :exclude-members: _run_lr_finder_internally, save_checkpoint, restore

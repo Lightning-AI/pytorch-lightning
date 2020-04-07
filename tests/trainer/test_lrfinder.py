@@ -103,7 +103,7 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-def test_full_basic_run(tmpdir):
+def test_trainer_arg_bool(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -128,7 +128,33 @@ def test_full_basic_run(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_full_power_run(tmpdir):
+def test_trainer_arg_str(tmpdir):
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
+    model = CurrentTestModel(hparams)
+    before_lr = hparams.my_fancy_lr
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        auto_lr_find='my_fancy_lr'
+    )
+
+    trainer.fit(model)
+    after_lr = model.hparams.my_fancy_lr
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
+def test_call_to_trainer_method(tmpdir):
     tutils.reset_seed()
 
     class CurrentTestModel(
