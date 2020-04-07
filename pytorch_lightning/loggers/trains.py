@@ -59,7 +59,7 @@ class TrainsLogger(LightningLoggerBase):
             sent along side the task scalars. Defaults to True.
 
     Examples:
-        >>> logger = TrainsLogger("lightning_log", "lightning-test", output_uri=".")  # doctest: +ELLIPSIS
+        >>> logger = TrainsLogger("lightning_log", "my-lightning-test", output_uri=".")  # doctest: +ELLIPSIS
         TRAINS Task: ...
         TRAINS results page: ...
         >>> logger.log_metrics({"val_loss": 1.23}, step=0)
