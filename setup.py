@@ -46,7 +46,7 @@ setup(
     url=pytorch_lightning.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
