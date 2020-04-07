@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.supporters import TensorRunningMean
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -343,7 +343,7 @@ class Trainer(
 
         # training bookeeping
         self.total_batch_idx = 0
-        self.running_loss = TensorRunningMean(window_length=20)
+        self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
         self.tqdm_metrics = {}
         self.callback_metrics = {}
