@@ -36,7 +36,10 @@ def load_long_describtion():
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     url = os.path.join(pytorch_lightning.__homepage__, 'raw', pytorch_lightning.__version__, 'docs')
     text = open('README.md', encoding='utf-8').read()
+    # replace relative repository path to absolute link to the release
     text = text.replace('](docs', f']({url}')
+    # SVG images are not readable on PyPI, so replace them  with PNG
+    text = text.replace('.svg', '.svg')
     return text
 
 
