@@ -32,6 +32,14 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
     return reqs
 
 
+def load_long_describtion():
+    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
+    url = os.path.join(pytorch_lightning.__homepage__, 'raw', pytorch_lightning.__version__, 'docs')
+    text = open('README.md', encoding='utf-8').read()
+    text = text.replace('](docs', f']({url}')
+    return text
+
+
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -48,7 +56,7 @@ setup(
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
-    long_description=open('README.md', encoding='utf-8').read(),
+    long_description=load_long_describtion(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
