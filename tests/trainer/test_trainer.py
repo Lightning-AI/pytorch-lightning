@@ -659,7 +659,6 @@ def test_trainer_interrupted_flag(tmpdir):
     trainer.fit(model)
     assert trainer.interrupted
 
-
 def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
@@ -702,185 +701,114 @@ def test_gpu_choice(tmpdir):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
 
-def test_trainer_config_cpu():
-    trainer = Trainer(distributed_backend=None, gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-def test_trainer_config_nogpu_dp():
-    """Fall back to non-distributed training on CPU"""
-    trainer = Trainer(distributed_backend="dp", gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-def test_trainer_config_nogpu_ddp():
-    """Fall back to non-distributed training on CPU"""
-    trainer = Trainer(distributed_backend="ddp", gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-def test_trainer_config_nogpu_multiprocess_ddp():
-    """Fall back to ddp_cpu if num_processes is specified"""
-    trainer = Trainer(distributed_backend="ddp", num_processes=2, gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 2
-
-
-def test_trainer_config_nogpu_multinode_ddp():
-    """Fall back to ddp_cpu if num_nodes is >1"""
-    trainer = Trainer(distributed_backend="ddp", num_nodes=2, gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-def test_trainer_config_nogpu_ddp_cpu():
-    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 2
-
-
-def test_trainer_config_nogpu_ddp2():
-    """Fall back to non-distributed training on CPU"""
-    trainer = Trainer(distributed_backend="ddp2", gpus=None)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
-def test_trainer_config_single_gpu():
-    trainer = Trainer(distributed_backend=None, gpus=1)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 1
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is True
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
-def test_trainer_config_single_gpu_dp():
-    trainer = Trainer(distributed_backend="dp", gpus=1)
-    assert trainer.use_dp is True
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 1
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is True
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
-def test_trainer_config_single_gpu_ddp():
-    trainer = Trainer(distributed_backend="ddp", gpus=1)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 1
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is True
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
-def test_trainer_config_single_gpu_ddp_cpu():
-    with pytest.warns(UserWarning):
-        trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2, gpus=1)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 0
-    assert trainer.on_gpu is False
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 2
-
-
-@pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")
-def test_trainer_config_single_gpu_ddp2():
-    trainer = Trainer(distributed_backend="ddp2", gpus=1)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is True
-    assert trainer.num_gpus == 1
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
-def test_trainer_config_multi_gpu():
-    """Test fallback to DP if no distributed_backend specified"""
-    with pytest.warns(UserWarning):
-        trainer = Trainer(distributed_backend=None, gpus=2)
-    assert trainer.use_dp is True
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 2
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
-def test_trainer_config_multi_gpu_dp():
-    trainer = Trainer(distributed_backend="dp", gpus=2)
-    assert trainer.use_dp is True
-    assert trainer.use_ddp is False
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 2
-    assert trainer.on_gpu is True
-    assert trainer.single_gpu is False
-    assert trainer.num_processes == 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
-def test_trainer_config_multi_gpu_ddp():
-    trainer = Trainer(distributed_backend="ddp", gpus=2)
-    assert trainer.use_dp is False
-    assert trainer.use_ddp is True
-    assert trainer.use_ddp2 is False
-    assert trainer.num_gpus == 2
-    assert trainer.single_gpu is False
-    assert trainer.on_gpu is True
-    assert trainer.num_processes == 2
+@pytest.mark.parametrize(
+    "trainer_kwargs,expected",
+    [
+        (
+            dict(distributed_backend=None, gpus=None),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        (
+            dict(distributed_backend="dp", gpus=None),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        (
+            dict(distributed_backend="dp", gpus=None),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        (
+            dict(distributed_backend="ddp", gpus=None),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        (
+            dict(distributed_backend="ddp", num_processes=2, gpus=None),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=2)
+        ),
+        (
+            dict(distributed_backend="ddp", num_nodes=2, gpus=None),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        (
+            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=None),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=2)
+        ),
+        (
+            dict(distributed_backend="ddp2", gpus=None),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=1)
+        ),
+        pytest.param(
+            dict(distributed_backend=None, gpus=1),
+            dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=1,
+                 on_gpu=True, single_gpu=True, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="dp", gpus=1),
+            dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=1,
+                 on_gpu=True, single_gpu=True, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="ddp", gpus=1),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=1,
+                 on_gpu=True, single_gpu=True, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=1),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0,
+                 on_gpu=False, single_gpu=False, num_processes=2),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="ddp2", gpus=1),
+            dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=1,
+                 on_gpu=True, single_gpu=False, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend=None, gpus=2),
+            dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2,
+                 on_gpu=True, single_gpu=False, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="dp", gpus=2),
+            dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2,
+                 on_gpu=True, single_gpu=False, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="ddp", gpus=2),
+            dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2,
+                 on_gpu=True, single_gpu=False, num_processes=2),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+        ),
+        pytest.param(
+            dict(distributed_backend="ddp2", gpus=2),
+            dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=2,
+                 on_gpu=True, single_gpu=False, num_processes=1),
+            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+        ),
+    ]
+)
+def test_trainer_config(trainer_kwargs, expected):
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.use_dp is expected["use_dp"]
+    assert trainer.use_ddp is expected["use_ddp"]
+    assert trainer.use_ddp2 is expected["use_ddp2"]
+    assert trainer.num_gpus == expected["num_gpus"]
+    assert trainer.on_gpu is expected["on_gpu"]
+    assert trainer.single_gpu is expected["single_gpu"]
+    assert trainer.num_processes == expected["num_processes"]
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")
