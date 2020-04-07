@@ -1,6 +1,12 @@
 name: PyPI Release
 
-on: [push]
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 
