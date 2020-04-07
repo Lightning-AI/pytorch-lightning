@@ -129,7 +129,10 @@ class ModelCheckpoint(Callback):
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
-        os.remove(filepath)
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
 
     def _save_model(self, filepath):
         # make paths
