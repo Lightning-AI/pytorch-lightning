@@ -554,8 +554,7 @@ class Trainer(
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
-            for allowed_type in (at for at in allowed_types
-                                 if allowed_type in arg_types):
+            for allowed_type in (at for at in allowed_types if at in arg_types):
                 if isinstance(allowed_type, bool):
                     allowed_type = lambda x: bool(distutils.util.strtobool(x))
                 parser.add_argument(
