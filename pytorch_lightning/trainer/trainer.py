@@ -5,7 +5,6 @@ import sys
 import warnings
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
-import distutils
 
 import torch
 import torch.distributed as torch_distrib
