@@ -140,10 +140,8 @@ class ModelCheckpoint(Callback):
         self._rank = value
 
     def _del_model(self, filepath):
-        try:
+        if os.path.isfile(filepath):
             os.remove(filepath)
-        except Exception:
-            pass
 
     def _save_model(self, filepath):
         # make paths
