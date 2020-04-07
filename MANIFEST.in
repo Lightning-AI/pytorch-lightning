@@ -41,3 +41,4 @@ prune .circleci
 prune notebook*
 prune temp*
 prune test*
+prune benchmark*
