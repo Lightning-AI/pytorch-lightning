@@ -9,7 +9,8 @@ try:
     from omegaconf import OmegaConf, DictConfig
 except ImportError:
     import logging
-    logging.debug('Hydra is not installed. If you want to use Hydra for managing configuration, please install it with `pip install hydra_core`.')
+    logging.debug('Hydra is not installed. If you want to use Hydra for managing configuration,'
+                  'please install it with `pip install hydra_core`.')
 
 import numpy as np
 import torch
