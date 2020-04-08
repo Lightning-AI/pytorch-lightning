@@ -172,7 +172,7 @@ def test_call_to_trainer_method(tmpdir):
         max_epochs=1,
     )
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = trainer.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.hparams.learning_rate = after_lr
     trainer.fit(model)

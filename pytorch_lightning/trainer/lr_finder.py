@@ -32,12 +32,13 @@ class TrainerLRFinderMixin(ABC):
         lr = lr_finder.suggestion()
         # TODO: log lr.results to self.logger
         if isinstance(self.auto_lr_find, str):
-            if hasattr(model.hparams, self.auto_lr_find):
-                setattr(model.hparams, self.auto_lr_find, lr)
+            # Try to find requested field, may be nested
+            if _nested_hasattr(model.hparams, self.auto_lr_find):
+                _nested_setattr(model.hparams, self.auto_lr_find, lr)
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                    ' could not find this as a field in model.hparams.')
+                    ' could not find this as a field in `model.hparams`.')
         else:
             if hasattr(model.hparams, 'lr'):
                 model.hparams.lr = lr
@@ -412,3 +413,22 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self):
         return self._lr
+
+
+def _nested_hasattr(obj, path):
+    parts = path.split(".")
+    for part in parts:
+        if hasattr(obj, part):
+            obj = getattr(obj, part)
+        else:
+            return False
+    else:
+        return True
+
+
+def _nested_setattr(obj, path, val):
+    parts = path.split(".")
+    for part in parts[:-1]:
+        if hasattr(obj, part):
+            obj = getattr(obj, part)
+    setattr(obj, parts[-1], val)

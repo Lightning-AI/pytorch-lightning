@@ -13,6 +13,9 @@ after each processed batch and the corresponding loss is logged. The result of
 this is a `lr` vs. `loss` plot that can be used as guidence for choosing a optimal
 initial lr. 
 
+.. warning:: For the moment, this feature only works with models having a single
+    optimizer.
+
 Using Lightnings build-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
