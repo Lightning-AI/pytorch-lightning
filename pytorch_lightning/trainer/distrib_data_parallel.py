@@ -192,9 +192,8 @@ class TrainerDDPMixin(ABC):
                                ' Setting distributed_backend=dp for you.')
                 self.use_dp = True
         elif distributed_backend == "dp":
-            if self.num_gpus == 0:
-                pass
-            elif self.num_gpus == 1:
+            # do nothing if num_gpus == 0
+            if self.num_gpus == 1:
                 self.single_gpu = True
                 self.use_dp = True
             elif self.num_gpus > 1:
@@ -210,9 +209,8 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp = True
                 self.num_processes = self.num_gpus
         elif distributed_backend == "ddp2":
-            if self.num_gpus == 0:
-                pass
-            elif self.num_gpus >= 1:
+            # do nothing if num_gpus == 0
+            if self.num_gpus >= 1:
                 self.use_ddp2 = True
         elif distributed_backend == "ddp_cpu":
             if self.num_gpus > 0:
