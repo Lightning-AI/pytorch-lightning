@@ -71,7 +71,7 @@ class TrainerLoggingMixin(ABC):
             step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step=step)
+            self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
     def add_tqdm_metrics(self, metrics):
