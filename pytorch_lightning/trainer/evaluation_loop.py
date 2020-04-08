@@ -379,10 +379,11 @@ class TrainerEvaluationLoopMixin(ABC):
         # log results of test
         if test_mode:
             if self.proc_rank == 0:
-                print('-' * 100)
-                print('TEST RESULTS')
-                pprint(prog_bar_metrics)
-                print('-' * 100)
+                if prog_bar_metrics:
+                    print('-' * 100)
+                    print('TEST RESULTS')
+                    pprint(prog_bar_metrics)
+                    print('-' * 100)
 
         # log metrics
         self.log_metrics(log_metrics, {})
