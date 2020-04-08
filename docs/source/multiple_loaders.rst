@@ -26,13 +26,13 @@ dataloaders).
         def __len__(self):
             return min(len(d) for d in self.datasets)
 
-        concat_dataset = ConcatDataset(
-            datasets.ImageFolder(traindir_A),
-            datasets.ImageFolder(traindir_B)
-        )
-
     class LitModel(LightningModule):
         def train_dataloader(self):
+            concat_dataset = ConcatDataset(
+                datasets.ImageFolder(traindir_A),
+                datasets.ImageFolder(traindir_B)
+            )
+
             loader = torch.utils.data.DataLoader(
                 concat_dataset,
                 batch_size=args.batch_size,
