@@ -3,7 +3,7 @@ Multiple Datasets
 Lightning supports multiple dataloaders in a few ways.
 
 1. Create a dataloader that iterates both datasets under the hood.
-2. In the validation and test loop you also have the option to return multiple dataloaders
+2. In the validation and test loop you also have the option to return multiple dataloaders \
 which lightning will call sequentially.
 
 Multiple training dataloaders
