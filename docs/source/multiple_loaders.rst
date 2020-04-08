@@ -27,13 +27,22 @@ dataloaders).
             datasets.ImageFolder(traindir_B)
         )
 
-        train_loader = torch.utils.data.DataLoader(
-            concat_dataset,
-            batch_size=args.batch_size,
-            shuffle=True,
-            num_workers=args.workers,
-            pin_memory=True
-        )
+    class LitModel(LightningModule):
+        def train_dataloader(self):
+            loader = torch.utils.data.DataLoader(
+                concat_dataset,
+                batch_size=args.batch_size,
+                shuffle=True,
+                num_workers=args.workers,
+                pin_memory=True
+            )
+            return loader
+
+        def val_dataloader(self):
+            # SAME
+
+        def test_dataloader(self):
+            # SAME
 
 Test/Val dataloaders
 --------------------
