@@ -5,6 +5,10 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
+try:
+    from omegaconf import OmegaConf, DictConfig
+except ImportError:
+    pass
 
 import numpy as np
 import torch
@@ -157,10 +161,12 @@ class LightningLoggerBase(ABC):
         pass
 
     @staticmethod
-    def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
-        # in case converting from namespace
-        if isinstance(params, Namespace):
+    def _convert_params(params: Union[Dict[str, Any], Namespace, DictConfig]) -> Dict[str, Any]:
+        # in case converting from namespace or hydra config
+        if hasattr(params, "__dict__"):
             params = vars(params)
+        elif isinstance(params, DictConfig):
+            params = OmegaConf.to_container(params, resolve=True)
 
         if params is None:
             params = {}
