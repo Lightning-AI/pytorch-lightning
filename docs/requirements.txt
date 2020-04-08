@@ -9,4 +9,4 @@ sphinxcontrib-mockautodoc
 git+https://github.com/PytorchLightning/lightning_sphinx_theme.git
 # pip_shims
 sphinx-autodoc-typehints
-sphinx-paramlinks
+sphinx-paramlinks<0.4.0
