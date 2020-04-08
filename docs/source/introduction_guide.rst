@@ -32,15 +32,16 @@ Installing Lightning
 --------------------
 Lightning is trivial to install.
 
-.. code-block::
+.. code-block::bash
 
-    $ conda activate my_env
-    $ pip install pytorch-lightning
+    conda activate my_env
+    pip install pytorch-lightning
 
 Or without conda environments, anywhere you can use pip.
 
-.. code-block::
-    $ pip install pytorch-lightning
+.. code-block::bash
+
+    pip install pytorch-lightning
 
 ---------
 
