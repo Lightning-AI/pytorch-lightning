@@ -162,8 +162,8 @@ class LightningLoggerBase(ABC):
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace, DictConfig]) -> Dict[str, Any]:
-        # in case converting from namespace or hydra config
-        if hasattr(params, "__dict__"):
+        # in case converting from Namespace or hydra's DictConfig
+        if isinstance(params, Namespace):
             params = vars(params)
         elif isinstance(params, DictConfig):
             params = OmegaConf.to_container(params, resolve=True)
