@@ -67,6 +67,7 @@ PyTorch Lightning Documentation
    hooks
    hyperparameters
    multi_gpu
+   multiple_loaders
    weights_loading
    optimizers
    profiler
