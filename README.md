@@ -44,6 +44,7 @@ pip install pytorch-lightning
 
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
+- [0.7.2](https://pytorch-lightning.readthedocs.io/en/0.7.2/)
 - [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
