@@ -39,7 +39,7 @@ def load_long_describtion():
     # replace relative repository path to absolute link to the release
     text = text.replace('](docs', f']({url}')
     # SVG images are not readable on PyPI, so replace them  with PNG
-    text = text.replace('.svg', '.svg')
+    text = text.replace('.svg', '.png')
     return text
 
 
