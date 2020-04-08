@@ -221,9 +221,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                         "hiddens": hiddens  # remember to detach() this
                     }
 
-            You can also return a -1 instead of a dict to stop the current loop. This is useful
-            if you want to break out of the current training epoch early.
-
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
