@@ -28,6 +28,23 @@ to use inheritance to very quickly create an AutoEncoder.
 
 ---------
 
+Installing Lightning
+--------------------
+Lightning is trivial to install.
+
+.. code-block:: bash
+
+    conda activate my_env
+    pip install pytorch-lightning
+
+Or without conda environments, anywhere you can use pip.
+
+.. code-block:: bash
+
+    pip install pytorch-lightning
+
+---------
+
 Lightning Philosophy
 --------------------
 Lightning factors DL/ML code into three types:
