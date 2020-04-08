@@ -12,9 +12,9 @@ For training, the best way to use multiple-dataloaders is to create a Dataloader
 which wraps both your dataloaders. (This of course also works for testing and validation
 dataloaders).
 
-(`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2>`_
+(`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2>`_)
 
-.. code-block::python
+.. code-block:: python
 
     class ConcatDataset(torch.utils.data.Dataset):
         def __init__(self, *datasets):
@@ -58,7 +58,7 @@ See the following for more details:
 - :meth:`~pytorch_lightning.core.LightningModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.LightningModule.test_dataloader`
 
-.. code-block::python
+.. code-block:: python
 
     def val_dataloader(self):
         loader_1 = Dataloader()
