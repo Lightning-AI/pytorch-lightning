@@ -612,8 +612,7 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[DataLoader] = None,
-            test_dataloaders: Optional[DataLoader] = None
+            val_dataloaders: Optional[DataLoader] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -629,10 +628,6 @@ class Trainer(
                 Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined test_dataloaders method this will be skipped
-
         Example::
 
             # Option 1,
@@ -646,11 +641,10 @@ class Trainer(
             # Option 2
             # in production cases we might want to pass different datasets to the same model
             # Recommended for PRODUCTION SYSTEMS
-            train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
+            train, val, test = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train,
-                        val_dataloader=val, test_dataloader=test)
+            trainer.fit(model, train_dataloader=train, val_dataloader=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
             # defined as part of the model, and validation/test can then be
@@ -662,7 +656,7 @@ class Trainer(
         self.copy_trainer_model_properties(model)
 
         # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
         # check that model is configured correctly
         self.check_model_configuration(model)
@@ -863,10 +857,7 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self,
-             model: Optional[LightningModule] = None,
-             test_dataloaders: Optional[DataLoader] = None
-    ):
+    def test(self, model: Optional[LightningModule] = None, test_dataloaders: Optional[DataLoader] = None):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
@@ -896,12 +887,15 @@ class Trainer(
 
         self.testing = True
 
-        if (test_dataloaders is not None) and (self.model is not None):
-            self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+        if test_dataloaders is not None:
+            if model is not None:
+                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            else:
+                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
         if model is not None:
             self.model = model
-            self.fit(model, test_dataloaders=test_dataloaders)
+            self.fit(model)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
