@@ -348,6 +348,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import set_proc_rank
 
 try:
     from apex import amp
@@ -489,6 +490,7 @@ class TrainerDPMixin(ABC):
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
         self.proc_rank = self.tpu_local_core_rank
+        set_proc_rank(self.proc_rank)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
