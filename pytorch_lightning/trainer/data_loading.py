@@ -87,9 +87,8 @@ class TrainerDataLoadingMixin(ABC):
             return dataloader
 
         need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_tpu
-        no_sampler_added = dataloader.sampler is None
 
-        if need_dist_sampler and no_sampler_added:
+        if need_dist_sampler:
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
