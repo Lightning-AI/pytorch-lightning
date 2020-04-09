@@ -14,5 +14,5 @@ def set_proc_rank(value: int) -> None:
 def rank_zero_warn(*args, **kwargs) -> None:
     """Warning only if (sub)process has rank 0."""
     global _proc_rank
-    if _proc_rank:
+    if _proc_rank == 0:
         warnings.warn(*args, **kwargs)
