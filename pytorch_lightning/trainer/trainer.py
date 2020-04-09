@@ -641,7 +641,7 @@ class Trainer(
             # Option 2
             # in production cases we might want to pass different datasets to the same model
             # Recommended for PRODUCTION SYSTEMS
-            train, val, test = DataLoader(...), DataLoader(...)
+            train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
             trainer.fit(model, train_dataloader=train, val_dataloader=val)
