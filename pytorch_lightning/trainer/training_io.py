@@ -322,7 +322,7 @@ class TrainerIOMixin(ABC):
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
         else:
             rank_zero_warn(
-                "Did not find hyperparameters at model.hparams. Saving checkpoint without hyperparameters."
+                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
             )
 
         # give the model a chance to add a few things
