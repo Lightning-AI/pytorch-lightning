@@ -296,6 +296,7 @@ class TrainerDDPMixin(ABC):
             self.proc_rank = self.node_rank
             self.world_size = self.num_gpu_nodes
 
+        model.rank = self.proc_rank
         # let the exp know the rank to avoid overwriting logs
         if self.logger is not None:
             self.logger.rank = self.proc_rank
