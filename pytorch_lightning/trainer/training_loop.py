@@ -386,7 +386,8 @@ class TrainerTrainLoopMixin(ABC):
             self.run_training_teardown()
 
         except KeyboardInterrupt:
-            log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            if self.proc_rank == 0:
+                log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.interrupted = True
             self.run_training_teardown()
 
