@@ -7,14 +7,13 @@ Automatically save model checkpoints during training.
 """
 
 import os
-import shutil
-import warnings
 import re
 
 import numpy as np
 
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ModelCheckpoint(Callback):
@@ -83,7 +82,7 @@ class ModelCheckpoint(Callback):
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
         if save_top_k > 0 and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
-            warnings.warn(
+            rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
@@ -115,9 +114,7 @@ class ModelCheckpoint(Callback):
         }
 
         if mode not in mode_dict:
-            warnings.warn(
-                f'ModelCheckpoint mode {mode} is unknown, '
-                'fallback to auto mode.', RuntimeWarning)
+            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
@@ -206,7 +203,7 @@ class ModelCheckpoint(Callback):
             current = metrics.get(self.monitor)
 
             if current is None:
-                warnings.warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
+                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch)
             elif self.verbose > 0:

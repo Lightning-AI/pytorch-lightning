@@ -1,9 +1,16 @@
-"""Cutome Ligthning warnings"""
+"""Custom Lightning warnings"""
 
 import warnings
 
+_proc_rank = 0
 
-def rank_zero_warn(*args, trainer=None, **kwargs):
-    if trainer and (trainer.proc_rank() > 0 or trainer.node_rank > 0):
-        return
-    warnings.warn(*args, **kwargs)
+
+def set_proc_rank(value: int) -> None:
+    global _proc_rank
+    _proc_rank = value
+
+
+def rank_zero_warn(*args, **kwargs):
+    global _proc_rank
+    if _proc_rank:
+        rank_zero_warn(*args, **kwargs)

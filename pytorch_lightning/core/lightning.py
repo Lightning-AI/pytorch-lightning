@@ -225,8 +225,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
-        rank_zero_warn('`training_step` must be implemented to be used with the Lightning Trainer',
-                       trainer=self.trainer)
+        rank_zero_warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
     def training_end(self, *args, **kwargs):
         """
@@ -1089,8 +1088,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
-        rank_zero_warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer',
-                       trainer=self.trainer)
+        rank_zero_warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
             self,
@@ -1293,8 +1291,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return loader
 
         """
-        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer',
-                       trainer=self.trainer)
+        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """
@@ -1303,8 +1300,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         """
         output = self.train_dataloader()
         rank_zero_warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-                       " and this method will be removed in v1.0.0", DeprecationWarning,
-                       trainer=self.trainer)
+                       " and this method will be removed in v1.0.0", DeprecationWarning)
         return output
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:

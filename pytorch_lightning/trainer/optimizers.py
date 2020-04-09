@@ -1,4 +1,3 @@
-import warnings
 from abc import ABC
 from typing import List, Tuple
 
@@ -7,6 +6,7 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerOptimizersMixin(ABC):
@@ -18,8 +18,8 @@ class TrainerOptimizersMixin(ABC):
         optim_conf = model.configure_optimizers()
 
         if optim_conf is None:
-            warnings.warn('`LightningModule.configure_optimizers` returned `None`, '
-                          'this fit will run with no optimizer', UserWarning)
+            rank_zero_warn('`LightningModule.configure_optimizers` returned `None`, '
+                           'this fit will run with no optimizer', UserWarning)
             optim_conf = _MockOptimizer()
 
         # single output, single optimizer

@@ -124,7 +124,6 @@ In this second case, the options you pass to trainer will be used when running
 """
 
 import sys
-import warnings
 from abc import ABC, abstractmethod
 from pprint import pprint
 from typing import Callable
@@ -136,6 +135,7 @@ from tqdm.auto import tqdm
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -299,7 +299,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                warnings.warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
                               ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('test_epoch_end', model=model):
@@ -309,7 +309,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                warnings.warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
                               ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('validation_epoch_end', model=model):

@@ -6,9 +6,8 @@ Change gradient accumulation factor according to scheduling.
 
 """
 
-import warnings
-
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class GradientAccumulationScheduler(Callback):
@@ -46,8 +45,8 @@ class GradientAccumulationScheduler(Callback):
                 raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
-        warnings.warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
-                      ' but will start from "0" in v0.8.0.', DeprecationWarning)
+        rank_zero_warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
+                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
         if minimal_epoch < 1:
             msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
             raise IndexError(msg)
