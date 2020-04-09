@@ -260,12 +260,12 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
 
-    trainer.test()
+    trainer.test(**test_options)
 
     assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
@@ -300,11 +300,12 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)],
-                       test_dataloaders=[model._dataloader(train=False),
-                                         model._dataloader(train=False)])
+                                        model._dataloader(train=False)])
+    test_options = dict(test_dataloaders=[model._dataloader(train=False),
+                                          model._dataloader(train=False)])
+
     results = trainer.fit(model, **fit_options)
-    trainer.test()
+    trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -342,10 +343,11 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
+
     _ = trainer.fit(model, **fit_options)
-    trainer.test()
+    trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
