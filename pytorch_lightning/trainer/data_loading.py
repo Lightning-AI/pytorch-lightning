@@ -1,4 +1,5 @@
 import warnings
+import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
@@ -75,7 +76,9 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
-        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2:
+        on_windows = platform.system() == 'Windows'
+
+        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2 and not on_windows:
             warnings.warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
                           ' Consider increasing the value of the `num_workers` argument`'
                           ' in the `DataLoader` init to improve performance.')
