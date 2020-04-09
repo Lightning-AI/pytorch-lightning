@@ -331,14 +331,11 @@ def test_tbptt_cpu_model(tmpdir):
     assert result == 1, 'training failed to complete'
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_model(tmpdir):
     """Make sure single GPU works (DP mode)."""
     tutils.reset_seed()
 
-    if not torch.cuda.is_available():
-        warnings.warn('test_single_gpu_model cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
     model, hparams = tutils.get_default_model()
 
     trainer_options = dict(
