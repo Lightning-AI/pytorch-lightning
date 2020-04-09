@@ -115,7 +115,6 @@ When the script starts again, Lightning will:
 
 import os
 import re
-import warnings
 from abc import ABC, abstractmethod
 from typing import Union
 
@@ -123,6 +122,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import set_proc_rank, rank_zero_warn
 
 try:
     from apex import amp
@@ -203,20 +203,19 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp2 = distributed_backend == 'ddp2'
 
             elif distributed_backend is None:
-                warnings.warn('You requested multiple GPUs but did not specify a backend, e.g.'
-                              ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                              ' Setting distributed_backend=dp for you.')
+                rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
+                               ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
+                               ' Setting distributed_backend=dp for you.')
                 self.use_dp = True
                 self.use_ddp = False
                 self.use_ddp2 = False
 
         # throw error to force user ddp or ddp2 choice
         if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
-            w = 'DataParallel does not support num_nodes > 1. ' \
-                'Switching to DistributedDataParallel for you. ' \
-                'To silence this warning set distributed_backend=ddp' \
-                'or distributed_backend=ddp2'
-            raise MisconfigurationException(w)
+            raise MisconfigurationException(
+                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
+                'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
+            )
 
         log.info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
@@ -295,6 +294,8 @@ class TrainerDDPMixin(ABC):
         elif self.use_ddp2:
             self.proc_rank = self.node_rank
             self.world_size = self.num_gpu_nodes
+        # set warning rank
+        set_proc_rank(self.proc_rank)
 
         # let the exp know the rank to avoid overwriting logs
         if self.logger is not None:

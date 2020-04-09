@@ -1,5 +1,4 @@
 import os
-import warnings
 from argparse import Namespace
 
 import numpy as np
@@ -92,7 +91,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
 
 
 def get_default_hparams(continue_training=False, hpc_exp_number=0):
-    tests_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    _ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
     args = {
         'drop_prob': 0.2,

@@ -2,7 +2,6 @@ import distutils
 import inspect
 import os
 import sys
-import warnings
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -33,6 +32,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     from apex import amp
@@ -266,16 +266,16 @@ class Trainer(
         self.num_nodes = num_nodes
         # Backward compatibility, TODO: remove in v0.8.0
         if nb_gpu_nodes is not None:
-            warnings.warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
         self.gradient_clip_val = gradient_clip_val
         # Backward compatibility, TODO: remove in v0.8.0
         if gradient_clip is not None:
-            warnings.warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.gradient_clip = gradient_clip
 
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -294,15 +294,15 @@ class Trainer(
         self.max_epochs = max_epochs
         # Backward compatibility, TODO: remove in v0.8.0
         if max_nb_epochs is not None:
-            warnings.warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.max_nb_epochs = max_nb_epochs
 
         self.min_epochs = min_epochs
         # Backward compatibility, TODO: remove in v0.8.0
         if min_nb_epochs is not None:
-            warnings.warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.min_nb_epochs = min_nb_epochs
 
         self.max_steps = max_steps
@@ -311,16 +311,15 @@ class Trainer(
         self.num_sanity_val_steps = num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.8.0
         if nb_sanity_val_steps is not None:
-            warnings.warn("Argument `nb_sanity_val_steps` has renamed to "
-                          "`num_sanity_val_steps` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("Argument `nb_sanity_val_steps` has renamed to "
+                           "`num_sanity_val_steps` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             self.nb_sanity_val_steps = nb_sanity_val_steps
 
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
-            warnings.warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
-                          " NaN grads will be printed automatically when detected.",
-                          DeprecationWarning)
+            rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
+                           " NaN grads will be printed automatically when detected.", DeprecationWarning)
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -430,8 +429,8 @@ class Trainer(
 
         # backward compatibility
         if add_row_log_interval is not None:
-            warnings.warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                          " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
+                           " and this method will be removed in v0.8.0", DeprecationWarning)
             if not row_log_interval:  # in case you did not set the proper value
                 row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
@@ -447,8 +446,8 @@ class Trainer(
 
         # Backward compatibility, TODO: remove in v0.9.0
         if use_amp is not None:
-            warnings.warn("`use_amp` has been replaced by `precision` since v0.7.0"
-                          " and this argument will be removed in v0.9.0", DeprecationWarning)
+            rank_zero_warn("`use_amp` has been replaced by `precision` since v0.7.0"
+                           " and this argument will be removed in v0.9.0", DeprecationWarning)
             self.precision = 16 if use_amp else 32
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
@@ -602,8 +601,8 @@ class Trainer(
             Use `training_tqdm_dict` instead. Will remove 0.8.0.
 
         """
-        warnings.warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                      " and this method will be removed in v0.8.0", DeprecationWarning)
+        rank_zero_warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
+                       " and this method will be removed in v0.8.0", DeprecationWarning)
         return self.training_tqdm_dict
 
     # -----------------------------
@@ -937,10 +936,11 @@ class Trainer(
                                                 ' but have not defined `validation_step()`.')
             else:
                 if not self.is_overriden('validation_epoch_end', model):
-                    warnings.warn('You have defined a `val_dataloader()` and have'
-                                  ' defined a `validation_step()`, you may also want to'
-                                  ' define `validation_epoch_end()` for accumulating stats.',
-                                  RuntimeWarning)
+                    rank_zero_warn(
+                        'You have defined a `val_dataloader()` and have defined a `validation_step()`,'
+                        ' you may also want to define `validation_epoch_end()` for accumulating stats.',
+                        RuntimeWarning
+                    )
         else:
             if self.is_overriden('validation_step', model):
                 raise MisconfigurationException('You have defined `validation_step()`,'
@@ -953,10 +953,10 @@ class Trainer(
                                                 ' but have not defined `test_step()`.')
             else:
                 if not self.is_overriden('test_epoch_end', model):
-                    warnings.warn('You have defined a `test_dataloader()` and'
-                                  ' have defined a `test_step()`, you may also want to'
-                                  ' define `test_epoch_end()` for accumulating stats.',
-                                  RuntimeWarning)
+                    rank_zero_warn(
+                        'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
+                        ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+                    )
         else:
             if self.is_overriden('test_step', model):
                 raise MisconfigurationException('You have defined `test_step()`,'

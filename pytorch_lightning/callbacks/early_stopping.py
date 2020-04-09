@@ -6,12 +6,11 @@ Stop training when a monitored quantity has stopped improving.
 
 """
 
-import warnings
-
 import numpy as np
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class EarlyStopping(Callback):
@@ -80,7 +79,7 @@ class EarlyStopping(Callback):
             if self.strict:
                 raise RuntimeError(error_msg)
             if self.verbose > 0:
-                warnings.warn(error_msg, RuntimeWarning)
+                rank_zero_warn(error_msg, RuntimeWarning)
 
             return False
 
@@ -113,6 +112,6 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            warnings.warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
-                          ' but will start from "0" in v0.8.0.', DeprecationWarning)
+            rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
+                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
             log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
