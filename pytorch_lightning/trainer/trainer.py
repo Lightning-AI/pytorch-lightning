@@ -747,7 +747,7 @@ class Trainer(
             default_port = random.randint(10000, 19000)
             os.environ['MASTER_PORT'] = str(default_port)
 
-    def __attach_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
+    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -863,13 +863,19 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self, model: Optional[LightningModule] = None):
+    def test(self,
+             model: Optional[LightningModule] = None,
+             test_dataloaders: Optional[DataLoader] = None
+    ):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
             model: The model to test.
+
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples.
 
         Example::
 
@@ -889,9 +895,13 @@ class Trainer(
         """
 
         self.testing = True
+
+        if (test_dataloaders is not None) and (self.model is not None):
+            self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+
         if model is not None:
             self.model = model
-            self.fit(model)
+            self.fit(model, test_dataloaders=test_dataloaders)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
