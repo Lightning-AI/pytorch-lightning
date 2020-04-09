@@ -513,8 +513,8 @@ def test_warning_with_few_workers(tmpdir):
     )
 
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
 
     trainer = Trainer(**trainer_options)
 
@@ -526,7 +526,7 @@ def test_warning_with_few_workers(tmpdir):
         trainer.fit(model, **fit_options)
 
     with pytest.warns(UserWarning, match='test'):
-        trainer.test()
+        trainer.test(**test_options)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
