@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+- Added `gpu_choice` to trainer which can enable automatically picking the first available GPU on exclusive mode systems.
+
 ## [0.7.3] - 2020-04-09
 
 ### Added

@@ -22,7 +22,12 @@ from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
+from pytorch_lightning.trainer.distrib_parts import (
+    TrainerDPMixin,
+    parse_gpu_ids,
+    determine_root_gpu_device,
+    pick_multiple_gpus,
+)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -85,6 +90,7 @@ class Trainer(
             process_position: int = 0,
             num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
+            gpu_choice: str = 'manual',
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
@@ -157,6 +163,14 @@ class Trainer(
                     Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
+
+            gpu_choice: 'manual' (default) or 'auto'.
+
+                If 'auto' and `gpus` is an integer, pick the first
+                available gpus automatically. This is especially
+                useful when GPUs are configured to be in "exclusive
+                mode", which means that only one process at a time can
+                use them.
 
             num_tpu_cores: How many TPU cores to train on (1 or 8).
 
@@ -384,8 +398,12 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
-        # allow int, string and gpu list
-        self.gpus = gpus
+        # for gpus allow int, string and gpu list
+        if gpu_choice == "auto" and isinstance(gpus, int):
+            self.gpus = pick_multiple_gpus(gpus)
+        else:
+            self.gpus = gpus
+
         self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
