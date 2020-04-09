@@ -631,7 +631,7 @@ class Trainer(
         Example::
 
             # Option 1,
-            # Define the train_dataloader(), test_dataloader() and val_dataloader() fxs
+            # Define the train_dataloader() and val_dataloader() fxs
             # in the lightningModule
             # RECOMMENDED FOR MOST RESEARCH AND APPLICATIONS TO MAINTAIN READABILITY
             trainer = Trainer()
@@ -647,8 +647,7 @@ class Trainer(
             trainer.fit(model, train_dataloader=train, val_dataloader=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
-            # defined as part of the model, and validation/test can then be
-            # feed to .fit()
+            # defined as part of the model, and validation can then be feed to .fit()
 
         """
         # bind logger and other properties
@@ -872,17 +871,19 @@ class Trainer(
 
             # Option 1
             # run test after fitting
+            test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
 
-            trainer.fit()
-            trainer.test()
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test)
 
             # Option 2
             # run test from a loaded model
+            test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-            trainer.test(model)
+            trainer.test(model, test_dataloaders=test)
         """
 
         self.testing = True
