@@ -32,7 +32,7 @@ def test_optimizer_with_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -71,7 +71,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -114,7 +114,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -163,7 +163,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -263,7 +263,7 @@ def test_none_optimizer(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2

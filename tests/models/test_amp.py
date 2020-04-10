@@ -20,7 +20,7 @@ def test_amp_single_gpu(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
         distributed_backend='ddp',
@@ -40,7 +40,7 @@ def test_no_amp_single_gpu(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
         distributed_backend='dp',
@@ -63,7 +63,7 @@ def test_amp_gpu_ddp(tmpdir):
     model = LightningTestModel(hparams)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
         distributed_backend='ddp',
@@ -123,7 +123,7 @@ def test_cpu_model_with_amp(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
@@ -146,7 +146,7 @@ def test_amp_gpu_dp(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus='0, 1',  # test init with gpu string
         distributed_backend='dp',

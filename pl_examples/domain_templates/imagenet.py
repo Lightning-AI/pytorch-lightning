@@ -222,7 +222,7 @@ def main(hparams):
         torch.manual_seed(hparams.seed)
         cudnn.deterministic = True
     trainer = pl.Trainer(
-        default_save_path=hparams.save_path,
+        default_root_dir=hparams.save_path,
         gpus=hparams.gpus,
         max_epochs=hparams.epochs,
         distributed_backend=hparams.distributed_backend,
