@@ -379,10 +379,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # log results of test
         if test_mode:
             import pdb; pdb.set_trace()
-            if self.proc_rank == 0 and len(prog_bar_metrics) > 0:
+            if self.proc_rank == 0 and len(callback_metrics) > 0:
                 print('-' * 80)
                 print('TEST RESULTS')
-                pprint(prog_bar_metrics)
+                pprint(callback_metrics)
                 print('-' * 80)
 
         # log metrics
