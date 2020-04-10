@@ -673,7 +673,7 @@ def test_gradient_clipping(tmpdir):
     def _optimizer_step(*args, **kwargs):
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 1e-5, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
 
     trainer = Trainer(max_steps=1,
                       max_epochs=1,
