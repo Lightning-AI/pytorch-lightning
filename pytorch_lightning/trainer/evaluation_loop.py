@@ -377,11 +377,13 @@ class TrainerEvaluationLoopMixin(ABC):
         self.add_tqdm_metrics(prog_bar_metrics)
 
         # log results of test
-        if test_mode and self.proc_rank == 0 and len(prog_bar_metrics):
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(prog_bar_metrics)
-            print('-' * 80)
+        if test_mode:
+            import pdb; pdb.set_trace()
+            if self.proc_rank == 0 and len(prog_bar_metrics) > 0:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(prog_bar_metrics)
+                print('-' * 80)
 
         # log metrics
         self.log_metrics(log_metrics, {})
