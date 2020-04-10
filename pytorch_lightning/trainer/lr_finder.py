@@ -103,7 +103,7 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
-        save_path = self.default_save_path + '/lr_find_temp.ckpt'
+        save_path = os.path.join(self.default_save_path, '/lr_find_temp.ckpt')
 
         # Prevent going into infinite loop
         auto_lr_find = self.auto_lr_find
