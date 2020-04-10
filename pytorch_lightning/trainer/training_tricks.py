@@ -41,7 +41,7 @@ class TrainerTrainingTricksMixin(ABC):
                 total_norm = torch.zeros([], device=device if parameters else None)
                 for p in parameters:
                     param_norm = p.grad.data.norm(norm_type) ** norm_type
-                total_norm.add_(param_norm)
+                    total_norm.add_(param_norm)
                 total_norm = (total_norm ** (1. / norm_type))
             eps = EPSILON_FP16 if self.precision == 16 else EPSILON
             clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
