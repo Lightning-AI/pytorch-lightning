@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `gpu_choice` to trainer which can enable automatically picking the first available GPU on exclusive mode systems.
+- Added `auto_select_gpus` flag to trainer that enables automatic selection of available GPUs on exclusive mode systems.
 
 ## [0.7.3] - 2020-04-09
 

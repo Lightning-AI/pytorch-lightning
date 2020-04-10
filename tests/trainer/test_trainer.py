@@ -696,7 +696,7 @@ def test_gpu_choice(tmpdir):
         return
 
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, gpus=num_gpus, gpu_choice="auto")
+    Trainer(**trainer_options, gpus=num_gpus, auto_select_gpus=True)
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
-        Trainer(**trainer_options, gpus=num_gpus + 1, gpu_choice="auto")
+        Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)

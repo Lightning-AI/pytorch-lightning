@@ -90,7 +90,7 @@ class Trainer(
             process_position: int = 0,
             num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
-            gpu_choice: str = 'manual',
+            auto_select_gpus: bool = False,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
@@ -164,13 +164,12 @@ class Trainer(
 
             gpus: Which GPUs to train on.
 
-            gpu_choice: 'manual' (default) or 'auto'.
+            auto_select_gpus:
 
-                If 'auto' and `gpus` is an integer, pick the first
-                available gpus automatically. This is especially
-                useful when GPUs are configured to be in "exclusive
-                mode", which means that only one process at a time can
-                use them.
+                If enabled and `gpus` is an integer, pick available
+                gpus automatically. This is especially useful when
+                GPUs are configured to be in "exclusive mode", such
+                that only one process at a time can access them.
 
             num_tpu_cores: How many TPU cores to train on (1 or 8).
 
@@ -399,7 +398,7 @@ class Trainer(
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
         # for gpus allow int, string and gpu list
-        if gpu_choice == "auto" and isinstance(gpus, int):
+        if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
         else:
             self.gpus = gpus
