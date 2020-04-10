@@ -135,6 +135,27 @@ Example::
     # default used by the Trainer
     trainer = Trainer(amp_level='O1')
 
+auto_lr_find
+^^^^^^^^^^^^
+Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
+before any training, to find optimal initial learning rate.
+
+.. code-block:: python
+
+    # default used by the Trainer (no learning rate finder)
+    trainer = Trainer(auto_lr_find=False)
+
+Example::
+
+    # run learning rate finder, results override hparams.learning_rate
+    trainer = Trainer(auto_lr_find=True)
+
+    # run learning rate finder, results override hparams.my_lr_arg
+    trainer = Trainer(auto_lr_find='my_lr_arg')
+
+.. note::
+    See the `learning rate finder guide <lr_finder.rst>`_
+
 benchmark
 ^^^^^^^^^
 

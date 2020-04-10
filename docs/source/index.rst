@@ -66,6 +66,7 @@ PyTorch Lightning Documentation
    fast_training
    hooks
    hyperparameters
+   lr_finder
    multi_gpu
    multiple_loaders
    weights_loading
