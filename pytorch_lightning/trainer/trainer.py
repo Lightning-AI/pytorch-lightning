@@ -613,8 +613,7 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[DataLoader] = None,
-            test_dataloaders: Optional[DataLoader] = None
+            val_dataloaders: Optional[DataLoader] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -630,14 +629,10 @@ class Trainer(
                 Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined test_dataloaders method this will be skipped
-
         Example::
 
             # Option 1,
-            # Define the train_dataloader(), test_dataloader() and val_dataloader() fxs
+            # Define the train_dataloader() and val_dataloader() fxs
             # in the lightningModule
             # RECOMMENDED FOR MOST RESEARCH AND APPLICATIONS TO MAINTAIN READABILITY
             trainer = Trainer()
@@ -647,15 +642,13 @@ class Trainer(
             # Option 2
             # in production cases we might want to pass different datasets to the same model
             # Recommended for PRODUCTION SYSTEMS
-            train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
+            train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train,
-                        val_dataloader=val, test_dataloader=test)
+            trainer.fit(model, train_dataloader=train, val_dataloader=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
-            # defined as part of the model, and validation/test can then be
-            # feed to .fit()
+            # defined as part of the model, and validation can then be feed to .fit()
 
         """
         # bind logger and other properties
@@ -663,7 +656,7 @@ class Trainer(
         self.copy_trainer_model_properties(model)
 
         # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
         # check that model is configured correctly
         self.check_model_configuration(model)
@@ -748,7 +741,7 @@ class Trainer(
             default_port = random.randint(10000, 19000)
             os.environ['MASTER_PORT'] = str(default_port)
 
-    def __attach_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
+    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -864,7 +857,7 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self, model: Optional[LightningModule] = None):
+    def test(self, model: Optional[LightningModule] = None, test_dataloaders: Optional[DataLoader] = None):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
@@ -872,24 +865,36 @@ class Trainer(
         Args:
             model: The model to test.
 
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples.
+
         Example::
 
             # Option 1
             # run test after fitting
+            test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
 
-            trainer.fit()
-            trainer.test()
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test)
 
             # Option 2
             # run test from a loaded model
+            test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-            trainer.test(model)
+            trainer.test(model, test_dataloaders=test)
         """
 
         self.testing = True
+
+        if test_dataloaders is not None:
+            if model is not None:
+                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            else:
+                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+
         if model is not None:
             self.model = model
             self.fit(model)
