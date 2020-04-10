@@ -16,7 +16,7 @@ def test_testtube_logger(tmpdir):
     assert logger.name == 'lightning_logs'
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
@@ -39,7 +39,7 @@ def test_testtube_pickle(tmpdir):
     logger.save()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger

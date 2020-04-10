@@ -85,7 +85,7 @@ class Trainer(
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
             callbacks: List[Callback] = [],
-            default_save_path: Optional[str] = None,
+            default_root_dir: Optional[str] = None,
             gradient_clip_val: float = 0,
             process_position: int = 0,
             num_nodes: int = 1,
@@ -122,6 +122,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
@@ -144,7 +145,12 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            default_save_path: Default path for logs and weights when no logger/ckpt_callback passed
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
+
+            default_save_path:
+                .. warning:: .. deprecated:: 0.7.3
+
+                    Use `default_root_dir` instead. Will remove 0.9.0.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -244,7 +250,9 @@ class Trainer(
 
             weights_summary: Prints a summary of the weights when training begins.
 
-            weights_save_path: Where to save weights if specified.
+            weights_save_path: Where to save weights if specified. Will override default_root_dir
+                    for checkpoints only. Use this if for whatever reason you need the checkpoints
+                    stored in a different place than the logs written in `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -348,9 +356,14 @@ class Trainer(
                      ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
-        self.default_save_path = default_save_path
-        if self.default_save_path is None:
-            self.default_save_path = os.getcwd()
+        self.default_root_dir = default_root_dir
+
+        # Backward compatibility, TODO: remove in v0.8.0
+        if default_save_path is not None:
+            self.default_root_dir = default_save_path
+
+        if self.default_root_dir is None:
+            self.default_root_dir = os.getcwd()
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -917,7 +930,7 @@ class Trainer(
             self.fit(model)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
-            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model
             if os.path.exists(path):
                 test_model = self.load_spawn_weights(self.model)

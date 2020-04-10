@@ -21,7 +21,7 @@ ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
-    # save_dir = trainer_options['default_save_path']
+    # save_dir = trainer_options['default_root_dir']
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -33,7 +33,7 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
     # test model loading
     pretrained_model = load_model(trainer.logger,
                                   trainer.checkpoint_callback.dirpath,
-                                  path_expt=trainer_options.get('default_save_path'))
+                                  path_expt=trainer_options.get('default_root_dir'))
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -50,7 +50,7 @@ def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
 
 
 def run_model_test(trainer_options, model, on_gpu=True):
-    save_dir = trainer_options['default_save_path']
+    save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
     logger = get_default_testtube_logger(save_dir, False)

@@ -143,7 +143,7 @@ class TrainerDDPMixin(ABC):
     distributed_backend: str
     amp_level: str
     use_tpu: bool
-    default_save_path: str
+    default_root_dir: str
 
     @property
     @abstractmethod
@@ -354,7 +354,7 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         if self.proc_rank == 0:
-            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
 
     def load_spawn_weights(self, original_model):
@@ -369,7 +369,7 @@ class TrainerDDPMixin(ABC):
 
         if self.proc_rank == 0:
             # load weights saved in ddp
-            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             loaded_model = original_model.__class__.load_from_checkpoint(path)
 
             # copy loaded weights to old model

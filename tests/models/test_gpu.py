@@ -26,7 +26,7 @@ def test_multi_gpu_model_ddp2(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -47,7 +47,7 @@ def test_multi_gpu_model_ddp(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
@@ -67,7 +67,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.set_random_master_port()
 
     model, hparams = tutils.get_default_model()
-    trainer_options = dict(default_save_path=tmpdir,
+    trainer_options = dict(default_root_dir=tmpdir,
                            progress_bar_refresh_rate=0,
                            max_epochs=1,
                            train_percent_check=0.4,
@@ -163,7 +163,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.1,
@@ -182,7 +182,7 @@ def test_multi_gpu_model_dp(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         distributed_backend='dp',
         max_epochs=1,

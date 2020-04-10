@@ -39,7 +39,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=-0.1,
     )
@@ -54,7 +54,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=1.1,
     )
@@ -69,7 +69,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=10000
     )
@@ -84,7 +84,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=1.1
     )
@@ -112,7 +112,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
@@ -151,7 +151,7 @@ def test_multiple_test_dataloader(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -185,7 +185,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -215,7 +215,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -250,7 +250,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -289,7 +289,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -330,7 +330,7 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -371,14 +371,14 @@ def test_inf_train_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             val_check_interval=0.5
         )
         trainer.fit(model)
 
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=50
     )
@@ -388,7 +388,7 @@ def test_inf_train_dataloader(tmpdir):
     assert result == 1
 
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     result = trainer.fit(model)
@@ -413,7 +413,7 @@ def test_inf_val_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             val_percent_check=0.5
         )
@@ -421,7 +421,7 @@ def test_inf_val_dataloader(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     result = trainer.fit(model)
@@ -447,7 +447,7 @@ def test_inf_test_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             test_percent_check=0.5
         )
@@ -455,7 +455,7 @@ def test_inf_test_dataloader(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     result = trainer.fit(model)
@@ -481,7 +481,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
     # fit model
     with pytest.raises(ValueError):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             test_percent_check=0.5
         )
@@ -506,7 +506,7 @@ def test_warning_with_few_workers(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
