@@ -5,12 +5,16 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
+
 try:
     from omegaconf import OmegaConf, DictConfig
 except ImportError:
     import logging
     logging.debug('Hydra is not installed. If you want to use Hydra for managing configuration,'
-                  'please install it with `pip install hydra_core`.')
+                  ' please install it with `pip install hydra_core`.')
+    USING_HYDRA_CONF = False
+else:
+    USING_HYDRA_CONF = True
 
 import numpy as np
 import torch
@@ -167,7 +171,7 @@ class LightningLoggerBase(ABC):
         # in case converting from Namespace or hydra's DictConfig
         if isinstance(params, Namespace):
             params = vars(params)
-        elif isinstance(params, DictConfig):
+        elif USING_HYDRA_CONF:
             params = OmegaConf.to_container(params, resolve=True)
 
         if params is None:
