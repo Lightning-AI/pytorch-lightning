@@ -103,37 +103,32 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
-        save_path = os.path.join(self.default_save_path, '/lr_find_temp.ckpt')
+        save_path = os.path.join(self.default_save_path, 'lr_find_temp.ckpt')
+
+        self._dump_params(model)
 
         # Prevent going into infinite loop
-        auto_lr_find = self.auto_lr_find
         self.auto_lr_find = False
 
         # Initialize lr finder object (stores results)
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
-        callbacks = self.callbacks
         self.callbacks = [_LRCallback(num_training, show_progress_bar=True)]
 
         # No logging
-        logger = self.logger
         self.logger = None
 
         # Max step set to number of iterations
-        max_steps = self.max_steps
         self.max_steps = num_training
 
         # Disable standard progress bar for fit
-        progress_bar_refresh_rate = self.progress_bar_refresh_rate
         self.progress_bar_refresh_rate = False
 
         # Accumulation of gradients
-        accumulate_grad_batches = self.accumulate_grad_batches
         self.accumulate_grad_batches = num_accumulation_steps
 
         # Disable standard checkpoint
-        checkpoint_callback = self.checkpoint_callback
         self.checkpoint_callback = False
 
         # Required for saving the model
@@ -169,16 +164,32 @@ class TrainerLRFinderMixin(ABC):
         os.remove(save_path)
 
         # Finish by resetting variables so trainer is ready to fit model
-        self.auto_lr_find = auto_lr_find
-        self.logger = logger
-        self.callbacks = callbacks
-        self.max_steps = max_steps
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.accumulate_grad_batches = accumulate_grad_batches
-        self.checkpoint_callback = checkpoint_callback
-        model.configure_optimizers = configure_optimizers
+        self._restore_params(model)
 
         return lr_finder
+
+    def _dump_params(self, model):
+        # Prevent going into infinite loop
+        self._params = {
+            'auto_lr_find': self.auto_lr_find,
+            'callbacks': self.callbacks,
+            'logger': self.logger,
+            'max_steps': self.max_steps,
+            'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
+            'accumulate_grad_batches': self.accumulate_grad_batches,
+            'checkpoint_callback': self.checkpoint_callback,
+            'configure_optimizers': model.configure_optimizers,
+        }
+
+    def _restore_params(self, model):
+        self.auto_lr_find = self._params['auto_lr_find']
+        self.logger = self._params['logger']
+        self.callbacks = self._params['callbacks']
+        self.max_steps = self._params['max_steps']
+        self.progress_bar_refresh_rate = self._params['progress_bar_refresh_rate']
+        self.accumulate_grad_batches = self._params['accumulate_grad_batches']
+        self.checkpoint_callback = self._params['checkpoint_callback']
+        model.configure_optimizers = self._params['configure_optimizers']
 
 
 class _LRFinder(object):
