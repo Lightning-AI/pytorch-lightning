@@ -35,7 +35,7 @@ def test_comet_logger(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
@@ -145,7 +145,7 @@ def test_comet_pickle(tmpdir, monkeypatch):
     )
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger
     )

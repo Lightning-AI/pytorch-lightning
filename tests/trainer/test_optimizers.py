@@ -32,7 +32,7 @@ def test_optimizer_with_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -71,7 +71,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -114,7 +114,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -163,7 +163,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -263,7 +263,7 @@ def test_none_optimizer(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -274,4 +274,27 @@ def test_none_optimizer(tmpdir):
     result = trainer.fit(model)
 
     # verify training completed
+    assert result == 1
+
+
+def test_configure_optimizer_from_dict(tmpdir):
+    """Tests if `configure_optimizer` method could return a dictionary with
+    `optimizer` field only.
+    """
+
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+        def configure_optimizers(self):
+            config = {
+                'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)
+            }
+            return config
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    trainer_options = dict(default_save_path=tmpdir, max_epochs=1)
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
     assert result == 1

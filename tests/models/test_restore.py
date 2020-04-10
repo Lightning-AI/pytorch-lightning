@@ -120,7 +120,7 @@ def test_load_model_from_checkpoint(tmpdir):
         val_percent_check=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -331,7 +331,7 @@ def test_load_model_with_missing_hparams(tmpdir):
         max_epochs=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
     )
 
     # fit model

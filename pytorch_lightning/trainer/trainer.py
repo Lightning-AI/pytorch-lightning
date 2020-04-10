@@ -22,7 +22,12 @@ from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device
+from pytorch_lightning.trainer.distrib_parts import (
+    TrainerDPMixin,
+    parse_gpu_ids,
+    determine_root_gpu_device,
+    pick_multiple_gpus,
+)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -83,11 +88,12 @@ class Trainer(
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
             callbacks: List[Callback] = [],
-            default_save_path: Optional[str] = None,
+            default_root_dir: Optional[str] = None,
             gradient_clip_val: float = 0,
             process_position: int = 0,
             num_nodes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
+            auto_select_gpus: bool = False,
             num_tpu_cores: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
@@ -120,6 +126,7 @@ class Trainer(
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
+            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
             max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
@@ -142,7 +149,12 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            default_save_path: Default path for logs and weights when no logger/ckpt_callback passed
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
+
+            default_save_path:
+                .. warning:: .. deprecated:: 0.7.3
+
+                    Use `default_root_dir` instead. Will remove 0.9.0.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -161,6 +173,13 @@ class Trainer(
                     Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
+
+            auto_select_gpus:
+
+                If enabled and `gpus` is an integer, pick available
+                gpus automatically. This is especially useful when
+                GPUs are configured to be in "exclusive mode", such
+                that only one process at a time can access them.
 
             num_tpu_cores: How many TPU cores to train on (1 or 8).
 
@@ -235,7 +254,9 @@ class Trainer(
 
             weights_summary: Prints a summary of the weights when training begins.
 
-            weights_save_path: Where to save weights if specified.
+            weights_save_path: Where to save weights if specified. Will override default_root_dir
+                    for checkpoints only. Use this if for whatever reason you need the checkpoints
+                    stored in a different place than the logs written in `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -346,9 +367,14 @@ class Trainer(
                      ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
-        self.default_save_path = default_save_path
-        if self.default_save_path is None:
-            self.default_save_path = os.getcwd()
+        self.default_root_dir = default_root_dir
+
+        # Backward compatibility, TODO: remove in v0.8.0
+        if default_save_path is not None:
+            self.default_root_dir = default_save_path
+
+        if self.default_root_dir is None:
+            self.default_root_dir = os.getcwd()
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -395,8 +421,12 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
-        # allow int, string and gpu list
-        self.gpus = gpus
+        # for gpus allow int, string and gpu list
+        if auto_select_gpus and isinstance(gpus, int):
+            self.gpus = pick_multiple_gpus(gpus)
+        else:
+            self.gpus = gpus
+
         self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
@@ -565,7 +595,8 @@ class Trainer(
                                             if at[0] not in depr_arg_names):
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if isinstance(allowed_type, bool):
-                    allowed_type = lambda x: bool(distutils.util.strtobool(x))
+                    def allowed_type(x):
+                        return bool(distutils.util.strtobool(x))
                 parser.add_argument(
                     f'--{arg}',
                     default=arg_default,
@@ -623,8 +654,7 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[DataLoader] = None,
-            test_dataloaders: Optional[DataLoader] = None
+            val_dataloaders: Optional[DataLoader] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -640,14 +670,10 @@ class Trainer(
                 Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined test_dataloaders method this will be skipped
-
         Example::
 
             # Option 1,
-            # Define the train_dataloader(), test_dataloader() and val_dataloader() fxs
+            # Define the train_dataloader() and val_dataloader() fxs
             # in the lightningModule
             # RECOMMENDED FOR MOST RESEARCH AND APPLICATIONS TO MAINTAIN READABILITY
             trainer = Trainer()
@@ -657,15 +683,13 @@ class Trainer(
             # Option 2
             # in production cases we might want to pass different datasets to the same model
             # Recommended for PRODUCTION SYSTEMS
-            train, val, test = DataLoader(...), DataLoader(...), DataLoader(...)
+            train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train,
-                        val_dataloader=val, test_dataloader=test)
+            trainer.fit(model, train_dataloader=train, val_dataloader=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
-            # defined as part of the model, and validation/test can then be
-            # feed to .fit()
+            # defined as part of the model, and validation can then be feed to .fit()
 
         """
         # bind logger and other properties
@@ -673,7 +697,7 @@ class Trainer(
         self.copy_trainer_model_properties(model)
 
         # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders, test_dataloaders)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
         # check that model is configured correctly
         self.check_model_configuration(model)
@@ -762,7 +786,7 @@ class Trainer(
             default_port = random.randint(10000, 19000)
             os.environ['MASTER_PORT'] = str(default_port)
 
-    def __attach_dataloaders(self, model, train_dataloader, val_dataloaders, test_dataloaders):
+    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -878,7 +902,7 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self, model: Optional[LightningModule] = None):
+    def test(self, model: Optional[LightningModule] = None, test_dataloaders: Optional[DataLoader] = None):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
@@ -886,30 +910,42 @@ class Trainer(
         Args:
             model: The model to test.
 
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples.
+
         Example::
 
             # Option 1
             # run test after fitting
+            test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
 
-            trainer.fit()
-            trainer.test()
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test)
 
             # Option 2
             # run test from a loaded model
+            test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-            trainer.test(model)
+            trainer.test(model, test_dataloaders=test)
         """
 
         self.testing = True
+
+        if test_dataloaders is not None:
+            if model is not None:
+                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            else:
+                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+
         if model is not None:
             self.model = model
             self.fit(model)
         elif self.use_ddp or self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
-            path = os.path.join(self.default_save_path, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model
             if os.path.exists(path):
                 test_model = self.load_spawn_weights(self.model)

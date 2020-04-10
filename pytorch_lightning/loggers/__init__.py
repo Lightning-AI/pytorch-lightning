@@ -21,7 +21,7 @@ or ``tuple`` of loggers.
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
 .. note:: All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
-    ``Trainer(default_save_path='/your/path/to/save/checkpoints')``
+    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')``
 
 Custom logger
 -------------

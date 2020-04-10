@@ -18,7 +18,7 @@ def test_neptune_logger(tmpdir):
     logger = NeptuneLogger(offline_mode=True)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
@@ -87,7 +87,7 @@ def test_neptune_pickle(tmpdir):
     logger = NeptuneLogger(offline_mode=True)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger
     )
@@ -109,7 +109,7 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
         logger._experiment = MagicMock()
 
         trainer_options = dict(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             train_percent_check=0.05,
             logger=logger

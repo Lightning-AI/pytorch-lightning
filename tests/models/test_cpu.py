@@ -22,7 +22,7 @@ def test_early_stopping_cpu_model(tmpdir):
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
@@ -45,7 +45,7 @@ def test_lbfgs_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=2,
         progress_bar_refresh_rate=0,
         weights_summary='top',
@@ -62,7 +62,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
@@ -93,7 +93,7 @@ def test_running_test_after_fitting(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=8,
         train_percent_check=0.4,
@@ -205,7 +205,7 @@ def test_simple_cpu(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
@@ -224,7 +224,7 @@ def test_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
@@ -242,7 +242,7 @@ def test_all_features_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
@@ -308,7 +308,7 @@ def test_tbptt_cpu_model(tmpdir):
             )
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
@@ -339,7 +339,7 @@ def test_single_gpu_model(tmpdir):
     model, hparams = tutils.get_default_model()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.1,

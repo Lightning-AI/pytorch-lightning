@@ -232,7 +232,7 @@ Example::
         prefix=''
     )
 
-default_save_path
+default_root_dir
 ^^^^^^^^^^^^^^^^^
 
 Default path for logs and weights when no logger
@@ -243,7 +243,7 @@ are stored. If you don't then use this method for convenience.
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(default_save_path=os.getcwd())
+    trainer = Trainer(default_root_path=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^

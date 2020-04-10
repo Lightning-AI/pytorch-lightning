@@ -10,7 +10,7 @@ class TrainerCallbackConfigMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    default_save_path: str
+    default_root_dir: str
     logger: Union[LightningLoggerBase, bool]
     weights_save_path: str
     ckpt_path: str
@@ -32,13 +32,18 @@ class TrainerCallbackConfigMixin(ABC):
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        ckpt_path = self.default_save_path
+        ckpt_path = self.default_root_dir
         if self.checkpoint_callback is True:
             # init a default one
             if self.logger is not None:
                 save_dir = (getattr(self.logger, 'save_dir', None) or
                             getattr(self.logger, '_save_dir', None) or
-                            self.default_save_path)
+                            self.default_root_dir)
+
+                # weights_save_path overrides anything
+                if self.weights_save_path is not None:
+                    save_dir = self.weights_save_path
+
                 ckpt_path = os.path.join(
                     save_dir,
                     self.logger.name,
@@ -46,7 +51,7 @@ class TrainerCallbackConfigMixin(ABC):
                     "checkpoints"
                 )
             else:
-                ckpt_path = os.path.join(self.default_save_path, "checkpoints")
+                ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
 
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overriden('validation_step')
@@ -72,7 +77,7 @@ class TrainerCallbackConfigMixin(ABC):
 
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
-            self.weights_save_path = self.default_save_path
+            self.weights_save_path = self.default_root_dir
 
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
