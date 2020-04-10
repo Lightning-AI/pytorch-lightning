@@ -170,7 +170,7 @@ def test_early_stopping_without_val_step(tmpdir):
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
         max_epochs=5,

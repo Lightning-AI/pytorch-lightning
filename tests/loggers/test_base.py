@@ -81,7 +81,7 @@ def test_custom_logger(tmpdir):
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger,
-        default_save_path=tmpdir
+        default_root_dir=tmpdir
     )
 
     trainer = Trainer(**trainer_options)
@@ -103,7 +103,7 @@ def test_multiple_loggers(tmpdir):
         max_epochs=1,
         train_percent_check=0.05,
         logger=[logger1, logger2],
-        default_save_path=tmpdir
+        default_root_dir=tmpdir
     )
 
     trainer = Trainer(**trainer_options)
@@ -162,7 +162,7 @@ def test_adding_step_key(tmpdir):
     model.training_epoch_end = _training_epoch_end
     trainer_options = dict(
         max_epochs=4,
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         train_percent_check=0.001,
         val_percent_check=0.01,
         num_sanity_val_steps=0,

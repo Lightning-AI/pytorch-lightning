@@ -19,7 +19,7 @@ def test_trains_logger(tmpdir):
     logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
@@ -45,7 +45,7 @@ def test_trains_pickle(tmpdir):
     logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger
     )

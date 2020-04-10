@@ -5,7 +5,7 @@ Lightning can automate saving and loading checkpoints
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in::
 
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
+    Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
 
 To modify the behavior of checkpointing pass in your own callback.

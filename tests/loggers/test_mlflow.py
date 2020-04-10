@@ -25,7 +25,7 @@ def test_mlflow_logger(tmpdir):
     logger.log_metrics({'acc': 'test'})
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
@@ -43,7 +43,7 @@ def test_mlflow_pickle(tmpdir):
     mlflow_dir = os.path.join(tmpdir, 'mlruns')
     logger = MLFlowLogger('test', tracking_uri=f'file:{os.sep * 2}{mlflow_dir}')
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger
     )
