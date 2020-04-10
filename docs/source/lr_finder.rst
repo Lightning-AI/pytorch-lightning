@@ -29,7 +29,7 @@ hyperparameters of the model.
     # default, no automatic learning rate finder
     Trainer(auto_lr_find=True)
 
-When the ``lr`` or ``learning_rate` key in hparams exists, this flag sets your learning_rate.
+When the ``lr`` or ``learning_rate`` key in hparams exists, this flag sets your learning_rate.
 In both cases, if the respective fields are not found, an error will be thrown.
         
 .. code-block:: python
