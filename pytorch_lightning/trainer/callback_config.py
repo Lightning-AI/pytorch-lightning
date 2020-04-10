@@ -39,6 +39,11 @@ class TrainerCallbackConfigMixin(ABC):
                 save_dir = (getattr(self.logger, 'save_dir', None) or
                             getattr(self.logger, '_save_dir', None) or
                             self.default_root_dir)
+
+                # weights_save_path overrides anything
+                if self.weights_save_path is not None:
+                    save_dir = self.weights_save_path
+
                 ckpt_path = os.path.join(
                     save_dir,
                     self.logger.name,

@@ -237,7 +237,7 @@ class Trainer(
 
             weights_summary: Prints a summary of the weights when training begins.
 
-            weights_save_path: Where to save weights if specified.
+            weights_save_path: Where to save weights if specified. Will override default_root_dir for ckeckpoints only
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
