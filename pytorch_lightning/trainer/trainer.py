@@ -36,8 +36,10 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+
 
 try:
     from apex import amp
@@ -70,6 +72,7 @@ class Trainer(
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
+    TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_8,
     TrainerDeprecatedAPITillVer0_9,
 ):
@@ -122,6 +125,7 @@ class Trainer(
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
+            auto_lr_find: Union[bool, str] = False,
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -271,6 +275,11 @@ class Trainer(
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
+            auto_lr_find: If set to True, will `initially` run a learning rate finder,
+                trying to optimize initial learning for faster convergence. Sets learning
+                rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
+                To use a different key, set a string instead of True with the key name.
+
             benchmark: If true enables cudnn.benchmark.
         """
 
@@ -343,6 +352,8 @@ class Trainer(
                            " NaN grads will be printed automatically when detected.", DeprecationWarning)
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+
+        self.auto_lr_find = auto_lr_find
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -695,6 +706,10 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
+
+        # Run learning rate finder:
+        if self.auto_lr_find:
+            self._run_lr_finder_internally(model)
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
