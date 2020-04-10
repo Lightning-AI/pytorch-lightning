@@ -339,7 +339,8 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 import os
 from abc import ABC, abstractmethod
-
+import time
+import random
 import torch
 
 from pytorch_lightning import _logger as log
@@ -648,3 +649,44 @@ def determine_root_gpu_device(gpus):
     root_gpu = gpus[0]
 
     return root_gpu
+
+
+def retry_jittered_backoff(f, num_retries=5):
+    # Based on:
+    # https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+    cap = 1.0                  # max sleep time is 1s
+    base = 0.01                # initial sleep time is 10ms
+    sleep = base               # initial sleep time is 10ms
+
+    for i in range(num_retries):
+        try:
+            return f()
+        except RuntimeError as e:
+            if i == num_retries - 1:
+                raise e
+            else:
+                continue
+        time.sleep(sleep)
+        sleep = min(cap, random.uniform(base, sleep * 3))
+
+
+def pick_single_gpu(exclude_gpus=[]):
+    for i in range(torch.cuda.device_count()):
+        if i in exclude_gpus:
+            continue
+        # Try to allocate on device:
+        device = torch.device(f"cuda:{i}")
+        try:
+            torch.ones(1).to(device)
+        except RuntimeError:
+            continue
+        return i
+    raise RuntimeError("No GPUs available.")
+
+
+def pick_multiple_gpus(n):
+    picked = []
+    for _ in range(n):
+        picked.append(pick_single_gpu(exclude_gpus=picked))
+
+    return picked
