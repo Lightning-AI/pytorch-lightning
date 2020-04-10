@@ -34,6 +34,7 @@ def test_tbd_remove_in_v0_8_0_trainer():
         'max_nb_epochs': 'max_epochs',
         'min_nb_epochs': 'min_epochs',
         'nb_sanity_val_steps': 'num_sanity_val_steps',
+        'default_save_path': 'default_root_dir',
     }
     # skip 0 since it may be interested as False
     kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}

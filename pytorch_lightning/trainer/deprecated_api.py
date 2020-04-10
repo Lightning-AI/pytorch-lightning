@@ -89,6 +89,20 @@ class TrainerDeprecatedAPITillVer0_8(ABC):
                        " and this method will be removed in v0.8.0", DeprecationWarning)
         self.num_sanity_val_steps = nb
 
+    @property
+    def default_save_path(self):
+        """Back compatibility, will be removed in v0.8.0"""
+        rank_zero_warn("Attribute `default_save_path` has renamed to `default_root_dir` since v0.5.x"
+                       " and this method will be removed in v0.8.0", DeprecationWarning)
+        return self.default_root_dir
+
+    @default_save_path.setter
+    def default_save_path(self, path):
+        """Back compatibility, will be removed in v0.8.0"""
+        rank_zero_warn("Attribute `default_save_path` has renamed to `default_root_dir` since v0.5.x"
+                       " and this method will be removed in v0.8.0", DeprecationWarning)
+        self.default_root_dir = path
+
 
 class TrainerDeprecatedAPITillVer0_9(ABC):
 
