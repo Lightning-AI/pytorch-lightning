@@ -554,7 +554,7 @@ class Trainer(
                                             if at[0] not in depr_arg_names):
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if isinstance(allowed_type, bool):
-                    allowed_type = lambda x: bool(distutils.util.strtobool(x))
+                    def allowed_type(x): return bool(distutils.util.strtobool(x))
                 parser.add_argument(
                     f'--{arg}',
                     default=arg_default,

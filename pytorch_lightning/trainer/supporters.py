@@ -20,6 +20,7 @@ class TensorRunningAccum(object):
         >>> accum.last(), accum.mean(), accum.min(), accum.max()
         (tensor(12.), tensor(10.), tensor(8.), tensor(12.))
     """
+
     def __init__(self, window_length: int):
         self.window_length = window_length
         self.memory = torch.Tensor(self.window_length)
