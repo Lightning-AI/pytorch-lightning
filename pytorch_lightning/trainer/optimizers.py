@@ -39,6 +39,8 @@ class TrainerOptimizersMixin(ABC):
             lr_scheduler = optim_conf.get("lr_scheduler", [])
             if lr_scheduler:
                 lr_schedulers = self.configure_schedulers([lr_scheduler])
+            else:
+                lr_schedulers = []
             return [optimizer], lr_schedulers, []
 
         # multiple dictionaries
