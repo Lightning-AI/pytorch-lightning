@@ -88,4 +88,9 @@ to run into the walltime, and it does the following:
 2. Requeues the job.
 3. When the job starts, it loads the temporary checkpoint.
 
-.. note:: To get this behavior you have to do nothing.
+To get this behavior make sure to add the correct signal to your SLURM script
+
+.. code-block::
+
+    # 90 seconds before training ends
+    #SBATCH --signal=SIGUSR1@90

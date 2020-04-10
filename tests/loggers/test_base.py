@@ -1,5 +1,8 @@
 import pickle
+from collections import OrderedDict
 from unittest.mock import MagicMock
+
+import numpy as np
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -54,6 +57,18 @@ class CustomLogger(LightningLoggerBase):
     @property
     def version(self):
         return "1"
+
+
+class StoreHistoryLogger(CustomLogger):
+    def __init__(self):
+        super().__init__()
+        self.history = {}
+
+    @rank_zero_only
+    def log_metrics(self, metrics, step):
+        if step not in self.history:
+            self.history[step] = {}
+        self.history[step].update(metrics)
 
 
 def test_custom_logger(tmpdir):
@@ -153,5 +168,19 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer = Trainer(**trainer_options)
-    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(
+        trainer.logger.log_metrics)
     trainer.fit(model)
+
+
+def test_with_accumulate_grad_batches():
+    """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
+    logger = StoreHistoryLogger()
+
+    np.random.seed(42)
+    for i, loss in enumerate(np.random.random(10)):
+        logger.agg_and_log_metrics({'loss': loss}, step=int(i / 5))
+
+    assert logger.history == {0: {'loss': 0.5623850983416314}}
+    logger.close()
+    assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}

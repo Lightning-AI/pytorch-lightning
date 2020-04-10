@@ -1,7 +1,6 @@
 import collections
 import inspect
 import os
-import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
@@ -20,6 +19,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     import torch_xla.core.xla_model as xm
@@ -221,14 +221,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                         "hiddens": hiddens  # remember to detach() this
                     }
 
-            You can also return a -1 instead of a dict to stop the current loop. This is useful
-            if you want to break out of the current training epoch early.
-
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
-        warnings.warn('`training_step` must be implemented to be used with the Lightning Trainer')
+        rank_zero_warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
     def training_end(self, *args, **kwargs):
         """
@@ -1091,7 +1088,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                   }
 
         """
-        warnings.warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
+        rank_zero_warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
             self,
@@ -1294,7 +1291,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     return loader
 
         """
-        warnings.warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
+        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
     def tng_dataloader(self):  # todo: remove in v1.0.0
         """
@@ -1302,8 +1299,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Deprecated in v0.5.0. Use :meth:`train_dataloader` instead. Will be removed in 1.0.0.
         """
         output = self.train_dataloader()
-        warnings.warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-                      " and this method will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+                       " and this method will be removed in v1.0.0", DeprecationWarning)
         return output
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
@@ -1410,7 +1407,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             Deprecated in version 0.7.0. You should use :meth:`load_from_checkpoint` instead.
             Will be removed in v0.9.0.
         """
-        warnings.warn(
+        rank_zero_warn(
             "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
             " The deprecated method will be removed in v0.9.0.", DeprecationWarning
         )
@@ -1522,7 +1519,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
-                warnings.warn(
+                rank_zero_warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ "
                     f"contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"

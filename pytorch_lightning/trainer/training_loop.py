@@ -133,7 +133,6 @@ in your model.
 """
 
 import copy
-import warnings
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -147,7 +146,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.supporters import TensorRunningMean
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     from apex import amp
@@ -284,8 +284,8 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
-        warnings.warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
-                      ' but will start from "0" in v0.8.0.', RuntimeWarning)
+        rank_zero_warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
+                       ' but will start from "0" in v0.8.0.', RuntimeWarning)
 
         # get model
         model = self.get_model()
@@ -337,7 +337,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
                 # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningMean(
+                self.batch_loss_value = TensorRunningAccum(
                     window_length=self.accumulate_grad_batches
                 )
 
@@ -386,7 +386,8 @@ class TrainerTrainLoopMixin(ABC):
             self.run_training_teardown()
 
         except KeyboardInterrupt:
-            log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            if self.proc_rank == 0:
+                log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.interrupted = True
             self.run_training_teardown()
 
@@ -531,7 +532,7 @@ class TrainerTrainLoopMixin(ABC):
         all_log_metrics = []
 
         if batch is None:
-            return 0, grad_norm_dic, {}
+            return 0, grad_norm_dic, {}, {}
 
         # Batch start events
         with self.profiler.profile('on_batch_start'):
@@ -541,7 +542,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
                 if response == -1:
-                    return -1, grad_norm_dic, {}
+                    return -1, grad_norm_dic, {}, {}
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -750,8 +751,8 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            warnings.warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                          ' Use training_epoch_end instead', DeprecationWarning)
+            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                           ' Use training_epoch_end instead', DeprecationWarning)
 
         return output
 

@@ -51,6 +51,8 @@ class ModelHooks(torch.nn.Module):
     def on_batch_start(self, batch: Any) -> None:
         """Called in the training loop before anything happens for that batch.
 
+        If you return -1 here, you will skip training for the rest of the current epoch.
+
         :param batch:
         """
         # do something when the batch starts

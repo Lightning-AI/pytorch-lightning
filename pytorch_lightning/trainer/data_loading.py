@@ -1,4 +1,4 @@
-import warnings
+import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -75,10 +76,12 @@ class TrainerDataLoadingMixin(ABC):
             raise ValueError(msg)
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
-        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2:
-            warnings.warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                          ' Consider increasing the value of the `num_workers` argument`'
-                          ' in the `DataLoader` init to improve performance.')
+        on_windows = platform.system() == 'Windows'
+
+        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2 and not on_windows:
+            rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                           ' Consider increasing the value of the `num_workers` argument`'
+                           ' in the `DataLoader` init to improve performance.')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
@@ -87,9 +90,8 @@ class TrainerDataLoadingMixin(ABC):
             return dataloader
 
         need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_tpu
-        no_sampler_added = dataloader.sampler is None
 
-        if need_dist_sampler and no_sampler_added:
+        if need_dist_sampler:
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 

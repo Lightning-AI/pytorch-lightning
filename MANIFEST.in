@@ -3,7 +3,7 @@ graft wheelhouse
 
 recursive-exclude __pycache__  *.py[cod] *.orig
 
-# Include the README
+# Include the README and CHANGELOG
 include *.md
 
 # Include the license file
@@ -41,3 +41,4 @@ prune .circleci
 prune notebook*
 prune temp*
 prune test*
+prune benchmark*

@@ -68,6 +68,7 @@ PyTorch Lightning Documentation
    hyperparameters
    lr_finder
    multi_gpu
+   multiple_loaders
    weights_loading
    optimizers
    profiler

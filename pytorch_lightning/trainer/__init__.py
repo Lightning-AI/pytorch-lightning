@@ -58,7 +58,7 @@ So you can run it like so:distributed_backend
 
 .. code-block:: bash
 
-    $ python main.py --gpus 2
+    python main.py --gpus 2
 
 
 .. note::
@@ -571,7 +571,7 @@ submit this script using the xla_dist script.
 
 Example::
 
-    $ python -m torch_xla.distributed.xla_dist
+    python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1

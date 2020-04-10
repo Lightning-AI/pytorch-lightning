@@ -86,7 +86,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 import os
 import re
 import signal
-import warnings
 from abc import ABC
 from argparse import Namespace
 from subprocess import call
@@ -102,6 +101,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     import torch_xla
@@ -321,9 +321,8 @@ class TrainerIOMixin(ABC):
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
         else:
-            warnings.warn(
-                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
-                " hyperparameters"
+            rank_zero_warn(
+                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
             )
 
         # give the model a chance to add a few things
@@ -372,7 +371,7 @@ class TrainerIOMixin(ABC):
         n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
         expected_steps = self.num_training_batches / n_accum
         if self.num_training_batches != 0 and self.global_step % expected_steps > 1:
-            warnings.warn(
+            rank_zero_warn(
                 "You're resuming from a checkpoint that ended mid-epoch. "
                 "This can cause unreliable results if further training is done, "
                 "consider using an end of epoch checkpoint. "
