@@ -685,3 +685,18 @@ def test_gradient_clipping(tmpdir):
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
+
+
+def test_gpu_choice(tmpdir):
+    trainer_options = dict(
+        default_save_path=tmpdir,
+    )
+    # Only run if CUDA is available
+    if not torch.cuda.is_available():
+        return
+
+    num_gpus = torch.cuda.device_count()
+    Trainer(**trainer_options, gpus=num_gpus, auto_select_gpus=True)
+
+    with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
+        Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
