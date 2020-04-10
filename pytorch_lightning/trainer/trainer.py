@@ -254,7 +254,7 @@ class Trainer(
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
-            auto_lr_find: If set to True, will initialy run a learning rate finder,
+            auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence
 
             benchmark: If true enables cudnn.benchmark.
