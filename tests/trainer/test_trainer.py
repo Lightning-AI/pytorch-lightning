@@ -658,3 +658,30 @@ def test_trainer_interrupted_flag(tmpdir):
     assert not trainer.interrupted
     trainer.fit(model)
     assert trainer.interrupted
+
+
+def test_gradient_clipping(tmpdir):
+    """
+    Test gradient clipping
+    """
+    tutils.reset_seed()
+
+    hparams = tutils.get_default_hparams()
+    model = LightningTestModel(hparams)
+
+    # test that gradient is clipped correctly
+    def _optimizer_step(*args, **kwargs):
+        parameters = model.parameters()
+        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+        assert (grad_norm - 1.0).abs() < 1e-5, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+    trainer = Trainer(max_steps=1,
+                      max_epochs=1,
+                      gradient_clip_val=1.0,
+                      default_save_path=tmpdir)
+
+    # for the test
+    model.optimizer_step = _optimizer_step
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
