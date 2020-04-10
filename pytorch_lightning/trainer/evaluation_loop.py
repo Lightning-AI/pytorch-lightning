@@ -378,10 +378,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log results of test
         if test_mode and self.proc_rank == 0 and len(callback_metrics) > 0:
-                print('-' * 80)
-                print('TEST RESULTS')
-                pprint(callback_metrics)
-                print('-' * 80)
+            print('-' * 80)
+            print('TEST RESULTS')
+            pprint(callback_metrics)
+            print('-' * 80)
 
         # log metrics
         self.log_metrics(log_metrics, {})
