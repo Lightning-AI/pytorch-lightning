@@ -255,7 +255,9 @@ class Trainer(
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
-                trying to optimize initial learning for faster convergence
+                trying to optimize initial learning for faster convergence. Sets learning
+                rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
+                To use a different key, set a string instead of True with the key name.
 
             benchmark: If true enables cudnn.benchmark.
         """
