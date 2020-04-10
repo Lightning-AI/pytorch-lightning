@@ -103,7 +103,7 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
-        save_path = os.path.join(self.default_save_path, 'lr_find_temp.ckpt')
+        save_path = os.path.join(self.default_root_dir, 'lr_find_temp.ckpt')
 
         self._dump_params(model)
 
