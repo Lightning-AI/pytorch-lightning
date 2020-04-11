@@ -301,7 +301,6 @@ class LoggerCollection(LightningLoggerBase):
 
     @LightningLoggerBase.rank.setter
     def rank(self, value: int) -> None:
-        self._rank = value
         for logger in self._logger_iterable:
             logger.rank = value
 
@@ -312,6 +311,11 @@ class LoggerCollection(LightningLoggerBase):
     @property
     def version(self) -> str:
         return '_'.join([str(logger.version) for logger in self._logger_iterable])
+
+    def __del__(self) -> None:
+        for logger in self._logger_iterable:
+            del logger
+        self._logger_iterable = None
 
 
 def merge_dicts(
