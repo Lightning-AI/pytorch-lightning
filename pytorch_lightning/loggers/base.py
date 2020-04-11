@@ -219,7 +219,7 @@ class LightningLoggerBase(ABC):
 
     def save(self) -> None:
         """Save log data."""
-        pass
+        self.finalize()
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
@@ -227,14 +227,18 @@ class LightningLoggerBase(ABC):
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
-        pass
-
-    def close(self) -> None:
-        """Do any cleanup that is necessary to close an experiment."""
         agg_step, metrics_to_log = self._finalize_agg_metrics()
 
         if metrics_to_log is not None:
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
+
+    def close(self) -> None:
+        """Do any cleanup that is necessary to close an experiment."""
+        self.finalize()
+
+    def __del__(self):
+        """Destructor."""
+        self.finalize()
 
     @property
     def rank(self) -> int:

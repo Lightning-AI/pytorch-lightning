@@ -370,14 +370,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(
-            eval_results)
+        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
         # add metrics to prog bar
         self.add_tqdm_metrics(prog_bar_metrics)
 
         # log results of test
-        if test_mode and self.proc_rank == 0 and len(callback_metrics) > 0:
+        if test_mode and self.proc_rank == 0:
             print('-' * 80)
             print('TEST RESULTS')
             pprint(callback_metrics)
