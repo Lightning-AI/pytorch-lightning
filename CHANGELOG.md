@@ -11,7 +11,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `auto_select_gpus` flag to trainer that enables automatic selection of available GPUs on exclusive mode systems.
 
 - Added learining rate finder ([#1347](https://github.com/PyTorchLightning/pytorch-lightning/pull/1347))
-- Added support for ddp mode in clusters without SLURM ([#1345](https://github.com/PyTorchLightning/pytorch-lightning/issues/1345))
 
 - Added support for ddp mode in clusters without SLURM ([#1345](https://github.com/PyTorchLightning/pytorch-lightning/issues/1345))
 
