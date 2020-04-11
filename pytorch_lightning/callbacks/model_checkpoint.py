@@ -242,4 +242,5 @@ class ModelCheckpoint(Callback):
         self._save_model(filepath)
 
         for cur_path in del_list:
-            self._del_model(cur_path)
+            if cur_path != filepath:
+                self._del_model(cur_path)
