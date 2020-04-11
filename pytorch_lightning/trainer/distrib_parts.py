@@ -352,7 +352,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import set_proc_rank
+from pytorch_lightning.utilities.distributed import set_proc_rank
 
 try:
     from apex import amp
