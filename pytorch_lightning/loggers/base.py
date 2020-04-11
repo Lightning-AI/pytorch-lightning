@@ -119,6 +119,7 @@ class LightningLoggerBase(ABC):
     def _finalize_agg_metrics(self):
         """This shall be called before save/close."""
         agg_step, metrics_to_log = self._reduce_agg_metrics()
+        self._metrics_to_agg = []
 
         if metrics_to_log is not None:
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
