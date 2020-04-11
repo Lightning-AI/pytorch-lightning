@@ -929,7 +929,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if 'MASTER_ADDR' not in os.environ:
             log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
-            os.environ['MASTER_ADDR'] = '127.0.0.2'
+            os.environ['MASTER_ADDR'] = '127.0.0.1'
 
         if 'MASTER_PORT' not in os.environ:
             log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
