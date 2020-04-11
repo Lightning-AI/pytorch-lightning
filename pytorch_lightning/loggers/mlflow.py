@@ -39,6 +39,8 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class MLFlowLogger(LightningLoggerBase):
+    """MLFLow logger"""
+
     def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
                  tags: Dict[str, Any] = None):
         r"""
@@ -59,7 +61,6 @@ class MLFlowLogger(LightningLoggerBase):
     @property
     def experiment(self) -> MlflowClient:
         r"""
-
         Actual mlflow object. To use mlflow features do the following.
 
         Example::
@@ -102,11 +103,9 @@ class MLFlowLogger(LightningLoggerBase):
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
-    def save(self):
-        pass
-
     @rank_zero_only
     def finalize(self, status: str = 'FINISHED') -> None:
+        super().finalize(status)
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)

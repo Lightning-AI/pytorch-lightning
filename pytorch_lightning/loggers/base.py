@@ -235,7 +235,7 @@ class LightningLoggerBase(ABC):
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
-        self._finalize_agg_metrics()
+        self.save()
 
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""

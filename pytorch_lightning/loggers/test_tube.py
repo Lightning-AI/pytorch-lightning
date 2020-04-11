@@ -105,12 +105,14 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self) -> None:
+        super().save()
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.save()
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        super().finalize(status)
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.save()
@@ -118,6 +120,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @rank_zero_only
     def close(self) -> None:
+        super().save()
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         if not self.debug:

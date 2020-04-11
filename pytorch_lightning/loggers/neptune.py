@@ -243,6 +243,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        super().finalize(status)
         if self.close_after_fit:
             self.experiment.stop()
 
