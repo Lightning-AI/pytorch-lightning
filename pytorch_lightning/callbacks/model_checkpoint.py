@@ -129,16 +129,6 @@ class ModelCheckpoint(Callback):
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
-    @property
-    def rank(self) -> int:
-        """Process rank. In general, metrics should only be logged by the process with rank 0."""
-        return self._rank
-
-    @rank.setter
-    def rank(self, value: int) -> None:
-        """Set the process rank."""
-        self._rank = value
-
     def _del_model(self, filepath):
         if os.path.isfile(filepath):
             os.remove(filepath)
