@@ -927,6 +927,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
 
+        if 'MASTER_ADDR' not in os.environ:
+            log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
+            os.environ['MASTER_ADDR'] = '127.0.0.2'
+
+        if 'MASTER_PORT' not in os.environ:
+            log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
+            os.environ['MASTER_PORT'] = '12910'
+
+        if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
+            log.warning("WORLD_SIZE environment variable is not equal to the computed "
+                        "world size. Ignored.")
+
         torch_distrib.init_process_group('nccl', rank=proc_rank, world_size=world_size)
 
     def configure_apex(

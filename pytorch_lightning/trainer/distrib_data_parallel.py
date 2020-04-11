@@ -281,6 +281,7 @@ class TrainerDDPMixin(ABC):
             node_id = os.environ['SLURM_NODEID'] if self.is_slurm_managing_tasks else os.environ['RANK']
             self.node_rank = int(node_id)
         except Exception:
+            log.warning("SLURM_NODEID or RANK environment variable is not defined. Set as 0.")
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
