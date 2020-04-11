@@ -109,7 +109,7 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         stop_training = False
         if not self._validate_condition_metric(logs):
