@@ -98,15 +98,15 @@ class LightningLoggerBase(ABC):
             return step, None
 
         # compute the metrics
-        agg_step, agg_mets = self._finalize_agg_metrics()
+        agg_step, agg_mets = self._reduce_agg_metrics()
 
         # as new step received reset accumulator
         self._metrics_to_agg = [metrics]
         self._prev_step = step
         return agg_step, agg_mets
 
-    def _finalize_agg_metrics(self):
-        """Aggregate accumulated metrics. This shall be called in close."""
+    def _reduce_agg_metrics(self):
+        """Aggregate accumulated metrics."""
         # compute the metrics
         if not self._metrics_to_agg:
             agg_mets = None
@@ -115,6 +115,13 @@ class LightningLoggerBase(ABC):
         else:
             agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
         return self._prev_step, agg_mets
+
+    def _finalize_agg_metrics(self):
+        """This shall be called before save/close."""
+        agg_step, metrics_to_log = self._reduce_agg_metrics()
+
+        if metrics_to_log is not None:
+            self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics.
@@ -219,7 +226,7 @@ class LightningLoggerBase(ABC):
 
     def save(self) -> None:
         """Save log data."""
-        self.finalize()
+        self._finalize_agg_metrics()
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
@@ -227,18 +234,15 @@ class LightningLoggerBase(ABC):
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
-        agg_step, metrics_to_log = self._finalize_agg_metrics()
-
-        if metrics_to_log is not None:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
+        self._finalize_agg_metrics()
 
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""
-        self.finalize()
+        self.save()
 
     def __del__(self):
         """Destructor."""
-        self.finalize()
+        self.close()
 
     @property
     def rank(self) -> int:

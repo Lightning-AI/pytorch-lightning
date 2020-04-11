@@ -127,6 +127,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self) -> None:
+        super().save()
         try:
             self.experiment.flush()
         except AttributeError:
