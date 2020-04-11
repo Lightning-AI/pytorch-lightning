@@ -659,6 +659,7 @@ def test_trainer_interrupted_flag(tmpdir):
     trainer.fit(model)
     assert trainer.interrupted
 
+
 def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
