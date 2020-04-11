@@ -54,7 +54,7 @@ def test_multi_cpu_model_ddp(tmpdir):
 
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         show_progress_bar=False,
         max_epochs=1,
         train_percent_check=0.4,
