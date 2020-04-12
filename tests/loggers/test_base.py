@@ -1,5 +1,4 @@
 import pickle
-from collections import OrderedDict
 from unittest.mock import MagicMock
 
 import numpy as np
