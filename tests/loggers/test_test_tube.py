@@ -3,7 +3,6 @@ import pickle
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TestTubeLogger
-from tests.base import LightningTestModel
 
 
 def test_testtube_pickle(tmpdir):

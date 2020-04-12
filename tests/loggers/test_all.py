@@ -1,7 +1,6 @@
-import pickle
-from argparse import Namespace
-
 import inspect
+import pickle
+
 import pytest
 
 import tests.base.utils as tutils
@@ -53,3 +52,31 @@ def test_loggers_fit_test(tmpdir, logger_class):
     assert log_metric_names == [(0, ['val_acc', 'val_loss']),
                                 (0, ['train_some_val']),
                                 (1, ['test_acc', 'test_loss'])]
+
+
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger
+    # TODO: add WandbLogger, TrainsLogger
+])
+def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
+    """Verify that pickling trainer with logger works."""
+    tutils.reset_seed()
+
+    # prevent comet logger from trying to print at exit, since
+    # pytest's stdout/stderr redirection breaks it
+    import atexit
+    monkeypatch.setattr(atexit, 'register', lambda _: None)
+
+    if 'save_dir' in inspect.getfullargspec(logger_class).args:
+        logger = logger_class(save_dir=str(tmpdir))
+    else:
+        logger = logger_class()
+
+    trainer = Trainer(
+        max_epochs=1,
+        logger=logger
+    )
+    pkl_bytes = pickle.dumps(trainer)
+
+    trainer2 = pickle.loads(pkl_bytes)
+    trainer2.logger.log_metrics({'acc': 1.0})
