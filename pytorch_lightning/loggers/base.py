@@ -48,7 +48,7 @@ class LightningLoggerBase(ABC):
             `LightningLoggerBase.agg_and_log_metrics` method.
         """
         self._rank = 0
-        self._prev_step = -1
+        self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func

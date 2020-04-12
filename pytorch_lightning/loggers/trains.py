@@ -297,7 +297,7 @@ class TrainsLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str = None) -> None:
-        super().finalize(status)
+        # super().finalize(status)
         if self.bypass_mode() or not self._trains:
             return
 
