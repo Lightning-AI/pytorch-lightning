@@ -46,8 +46,7 @@ class MLFlowLogger(LightningLoggerBase):
                  experiment_name: str = 'default',
                  tracking_uri: Optional[str] = None,
                  tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = None,
-                 ):
+                 save_dir: Optional[str] = None):
         r"""
         Logs using MLFlow
 
@@ -58,7 +57,7 @@ class MLFlowLogger(LightningLoggerBase):
         """
         super().__init__()
         if not tracking_uri and save_dir:
-            tracking_uri = tracking_uri=f'file:{os.sep * 2}{save_dir}'
+            tracking_uri = f'file:{os.sep * 2}{save_dir}'
         self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None
