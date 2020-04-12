@@ -124,14 +124,6 @@ def test_trainer_callback_system(tmpdir):
 
     test_callback = TestCallback()
 
-    trainer_options = {
-        'callbacks': [test_callback],
-        'max_epochs': 1,
-        'val_percent_check': 0.1,
-        'train_percent_check': 0.2,
-        'progress_bar_refresh_rate': 0
-    }
-
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
     assert not test_callback.on_sanity_check_start_called
@@ -152,7 +144,13 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_test_end_called
 
     # fit model
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(
+        callbacks=[test_callback],
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2,
+        progress_bar_refresh_rate=0,
+    )
 
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
@@ -226,14 +224,13 @@ def test_early_stopping_no_val_step(tmpdir):
     model = ModelWithoutValStep(hparams)
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer_options = dict(
+
+    trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
         max_epochs=5,
     )
-
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'

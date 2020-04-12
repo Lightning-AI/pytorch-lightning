@@ -118,7 +118,8 @@ def test_running_test_after_fitting(tmpdir):
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=8,
@@ -128,9 +129,6 @@ def test_running_test_after_fitting(tmpdir):
         checkpoint_callback=checkpoint,
         logger=logger
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
@@ -157,7 +155,8 @@ def test_running_test_no_val(tmpdir):
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
@@ -167,9 +166,6 @@ def test_running_test_no_val(tmpdir):
         logger=logger,
         early_stop_callback=False
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
@@ -229,16 +225,13 @@ def test_simple_cpu(tmpdir):
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
@@ -331,15 +324,6 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        truncated_bptt_steps=truncated_bptt_steps,
-        val_percent_check=0,
-        weights_summary=None,
-        early_stop_callback=False
-    )
-
     hparams = tutils.get_default_hparams()
     hparams.batch_size = batch_size
     hparams.in_features = truncated_bptt_steps
@@ -349,7 +333,14 @@ def test_tbptt_cpu_model(tmpdir):
     model = BpttTestModel(hparams)
 
     # fit model
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        truncated_bptt_steps=truncated_bptt_steps,
+        val_percent_check=0,
+        weights_summary=None,
+        early_stop_callback=False
+    )
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'

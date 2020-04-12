@@ -24,7 +24,8 @@ from tests.base import (
 )
 
 
-def test_dataloader_config_errors(tmpdir):
+@pytest.mark.parametrize("train_percent_check", [-0.1, 1,1, 10000])
+def test_dataloader_config_errors(tmpdir, train_percent_check):
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -36,62 +37,12 @@ def test_dataloader_config_errors(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # percent check < 0
-
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=-0.1,
+        train_percent_check=train_percent_check,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-
-    with pytest.raises(ValueError):
-        trainer.fit(model)
-
-    # percent check > 1
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=1.1,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-
-    with pytest.raises(ValueError):
-        trainer.fit(model)
-
-    # int val_check_interval > num batches
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=10000
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-
-    with pytest.raises(ValueError):
-        trainer.fit(model)
-
-    # float val_check_interval > 1
-
-    # logger file to get meta
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=1.1
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
 
     with pytest.raises(ValueError):
         trainer.fit(model)
@@ -111,16 +62,13 @@ def test_multiple_val_dataloader(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # verify training completed
@@ -150,16 +98,13 @@ def test_multiple_test_dataloader(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
     # fit model
-    trainer = Trainer(**trainer_options)
     trainer.fit(model)
     trainer.test()
 
@@ -184,19 +129,15 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
 
     hparams = tutils.get_default_hparams()
 
-    # logger file to get meta
-    trainer_options = dict(
+    # only train passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # only train passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True))
-    result = trainer.fit(model, **fit_options)
+    result = trainer.fit(model, train_dataloader=model._dataloader(train=True))
 
     assert result == 1
 
@@ -214,21 +155,18 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
     hparams = tutils.get_default_hparams()
 
-    # logger file to get meta
-    trainer_options = dict(
+    # train, val passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # train, val passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
-
-    result = trainer.fit(model, **fit_options)
+    result = trainer.fit(model,
+                         rain_dataloader=model._dataloader(train=True),
+                         val_dataloaders=model._dataloader(train=False)
+                         )
     assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -249,24 +187,21 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 
     hparams = tutils.get_default_hparams()
 
-    # logger file to get meta
-    trainer_options = dict(
+    # train, val and test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
 
-    # train, val and test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
-    test_options = dict(test_dataloaders=model._dataloader(train=False))
+    result = trainer.fit(model,
+                         train_dataloader=model._dataloader(train=True),
+                         val_dataloaders=model._dataloader(train=False)
+                         )
 
-    result = trainer.fit(model, **fit_options)
-
-    trainer.test(**test_options)
+    trainer.test(test_dataloaders=model._dataloader(train=False))
 
     assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
@@ -288,25 +223,23 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
 
     hparams = tutils.get_default_hparams()
 
-    # logger file to get meta
-    trainer_options = dict(
+    # train, multiple val and multiple test passed to fit
+    model = CurrentTestModel(hparams)
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
 
-    # train, multiple val and multiple test passed to fit
-    model = CurrentTestModel(hparams)
-    trainer = Trainer(**trainer_options)
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
-    test_options = dict(test_dataloaders=[model._dataloader(train=False),
-                                          model._dataloader(train=False)])
+    results = trainer.fit(
+        model,
+        train_dataloader=model._dataloader(train=True),
+        val_dataloaders=[model._dataloader(train=False), model._dataloader(train=False)]
+    )
+    assert results
 
-    results = trainer.fit(model, **fit_options)
-    trainer.test(**test_options)
+    trainer.test(test_dataloaders=[model._dataloader(train=False), model._dataloader(train=False)])
 
     assert len(trainer.val_dataloaders) == 2, \
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -506,19 +439,16 @@ def test_warning_with_few_workers(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
+
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
-    test_options = dict(test_dataloaders=model._dataloader(train=False))
-
-    trainer = Trainer(**trainer_options)
 
     # fit model
     with pytest.warns(UserWarning, match='train'):
