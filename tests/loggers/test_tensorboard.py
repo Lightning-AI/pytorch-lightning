@@ -10,23 +10,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import LightningTestModel
 
 
-def test_tensorboard_logger(tmpdir):
-    """Verify that basic functionality of Tensorboard logger works."""
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
-
-    logger = TensorBoardLogger(save_dir=tmpdir, name="tensorboard_logger_test")
-
-    trainer_options = dict(max_epochs=1, train_percent_check=0.01, logger=logger)
-
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    print("result finished")
-    assert result == 1, "Training failed"
-
-
 def test_tensorboard_pickle(tmpdir):
     """Verify that pickling trainer with Tensorboard logger works."""
 

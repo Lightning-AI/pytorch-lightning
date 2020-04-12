@@ -18,10 +18,13 @@ class TestTubeLogger(LightningLoggerBase):
 
     __test__ = False
 
-    def __init__(
-            self, save_dir: str, name: str = "default", description: Optional[str] = None,
-            debug: bool = False, version: Optional[int] = None, create_git_tag: bool = False
-    ):
+    def __init__(self,
+                 save_dir: str,
+                 name: str = "default",
+                 description: Optional[str] = None,
+                 debug: bool = False,
+                 version: Optional[int] = None,
+                 create_git_tag: bool = False):
         r"""
 
         Example

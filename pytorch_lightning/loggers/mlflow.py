@@ -23,6 +23,7 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
+import os
 from argparse import Namespace
 from time import time
 from typing import Optional, Dict, Any, Union
@@ -41,10 +42,13 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 class MLFlowLogger(LightningLoggerBase):
     """MLFLow logger"""
 
-    def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
-                 tags: Dict[str, Any] = None):
+    def __init__(self,
+                 experiment_name: str = 'default',
+                 tracking_uri: Optional[str] = None,
+                 tags: Optional[Dict[str, Any]] = None,
+                 save_dir: Optional[str] = None,
+                 ):
         r"""
-
         Logs using MLFlow
 
         Args:
@@ -53,6 +57,8 @@ class MLFlowLogger(LightningLoggerBase):
             tags (dict): todo this param
         """
         super().__init__()
+        if not tracking_uri and save_dir:
+            tracking_uri = tracking_uri=f'file:{os.sep * 2}{save_dir}'
         self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None

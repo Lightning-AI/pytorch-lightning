@@ -58,18 +58,6 @@ class CustomLogger(LightningLoggerBase):
         return "1"
 
 
-class StoreHistoryLogger(CustomLogger):
-    def __init__(self):
-        super().__init__()
-        self.history = {}
-
-    @rank_zero_only
-    def log_metrics(self, metrics, step):
-        if step not in self.history:
-            self.history[step] = {}
-        self.history[step].update(metrics)
-
-
 def test_custom_logger(tmpdir):
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -174,6 +162,18 @@ def test_adding_step_key(tmpdir):
 
 def test_with_accumulate_grad_batches():
     """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
+
+    class StoreHistoryLogger(CustomLogger):
+        def __init__(self):
+            super().__init__()
+            self.history = {}
+
+        @rank_zero_only
+        def log_metrics(self, metrics, step):
+            if step not in self.history:
+                self.history[step] = {}
+            self.history[step].update(metrics)
+
     logger = StoreHistoryLogger()
 
     np.random.seed(42)

@@ -12,42 +12,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import LightningTestModel
 
 
-def test_comet_logger(tmpdir, monkeypatch):
-    """Verify that basic functionality of Comet.ml logger works."""
-
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
-
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
-
-    comet_dir = os.path.join(tmpdir, 'cometruns')
-
-    # We test CometLogger in offline mode with local saves
-    logger = CometLogger(
-        save_dir=comet_dir,
-        project_name='general',
-        workspace='dummy-test',
-    )
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger
-    )
-
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    trainer.logger.log_metrics({'acc': torch.ones(1)})
-
-    assert result == 1, 'Training failed'
-
-
 def test_comet_logger_online():
     """Test comet online with mocks."""
     # Test api_key given

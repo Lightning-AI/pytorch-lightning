@@ -1,0 +1,55 @@
+import pickle
+from argparse import Namespace
+
+import inspect
+import pytest
+
+import tests.base.utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import (
+    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger)
+from tests.base import LightningTestModel
+
+
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger,
+    # TODO: add WandbLogger, TrainsLogger
+])
+def test_loggers_fit_test(tmpdir, logger_class):
+    """Verify that basic functionality of all loggers."""
+    tutils.reset_seed()
+
+    hparams = tutils.get_default_hparams()
+    model = LightningTestModel(hparams)
+
+    class StoreHistoryLogger(logger_class):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.history = []
+
+        def log_metrics(self, metrics, step):
+            super().log_metrics(metrics, step)
+            self.history.append((step, metrics))
+
+    if 'save_dir' in inspect.getfullargspec(logger_class).args:
+        logger = StoreHistoryLogger(save_dir=str(tmpdir))
+    else:
+        logger = StoreHistoryLogger()
+
+    trainer = Trainer(
+        max_epochs=1,
+        benchmark=True,
+        logger=logger,
+        gpus=0,
+        train_percent_check=0.2,
+        val_percent_check=0.5,
+        fast_dev_run=True,
+    )
+    trainer.fit(model)
+
+    trainer.test()
+
+    log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
+    assert log_metric_names == [(0, ['val_acc', 'val_loss']),
+                                (0, ['train_some_val']),
+                                (1, ['test_acc', 'test_loss'])]
