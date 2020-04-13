@@ -299,7 +299,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('test_epoch_end', model=model):
@@ -309,7 +309,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('validation_epoch_end', model=model):
