@@ -4,7 +4,7 @@ import torch
 from torch import optim
 
 
-class LightValidationStepMixin:
+class LightValStepMixin:
     """
     Add val_dataloader and validation_step methods for the case
     when val_dataloader returns a single dataloader
@@ -53,7 +53,7 @@ class LightValidationStepMixin:
             return output
 
 
-class LightValidationMixin(LightValidationStepMixin):
+class LightValMixin(LightValStepMixin):
     """
     Add val_dataloader, validation_step, and validation_end methods for the case
     when val_dataloader returns a single dataloader
@@ -94,7 +94,7 @@ class LightValidationMixin(LightValidationStepMixin):
         return results
 
 
-class LightValidationStepMultipleDataloadersMixin:
+class LightValStepMultipleDataloadersMixin:
     """
     Add val_dataloader and validation_step methods for the case
     when val_dataloader returns multiple dataloaders
@@ -153,7 +153,7 @@ class LightValidationStepMultipleDataloadersMixin:
             return output
 
 
-class LightValidationMultipleDataloadersMixin(LightValidationStepMultipleDataloadersMixin):
+class LightValMultipleDataloadersMixin(LightValStepMultipleDataloadersMixin):
     """
     Add val_dataloader, validation_step, and validation_end methods for the case
     when val_dataloader returns multiple dataloaders
@@ -196,21 +196,21 @@ class LightValidationMultipleDataloadersMixin(LightValidationStepMultipleDataloa
         return result
 
 
-class LightTrainDataloader:
+class LightTrnDataloader:
     """Simple train dataloader."""
 
     def train_dataloader(self):
         return self._dataloader(train=True)
 
 
-class LightValidationDataloader:
+class LightValDataloader:
     """Simple validation dataloader."""
 
     def val_dataloader(self):
         return self._dataloader(train=False)
 
 
-class LightTestDataloader:
+class LightTstDataloader:
     """Simple test dataloader."""
 
     def test_dataloader(self):
@@ -238,7 +238,7 @@ class CustomInfDataloader:
             return next(self.iter)
 
 
-class LightInfTrainDataloader:
+class LightInfTrnDataloader:
     """Simple test dataloader."""
 
     def train_dataloader(self):
@@ -252,7 +252,7 @@ class LightInfValDataloader:
         return CustomInfDataloader(self._dataloader(train=False))
 
 
-class LightInfTestDataloader:
+class LightInfTstDataloader:
     """Simple test dataloader."""
 
     def test_dataloader(self):
@@ -269,14 +269,14 @@ class LightZeroLenDataloader:
         return dataloader
 
 
-class LightEmptyTestStep:
+class LightEmptyTstStep:
     """Empty test step."""
 
     def test_step(self, *args, **kwargs):
         return dict()
 
 
-class LightTestStepMixin(LightTestDataloader):
+class LightTstStepMixin(LightTstDataloader):
     """Test step mixin."""
 
     def test_step(self, batch, batch_idx, *args, **kwargs):
@@ -323,7 +323,7 @@ class LightTestStepMixin(LightTestDataloader):
             return output
 
 
-class LightTestMixin(LightTestStepMixin):
+class LightTstMixin(LightTstStepMixin):
     """Ritch test mixin."""
 
     def test_epoch_end(self, outputs):
@@ -360,7 +360,7 @@ class LightTestMixin(LightTestStepMixin):
         return result
 
 
-class LightTestStepMultipleDataloadersMixin:
+class LightTstStepMultipleDataloadersMixin:
     """Test step multiple dataloaders mixin."""
 
     def test_dataloader(self):
@@ -416,7 +416,7 @@ class LightTestStepMultipleDataloadersMixin:
             return output
 
 
-class LightTestFitSingleTestDataloadersMixin:
+class LightTstStepSingleTstDataloadersMixin:
     """Test fit single test dataloaders mixin."""
 
     def test_dataloader(self):
@@ -466,7 +466,7 @@ class LightTestFitSingleTestDataloadersMixin:
             return output
 
 
-class LightTestFitMultipleTestDataloadersMixin:
+class LightTstStepMultipleTstDataloadersMixin:
     """Test fit multiple test dataloaders mixin."""
 
     def test_step(self, batch, batch_idx, dataloader_idx, **kwargs):
@@ -617,7 +617,7 @@ class LightValStepFitMultipleDataloadersMixin:
             return output
 
 
-class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
+class LightTstMultipleDataloadersMixin(LightTstStepMultipleDataloadersMixin):
 
     def test_epoch_end(self, outputs):
         """
@@ -656,7 +656,7 @@ class LightTestMultipleDataloadersMixin(LightTestStepMultipleDataloadersMixin):
         return result
 
 
-class LightTestOptimizerWithSchedulingMixin:
+class LightOptimizerWithSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
@@ -666,7 +666,7 @@ class LightTestOptimizerWithSchedulingMixin:
         return [optimizer], [lr_scheduler]
 
 
-class LightTestMultipleOptimizersWithSchedulingMixin:
+class LightMultipleOptimizersWithSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
@@ -680,7 +680,7 @@ class LightTestMultipleOptimizersWithSchedulingMixin:
         return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
 
-class LightTestOptimizersWithMixedSchedulingMixin:
+class LightOptimizersWithMixedSchedulingMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer1 = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
@@ -695,7 +695,7 @@ class LightTestOptimizersWithMixedSchedulingMixin:
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
 
 
-class LightTestReduceLROnPlateauMixin:
+class LightReduceLROnPlateauMixin:
     def configure_optimizers(self):
         if self.hparams.optimizer_name == 'lbfgs':
             optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
@@ -705,7 +705,7 @@ class LightTestReduceLROnPlateauMixin:
         return [optimizer], [lr_scheduler]
 
 
-class LightTestNoneOptimizerMixin:
+class LightNoneOptimizerMixin:
     def configure_optimizers(self):
         return None
 

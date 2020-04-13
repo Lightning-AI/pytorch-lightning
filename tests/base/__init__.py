@@ -2,59 +2,41 @@
 
 import torch
 
-from tests.base.models import TestModelBase, DictHparamsModel
+from tests.base.models import TrialModelBase, DictHparamsModel
 from tests.base.mixins import (
-    LightEmptyTestStep,
-    LightValidationStepMixin,
-    LightValidationMixin,
-    LightValidationStepMultipleDataloadersMixin,
-    LightValidationMultipleDataloadersMixin,
-    LightTestStepMixin,
-    LightTestMixin,
-    LightTestStepMultipleDataloadersMixin,
-    LightTestMultipleDataloadersMixin,
-    LightTestFitSingleTestDataloadersMixin,
-    LightTestFitMultipleTestDataloadersMixin,
+    LightEmptyTstStep,
+    LightValStepMixin,
+    LightValMixin,
+    LightValStepMultipleDataloadersMixin,
+    LightValMultipleDataloadersMixin,
+    LightTstStepMixin,
+    LightTstMixin,
+    LightTstStepMultipleDataloadersMixin,
+    LightTstMultipleDataloadersMixin,
+    LightTstStepSingleTstDataloadersMixin,
+    LightTstStepMultipleTstDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
     LightValStepFitMultipleDataloadersMixin,
-    LightTrainDataloader,
-    LightValidationDataloader,
-    LightTestDataloader,
-    LightInfTrainDataloader,
+    LightTrnDataloader,
+    LightValDataloader,
+    LightTstDataloader,
+    LightInfTrnDataloader,
     LightInfValDataloader,
-    LightInfTestDataloader,
-    LightTestOptimizerWithSchedulingMixin,
-    LightTestMultipleOptimizersWithSchedulingMixin,
-    LightTestOptimizersWithMixedSchedulingMixin,
-    LightTestReduceLROnPlateauMixin,
-    LightTestNoneOptimizerMixin,
+    LightInfTstDataloader,
+    LightOptimizerWithSchedulingMixin,
+    LightMultipleOptimizersWithSchedulingMixin,
+    LightOptimizersWithMixedSchedulingMixin,
+    LightReduceLROnPlateauMixin,
+    LightNoneOptimizerMixin,
     LightZeroLenDataloader
 )
 
 
-class LightningTestModel(LightTrainDataloader,
-                         LightValidationMixin,
-                         LightTestMixin,
-                         TestModelBase):
+class LightningTrialModel(LightTrnDataloader,
+                          LightValMixin,
+                          LightTstMixin,
+                          TrialModelBase):
     """Most common test case. Validation and test dataloaders."""
 
     def on_training_metrics(self, logs):
         logs['some_tensor_to_test'] = torch.rand(1)
-
-
-class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
-    """Without hparams argument in constructor """
-
-    def __init__(self):
-        import tests.base.utils as tutils
-
-        # the user loads the hparams in some other way
-        hparams = tutils.get_default_hparams()
-        super().__init__(hparams)
-
-
-class LightningTestModelWithUnusedHyperparametersArg(LightningTestModelWithoutHyperparametersArg):
-    """It has hparams argument in constructor but is not used."""
-
-    def __init__(self, hparams):
-        super().__init__()

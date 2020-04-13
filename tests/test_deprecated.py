@@ -3,7 +3,7 @@
 from pytorch_lightning import Trainer
 
 import tests.base.utils as tutils
-from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
+from tests.base import TrialModelBase, LightTrnDataloader, LightEmptyTstStep
 
 
 def test_tbd_remove_in_v0_8_0_module_imports():
@@ -70,7 +70,7 @@ def test_tbd_remove_in_v0_9_0_module_imports():
     from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler  # noqa: F402
 
 
-class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
+class ModelVer0_6(LightTrnDataloader, LightEmptyTstStep, TrialModelBase):
 
     # todo: this shall not be needed while evaluate asks for dataloader explicitly
     def val_dataloader(self):
@@ -89,7 +89,7 @@ class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
         return {'test_loss': 0.6}
 
 
-class ModelVer0_7(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
+class ModelVer0_7(LightTrnDataloader, LightEmptyTstStep, TrialModelBase):
 
     # todo: this shall not be needed while evaluate asks for dataloader explicitly
     def val_dataloader(self):

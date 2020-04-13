@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
-from tests.base import LightningTestModel
+from tests.base import LightningTrialModel
 from tests.base.datasets import PATH_DATASETS
 
 # generate a list of random seeds for each test
@@ -132,7 +132,7 @@ def get_default_model(lbfgs=False):
         setattr(hparams, 'optimizer_name', 'lbfgs')
         setattr(hparams, 'learning_rate', 0.002)
 
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     return model, hparams
 
@@ -161,7 +161,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt=None):
+def load_model(exp, root_weights_dir, module_class=LightningTrialModel, path_expt=None):
     # load trained model
     path_expt_dir = get_data_path(exp, path_dir=path_expt)
     tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
@@ -179,7 +179,7 @@ def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt
     return trained_model
 
 
-def load_model_from_checkpoint(root_weights_dir, module_class=LightningTestModel):
+def load_model_from_checkpoint(root_weights_dir, module_class=LightningTrialModel):
     # load trained model
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])

@@ -5,14 +5,12 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-)
+from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import (
-    TestModelBase,
-    LightTrainDataloader,
-    LightningTestModel,
-    LightTestMixin,
+    TrialModelBase,
+    LightTrnDataloader,
+    LightningTrialModel,
+    LightTstMixin,
 )
 
 
@@ -84,7 +82,7 @@ def test_running_test_after_fitting(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -119,11 +117,11 @@ def test_running_test_without_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
+    class CurrentModel(LightTrnDataloader, LightTstMixin, TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -201,7 +199,7 @@ def test_simple_cpu(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -276,7 +274,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(LightTrainDataloader, TestModelBase):
+    class BpttModel(LightTrnDataloader, TrialModelBase):
         def __init__(self, hparams):
             super().__init__(hparams)
             self.test_hidden = None
@@ -322,7 +320,7 @@ def test_tbptt_cpu_model(tmpdir):
     hparams.hidden_dim = truncated_bptt_steps
     hparams.out_features = truncated_bptt_steps
 
-    model = BpttTestModel(hparams)
+    model = BpttModel(hparams)
 
     # fit model
     trainer = Trainer(**trainer_options)

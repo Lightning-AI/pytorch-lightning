@@ -5,20 +5,20 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
-    TestModelBase,
-    LightningTestModel,
-    LightEmptyTestStep,
-    LightValidationMultipleDataloadersMixin,
-    LightTestMultipleDataloadersMixin,
-    LightTestFitSingleTestDataloadersMixin,
-    LightTestFitMultipleTestDataloadersMixin,
+    TrialModelBase,
+    LightningTrialModel,
+    LightEmptyTstStep,
+    LightValMultipleDataloadersMixin,
+    LightTstMultipleDataloadersMixin,
+    LightTstStepSingleTstDataloadersMixin,
+    LightTstStepMultipleTstDataloadersMixin,
     LightValStepFitMultipleDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
-    LightTrainDataloader,
-    LightValidationDataloader,
-    LightInfTrainDataloader,
+    LightTrnDataloader,
+    LightValDataloader,
+    LightInfTrnDataloader,
     LightInfValDataloader,
-    LightInfTestDataloader,
+    LightInfTstDataloader,
     LightZeroLenDataloader
 )
 
@@ -26,14 +26,14 @@ from tests.base import (
 def test_dataloader_config_errors(tmpdir):
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
+    class CurrentModel(
+        LightTrnDataloader,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # percent check < 0
 
@@ -100,15 +100,15 @@ def test_multiple_val_dataloader(tmpdir):
     """Verify multiple val_dataloader."""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValidationMultipleDataloadersMixin,
-        TestModelBase,
+    class CurrentModel(
+        LightTrnDataloader,
+        LightValMultipleDataloadersMixin,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -138,16 +138,16 @@ def test_multiple_test_dataloader(tmpdir):
     """Verify multiple test_dataloader."""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMultipleDataloadersMixin,
-        LightEmptyTestStep,
-        TestModelBase,
+    class CurrentModel(
+        LightTrnDataloader,
+        LightTstMultipleDataloadersMixin,
+        LightEmptyTstStep,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -178,7 +178,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit """
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+    class CurrentModel(LightTrnDataloader, TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
@@ -192,7 +192,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
     )
 
     # only train passed to fit
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True))
     result = trainer.fit(model, **fit_options)
@@ -204,10 +204,10 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     """ Verify that train & val dataloader can be passed to fit """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
+    class CurrentModel(
+        LightTrnDataloader,
         LightValStepFitSingleDataloaderMixin,
-        TestModelBase,
+        TrialModelBase,
     ):
         pass
 
@@ -222,7 +222,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     )
 
     # train, val passed to fit
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False))
@@ -237,12 +237,12 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     """Verify train, val & test dataloader can be passed to fit """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
+    class CurrentModel(
+        LightTrnDataloader,
         LightValStepFitSingleDataloaderMixin,
-        LightTestFitSingleTestDataloadersMixin,
-        LightEmptyTestStep,
-        TestModelBase,
+        LightTstStepSingleTstDataloadersMixin,
+        LightEmptyTstStep,
+        TrialModelBase,
     ):
         pass
 
@@ -257,7 +257,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     )
 
     # train, val and test passed to fit
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=model._dataloader(train=False))
@@ -278,10 +278,10 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     """Verify that multiple val & test dataloaders can be passed to fit."""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightningTestModel,
+    class CurrentModel(
+        LightningTrialModel,
         LightValStepFitMultipleDataloadersMixin,
-        LightTestFitMultipleTestDataloadersMixin,
+        LightTstStepMultipleTstDataloadersMixin,
     ):
         pass
 
@@ -296,7 +296,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     )
 
     # train, multiple val and multiple test passed to fit
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=[model._dataloader(train=False),
@@ -317,16 +317,16 @@ def test_mixing_of_dataloader_options(tmpdir):
     """Verify that dataloaders can be passed to fit"""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
+    class CurrentModel(
+        LightTrnDataloader,
         LightValStepFitSingleDataloaderMixin,
-        LightTestFitSingleTestDataloadersMixin,
-        TestModelBase,
+        LightTstStepSingleTstDataloadersMixin,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -359,14 +359,14 @@ def test_inf_train_dataloader(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightInfTrainDataloader,
-        LightningTestModel
+    class CurrentModel(
+        LightInfTrnDataloader,
+        LightningTrialModel
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # fit model
     with pytest.raises(MisconfigurationException):
@@ -401,14 +401,14 @@ def test_inf_val_dataloader(tmpdir):
     """Test inf val data loader (e.g. IterableDataset)"""
     tutils.reset_seed()
 
-    class CurrentTestModel(
+    class CurrentModel(
         LightInfValDataloader,
-        LightningTestModel
+        LightningTrialModel
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # fit model
     with pytest.raises(MisconfigurationException):
@@ -434,15 +434,15 @@ def test_inf_test_dataloader(tmpdir):
     """Test inf test data loader (e.g. IterableDataset)"""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightInfTestDataloader,
-        LightningTestModel,
-        LightTestFitSingleTestDataloadersMixin
+    class CurrentModel(
+        LightInfTstDataloader,
+        LightningTrialModel,
+        LightTstStepSingleTstDataloadersMixin
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # fit model
     with pytest.raises(MisconfigurationException):
@@ -469,14 +469,14 @@ def test_error_on_zero_len_dataloader(tmpdir):
     """ Test that error is raised if a zero-length dataloader is defined """
     tutils.reset_seed()
 
-    class CurrentTestModel(
+    class CurrentModel(
         LightZeroLenDataloader,
-        LightningTestModel
+        LightningTrialModel
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # fit model
     with pytest.raises(ValueError):
@@ -492,17 +492,17 @@ def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
+    class CurrentModel(
+        LightTrnDataloader,
         LightValStepFitSingleDataloaderMixin,
-        LightTestFitSingleTestDataloadersMixin,
-        LightEmptyTestStep,
-        TestModelBase,
+        LightTstStepSingleTstDataloadersMixin,
+        LightEmptyTstStep,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(

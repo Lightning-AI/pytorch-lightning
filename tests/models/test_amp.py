@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
-    LightningTestModel,
+    LightningTrialModel,
 )
 
 
@@ -17,7 +17,7 @@ def test_amp_single_gpu(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -37,7 +37,7 @@ def test_no_amp_single_gpu(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -60,7 +60,7 @@ def test_amp_gpu_ddp(tmpdir):
     tutils.set_random_master_port()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -84,7 +84,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     os.environ['SLURM_LOCALID'] = str(0)
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     trainer_options = dict(
         max_epochs=1,

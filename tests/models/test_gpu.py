@@ -12,7 +12,7 @@ from pytorch_lightning.trainer.distrib_parts import (
     determine_root_gpu_device,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import LightningTestModel
+from tests.base import LightningTrialModel
 
 PRETEND_N_OF_GPUS = 16
 
@@ -88,7 +88,7 @@ def test_cpu_slurm_save_load(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -138,7 +138,7 @@ def test_cpu_slurm_save_load(tmpdir):
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     trainer = Trainer(**trainer_options)
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_pred_same():

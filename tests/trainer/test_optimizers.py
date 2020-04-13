@@ -5,15 +5,15 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
 from tests.base import (
-    TestModelBase,
-    LightTrainDataloader,
-    LightValidationStepMixin,
-    LightValidationMixin,
-    LightTestOptimizerWithSchedulingMixin,
-    LightTestMultipleOptimizersWithSchedulingMixin,
-    LightTestOptimizersWithMixedSchedulingMixin,
-    LightTestReduceLROnPlateauMixin,
-    LightTestNoneOptimizerMixin
+    TrialModelBase,
+    LightTrnDataloader,
+    LightValStepMixin,
+    LightValMixin,
+    LightOptimizerWithSchedulingMixin,
+    LightMultipleOptimizersWithSchedulingMixin,
+    LightOptimizersWithMixedSchedulingMixin,
+    LightReduceLROnPlateauMixin,
+    LightNoneOptimizerMixin
 )
 
 
@@ -21,14 +21,14 @@ def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-            LightTestOptimizerWithSchedulingMixin,
-            LightTrainDataloader,
-            TestModelBase):
+    class CurrentModel(
+            LightOptimizerWithSchedulingMixin,
+            LightTrnDataloader,
+            TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -60,14 +60,14 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-            LightTestMultipleOptimizersWithSchedulingMixin,
-            LightTrainDataloader,
-            TestModelBase):
+    class CurrentModel(
+            LightMultipleOptimizersWithSchedulingMixin,
+            LightTrnDataloader,
+            TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -103,14 +103,14 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     tutils.reset_seed()
 
-    class CurrentTestModel(
-            LightTestOptimizersWithMixedSchedulingMixin,
-            LightTrainDataloader,
-            TestModelBase):
+    class CurrentModel(
+            LightOptimizersWithMixedSchedulingMixin,
+            LightTrnDataloader,
+            TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -150,16 +150,16 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
     tutils.reset_seed()
 
-    class CurrentTestModel(
-            LightTestReduceLROnPlateauMixin,
-            LightTrainDataloader,
-            LightValidationMixin,
-            LightValidationStepMixin,
-            TestModelBase):
+    class CurrentModel(
+            LightReduceLROnPlateauMixin,
+            LightTrnDataloader,
+            LightValMixin,
+            LightValStepMixin,
+            TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -252,14 +252,14 @@ def test_none_optimizer_warning():
 def test_none_optimizer(tmpdir):
     tutils.reset_seed()
 
-    class CurrentTestModel(
-            LightTestNoneOptimizerMixin,
-            LightTrainDataloader,
-            TestModelBase):
+    class CurrentModel(
+            LightNoneOptimizerMixin,
+            LightTrnDataloader,
+            TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     trainer_options = dict(
@@ -282,7 +282,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     `optimizer` field only.
     """
 
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+    class CurrentModel(LightTrnDataloader, TrialModelBase):
         def configure_optimizers(self):
             config = {
                 'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)
@@ -290,7 +290,7 @@ def test_configure_optimizer_from_dict(tmpdir):
             return config
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     trainer_options = dict(default_save_path=tmpdir, max_epochs=1)
 

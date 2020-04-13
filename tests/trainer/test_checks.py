@@ -4,14 +4,14 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
-    TestModelBase,
-    LightValidationDataloader,
-    LightTestDataloader,
-    LightValidationStepMixin,
+    TrialModelBase,
+    LightValDataloader,
+    LightTstDataloader,
+    LightValStepMixin,
     LightValStepFitSingleDataloaderMixin,
-    LightTrainDataloader,
-    LightTestStepMixin,
-    LightTestFitMultipleTestDataloadersMixin,
+    LightTrnDataloader,
+    LightTstStepMixin,
+    LightTstStepMultipleTstDataloadersMixin,
 )
 
 
@@ -19,7 +19,7 @@ def test_error_on_no_train_step(tmpdir):
     """ Test that an error is thrown when no `training_step()` is defined """
     tutils.reset_seed()
 
-    class CurrentTestModel(LightningModule):
+    class CurrentModel(LightningModule):
         def forward(self, x):
             pass
 
@@ -27,7 +27,7 @@ def test_error_on_no_train_step(tmpdir):
     trainer = Trainer(**trainer_options)
 
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel()
+        model = CurrentModel()
         trainer.fit(model)
 
 
@@ -36,14 +36,14 @@ def test_error_on_no_train_dataloader(tmpdir):
     tutils.reset_seed()
     hparams = tutils.get_default_hparams()
 
-    class CurrentTestModel(TestModelBase):
+    class CurrentModel(TrialModelBase):
         pass
 
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
     trainer = Trainer(**trainer_options)
 
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
 
@@ -51,7 +51,7 @@ def test_error_on_no_configure_optimizers(tmpdir):
     """ Test that an error is thrown when no `configure_optimizers()` is defined """
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTrainDataloader, LightningModule):
+    class CurrentModel(LightTrnDataloader, LightningModule):
         def forward(self, x):
             pass
 
@@ -62,7 +62,7 @@ def test_error_on_no_configure_optimizers(tmpdir):
     trainer = Trainer(**trainer_options)
 
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel()
+        model = CurrentModel()
         trainer.fit(model)
 
 
@@ -79,34 +79,34 @@ def test_warning_on_wrong_validation_settings(tmpdir):
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
     trainer = Trainer(**trainer_options)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValidationDataloader,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightValDataloader,
+                       TrialModelBase):
         pass
 
     # check val_dataloader -> val_step
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValidationStepMixin,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightValStepMixin,
+                       TrialModelBase):
         pass
 
     # check val_dataloader + val_step -> val_epoch_end
     with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValStepFitSingleDataloaderMixin,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightValStepFitSingleDataloaderMixin,
+                       TrialModelBase):
         pass
 
     # check val_step -> val_dataloader
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
 
@@ -123,32 +123,32 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
     trainer = Trainer(**trainer_options)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestDataloader,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightTstDataloader,
+                       TrialModelBase):
         pass
 
     # check test_dataloader -> test_step
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestStepMixin,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightTstStepMixin,
+                       TrialModelBase):
         pass
 
     # check test_dataloader + test_step -> test_epoch_end
     with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestFitMultipleTestDataloadersMixin,
-                           TestModelBase):
+    class CurrentModel(LightTrnDataloader,
+                       LightTstStepMultipleTstDataloadersMixin,
+                       TrialModelBase):
         pass
 
     # check test_step -> test_dataloader
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = CurrentModel(hparams)
         trainer.fit(model)

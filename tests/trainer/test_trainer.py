@@ -14,15 +14,15 @@ from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
-    TestModelBase,
+    TrialModelBase,
     DictHparamsModel,
-    LightningTestModel,
-    LightEmptyTestStep,
-    LightValidationStepMixin,
-    LightValidationMultipleDataloadersMixin,
-    LightTrainDataloader,
-    LightTestDataloader,
-    LightValidationMixin,
+    LightningTrialModel,
+    LightEmptyTstStep,
+    LightValStepMixin,
+    LightValMultipleDataloadersMixin,
+    LightTrnDataloader,
+    LightTstDataloader,
+    LightValMixin,
 )
 
 
@@ -54,10 +54,10 @@ def test_no_val_module(tmpdir):
 
     hparams = tutils.get_default_hparams()
 
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+    class CurrentModel(LightTrnDataloader, TrialModelBase):
         pass
 
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -82,7 +82,7 @@ def test_no_val_module(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_checkpoint(
+    model_2 = LightningTrialModel.load_from_checkpoint(
         checkpoint_path=new_weights_path,
         tags_csv=tags_path
     )
@@ -93,11 +93,11 @@ def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
+    class CurrentModel(LightTrnDataloader, LightValStepMixin, TrialModelBase):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_testtube_logger(tmpdir, False)
@@ -122,7 +122,7 @@ def test_no_val_end_module(tmpdir):
     # load new model
     tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
     tags_path = os.path.join(tags_path, 'meta_tags.csv')
-    model_2 = LightningTestModel.load_from_checkpoint(
+    model_2 = LightningTrialModel.load_from_checkpoint(
         checkpoint_path=new_weights_path,
         tags_csv=tags_path
     )
@@ -189,7 +189,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         optimizer.zero_grad()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
@@ -266,7 +266,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
         open(filepath, 'a').close()
 
     hparams = tutils.get_default_hparams()
-    _ = LightningTestModel(hparams)
+    _ = LightningTrialModel(hparams)
 
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
@@ -295,7 +295,7 @@ def test_model_freeze_unfreeze():
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     model.freeze()
     model.unfreeze()
@@ -311,7 +311,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
-        model = LightningTestModel(hparams)
+        model = LightningTrialModel(hparams)
         model.num_epochs_seen = 0
         model.num_batches_seen = 0
 
@@ -457,15 +457,15 @@ def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightValidationMultipleDataloadersMixin,
-        LightTrainDataloader,
-        TestModelBase
+    class CurrentModel(
+        LightValMultipleDataloadersMixin,
+        LightTrnDataloader,
+        TrialModelBase
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     # verify torch.backends.cudnn.benchmark is not turned on
     assert not torch.backends.cudnn.benchmark
@@ -491,13 +491,13 @@ def test_benchmark_option(tmpdir):
 def test_testpass_overrides(tmpdir):
     hparams = tutils.get_default_hparams()
 
-    class LocalModel(LightTrainDataloader, TestModelBase):
+    class LocalModel(LightTrnDataloader, TrialModelBase):
         pass
 
-    class LocalModelNoEnd(LightTrainDataloader, LightTestDataloader, LightEmptyTestStep, TestModelBase):
+    class LocalModelNoEnd(LightTrnDataloader, LightTstDataloader, LightEmptyTstStep, TrialModelBase):
         pass
 
-    class LocalModelNoStep(LightTrainDataloader, TestModelBase):
+    class LocalModelNoStep(LightTrnDataloader, TrialModelBase):
         def test_epoch_end(self, outputs):
             return {}
 
@@ -515,7 +515,7 @@ def test_testpass_overrides(tmpdir):
     model = LocalModelNoEnd(hparams)
     Trainer().test(model)
 
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
     Trainer().test(model)
 
 
@@ -523,7 +523,7 @@ def test_disabled_validation():
     """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
     tutils.reset_seed()
 
-    class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
+    class CurrentModel(LightTrnDataloader, LightValMixin, TrialModelBase):
 
         validation_step_invoked = False
         validation_epoch_end_invoked = False
@@ -575,7 +575,7 @@ def test_disabled_validation():
 def test_nan_loss_detection(tmpdir):
     test_step = 8
 
-    class InfLossModel(LightTrainDataloader, TestModelBase):
+    class InfLossModel(LightTrnDataloader, TrialModelBase):
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
@@ -607,7 +607,7 @@ def test_nan_loss_detection(tmpdir):
 def test_nan_params_detection(tmpdir):
     test_step = 8
 
-    class NanParamModel(LightTrainDataloader, TestModelBase):
+    class NanParamModel(LightTrnDataloader, TrialModelBase):
 
         def on_after_backward(self):
             if self.global_step == test_step:
@@ -669,7 +669,7 @@ def test_gradient_clipping(tmpdir):
     tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     # test that gradient is clipped correctly
     def _optimizer_step(*args, **kwargs):

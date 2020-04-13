@@ -3,32 +3,32 @@ from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import (
-    LightTrainDataloader,
-    LightTestMixin,
-    LightValidationMixin,
-    TestModelBase
+    LightTrnDataloader,
+    LightTstMixin,
+    LightValMixin,
+    TrialModelBase
 )
 
 
 def test_trainer_callback_system(tmpdir):
     """Test the callback system."""
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMixin,
-        LightValidationMixin,
-        TestModelBase,
+    class CurrentModel(
+        LightTrnDataloader,
+        LightTstMixin,
+        LightValMixin,
+        TrialModelBase,
     ):
         pass
 
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentModel(hparams)
 
     def _check_args(trainer, pl_module):
         assert isinstance(trainer, Trainer)
         assert isinstance(pl_module, LightningModule)
 
-    class TestCallback(Callback):
+    class MyCallback(Callback):
         def __init__(self):
             super().__init__()
             self.on_init_start_called = False
@@ -92,7 +92,7 @@ def test_trainer_callback_system(tmpdir):
             _check_args(trainer, pl_module)
             self.on_test_end_called = True
 
-    test_callback = TestCallback()
+    test_callback = MyCallback()
 
     trainer_options = {
         'callbacks': [test_callback],
@@ -157,7 +157,7 @@ def test_early_stopping_without_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
     tutils.reset_seed()
 
-    class ModelWithoutValStep(LightTrainDataloader, TestModelBase):
+    class ModelWithoutValStep(LightTrnDataloader, TrialModelBase):
 
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)

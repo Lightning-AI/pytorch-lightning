@@ -111,7 +111,7 @@ def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Ten
     return tensor
 
 
-class TestingMNIST(MNIST):
+class TrialMNIST(MNIST):
     """Constrain image dataset
 
     Args:
@@ -127,7 +127,7 @@ class TestingMNIST(MNIST):
         digits: list selected MNIST digits/classes
 
     Examples:
-        >>> dataset = TestingMNIST(download=True)
+        >>> dataset = TrialMNIST(download=True)
         >>> len(dataset)
         300
         >>> sorted(set([d.item() for d in dataset.targets]))
