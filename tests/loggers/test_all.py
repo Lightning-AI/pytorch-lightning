@@ -11,12 +11,12 @@ from tests.base import LightningTestModel
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
+    #TensorBoardLogger,
+    #CometLogger,
+    #MLFlowLogger,
+    #NeptuneLogger,
     # WandbLogger,  # TODO: add this one
-    # TestTubeLogger # TODO: add this one
+    #TestTubeLogger,
     # TrainsLogger,  # TODO: add this one
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
@@ -47,9 +47,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 
     trainer = Trainer(
         max_epochs=1,
-        benchmark=True,
         logger=logger,
-        gpus=0,
         train_percent_check=0.2,
         val_percent_check=0.5,
         fast_dev_run=True,
@@ -66,11 +64,11 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    # NeptuneLogger,  # TODO: add this one
+    #CometLogger,
+    #MLFlowLogger,
+    #NeptuneLogger,  # TODO: add this one
     # TrainsLogger,  # TODO: add this one
-    TestTubeLogger
+    #TestTubeLogger,
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
