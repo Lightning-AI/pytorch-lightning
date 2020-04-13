@@ -14,30 +14,10 @@ from tests.base import LightningTestModel
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp2(tmpdir):
-    """Make sure DDP2 works."""
-
-    tutils.reset_seed()
-    tutils.set_random_master_port()
-
-    model, hparams = tutils.get_default_model()
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=2,
-        weights_summary=None,
-        distributed_backend='ddp2'
-    )
-
-    tutils.run_model_test(trainer_options, model)
-
-
 @pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp(tmpdir):
+def test_multi_gpu_model(tmpdir, backend):
     """Make sure DDP works."""
 
     tutils.reset_seed()
@@ -46,15 +26,17 @@ def test_multi_gpu_model_ddp(tmpdir):
     model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=[0, 1],
-        distributed_backend='ddp'
+        distributed_backend=backend,
     )
 
     tutils.run_model_test(trainer_options, model)
+
+    # test memory helper functions
+    memory.get_memory_profile('min_max')
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -173,28 +155,6 @@ def test_multi_gpu_none_backend(tmpdir):
         tutils.run_model_test(trainer_options, model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_dp(tmpdir):
-    """Make sure DP works."""
-    tutils.reset_seed()
-
-    model, hparams = tutils.get_default_model()
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        distributed_backend='dp',
-        max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        gpus='-1'
-    )
-
-    tutils.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile('min_max')
-
-
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
@@ -247,8 +207,7 @@ def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distrib
 
 
 @pytest.mark.gpus_param_tests
-@pytest.mark.parametrize([
-    'gpus', 'expected_root_gpu', "distributed_backend"], [
+@pytest.mark.parametrize(['gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(None, None, None, id="None is None"),
     pytest.param(None, None, "ddp", id="None is None"),
     pytest.param(0, None, "ddp", id="None is None"),
@@ -259,8 +218,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.gpus_param_tests
-@pytest.mark.parametrize([
-    'gpus', 'expected_root_gpu', "distributed_backend"], [
+@pytest.mark.parametrize(['gpus', 'expected_root_gpu', "distributed_backend"], [
     pytest.param(1, None, "ddp"),
     pytest.param(3, None, "ddp"),
     pytest.param(3, None, "ddp"),

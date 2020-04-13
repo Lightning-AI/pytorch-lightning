@@ -17,8 +17,9 @@ from tests.base import (
 
 
 @pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_ddp(tmpdir):
+def test_running_test_pretrained_model_distrib(tmpdir, backend):
     """Verify `test()` on pretrained model."""
 
     tutils.reset_seed()
@@ -35,13 +36,13 @@ def test_running_test_pretrained_model_ddp(tmpdir):
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
         gpus=[0, 1],
-        distributed_backend='ddp'
+        distributed_backend=backend,
     )
 
     # fit model
@@ -60,6 +61,9 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(new_trainer)
+
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
@@ -68,7 +72,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
         tutils.run_prediction(dataloader, pretrained_model)
 
 
-def test_running_test_pretrained_model(tmpdir):
+def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
@@ -143,47 +147,6 @@ def test_load_model_from_checkpoint(tmpdir):
     # assert weights are the same
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
-
-    new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
-
-    # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_dp(tmpdir):
-    """Verify test() on pretrained model."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
-
-    # logger file to get meta
-    logger = tutils.get_default_logger(tmpdir)
-
-    # logger file to get weights
-    checkpoint = tutils.init_checkpoint_callback(logger)
-
-    trainer_options = dict(
-        max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        logger=logger,
-        gpus=[0, 1],
-        distributed_backend='dp'
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=LightningTestModel)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -357,7 +320,3 @@ def test_load_model_with_missing_hparams(tmpdir):
     # warn if user's model has hparams argument
     with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
         LightningTestModelWithUnusedHyperparametersArg.load_from_checkpoint(last_checkpoint)
-
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])
