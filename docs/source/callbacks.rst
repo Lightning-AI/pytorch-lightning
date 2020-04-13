@@ -78,3 +78,10 @@ We successfully extended functionality without polluting our super clean
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+---------
+
+.. automodule:: pytorch_lightning.callbacks.lr_logger
+    :noindex:
+    :exclude-members:
+        _extract_lr
