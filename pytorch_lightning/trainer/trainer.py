@@ -134,6 +134,7 @@ class Trainer(
             use_amp=None,  # backward compatible, todo: remove in v0.9.0
             show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
+            terminate_on_nan: bool = False,
             **kwargs
     ):
         r"""
@@ -281,6 +282,9 @@ class Trainer(
                 To use a different key, set a string instead of True with the key name.
 
             benchmark: If true enables cudnn.benchmark.
+
+            terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
+                end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
         """
 
         # Init callbacks
@@ -357,6 +361,7 @@ class Trainer(
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
+        self.terminate_on_nan = terminate_on_nan
         self.shown_warnings = set()
 
         self.fast_dev_run = fast_dev_run
