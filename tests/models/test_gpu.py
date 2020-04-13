@@ -7,10 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
-from pytorch_lightning.trainer.distrib_parts import (
-    parse_gpu_ids,
-    determine_root_gpu_device,
-)
+from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import LightningTestModel
 
@@ -107,7 +104,7 @@ def test_cpu_slurm_save_load(tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'cpu model failed to complete'
 
     # predict with trained model before saving
     # make a prediction
@@ -256,8 +253,7 @@ def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distrib
     pytest.param(None, None, "ddp", id="None is None"),
     pytest.param(0, None, "ddp", id="None is None"),
 ])
-def test_root_gpu_property_0_passing(
-        mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
+def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
 
 
@@ -273,8 +269,7 @@ def test_root_gpu_property_0_passing(
     pytest.param(-1, None, "ddp"),
     pytest.param('-1', None, "ddp")
 ])
-def test_root_gpu_property_0_raising(
-        mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
+def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
         Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu
 
@@ -326,11 +321,10 @@ def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
 
 
 @pytest.mark.gpus_param_tests
-@pytest.mark.parametrize("gpus", [''])
-def test_parse_gpu_fail_on_empty_string(mocked_device_count, gpus):
+def test_parse_gpu_fail_on_empty_string(mocked_device_count):
     # This currently results in a ValueError instead of MisconfigurationException
     with pytest.raises(ValueError):
-        parse_gpu_ids(gpus)
+        parse_gpu_ids('')
 
 
 @pytest.mark.gpus_param_tests
@@ -351,7 +345,3 @@ def test_parse_gpu_fail_on_non_existant_id_2(mocked_device_count):
 def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
         parse_gpu_ids(gpus)
-
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])
