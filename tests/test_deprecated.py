@@ -11,22 +11,34 @@ from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
 def test_tbd_remove_in_v0_8_0_module_imports():
     with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.logging.comet_logger import CometLogger  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.logging.mlflow_logger import MLFlowLogger  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.logging.test_tube_logger import TestTubeLogger  # noqa: F811
 
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.pt_overrides.override_data_parallel import (  # noqa: F811
             LightningDataParallel, LightningDistributedDataParallel)
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.overrides.override_data_parallel import (  # noqa: F811
             LightningDataParallel, LightningDistributedDataParallel)
 
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.core.model_saving import ModelIO  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.core.root_module import LightningModule  # noqa: F811
 
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.decorators import data_loader  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.grads import GradInformation  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.hooks import ModelHooks  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.memory import ModelSummary  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.model_saving import ModelIO  # noqa: F811
+    with pytest.warns(DeprecationWarning, match='v0.8.0'):
         from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
 
 
@@ -68,14 +80,18 @@ def test_tbd_remove_in_v0_9_0_trainer():
 def test_tbd_remove_in_v0_9_0_module_imports():
     with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.core.decorators import data_loader  # noqa: F811
+        data_loader(print)
 
+    with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.logging.comet import CometLogger  # noqa: F402
+    with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.logging.mlflow import MLFlowLogger  # noqa: F402
+    with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.logging.neptune import NeptuneLogger  # noqa: F402
+    with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.logging.test_tube import TestTubeLogger  # noqa: F402
+    with pytest.warns(DeprecationWarning, match='v0.9.0'):
         from pytorch_lightning.logging.wandb import WandbLogger  # noqa: F402
-
-        from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler  # noqa: F402
 
 
 class ModelVer0_6(LightTrainDataloader, LightEmptyTestStep, TestModelBase):
