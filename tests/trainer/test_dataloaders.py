@@ -24,8 +24,13 @@ from tests.base import (
 )
 
 
-@pytest.mark.parametrize("train_percent_check", [-0.1, 1,1, 10000])
-def test_dataloader_config_errors(tmpdir, train_percent_check):
+@pytest.mark.parametrize("dataloader_options", [
+    dict(train_percent_check=-0.1),
+    dict(train_percent_check=1.1),
+    dict(val_check_interval=1.1),
+    dict(val_check_interval=10000)
+])
+def test_dataloader_config_errors(tmpdir, dataloader_options):
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -41,7 +46,7 @@ def test_dataloader_config_errors(tmpdir, train_percent_check):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=train_percent_check,
+        **dataloader_options,
     )
 
     with pytest.raises(ValueError):
@@ -164,9 +169,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         train_percent_check=0.2
     )
     result = trainer.fit(model,
-                         rain_dataloader=model._dataloader(train=True),
-                         val_dataloaders=model._dataloader(train=False)
-                         )
+                         train_dataloader=model._dataloader(train=True),
+                         val_dataloaders=model._dataloader(train=False))
     assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -198,8 +202,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 
     result = trainer.fit(model,
                          train_dataloader=model._dataloader(train=True),
-                         val_dataloaders=model._dataloader(train=False)
-                         )
+                         val_dataloaders=model._dataloader(train=False))
 
     trainer.test(test_dataloaders=model._dataloader(train=False))
 
@@ -235,7 +238,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     results = trainer.fit(
         model,
         train_dataloader=model._dataloader(train=True),
-        val_dataloaders=[model._dataloader(train=False), model._dataloader(train=False)]
+        val_dataloaders=[model._dataloader(train=False), model._dataloader(train=False)],
     )
     assert results
 
@@ -262,7 +265,6 @@ def test_mixing_of_dataloader_options(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
