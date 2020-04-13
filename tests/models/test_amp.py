@@ -28,7 +28,12 @@ def test_amp_single_gpu_ddp(tmpdir):
         precision=16
     )
 
-    tutils.run_model_test(trainer_options, model)
+    # tutils.run_model_test(trainer_options, model)
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    assert result == 1
 
 
 @pytest.mark.spawn
