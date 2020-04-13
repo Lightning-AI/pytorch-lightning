@@ -94,7 +94,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     )
 
     # exp file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -125,7 +125,6 @@ def test_cpu_model_with_amp(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,

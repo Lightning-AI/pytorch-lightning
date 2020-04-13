@@ -27,7 +27,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     model = LightningTestModel(hparams)
 
     # exp file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -75,7 +75,7 @@ def test_running_test_pretrained_model(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -159,7 +159,7 @@ def test_running_test_pretrained_model_dp(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -207,7 +207,7 @@ def test_dp_resume(tmpdir):
     )
 
     # get logger
-    logger = tutils.get_default_testtube_logger(tmpdir, debug=False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     # logger file to get weights
@@ -235,7 +235,7 @@ def test_dp_resume(tmpdir):
     trainer.hpc_save(tmpdir, logger)
 
     # init new trainer
-    new_logger = tutils.get_default_testtube_logger(tmpdir, version=logger.version)
+    new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
     trainer_options['train_percent_check'] = 0.5
@@ -275,7 +275,7 @@ def test_model_saving_loading(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,

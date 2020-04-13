@@ -153,7 +153,7 @@ def test_trainer_callback_system(tmpdir):
     assert test_callback.on_test_end_called
 
 
-def test_early_stopping_without_val_step(tmpdir):
+def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
     tutils.reset_seed()
 

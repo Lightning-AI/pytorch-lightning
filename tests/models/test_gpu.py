@@ -91,7 +91,7 @@ def test_cpu_slurm_save_load(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
     version = logger.version
 
     trainer_options = dict(
@@ -130,7 +130,7 @@ def test_cpu_slurm_save_load(tmpdir):
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False, version=version)
+    logger = tutils.get_default_logger(tmpdir, version=version)
 
     trainer_options = dict(
         max_epochs=1,

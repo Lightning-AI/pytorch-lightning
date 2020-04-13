@@ -60,7 +60,7 @@ def test_no_val_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -100,7 +100,7 @@ def test_no_val_end_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -211,7 +211,7 @@ def test_loading_meta_tags(tmpdir):
     hparams = tutils.get_default_hparams()
 
     # save tags
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()

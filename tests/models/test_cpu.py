@@ -29,7 +29,6 @@ def test_early_stopping_cpu_model(tmpdir):
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        logger=tutils.get_default_testtube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1,
     )
@@ -81,7 +80,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_default_model(lbfgs=True)
-    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.5)
+    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -99,7 +98,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     )
 
     model, hparams = tutils.get_default_model()
-    tutils.run_model_test_no_loggers(trainer_options, model)
+    tutils.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -114,7 +113,7 @@ def test_running_test_after_fitting(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -142,7 +141,7 @@ def test_running_test_after_fitting(tmpdir):
     tutils.assert_ok_model_acc(trainer, thr=0.5)
 
 
-def test_running_test_without_val(tmpdir):
+def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
@@ -153,7 +152,7 @@ def test_running_test_without_val(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -253,7 +252,6 @@ def test_cpu_model(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        logger=tutils.get_default_testtube_logger(tmpdir),
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -274,7 +272,6 @@ def test_all_features_cpu_model(tmpdir):
         overfit_pct=0.20,
         track_grad_norm=2,
         progress_bar_refresh_rate=0,
-        logger=tutils.get_default_testtube_logger(tmpdir),
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
