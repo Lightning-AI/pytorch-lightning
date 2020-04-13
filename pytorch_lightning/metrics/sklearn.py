@@ -625,7 +625,6 @@ class ROC(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-
         Returns:
             fpr:
                 Increasing false positive rates such that element i is the false
