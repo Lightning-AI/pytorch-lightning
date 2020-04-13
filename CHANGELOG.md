@@ -17,26 +17,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed the default behaviour to no longer include a NaN check with each training iteration. ([#1475](https://github.com/PyTorchLightning/pytorch-lightning/pull/1475))
 
-- 
+- Changed lr schedule step interval behavior to update every backwards pass instead of every forwards pass ([#1476](https://github.com/PyTorchLightning/pytorch-lightning/issues/1476))
 
 ### Deprecated
 
-- 
+-
 
-- 
+-
 
 
 ### Removed
 
-- 
+-
 
-- 
+-
 
 ### Fixed
 
-- 
+-
 
-- 
+-
 
 
 ## [0.7.3] - 2020-04-09
