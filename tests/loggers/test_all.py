@@ -6,17 +6,27 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
-    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger)
+    TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger, WandbLogger)
 from tests.base import LightningTestModel
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger,
-    # TODO: add WandbLogger, TrainsLogger
+    TensorBoardLogger,
+    CometLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    # WandbLogger,  # TODO: add this one
+    # TestTubeLogger # TODO: add this one
+    # TrainsLogger,  # TODO: add this one
 ])
-def test_loggers_fit_test(tmpdir, logger_class):
+def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     tutils.reset_seed()
+
+    # prevent comet logger from trying to print at exit, since
+    # pytest's stdout/stderr redirection breaks it
+    import atexit
+    monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -55,8 +65,13 @@ def test_loggers_fit_test(tmpdir, logger_class):
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger, CometLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger
-    # TODO: add WandbLogger, TrainsLogger
+    TensorBoardLogger,
+    CometLogger,
+    MLFlowLogger,
+    # NeptuneLogger,  # TODO: add this one
+    # TrainsLogger,  # TODO: add this one
+    TestTubeLogger
+    # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
