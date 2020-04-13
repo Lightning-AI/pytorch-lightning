@@ -289,8 +289,7 @@ class Trainer(
 
         # benchmarking
         self.benchmark = benchmark
-        if benchmark:
-            torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.benchmark = self.benchmark
 
         # Transfer params
         self.num_nodes = num_nodes
