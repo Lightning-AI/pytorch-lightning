@@ -121,7 +121,8 @@ When this flag is enabled each batch is split into sequences of size truncated_b
 
 NaN detection and intervention
 ------------------------------
-In every forward pass in training, Lightning will check that
+When the `terminate_on_nan` flag is enabled, after every forward pass during training, Lightning will
+check that
 
 1. the loss you return in `training_step` is finite (not NaN and not +/-inf)
 2. the model parameters have finite values.
@@ -129,6 +130,14 @@ In every forward pass in training, Lightning will check that
 Lightning will terminate the training loop with an error message if NaN or infinite
 values are detected. If this happens, you should investigate numerically unstable operations
 in your model.
+
+.. code-block:: python
+
+    # DEFAULT (won't perform the NaN check)
+    trainer = Trainer(terminate_on_nan=False)
+
+    # (NaN check each batch and terminate on NaN or infinite values)
+    trainer = Trainer(terminate_on_nan=True)
 
 """
 
@@ -216,6 +225,7 @@ class TrainerTrainLoopMixin(ABC):
     min_steps: int
     total_batch_idx: int
     checkpoint_callback: ...
+    terminate_on_nan: bool
 
     # Callback system
     callbacks: List[Callback]
@@ -604,7 +614,8 @@ class TrainerTrainLoopMixin(ABC):
                 loss, batch_output = optimizer_closure()
 
                 # check if loss or model weights are nan
-                self.detect_nan_tensors(loss)
+                if self.terminate_on_nan:
+                    self.detect_nan_tensors(loss)
 
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value.append(loss)
