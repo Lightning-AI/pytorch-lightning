@@ -28,7 +28,7 @@ from tests.base import (
     dict(train_percent_check=-0.1),
     dict(train_percent_check=1.1),
     dict(val_check_interval=1.1),
-    dict(val_check_interval=10000)
+    dict(val_check_interval=10000),
 ])
 def test_dataloader_config_errors(tmpdir, dataloader_options):
     tutils.reset_seed()
@@ -103,13 +103,13 @@ def test_multiple_test_dataloader(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
+    # fit model
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-    # fit model
     trainer.fit(model)
     trainer.test()
 
@@ -276,6 +276,7 @@ def test_mixing_of_dataloader_options(tmpdir):
     trainer = Trainer(**trainer_options)
     fit_options = dict(val_dataloaders=model._dataloader(train=False))
     results = trainer.fit(model, **fit_options)
+    assert results
 
     # fit model
     trainer = Trainer(**trainer_options)
