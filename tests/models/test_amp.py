@@ -11,8 +11,9 @@ from tests.base import (
 )
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_amp_single_gpu(tmpdir):
+def test_amp_single_gpu_ddp(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
@@ -32,7 +33,7 @@ def test_amp_single_gpu(tmpdir):
 
 @pytest.mark.spawn
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_no_amp_single_gpu(tmpdir):
+def test_amp_single_gpu_dp(tmpdir):
     """Make sure DDP + AMP work."""
     tutils.reset_seed()
 
@@ -53,6 +54,7 @@ def test_no_amp_single_gpu(tmpdir):
     assert result == 1
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp(tmpdir):
     """Make sure DDP + AMP work."""

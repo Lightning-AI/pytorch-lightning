@@ -23,11 +23,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device,
-    pick_multiple_gpus,
-)
+    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin

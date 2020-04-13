@@ -16,6 +16,7 @@ from tests.base import (
 )
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_ddp(tmpdir):
     """Verify `test()` on pretrained model."""

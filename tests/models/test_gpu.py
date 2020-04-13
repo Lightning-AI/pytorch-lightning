@@ -38,6 +38,7 @@ def test_multi_gpu_model_ddp2(tmpdir):
     tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp(tmpdir):
     """Make sure DDP works."""
