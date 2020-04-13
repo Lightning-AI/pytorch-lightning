@@ -156,10 +156,11 @@ def get_data_path(expt_logger, path_dir=None):
     if hasattr(expt, 'get_data_path'):
         return expt.get_data_path(name, version)
     # the other experiments...
-    if not path_dir and hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
-        path_dir = expt_logger.save_dir
-    else:
-        path_dir = ROOT_PATH
+    if not path_dir:
+        if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
+            path_dir = expt_logger.save_dir
+        else:
+            path_dir = ROOT_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):
@@ -167,9 +168,9 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt=None):
+def load_model(logger, root_weights_dir, module_class=LightningTestModel, path_expt=None):
     # load trained model
-    path_expt_dir = get_data_path(exp, path_dir=path_expt)
+    path_expt_dir = get_data_path(logger, path_dir=path_expt)
     tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
 
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
