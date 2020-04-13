@@ -152,6 +152,7 @@ def f1_score(pred: torch.Tensor, target: torch.Tensor,
                        num_classes=num_classes, reduction=reduction)
 
 
+# adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
 def _binary_clf_curve(pred: torch.Tensor, target: torch.Tensor,
                       sample_weight: Optional[Sequence] = None,
                       pos_label: int = 1.) -> Tuple[torch.Tensor,
