@@ -634,7 +634,6 @@ class TrainerTrainLoopMixin(ABC):
                     # clip gradients
                     self.clip_gradients()
 
-
                     # calls .step(), .zero_grad()
                     # override function to modify this behavior
                     model = self.get_model()
