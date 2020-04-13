@@ -450,8 +450,9 @@ class TrainerTrainLoopMixin(ABC):
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
 
-            # update lr
-            self.update_learning_rates(interval='step')
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                # update lr
+                self.update_learning_rates(interval='step')
 
             # ---------------
             # RUN VAL STEP
@@ -632,6 +633,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # clip gradients
                     self.clip_gradients()
+
 
                     # calls .step(), .zero_grad()
                     # override function to modify this behavior
