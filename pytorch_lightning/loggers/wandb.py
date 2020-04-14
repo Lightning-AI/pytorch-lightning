@@ -119,7 +119,7 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        self.experiment.log(metrics)
+        self.experiment.log(metrics, step=step)
 
     @property
     def name(self) -> str:
