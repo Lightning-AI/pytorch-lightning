@@ -67,15 +67,7 @@ Here are the only required methods.
 
 .. code-block:: python
 
-    >>> import os
-    >>> import torch
-    >>> from torch.nn import functional as F
-    >>> from torch.utils.data import DataLoader
-    >>> from torchvision.datasets import MNIST
-    >>> import torchvision.transforms as transforms
-
     >>> import pytorch_lightning as pl
-
     >>> class LitModel(pl.LightningModule):
     ...
     ...     def __init__(self):
