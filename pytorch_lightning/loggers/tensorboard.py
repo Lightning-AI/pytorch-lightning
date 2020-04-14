@@ -20,7 +20,6 @@ from pytorch_lightning import _logger as log
 class TensorBoardLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
-
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``.
 

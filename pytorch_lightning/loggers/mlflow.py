@@ -21,6 +21,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 class MLFlowLogger(LightningLoggerBase):
     """
     Log using `MLflow <https://mlflow.org>`_
+
     Example:
     
     >>> from pytorch_lightning import Trainer

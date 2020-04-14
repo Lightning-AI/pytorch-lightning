@@ -29,6 +29,8 @@ class NeptuneLogger(LightningLoggerBase):
     To log experiment data in online mode, NeptuneLogger requries an API key:
     In offline mode, Neptune will log to a local directory.
 
+    Example:
+
     **ONLINE MODE**
 
     >>> from pytorch_lightning import Trainer
