@@ -6,7 +6,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
-    TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger, WandbLogger)
+    TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
 from tests.base import LightningTestModel
 
 
@@ -15,9 +15,9 @@ from tests.base import LightningTestModel
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
-    # WandbLogger,  # TODO: add this one
     TestTubeLogger,
     # TrainsLogger,  # TODO: add this one
+    # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
@@ -67,8 +67,8 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
-    # TrainsLogger,  # TODO: add this one
     TestTubeLogger,
+    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):

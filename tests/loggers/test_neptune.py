@@ -1,4 +1,3 @@
-import pickle
 from unittest.mock import patch, MagicMock
 
 import torch
@@ -58,24 +57,6 @@ def test_neptune_additional_methods(neptune):
 
     logger.append_tags(['two', 'tags'])
     neptune.create_experiment().append_tags.assert_called_once_with('two', 'tags')
-
-
-def test_neptune_pickle(tmpdir):
-    """Verify that pickling trainer with neptune logger works."""
-    tutils.reset_seed()
-
-    logger = NeptuneLogger(offline_mode=True)
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=logger
-    )
-
-    trainer = Trainer(**trainer_options)
-    pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({'acc': 1.0})
 
 
 def test_neptune_leave_open_experiment_after_fit(tmpdir):
