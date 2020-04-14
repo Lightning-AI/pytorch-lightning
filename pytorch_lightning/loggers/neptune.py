@@ -184,7 +184,7 @@ class NeptuneLogger(LightningLoggerBase):
         self._experiment = None
         self._kwargs = kwargs
 
-        if offline_mode or self.bypass_mode():
+        if offline_mode:
             self.mode = 'offline'
             neptune.init(project_qualified_name='dry-run/project',
                          backend=neptune.OfflineBackend())
