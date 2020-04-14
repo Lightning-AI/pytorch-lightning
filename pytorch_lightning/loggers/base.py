@@ -147,7 +147,8 @@ class LightningLoggerBase(ABC):
         """
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
-        metrics for one specific `step`, use the :meth:`agg_and_log_metrics` method.
+        metrics for one specific `step`, use the
+        :meth:`~pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics` method.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
