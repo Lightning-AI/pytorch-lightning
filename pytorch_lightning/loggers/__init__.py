@@ -71,7 +71,7 @@ Call the logger anywhere except ``__init__`` in your
 ...         self.logger.experiment.whatever_method_summary_writer_supports(...)
 ...
 ...     def any_lightning_module_function_or_hook(self):
-...         self.logger.experiment.add_histogram()
+...         self.logger.experiment.add_histogram(...)
 
 Read more in the `Experiment Logging use case <./experiment_logging.html>`_.
 

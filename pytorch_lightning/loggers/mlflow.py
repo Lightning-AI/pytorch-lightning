@@ -1,28 +1,3 @@
-"""
-Log using `mlflow <https://mlflow.org>`_
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import MLFlowLogger
-    mlf_logger = MLFlowLogger(
-        experiment_name="default",
-        tracking_uri="file:/."
-    )
-    trainer = Trainer(logger=mlf_logger)
-
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.whatever_ml_flow_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.whatever_ml_flow_supports(...)
-
-"""
 import os
 from argparse import Namespace
 from time import time
@@ -40,21 +15,40 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class MLFlowLogger(LightningLoggerBase):
-    """MLFLow logger"""
+    """
+    Log using `MLflow <https://mlflow.org>`_
 
+    >>> from pytorch_lightning import Trainer
+    >>> from pytorch_lightning.loggers import MLFlowLogger
+    >>> mlf_logger = MLFlowLogger(
+    ...     experiment_name="default",
+    ...     tracking_uri="file:/."
+    ... )
+    >>> trainer = Trainer(logger=mlf_logger)
+
+    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+
+    >>> from pytorch_lightning import LightningModule
+    >>> class LitModel(LightningModule):
+    ...     def training_step(self, batch, batch_idx):
+    ...         # example
+    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+    ...
+    ...     def any_lightning_module_function_or_hook(self):
+    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+
+    Args:
+        experiment_name: The name of the experiment
+        tracking_uri: Address of local or remote tracking server.
+            If not provided, defaults to the service set by ``mlflow.tracking.set_tracking_uri``.
+        tags: A dictionary tags for the experiment.
+
+    """
     def __init__(self,
                  experiment_name: str = 'default',
                  tracking_uri: Optional[str] = None,
                  tags: Optional[Dict[str, Any]] = None,
                  save_dir: Optional[str] = None):
-        r"""
-        Logs using MLFlow
-
-        Args:
-            experiment_name (str): The name of the experiment
-            tracking_uri (str): where this should track
-            tags (dict): todo this param
-        """
         super().__init__()
         if not tracking_uri and save_dir:
             tracking_uri = f'file:{os.sep * 2}{save_dir}'
@@ -66,7 +60,8 @@ class MLFlowLogger(LightningLoggerBase):
     @property
     def experiment(self) -> MlflowClient:
         r"""
-        Actual mlflow object. To use mlflow features do the following.
+        Actual MLflow object. To use mlflow features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
