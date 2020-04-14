@@ -1,3 +1,9 @@
+.. doctest::
+
+    >>> 'test me'
+    'did it fail?'
+
+
 Experiment Logging
 ==================
 
