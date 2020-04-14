@@ -1157,6 +1157,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     optimizer.step()
                     optimizer.zero_grad()
 
+        Note:
+            If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
+            model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
+
         """
         if self.trainer.use_tpu and XLA_AVAILABLE:
             xm.optimizer_step(optimizer)
