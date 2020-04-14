@@ -92,42 +92,42 @@ try:
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
     from pytorch_lightning.loggers.comet import CometLogger
-except ImportError:  # pragma: no-cover
+except ImportError as e:  # pragma: no-cover
     del environ["COMET_DISABLE_AUTO_LOGGING"]  # pragma: no-cover
 else:
     __all__.append('CometLogger')
 
 try:
     from pytorch_lightning.loggers.mlflow import MLFlowLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
+except ImportError as e:  # pragma: no-cover
+    raise e  # pragma: no-cover
 else:
     __all__.append('MLFlowLogger')
 
 try:
     from pytorch_lightning.loggers.neptune import NeptuneLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
+except ImportError as e:  # pragma: no-cover
+    raise e  # pragma: no-cover
 else:
     __all__.append('NeptuneLogger')
 
 try:
     from pytorch_lightning.loggers.test_tube import TestTubeLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
+except ImportError as e:  # pragma: no-cover
+    raise e  # pragma: no-cover
 else:
     __all__.append('TestTubeLogger')
 
 try:
     from pytorch_lightning.loggers.wandb import WandbLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
+except ImportError as e:  # pragma: no-cover
+    raise e
 else:
     __all__.append('WandbLogger')
 
 try:
     from pytorch_lightning.loggers.trains import TrainsLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
+except ImportError as e:
+    raise e
 else:
     __all__.append('TrainsLogger')
