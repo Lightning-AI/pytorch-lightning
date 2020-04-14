@@ -37,7 +37,7 @@ references:
       name: Install package
       command: |
         virtualenv vEnv ; source vEnv/bin/activate
-        pip install -r requirements-extra.txt --user
+        pip install -r requirements-extra.txt
         pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
         deactivate ; rm -rf vEnv
 
