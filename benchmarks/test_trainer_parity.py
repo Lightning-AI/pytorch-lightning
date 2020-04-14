@@ -64,7 +64,7 @@ def test_pytorch_parity(tmpdir):
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
-    assert_speed_parity(pl_times, pl_times, num_epochs)
+    assert_speed_parity(pl_times, pt_times, num_epochs)
 
 
 def assert_speed_parity(pl_times, pt_times, num_epochs):
