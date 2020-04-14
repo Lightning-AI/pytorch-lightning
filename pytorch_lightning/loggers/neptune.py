@@ -356,11 +356,3 @@ class NeptuneLogger(LightningLoggerBase):
         if str(tags) == tags:
             tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)
-
-    @classmethod
-    def set_bypass_mode(cls, bypass: bool) -> None:
-        cls._bypass = bypass
-
-    @classmethod
-    def bypass_mode(cls) -> bool:
-        return cls._bypass if cls._bypass is not None else bool(os.environ.get('CI'))
