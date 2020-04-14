@@ -26,7 +26,7 @@ class MLFlowLogger(LightningLoggerBase):
     >>> from pytorch_lightning.loggers import MLFlowLogger
     >>> mlf_logger = MLFlowLogger(
     ...     experiment_name="default",
-    ...     tracking_uri="file:/."
+    ...     tracking_uri="file:./ml-runs"
     ... )
     >>> trainer = Trainer(logger=mlf_logger)
 
