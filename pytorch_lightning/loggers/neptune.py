@@ -27,7 +27,7 @@ class NeptuneLogger(LightningLoggerBase):
     Log using `Neptune <https://neptune.ai>`_
 
     The Neptune logger can be used in the online mode or offline (silent) mode.
-    To log experiment data in online mode, NeptuneLogger requries an API key:
+    To log experiment data in online mode, :class:`NeptuneLogger` requries an API key.
     In offline mode, Neptune will log to a local directory.
 
     Example:
