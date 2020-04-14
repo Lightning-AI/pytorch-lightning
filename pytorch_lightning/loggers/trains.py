@@ -26,6 +26,7 @@ class TrainsLogger(LightningLoggerBase):
     """
     Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_.
 
+    Example:
     >>> from pytorch_lightning import Trainer
     >>> from pytorch_lightning.loggers import TrainsLogger
     >>> trains_logger = TrainsLogger(

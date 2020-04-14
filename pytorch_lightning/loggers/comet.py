@@ -33,6 +33,7 @@ class CometLogger(LightningLoggerBase):
     Log using `Comet.ml <https://www.comet.ml>`_.
     Requires either an API Key (online mode) or a local directory path (offline mode).
 
+    Example:
     **ONLINE MODE**
 
     >>> import os
