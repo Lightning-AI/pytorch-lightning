@@ -42,6 +42,10 @@ class WandbLogger(LightningLoggerBase):
         >>> wandb_logger = WandbLogger()
         >>> trainer = Trainer(logger=wandb_logger)
 
+    See Also:
+        - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/Use-Pytorch-Lightning-with-Weights-%26-Biases--Vmlldzo2NjQ1Mw>`__
+          on how to use W&B with Pytorch Lightning.
+
     """
 
     def __init__(self,
