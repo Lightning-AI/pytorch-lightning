@@ -1,8 +1,17 @@
-Hooks
-=====
+Model Hooks
+===========
 
-.. automodule:: pytorch_lightning.core.hooks
-    :noindex:
+There are cases when you might want to do something different at different parts of the training/validation loop.
+To enable a hook, simply override the method in your LightningModule and the trainer will call it at the correct time.
+
+**Contributing** If there's a hook you'd like to add, simply:
+
+1. Fork `PyTorchLightning <https://github.com/PyTorchLightning/pytorch-lightning>`_.
+
+2. Add the hook to :class:`pytorch_lightning.core.hooks.ModelHooks`.
+
+3. Add it in the correct place in :mod:`pytorch_lightning.trainer` where it should be called.
+
 
 Hooks lifecycle
 ---------------
@@ -60,3 +69,8 @@ Test loop
 - ``model.train()``
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
+
+
+
+.. automodule:: pytorch_lightning.core.hooks
+    :noindex:
