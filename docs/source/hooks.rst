@@ -37,6 +37,7 @@ Training loop
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end` (optional)
+- :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.backward`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_backward`
 - ``optimizer.step()``
