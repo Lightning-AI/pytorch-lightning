@@ -375,11 +375,11 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define less train steps than epochs
-    trainer_options.update(dict(
+    trainer_options.update(
         default_root_dir=tmpdir,
         max_epochs=3,
         max_steps=num_train_samples + 10
-    ))
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -390,10 +390,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
-    trainer_options.update(dict(
+    trainer_options.update(
         max_epochs=2,
         max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
-    ))
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -410,13 +410,13 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
-    trainer_options.update(dict(
+    trainer_options.update(
         default_root_dir=tmpdir,
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
         max_epochs=5
-    ))
+    )
 
     # define less min steps than 1 epoch
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)

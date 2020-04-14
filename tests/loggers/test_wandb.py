@@ -49,13 +49,13 @@ def test_wandb_pickle(wandb):
 
     trainer = Trainer(max_epochs=1, logger=logger)
     # Access the experiment to ensure it's created
-    assert trainer.logger.experiment
+    assert trainer.logger.experiment, 'missing experiment'
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ['WANDB_MODE'] == 'dryrun'
     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-    _ = trainer2.logger.experiment
+    assert trainer2.logger.experiment, 'missing experiment'
 
     wandb.init.assert_called()
     assert 'id' in wandb.init.call_args[1]
