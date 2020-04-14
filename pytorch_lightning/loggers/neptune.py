@@ -305,7 +305,7 @@ class NeptuneLogger(LightningLoggerBase):
         Args:
             log_name: The name of log, i.e. bboxes, visualisations, sample_images.
             image: The value of the log (data-point).
-                Can be one of the following types: PIL image, matplotlib.figure.Figure, path to image file (str)
+                Can be one of the following types: PIL image, `matplotlib.figure.Figure`, path to image file (str)
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
         if step is None:
