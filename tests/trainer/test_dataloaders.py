@@ -537,16 +537,8 @@ def test_dataloader_reinit_for_subclass():
                      batch_sampler=None, num_workers=0, collate_fn=None,
                      pin_memory=False, drop_last=False, timeout=0,
                      worker_init_fn=None, dummy_kwarg=None):
-            super().__init__(dataset,
-                             batch_size,
-                             shuffle,
-                             sampler,
-                             batch_sampler,
-                             num_workers,
-                             collate_fn,
-                             pin_memory,
-                             drop_last,
-                             timeout,
+            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
+                             num_workers, collate_fn, pin_memory, drop_last, timeout,
                              worker_init_fn)
 
             self.dummy_kwarg = dummy_kwarg
