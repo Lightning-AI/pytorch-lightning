@@ -241,9 +241,9 @@ class LightningLoggerBase(ABC):
         """Do any cleanup that is necessary to close an experiment."""
         self.save()
 
-    def __del__(self):
-        """Destructor."""
-        self.close()
+    # def __del__(self):
+    #     """Destructor."""
+    #     self.close()
 
     @property
     def rank(self) -> int:
@@ -312,10 +312,10 @@ class LoggerCollection(LightningLoggerBase):
     def version(self) -> str:
         return '_'.join([str(logger.version) for logger in self._logger_iterable])
 
-    def __del__(self) -> None:
-        for logger in self._logger_iterable:
-            del logger
-        self._logger_iterable = None
+    # def __del__(self) -> None:
+    #     for logger in self._logger_iterable:
+    #         del logger
+    #     self._logger_iterable = None
 
 
 def merge_dicts(
