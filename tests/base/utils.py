@@ -32,6 +32,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
     assert np.alltrue(diffs < max_diff_per_epoch), \
         f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
+
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
     # save_dir = trainer_options['default_root_dir']
 
