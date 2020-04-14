@@ -23,7 +23,7 @@ class MLFlowLogger(LightningLoggerBase):
     Log using `MLflow <https://mlflow.org>`_
 
     Example:
-    
+
     >>> from pytorch_lightning import Trainer
     >>> from pytorch_lightning.loggers import MLFlowLogger
     >>> mlf_logger = MLFlowLogger(
