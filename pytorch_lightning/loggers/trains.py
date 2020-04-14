@@ -62,6 +62,8 @@ class TrainsLogger(LightningLoggerBase):
 
     Examples:
         >>> logger = TrainsLogger("pytorch lightning", "default", output_uri=".")  # doctest: +ELLIPSIS
+        TRAINS Task: ...
+        TRAINS results page: ...
         >>> logger.log_metrics({"val_loss": 1.23}, step=0)
         >>> logger.log_text("sample test")
         sample test
