@@ -76,7 +76,8 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
     diffs = pl_times - pt_times
     diffs = diffs / num_epochs
 
-    assert np.alltrue(diffs < max_diff_per_epoch)
+    assert np.alltrue(diffs < max_diff_per_epoch), \
+        f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
 
 def set_seed(seed):
