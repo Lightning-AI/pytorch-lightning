@@ -2,7 +2,6 @@ from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
 from PIL.Image import Image
-from matplotlib.figure import Figure
 
 try:
     import neptune
@@ -298,7 +297,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_image(self,
                   log_name: str,
-                  image: Union[str, Image, Figure],
+                  image: Union[str, Image, Any],
                   step: Optional[int] = None) -> None:
         """
         Log image data in Neptune experiment
