@@ -274,7 +274,8 @@ class LightningLoggerBase(ABC):
 
 class LoggerCollection(LightningLoggerBase):
     """
-    The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
+    The :class:`LoggerCollection` class is used to iterate all logging actions over
+    the given `logger_iterable`.
 
     Args:
         logger_iterable: An iterable collection of loggers

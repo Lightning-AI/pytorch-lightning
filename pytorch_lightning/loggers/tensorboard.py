@@ -72,9 +72,9 @@ class TensorBoardLogger(LightningLoggerBase):
     @property
     def log_dir(self) -> str:
         """
-        The directory for this run's tensorboard checkpoint. By default, it is named ``'version_${self.version}'``
-        but it can be overridden by passing a string value for the constructor's version parameter
-        instead of ``None`` or an int.
+        The directory for this run's tensorboard checkpoint. By default, it is named
+        ``'version_${self.version}'`` but it can be overridden by passing a string value
+        for the constructor's version parameter instead of ``None`` or an int.
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
