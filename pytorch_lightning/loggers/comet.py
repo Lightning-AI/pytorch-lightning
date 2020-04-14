@@ -1,3 +1,8 @@
+"""
+Comet
+-----
+"""
+
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 

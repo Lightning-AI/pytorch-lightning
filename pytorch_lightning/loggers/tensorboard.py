@@ -1,3 +1,8 @@
+"""
+TensorBoard
+-----------
+"""
+
 import csv
 import os
 from argparse import Namespace
@@ -84,9 +89,9 @@ class TensorBoardLogger(LightningLoggerBase):
 
         Example::
 
-             self.logger.experiment.some_tensorboard_function()
+            self.logger.experiment.some_tensorboard_function()
 
-         """
+        """
         if self._experiment is not None:
             return self._experiment
 

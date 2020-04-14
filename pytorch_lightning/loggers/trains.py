@@ -1,3 +1,7 @@
+"""
+TRAINS
+------
+"""
 from argparse import Namespace
 from os import environ
 from pathlib import Path
@@ -116,10 +120,9 @@ class TrainsLogger(LightningLoggerBase):
         Actual TRAINS object. To use TRAINS features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                self.logger.experiment.some_trains_function()
+            self.logger.experiment.some_trains_function()
 
         """
         return self._trains

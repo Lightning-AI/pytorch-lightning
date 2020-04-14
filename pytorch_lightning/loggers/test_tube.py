@@ -1,3 +1,7 @@
+"""
+Test Tube
+---------
+"""
 from argparse import Namespace
 from typing import Optional, Dict, Any, Union
 
@@ -65,15 +69,14 @@ class TestTubeLogger(LightningLoggerBase):
     def experiment(self) -> Experiment:
         r"""
 
-          Actual TestTube object. To use TestTube features in your
-          :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        Actual TestTube object. To use TestTube features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
-          Example::
+        Example::
 
-              self.logger.experiment.some_test_tube_function()
+            self.logger.experiment.some_test_tube_function()
 
-          """
-
+        """
         if self._experiment is not None:
             return self._experiment
 
