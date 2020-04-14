@@ -2,6 +2,7 @@
 Neptune
 -------
 """
+import os
 from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
@@ -183,7 +184,7 @@ class NeptuneLogger(LightningLoggerBase):
         self._experiment = None
         self._kwargs = kwargs
 
-        if offline_mode:
+        if offline_mode or self.bypass_mode():
             self.mode = 'offline'
             neptune.init(project_qualified_name='dry-run/project',
                          backend=neptune.OfflineBackend())
@@ -355,3 +356,11 @@ class NeptuneLogger(LightningLoggerBase):
         if str(tags) == tags:
             tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)
+
+    @classmethod
+    def set_bypass_mode(cls, bypass: bool) -> None:
+        cls._bypass = bypass
+
+    @classmethod
+    def bypass_mode(cls) -> bool:
+        return cls._bypass if cls._bypass is not None else bool(os.environ.get('CI'))
