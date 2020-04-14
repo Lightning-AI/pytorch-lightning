@@ -20,6 +20,18 @@ RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
+def assert_speed_parity(pl_times, pt_times, num_epochs):
+
+    # assert speeds
+    max_diff_per_epoch = 0.9
+    pl_times = np.asarray(pl_times)
+    pt_times = np.asarray(pt_times)
+    diffs = pl_times - pt_times
+    diffs = diffs / num_epochs
+
+    assert np.alltrue(diffs < max_diff_per_epoch), \
+        f"lightning was slower than PT (threshold {max_diff_per_epoch})"
+
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
     # save_dir = trainer_options['default_root_dir']
 
