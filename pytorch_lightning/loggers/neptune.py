@@ -39,8 +39,8 @@ class NeptuneLogger(LightningLoggerBase):
     >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
     >>> # We are using an api_key for the anonymous user "neptuner" but you can use your own.
     >>> neptune_logger = NeptuneLogger(
-    ...     api_key='test',
-    ...     project_name='project',
+    ...     api_key='ANONYMOUS',
+    ...     project_name='shared/pytorch-lightning-integration',
     ...     experiment_name='default',  # Optional,
     ...     params={'max_epochs': 10},  # Optional,
     ...     tags=['pytorch-lightning', 'mlp']  # Optional,
