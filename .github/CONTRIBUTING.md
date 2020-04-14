@@ -120,6 +120,8 @@ make html
 ```
 and open `docs/build/html/index.html` in your browser.
 
+When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the 
+_Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build-Docs_ at the bottom of the PR page.
 
 ### Testing
 
