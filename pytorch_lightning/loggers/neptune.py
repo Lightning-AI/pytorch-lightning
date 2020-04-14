@@ -115,8 +115,8 @@ class NeptuneLogger(LightningLoggerBase):
         neptune_logger.experiment.stop()
 
     See Also:
-        - An `Example experiment <https://ui.neptune.ai/o/shared/org/pytorch-lightning-integration/e/PYTOR-66/charts>`_
-          showing the UI of Neptune.
+        - An `Example experiment <https://ui.neptune.ai/o/shared/org/
+          pytorch-lightning-integration/e/PYTOR-66/charts>`_ showing the UI of Neptune.
         - `Tutorial <https://docs.neptune.ai/integrations/pytorch_lightning.html>`_ on how to use
           Pytorch Lightning with Neptune.
 
