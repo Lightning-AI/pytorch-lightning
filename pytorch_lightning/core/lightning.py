@@ -1165,6 +1165,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             optimizer.step()
 
+        # model hook
+        self.on_before_zero_grad(optimizer)
+
         # clear gradients
         optimizer.zero_grad()
 
