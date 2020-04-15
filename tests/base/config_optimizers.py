@@ -1,7 +1,9 @@
+from abc import ABC
+
 from torch import optim
 
 
-class ConfigureOptimizersPool:
+class ConfigureOptimizersPool(ABC):
     def configure_optimizers(self):
         """
         return whatever optimizers we want here.

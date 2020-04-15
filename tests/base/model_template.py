@@ -3,24 +3,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from tests.base.config_optimizers import ConfigureOptimizersPool
 from tests.base.datasets import TrialMNIST
 from pytorch_lightning.core.lightning import LightningModule
+from tests.base.eval_dataloaders import EvalDataloaderVariations
+from tests.base.eval_epoch_ends import EvalEpochEndVariations
+from tests.base.eval_steps import EvalStepVariations
 from tests.base.model_utils import ModelTemplateUtils
-from tests.base.pool_dataloaders import TrainDataloaderPool, ValDataloaderPool, EvalDataloaderPool
-from tests.base.pool_steps import TrainingStepPool, ValidationStepPool, EvalStepPool
-from tests.base.pool_epoch_ends import ValidationEpochEndPool, EvalEpochEndPool
-from tests.base.pool_optimizers import ConfigureOptimizersPool
+from tests.base.train_dataloaders import TrainDataloaderVariations
+from tests.base.train_steps import TrainingStepVariations
+from tests.base.valid_dataloaders import ValDataloaderVariations
+from tests.base.valid_epoch_ends import ValidationEpochEndVariations
+from tests.base.valid_steps import ValidationStepVariations
 
 
 class ModelTemplate(
-    TrainingStepPool,
-    ValidationStepPool,
-    ValidationEpochEndPool,
-    EvalStepPool,
-    EvalEpochEndPool,
-    TrainDataloaderPool,
-    ValDataloaderPool,
-    EvalDataloaderPool,
+    TrainingStepVariations,
+    ValidationStepVariations,
+    ValidationEpochEndVariations,
+    EvalStepVariations,
+    EvalEpochEndVariations,
+    TrainDataloaderVariations,
+    ValDataloaderVariations,
+    EvalDataloaderVariations,
     ConfigureOptimizersPool,
     ModelTemplateUtils,
     LightningModule
