@@ -11,15 +11,15 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class LRLogger(Callback):
+class LearningRateLogger(Callback):
     r"""
-    Automatically logs learning rate for lr schedulers during training.
+    Automatically logs learning rate for learning rate schedulers during training.
 
     Example::
 
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import LRLogger
-        >>> lr_logger = LRLogger()
+        >>> from pytorch_lightning.callbacks import LearningRateLogger
+        >>> lr_logger = LearningRateLogger()
         >>> trainer = Trainer(callbacks=[lr_logger])
 
     Logging names are automatically determined based on optimizer class name.
@@ -47,13 +47,13 @@ class LRLogger(Callback):
         """
         if trainer.lr_schedulers == []:
             raise MisconfigurationException(
-                'Cannot use LRLogger callback with models that have no'
+                'Cannot use LearningRateLogger callback with models that have no'
                 ' learning rate schedulers. Please see documentation for'
                 ' `configure_optimizers` method.')
 
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use LRLogger callback with Trainer that have no logger.')
+                'Cannot use LearningRateLogger callback with Trainer that have no logger.')
 
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
