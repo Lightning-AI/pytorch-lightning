@@ -46,11 +46,18 @@ class WandbLogger(LightningLoggerBase):
         trainer = Trainer(logger=wandb_logger)
     """
 
-    def __init__(self, name: Optional[str] = None, save_dir: Optional[str] = None,
-                 offline: bool = False, id: Optional[str] = None, anonymous: bool = False,
-                 version: Optional[str] = None, project: Optional[str] = None,
-                 tags: Optional[List[str]] = None, log_model: bool = False,
-                 experiment=None, entity=None):
+    def __init__(self,
+                 name: Optional[str] = None,
+                 save_dir: Optional[str] = None,
+                 offline: bool = False,
+                 id: Optional[str] = None,
+                 anonymous: bool = False,
+                 version: Optional[str] = None,
+                 project: Optional[str] = None,
+                 tags: Optional[List[str]] = None,
+                 log_model: bool = False,
+                 experiment=None,
+                 entity=None):
         super().__init__()
         self._name = name
         self._save_dir = save_dir

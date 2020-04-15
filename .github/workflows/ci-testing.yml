@@ -28,7 +28,7 @@ jobs:
             requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}

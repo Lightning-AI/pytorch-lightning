@@ -29,13 +29,18 @@ class NeptuneLogger(LightningLoggerBase):
     To log experiment data in online mode, NeptuneLogger requries an API key:
     """
 
-    def __init__(self, api_key: Optional[str] = None, project_name: Optional[str] = None,
-                 close_after_fit: Optional[bool] = True, offline_mode: bool = False,
+    def __init__(self,
+                 api_key: Optional[str] = None,
+                 project_name: Optional[str] = None,
+                 close_after_fit: Optional[bool] = True,
+                 offline_mode: bool = True,
                  experiment_name: Optional[str] = None,
-                 upload_source_files: Optional[List[str]] = None, params: Optional[Dict[str, Any]] = None,
-                 properties: Optional[Dict[str, Any]] = None, tags: Optional[List[str]] = None, **kwargs):
+                 upload_source_files: Optional[List[str]] = None,
+                 params: Optional[Dict[str, Any]] = None,
+                 properties: Optional[Dict[str, Any]] = None,
+                 tags: Optional[List[str]] = None,
+                 **kwargs):
         r"""
-
         Initialize a neptune.ai logger.
 
         .. note:: Requires either an API Key (online mode) or a local directory path (offline mode)
@@ -135,8 +140,8 @@ class NeptuneLogger(LightningLoggerBase):
                 "namespace/project_name" for example "tom/minst-classification".
                 If None, the value of NEPTUNE_PROJECT environment variable will be taken.
                 You need to create the project in https://neptune.ai first.
-            offline_mode: Optional default False. If offline_mode=True no logs will be send
-                to neptune. Usually used for debug purposes.
+            offline_mode: Optional default True. If offline_mode=True no logs will be send
+                to neptune. Usually used for debug and test purposes.
             close_after_fit: Optional default True. If close_after_fit=False the experiment
                 will not be closed after training and additional metrics,
                 images or artifacts can be logged. Also, remember to close the experiment explicitly
@@ -243,6 +248,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        super().finalize(status)
         if self.close_after_fit:
             self.experiment.stop()
 

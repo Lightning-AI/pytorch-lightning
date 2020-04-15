@@ -36,10 +36,15 @@ class CometLogger(LightningLoggerBase):
     Log using `comet.ml <https://www.comet.ml>`_.
     """
 
-    def __init__(self, api_key: Optional[str] = None, save_dir: Optional[str] = None,
-                 workspace: Optional[str] = None, project_name: Optional[str] = None,
-                 rest_api_key: Optional[str] = None, experiment_name: Optional[str] = None,
-                 experiment_key: Optional[str] = None, **kwargs):
+    def __init__(self,
+                 api_key: Optional[str] = None,
+                 save_dir: Optional[str] = None,
+                 workspace: Optional[str] = None,
+                 project_name: Optional[str] = None,
+                 rest_api_key: Optional[str] = None,
+                 experiment_name: Optional[str] = None,
+                 experiment_key: Optional[str] = None,
+                 **kwargs):
         r"""
 
         Requires either an API Key (online mode) or a local directory path (offline mode)
@@ -118,6 +123,7 @@ class CometLogger(LightningLoggerBase):
                 self.name = experiment_name
             except TypeError as e:
                 log.exception("Failed to set experiment name for comet.ml logger")
+        self._kwargs = kwargs
 
     @property
     def experiment(self) -> CometBaseExperiment:
@@ -197,7 +203,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return self.experiment.project_name
+        return str(self.experiment.project_name)
 
     @name.setter
     def name(self, value: str) -> None:
