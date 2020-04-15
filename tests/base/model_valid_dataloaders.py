@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 
-class TrainDataloaderVariations(ABC):
+
+class ValDataloaderVariations(ABC):
 
     @abstractmethod
     def dataloader(self, train):
         """placeholder"""
         pass
 
-    def train_dataloader(self):
+    def val_dataloader(self):
         return self.dataloader(
-            train=True,
+            train=False,
         )

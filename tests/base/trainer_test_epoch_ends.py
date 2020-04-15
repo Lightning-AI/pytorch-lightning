@@ -3,7 +3,7 @@ from abc import ABC
 import torch
 
 
-class EvalEpochEndVariations(ABC):
+class TestEpochEndVariations(ABC):
 
     def test_epoch_end(self, outputs):
         """

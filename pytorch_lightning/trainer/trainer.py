@@ -1023,11 +1023,10 @@ class Trainer(
         gave_test_loader = test_dataloader is not None
 
         if gave_test_loader and not has_test_step:
-            raise MisconfigurationException('You passed in a `test_dataloader` but did not implement '
-                                            ' `test_step()`')
+            raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')
 
         if has_test_step and not gave_test_loader:
-            raise MisconfigurationException('You defined `test_step()` but did not implement '
+            raise MisconfigurationException('You defined `test_step()` but did not implement'
                                             ' `test_dataloader` nor passed in `.fit(test_dataloaders`.')
 
         if has_test_step and gave_test_loader and not has_test_epoch_end:

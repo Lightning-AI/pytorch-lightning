@@ -1,9 +1,10 @@
 from abc import ABC
 from collections import OrderedDict
+
 import torch
 
 
-class EvalStepVariations(ABC):
+class TestStepVariations(ABC):
     """
     Houses all variations of test steps
     """

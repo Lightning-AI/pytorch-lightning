@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class EvalDataloaderVariations(ABC):
+class TestDataloaderVariations(ABC):
 
     @abstractmethod
     def dataloader(self, train):
