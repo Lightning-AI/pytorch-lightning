@@ -49,7 +49,7 @@ class MNIST(Dataset):
     cache_folder_name = 'complete'
 
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False):
+                 normalize: tuple = (0.5, 1.0), download: bool = True):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -86,8 +86,7 @@ class MNIST(Dataset):
         return existing
 
     def prepare_data(self, download: bool):
-        if download:
-            self._download(self.cached_folder_path)
+        self._download(self.cached_folder_path)
 
     def _download(self, data_folder: str) -> None:
         """Download the MNIST data if it doesn't exist in cached_folder_path already."""
@@ -175,8 +174,7 @@ class TrialMNIST(MNIST):
     def prepare_data(self, download: bool) -> None:
         if self._check_exists(self.cached_folder_path):
             return
-        if download:
-            self._download(super().cached_folder_path)
+        self._download(super().cached_folder_path)
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             data, targets = torch.load(os.path.join(super().cached_folder_path, fname))
