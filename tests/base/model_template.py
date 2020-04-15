@@ -5,26 +5,26 @@ import torch.nn.functional as F
 from tests.base.config_optimizers import ConfigureOptimizersPool
 from tests.base.datasets import TrialMNIST
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.eval_dataloaders import EvalDataloaderVariations
-from tests.base.eval_epoch_ends import EvalEpochEndVariations
-from tests.base.eval_steps import EvalStepVariations
+from tests.base.model_test_dataloaders import TestDataloaderVariations
+from tests.base.model_test_steps import TestStepVariations
+from tests.base.model_train_dataloaders import TrainDataloaderVariations
+from tests.base.model_train_steps import TrainingStepVariations
 from tests.base.model_utils import ModelTemplateUtils
-from tests.base.train_dataloaders import TrainDataloaderVariations
-from tests.base.train_steps import TrainingStepVariations
-from tests.base.valid_dataloaders import ValDataloaderVariations
-from tests.base.valid_epoch_ends import ValidationEpochEndVariations
-from tests.base.valid_steps import ValidationStepVariations
+from tests.base.model_valid_dataloaders import ValDataloaderVariations
+from tests.base.model_valid_steps import ValidationStepVariations
+from tests.base.trainer_test_epoch_ends import TestEpochEndVariations
+from tests.base.trainer_valid_epoch_ends import ValidationEpochEndVariations
 
 
 class ModelTrailTemplate(
     TrainingStepVariations,
     ValidationStepVariations,
     ValidationEpochEndVariations,
-    EvalStepVariations,
-    EvalEpochEndVariations,
+    TestStepVariations,
+    TestEpochEndVariations,
     TrainDataloaderVariations,
     ValDataloaderVariations,
-    EvalDataloaderVariations,
+    TestDataloaderVariations,
     ConfigureOptimizersPool,
     ModelTemplateUtils,
     LightningModule
