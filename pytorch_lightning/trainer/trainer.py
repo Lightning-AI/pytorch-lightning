@@ -1017,17 +1017,25 @@ class Trainer(
                     )
 
     def check_testing_model_configuration(self, model: LightningModule, test_dataloader: DataLoader):
-        # Check test_dataloader, test_step and test_epoch_end
-        if test_dataloader is not None:
-            if not self.is_overriden('test_step', model):
-                raise MisconfigurationException('You passed in a `test_dataloader`'
-                                                ' but have not defined `test_step()`.')
-            else:
-                if not self.is_overriden('test_epoch_end', model):
-                    rank_zero_warn(
-                        'You passed  in a `test_dataloader` and have defined a `test_step()`, you may also want to'
-                        ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
-                    )
+
+        has_test_step = self.is_overriden('test_step', model)
+        has_test_epoch_end = self.is_overriden('test_epoch_end', model)
+        gave_test_loader = test_dataloader is not None
+
+        if gave_test_loader and not has_test_step:
+            raise MisconfigurationException('You passed in a `test_dataloader` but did not implement '
+                                            ' `test_step()`')
+
+        if has_test_step and not gave_test_loader:
+            raise MisconfigurationException('You defined `test_step()` but did not implement '
+                                            ' `test_dataloader` nor passed in `.fit(test_dataloaders`.')
+
+        if has_test_step and gave_test_loader and not has_test_epoch_end:
+            rank_zero_warn(
+                'You passed  in a `test_dataloader` and have defined a `test_step()`, you may also want to'
+                ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+            )
+
 
 
 class _PatchDataLoader(object):

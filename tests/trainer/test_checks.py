@@ -146,4 +146,22 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     with pytest.raises(MisconfigurationException):
         model = TemplateTestModel(hparams)
         model.test_dataloader = None
+        trainer.test(model)
+
+    # ----------------
+    # if have test_dataloader and NO test_step tell user to implement  test_step
+    # ----------------
+    with pytest.raises(MisconfigurationException):
+        model = TemplateTestModel(hparams)
+        model.test_dataloader = None
+        model.test_step = None
+        trainer.test(model, test_dataloaders=model.dataloader(train=False))
+
+    # ----------------
+    # if have test_dataloader and test_step but no test_epoch_end warn user
+    # ----------------
+    with pytest.warns(RuntimeWarning):
+        model = TemplateTestModel(hparams)
+        model.test_dataloader = None
+        model.test_epoch_end = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
