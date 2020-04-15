@@ -33,7 +33,7 @@ class NeptuneLogger(LightningLoggerBase):
                  api_key: Optional[str] = None,
                  project_name: Optional[str] = None,
                  close_after_fit: Optional[bool] = True,
-                 offline_mode: bool = True,
+                 offline_mode: bool = False,
                  experiment_name: Optional[str] = None,
                  upload_source_files: Optional[List[str]] = None,
                  params: Optional[Dict[str, Any]] = None,
@@ -140,7 +140,7 @@ class NeptuneLogger(LightningLoggerBase):
                 "namespace/project_name" for example "tom/minst-classification".
                 If None, the value of NEPTUNE_PROJECT environment variable will be taken.
                 You need to create the project in https://neptune.ai first.
-            offline_mode: Optional default True. If offline_mode=True no logs will be send
+            offline_mode: Optional default False. If offline_mode=True no logs will be send
                 to neptune. Usually used for debug and test purposes.
             close_after_fit: Optional default True. If close_after_fit=False the experiment
                 will not be closed after training and additional metrics,
