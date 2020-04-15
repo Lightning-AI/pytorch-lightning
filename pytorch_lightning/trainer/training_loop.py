@@ -449,7 +449,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
-
+            
+            # TODO: consolidate all actions that need to take place only after 
+            # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
                 # update lr
                 self.update_learning_rates(interval='step')
