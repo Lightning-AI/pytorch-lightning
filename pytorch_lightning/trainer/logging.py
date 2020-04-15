@@ -112,10 +112,6 @@ class TrainerLoggingMixin(ABC):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
-        for k, v in callback_metrics.items():
-            if isinstance(v, torch.Tensor):
-                callback_metrics[k] = v.item()
-
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
         # ---------------

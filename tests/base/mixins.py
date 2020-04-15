@@ -89,8 +89,8 @@ class LightValidationMixin(LightValidationStepMixin):
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
 
-        tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        results = {'progress_bar': tqdm_dict, 'log': tqdm_dict}
+        metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
 
@@ -355,8 +355,8 @@ class LightTestMixin(LightTestStepMixin):
         test_loss_mean /= len(outputs)
         test_acc_mean /= len(outputs)
 
-        tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-        result = {'progress_bar': tqdm_dict}
+        metrics_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+        result = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return result
 
 
