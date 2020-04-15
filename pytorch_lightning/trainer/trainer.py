@@ -944,6 +944,9 @@ class Trainer(
             else:
                 self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
+        # give proper warnings if user only passed in loader without hooks
+        self.check_testing_model_configuration(model, test_dataloaders)
+
         if model is not None:
             self.model = model
             self.fit(model)
@@ -1010,6 +1013,19 @@ class Trainer(
                 if not self.is_overriden('test_epoch_end', model):
                     rank_zero_warn(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
+                        ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+                    )
+
+    def check_testing_model_configuration(self, model: LightningModule, test_dataloader: DataLoader):
+        # Check test_dataloader, test_step and test_epoch_end
+        if test_dataloader is not None:
+            if not self.is_overriden('test_step', model):
+                raise MisconfigurationException('You passed in a `test_dataloader`'
+                                                ' but have not defined `test_step()`.')
+            else:
+                if not self.is_overriden('test_epoch_end', model):
+                    rank_zero_warn(
+                        'You passed  in a `test_dataloader` and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
                     )
 
