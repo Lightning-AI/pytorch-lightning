@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 from tests.base.config_optimizers import ConfigureOptimizersPool
 from tests.base.datasets import TrialMNIST
@@ -17,7 +16,7 @@ from tests.base.valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.valid_steps import ValidationStepVariations
 
 
-class ModelTemplate(
+class ModelTrailTemplate(
     TrainingStepVariations,
     ValidationStepVariations,
     ValidationEpochEndVariations,

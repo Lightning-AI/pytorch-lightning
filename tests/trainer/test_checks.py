@@ -3,7 +3,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import TemplateTestModel
+from tests.base import ModelTrailTemplate
 from tests.base import (
     TestModelBase,
     LightValidationDataloader,
@@ -128,7 +128,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # if have test_dataloader should  have test_step
     # ----------------
     with pytest.raises(MisconfigurationException):
-        model = TemplateTestModel(hparams)
+        model = ModelTrailTemplate(hparams)
         model.test_step = None
         trainer.fit(model)
 
@@ -136,7 +136,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # if have test_dataloader  and  test_step recommend test_epoch_end
     # ----------------
     with pytest.warns(RuntimeWarning):
-        model = TemplateTestModel(hparams)
+        model = ModelTrailTemplate(hparams)
         model.test_epoch_end = None
         trainer.test(model)
 
@@ -144,7 +144,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
     # ----------------
     with pytest.raises(MisconfigurationException):
-        model = TemplateTestModel(hparams)
+        model = ModelTrailTemplate(hparams)
         model.test_dataloader = None
         trainer.test(model)
 
@@ -152,7 +152,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # if have test_dataloader and NO test_step tell user to implement  test_step
     # ----------------
     with pytest.raises(MisconfigurationException):
-        model = TemplateTestModel(hparams)
+        model = ModelTrailTemplate(hparams)
         model.test_dataloader = None
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
@@ -161,7 +161,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # if have test_dataloader and test_step but no test_epoch_end warn user
     # ----------------
     with pytest.warns(RuntimeWarning):
-        model = TemplateTestModel(hparams)
+        model = ModelTrailTemplate(hparams)
         model.test_dataloader = None
         model.test_epoch_end = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))

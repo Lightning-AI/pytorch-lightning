@@ -3,7 +3,7 @@
 import torch
 
 from tests.base.models import TestModelBase, DictHparamsModel
-from tests.base.template_test_model import TemplateTestModel
+from tests.base.model_template import ModelTrailTemplate
 from tests.base.mixins import (
     LightEmptyTestStep,
     LightValidationStepMixin,
