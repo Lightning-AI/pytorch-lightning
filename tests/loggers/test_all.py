@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
-from tests.base import LightningTestModel
+from tests.base import LightningTrialModel
 
 
 @pytest.mark.parametrize("logger_class", [
@@ -29,7 +29,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTrialModel(hparams)
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
