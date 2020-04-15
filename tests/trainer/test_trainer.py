@@ -593,6 +593,7 @@ def test_nan_loss_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(test_step + 1),
+        terminate_on_nan=True
     )
 
     with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
@@ -619,6 +620,7 @@ def test_nan_params_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(test_step + 1),
+        terminate_on_nan=True
     )
 
     with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):

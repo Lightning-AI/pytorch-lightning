@@ -23,6 +23,7 @@ Use the logger anywhere in you LightningModule as follows:
         self.logger.experiment.whatever_ml_flow_supports(...)
 
 """
+import os
 from argparse import Namespace
 from time import time
 from typing import Optional, Dict, Any, Union
@@ -39,10 +40,14 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 
 class MLFlowLogger(LightningLoggerBase):
-    def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
-                 tags: Dict[str, Any] = None):
-        r"""
+    """MLFLow logger"""
 
+    def __init__(self,
+                 experiment_name: str = 'default',
+                 tracking_uri: Optional[str] = None,
+                 tags: Optional[Dict[str, Any]] = None,
+                 save_dir: Optional[str] = None):
+        r"""
         Logs using MLFlow
 
         Args:
@@ -51,6 +56,8 @@ class MLFlowLogger(LightningLoggerBase):
             tags (dict): todo this param
         """
         super().__init__()
+        if not tracking_uri and save_dir:
+            tracking_uri = f'file:{os.sep * 2}{save_dir}'
         self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None
@@ -59,7 +66,6 @@ class MLFlowLogger(LightningLoggerBase):
     @property
     def experiment(self) -> MlflowClient:
         r"""
-
         Actual mlflow object. To use mlflow features do the following.
 
         Example::
@@ -102,11 +108,9 @@ class MLFlowLogger(LightningLoggerBase):
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
-    def save(self):
-        pass
-
     @rank_zero_only
     def finalize(self, status: str = 'FINISHED') -> None:
+        super().finalize(status)
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)
