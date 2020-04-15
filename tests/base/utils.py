@@ -241,3 +241,5 @@ def init_checkpoint_callback(logger, path_dir=None):
     os.mkdir(ckpt_dir)
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint
+
+

@@ -123,33 +123,38 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
     trainer = Trainer(**trainer_options)
 
+    # ----------------
+    # if have test_dataloader should  have test_step
+    # ----------------
     class CurrentTestModel(LightTrainDataloader,
                            LightTestDataloader,
                            TestModelBase):
         pass
 
-    # check test_dataloader -> test_step
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel(hparams)
         trainer.fit(model)
 
+    # ----------------
+    # if have test_dataloader  and  test_step recommend test_epoch_end
+    # ----------------
     class CurrentTestModel(LightTrainDataloader,
                            LightTestStepMixin,
                            TestModelBase):
         pass
 
-    # TODO: fix tests
-    # check test_dataloader + test_step -> test_epoch_end
     with pytest.warns(RuntimeWarning):
         model = CurrentTestModel(hparams)
-        trainer.test(model)
+        trainer.test(model, test_dataloaders=model._dataloader(train=False))
 
+    # ----------------
+    # if have test_step and NO test_dataloader tell user to implement test_dataloader
+    # ----------------
     class CurrentTestModel(LightTrainDataloader,
                            LightTestFitMultipleTestDataloadersMixin,
                            TestModelBase):
         pass
 
-    # check test_step -> test_dataloader
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel(hparams)
-        trainer.fit(model)
+        trainer.test(model, test_dataloaders=model._dataloader(train=False))
