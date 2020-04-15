@@ -6,6 +6,13 @@ Comet.ml
 
 `Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.CometLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install comet-ml
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
@@ -41,6 +48,13 @@ MLflow
 
 `MLflow <https://mlflow.org/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.MLFlowLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install mlflow
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
@@ -60,6 +74,13 @@ Neptune.ai
 
 `Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install neptune-client
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
@@ -93,6 +114,13 @@ allegro.ai TRAINS
 
 `allegro.ai <https://github.com/allegroai/trains/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.TrainsLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install trains
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
@@ -152,6 +180,13 @@ Test Tube
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
 `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
 To use :class:`~pytorch_lightning.loggers.TestTubeLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install test_tube
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
@@ -178,6 +213,13 @@ Weights and Biases
 
 `Weights and Biases <https://www.wandb.com/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install wandb
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. doctest::
 
