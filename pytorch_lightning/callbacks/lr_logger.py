@@ -63,7 +63,7 @@ class LRLogger(Callback):
             if 'name' in scheduler:
                 name = scheduler['name']
             else:
-                opt_name = sch.optimizer.__class__.__name__
+                opt_name = 'lr-' + sch.optimizer.__class__.__name__
                 name = opt_name
                 counter = 0
                 # Multiple schduler of the same type
