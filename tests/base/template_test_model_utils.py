@@ -15,7 +15,7 @@ class TemplateTestModelUtilsMixin:
 
         return loader
 
-    def get_output_metric(self,  output, name):
+    def get_output_metric(self, output, name):
         if isinstance(output, dict):
             val = output[name]
         else:  # if it is 2level deep -> per dataloader and per batch

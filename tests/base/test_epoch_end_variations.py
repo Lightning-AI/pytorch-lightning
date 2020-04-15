@@ -34,4 +34,3 @@ class TestEpochEndVariationsMixin:
         metrics_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
         result = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return result
-

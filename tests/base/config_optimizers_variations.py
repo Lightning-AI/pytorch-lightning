@@ -57,4 +57,3 @@ class ConfigureOptimizersVariationsMixin:
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
-

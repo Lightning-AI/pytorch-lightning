@@ -1037,7 +1037,6 @@ class Trainer(
             )
 
 
-
 class _PatchDataLoader(object):
     r"""
     Callable object for patching dataloaders passed into trainer.fit().
