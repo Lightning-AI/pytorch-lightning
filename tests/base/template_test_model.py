@@ -38,8 +38,6 @@ class TemplateTestModel(
         super().__init__()
         self.hparams = hparams
 
-        self.batch_size = hparams.batch_size
-
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)
 

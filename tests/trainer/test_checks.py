@@ -146,4 +146,4 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     with pytest.raises(MisconfigurationException):
         model = TemplateTestModel(hparams)
         model.test_dataloader = None
-        trainer.test(model, test_dataloaders=model._dataloader(train=False))
+        trainer.test(model, test_dataloaders=model.dataloader(train=False))

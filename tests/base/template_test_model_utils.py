@@ -4,12 +4,12 @@ from tests.base.datasets import TestingMNIST
 
 class TemplateTestModelUtilsMixin:
 
-    def dataloader(self, train, data_root, batch_size):
-        dataset = TestingMNIST(root=data_root, train=train, download=False)
+    def dataloader(self, train):
+        dataset = TestingMNIST(root=self.hparams.data_root, train=train, download=False)
 
         loader = DataLoader(
             dataset=dataset,
-            batch_size=batch_size,
+            batch_size=self.hparams.batch_size,
             shuffle=True
         )
 
