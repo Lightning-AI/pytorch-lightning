@@ -12,7 +12,6 @@ class ModelTemplateUtils:
             batch_size=self.hparams.batch_size,
             shuffle=True
         )
-
         return loader
 
     def get_output_metric(self, output, name):

@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
-from tests.base import LightningTestModel
+from tests.base import LightningTestModel, EvalModelTemplate
 from tests.base.datasets import PATH_DATASETS
 
 # generate a list of random seeds for each test

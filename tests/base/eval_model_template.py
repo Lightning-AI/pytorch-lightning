@@ -16,7 +16,8 @@ from tests.base.eval_model_valid_steps import ValidationStepVariations
 from tests.base.eval_model_utils import ModelTemplateUtils
 
 
-class ModelTrailTemplate(
+class EvalModelTemplate(
+    ModelTemplateUtils,
     TrainingStepVariations,
     ValidationStepVariations,
     ValidationEpochEndVariations,
@@ -26,7 +27,6 @@ class ModelTrailTemplate(
     ValDataloaderVariations,
     TestDataloaderVariations,
     ConfigureOptimizersPool,
-    ModelTemplateUtils,
     LightningModule
 ):
     """

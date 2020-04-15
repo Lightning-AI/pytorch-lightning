@@ -4,11 +4,8 @@ from abc import ABC, abstractmethod
 class ValDataloaderVariations(ABC):
 
     @abstractmethod
-    def dataloader(self, train):
+    def dataloader(self, train: bool):
         """placeholder"""
-        pass
 
     def val_dataloader(self):
-        return self.dataloader(
-            train=False,
-        )
+        return self.dataloader(train=False)
