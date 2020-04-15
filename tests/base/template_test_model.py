@@ -30,7 +30,7 @@ class TemplateTestModel(
     """
     This template houses all  combinations of model  configurations  we want to test
     """
-    def __init__(self, hparams, force_remove_distributed_sampler: bool = False):
+    def __init__(self, hparams):
         """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
         super().__init__()
@@ -40,9 +40,6 @@ class TemplateTestModel(
 
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)
-
-        # remove to test warning for dist sampler
-        self.force_remove_distributed_sampler = force_remove_distributed_sampler
 
         # build model
         self.__build_model()
