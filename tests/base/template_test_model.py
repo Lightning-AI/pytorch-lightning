@@ -4,9 +4,10 @@ import torch.nn.functional as F
 
 from tests.base.datasets import TestingMNIST
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.test_epoch_end_variations import TestEpochEndVariationsMixin
-from tests.base.test_step_variations import TestStepVariationsMixin
 from tests.base.training_step_variations import TrainingStepVariationsMixin
+from tests.base.test_step_variations import TestStepVariationsMixin
+from tests.base.validation_step_variations import ValidationStepVariationsMixin
+from tests.base.test_epoch_end_variations import TestEpochEndVariationsMixin
 from tests.base.config_optimizers_variations import ConfigureOptimizersVariationsMixin
 from tests.base.val_dataloader_variations import ValDataloaderVariationsMixin
 from tests.base.train_dataloader_variations import TrainDataloaderVariationsMixin
@@ -15,6 +16,7 @@ from tests.base.test_dataloader_variations import TestDataloaderVariationsMixin
 
 class TemplateTestModel(
     TrainingStepVariationsMixin,
+    ValidationStepVariationsMixin,
     TestStepVariationsMixin,
     TestEpochEndVariationsMixin,
     ConfigureOptimizersVariationsMixin,
