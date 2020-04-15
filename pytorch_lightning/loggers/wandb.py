@@ -20,7 +20,11 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 class WandbLogger(LightningLoggerBase):
     """
-    Log using `Weights and Biases <https://www.wandb.com/>`_.
+    Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install wandb
 
     Args:
         name: Display name for the run.

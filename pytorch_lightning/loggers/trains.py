@@ -24,7 +24,11 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 class TrainsLogger(LightningLoggerBase):
     """
-    Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_.
+    Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install trains
 
     Example:
 

@@ -23,7 +23,11 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 class NeptuneLogger(LightningLoggerBase):
     r"""
-    Log using `Neptune <https://neptune.ai>`_
+    Log using `Neptune <https://neptune.ai>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install neptune-client
 
     The Neptune logger can be used in the online mode or offline (silent) mode.
     To log experiment data in online mode, :class:`NeptuneLogger` requries an API key.

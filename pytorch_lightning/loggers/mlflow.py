@@ -20,7 +20,11 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 class MLFlowLogger(LightningLoggerBase):
     """
-    Log using `MLflow <https://mlflow.org>`_
+    Log using `MLflow <https://mlflow.org>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install mlflow
 
     Example:
 

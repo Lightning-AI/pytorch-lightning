@@ -21,7 +21,8 @@ class TensorBoardLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
-    ``os.path.join(save_dir, name, version)``.
+    ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
+    preinstalled.
 
     Example:
         >>> from pytorch_lightning import Trainer

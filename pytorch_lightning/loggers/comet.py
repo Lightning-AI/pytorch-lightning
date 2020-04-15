@@ -30,8 +30,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CometLogger(LightningLoggerBase):
     r"""
-    Log using `Comet.ml <https://www.comet.ml>`_.
-    Requires either an API Key (online mode) or a local directory path (offline mode).
+    Log using `Comet.ml <https://www.comet.ml>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install comet-ml
+
+    Comet requires either an API Key (online mode) or a local directory path (offline mode).
 
     Example:
 
