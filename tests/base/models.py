@@ -141,7 +141,7 @@ class TestModelBase(LightningModule):
 
     def _dataloader(self, train):
         # init data generators
-        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=False)
+        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=True)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size

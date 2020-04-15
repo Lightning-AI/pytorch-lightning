@@ -86,7 +86,8 @@ class MNIST(Dataset):
         return existing
 
     def prepare_data(self, download: bool):
-        self._download(self.cached_folder_path)
+        if download:
+            self._download(self.cached_folder_path)
 
     def _download(self, data_folder: str) -> None:
         """Download the MNIST data if it doesn't exist in cached_folder_path already."""
@@ -174,9 +175,12 @@ class TrialMNIST(MNIST):
     def prepare_data(self, download: bool) -> None:
         if self._check_exists(self.cached_folder_path):
             return
-        self._download(super().cached_folder_path)
+        if download:
+            self._download(super().cached_folder_path)
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
-            data, targets = torch.load(os.path.join(super().cached_folder_path, fname))
+            path_fname = os.path.join(super().cached_folder_path, fname)
+            assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
+            data, targets = torch.load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))

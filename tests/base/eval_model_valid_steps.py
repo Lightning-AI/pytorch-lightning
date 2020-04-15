@@ -98,4 +98,3 @@ class ValidationStepVariations(ABC):
                 f'val_acc_{dataloader_idx}': val_acc,
             })
             return output
-

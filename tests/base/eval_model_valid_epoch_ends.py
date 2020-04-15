@@ -40,4 +40,3 @@ class ValidationEpochEndVariations(ABC):
         metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
-

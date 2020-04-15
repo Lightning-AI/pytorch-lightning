@@ -5,7 +5,7 @@ from tests.base.datasets import TrialMNIST
 class ModelTemplateUtils:
 
     def dataloader(self, train):
-        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=False)
+        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=True)
 
         loader = DataLoader(
             dataset=dataset,
