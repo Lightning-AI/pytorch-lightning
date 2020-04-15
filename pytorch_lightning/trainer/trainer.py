@@ -1012,10 +1012,6 @@ class Trainer(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
                     )
-        else:
-            if self.is_overriden('test_step', model):
-                raise MisconfigurationException('You have defined `test_step()`,'
-                                                ' but have not passed in a `test_dataloader()`.')
 
 
 class _PatchDataLoader(object):
