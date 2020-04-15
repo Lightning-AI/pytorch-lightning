@@ -134,16 +134,6 @@ def test_warning_on_wrong_test_settigs(tmpdir):
         trainer.fit(model)
 
     class CurrentTestModel(LightTrainDataloader,
-                           LightTestStepMixin,
-                           TestModelBase):
-        pass
-
-    # check test_dataloader + test_step -> test_epoch_end
-    with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
-        trainer.fit(model)
-
-    class CurrentTestModel(LightTrainDataloader,
                            LightTestFitMultipleTestDataloadersMixin,
                            TestModelBase):
         pass
