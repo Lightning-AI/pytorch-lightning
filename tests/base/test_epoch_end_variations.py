@@ -14,7 +14,7 @@ class TestEpochEndVariationsMixin:
         test_loss_mean = 0
         test_acc_mean = 0
         for output in outputs:
-            test_loss = _get_output_metric(output, 'test_loss')
+            test_loss = self.get_output_metric(output, 'test_loss')
 
             # reduce manually when using dp
             if self.trainer.use_dp:
@@ -22,7 +22,7 @@ class TestEpochEndVariationsMixin:
             test_loss_mean += test_loss
 
             # reduce manually when using dp
-            test_acc = _get_output_metric(output, 'test_acc')
+            test_acc = self.get_output_metric(output, 'test_acc')
             if self.trainer.use_dp:
                 test_acc = torch.mean(test_acc)
 
@@ -35,10 +35,3 @@ class TestEpochEndVariationsMixin:
         result = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return result
 
-
-def _get_output_metric(output, name):
-    if isinstance(output, dict):
-        val = output[name]
-    else:  # if it is 2level deep -> per dataloader and per batch
-        val = sum(out[name] for out in output) / len(output)
-    return val

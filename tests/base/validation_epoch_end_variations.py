@@ -18,7 +18,7 @@ class ValidationEpochEndVariationsMixin:
         val_loss_mean = 0
         val_acc_mean = 0
         for output in outputs:
-            val_loss = get_output_metric(output, 'val_loss')
+            val_loss = self.get_output_metric(output, 'val_loss')
 
             # reduce manually when using dp
             if self.trainer.use_dp or self.trainer.use_ddp2:
@@ -26,7 +26,7 @@ class ValidationEpochEndVariationsMixin:
             val_loss_mean += val_loss
 
             # reduce manually when using dp
-            val_acc = get_output_metric(output, 'val_acc')
+            val_acc = self.get_output_metric(output, 'val_acc')
             if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_acc = torch.mean(val_acc)
 
@@ -38,11 +38,3 @@ class ValidationEpochEndVariationsMixin:
         metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
-
-
-def get_output_metric(output, name):
-    if isinstance(output, dict):
-        val = output[name]
-    else:  # if it is 2level deep -> per dataloader and per batch
-        val = sum(out[name] for out in output) / len(output)
-    return val

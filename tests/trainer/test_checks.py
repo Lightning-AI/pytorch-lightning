@@ -3,6 +3,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import TemplateTestModel
 from tests.base import (
     TestModelBase,
     LightValidationDataloader,
@@ -126,35 +127,23 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # ----------------
     # if have test_dataloader should  have test_step
     # ----------------
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestDataloader,
-                           TestModelBase):
-        pass
-
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = TemplateTestModel(hparams)
+        model.test_step = None
         trainer.fit(model)
 
     # ----------------
     # if have test_dataloader  and  test_step recommend test_epoch_end
     # ----------------
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestStepMixin,
-                           TestModelBase):
-        pass
-
     with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
-        trainer.test(model, test_dataloaders=model._dataloader(train=False))
+        model = TemplateTestModel(hparams)
+        model.test_epoch_end = None
+        trainer.test(model)
 
     # ----------------
-    # if have test_step and NO test_dataloader tell user to implement test_dataloader
+    # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
     # ----------------
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestFitMultipleTestDataloadersMixin,
-                           TestModelBase):
-        pass
-
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = TemplateTestModel(hparams)
+        model.test_dataloader = None
         trainer.test(model, test_dataloaders=model._dataloader(train=False))
