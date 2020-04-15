@@ -2,13 +2,8 @@ from torch import optim
 
 
 class ConfigureOptimizersVariationsMixin:
-    def configure_optimizers_lbfgs(self):
-        """
-        return whatever optimizers we want here.
-        :return: list of optimizers
-        """
-        optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
-        return optimizer
+    def configure_optimizers_empty(self):
+        return None
 
     def configure_optimizers_basic(self):
         """
@@ -16,6 +11,14 @@ class ConfigureOptimizersVariationsMixin:
         :return: list of optimizers
         """
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return optimizer
+
+    def configure_optimizers_lbfgs(self):
+        """
+        return whatever optimizers we want here.
+        :return: list of optimizers
+        """
+        optimizer = optim.LBFGS(self.parameters(), lr=self.hparams.learning_rate)
         return optimizer
 
     def configure_optimizers_multiple_optimizers(self):
@@ -49,9 +52,6 @@ class ConfigureOptimizersVariationsMixin:
 
         return [optimizer1, optimizer2], \
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
-
-    def configure_optimizers_empty(self):
-        return None
 
     def configure_optimizers_reduce_lr_on_plateau(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
