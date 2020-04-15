@@ -48,7 +48,7 @@ class LightningLoggerBase(ABC):
             `LightningLoggerBase.agg_and_log_metrics` method.
         """
         self._rank = 0
-        self._prev_step = -1
+        self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
@@ -98,15 +98,15 @@ class LightningLoggerBase(ABC):
             return step, None
 
         # compute the metrics
-        agg_step, agg_mets = self._finalize_agg_metrics()
+        agg_step, agg_mets = self._reduce_agg_metrics()
 
         # as new step received reset accumulator
         self._metrics_to_agg = [metrics]
         self._prev_step = step
         return agg_step, agg_mets
 
-    def _finalize_agg_metrics(self):
-        """Aggregate accumulated metrics. This shall be called in close."""
+    def _reduce_agg_metrics(self):
+        """Aggregate accumulated metrics."""
         # compute the metrics
         if not self._metrics_to_agg:
             agg_mets = None
@@ -115,6 +115,14 @@ class LightningLoggerBase(ABC):
         else:
             agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
         return self._prev_step, agg_mets
+
+    def _finalize_agg_metrics(self):
+        """This shall be called before save/close."""
+        agg_step, metrics_to_log = self._reduce_agg_metrics()
+        self._metrics_to_agg = []
+
+        if metrics_to_log is not None:
+            self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics.
@@ -219,7 +227,7 @@ class LightningLoggerBase(ABC):
 
     def save(self) -> None:
         """Save log data."""
-        pass
+        self._finalize_agg_metrics()
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
@@ -227,14 +235,11 @@ class LightningLoggerBase(ABC):
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
         """
-        pass
+        self.save()
 
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""
-        agg_step, metrics_to_log = self._finalize_agg_metrics()
-
-        if metrics_to_log is not None:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
+        self.save()
 
     @property
     def rank(self) -> int:
@@ -292,7 +297,6 @@ class LoggerCollection(LightningLoggerBase):
 
     @LightningLoggerBase.rank.setter
     def rank(self, value: int) -> None:
-        self._rank = value
         for logger in self._logger_iterable:
             logger.rank = value
 

@@ -295,11 +295,9 @@ class TrainsLogger(LightningLoggerBase):
             delete_after_upload=delete_after_upload
         )
 
-    def save(self) -> None:
-        pass
-
     @rank_zero_only
     def finalize(self, status: str = None) -> None:
+        # super().finalize(status)
         if self.bypass_mode() or not self._trains:
             return
 

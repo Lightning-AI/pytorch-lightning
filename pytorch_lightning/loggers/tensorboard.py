@@ -14,7 +14,6 @@ from pytorch_lightning import _logger as log
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
-
     Log to local file system in TensorBoard format
 
     Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
@@ -40,10 +39,11 @@ class TensorBoardLogger(LightningLoggerBase):
     """
     NAME_CSV_TAGS = 'meta_tags.csv'
 
-    def __init__(
-            self, save_dir: str, name: Optional[str] = "default",
-            version: Optional[Union[int, str]] = None, **kwargs
-    ):
+    def __init__(self,
+                 save_dir: str,
+                 name: Optional[str] = "default",
+                 version: Optional[Union[int, str]] = None,
+                 **kwargs):
         super().__init__()
         self.save_dir = save_dir
         self._name = name
@@ -51,7 +51,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         self._experiment = None
         self.tags = {}
-        self.kwargs = kwargs
+        self._kwargs = kwargs
 
     @property
     def root_dir(self) -> str:
@@ -92,7 +92,7 @@ class TensorBoardLogger(LightningLoggerBase):
             return self._experiment
 
         os.makedirs(self.root_dir, exist_ok=True)
-        self._experiment = SummaryWriter(log_dir=self.log_dir, **self.kwargs)
+        self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
     @rank_zero_only
@@ -127,6 +127,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def save(self) -> None:
+        super().save()
         try:
             self.experiment.flush()
         except AttributeError:

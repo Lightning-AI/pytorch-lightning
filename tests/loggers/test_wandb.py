@@ -2,8 +2,6 @@ import os
 import pickle
 from unittest.mock import patch
 
-import pytest
-
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
@@ -37,7 +35,9 @@ def test_wandb_logger(wandb):
 @patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_pickle(wandb):
     """Verify that pickling trainer with wandb logger works.
-    Wandb doesn't work well with pytest so we have to mock it out here."""
+
+    Wandb doesn't work well with pytest so we have to mock it out here.
+    """
     tutils.reset_seed()
 
     class Experiment:
