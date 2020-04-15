@@ -12,17 +12,19 @@ from tests.base.config_optimizers_variations import ConfigureOptimizersVariation
 from tests.base.val_dataloader_variations import ValDataloaderVariationsMixin
 from tests.base.train_dataloader_variations import TrainDataloaderVariationsMixin
 from tests.base.test_dataloader_variations import TestDataloaderVariationsMixin
+from tests.base.validation_epoch_end_variations import ValidationEpochEndVariationsMixin
 
 
 class TemplateTestModel(
     TrainingStepVariationsMixin,
     ValidationStepVariationsMixin,
+    ValidationEpochEndVariationsMixin,
     TestStepVariationsMixin,
     TestEpochEndVariationsMixin,
-    ConfigureOptimizersVariationsMixin,
     TrainDataloaderVariationsMixin,
     ValDataloaderVariationsMixin,
     TestDataloaderVariationsMixin,
+    ConfigureOptimizersVariationsMixin,
     LightningModule
 ):
     """
