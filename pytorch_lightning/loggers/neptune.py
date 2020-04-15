@@ -2,7 +2,6 @@
 Neptune
 -------
 """
-import os
 from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
