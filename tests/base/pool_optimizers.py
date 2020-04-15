@@ -1,7 +1,7 @@
 from torch import optim
 
 
-class ConfigureOptimizersVariationsMixin:
+class ConfigureOptimizersPool:
     def configure_optimizers(self):
         """
         return whatever optimizers we want here.

@@ -11,7 +11,7 @@ from torchvision import transforms
 import tests.base.utils as tutils
 
 from pytorch_lightning import Trainer, LightningModule
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 
 
 class ParityMNIST(LightningModule):
@@ -42,10 +42,10 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True,
-                                       download=True,
-                                       num_samples=500,
-                                       digits=list(range(5))),
+        return DataLoader(TrialMNIST(train=True,
+                                     download=True,
+                                     num_samples=500,
+                                     digits=list(range(5))),
                           batch_size=128)
 
 

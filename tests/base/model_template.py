@@ -1,32 +1,28 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.training_step_variations import TrainingStepVariationsMixin
-from tests.base.test_step_variations import TestStepVariationsMixin
-from tests.base.validation_step_variations import ValidationStepVariationsMixin
-from tests.base.test_epoch_end_variations import TestEpochEndVariationsMixin
-from tests.base.config_optimizers_variations import ConfigureOptimizersVariationsMixin
-from tests.base.val_dataloader_variations import ValDataloaderVariationsMixin
-from tests.base.train_dataloader_variations import TrainDataloaderVariationsMixin
-from tests.base.test_dataloader_variations import TestDataloaderVariationsMixin
-from tests.base.validation_epoch_end_variations import ValidationEpochEndVariationsMixin
-from tests.base.template_test_model_utils import TemplateTestModelUtilsMixin
+from tests.base.model_utils import ModelTemplateUtils
+from tests.base.pool_dataloaders import TrainDataloaderPool, ValDataloaderPool, EvalDataloaderPool
+from tests.base.pool_steps import TrainingStepPool, ValidationStepPool, EvalStepPool
+from tests.base.pool_epoch_ends import ValidationEpochEndPool, EvalEpochEndPool
+from tests.base.pool_optimizers import ConfigureOptimizersPool
 
 
-class TemplateTestModel(
-    TrainingStepVariationsMixin,
-    ValidationStepVariationsMixin,
-    ValidationEpochEndVariationsMixin,
-    TestStepVariationsMixin,
-    TestEpochEndVariationsMixin,
-    TrainDataloaderVariationsMixin,
-    ValDataloaderVariationsMixin,
-    TestDataloaderVariationsMixin,
-    ConfigureOptimizersVariationsMixin,
-    TemplateTestModelUtilsMixin,
+class ModelTemplate(
+    TrainingStepPool,
+    ValidationStepPool,
+    ValidationEpochEndPool,
+    EvalStepPool,
+    EvalEpochEndPool,
+    TrainDataloaderPool,
+    ValDataloaderPool,
+    EvalDataloaderPool,
+    ConfigureOptimizersPool,
+    ModelTemplateUtils,
     LightningModule
 ):
     """
@@ -77,4 +73,4 @@ class TemplateTestModel(
         return nll
 
     def prepare_data(self):
-        _ = TestingMNIST(root=self.hparams.data_root, train=True, download=True)
+        _ = TrialMNIST(root=self.hparams.data_root, train=True, download=True)

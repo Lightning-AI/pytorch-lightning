@@ -2,7 +2,83 @@ from collections import OrderedDict
 import torch
 
 
-class ValidationStepVariationsMixin:
+class EvalStepPool:
+    """
+    Houses all variations of test steps
+    """
+    def test_step(self, batch, batch_idx, dataloader_idx, **kwargs):
+        """
+        Default, baseline test_step
+        :param batch:
+        :return:
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        loss_test = self.loss(y, y_hat)
+
+        # acc
+        labels_hat = torch.argmax(y_hat, dim=1)
+        test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        test_acc = torch.tensor(test_acc)
+
+        test_acc = test_acc.as_type(x)
+
+        # alternate possible outputs to test
+        if batch_idx % 1 == 0:
+            output = OrderedDict({
+                'test_loss': loss_test,
+                'test_acc': test_acc,
+            })
+            return output
+        if batch_idx % 2 == 0:
+            return test_acc
+
+        if batch_idx % 3 == 0:
+            output = OrderedDict({
+                'test_loss': loss_test,
+                'test_acc': test_acc,
+                'test_dic': {'test_loss_a': loss_test}
+            })
+            return output
+        if batch_idx % 5 == 0:
+            output = OrderedDict({
+                f'test_loss_{dataloader_idx}': loss_test,
+                f'test_acc_{dataloader_idx}': test_acc,
+            })
+            return output
+
+
+class TrainingStepPool:
+    """
+    Houses all variations of training steps
+    """
+    def training_step(self, batch, batch_idx, optimizer_idx=None):
+        """Lightning calls this inside the training loop"""
+        # forward pass
+        x, y = batch
+        x = x.view(x.size(0), -1)
+
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+
+        # alternate possible outputs to test
+        if self.trainer.batch_idx % 1 == 0:
+            output = OrderedDict({
+                'loss': loss_val,
+                'progress_bar': {'some_val': loss_val * loss_val},
+                'log': {'train_some_val': loss_val * loss_val},
+            })
+            return output
+
+        if self.trainer.batch_idx % 2 == 0:
+            return loss_val
+
+
+class ValidationStepPool:
     """
     Houses all variations of validation steps
     """
@@ -103,3 +179,4 @@ class ValidationStepVariationsMixin:
                 f'val_acc_{dataloader_idx}': val_acc,
             })
             return output
+

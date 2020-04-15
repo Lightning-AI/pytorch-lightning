@@ -1,11 +1,11 @@
 from torch.utils.data import DataLoader
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 
 
-class TemplateTestModelUtilsMixin:
+class ModelTemplateUtils:
 
     def dataloader(self, train):
-        dataset = TestingMNIST(root=self.hparams.data_root, train=train, download=False)
+        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=False)
 
         loader = DataLoader(
             dataset=dataset,
