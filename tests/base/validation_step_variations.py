@@ -6,7 +6,7 @@ class ValidationStepVariationsMixin:
     """
     Houses all variations of validation steps
     """
-    def validation_step_single_dataloader(self, batch, batch_idx, *args, **kwargs):
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:

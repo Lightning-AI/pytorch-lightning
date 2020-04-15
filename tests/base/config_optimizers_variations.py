@@ -2,16 +2,16 @@ from torch import optim
 
 
 class ConfigureOptimizersVariationsMixin:
-    def configure_optimizers_empty(self):
-        return None
-
-    def configure_optimizers_basic(self):
+    def configure_optimizers(self):
         """
         return whatever optimizers we want here.
         :return: list of optimizers
         """
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         return optimizer
+
+    def configure_optimizers_empty(self):
+        return None
 
     def configure_optimizers_lbfgs(self):
         """
