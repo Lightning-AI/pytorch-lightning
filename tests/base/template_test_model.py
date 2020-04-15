@@ -30,7 +30,6 @@ class TemplateTestModel(
     """
     This template houses all  combinations of model  configurations  we want to test
     """
-
     def __init__(self, hparams, force_remove_distributed_sampler: bool = False):
         """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
@@ -48,9 +47,6 @@ class TemplateTestModel(
         # build model
         self.__build_model()
 
-    # ---------------------
-    # MODEL SETUP
-    # ---------------------
     def __build_model(self):
         """
         Simple model for testing
@@ -68,9 +64,6 @@ class TemplateTestModel(
             out_features=self.hparams.out_features
         )
 
-    # ---------------------
-    # TRAINING
-    # ---------------------
     def forward(self, x):
         x = self.c_d1(x)
         x = torch.tanh(x)
