@@ -24,8 +24,8 @@ class LearningRateLogger(Callback):
 
     Logging names are automatically determined based on optimizer class name.
     In case of multiple optimizers of same type, they will be named `Adam`,
-    `Adam-1` ect. If a optimizer have multiple parameter groups they will
-    be named `Adam/pg1`, `Adam/pg2` ect. To control naming, pass in a
+    `Adam-1` etc. If a optimizer has multiple parameter groups they will
+    be named `Adam/pg1`, `Adam/pg2` etc. To control naming, pass in a
     `name` keyword in the construction of the learning rate schdulers
 
     Example::
@@ -91,16 +91,16 @@ class LearningRateLogger(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
-        if trainer.logger and latest_stat != {}:
+        if trainer.logger and latest_stat:
             trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_epoch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'epoch')
-        if trainer.logger and latest_stat != {}:
+        if trainer.logger and latest_stat:
             trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def _extract_lr(self, trainer, interval):
-        """ Extracts learning rates for lr schedulers and save information
+        """ Extracts learning rates for lr schedulers and saves information
             into dict structure. """
         latest_stat = {}
         for name, scheduler in zip(self.names, trainer.lr_schedulers):
