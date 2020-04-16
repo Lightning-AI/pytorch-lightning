@@ -9,14 +9,19 @@ class UNet(nn.Module):
     Link - https://arxiv.org/abs/1505.04597
 
     Parameters:
-        num_classes (int): Number of output classes required (default 19 for KITTI dataset)
-        num_layers (int): Number of layers in each side of U-net
-        features_start (int): Number of features in first layer
-        bilinear (bool): Whether to use bilinear interpolation or transposed
+        num_classes: Number of output classes required (default 19 for KITTI dataset)
+        num_layers: Number of layers in each side of U-net
+        features_start: Number of features in first layer
+        bilinear: Whether to use bilinear interpolation or transposed
             convolutions for upsampling.
     """
 
-    def __init__(self, num_classes=19, num_layers=5, features_start=64, bilinear=False):
+    def __init__(
+            self, num_classes: int = 19,
+            num_layers: int = 5,
+            features_start: int = 64,
+            bilinear: bool = False
+    ):
         super().__init__()
         self.num_layers = num_layers
 
@@ -28,7 +33,7 @@ class UNet(nn.Module):
             feats *= 2
 
         for _ in range(num_layers - 1):
-            layers.append(Up(feats, feats // 2))
+            layers.append(Up(feats, feats // 2), bilinear)
             feats //= 2
 
         layers.append(nn.Conv2d(feats, num_classes, kernel_size=1))
@@ -52,7 +57,7 @@ class DoubleConv(nn.Module):
     (3x3 conv -> BN -> ReLU) ** 2
     """
 
-    def __init__(self, in_ch, out_ch):
+    def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
         self.net = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
@@ -72,7 +77,7 @@ class Down(nn.Module):
     Combination of MaxPool2d and DoubleConv in series
     """
 
-    def __init__(self, in_ch, out_ch):
+    def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
         self.net = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, stride=2),
@@ -90,7 +95,7 @@ class Up(nn.Module):
     followed by double 3x3 convolution.
     """
 
-    def __init__(self, in_ch, out_ch, bilinear=False):
+    def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False):
         super().__init__()
         self.upsample = None
         if bilinear:

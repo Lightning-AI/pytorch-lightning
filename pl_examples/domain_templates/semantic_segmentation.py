@@ -226,7 +226,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
     parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
     parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-    parser.add_argument("--bilinear", type=float, default=False,
+    parser.add_argument("--bilinear", action='store_true', default=False,
                         help="whether to use bilinear interpolation or transposed")
     parser.add_argument("--grad_batches", type=int, default=1, help="number of batches to accumulate")
     parser.add_argument("--epochs", type=int, default=20, help="number of epochs to train")
