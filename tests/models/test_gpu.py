@@ -33,7 +33,10 @@ def test_multi_gpu_model(tmpdir, backend):
         distributed_backend=backend,
     )
 
-    tutils.run_model_test(trainer_options, model)
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
 
     # test memory helper functions
     memory.get_memory_profile('min_max')

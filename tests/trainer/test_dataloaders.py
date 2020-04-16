@@ -543,9 +543,12 @@ def test_dataloader_reinit_for_subclass():
 
             self.dummy_kwarg = dummy_kwarg
 
-    trainer = Trainer(gpus=[0, 1],
-                      num_nodes=1,
-                      distributed_backend='ddp')
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp',
+        logger=False,
+    )
 
     class CustomDummyObj:
         sampler = None
