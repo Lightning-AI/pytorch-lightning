@@ -21,6 +21,8 @@ class TrainerModelHooksMixin(ABC):
             return False
 
         instance_attr = getattr(model, method_name)
+        if not instance_attr:
+            return False
         super_attr = getattr(super_object, method_name)
 
         # when code pointers are different, it was implemented

@@ -3,7 +3,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 
 
 # from test_models import assert_ok_test_acc, load_model, \
@@ -42,10 +42,10 @@ class CoolModel(pl.LightningModule):
         return [torch.optim.Adam(self.parameters(), lr=0.02)]
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True, num_samples=100), batch_size=16)
+        return DataLoader(TrialMNIST(train=True, num_samples=100), batch_size=16)
 
     def val_dataloader(self):
-        return DataLoader(TestingMNIST(train=False, num_samples=50), batch_size=16)
+        return DataLoader(TrialMNIST(train=False, num_samples=50), batch_size=16)
 
     def test_dataloader(self):
-        return DataLoader(TestingMNIST(train=False, num_samples=50), batch_size=16)
+        return DataLoader(TrialMNIST(train=False, num_samples=50), batch_size=16)
