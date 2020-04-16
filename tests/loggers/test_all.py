@@ -37,8 +37,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model, _ = tutils.get_default_model()
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
