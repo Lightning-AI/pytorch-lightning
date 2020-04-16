@@ -251,6 +251,10 @@ The distributed backend to use.
 
 - (```dp```) is DataParallel (split batch among GPUs of same machine)
 - (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
+  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  machine.)
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
@@ -509,6 +513,21 @@ nb_gpu_nodes:
 .. warning:: .. deprecated:: 0.5.0
 
     Use `num_nodes` instead. Will remove 0.8.0.
+
+num_processes
+^^^^^^^^^^^^^
+
+Number of processes to train with. Automatically set to the number of GPUs
+when using ``distrbuted_backend="ddp"``. Set to a number greater than 1 when
+using ``distributed_backend="ddp_cpu"`` to mimic distributed training on a
+machine without GPUs. This is useful for debugging, but **will not** provide
+any speedup, since single-process Torch already makes effient use of multiple
+CPUs.
+
+Example::
+
+    # Simulate DDP for debugging on your GPU-less laptop
+    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^

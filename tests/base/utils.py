@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
-from tests.base import LightningTestModel
+from tests.base import LightningTestModel, EvalModelTemplate
 from tests.base.datasets import PATH_DATASETS
 
 # generate a list of random seeds for each test
@@ -18,6 +18,19 @@ torch.manual_seed(ROOT_SEED)
 np.random.seed(ROOT_SEED)
 RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
 ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+def assert_speed_parity(pl_times, pt_times, num_epochs):
+
+    # assert speeds
+    max_diff_per_epoch = 0.9
+    pl_times = np.asarray(pl_times)
+    pt_times = np.asarray(pt_times)
+    diffs = pl_times - pt_times
+    diffs = diffs / num_epochs
+
+    assert np.alltrue(diffs < max_diff_per_epoch), \
+        f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
 
 def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):

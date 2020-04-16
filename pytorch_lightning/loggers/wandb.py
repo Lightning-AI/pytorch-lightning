@@ -1,9 +1,6 @@
-r"""
-
-.. _wandb:
-
-WandbLogger
--------------
+"""
+Weights and Biases
+------------------
 """
 import os
 from argparse import Namespace
@@ -23,34 +20,50 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
 
 class WandbLogger(LightningLoggerBase):
     """
-    Logger for `W&B <https://www.wandb.com/>`_.
+    Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install wandb
 
     Args:
-        name (str): display name for the run.
-        save_dir (str): path where data is saved.
-        offline (bool): run offline (data can be streamed later to wandb servers).
-        id or version (str): sets the version, mainly used to resume a previous run.
-        anonymous (bool): enables or explicitly disables anonymous logging.
-        project (str): the name of the project to which this run will belong.
-        tags (list of str): tags associated with this run.
-        log_model (bool): save checkpoints in wandb dir to upload on W&B servers.
+        name: Display name for the run.
+        save_dir: Path where data is saved.
+        offline: Run offline (data can be streamed later to wandb servers).
+        id: Sets the version, mainly used to resume a previous run.
+        anonymous: Enables or explicitly disables anonymous logging.
+        version: Sets the version, mainly used to resume a previous run.
+        project: The name of the project to which this run will belong.
+        tags: Tags associated with this run.
+        log_model: Save checkpoints in wandb dir to upload on W&B servers.
+        experiment: WandB experiment object
+        entity: The team posting this run (default: your username or your default team)
 
-    Example
-    --------
-    .. code-block:: python
+    Example:
+        >>> from pytorch_lightning.loggers import WandbLogger
+        >>> from pytorch_lightning import Trainer
+        >>> wandb_logger = WandbLogger()
+        >>> trainer = Trainer(logger=wandb_logger)
 
-        from pytorch_lightning.loggers import WandbLogger
-        from pytorch_lightning import Trainer
+    See Also:
+        - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
+          Use-Pytorch-Lightning-with-Weights-%26-Biases--Vmlldzo2NjQ1Mw>`__
+          on how to use W&B with Pytorch Lightning.
 
-        wandb_logger = WandbLogger()
-        trainer = Trainer(logger=wandb_logger)
     """
 
-    def __init__(self, name: Optional[str] = None, save_dir: Optional[str] = None,
-                 offline: bool = False, id: Optional[str] = None, anonymous: bool = False,
-                 version: Optional[str] = None, project: Optional[str] = None,
-                 tags: Optional[List[str]] = None, log_model: bool = False,
-                 experiment=None, entity=None):
+    def __init__(self,
+                 name: Optional[str] = None,
+                 save_dir: Optional[str] = None,
+                 offline: bool = False,
+                 id: Optional[str] = None,
+                 anonymous: bool = False,
+                 version: Optional[str] = None,
+                 project: Optional[str] = None,
+                 tags: Optional[List[str]] = None,
+                 log_model: bool = False,
+                 experiment=None,
+                 entity=None):
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -76,13 +89,14 @@ class WandbLogger(LightningLoggerBase):
     def experiment(self) -> Run:
         r"""
 
-          Actual wandb object. To use wandb features do the following.
+        Actual wandb object. To use wandb features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
-          Example::
+        Example::
 
-              self.logger.experiment.some_wandb_function()
+            self.logger.experiment.some_wandb_function()
 
-          """
+        """
         if self._experiment is None:
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
