@@ -1,3 +1,8 @@
+.. testsetup:: *
+
+    import torch
+    from pytorch_lightning.trainer.trainer import Trainer
+
 .. _multi-gpu-training:
 
 Multi-GPU training
@@ -131,10 +136,11 @@ each GPU will process 16 samples, after which the root node will aggregate the r
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. Use ddp which is more stable and at least 3x faster
 
-.. code-block:: python
+.. doctest::
+    :skipif: torch.cuda.device_count() < 2
 
-    # train on 1 GPU (using dp mode)
-    trainer = pl.Trainer(gpus=2, distributed_backend='dp')
+    # train on 2 GPUs (using dp mode)
+    >>> trainer = Trainer(gpus=2, distributed_backend='dp')
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -154,13 +160,14 @@ Distributed Data Parallel
 
 6. Each process updates its optimizer.
 
-.. code-block:: python
+.. doctest::
+    :skipif: torch.cuda.device_count() < 8
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = pl.Trainer(gpus=8, distributed_backend='ddp')
+    >>> trainer = Trainer(gpus=8, distributed_backend='ddp')
 
     # train on 32 GPUs (4 nodes)
-    trainer = pl.Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)
+    >>> trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)  # doctest: +SKIP
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -179,10 +186,10 @@ In  this case, we can use ddp2 which behaves like dp in a machine and ddp across
 
 5. Applies the optimizer updates.
 
-.. code-block:: python
+.. doctest::
 
     # train on 32 GPUs (4 nodes)
-    trainer = pl.Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)
+    >>> trainer = Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)  # doctest: +SKIP
 
 Horovod
 ^^^^^^^
