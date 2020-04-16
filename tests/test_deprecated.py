@@ -10,6 +10,7 @@ from tests.base import TestModelBase, LightTrainDataloader, LightEmptyTestStep
 
 
 def _soft_unimport_module(str_module):
+    # once the module is imported  e.g with parsing with pytest it lives in memory
     if str_module in sys.modules:
         del sys.modules[str_module]
 
