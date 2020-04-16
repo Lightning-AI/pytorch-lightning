@@ -1,7 +1,10 @@
+import pytest
+
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ProgressBarBase, ProgressBar, ModelCheckpoint
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
     LightTrainDataloader,
     LightTestMixin,
@@ -33,10 +36,16 @@ def test_trainer_callback_system(tmpdir):
             super().__init__()
             self.on_init_start_called = False
             self.on_init_end_called = False
+            self.on_sanity_check_start_called = False
+            self.on_sanity_check_end_called = False
             self.on_epoch_start_called = False
             self.on_epoch_end_called = False
             self.on_batch_start_called = False
             self.on_batch_end_called = False
+            self.on_validation_batch_start_called = False
+            self.on_validation_batch_end_called = False
+            self.on_test_batch_start_called = False
+            self.on_test_batch_end_called = False
             self.on_train_start_called = False
             self.on_train_end_called = False
             self.on_validation_start_called = False
@@ -51,6 +60,14 @@ def test_trainer_callback_system(tmpdir):
         def on_init_end(self, trainer):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
+
+        def on_sanity_check_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_sanity_check_start_called = True
+
+        def on_sanity_check_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_sanity_check_end_called = True
 
         def on_epoch_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -67,6 +84,22 @@ def test_trainer_callback_system(tmpdir):
         def on_batch_end(self, trainer, pl_module):
             _check_args(trainer, pl_module)
             self.on_batch_end_called = True
+
+        def on_validation_batch_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_validation_batch_start_called = True
+
+        def on_validation_batch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_validation_batch_end_called = True
+
+        def on_test_batch_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_test_batch_start_called = True
+
+        def on_test_batch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_test_batch_end_called = True
 
         def on_train_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -104,10 +137,16 @@ def test_trainer_callback_system(tmpdir):
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
+    assert not test_callback.on_sanity_check_start_called
+    assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_train_start_called
     assert not test_callback.on_train_end_called
     assert not test_callback.on_validation_start_called
@@ -121,10 +160,16 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert not test_callback.on_sanity_check_start_called
+    assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_train_start_called
     assert not test_callback.on_train_end_called
     assert not test_callback.on_validation_start_called
@@ -136,21 +181,36 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert test_callback.on_sanity_check_start_called
+    assert test_callback.on_sanity_check_end_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_batch_start_called
     assert test_callback.on_batch_end_called
+    assert test_callback.on_validation_batch_start_called
+    assert test_callback.on_validation_batch_end_called
     assert test_callback.on_train_start_called
     assert test_callback.on_train_end_called
     assert test_callback.on_validation_start_called
     assert test_callback.on_validation_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
 
-    trainer.test()
+    test_callback = TestCallback()
+    trainer_options['callbacks'] = [test_callback]
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
 
+    assert test_callback.on_test_batch_start_called
+    assert test_callback.on_test_batch_end_called
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
+    assert not test_callback.on_validation_start_called
+    assert not test_callback.on_validation_end_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
 
 
 def test_early_stopping_no_val_step(tmpdir):
@@ -181,6 +241,152 @@ def test_early_stopping_no_val_step(tmpdir):
 
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch < trainer.max_epochs
+
+
+@pytest.mark.parametrize('callbacks,refresh_rate', [
+    ([], 1),
+    ([], 2),
+    ([ProgressBar(refresh_rate=1)], 0),
+    ([ProgressBar(refresh_rate=2)], 0),
+    ([ProgressBar(refresh_rate=2)], 1),
+])
+def test_progress_bar_on(callbacks, refresh_rate):
+    """Test different ways the progress bar can be turned on."""
+
+    trainer = Trainer(
+        callbacks=callbacks,
+        progress_bar_refresh_rate=refresh_rate,
+        max_epochs=1,
+        overfit_pct=0.2,
+    )
+
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    # Trainer supports only a single progress bar callback at the moment
+    assert len(progress_bars) == 1
+    assert progress_bars[0] is trainer.progress_bar_callback
+
+
+@pytest.mark.parametrize('callbacks,refresh_rate', [
+    ([], 0),
+    ([], False),
+    ([ModelCheckpoint('.')], 0),
+])
+def test_progress_bar_off(callbacks, refresh_rate):
+    """Test different ways the progress bar can be turned off."""
+
+    trainer = Trainer(
+        callbacks=callbacks,
+        progress_bar_refresh_rate=refresh_rate,
+    )
+
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
+    assert 0 == len(progress_bars)
+    assert not trainer.progress_bar_callback
+
+
+def test_progress_bar_misconfiguration():
+    """Test that Trainer doesn't accept multiple progress bars."""
+    callbacks = [ProgressBar(), ProgressBar()]
+    with pytest.raises(MisconfigurationException, match=r'^You added multiple progress bar callbacks'):
+        Trainer(callbacks=callbacks)
+
+
+def test_progress_bar_totals():
+    """Test that the progress finishes with the correct total steps processed."""
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightTestMixin,
+        LightValidationMixin,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    trainer = Trainer(
+        progress_bar_callback=True,
+        progress_bar_refresh_rate=1,
+        val_percent_check=1.0,
+        max_epochs=1,
+    )
+    progress_bar = trainer.progress_bar_callback
+    assert 0 == progress_bar.total_train_batches
+    assert 0 == progress_bar.total_val_batches
+    assert 0 == progress_bar.total_test_batches
+
+    trainer.fit(model)
+    assert progress_bar.total_train_batches == len(trainer.train_dataloader)
+    assert progress_bar.total_val_batches == progress_bar.val_progress_bar.total
+    assert progress_bar.total_val_batches == sum(len(loader) for loader in trainer.val_dataloaders)
+    assert 0 == progress_bar.total_test_batches
+
+    trainer.test(model)
+    assert progress_bar.total_test_batches == progress_bar.test_progress_bar.total
+    assert progress_bar.total_test_batches == sum(len(loader) for loader in trainer.test_dataloaders)
+
+
+@pytest.mark.parametrize('refresh_rate', [0, 1, 50])
+def test_progress_bar_progress_refresh(refresh_rate):
+    """Test that the three progress bars get correctly updated when using different refresh rates."""
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightTestMixin,
+        LightValidationMixin,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    class CurrentProgressBar(ProgressBar):
+
+        train_batches_seen = 0
+        val_batches_seen = 0
+        test_batches_seen = 0
+
+        def on_batch_start(self, trainer, pl_module):
+            super().on_batch_start(trainer, pl_module)
+            assert self.train_batch_idx == trainer.batch_idx
+
+        def on_batch_end(self, trainer, pl_module):
+            super().on_batch_end(trainer, pl_module)
+            assert self.train_batch_idx == trainer.batch_idx + 1
+            if not self.disabled and self.train_batch_idx % self.refresh_rate == 0:
+                assert self.main_progress_bar.n == self.train_batch_idx
+            self.train_batches_seen += 1
+
+        def on_validation_batch_end(self, trainer, pl_module):
+            super().on_validation_batch_end(trainer, pl_module)
+            if not self.disabled and self.val_batch_idx % self.refresh_rate == 0:
+                assert self.val_progress_bar.n == self.val_batch_idx
+            self.val_batches_seen += 1
+
+        def on_test_batch_end(self, trainer, pl_module):
+            super().on_test_batch_end(trainer, pl_module)
+            if not self.disabled and self.test_batch_idx % self.refresh_rate == 0:
+                assert self.test_progress_bar.n == self.test_batch_idx
+            self.test_batches_seen += 1
+
+    progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        callbacks=[progress_bar],
+        progress_bar_refresh_rate=101,  # should not matter if custom callback provided
+        train_percent_check=1.0,
+        num_sanity_val_steps=2,
+        max_epochs=3,
+    )
+    assert trainer.progress_bar_callback.refresh_rate == refresh_rate != trainer.progress_bar_refresh_rate
+
+    trainer.fit(model)
+    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
+    assert progress_bar.val_batches_seen == 3 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
+
+    trainer.test(model)
+    assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
 def test_model_checkpoint_with_non_string_input(tmpdir):

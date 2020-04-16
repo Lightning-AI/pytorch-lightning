@@ -123,7 +123,8 @@ class TrainerLRFinderMixin(ABC):
         self.max_steps = num_training
 
         # Disable standard progress bar for fit
-        self.progress_bar_refresh_rate = False
+        if self.progress_bar_callback:
+            self.progress_bar_callback.disable()
 
         # Accumulation of gradients
         self.accumulate_grad_batches = num_accumulation_steps
@@ -165,6 +166,8 @@ class TrainerLRFinderMixin(ABC):
 
         # Finish by resetting variables so trainer is ready to fit model
         self._restore_params(model)
+        if self.progress_bar_callback:
+            self.progress_bar_callback.enable()
 
         return lr_finder
 
@@ -178,6 +181,7 @@ class TrainerLRFinderMixin(ABC):
             'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
             'accumulate_grad_batches': self.accumulate_grad_batches,
             'checkpoint_callback': self.checkpoint_callback,
+            'progress_bar_callback': self.progress_bar_callback,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -189,6 +193,7 @@ class TrainerLRFinderMixin(ABC):
         self.progress_bar_refresh_rate = self._params['progress_bar_refresh_rate']
         self.accumulate_grad_batches = self._params['accumulate_grad_batches']
         self.checkpoint_callback = self._params['checkpoint_callback']
+        self.progress_bar_callback = self._params['progress_bar_callback']
         model.configure_optimizers = self._params['configure_optimizers']
 
 

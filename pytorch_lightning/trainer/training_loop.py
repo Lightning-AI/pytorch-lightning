@@ -202,7 +202,6 @@ class TrainerTrainLoopMixin(ABC):
     num_val_batches: int
     disable_validation: bool
     fast_dev_run: ...
-    main_progress_bar: ...
     accumulation_scheduler: ...
     lr_schedulers: ...
     enable_early_stop: ...
@@ -214,7 +213,6 @@ class TrainerTrainLoopMixin(ABC):
     log_save_interval: float
     proc_rank: int
     row_log_interval: float
-    total_batches: int
     truncated_bptt_steps: ...
     optimizers: ...
     optimizer_frequencies: ...
@@ -223,14 +221,13 @@ class TrainerTrainLoopMixin(ABC):
     model: LightningModule
     interrupted: bool
     running_loss: ...
-    training_tqdm_dict: ...
+    progress_bar_dict: ...
     reduce_lr_on_plateau_scheduler: ...
     profiler: ...
     batch_idx: int
     precision: ...
     train_dataloader: DataLoader
     reload_dataloaders_every_epoch: bool
-    progress_bar_refresh_rate: ...
     max_steps: int
     min_steps: int
     total_batch_idx: int
@@ -280,7 +277,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_tqdm_metrics(self, *args):
+    def add_progress_bar_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -341,18 +338,6 @@ class TrainerTrainLoopMixin(ABC):
                 model.current_epoch = epoch
                 self.current_epoch = epoch
 
-                total_val_batches = 0
-                is_val_epoch = False
-                if not self.disable_validation and self.num_training_batches != float('inf'):
-                    # val can be checked multiple times in epoch
-                    is_val_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-                    val_checks_per_epoch = self.num_training_batches // self.val_check_batch
-                    val_checks_per_epoch = val_checks_per_epoch if is_val_epoch else 0
-                    total_val_batches = self.num_val_batches * val_checks_per_epoch
-
-                # total batches includes multiple val checks
-                self.total_batches = self.num_training_batches + total_val_batches
-
                 # changing gradient according accumulation_scheduler
                 self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
@@ -360,22 +345,6 @@ class TrainerTrainLoopMixin(ABC):
                 self.batch_loss_value = TensorRunningAccum(
                     window_length=self.accumulate_grad_batches
                 )
-
-                if self.fast_dev_run:
-                    # limit the number of batches to 2 (1 train and 1 val) in fast_dev_run
-                    num_iterations = 2
-                elif self.total_batches == float('inf'):
-                    # for infinite train or val loader, the progress bar never ends
-                    num_iterations = None
-                else:
-                    num_iterations = self.total_batches
-
-                # reset progress bar
-                # .reset() doesn't work on disabled progress bar so we should check
-                if not self.main_progress_bar.disable:
-                    self.main_progress_bar.reset(num_iterations)
-                desc = f'Epoch {epoch + 1}'
-                self.main_progress_bar.set_description(desc)
 
                 # -----------------
                 # RUN TNG EPOCH
@@ -609,7 +578,7 @@ class TrainerTrainLoopMixin(ABC):
                     all_callback_metrics.append(callback_metrics)
 
                     # track progress bar metrics
-                    self.add_tqdm_metrics(progress_bar_metrics)
+                    self.add_progress_bar_metrics(progress_bar_metrics)
                     all_log_metrics.append(log_metrics)
 
                     if self.use_horovod:
@@ -669,11 +638,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_end'):
                 self.get_model().on_batch_end()
 
-        # update progress bar
-        if self.progress_bar_refresh_rate >= 1 and batch_idx % self.progress_bar_refresh_rate == 0:
-            self.main_progress_bar.update(self.progress_bar_refresh_rate)
-            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
-
         # collapse all metrics into one dict
         all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
 
@@ -696,8 +660,6 @@ class TrainerTrainLoopMixin(ABC):
         return [(opt_idx, self.optimizers[opt_idx])]
 
     def run_training_teardown(self):
-        self.main_progress_bar.close()
-
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks

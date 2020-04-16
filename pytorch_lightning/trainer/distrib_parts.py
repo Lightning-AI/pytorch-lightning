@@ -396,6 +396,7 @@ class TrainerDPMixin(ABC):
     use_tpu: bool
     data_parallel_device_ids: ...
     logger: Union[LightningLoggerBase, bool]
+    progress_bar_callback: ...
 
     @property
     @abstractmethod
@@ -497,7 +498,8 @@ class TrainerDPMixin(ABC):
         self.tpu_global_core_rank = xm.get_ordinal()
 
         # avoid duplicating progress bar
-        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if self.tpu_global_core_rank == 0 else 0
+        if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
 
         # track current tpu
         self.current_tpu_idx = tpu_core_idx

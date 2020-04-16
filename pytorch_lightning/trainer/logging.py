@@ -16,7 +16,7 @@ class TrainerLoggingMixin(ABC):
     on_gpu: bool
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
-    tqdm_metrics: ...
+    progress_bar_metrics: ...
     global_step: int
     proc_rank: int
     use_dp: bool
@@ -75,12 +75,12 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
-    def add_tqdm_metrics(self, metrics):
+    def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
-            self.tqdm_metrics[k] = v
+            self.progress_bar_metrics[k] = v
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -98,7 +98,7 @@ class TrainerLoggingMixin(ABC):
     def process_output(self, output, train=False):
         """Reduces output according to the training mode.
 
-        Separates loss from logging and tqdm metrics
+        Separates loss from logging and progress bar metrics
         """
         # ---------------
         # EXTRACT CALLBACK KEYS
@@ -119,7 +119,7 @@ class TrainerLoggingMixin(ABC):
         try:
             progress_output = output['progress_bar']
 
-            # reduce progress metrics for tqdm when using dp
+            # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
                 num_gpus = self.num_gpus
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
@@ -135,7 +135,7 @@ class TrainerLoggingMixin(ABC):
         try:
             log_output = output['log']
 
-            # reduce progress metrics for tqdm when using dp
+            # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
                 num_gpus = self.num_gpus
                 log_output = self.reduce_distributed_output(log_output, num_gpus)

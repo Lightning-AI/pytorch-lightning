@@ -652,13 +652,15 @@ print_nan_grads
 
 process_position
 ^^^^^^^^^^^^^^^^
-Orders the tqdm bar. Useful when running multiple trainers
-on the same node.
+Orders the progress bar. Useful when running multiple trainers on the same node.
 
 Example::
 
     # default used by the Trainer
     trainer = Trainer(process_position=0)
+
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
@@ -697,6 +699,9 @@ Example::
 
     # disable progress bar
     trainer = Trainer(progress_bar_refresh_rate=0)
+
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
