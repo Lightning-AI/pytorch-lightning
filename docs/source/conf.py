@@ -403,3 +403,8 @@ html_add_permalinks = "¶"
 #  Useful for avoiding ambiguity when the same section heading appears in different documents.
 # http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
 autosectionlabel_prefix_document = True
+
+
+# we only want to doctest the .rst files
+# the Python modules should not be tested by Sphinx
+doctest_test_doctest_blocks = ''
