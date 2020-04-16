@@ -1,13 +1,12 @@
-.. role:: hidden
-    :class: hidden-section
-
-.. _callbacks:
-
 .. testsetup:: *
 
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.base import Callback
 
+.. role:: hidden
+    :class: hidden-section
+
+.. _callbacks:
 
 Callbacks
 =========
