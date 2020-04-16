@@ -64,14 +64,12 @@ class LearningRateLogger(Callback):
                 name = scheduler['name']
             else:
                 opt_name = 'lr-' + sch.optimizer.__class__.__name__
-                name = opt_name
-                counter = 0
+                i, name = 1, opt_name
                 # Multiple schduler of the same type
                 while True:
-                    counter += 1
                     if name not in names:
                         break
-                    name = opt_name + '-' + str(counter)
+                    i, name = i + 1, f'{opt_name}-{i}'
 
             # Multiple param groups for the same schduler
             param_groups = sch.optimizer.param_groups
