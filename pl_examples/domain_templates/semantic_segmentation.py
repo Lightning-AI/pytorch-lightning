@@ -48,7 +48,7 @@ class KITTI(Dataset):
         split: str,
         img_size: tuple = (1242, 376),
         void_labels: list = DEFAULT_VOID_LABELS,
-        valid_labels:list = DEFAULT_VALID_LABELS,
+        valid_labels: list = DEFAULT_VALID_LABELS,
         transform=None
     ):
         self.img_size = img_size
