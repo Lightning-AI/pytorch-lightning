@@ -1427,6 +1427,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
         with an argument called ``hparams`` which is a :class:`~argparse.Namespace`
         (output of :meth:`~argparse.ArgumentParser.parse_args` when parsing command line arguments).
+        Any additional arguments that are not included in hparams can be passed to the model through
+        *args and **kwargs
 
         Example:
             .. code-block:: python
@@ -1460,6 +1462,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 use this method to pass in a .csv file with the hparams you'd like to use.
                 These will be converted into a :class:`~argparse.Namespace` and passed into your
                 :class:`LightningModule` for use.
+            *args and **kwargs: Additional arguments and keyword arguments for the model
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
