@@ -1537,10 +1537,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # load the state_dict on the model automatically
         model_args = [hparams] if hparams else []
-        if len(model_args) > 0:
-            model = cls(*model_args, *args, **kwargs)
-        else:
-            model = cls(*args, **kwargs)
+        model = cls(*model_args, *args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
