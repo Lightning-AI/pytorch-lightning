@@ -57,7 +57,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         self._experiment = None
         self.hparams = {}
-        self.kwargs = kwargs
+        self._kwargs = kwargs
 
     @property
     def root_dir(self) -> str:
