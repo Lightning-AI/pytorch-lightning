@@ -404,7 +404,5 @@ html_add_permalinks = "¶"
 # http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
 autosectionlabel_prefix_document = True
 
-
-# we only want to doctest the .rst files
-# the Python modules should not be tested by Sphinx
+# only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ''

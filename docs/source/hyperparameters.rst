@@ -1,3 +1,13 @@
+.. testsetup:: *
+
+    import torch
+    from argparse import ArgumentParser, Namespace
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+    import sys
+    sys.argv = ['foo']
+
+
 Hyperparameters
 ---------------
 Lightning has utilities to interact seamlessly with the command line ArgumentParser
@@ -55,7 +65,7 @@ Now in your main trainer file, add the Trainer args, the program args, and add t
     # ----------------
     from argparse import ArgumentParser
 
-    parser = ArgumentParser()
+    >>> parser = ArgumentParser()
 
     # add PROGRAM level args
     parser.add_argument('--conda_env', type=str, default='some_name')
@@ -106,9 +116,7 @@ modify the network and read those values in the LightningModule
         # do this to save all arguments in any logger (tensorboard)
         self.hparams = hparams
 
-        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
-        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
-        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+    >>> model = LitMNIST(hparams)
 
       def forward(self, x):
         ...
@@ -132,7 +140,7 @@ modify the network and read those values in the LightningModule
 
 Now pass in the params when you init your model
 
-.. code-block:: python
+.. doctest::
 
     hparams = parse_args()
     model = LitMNIST(hparams)
@@ -165,18 +173,23 @@ Multiple Lightning Modules
 We often have multiple Lightning Modules where each one has different arguments. Instead of
 polluting the main.py file, the LightningModule lets you define arguments for each one.
 
-.. code-block:: python
+.. doctest::
 
     class LitMNIST(pl.LightningModule):
         def __init__(self, hparams):
             super().__init__()
             self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
 
-        @staticmethod
-        def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser])
-            parser.add_argument('--layer_1_dim', type=int, default=128)
-            return parser
+    >>> class GoodGAN(LightningModule):
+    ...     def __init__(self, hparams):
+    ...         super().__init__()
+    ...         self.encoder = Encoder(layers=hparams.encoder_layers)
+    ...
+    ...     @staticmethod
+    ...     def add_model_specific_args(parent_parser):
+    ...         parser = ArgumentParser(parents=[parent_parser], add_help=False)
+    ...         parser.add_argument('--encoder_layers', type=int, default=12)
+    ...         return parser
 
     class GoodGAN(pl.LightningModule):
         def __init__(self, hparams):
@@ -191,23 +204,30 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
 
 Now we can allow each model to inject the arguments it needs in the main.py
 
-.. code-block:: python
+.. doctest::
 
-    def main(args):
+    >>> def main(args):
+    ...     # pick model
+    ...     if args.model_name == 'gan':
+    ...         model = GoodGAN(hparams=args)
+    ...     elif args.model_name == 'mnist':
+    ...         model = LitMNIST(hparams=args)
+    ...
+    ...     trainer = Trainer(max_epochs=args.max_epochs)
+    ...     trainer.fit(model)
 
-        # pick model
-        if args.model_name == 'gan':
-            model = GoodGAN(hparams=args)
-        elif args.model_name == 'mnist':
-            model = LitMNIST(hparams=args)
+    >>> parser = ArgumentParser()
+    >>> parser = Trainer.add_argparse_args(parser)
 
         model = LitMNIST(hparams=args)
         trainer = Trainer.from_argparse_args(args)
         trainer.fit(model)
 
-    if __name__ == '__main__':
-        parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
+    # let the model add what it wants
+    >>> if temp_args.model_name == 'gan':
+    ...     parser = GoodGAN.add_model_specific_args(parser)
+    ... elif temp_args.model_name == 'mnist':
+    ...     parser = LitMNIST.add_model_specific_args(parser)
 
         # figure out which model to use
         parser.add_argument('--model_name', type=str, default='gan', help='gan or mnist')
@@ -215,16 +235,8 @@ Now we can allow each model to inject the arguments it needs in the main.py
         # THIS LINE IS KEY TO PULL THE MODEL NAME
         temp_args, _ = parser.parse_known_args()
 
-        # let the model add what it wants
-        if temp_args.model_name == 'gan':
-            parser = GoodGAN.add_model_specific_args(parser)
-        elif temp_args.model_name == 'mnist':
-            parser = LitMNIST.add_model_specific_args(parser)
-
-        args = parser.parse_args()
-
-        # train
-        main(args)
+    # train
+    >>> main(args)  # doctest: +SKIP
 
 and now we can train MNIST or the gan using the command line interface!
 
