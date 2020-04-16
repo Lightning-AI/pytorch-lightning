@@ -11,7 +11,7 @@ from torchvision import transforms
 import tests.base.utils as tutils
 
 from pytorch_lightning import Trainer, LightningModule
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 
 
 class ParityMNIST(LightningModule):
@@ -42,10 +42,10 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True,
-                                       download=True,
-                                       num_samples=500,
-                                       digits=list(range(5))),
+        return DataLoader(TrialMNIST(train=True,
+                                     download=True,
+                                     num_samples=500,
+                                     digits=list(range(5))),
                           batch_size=128)
 
 
@@ -65,10 +65,11 @@ def test_pytorch_parity(tmpdir):
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
-    tutils.assert_speed_parity(pl_times, pt_times, num_epochs)
+    # the fist run initialize dataset (download & filter)
+    tutils.assert_speed_parity(pl_times[1:], pt_times[1:], num_epochs)
 
 
-def set_seed(seed):
+def _set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -88,7 +89,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
-        set_seed(seed)
+        _set_seed(seed)
 
         # init model parts
         model = MODEL()
@@ -134,7 +135,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
-        set_seed(seed)
+        _set_seed(seed)
 
         # init model parts
         model = MODEL()

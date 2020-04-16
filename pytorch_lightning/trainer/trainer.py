@@ -92,6 +92,7 @@ class Trainer(
             gradient_clip_val: float = 0,
             process_position: int = 0,
             num_nodes: int = 1,
+            num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             auto_select_gpus: bool = False,
             num_tpu_cores: Optional[int] = None,
@@ -321,6 +322,10 @@ class Trainer(
         self.num_tpu_cores = num_tpu_cores
         assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
 
+        if num_processes != 1 and distributed_backend != "ddp_cpu":
+            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
+        self.num_processes = num_processes
+
         self.process_position = process_position
         self.weights_summary = weights_summary
 
@@ -441,12 +446,8 @@ class Trainer(
         self.tpu_global_core_rank = None
 
         # distributed backend choice
-        self.use_ddp = False
-        self.use_ddp2 = False
-        self.use_dp = False
-        self.single_gpu = False
         self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend, self.num_nodes)
+        self.set_distributed_mode(distributed_backend)
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -732,7 +733,7 @@ class Trainer(
                 self.model = model
 
                 # train
-                mp.spawn(self.ddp_train, nprocs=self.num_gpus, args=(model,))
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
@@ -939,10 +940,13 @@ class Trainer(
         self.testing = True
 
         if test_dataloaders is not None:
-            if model is not None:
+            if model:
                 self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
             else:
                 self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+
+        # give proper warnings if user only passed in loader without hooks
+        self.check_testing_model_configuration(model if model else self.model)
 
         if model is not None:
             self.model = model
@@ -1012,10 +1016,25 @@ class Trainer(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
                     )
-        else:
-            if self.is_overriden('test_step', model):
-                raise MisconfigurationException('You have defined `test_step()`,'
-                                                ' but have not passed in a `test_dataloader()`.')
+
+    def check_testing_model_configuration(self, model: LightningModule):
+
+        has_test_step = self.is_overriden('test_step', model)
+        has_test_epoch_end = self.is_overriden('test_epoch_end', model)
+        gave_test_loader = hasattr(model, 'test_dataloader') and model.test_dataloader()
+
+        if gave_test_loader and not has_test_step:
+            raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')
+
+        if has_test_step and not gave_test_loader:
+            raise MisconfigurationException('You defined `test_step()` but did not implement'
+                                            ' `test_dataloader` nor passed in `.fit(test_dataloaders`.')
+
+        if has_test_step and gave_test_loader and not has_test_epoch_end:
+            rank_zero_warn(
+                'You passed  in a `test_dataloader` and have defined a `test_step()`, you may also want to'
+                ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+            )
 
 
 class _PatchDataLoader(object):

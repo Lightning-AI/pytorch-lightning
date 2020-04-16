@@ -3,6 +3,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 from tests.base import (
     TestModelBase,
     LightValidationDataloader,
@@ -119,36 +120,46 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     """
     tutils.reset_seed()
     hparams = tutils.get_default_hparams()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer = Trainer(**trainer_options)
-
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestDataloader,
-                           TestModelBase):
-        pass
-
-    # check test_dataloader -> test_step
+    # ----------------
+    # if have test_dataloader should  have test_step
+    # ----------------
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = EvalModelTemplate(hparams)
+        model.test_step = None
         trainer.fit(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestStepMixin,
-                           TestModelBase):
-        pass
-
-    # check test_dataloader + test_step -> test_epoch_end
+    # ----------------
+    # if have test_dataloader  and  test_step recommend test_epoch_end
+    # ----------------
     with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
-        trainer.fit(model)
+        model = EvalModelTemplate(hparams)
+        model.test_epoch_end = None
+        trainer.test(model)
 
-    class CurrentTestModel(LightTrainDataloader,
-                           LightTestFitMultipleTestDataloadersMixin,
-                           TestModelBase):
-        pass
-
-    # check test_step -> test_dataloader
+    # ----------------
+    # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
+    # ----------------
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
-        trainer.fit(model)
+        model = EvalModelTemplate(hparams)
+        model.test_dataloader = lambda: None
+        trainer.test(model)
+
+    # ----------------
+    # if have test_dataloader and NO test_step tell user to implement  test_step
+    # ----------------
+    with pytest.raises(MisconfigurationException):
+        model = EvalModelTemplate(hparams)
+        model.test_dataloader = lambda: None
+        model.test_step = None
+        trainer.test(model, test_dataloaders=model.dataloader(train=False))
+
+    # ----------------
+    # if have test_dataloader and test_step but no test_epoch_end warn user
+    # ----------------
+    with pytest.warns(RuntimeWarning):
+        model = EvalModelTemplate(hparams)
+        model.test_dataloader = lambda: None
+        model.test_epoch_end = None
+        trainer.test(model, test_dataloaders=model.dataloader(train=False))
