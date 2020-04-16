@@ -702,3 +702,93 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+
+@pytest.mark.parametrize("trainer_kwargs,expected", [
+    pytest.param(
+        dict(distributed_backend=None, gpus=None),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend="dp", gpus=None),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend="dp", gpus=None),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp", gpus=None),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp", num_processes=2, gpus=None),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2)
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp", num_nodes=2, gpus=None),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp_cpu", num_processes=2, gpus=None),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2)
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp2", gpus=None),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+    ),
+    pytest.param(
+        dict(distributed_backend=None, gpus=1),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="dp", gpus=1),
+        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp", gpus=1),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp_cpu", num_processes=2, gpus=1),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp2", gpus=1),
+        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=1, on_gpu=True, single_gpu=False, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend=None, gpus=2),
+        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="dp", gpus=2),
+        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp", gpus=2),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=2),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+    ),
+    pytest.param(
+        dict(distributed_backend="ddp2", gpus=2),
+        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
+    ),
+])
+def test_trainer_config(trainer_kwargs, expected):
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.use_dp is expected["use_dp"]
+    assert trainer.use_ddp is expected["use_ddp"]
+    assert trainer.use_ddp2 is expected["use_ddp2"]
+    assert trainer.num_gpus == expected["num_gpus"]
+    assert trainer.on_gpu is expected["on_gpu"]
+    assert trainer.single_gpu is expected["single_gpu"]
+    assert trainer.num_processes == expected["num_processes"]
