@@ -13,6 +13,9 @@ import pytorch_lightning as pl
 from pl_examples.models.unet import UNet
 from pytorch_lightning.loggers import WandbLogger
 
+DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
+DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
+
 
 class KITTI(Dataset):
     """
@@ -36,14 +39,16 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
     """
+    IMAGE_PATH = os.path.join('training', 'image_2')
+    MASK_PATH = os.path.join('training', 'semantic')
 
     def __init__(
         self,
-        data_path,
-        split,
-        img_size=(1242, 376),
-        void_labels=[0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1],
-        valid_labels=[7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33],
+        data_path: str,
+        split: str,
+        img_size: tuple = (1242, 376),
+        void_labels: list = DEFAULT_VOID_LABELS,
+        valid_labels:list = DEFAULT_VALID_LABELS,
         transform=None
     ):
         self.img_size = img_size
@@ -55,8 +60,8 @@ class KITTI(Dataset):
 
         self.split = split
         self.data_path = data_path
-        self.img_path = os.path.join(self.data_path, 'training/image_2')
-        self.mask_path = os.path.join(self.data_path, 'training/semantic')
+        self.img_path = os.path.join(self.data_path, self.IMAGE_PATH)
+        self.mask_path = os.path.join(self.data_path, self.MASK_PATH)
         self.img_list = self.get_filenames(self.img_path)
         self.mask_list = self.get_filenames(self.mask_path)
 
@@ -201,7 +206,7 @@ def main(hparams):
         max_epochs=hparams.epochs,
         accumulate_grad_batches=hparams.grad_batches,
         distributed_backend=hparams.distributed_backend,
-        use_amp=hparams.use_16bit
+        precision=16 if hparams.use_amp else 32,
     )
 
     # ------------------------
@@ -212,12 +217,11 @@ def main(hparams):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--data-path", type=str, help="path where dataset is stored")
+    parser.add_argument("--data_path", type=str, help="path where dataset is stored")
     parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
     parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
                         help='supports three options dp, ddp, ddp2')
-    parser.add_argument('--use-16bit', dest='use_16bit', action='store_true',
-                        help='if true uses 16 bit precision')
+    parser.add_argument('--use_amp', action='store_true', help='if true uses 16 bit precision')
     parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
     parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
     parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
