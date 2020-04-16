@@ -21,7 +21,7 @@ references:
      name: Testing
      command: |
        python --version ; pip --version ; pip list
-       py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+       py.test pytorch_lightning tests docs -v --doctest-modules --doctest-glob="*.rst" --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 30m
 
   examples: &examples
