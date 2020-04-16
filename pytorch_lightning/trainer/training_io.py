@@ -334,21 +334,18 @@ class TrainerIOMixin(ABC):
                 checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
 
             if self.early_stop_callback:
-                checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
-                checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
+                checkpoint['early_stop_callback_state_dict'] = self.early_stop_callback.state_dict()
 
             # save optimizers
             optimizer_states = []
             for i, optimizer in enumerate(self.optimizers):
                 optimizer_states.append(optimizer.state_dict())
-
             checkpoint['optimizer_states'] = optimizer_states
 
             # save lr schedulers
             lr_schedulers = []
             for scheduler in self.lr_schedulers:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
-
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
@@ -414,9 +411,9 @@ class TrainerIOMixin(ABC):
                 self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
             self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
-        if self.early_stop_callback:
-            self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
-            self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+        if self.early_stop_callback is not None and self.early_stop_callback is not False:
+            state = checkpoint['early_stop_callback_state_dict']
+            self.early_stop_callback.load_state_dict(state)
 
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']

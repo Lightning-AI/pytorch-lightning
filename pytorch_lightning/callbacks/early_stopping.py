@@ -5,6 +5,7 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -61,6 +62,7 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
         self.mode = mode
+        self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
@@ -103,11 +105,20 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def on_train_start(self, trainer, pl_module):
-        # Allow instances to be re-used
-        self.wait = 0
-        self.stopped_epoch = 0
-        self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
+    def state_dict(self):
+        return {
+            'wait': self.wait,
+            'stopped_epoch': self.stopped_epoch,
+            'best': self.best,
+            'patience': self.patience
+        }
+
+    def load_state_dict(self, state_dict):
+        state_dict = deepcopy(state_dict)
+        self.wait = state_dict['wait']
+        self.stopped_epoch = state_dict['stopped_epoch']
+        self.best = state_dict['best']
+        self.patience = state_dict['patience']
 
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
@@ -130,7 +141,6 @@ class EarlyStopping(Callback):
             if self.wait >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 stop_training = True
-                self.on_train_end(trainer, pl_module)
 
         return stop_training
 
