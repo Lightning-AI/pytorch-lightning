@@ -52,7 +52,6 @@ class NeptuneLogger(LightningLoggerBase):
     **OFFLINE MODE**
 
     Example:
-
         >>> from pytorch_lightning.loggers import NeptuneLogger
         >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
         >>> neptune_logger = NeptuneLogger(
