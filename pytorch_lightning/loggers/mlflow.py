@@ -26,8 +26,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         pip install mlflow
 
-    Example::
-
+    Example:
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.loggers import MLFlowLogger
         >>> mlf_logger = MLFlowLogger(

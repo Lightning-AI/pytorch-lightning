@@ -31,17 +31,16 @@ class TrainsLogger(LightningLoggerBase):
         pip install trains
 
     Example:
-
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import TrainsLogger
-    >>> trains_logger = TrainsLogger(
-    ...     project_name='pytorch lightning',
-    ...     task_name='default',
-    ...     output_uri='.',
-    ... ) # doctest: +ELLIPSIS
-    TRAINS Task: ...
-    TRAINS results page: ...
-    >>> trainer = Trainer(logger=trains_logger)
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.loggers import TrainsLogger
+        >>> trains_logger = TrainsLogger(
+        ...     project_name='pytorch lightning',
+        ...     task_name='default',
+        ...     output_uri='.',
+        ... ) # doctest: +ELLIPSIS
+        TRAINS Task: ...
+        TRAINS results page: ...
+        >>> trainer = Trainer(logger=trains_logger)
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
 

@@ -40,7 +40,6 @@ class WandbLogger(LightningLoggerBase):
         entity: The team posting this run (default: your username or your default team)
 
     Example:
-
         >>> from pytorch_lightning.loggers import WandbLogger
         >>> from pytorch_lightning import Trainer
         >>> wandb_logger = WandbLogger()

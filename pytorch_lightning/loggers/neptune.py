@@ -33,35 +33,36 @@ class NeptuneLogger(LightningLoggerBase):
     To log experiment data in online mode, :class:`NeptuneLogger` requries an API key.
     In offline mode, Neptune will log to a local directory.
 
-    Example:
-
     **ONLINE MODE**
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import NeptuneLogger
-    >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-    >>> # We are using an api_key for the anonymous user "neptuner" but you can use your own.
-    >>> neptune_logger = NeptuneLogger(
-    ...     api_key='ANONYMOUS',
-    ...     project_name='shared/pytorch-lightning-integration',
-    ...     experiment_name='default',  # Optional,
-    ...     params={'max_epochs': 10},  # Optional,
-    ...     tags=['pytorch-lightning', 'mlp']  # Optional,
-    ... )
-    >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
+    Example:
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.loggers import NeptuneLogger
+        >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+        >>> # We are using an api_key for the anonymous user "neptuner" but you can use your own.
+        >>> neptune_logger = NeptuneLogger(
+        ...     api_key='ANONYMOUS',
+        ...     project_name='shared/pytorch-lightning-integration',
+        ...     experiment_name='default',  # Optional,
+        ...     params={'max_epochs': 10},  # Optional,
+        ...     tags=['pytorch-lightning', 'mlp']  # Optional,
+        ... )
+        >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
     **OFFLINE MODE**
 
-    >>> from pytorch_lightning.loggers import NeptuneLogger
-    >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-    >>> neptune_logger = NeptuneLogger(
-    ...     offline_mode=True,
-    ...     project_name='USER_NAME/PROJECT_NAME',
-    ...     experiment_name='default',  # Optional,
-    ...     params={'max_epochs': 10},  # Optional,
-    ...     tags=['pytorch-lightning', 'mlp']  # Optional,
-    ... )
-    >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
+    Example:
+
+        >>> from pytorch_lightning.loggers import NeptuneLogger
+        >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+        >>> neptune_logger = NeptuneLogger(
+        ...     offline_mode=True,
+        ...     project_name='USER_NAME/PROJECT_NAME',
+        ...     experiment_name='default',  # Optional,
+        ...     params={'max_epochs': 10},  # Optional,
+        ...     tags=['pytorch-lightning', 'mlp']  # Optional,
+        ... )
+        >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
     Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
 
