@@ -62,7 +62,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True):
+def run_model_test(trainer_options, model, on_gpu=True, use_logger=True):
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
@@ -74,7 +74,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     # add these to the trainer options
     trainer_options.update(dict(
         checkpoint_callback=checkpoint,
-        logger=logger,
+        logger=logger if use_logger else use_logger,
     ))
 
     # fit model

@@ -31,6 +31,7 @@ def test_multi_gpu_model(tmpdir, backend):
         val_percent_check=0.2,
         gpus=[0, 1],
         distributed_backend=backend,
+        logger=False,
     )
 
     # tutils.run_model_test(trainer_options, model)

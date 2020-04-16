@@ -40,7 +40,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        # logger=logger,
+        logger=False,
         gpus=[0, 1],
         distributed_backend=backend,
     )

@@ -63,7 +63,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         distributed_backend='ddp_cpu'
     )
 
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tutils.run_model_test(trainer_options, model, on_gpu=False, use_logger=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
