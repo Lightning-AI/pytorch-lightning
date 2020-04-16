@@ -1,3 +1,7 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+
 Computing cluster (SLURM)
 ==========================
 
@@ -13,10 +17,10 @@ To train a model using multiple-nodes do the following:
 
 2. Enable ddp in the trainer
 
-.. code-block:: python
+.. doctest::
 
    # train on 32 GPUs across 4 nodes
-   trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+   >>> trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')  # doctest: +SKIP
 
 3. It's a good idea to structure your train.py file like this:
 
@@ -40,7 +44,7 @@ To train a model using multiple-nodes do the following:
         parent_parser = ArgumentParser(add_help=False)
         hyperparams = parser.parse_args()
 
-       # TRAIN
+        # TRAIN
         main(hyperparams)
 
 4. Create the appropriate SLURM job

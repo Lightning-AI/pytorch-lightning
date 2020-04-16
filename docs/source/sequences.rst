@@ -1,3 +1,7 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+
 Sequential Data
 ================
 Lightning has built in support for dealing with sequential data.
@@ -30,13 +34,13 @@ For example, it may save memory to use Truncated Backpropagation Through Time wh
 
 Lightning can handle TBTT automatically via this flag.
 
-.. code-block:: python
+.. doctest::
 
     # DEFAULT (single backwards pass per batch)
-    trainer = Trainer(truncated_bptt_steps=None)
+    >>> trainer = Trainer(truncated_bptt_steps=None)
 
     # (split batch into sequences of size 2)
-    trainer = Trainer(truncated_bptt_steps=2)
+    >>> trainer = Trainer(truncated_bptt_steps=2)
 
 .. note:: If you need to modify how the batch is split,
     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
@@ -73,5 +77,7 @@ option when using sequential data.
         dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
         return dataloader
 
+.. doctest::
+
     # Set val_check_interval
-    trainer = pl.Trainer()
+    >>> trainer = Trainer(val_check_interval=100)
