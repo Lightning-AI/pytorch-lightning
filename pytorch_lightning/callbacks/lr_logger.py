@@ -105,8 +105,7 @@ class LearningRateLogger(Callback):
                 param_groups = scheduler['scheduler'].optimizer.param_groups
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
-                        lr = pg['lr']
-                        key = f'{name}/{i + 1}'
+                        lr, key = pg['lr'], f'{name}/{i + 1}'
                         self.lrs[key].append(lr)
                         latest_stat[key] = lr
                 else:
