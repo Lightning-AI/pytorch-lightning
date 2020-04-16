@@ -3,6 +3,12 @@
 
 .. _callbacks:
 
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.callbacks.base import Callback
+
+
 Callbacks
 =========
 
@@ -20,8 +26,7 @@ Example:
 
 .. doctest::
 
-    >>> import pytorch_lightning as pl
-    >>> class MyPrintingCallback(pl.Callback):
+    >>> class MyPrintingCallback(Callback):
     ...
     ...     def on_init_start(self, trainer):
     ...         print('Starting to init trainer!')
@@ -32,7 +37,7 @@ Example:
     ...     def on_train_end(self, trainer, pl_module):
     ...         print('do something when training ends')
     ...
-    >>> trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    >>> trainer = Trainer(callbacks=[MyPrintingCallback()])
     Starting to init trainer!
     trainer is init now
 
