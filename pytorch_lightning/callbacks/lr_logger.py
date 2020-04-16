@@ -69,10 +69,9 @@ class LearningRateLogger(Callback):
                 # Multiple schduler of the same type
                 while True:
                     counter += 1
-                    if name in names:
-                        name = opt_name + '-' + str(counter)
-                    else:
+                    if name not in names:
                         break
+                    name = opt_name + '-' + str(counter)
 
             # Multiple param groups for the same schduler
             param_groups = sch.optimizer.param_groups
@@ -109,8 +108,9 @@ class LearningRateLogger(Callback):
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
                         lr = pg['lr']
-                        self.lrs[name + '/' + str(i + 1)].append(lr)
-                        latest_stat[name + '/' + str(i + 1)] = lr
+                        key = f'{name}/{i + 1}'
+                        self.lrs[key].append(lr)
+                        latest_stat[key] = lr
                 else:
                     self.lrs[name].append(param_groups[0]['lr'])
                     latest_stat[name] = param_groups[0]['lr']
