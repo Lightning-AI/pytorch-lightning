@@ -288,6 +288,8 @@ def test_lr_logger_single_lr(tmpdir):
     assert lr_logger.lrs, 'No learning rates logged'
     assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
+    assert all([k in ['lr-Adam'] for k in lr_logger.lrs.keys()]), \
+        'Names of learning rates not set correctly'
 
 
 def test_lr_logger_multi_lrs(tmpdir):
@@ -315,3 +317,5 @@ def test_lr_logger_multi_lrs(tmpdir):
     assert lr_logger.lrs, 'No learning rates logged'
     assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
+    assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_logger.lrs.keys()]), \
+        'Names of learning rates not set correctly'
