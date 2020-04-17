@@ -15,6 +15,7 @@ SEED = 2334
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
+
 class AsyncModel(LightningTemplateModel):
     def __dataloader(self, train):
         # this is neede when you want some info about dataset before binding to trainer
