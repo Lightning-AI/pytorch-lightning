@@ -10,16 +10,21 @@ class ModelIO(object):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """
-        Do something with the checkpoint
-        Gives model a chance to load something before state_dict is restored
-        :param checkpoint:
-        :return:
+        Do something with the checkpoint.
+        Gives model a chance to load something before ``state_dict`` is restored.
+
+        Args:
+            checkpoint: A dictionary with variables from the checkpoint.
         """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """
         Give the model a chance to add something to the checkpoint.
-        state_dict is already there
+        ``state_dict`` is already there.
+
+        Args:
+            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
+                Contents need to be pickleable.
         """
 
     # -------------------------
@@ -27,12 +32,19 @@ class ModelIO(object):
     # -------------------------
     def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
         """
-        Hook to do whatever you need right before Slurm manager saves the model
+        Hook to do whatever you need right before Slurm manager saves the model.
+
+        Args:
+            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
+                Contents need to be pickleable.
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
         """
-        Hook to do whatever you need right before Slurm manager loads the model
+        Hook to do whatever you need right before Slurm manager loads the model.
+
+        Args:
+            checkpoint: A dictionary with variables from the checkpoint.
         """
 
 
