@@ -139,9 +139,9 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
 .. code-block:: python
 
     class LitMNIST(pl.LightningModule):
-      def __init__(self, hparams):
-        super().__init__()
-        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
+        def __init__(self, hparams):
+            super().__init__()
+            self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
 
         @staticmethod
         def add_model_specific_args(parent_parser):
@@ -150,9 +150,9 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
             return parser
 
     class GoodGAN(pl.LightningModule):
-      def __init__(self, hparams):
-        super().__init__()
-        self.encoder = Encoder(layers=hparams.encoder_layers)
+        def __init__(self, hparams):
+            super().__init__()
+            self.encoder = Encoder(layers=hparams.encoder_layers)
 
         @staticmethod
         def add_model_specific_args(parent_parser):
