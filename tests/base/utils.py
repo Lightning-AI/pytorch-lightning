@@ -72,10 +72,10 @@ def run_model_test(trainer_options, model, on_gpu=True):
     checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
-    trainer_options.update(dict(
+    trainer_options.update(
         checkpoint_callback=checkpoint,
         logger=logger,
-    ))
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -120,10 +120,10 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
     }
 
     if continue_training:
-        args.update({
-            'test_tube_do_checkpoint_load': True,
-            'hpc_exp_number': hpc_exp_number,
-        })
+        args.update(
+            test_tube_do_checkpoint_load=True,
+            hpc_exp_number=hpc_exp_number,
+        )
 
     hparams = Namespace(**args)
     return hparams

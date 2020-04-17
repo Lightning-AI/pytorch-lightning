@@ -335,7 +335,6 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         train_percent_check=0.65,
         val_percent_check=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,

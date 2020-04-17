@@ -40,7 +40,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=False,
+        logger=logger,
         gpus=[0, 1],
         distributed_backend=backend,
     )
@@ -124,7 +124,6 @@ def test_load_model_from_checkpoint(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
         default_root_dir=tmpdir,
     )
 
