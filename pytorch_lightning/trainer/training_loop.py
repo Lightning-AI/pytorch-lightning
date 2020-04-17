@@ -608,7 +608,7 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, output_dict
+                    return closure_loss, callback_metrics
 
                 # calculate loss
                 loss, batch_output = optimizer_closure()
