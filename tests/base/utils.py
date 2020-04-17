@@ -66,7 +66,7 @@ def run_model_test(trainer_options, model, on_gpu=True):
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
-    logger = TestTubeLogger(save_dir, name='lightning_logs', version=None)
+    logger = get_default_logger(save_dir)
 
     # logger file to get weights
     checkpoint = init_checkpoint_callback(logger)

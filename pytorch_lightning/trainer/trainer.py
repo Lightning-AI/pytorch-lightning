@@ -724,13 +724,10 @@ class Trainer(
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
-
                 # track for predict
                 self.model = model
-
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
