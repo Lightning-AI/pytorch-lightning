@@ -56,7 +56,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `test_dataloaders` parameter from `Trainer.fit()` ([#1393](https://github.com/PyTorchLightning/pytorch-lightning/issues/1393))
 
 ### Fixed
-
+- Fixed `optimizer_closure` return result. This fix allows not to store tensors during the epoch. ([#1516](https://github.com/PyTorchLightning/pytorch-lightning/pull/1516))
 - Fixed optimizer configuration when `configure_optimizers` returns dict without `lr_scheduler` ([#1443](https://github.com/PyTorchLightning/pytorch-lightning/pull/1443))
 - Fixed default `DistributedSampler` for DDP training ([#1425](https://github.com/PyTorchLightning/pytorch-lightning/pull/1425))
 - Fixed workers warning not on windows ([#1430](https://github.com/PyTorchLightning/pytorch-lightning/pull/1430))
