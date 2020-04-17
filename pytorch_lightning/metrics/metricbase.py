@@ -8,7 +8,7 @@ from pytorch_lightning.metrics.converters import tensor_metric, numpy_metric
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
-__all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
+__all__ = ['MetricBase', 'TensorMetricBase', 'NumpyMetricBase']
 
 
 class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
@@ -42,7 +42,7 @@ class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
         raise NotImplementedError
 
 
-class TensorMetric(Metric):
+class TensorMetricBase(MetricBase):
     """
     Base class for metric implementation operating directly on tensors.
     All inputs and outputs will be casted to tensors if necessary.
@@ -72,7 +72,7 @@ class TensorMetric(Metric):
                                    _to_device_dtype)
 
 
-class NumpyMetric(Metric):
+class NumpyMetricBase(MetricBase):
     """
     Base class for metric implementation operating on numpy arrays.
     All inputs will be casted to numpy if necessary and all outputs will
