@@ -127,6 +127,7 @@ class Trainer(
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
+            replace_sampler_ddp: bool = True,
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -281,6 +282,9 @@ class Trainer(
                 trying to optimize initial learning for faster convergence. Sets learning
                 rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
                 To use a different key, set a string instead of True with the key name.
+                
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. 
+                If not specified this will toggled automatically ddp is used
 
             benchmark: If true enables cudnn.benchmark.
 
@@ -362,6 +366,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
