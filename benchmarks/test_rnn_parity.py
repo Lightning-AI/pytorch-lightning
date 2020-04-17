@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+import tests.base.utils as tutils
 
 from pytorch_lightning import Trainer, LightningModule
 
@@ -63,6 +64,8 @@ def test_pytorch_parity(tmpdir):
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
         np.testing.assert_almost_equal(pl_out, pt_out, 8)
+
+    tutils.assert_speed_parity(pl_times, pt_times, num_epochs)
 
 
 def set_seed(seed):

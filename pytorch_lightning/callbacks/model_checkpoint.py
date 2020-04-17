@@ -216,10 +216,12 @@ class ModelCheckpoint(Callback):
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth
+
+        del_list = []
         if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
             delpath = self.kth_best_model
             self.best_k_models.pop(self.kth_best_model)
-            self._del_model(delpath)
+            del_list.append(delpath)
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
@@ -238,3 +240,7 @@ class ModelCheckpoint(Callback):
                 f' {current:0.5f} (best {self.best:0.5f}), saving model to'
                 f' {filepath} as top {self.save_top_k}')
         self._save_model(filepath)
+
+        for cur_path in del_list:
+            if cur_path != filepath:
+                self._del_model(cur_path)
