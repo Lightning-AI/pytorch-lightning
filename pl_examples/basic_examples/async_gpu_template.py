@@ -6,6 +6,8 @@ from argparse import ArgumentParser
 
 import numpy as np
 import torch
+import torchvision.transforms as transforms
+from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
 from pl_examples.models.lightning_template import LightningTemplateModel
