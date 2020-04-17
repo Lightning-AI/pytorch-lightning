@@ -62,11 +62,11 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True, use_logger=True):
+def run_model_test(trainer_options, model, on_gpu=True):
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
-    logger = get_default_logger(save_dir)
+    logger = TestTubeLogger(save_dir, name='lightning_logs', version=None)
 
     # logger file to get weights
     checkpoint = init_checkpoint_callback(logger)
@@ -74,7 +74,7 @@ def run_model_test(trainer_options, model, on_gpu=True, use_logger=True):
     # add these to the trainer options
     trainer_options.update(dict(
         checkpoint_callback=checkpoint,
-        logger=logger if use_logger else use_logger,
+        logger=logger,
     ))
 
     # fit model
