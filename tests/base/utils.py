@@ -8,16 +8,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
+from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base import LightningTestModel, EvalModelTemplate
 from tests.base.datasets import PATH_DATASETS
-
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
-ROOT_SEED = 1234
-torch.manual_seed(ROOT_SEED)
-np.random.seed(ROOT_SEED)
-RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
-ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def assert_speed_parity(pl_times, pt_times, num_epochs):
@@ -160,7 +153,7 @@ def get_data_path(expt_logger, path_dir=None):
         if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
             path_dir = expt_logger.save_dir
         else:
-            path_dir = ROOT_PATH
+            path_dir = TEMP_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):
