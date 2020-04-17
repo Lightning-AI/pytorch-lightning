@@ -12,6 +12,11 @@ python cpu_template.py
 python gpu_template.py --gpus 1
 ```   
 
+#### Train on a single GPU with asynchronous dataloading
+```bash
+python async_gpu_template.py --gpus 1
+```   
+
 ---    
 #### DataParallel (dp)   
 Train on multiple GPUs using DataParallel.
