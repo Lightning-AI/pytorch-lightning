@@ -282,7 +282,7 @@ class Trainer(
                 trying to optimize initial learning for faster convergence. Sets learning
                 rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
                 To use a different key, set a string instead of True with the key name.
- 
+
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
                 If not specified this will toggled automatically ddp is used
 
