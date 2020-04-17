@@ -25,7 +25,11 @@ class AsynchronousLoader(DataLoader):
     """
 
     def __init__(self, dataset, device, num_workers=8, queue_size=10, **kwargs):
-        super(AsynchronousLoader, self).__init__(dataset=dataset, pin_memory=True, num_workers=num_workers, **kwargs)
+        super(AsynchronousLoader, self).__init__(dataset=dataset,
+                                                 pin_memory=True,
+                                                 num_workers=num_workers,
+                                                 **kwargs
+                                                 )
         self.device = device
         self.queue_size = queue_size
 
@@ -38,7 +42,8 @@ class AsynchronousLoader(DataLoader):
         for i, sample in enumerate(super(AsynchronousLoader, self).__iter__()):
             self.queue.put(self.load_instance(sample))
 
-    def load_instance(self, sample):  # Recursive loading for each instance based on torch.utils.data.default_collate
+    # Recursive loading for each instance based on torch.utils.data.default_collate
+    def load_instance(self, sample):
         if torch.is_tensor(sample):
             with torch.cuda.stream(self.load_stream):
                 return sample.to(self.device, non_blocking=True)
@@ -53,8 +58,11 @@ class AsynchronousLoader(DataLoader):
         return self
 
     def __next__(self):
-        # If we've reached the number of batches to return or the queue is empty and the worker is dead then exit
-        if (not self.worker.is_alive() and self.queue.empty()) or self.idx >= super(AsynchronousLoader, self).__len__():
+        # If we've reached the number of batches to return
+        # or the queue is empty and the worker is dead then exit
+        done = not self.worker.is_alive() and self.queue.empty()
+        done = done or self.idx >= super(AsynchronousLoader, self).__len__()
+        if done:
             self.idx = 0
             self.queue.join()
             self.worker.join()
