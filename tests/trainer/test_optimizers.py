@@ -3,7 +3,6 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-
 from tests.base import (
     TestModelBase,
     LightTrainDataloader,

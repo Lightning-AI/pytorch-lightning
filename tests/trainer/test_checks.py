@@ -7,12 +7,9 @@ from tests.base import EvalModelTemplate
 from tests.base import (
     TestModelBase,
     LightValidationDataloader,
-    LightTestDataloader,
     LightValidationStepMixin,
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
-    LightTestStepMixin,
-    LightTestFitMultipleTestDataloadersMixin,
 )
 
 

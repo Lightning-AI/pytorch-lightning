@@ -1,5 +1,4 @@
 import platform
-import warnings
 
 import pytest
 import torch
