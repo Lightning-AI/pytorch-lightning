@@ -139,13 +139,7 @@ class ModelCheckpoint(Callback):
         if less_than_k_models:
             return True
 
-        try:
-            import pdb; pdb.set_trace()
-            d = self.monitor_op(current, self.best_k_models[self.kth_best_model])
-        except Exception as e:
-
-            print('s')
-        return d
+        return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according to the defined template.
