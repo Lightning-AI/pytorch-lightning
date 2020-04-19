@@ -1434,6 +1434,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
         with an argument called ``hparams`` which is a :class:`~argparse.Namespace`
         (output of :meth:`~argparse.ArgumentParser.parse_args` when parsing command line arguments).
+        Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
 
         Example:
             .. code-block:: python
@@ -1493,7 +1494,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # or load passing whatever args the model takes to load
                 MyLightningModule.load_from_checkpoint(
                     'path/to/checkpoint.ckpt',
-                    learning_rate=0.1,
+                    learning_rate=0.1, # These arguments will be passed to the model using **kwargs
                     layers=2,
                     pretrained_model=some_model
                 )
@@ -1544,10 +1545,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # load the state_dict on the model automatically
         model_args = [hparams] if hparams else []
-        if len(model_args) > 0:
-            model = cls(*model_args)
-        else:
-            model = cls(*args, **kwargs)
+        model = cls(*model_args, *args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
