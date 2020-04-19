@@ -157,6 +157,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import memory_utils
 
 try:
     from apex import amp
@@ -445,7 +446,7 @@ class TrainerTrainLoopMixin(ABC):
             _outputs = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
             # detach tensors in batch_output before appending to outputs
-            outputs.append(_recursive_detach(batch_output))
+            outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -463,9 +464,14 @@ class TrainerTrainLoopMixin(ABC):
             should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
             should_check_val = can_check_val and should_check_val
 
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
+                self.call_checkpoint_callback()
+                self.call_early_stop_callback()
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
@@ -478,16 +484,6 @@ class TrainerTrainLoopMixin(ABC):
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
-
-            # ---------------
-            # CHECKPOINTING, EARLY STOPPING
-            # ---------------
-            # save checkpoint even when no test or val step are defined
-            if self.fast_dev_run or should_check_val:
-                self.call_checkpoint_callback()
-
-                if self.enable_early_stop:
-                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -516,12 +512,10 @@ class TrainerTrainLoopMixin(ABC):
             self.log_metrics(log_epoch_metrics, {})
             self.callback_metrics.update(callback_epoch_metrics)
 
-        # in case validation step is missing and you are not running fast-dev to duplicate last batch
+        # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
-
-            if self.enable_early_stop:
-                self.early_stop_callback.check_metrics(self.callback_metrics)
+            self.call_early_stop_callback()
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
@@ -608,7 +602,7 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, output_dict
+                    return closure_loss, callback_metrics
 
                 # calculate loss
                 loss, batch_output = optimizer_closure()
@@ -800,7 +794,10 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
-        self.on_validation_end()
+
+    def call_early_stop_callback(self):
+        if self.early_stop_callback:
+            self.early_stop_callback.on_epoch_end(self, self.get_model())
 
 
 def _with_is_last(iterable):
@@ -814,29 +811,3 @@ def _with_is_last(iterable):
         last = val
     # yield last, no longer has next
     yield last, True
-
-
-def _recursive_detach(in_dict):
-    """Detach all tensors in `in_dict`.
-
-    May operate recursively if some of the values in `in_dict` are dictionaries
-    which contain instances of `torch.Tensor`. Other types in `in_dict` are
-    not affected by this utility function.
-
-    Parameters
-    ----------
-    in_dict : dict
-
-    Returns
-    -------
-    out_dict : dict
-    """
-    out_dict = {}
-    for k, v in in_dict.items():
-        if isinstance(v, dict):
-            out_dict.update({k: _recursive_detach(v)})
-        elif callable(getattr(v, 'detach', None)):
-            out_dict.update({k: v.detach()})
-        else:
-            out_dict.update({k: v})
-    return out_dict

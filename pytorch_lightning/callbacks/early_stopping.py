@@ -69,7 +69,12 @@ class EarlyStopping(Callback):
         self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
 
-    def check_metrics(self, logs):
+    def _validate_condition_metric(self, logs):
+        """
+        Checks that the condition metric for early stopping is good
+        :param logs:
+        :return:
+        """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
                      f' which is not available. Available metrics are:'
@@ -94,7 +99,7 @@ class EarlyStopping(Callback):
     def on_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         stop_training = False
-        if not self.check_metrics(logs):
+        if not self._validate_condition_metric(logs):
             return stop_training
 
         current = logs.get(self.monitor)
