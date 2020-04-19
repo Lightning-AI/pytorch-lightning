@@ -139,6 +139,7 @@ class ModelCheckpoint(Callback):
         try:
             d = self.monitor_op(current, self.best_k_models[self.kth_best_model])
         except Exception as e:
+            import pdb; pdb.set_trace()
             print('a')
         return d
 
