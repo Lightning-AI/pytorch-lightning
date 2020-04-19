@@ -338,3 +338,17 @@ def test_single_gpu_model(tmpdir):
 
     model = EvalModelTemplate()
     tutils.run_model_test(trainer_options, model)
+
+
+def test_auto_move_data(tmpdir):
+    """Make sure auto moving data works for the base case where it doesn't have to move anything"""
+
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_default_model()
+    model.prepare_data()
+    loader = model.train_dataloader()
+    for x, y in loader:
+        x = x.view(x.size(0), -1)
+        assert model(x).device == torch.device('cpu'), "Automoving data to same device as model failed"
