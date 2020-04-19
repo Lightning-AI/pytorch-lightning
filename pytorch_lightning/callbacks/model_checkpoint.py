@@ -14,6 +14,7 @@ import numpy as np
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+import torch
 
 
 class ModelCheckpoint(Callback):
@@ -106,11 +107,12 @@ class ModelCheckpoint(Callback):
         self.best = 0
         self.save_function = None
 
+        torch_inf = torch.tensor(np.Inf)
         mode_dict = {
-            'min': (np.less, np.Inf, 'min'),
-            'max': (np.greater, -np.Inf, 'max'),
-            'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-            else (np.less, np.Inf, 'min'),
+            'min': (torch.lt, torch_inf, 'min'),
+            'max': (torch.gt, -torch_inf, 'max'),
+            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (torch.lt, torch_inf, 'min'),
         }
 
         if mode not in mode_dict:
@@ -136,11 +138,13 @@ class ModelCheckpoint(Callback):
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
+
         try:
+            import pdb; pdb.set_trace()
             d = self.monitor_op(current, self.best_k_models[self.kth_best_model])
         except Exception as e:
-            import pdb; pdb.set_trace()
-            print('a')
+
+            print('s')
         return d
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
