@@ -104,18 +104,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     # Note this is almost identical to distrib_parts.TrainerDPMixin.__transfer_data_to_device
     def __transfer_data_to_device(self, batch, device):
-        if device == 'tpu' and XLA_AVAILABLE:
-            # base case: object can be directly moved using `to`
-            if callable(getattr(batch, 'to', None)):
-                return batch.to(xm.xla_device())
+        # base case: object can be directly moved using `cuda` or `to`
+        if callable(getattr(batch, 'cuda', None)):
+            return batch.cuda(device=device)
 
-        if device == 'gpu':
-            # base case: object can be directly moved using `cuda` or `to`
-            if callable(getattr(batch, 'cuda', None)):
-                return batch.to(device=device)
-
-            if callable(getattr(batch, 'to', None)):
-                return batch.to(device=device)
+        if callable(getattr(batch, 'to', None)):
+            return batch.to(device=device)
 
         # when list
         if isinstance(batch, list):
