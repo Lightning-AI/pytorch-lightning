@@ -891,8 +891,9 @@ class Trainer(
             self.main_progress_bar.close()
             self.val_progress_bar.close()
 
+            # verify that early stop has conditioned on a metric that exists
             if self.enable_early_stop:
-                self.early_stop_callback.check_metrics(callback_metrics)
+                self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
