@@ -116,18 +116,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if callable(getattr(batch, 'to', None)):
             return batch.to(device=device)
 
-        # when list
-        if isinstance(batch, list):
+        # when list or tuple
+        if isinstance(batch, (list, tuple)):
+            if isinstance(batch, tuple):
+                batch = list(batch)
             for i, x in enumerate(batch):
                 batch[i] = self.__transfer_data_to_device(x, device)
             return batch
-
-        # when tuple
-        if isinstance(batch, tuple):
-            batch = list(batch)
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device)
-            return tuple(batch)
 
         # when dict
         if isinstance(batch, dict):
@@ -140,10 +135,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         return batch
 
     def __call__(self, *input_data, **kwargs):
-        device = [p.device for p in self.parameters()]
-        assert all([device[0] == d for d in device]), 'All parameters must be on same device'
-        input_data = self.__transfer_data_to_device(input_data, device[0])
-        kwargs = self.__transfer_data_to_device(kwargs, device[0])
+        devices = [p.device for p in self.parameters()]
+        assert set(devices) == 1, 'All parameters must be on same device'
+        device = devices[0]
+        input_data = self.__transfer_data_to_device(input_data, device)
+        kwargs = self.__transfer_data_to_device(kwargs, device)
         return super(LightningModule, self).__call__(*input_data, *kwargs)
 
     @abstractmethod
