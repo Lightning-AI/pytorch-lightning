@@ -97,6 +97,24 @@ def test_multi_gpu_none_backend(tmpdir):
         tutils.run_model_test(trainer_options, model)
 
 
+def test_auto_move_data(tmpdir):
+    """Make sure auto moving data works"""
+
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_default_model()
+    model = model.cuda(0)
+    model.prepare_data()
+    loader = model.train_dataloader()
+    correct_device = [p.device for p in model.parameters()]
+    assert all([correct_device[0] == d for d in correct_device]), 'All parameters must be on same device'
+    correct_device = correct_device[0]
+    for x, y in loader:
+        x = x.view(x.size(0), -1)
+        assert model(x).device == torch.device('cuda:0'), "Automoving data to same device as model failed"
+
+
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
