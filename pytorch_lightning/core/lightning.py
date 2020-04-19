@@ -102,7 +102,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             return batch
 
         # object can be directly moved using `cuda` or `to`
-        if callable(getattr(batch, 'cuda', None)):
+        if callable(getattr(batch, 'cuda', None)) and device.type == 'cuda':
             return batch.cuda(device=device)
 
         if callable(getattr(batch, 'to', None)):
@@ -143,6 +143,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
         the operations you want to use for prediction (i.e.: on a server or as a feature extractor).
+        LightningModule will also automatically copy data to the same device as the model if the model
+        is on CPU or GPU
 
         Normally you'd call ``self()`` from your :meth:`training_step` method.
         This makes it easy to write a complex system for training with the outputs
