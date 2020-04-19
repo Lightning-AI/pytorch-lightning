@@ -94,6 +94,51 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if self.trainer.proc_rank == 0:
             print(*args, **kwargs)
 
+    # Note this is almost identical to distrib_parts.TrainerDPMixin.__transfer_data_to_device
+    def __transfer_data_to_device(self, batch, device):
+        if device == 'tpu' and XLA_AVAILABLE:
+            # base case: object can be directly moved using `to`
+            if callable(getattr(batch, 'to', None)):
+                return batch.to(xm.xla_device())
+
+        if device == 'gpu':
+            # base case: object can be directly moved using `cuda` or `to`
+            if callable(getattr(batch, 'cuda', None)):
+                return batch.to(device=device)
+
+            if callable(getattr(batch, 'to', None)):
+                return batch.to(device=device)
+
+        # when list
+        if isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.__transfer_data_to_device(x, device)
+            return batch
+
+        # when tuple
+        if isinstance(batch, tuple):
+            batch = list(batch)
+            for i, x in enumerate(batch):
+                batch[i] = self.__transfer_data_to_device(x, device)
+            return tuple(batch)
+
+        # when dict
+        if isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.__transfer_data_to_device(v, device)
+
+            return batch
+
+        # nothing matches, return the value as is without transform
+        return batch
+
+    def __call__(self, *input_data, **kwargs):
+        device = [p.device for p in self.parameters()]
+        assert all([device[0] == d for d in device]), 'All parameters must be on same device'
+        input_data = self.__transfer_data_to_device(input_data, device[0])
+        kwargs = self.__transfer_data_to_device(kwargs, device[0])
+        return super(LightningModule, self).__call__(*input_data, *kwargs)
+
     @abstractmethod
     def forward(self, *args, **kwargs):
         r"""
