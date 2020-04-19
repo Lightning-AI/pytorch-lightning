@@ -103,8 +103,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             print(*args, **kwargs)
 
     # Note this is almost identical to distrib_parts.TrainerDPMixin.__transfer_data_to_device
+    # Only works for GPU and not TPU for now
     def __transfer_data_to_device(self, batch, device):
-        # base case: object can be directly moved using `cuda` or `to`
+        # base case: nothing to do
+        if torch.is_tensor(batch) and batch.device == device:
+            return batch
+
+        # object can be directly moved using `cuda` or `to`
         if callable(getattr(batch, 'cuda', None)):
             return batch.cuda(device=device)
 
