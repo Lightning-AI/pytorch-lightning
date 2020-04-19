@@ -111,7 +111,8 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             'min': (torch.lt, torch_inf, 'min'),
             'max': (torch.gt, -torch_inf, 'max'),
-            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor
+                                                     or self.monitor.startswith('fmeasure')
             else (torch.lt, torch_inf, 'min'),
         }
 
