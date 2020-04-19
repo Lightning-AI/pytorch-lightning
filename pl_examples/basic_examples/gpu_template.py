@@ -38,11 +38,7 @@ def main(hparams):
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    #trainer.fit(model)
-    model = model.cuda(0)
-    x = torch.randn(2, 784)
-    print(x.device)
-    print(model(x).device)
+    trainer.fit(model)
 
 
 if __name__ == '__main__':
