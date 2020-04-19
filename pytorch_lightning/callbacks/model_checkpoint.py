@@ -139,6 +139,9 @@ class ModelCheckpoint(Callback):
         if less_than_k_models:
             return True
 
+        if not isinstance(current, torch.Tensor):
+            current = torch.tensor(current)
+
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
