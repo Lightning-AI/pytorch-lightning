@@ -90,6 +90,7 @@ class Trainer(
             gpus: Optional[Union[List[int], str, int]] = None,
             auto_select_gpus: bool = False,
             num_tpu_cores: Optional[int] = None,
+            tpu_id: Optional[int] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
@@ -320,6 +321,8 @@ class Trainer(
         self.on_tpu = num_tpu_cores is not None
         self.num_tpu_cores = num_tpu_cores
         assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
+
+        self.tpu_id = tpu_id
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
