@@ -10,9 +10,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added flag `replace_sampler_ddp` to manually disaple sampler replacement in ddp  ([#1513](https://github.com/PyTorchLightning/pytorch-lightning/pull/1513))
 - Added `auto_select_gpus` flag to trainer that enables automatic selection of available GPUs on exclusive mode systems.
+
+- Added learining rate finder ([#1347](https://github.com/PyTorchLightning/pytorch-lightning/pull/1347))
+
+- Added support for ddp mode in clusters without SLURM ([#1345](https://github.com/PyTorchLightning/pytorch-lightning/issues/1345))
+
 - Added learning rate finder ([#1347](https://github.com/PyTorchLightning/pytorch-lightning/pull/1347))
 
 - Added `terminate_on_nan` flag to trainer that performs a NaN check with each training iteration when set to `True`. ([#1475](https://github.com/PyTorchLightning/pytorch-lightning/pull/1475))
+
 
 ### Changed
 
