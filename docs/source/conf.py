@@ -227,7 +227,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+     'The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.',
+     'Miscellaneous'),
 ]
 
 # -- Options for Epub output -------------------------------------------------
