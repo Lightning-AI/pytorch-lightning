@@ -97,6 +97,7 @@ def test_multi_gpu_none_backend(tmpdir):
         tutils.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_auto_move_data(tmpdir):
     """Make sure auto moving data works"""
 
@@ -113,6 +114,7 @@ def test_auto_move_data(tmpdir):
     for x, y in loader:
         x = x.view(x.size(0), -1)
         assert model(x).device == torch.device('cuda:0'), "Automoving data to same device as model failed"
+        assert model(x.cuda(0)).device == torch.device('cuda:0'), "Automoving data to same device as model failed"
 
 
 @pytest.fixture

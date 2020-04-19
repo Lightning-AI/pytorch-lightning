@@ -397,3 +397,36 @@ def test_tbptt_cpu_model(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_single_gpu_model(tmpdir):
+    """Make sure single GPU works (DP mode)."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+        gpus=1
+    )
+
+    model = EvalModelTemplate()
+    tutils.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_auto_move_data(tmpdir):
+    """Make sure auto moving data works for the base case where it doesn't have to move anything"""
+
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_default_model()
+    model.prepare_data()
+    loader = model.train_dataloader()
+    for x, y in loader:
+        x = x.view(x.size(0), -1)
+        assert model(x).device == torch.device('cpu'), "Automoving data to same device as model failed"
+        assert model(x.cuda(0)).device == torch.device('cpu'), "Automoving data to same device as model failed"
+
