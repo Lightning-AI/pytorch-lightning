@@ -111,9 +111,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         # object can be directly moved using `cuda` or `to`
         if callable(getattr(batch, 'cuda', None)) and device.type == 'cuda':
+            rank_zero_warn('Auto moving data from {} to {} to match model'.format(batch.device, device))
             return batch.cuda(device=device)
 
         if callable(getattr(batch, 'to', None)):
+            rank_zero_warn('Auto moving data from {} to {} to match model'.format(batch.device, device))
             return batch.to(device=device)
 
         # when list or tuple
@@ -128,7 +130,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if isinstance(batch, dict):
             for k, v in batch.items():
                 batch[k] = self.__transfer_data_to_device(v, device)
-
             return batch
 
         # nothing matches, return the value as is without transform
@@ -136,11 +137,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def __call__(self, *input_data, **kwargs):
         devices = [p.device for p in self.parameters()]
-        assert set(devices) == 1, 'All parameters must be on same device'
-        device = devices[0]
-        input_data = self.__transfer_data_to_device(input_data, device)
-        kwargs = self.__transfer_data_to_device(kwargs, device)
-        return super(LightningModule, self).__call__(*input_data, *kwargs)
+        # All parameters must be on same device to automove data
+        # Otherwise we just do what nn.Module does normally
+        if len(set(devices)) == 1:
+            device = devices[0]
+            input_data = self.__transfer_data_to_device(input_data, device)
+            kwargs = self.__transfer_data_to_device(kwargs, device)
+        return super(LightningModule, self).__call__(*input_data, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
@@ -148,7 +151,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
         the operations you want to use for prediction (i.e.: on a server or as a feature extractor).
         LightningModule will also automatically copy data to the same device as the model if the model
-        is on CPU or GPU for inference.
+        is on CPU or a single GPU for inference.
 
         Normally you'd call ``self()`` from your :meth:`training_step` method.
         This makes it easy to write a complex system for training with the outputs
