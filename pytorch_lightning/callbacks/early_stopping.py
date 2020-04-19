@@ -106,6 +106,9 @@ class EarlyStopping(Callback):
             return stop_training
 
         current = logs.get(self.monitor)
+        if not isinstance(current, torch.Tensor):
+            import pdb; pdb.set_trace()
+            current = torch.tensor(current)
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0
