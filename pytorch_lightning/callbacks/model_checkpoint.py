@@ -136,7 +136,11 @@ class ModelCheckpoint(Callback):
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
-        return self.monitor_op(current, self.best_k_models[self.kth_best_model])
+        try:
+            d = self.monitor_op(current, self.best_k_models[self.kth_best_model])
+        except Exception as e:
+            print('a')
+        return d
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according to the defined template.
