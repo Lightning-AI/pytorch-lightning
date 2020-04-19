@@ -59,10 +59,9 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
 
         mode_dict = {
-            'min': (torch.lt, torch_inf, 'min'),
-            'max': (torch.gt, -torch_inf, 'max'),
-            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-            else (torch.lt, torch_inf, 'min'),
+            'min': torch.lt,
+            'max': torch.gt,
+            'auto': torch.gt if 'acc' in self.monitor else torch.lt
         }
 
         if mode not in mode_dict:
