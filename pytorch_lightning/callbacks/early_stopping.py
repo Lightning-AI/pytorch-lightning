@@ -7,6 +7,7 @@ Stop training when a monitored quantity has stopped improving.
 """
 
 import numpy as np
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -55,10 +56,12 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
 
+        torch_inf = torch.tensor(np.Inf)
         mode_dict = {
-            'min': np.less,
-            'max': np.greater,
-            'auto': np.greater if 'acc' in self.monitor else np.less
+            'min': (torch.lt, torch_inf, 'min'),
+            'max': (torch.gt, -torch_inf, 'max'),
+            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (torch.lt, torch_inf, 'min'),
         }
 
         if mode not in mode_dict:
