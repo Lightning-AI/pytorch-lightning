@@ -111,8 +111,7 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             'min': (torch.lt, torch_inf, 'min'),
             'max': (torch.gt, -torch_inf, 'max'),
-            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor
-                                                     or self.monitor.startswith('fmeasure')
+            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
             else (torch.lt, torch_inf, 'min'),
         }
 
@@ -211,8 +210,9 @@ class ModelCheckpoint(Callback):
             current = metrics.get(self.monitor)
 
             if current is None:
-                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.'
-                               ,RuntimeWarning)
+                rank_zero_warn(
+                    f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
+                )
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch)
             elif self.verbose > 0:
