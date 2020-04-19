@@ -445,8 +445,11 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             _outputs = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
-            # detach tensors in batch_output before appending to outputs
-            outputs.append(batch_output)
+
+            # only track outputs when user implementes training_epoch_end
+            # otherwise we will build up unecessary memory
+            if self.is_overriden('training_epoch_end', model=self.get_model()):
+                outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -501,9 +504,7 @@ class TrainerTrainLoopMixin(ABC):
                 break
 
         # process epoch outputs
-        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
-            model = model.module
-
+        model = self.get_model()
         if self.is_overriden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(outputs)
             _processed_outputs = self.process_output(epoch_output)
