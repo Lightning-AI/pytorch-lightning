@@ -13,6 +13,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 
+torch_inf = torch.tensor(np.Inf)
+
 
 class EarlyStopping(Callback):
     r"""
@@ -56,7 +58,6 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
 
-        torch_inf = torch.tensor(np.Inf)
         mode_dict = {
             'min': (torch.lt, torch_inf, 'min'),
             'max': (torch.gt, -torch_inf, 'max'),
@@ -70,7 +71,7 @@ class EarlyStopping(Callback):
             mode = 'auto'
 
         self.monitor_op = mode_dict[mode]
-        self.min_delta *= 1 if self.monitor_op == np.greater else -1
+        self.min_delta *= 1 if self.monitor_op == torch.gt else -1
 
     def _validate_condition_metric(self, logs):
         """
@@ -97,7 +98,7 @@ class EarlyStopping(Callback):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
-        self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+        self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def on_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
