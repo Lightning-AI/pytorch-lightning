@@ -117,7 +117,8 @@ class ModelCheckpoint(Callback):
         }
 
         if mode not in mode_dict:
-            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, fallback to auto mode.', RuntimeWarning)
+            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, '
+                           f'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
@@ -210,7 +211,8 @@ class ModelCheckpoint(Callback):
             current = metrics.get(self.monitor)
 
             if current is None:
-                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
+                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.'
+                               ,RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch)
             elif self.verbose > 0:
