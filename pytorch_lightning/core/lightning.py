@@ -103,6 +103,25 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             print(*args, **kwargs)
 
     def __call__(self, *data, **kwargs):
+        r"""
+        Automatically moves data to correct device if possible, then call torch.nn.Module.__call__
+        Lightning will warn you if it automatically moves any data
+
+        Args:
+            *data: Any positional arguments for torch.nn.Module.__call__. These are typically input data
+            **kwargs: Any keyword arguments for torch.nn.Module.__call__
+
+        Example:
+
+            .. code-block:: python
+
+                model = model.cuda(0)
+                model.prepare_data()
+                loader = model.train_dataloader()
+                for x, y in loader:
+                    output = model(x)  # Lightning will automove data here and warn you of it
+
+        """
         devices = [p.device for p in self.parameters()]
         # All parameters must be on same device to automove data
         # Otherwise we just do what nn.Module does normally
