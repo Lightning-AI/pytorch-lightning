@@ -8,28 +8,37 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 
-class AsynchronousLoader(DataLoader):
+class AsynchronousLoader(object):
     """
     Class for asynchronously loading from CPU memory to device memory
 
     Parameters
     ----------
     dataset: PyTorch Dataset
-        The PyTorch dataset we're loading
+        The PyTorch dataset we're loading.
+        Exactly one of dataset or dataloader must be specified
+        This must also be finite and of constant length
+    dataloader: PyTorch DataLoader
+        The PyTorch DataLoader we're using to load.
+        Exactly one of dataset or dataloader must be specified
+        This must also be finite and of constant length
     device: PyTorch Device
         The PyTorch device we are loading to
-    num_workers: Integer
-        Number of worker processes to use for loading from storage and collating the batches in CPU memory
-    queue_size: Integer
+    q_size: Integer
         Size of the queue used to store the data loaded to the device
+    **kwargs:
+        Any additional arguments to pass to the dataloader if we're constructing one here
     """
 
-    def __init__(self, dataset, device, num_workers=8, queue_size=10, **kwargs):
-        super(AsynchronousLoader, self).__init__(dataset=dataset,
-                                                 pin_memory=True,
-                                                 num_workers=num_workers,
-                                                 **kwargs
-                                                 )
+    def __init__(self, dataset=None, dataloader=None, device=torch.device('cuda', 0), q_size=10, **kwargs):
+
+        if dataset is not None and dataloader is None:
+            self.dataloader = DataLoader(dataset, **kwargs)
+        elif dataloader is not None and dataset is None:
+            self.dataloader = dataloader
+        else:
+            raise Exception("Exactly one of dataset or dataloader must be specified")
+
         self.device = device
         self.queue_size = queue_size
 
@@ -39,13 +48,16 @@ class AsynchronousLoader(DataLoader):
         self.idx = 0
 
     def load_loop(self):  # The loop that will load into the queue in the background
-        for i, sample in enumerate(super(AsynchronousLoader, self).__iter__()):
+        for i, sample in enumerate(self.dataloader):
             self.queue.put(self.load_instance(sample))
 
     # Recursive loading for each instance based on torch.utils.data.default_collate
     def load_instance(self, sample):
         if torch.is_tensor(sample):
             with torch.cuda.stream(self.load_stream):
+                # Can only do asynchronous transfer if we use pin_memory
+                if not sample.is_pinned():
+                    sample = sample.pin_memory()
                 return sample.to(self.device, non_blocking=True)
         else:
             return [self.load_instance(s) for s in sample]
@@ -74,4 +86,4 @@ class AsynchronousLoader(DataLoader):
         return out
 
     def __len__(self):
-        return super(AsynchronousLoader, self).__len__()
+        return len(self.dataloader)

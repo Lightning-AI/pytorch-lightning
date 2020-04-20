@@ -1,5 +1,6 @@
 """
-Runs a model on a single node across multiple gpus.
+Runs a model on a single node on a single GPU using asynchronous memory transfer
+This example overlaps training and data transfer to reduce the time the GPU spends waiting for data
 """
 import os
 from argparse import ArgumentParser
@@ -20,24 +21,7 @@ np.random.seed(SEED)
 
 class AsyncModel(LightningTemplateModel):
     def __dataloader(self, train):
-        # this is neede when you want some info about dataset before binding to trainer
-        self.prepare_data()
-        # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=False)
-
-        # when using multi-node (ddp) we need to add the  datasampler
-        batch_size = self.hparams.batch_size
-
-        loader = AsynchronousLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            num_workers=8
-        )
-
-        return loader
+        return AsynchronousLoader(dataloader=loader, device=torch.device('cuda', 0))
 
 
 def main(hparams):
