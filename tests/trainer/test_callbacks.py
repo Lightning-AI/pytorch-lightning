@@ -306,7 +306,6 @@ def test_progress_bar_totals():
     model = CurrentTestModel(hparams)
 
     trainer = Trainer(
-        progress_bar_callback=True,
         progress_bar_refresh_rate=1,
         val_percent_check=1.0,
         max_epochs=1,
@@ -365,7 +364,6 @@ def test_progress_bar_fast_dev_run():
     model = CurrentTestModel(hparams)
 
     trainer = Trainer(
-        progress_bar_callback=True,
         fast_dev_run=True,
     )
 
