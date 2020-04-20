@@ -20,7 +20,7 @@ from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
-
+from pytorch_lightning.utilities import transfer_data_to_device
 try:
     import torch_xla.core.xla_model as xm
 except ImportError:
@@ -94,47 +94,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if self.trainer.proc_rank == 0:
             print(*args, **kwargs)
 
-    # Note this is almost identical to distrib_parts.TrainerDPMixin.__transfer_data_to_device
-    # Only works for GPU and not TPU for now
-    def __transfer_data_to_device(self, batch, device):
-        # base case: nothing to do
-        if torch.is_tensor(batch) and batch.device == device:
-            return batch
-
-        # object can be directly moved using `cuda` or `to`
-        if callable(getattr(batch, 'cuda', None)) and device.type == 'cuda':
-            rank_zero_warn('Auto moving data from {} to {} to match model'.format(batch.device, device))
-            return batch.cuda(device=device)
-
-        if callable(getattr(batch, 'to', None)):
-            rank_zero_warn('Auto moving data from {} to {} to match model'.format(batch.device, device))
-            return batch.to(device=device)
-
-        # when list or tuple
-        if isinstance(batch, (list, tuple)):
-            if isinstance(batch, tuple):
-                batch = list(batch)
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device)
-            return batch
-
-        # when dict
-        if isinstance(batch, dict):
-            for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(v, device)
-            return batch
-
-        # nothing matches, return the value as is without transform
-        return batch
-
     def __call__(self, *input_data, **kwargs):
         devices = [p.device for p in self.parameters()]
         # All parameters must be on same device to automove data
         # Otherwise we just do what nn.Module does normally
         if len(set(devices)) == 1:
             device = devices[0]
-            input_data = self.__transfer_data_to_device(input_data, device)
-            kwargs = self.__transfer_data_to_device(kwargs, device)
+            input_data = transfer_data_to_device(input_data, device.type, device.index)
+            kwargs = transfer_data_to_device(kwargs, device.type, device.index)
         return super(LightningModule, self).__call__(*input_data, **kwargs)
 
     @abstractmethod

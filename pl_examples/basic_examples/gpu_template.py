@@ -38,7 +38,15 @@ def main(hparams):
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    trainer.fit(model)
+    #trainer.fit(model)
+    model = model.cuda(0)
+    model.prepare_data()
+    loader = model.train_dataloader()
+    for x, y in loader:
+        x = x.view(x.size(0), -1)
+        assert model(x).device == torch.device('cuda:0'), "Automoving data to same device as model failed"
+        x = x.cuda(0)
+        assert model(x).device == torch.device('cuda:0'), "Automoving data to same device as model failed"
 
 
 if __name__ == '__main__':
