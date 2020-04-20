@@ -67,17 +67,19 @@ class AsynchronousLoader(object):
             return [self.load_instance(s) for s in sample]
 
     def __iter__(self):
-        assert self.idx == 0, 'idx must be 0 at the beginning of __iter__.'
-        self.worker = Thread(target=self.load_loop)
-        self.worker.daemon = True
-        self.worker.start()
+        # We don't want to run the thread more than once
+        # Start a new thread if we are at the beginning of a new epoch, and our current worker is dead
+        if (not hasattr(self, 'worker') or not self.worker.is_alive()) and self.queue.empty() and self.idx == 0:
+            self.worker = Thread(target=self.load_loop)
+            self.worker.daemon = True
+            self.worker.start()
         return self
 
     def __next__(self):
         # If we've reached the number of batches to return
         # or the queue is empty and the worker is dead then exit
         done = not self.worker.is_alive() and self.queue.empty()
-        done = done or self.idx >= super(AsynchronousLoader, self).__len__()
+        done = done or self.idx >= len(self.dataloader)
         if done:
             self.idx = 0
             self.queue.join()

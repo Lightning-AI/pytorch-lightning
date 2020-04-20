@@ -43,7 +43,6 @@ class AsyncModel(LightningTemplateModel):
         dataset = MNIST(root=self.hparams.data_root, train=train,
                         transform=transform, download=False)
 
-        # when using multi-node (ddp) we need to add the  datasampler
         batch_size = self.hparams.batch_size
 
         return AsynchronousLoader(dataset=dataset, batch_size=batch_size, num_workers=0)
