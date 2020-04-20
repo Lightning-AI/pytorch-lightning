@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enable `NeptuneLogger` to work with `distributed_backend=ddp` ([#1753](https://github.com/PyTorchLightning/pytorch-lightning/pull/1753))
 
+- Added automatic GPU data transfer to single GPU and CPU inference ([#1347](https://github.com/PyTorchLightning/pytorch-lightning/pull/1526))
+
 ### Changed
 
 - Reduction when `batch_size < num_gpus` ([#1609](https://github.com/PyTorchLightning/pytorch-lightning/pull/1609))
