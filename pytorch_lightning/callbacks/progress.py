@@ -146,26 +146,17 @@ class ProgressBarBase(Callback):
     def on_batch_end(self, trainer, pl_module):
         self._train_batch_idx += 1
 
-    def on_epoch_end(self, trainer, pl_module):
-        self._train_batch_idx = 0
-
     def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
     def on_validation_batch_end(self, trainer, pl_module):
         self._val_batch_idx += 1
 
-    def on_validation_end(self, trainer, pl_module):
-        self._val_batch_idx = 0
-
     def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
     def on_test_batch_end(self, trainer, pl_module):
         self._test_batch_idx += 1
-
-    def on_test_end(self, trainer, pl_module):
-        self._test_batch_idx = 0
 
 
 class ProgressBar(ProgressBarBase):
@@ -323,7 +314,7 @@ class ProgressBar(ProgressBarBase):
         super().on_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf'):
+        if total_train_batches != float('inf') and not trainer.fast_dev_run:
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
