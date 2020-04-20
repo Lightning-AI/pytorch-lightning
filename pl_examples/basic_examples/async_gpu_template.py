@@ -11,6 +11,8 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 
 import pytorch_lightning as pl
+from pytorch_lightning import _logger as log
+
 from pl_examples.models.lightning_template import LightningTemplateModel
 from pl_examples.utils.loaders import AsynchronousLoader
 
@@ -20,8 +22,31 @@ np.random.seed(SEED)
 
 
 class AsyncModel(LightningTemplateModel):
+    def train_dataloader(self):
+        log.info('Training data loader called.')
+        return self.__dataloader(train=True)
+
+    def val_dataloader(self):
+        log.info('Validation data loader called.')
+        return self.__dataloader(train=False)
+
+    def test_dataloader(self):
+        log.info('Test data loader called.')
+        return self.__dataloader(train=False)
+
     def __dataloader(self, train):
-        return AsynchronousLoader(dataloader=loader, device=torch.device('cuda', 0))
+        # this is neede when you want some info about dataset before binding to trainer
+        self.prepare_data()
+        # init data generators
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (1.0,))])
+        dataset = MNIST(root=self.hparams.data_root, train=train,
+                        transform=transform, download=False)
+
+        # when using multi-node (ddp) we need to add the  datasampler
+        batch_size = self.hparams.batch_size
+
+        return AsynchronousLoader(dataset=dataset, batch_size=batch_size, num_workers=0)
 
 
 def main(hparams):

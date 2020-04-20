@@ -44,10 +44,10 @@ class AsynchronousLoader(object):
             raise Exception("Exactly one of dataset or dataloader must be specified")
 
         self.device = device
-        self.queue_size = queue_size
+        self.q_size = q_size
 
         self.load_stream = torch.cuda.Stream(device=device)
-        self.queue = Queue(maxsize=self.queue_size)
+        self.queue = Queue(maxsize=self.q_size)
 
         self.idx = 0
 
