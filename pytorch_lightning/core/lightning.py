@@ -873,53 +873,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         )
         return model
 
-    def init_ddp_connection(self, proc_rank: int, world_size: int) -> None:
-        r"""
-        Override to define your custom way of setting up a distributed environment.
-
-        Lightning's implementation uses ``env://`` init by default and sets the first node as root.
-
-        Args:
-            proc_rank: The current process rank within the node.
-            world_size: Number of GPUs being use across all nodes (num_nodes * num_gpus).
-
-        Examples:
-            .. code-block:: python
-
-                def init_ddp_connection(self):
-                    # use slurm job id for the port number
-                    # guarantees unique ports across jobs from same grid search
-                    try:
-                        # use the last 4 numbers in the job id as the id
-                        default_port = os.environ['SLURM_JOB_ID']
-                        default_port = default_port[-4:]
-
-                        # all ports should be in the 10k+ range
-                        default_port = int(default_port) + 15000
-
-                    except Exception as e:
-                        default_port = 12910
-
-                    # if user gave a port number, use that one instead
-                    try:
-                        default_port = os.environ['MASTER_PORT']
-                    except Exception:
-                        os.environ['MASTER_PORT'] = str(default_port)
-
-                    # figure out the root node addr
-                    try:
-                        root_node = os.environ['SLURM_NODELIST'].split(' ')[0]
-                    except Exception:
-                        root_node = '127.0.0.2'
-
-                    root_node = self.trainer.resolve_root_node_address(root_node)
-                    os.environ['MASTER_ADDR'] = root_node
-                    dist.init_process_group(
-                        'nccl',
-                        rank=self.proc_rank,
-                        world_size=self.world_size
-                    )
-
+    def _init_slurm_connection(self) -> None:
+        """
+        Sets up environemnt variables necessary for pytorch distributed communications
+        based on slurm environment.
         """
         # use slurm job id for the port number
         # guarantees unique ports across jobs from same grid search
@@ -948,6 +905,40 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
+
+    def init_ddp_connection(
+            self,
+            proc_rank: int,
+            world_size: int,
+            is_slurm_managing_tasks: bool = True
+    ) -> None:
+        """
+        Override to define your custom way of setting up a distributed environment.
+
+        Lightning's implementation uses env:// init by default and sets the first node as root
+        for SLURM managed cluster.
+
+        Args:
+            proc_rank: The current process rank within the node.
+            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
+            is_slurm_managing_tasks: is cluster managed by SLURM.
+
+        """
+        if is_slurm_managing_tasks:
+            self._init_slurm_connection()
+
+        if 'MASTER_ADDR' not in os.environ:
+            log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
+            os.environ['MASTER_ADDR'] = '127.0.0.1'
+
+        if 'MASTER_PORT' not in os.environ:
+            log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
+            os.environ['MASTER_PORT'] = '12910'
+
+        if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
+            log.warning("WORLD_SIZE environment variable is not equal to the computed "
+                        "world size. Ignored.")
+
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
@@ -1434,6 +1425,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
         with an argument called ``hparams`` which is a :class:`~argparse.Namespace`
         (output of :meth:`~argparse.ArgumentParser.parse_args` when parsing command line arguments).
+        Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
 
         Example:
             .. code-block:: python
@@ -1493,7 +1485,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # or load passing whatever args the model takes to load
                 MyLightningModule.load_from_checkpoint(
                     'path/to/checkpoint.ckpt',
-                    learning_rate=0.1,
+                    learning_rate=0.1, # These arguments will be passed to the model using **kwargs
                     layers=2,
                     pretrained_model=some_model
                 )
@@ -1544,10 +1536,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # load the state_dict on the model automatically
         model_args = [hparams] if hparams else []
-        if len(model_args) > 0:
-            model = cls(*model_args)
-        else:
-            model = cls(*args, **kwargs)
+        model = cls(*model_args, *args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something

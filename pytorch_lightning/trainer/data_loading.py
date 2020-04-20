@@ -61,6 +61,7 @@ class TrainerDataLoadingMixin(ABC):
     train_percent_check: float
     val_percent_check: float
     test_percent_check: float
+    replace_sampler_ddp: bool
 
     @abstractmethod
     def is_overriden(self, *args):
@@ -88,10 +89,8 @@ class TrainerDataLoadingMixin(ABC):
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
-
-        need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_tpu
-
-        if need_dist_sampler:
+        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_tpu)
+        if self.replace_sampler_ddp and need_dist_sampler:
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 

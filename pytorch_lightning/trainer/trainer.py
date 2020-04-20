@@ -87,7 +87,7 @@ class Trainer(
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: List[Callback] = [],
+            callbacks: Optional[List[Callback]] = None,
             default_root_dir: Optional[str] = None,
             gradient_clip_val: float = 0,
             process_position: int = 0,
@@ -127,6 +127,7 @@ class Trainer(
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
+            replace_sampler_ddp: bool = True,
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -282,6 +283,9 @@ class Trainer(
                 rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
                 To use a different key, set a string instead of True with the key name.
 
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement.
+                If not specified this will toggled automatically ddp is used
+
             benchmark: If true enables cudnn.benchmark.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -289,7 +293,7 @@ class Trainer(
         """
 
         # Init callbacks
-        self.callbacks = callbacks
+        self.callbacks = callbacks or []
         self.on_init_start()
 
         # benchmarking
@@ -362,6 +366,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -541,7 +546,10 @@ class Trainer(
               (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
              ...
-             ('callbacks', (<class 'pytorch_lightning.callbacks.base.Callback'>,), []),
+             ('callbacks',
+              (typing.List[pytorch_lightning.callbacks.base.Callback],
+               <class 'NoneType'>),
+               None),
              ('check_val_every_n_epoch', (<class 'int'>,), 1),
              ...
              ('max_epochs', (<class 'int'>,), 1000),
@@ -891,8 +899,9 @@ class Trainer(
             self.main_progress_bar.close()
             self.val_progress_bar.close()
 
+            # verify that early stop has conditioned on a metric that exists
             if self.enable_early_stop:
-                self.early_stop_callback.check_metrics(callback_metrics)
+                self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,
