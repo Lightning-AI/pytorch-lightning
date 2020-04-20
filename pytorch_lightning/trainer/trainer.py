@@ -546,7 +546,10 @@ class Trainer(
               (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
              ...
-             ('callbacks', (typing.List[pytorch_lightning.callbacks.base.Callback], <class 'NoneType'>), None),
+             ('callbacks',
+              (typing.List[pytorch_lightning.callbacks.base.Callback],
+               <class 'NoneType'>),
+               None),
              ('check_val_every_n_epoch', (<class 'int'>,), 1),
              ...
              ('max_epochs', (<class 'int'>,), 1000),
