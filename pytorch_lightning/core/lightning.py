@@ -94,15 +94,15 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if self.trainer.proc_rank == 0:
             print(*args, **kwargs)
 
-    def __call__(self, *input_data, **kwargs):
+    def __call__(self, *data, **kwargs):
         devices = [p.device for p in self.parameters()]
         # All parameters must be on same device to automove data
         # Otherwise we just do what nn.Module does normally
         if len(set(devices)) == 1:
             device = devices[0]
-            input_data = transfer_data_to_device(input_data, device.type, device.index)
-            kwargs = transfer_data_to_device(kwargs, device.type, device.index)
-        return super(LightningModule, self).__call__(*input_data, **kwargs)
+            data = transfer_data_to_device(data, device.type, device.index, warn_on_transfer=True)
+            kwargs = transfer_data_to_device(kwargs, device.type, device.index, warn_on_transfer=True)
+        return super(LightningModule, self).__call__(*data, **kwargs)
 
     @abstractmethod
     def forward(self, *args, **kwargs):
