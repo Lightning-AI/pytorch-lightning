@@ -87,7 +87,7 @@ class Trainer(
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: List[Callback] = [],
+            callbacks: Optional[List[Callback]] = None,
             default_root_dir: Optional[str] = None,
             gradient_clip_val: float = 0,
             process_position: int = 0,
@@ -293,7 +293,7 @@ class Trainer(
         """
 
         # Init callbacks
-        self.callbacks = callbacks
+        self.callbacks = callbacks or []
         self.on_init_start()
 
         # benchmarking
@@ -546,7 +546,10 @@ class Trainer(
               (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
              ...
-             ('callbacks', (<class 'pytorch_lightning.callbacks.base.Callback'>,), []),
+             ('callbacks',
+              (typing.List[pytorch_lightning.callbacks.base.Callback],
+               <class 'NoneType'>),
+               None),
              ('check_val_every_n_epoch', (<class 'int'>,), 1),
              ...
              ('max_epochs', (<class 'int'>,), 1000),
