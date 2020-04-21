@@ -171,7 +171,7 @@ class LightningLoggerBase(ABC):
         # in case converting from Namespace or hydra's DictConfig
         if isinstance(params, Namespace):
             params = vars(params)
-        elif USING_HYDRA_CONF:
+        elif USING_HYDRA_CONF and isinstance(params, DictConfig):
             params = OmegaConf.to_container(params, resolve=True)
 
         if params is None:
