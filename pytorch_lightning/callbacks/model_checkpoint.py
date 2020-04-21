@@ -10,6 +10,7 @@ import os
 import re
 
 import numpy as np
+from typing import Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -37,7 +38,7 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            Can also be set to `None`, then it will set to default location
+            Can also be set to `None`, then it will be set to default location
             during trainer construction.
 
         monitor: quantity to monitor.
@@ -81,7 +82,7 @@ class ModelCheckpoint(Callback):
 
     """
 
-    def __init__(self, filepath: str, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
