@@ -37,6 +37,9 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
+            Can also be set to `None`, then it will set to default location
+            during trainer construction.
+
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_top_k: if `save_top_k == k`,
@@ -90,12 +93,14 @@ class ModelCheckpoint(Callback):
 
         self.monitor = monitor
         self.verbose = verbose
-        if os.path.isdir(filepath):
-            self.dirpath, self.filename = filepath, '{epoch}'
+        if filepath is None:  # will be determined by trainer at runtime
+            self.dirpath, self.filename = None, None
         else:
-            self.dirpath, self.filename = os.path.split(filepath)
-
-        os.makedirs(self.dirpath, exist_ok=True)
+            if os.path.isdir(filepath):
+                self.dirpath, self.filename = filepath, '{epoch}'
+            else:
+                self.dirpath, self.filename = os.path.split(filepath)
+            os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period

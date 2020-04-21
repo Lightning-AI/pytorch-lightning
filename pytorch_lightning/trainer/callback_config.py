@@ -33,7 +33,7 @@ class TrainerCallbackConfigMixin(ABC):
         Otherwise use os.getcwd()
         """
         ckpt_path = self.default_root_dir
-        if self.checkpoint_callback is True:
+        if self.checkpoint_callback:
             # init a default one
             if self.logger is not None:
                 save_dir = (getattr(self.logger, 'save_dir', None) or
@@ -57,12 +57,18 @@ class TrainerCallbackConfigMixin(ABC):
             train_step_only = not self.is_overriden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
 
-            self.ckpt_path = ckpt_path
-            os.makedirs(ckpt_path, exist_ok=True)
-            self.checkpoint_callback = ModelCheckpoint(
-                filepath=ckpt_path,
-                monitor=monitor_key
-            )
+            if self.checkpoint_callback is True:
+                os.makedirs(ckpt_path, exist_ok=True)
+                self.checkpoint_callback = ModelCheckpoint(
+                    filepath=ckpt_path,
+                    monitor=monitor_key
+                )
+            # If user specified None in filepath, override with runtime default
+            elif isinstance(self.checkpoint_callback, ModelCheckpoint) \
+                    and self.checkpoint_callback.dirpath is None:
+                self.checkpoint_callback.dirpath = ckpt_path
+                self.checkpoint_callback.filename = '{epoch}'
+                os.makedirs(self.checkpoint_callback.dirpath, exist_ok=True)
         elif self.checkpoint_callback is False:
             self.checkpoint_callback = None
 

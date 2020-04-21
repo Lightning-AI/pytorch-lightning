@@ -1,7 +1,7 @@
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import (
     LightTrainDataloader,
     LightTestMixin,
@@ -181,3 +181,27 @@ def test_early_stopping_without_val_step(tmpdir):
 
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch < trainer.max_epochs
+
+
+def test_model_checkpoint_with_non_string_input(tmpdir):
+    """ Test that None in checkpoint callback is valid and that chkp_path is
+        set correctly """
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    checkpoint = ModelCheckpoint(filepath=None, save_top_k=-1)
+
+    trainer = Trainer(default_root_dir=tmpdir,
+                      checkpoint_callback=checkpoint,
+                      overfit_pct=0.20,
+                      max_epochs=5
+                      )
+    result = trainer.fit(model)
+
+    # These should be different if the dirpath has be overridden
+    assert trainer.ckpt_path != trainer.default_root_dir
