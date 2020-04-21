@@ -4,6 +4,7 @@ from typing import Union
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -95,3 +96,15 @@ class TrainerCallbackConfigMixin(ABC):
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
+
+    def check_callback_config(self):
+        for callback in self.callbacks:
+            if isinstance(callback, ModelCheckpoint):
+                raise MisconfigurationException(
+                    'You passed a `ModelCheckpoint` callback to trainer argument `callback`, '
+                    ' but it should instead be passed to argument `checkpoint_callback`')
+
+            if isinstance(callback, EarlyStopping):
+                raise MisconfigurationException(
+                    'You passed a `EarlyStopping` callback to trainer argument `callback`, '
+                    ' but it should instead be passed to argument `early_stop_callback`')

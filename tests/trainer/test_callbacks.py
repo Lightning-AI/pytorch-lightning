@@ -1,7 +1,10 @@
+import pytest
+
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
     LightTrainDataloader,
     LightTestMixin,
@@ -181,3 +184,31 @@ def test_early_stopping_without_val_step(tmpdir):
 
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch < trainer.max_epochs
+
+
+def test_error_on_wrong_passing_of_callbacks(tmpdir):
+    """Test that if EarlyStopping callback or ModelCheckpoint callback is
+       passed to trainer argument callback, that an error is thrown"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            callbacks=[EarlyStopping()],
+            default_root_dir=tmpdir,
+            overfit_pct=0.20,
+            max_epochs=5,
+        )
+
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            callbacks=[ModelCheckpoint(filepath=hparams.data_root)],
+            default_root_dir=tmpdir,
+            overfit_pct=0.20,
+            max_epochs=5,
+        )

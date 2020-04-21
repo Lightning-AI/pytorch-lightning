@@ -294,6 +294,7 @@ class Trainer(
 
         # Init callbacks
         self.callbacks = callbacks or []
+        self.check_callback_config()
         self.on_init_start()
 
         # benchmarking
