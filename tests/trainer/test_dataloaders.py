@@ -1,3 +1,5 @@
+import platform
+
 import pytest
 import torch
 
@@ -488,6 +490,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
 def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
     tutils.reset_seed()

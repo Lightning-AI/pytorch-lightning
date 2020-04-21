@@ -227,7 +227,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+     'The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.',
+     'Miscellaneous'),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -385,7 +386,7 @@ autodoc_default_options = {
     'methods': None,
     # 'attributes': None,
     'special-members': '__call__',
-    # 'exclude-members': '__weakref__',
+    'exclude-members': '_abc_impl',
     'show-inheritance': True,
     'private-members': True,
     'noindex': True,

@@ -413,15 +413,15 @@ class TrainerEvaluationLoopMixin(ABC):
         # Validation/Test end callbacks
         if test_mode:
             self.on_test_end()
+        else:
+            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if test_mode and len(self.test_dataloaders) > 1:
-            args.append(dataloader_idx)
-
-        elif not test_mode and len(self.val_dataloaders) > 1:
+        if (test_mode and len(self.test_dataloaders) > 1) \
+                or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

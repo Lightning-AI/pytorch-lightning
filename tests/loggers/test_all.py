@@ -10,6 +10,15 @@ from pytorch_lightning.loggers import (
 from tests.base import LightningTestModel
 
 
+def _get_logger_args(logger_class, save_dir):
+    logger_args = {}
+    if 'save_dir' in inspect.getfullargspec(logger_class).args:
+        logger_args.update(save_dir=str(save_dir))
+    if 'offline_mode' in inspect.getfullargspec(logger_class).args:
+        logger_args.update(offline_mode=True)
+    return logger_args
+
+
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
@@ -28,8 +37,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model, _ = tutils.get_default_model()
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
@@ -40,10 +48,8 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
             super().log_metrics(metrics, step)
             self.history.append((step, metrics))
 
-    if 'save_dir' in inspect.getfullargspec(logger_class).args:
-        logger = StoreHistoryLogger(save_dir=str(tmpdir))
-    else:
-        logger = StoreHistoryLogger()
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger = StoreHistoryLogger(**logger_args)
 
     trainer = Trainer(
         max_epochs=1,
@@ -80,10 +86,8 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    if 'save_dir' in inspect.getfullargspec(logger_class).args:
-        logger = logger_class(save_dir=str(tmpdir))
-    else:
-        logger = logger_class()
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger = logger_class(**logger_args)
 
     trainer = Trainer(
         max_epochs=1,

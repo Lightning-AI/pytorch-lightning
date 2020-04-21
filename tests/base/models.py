@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from tests.base.datasets import TestingMNIST
+from tests.base.datasets import TrialMNIST
 
 try:
     from test_tube import HyperOptArgumentParser
@@ -38,7 +38,7 @@ class DictHparamsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TestingMNIST(train=True, download=True), batch_size=16)
+        return DataLoader(TrialMNIST(train=True, download=True), batch_size=16)
 
 
 class TestModelBase(LightningModule):
@@ -137,11 +137,11 @@ class TestModelBase(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        _ = TestingMNIST(root=self.hparams.data_root, train=True, download=True)
+        _ = TrialMNIST(root=self.hparams.data_root, train=True, download=True)
 
     def _dataloader(self, train):
         # init data generators
-        dataset = TestingMNIST(root=self.hparams.data_root, train=train, download=False)
+        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=True)
 
         # when using multi-node we need to add the datasampler
         batch_size = self.hparams.batch_size

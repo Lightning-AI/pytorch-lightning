@@ -99,7 +99,14 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 output = self.gather(outputs, self.output_device)
         else:
             # normal
-            output = self.module(*inputs, **kwargs)
+            # output = self.module(*inputs, **kwargs)
+            # lightning (ddp_cpu)
+            if self.module.training:
+                output = self.module.training_step(*inputs, **kwargs)
+            elif self.module.testing:
+                output = self.module.test_step(*inputs, **kwargs)
+            else:
+                output = self.module.validation_step(*inputs, **kwargs)
 
         if torch.is_grad_enabled():
             # We'll return the output object verbatim since it is a freeform

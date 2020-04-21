@@ -1,7 +1,9 @@
+import platform
 import warnings
 
 import pytest
 import torch
+from packaging.version import parse as version_parse
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -38,6 +40,31 @@ def test_early_stopping_cpu_model(tmpdir):
     # test freeze on cpu
     model.freeze()
     model.unfreeze()
+
+
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif((platform.system() == "Darwin" and
+                     version_parse(torch.__version__) < version_parse("1.3.0")),
+                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+def test_multi_cpu_model_ddp(tmpdir):
+    """Make sure DDP works."""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_default_model()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        show_progress_bar=False,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=None,
+        num_processes=2,
+        distributed_backend='ddp_cpu'
+    )
+
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):

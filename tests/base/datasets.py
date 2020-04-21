@@ -49,7 +49,7 @@ class MNIST(Dataset):
     cache_folder_name = 'complete'
 
     def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False):
+                 normalize: tuple = (0.5, 1.0), download: bool = True):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -111,7 +111,7 @@ def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Ten
     return tensor
 
 
-class TestingMNIST(MNIST):
+class TrialMNIST(MNIST):
     """Constrain image dataset
 
     Args:
@@ -127,7 +127,7 @@ class TestingMNIST(MNIST):
         digits: list selected MNIST digits/classes
 
     Examples:
-        >>> dataset = TestingMNIST(download=True)
+        >>> dataset = TrialMNIST(download=True)
         >>> len(dataset)
         300
         >>> sorted(set([d.item() for d in dataset.targets]))
@@ -179,6 +179,8 @@ class TestingMNIST(MNIST):
             self._download(super().cached_folder_path)
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
-            data, targets = torch.load(os.path.join(super().cached_folder_path, fname))
+            path_fname = os.path.join(super().cached_folder_path, fname)
+            assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
+            data, targets = torch.load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))

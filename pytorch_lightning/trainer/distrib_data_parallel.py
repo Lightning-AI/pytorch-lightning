@@ -174,44 +174,54 @@ class TrainerDDPMixin(ABC):
         # enable tpu
         self.use_tpu = True
 
-    def set_distributed_mode(self, distributed_backend, num_gpu_nodes):
-        # skip for CPU
-        if self.num_gpus == 0:
-            return
+    def set_distributed_mode(self, distributed_backend):
+        self.use_dp = False
+        self.use_ddp = False
+        self.use_ddp2 = False
+        self.single_gpu = False
 
-        # single GPU case
-        # in single gpu case we allow ddp so we can train on multiple
-        # nodes, 1 gpu per node
-        if self.num_gpus == 1:
-            self.single_gpu = True
-
-            if distributed_backend is not None:
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-                # disable single gpu when using ddp2
-                if self.use_ddp2:
-                    self.single_gpu = False
-
-        # multiple GPU case
-        elif self.num_gpus > 1:
-            if distributed_backend is not None:
-                # DP, DDP case
-                self.use_dp = distributed_backend == 'dp'
-                self.use_ddp = distributed_backend == 'ddp'
-                self.use_ddp2 = distributed_backend == 'ddp2'
-
-            elif distributed_backend is None:
+        if distributed_backend is None:
+            if self.num_gpus == 0:
+                if self.num_nodes > 1 or self.num_processes > 1:
+                    self.use_ddp = True  # ddp_cpu
+            elif self.num_gpus == 1:
+                self.single_gpu = True
+            elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=dp for you.')
                 self.use_dp = True
-                self.use_ddp = False
-                self.use_ddp2 = False
+        elif distributed_backend == "dp":
+            # do nothing if num_gpus == 0
+            if self.num_gpus == 1:
+                self.single_gpu = True
+                self.use_dp = True
+            elif self.num_gpus > 1:
+                self.use_dp = True
+        elif distributed_backend == "ddp":
+            if self.num_gpus == 0:
+                if self.num_nodes > 1 or self.num_processes > 1:
+                    self.use_ddp = True  # ddp_cpu
+            elif self.num_gpus == 1:
+                self.single_gpu = True
+                self.use_ddp = True
+            elif self.num_gpus > 1:
+                self.use_ddp = True
+                self.num_processes = self.num_gpus
+        elif distributed_backend == "ddp2":
+            # do nothing if num_gpus == 0
+            if self.num_gpus >= 1:
+                self.use_ddp2 = True
+        elif distributed_backend == "ddp_cpu":
+            if self.num_gpus > 0:
+                rank_zero_warn('You requested one or more GPUs, but set the backend to `ddp_cpu`.'
+                               ' Training will not use GPUs.')
+            self.use_ddp = True
+            self.data_parallel_device_ids = None
+            self.on_gpu = False
 
         # throw error to force user ddp or ddp2 choice
-        if num_gpu_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
+        if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
@@ -267,7 +277,7 @@ class TrainerDDPMixin(ABC):
 
         log.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
 
-    def ddp_train(self, gpu_idx, model):
+    def ddp_train(self, process_idx, model):
         """
         Entry point into a DP thread
         :param gpu_idx:
@@ -275,25 +285,28 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
-        # node rank using relative slurm id
-        # otherwise default to node rank 0
+        # node rank using relative slurm id if under slurm management
+        # otherwise use given node rank or default to node rank 0
         try:
-            node_id = os.environ['SLURM_NODEID']
+            node_id = os.environ['SLURM_NODEID'] if self.is_slurm_managing_tasks else os.environ['NODE_RANK']
             self.node_rank = int(node_id)
-        except Exception:
+        except KeyError:
+            log.warning("SLURM_NODEID or NODE_RANK environment variable is not defined. Set as 0.")
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
-        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if self.node_rank == 0 and gpu_idx == 0 else 0
+        self.progress_bar_refresh_rate = (
+            self.progress_bar_refresh_rate if self.node_rank == 0 and process_idx == 0 else 0
+        )
 
         # determine which process we are and world size
         if self.use_ddp:
-            self.proc_rank = self.node_rank * self.num_gpus + gpu_idx
-            self.world_size = self.num_gpu_nodes * self.num_gpus
+            self.proc_rank = self.node_rank * self.num_processes + process_idx
+            self.world_size = self.num_nodes * self.num_processes
 
         elif self.use_ddp2:
             self.proc_rank = self.node_rank
-            self.world_size = self.num_gpu_nodes
+            self.world_size = self.num_nodes
         # set warning rank
         set_proc_rank(self.proc_rank)
 
@@ -305,7 +318,7 @@ class TrainerDDPMixin(ABC):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self
-        model.init_ddp_connection(self.proc_rank, self.world_size)
+        model.init_ddp_connection(self.proc_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -313,15 +326,13 @@ class TrainerDDPMixin(ABC):
 
         # MODEL
         # copy model to each gpu
-        if self.distributed_backend == 'ddp':
-            torch.cuda.set_device(gpu_idx)
-        model.cuda(gpu_idx)
+        if self.on_gpu:
+            self.root_gpu = self.data_parallel_device_ids[process_idx]
+            torch.cuda.set_device(self.root_gpu)
+            model.cuda(self.root_gpu)
 
         # set model properties before going into wrapper
         self.copy_trainer_model_properties(model)
-
-        # override root GPU
-        self.root_gpu = gpu_idx
 
         # AMP
         # run through amp wrapper before going to distributed DP
@@ -332,10 +343,10 @@ class TrainerDDPMixin(ABC):
 
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
-            device_ids = [gpu_idx]
+            device_ids = [self.root_gpu]
         elif self.use_ddp2:
             device_ids = self.data_parallel_device_ids
-        else:
+        else:  # includes ddp_cpu
             device_ids = None
 
         # allow user to configure ddp
