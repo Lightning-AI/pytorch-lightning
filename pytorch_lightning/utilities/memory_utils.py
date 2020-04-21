@@ -1,17 +1,15 @@
-def recursive_detach(in_dict):
+def recursive_detach(in_dict: dict) -> dict:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
     which contain instances of `torch.Tensor`. Other types in `in_dict` are
     not affected by this utility function.
 
-    Parameters
-    ----------
-    in_dict : dict
+    Args:
+        in_dict:
 
-    Returns
-    -------
-    out_dict : dict
+    Return:
+        out_dict:
     """
     out_dict = {}
     for k, v in in_dict.items():

@@ -3,7 +3,7 @@
 import os
 from io import open
 # Always prefer setuptools over distutils
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 try:
     import builtins
@@ -57,7 +57,7 @@ setup(
     url=pytorch_lightning.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
-    packages=find_namespace_packages(exclude=['tests', 'tests/*', 'benchmarks']),
+    packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
     long_description=load_long_describtion(),
     long_description_content_type='text/markdown',
