@@ -531,10 +531,6 @@ class TrainerDPMixin(ABC):
         model.cuda(self.root_gpu)
 
         # TODO: remove in v0.8.0
-        if self.use_amp and self.use_native_amp:
-            pass
-
-        # TODO: remove in v0.8.0
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp and not self.use_native_amp:
