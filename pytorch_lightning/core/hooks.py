@@ -140,9 +140,15 @@ class ModelHooks(torch.nn.Module):
 
         """
         if trainer.precision == 16:
-
             # .backward is not special on 16-bit with TPUs
-            if not trainer.on_tpu:
+            if trainer.on_tpu:
+                return
+
+            if self.use_native_amp:
+                self.scaler.scale(loss).backward()
+
+            # TODO: remove in v0.8.0
+            else:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
         else:
