@@ -1157,6 +1157,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if self.trainer.use_tpu and XLA_AVAILABLE:
             xm.optimizer_step(optimizer)
         elif isinstance(optimizer, torch.optim.LBFGS):
+
+            # native amp + lbfgs is a no go right now
+            if self.use_amp and self.use_native_amp:
+                m = 'native PyTorch amp and lbfgs are not compatible. To request, please file' \
+                    'a Github issue in PyTorch and tag @mcarilli'
+                raise MisconfigurationException(m)
             optimizer.step(second_order_closure)
         else:
             if self.use_amp and self.use_native_amp:
