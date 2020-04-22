@@ -7,17 +7,10 @@ import torch
 # from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TestTubeLogger, TensorBoardLogger
-from tests.base import LightningTestModel, EvalModelTemplate
+from pytorch_lightning.loggers import TensorBoardLogger
+from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
+from tests.base import LightningTestModel
 from tests.base.datasets import PATH_DATASETS
-
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
-ROOT_SEED = 1234
-torch.manual_seed(ROOT_SEED)
-np.random.seed(ROOT_SEED)
-RANDOM_SEEDS = list(np.random.randint(0, 10000, 1000))
-ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def assert_speed_parity(pl_times, pt_times, num_epochs):
@@ -33,7 +26,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
         f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
 
-def run_model_test_no_loggers(trainer_options, model, min_acc=0.50):
+def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
     # save_dir = trainer_options['default_root_dir']
 
     # fit model
@@ -66,14 +59,16 @@ def run_model_test(trainer_options, model, on_gpu=True):
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
-    logger = get_default_testtube_logger(save_dir, False)
+    logger = get_default_logger(save_dir)
 
     # logger file to get weights
     checkpoint = init_checkpoint_callback(logger)
 
     # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['logger'] = logger
+    trainer_options.update(
+        checkpoint_callback=checkpoint,
+        logger=logger,
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -118,8 +113,10 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
     }
 
     if continue_training:
-        args['test_tube_do_checkpoint_load'] = True
-        args['hpc_exp_number'] = hpc_exp_number
+        args.update(
+            test_tube_do_checkpoint_load=True,
+            hpc_exp_number=hpc_exp_number,
+        )
 
     hparams = Namespace(**args)
     return hparams
@@ -137,9 +134,9 @@ def get_default_model(lbfgs=False):
     return model, hparams
 
 
-def get_default_testtube_logger(save_dir, debug=True, version=None):
+def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TestTubeLogger(save_dir, name='lightning_logs', debug=debug, version=version)
+    logger = TensorBoardLogger(save_dir, name='lightning_logs', version=version)
     return logger
 
 
@@ -153,7 +150,10 @@ def get_data_path(expt_logger, path_dir=None):
         return expt.get_data_path(name, version)
     # the other experiments...
     if not path_dir:
-        path_dir = ROOT_PATH
+        if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
+            path_dir = expt_logger.save_dir
+        else:
+            path_dir = TEMP_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):
@@ -161,9 +161,9 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model(exp, root_weights_dir, module_class=LightningTestModel, path_expt=None):
+def load_model(logger, root_weights_dir, module_class=LightningTestModel, path_expt=None):
     # load trained model
-    path_expt_dir = get_data_path(exp, path_dir=path_expt)
+    path_expt_dir = get_data_path(logger, path_dir=path_expt)
     tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
 
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]

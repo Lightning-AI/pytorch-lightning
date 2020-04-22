@@ -15,7 +15,7 @@ def test_default_args(tmpdir):
     tutils.reset_seed()
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     parser = ArgumentParser(add_help=False)
     args = parser.parse_args()
