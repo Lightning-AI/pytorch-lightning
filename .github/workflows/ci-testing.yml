@@ -67,15 +67,8 @@ jobs:
         # Look to see if there is a cache hit for the corresponding requirements file
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-
-          ${{ runner.os }}-${{ matrix.python-version }}-
-
-    - name: Cache datasets
-      uses: actions/cache@v1
-      with:
-        path: tests/Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
-        key: mnist-dataset
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
 
     - name: Install dependencies
       run: |
@@ -87,6 +80,13 @@ jobs:
         pip --version
         pip list
       shell: bash
+
+    - name: Cache datasets
+      uses: actions/cache@v1
+      with:
+        path: tests/Datasets # This path is specific to Ubuntu
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: mnist-dataset
 
     - name: Tests
       # env:
