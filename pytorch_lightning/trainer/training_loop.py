@@ -650,6 +650,8 @@ class TrainerTrainLoopMixin(ABC):
                                 self.track_grad_norm)
 
                     # clip gradients
+                    if self.use_amp and self.use_native_amp:
+                        self.scaler.unscale_(optimizer)
                     self.clip_gradients()
 
                     # calls .step(), .zero_grad()
