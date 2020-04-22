@@ -79,7 +79,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows' && matrix.requires == 'latest'
       run: |
-        pip install 'torch<1.5' -U
+        pip install torch<1.5 -U
 
     - name: Tests
       # env:
