@@ -174,6 +174,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerTrainLoopMixin(ABC):
 
@@ -181,9 +188,11 @@ class TrainerTrainLoopMixin(ABC):
     #  the proper values/initialisation should be done in child class
     max_epochs: int
     min_epochs: int
+    on_gpu: bool
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
+    use_horovod: bool
     single_gpu: bool
     use_tpu: bool
     data_parallel_device_ids: ...
@@ -324,7 +333,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if self.use_ddp \
+                if self.use_ddp or self.use_horovod \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
@@ -506,6 +515,9 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
+        if self.use_horovod:
+            hvd.join(hvd.local_rank() if self.on_gpu else -1)
+
         # process epoch outputs
         model = self.get_model()
         if self.is_overriden('training_epoch_end', model=model):
@@ -599,6 +611,10 @@ class TrainerTrainLoopMixin(ABC):
                     # track progress bar metrics
                     self.add_tqdm_metrics(progress_bar_metrics)
                     all_log_metrics.append(log_metrics)
+
+                    if self.use_horovod:
+                        # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
+                        optimizer.synchronize()
 
                     # insert after step hook
                     if self.is_function_implemented('on_after_backward'):
@@ -726,6 +742,12 @@ class TrainerTrainLoopMixin(ABC):
         # distributed forward
         if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.model(*args)
+
+        # Horovod
+        elif self.use_horovod and self.on_gpu:
+            batch = self.transfer_batch_to_gpu(copy.copy(batch), hvd.local_rank())
+            args[0] = batch
+            output = self.model.training_step(*args)
 
         # single GPU forward
         elif self.single_gpu:

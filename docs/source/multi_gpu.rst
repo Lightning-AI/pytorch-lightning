@@ -76,6 +76,7 @@ Lightning allows multiple ways of training
 - Data Parallel (`distributed_backend='dp'`) (multiple-gpus, 1 machine)
 - DistributedDataParallel (`distributed_backend='ddp'`) (multiple-gpus across many machines).
 - DistributedDataParallel2 (`distributed_backend='ddp2'`) (dp in a machine, ddp across machines).
+- Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (`num_tpu_cores=8|x`) (tpu or TPU pod)
 
 Data Parallel (dp)
@@ -135,6 +136,43 @@ In  this case, we can use ddp2 which behaves like dp in a machine and ddp across
 
     # train on 32 GPUs (4 nodes)
     trainer = pl.Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)
+
+Horovod
+^^^^^^^
+`Horovod <http://horovod.ai>`_ allows the same training script to be used for single-GPU,
+multi-GPU, and multi-node training.
+
+Like Distributed Data Parallel, every process in Horovod operates on a single GPU with a fixed
+subset of the data.  Gradients are averaged across all GPUs in parallel during the backward pass,
+then synchronously applied before beginning the next step.
+
+The number of worker processes is configured by a driver application (`horovodrun` or `mpirun`). In
+the training script, Horovod will detect the number of workers from the environment, and automatically
+scale the learning rate to compensate for the increased total batch size.
+
+Horovod can be configured in the training script to run with any number of GPUs / processes as follows:
+
+.. code-block:: python
+
+    # train Horovod on GPU (number of GPUs / machines provided on command-line)
+    trainer = pl.Trainer(distributed_backend='horovod', gpus=1)
+
+    # train Horovod on CPU (number of processes / machines provided on command-line)
+    trainer = pl.Trainer(distributed_backend='horovod')
+
+When starting the training job, the driver application will then be used to specify the total
+number of worker processes:
+
+.. code-block:: bash
+
+    # run training with 4 GPUs on a single machine
+    horovodrun -np 4 python train.py
+
+    # run training with 8 GPUs on two machines (4 GPUs each)
+    horovodrun -np 8 -H hostname1:4,hostname2:4 python train.py
+
+See the official `Horovod documentation <https://horovod.readthedocs.io/en/stable>`_ for details
+on installation and performance tuning.
 
 DP/DDP2 caveats
 ^^^^^^^^^^^^^^^

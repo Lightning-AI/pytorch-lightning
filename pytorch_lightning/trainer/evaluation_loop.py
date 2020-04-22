@@ -145,6 +145,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerEvaluationLoopMixin(ABC):
 
@@ -153,9 +160,11 @@ class TrainerEvaluationLoopMixin(ABC):
     test_progress_bar: ...
     val_progress_bar: ...
     main_progress_bar: ...
+    on_gpu: bool
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
+    use_horovod: bool
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
@@ -428,6 +437,11 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.use_ddp or self.use_dp or self.use_ddp2:
             output = model(*args)
             return output
+
+        # Horovod
+        if self.use_horovod and self.on_gpu:
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
+            args[0] = batch
 
         # single GPU data transfer
         if self.single_gpu:

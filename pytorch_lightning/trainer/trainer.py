@@ -23,11 +23,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device,
-    pick_multiple_gpus,
-)
+    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -736,13 +732,10 @@ class Trainer(
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
-
                 # track for predict
                 self.model = model
-
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
@@ -751,6 +744,9 @@ class Trainer(
         # easier to avoid NCCL issues
         elif self.use_dp:
             self.dp_train(model)
+
+        elif self.use_horovod:
+            self.horovod_train(model)
 
         elif self.single_gpu:
             self.single_gpu_train(model)
