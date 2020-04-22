@@ -21,6 +21,7 @@ import inspect
 # import m2r
 import builtins
 import pt_lightning_sphinx_theme
+from sphinx.ext import apidoc
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
@@ -127,18 +128,18 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'pytorch_lightning.rst',
-    'pl_examples.*',
-    'modules.rst',
+    'api/pytorch_lightning.rst',
+    'api/pl_examples.*',
+    'api/modules.rst',
 
     # deprecated/renamed:
-    'pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
-    'pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
-    'pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
-    'pytorch_lightning.callbacks.pt_callbacks.*',           # TODO: remove in v0.8.0
-    'pytorch_lightning.pt_overrides.*',                     # TODO: remove in v0.8.0
-    'pytorch_lightning.root_module.*',                      # TODO: remove in v0.8.0
-    'pytorch_lightning.logging.*',                          # TODO: remove in v0.8.0
+    'api/pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
+    'api/pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
+    'api/pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
+    'api/pytorch_lightning.callbacks.pt_callbacks.*',           # TODO: remove in v0.8.0
+    'api/pytorch_lightning.pt_overrides.*',                     # TODO: remove in v0.8.0
+    'api/pytorch_lightning.root_module.*',                      # TODO: remove in v0.8.0
+    'api/pytorch_lightning.logging.*',                          # TODO: remove in v0.8.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -263,32 +264,27 @@ intersphinx_mapping = {
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-# https://github.com/rtfd/readthedocs.org/issues/1139
-# I use sphinx-apidoc to auto-generate API documentation for my project.
-# Right now I have to commit these auto-generated files to my repository
-# so that RTD can build them into HTML docs. It'd be cool if RTD could run
-# sphinx-apidoc for me, since it's easy to forget to regen API docs
-# and commit them to my repo after making changes to my code.
 
+# packages for which sphinx-apidoc should generate the docs (.rst files)
 PACKAGES = [
     pytorch_lightning.__name__,
     'pl_examples',
 ]
 
+apidoc_output_folder = os.path.join(PATH_HERE, 'api')
+
 
 def run_apidoc(_):
+    sys.path.insert(0, apidoc_output_folder)
+
+    # delete api-doc files before generating them
+    shutil.rmtree(apidoc_output_folder)
+
     for pkg in PACKAGES:
-        argv = ['-e', '-o', PATH_HERE, os.path.join(PATH_HERE, PATH_ROOT, pkg),
+        argv = ['-e', '-o', apidoc_output_folder, os.path.join(PATH_ROOT, pkg),
                 '**/test_*', '--force', '--private', '--module-first']
-        try:
-            # Sphinx 1.7+
-            from sphinx.ext import apidoc
-            apidoc.main(argv)
-        except ImportError:
-            # Sphinx 1.6 (and earlier)
-            from sphinx import apidoc
-            argv.insert(0, apidoc.__file__)
-            apidoc.main(argv)
+
+        apidoc.main(argv)
 
 
 def setup(app):

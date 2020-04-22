@@ -104,10 +104,10 @@ Indices and tables
 .. toctree::
    :hidden:
 
-   pytorch_lightning.core
-   pytorch_lightning.callbacks
-   pytorch_lightning.loggers
-   pytorch_lightning.overrides
-   pytorch_lightning.profiler
-   pytorch_lightning.trainer
-   pytorch_lightning.utilities
+   api/pytorch_lightning.core
+   api/pytorch_lightning.callbacks
+   api/pytorch_lightning.loggers
+   api/pytorch_lightning.overrides
+   api/pytorch_lightning.profiler
+   api/pytorch_lightning.trainer
+   api/pytorch_lightning.utilities
