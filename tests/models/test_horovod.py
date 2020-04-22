@@ -38,7 +38,7 @@ def _nccl_available():
         return False
 
 
-def _horovodrun(trainer_options):
+def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
     cmdline = ['horovodrun', '-np', '2', sys.executable, TEST_SCRIPT,
                '--trainer-options', shlex.quote(json.dumps(trainer_options))]
