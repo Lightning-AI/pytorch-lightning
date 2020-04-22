@@ -123,7 +123,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.distributed import set_proc_rank, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 try:
     from apex import amp
@@ -326,7 +326,7 @@ class TrainerDDPMixin(ABC):
             self.world_size = self.num_nodes
 
         # set warning rank
-        set_proc_rank(self.proc_rank)
+        rank_zero_only.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
