@@ -282,8 +282,13 @@ def run_apidoc(_):
         shutil.rmtree(apidoc_output_folder)
 
     for pkg in PACKAGES:
-        argv = ['-e', '-o', apidoc_output_folder, os.path.join(PATH_ROOT, pkg),
-                '**/test_*', '--force', '--private', '--module-first']
+        argv = ['-e',
+                '-o', apidoc_output_folder,
+                os.path.join(PATH_ROOT, pkg),
+                '**/test_*',
+                '--force',
+                '--private',
+                '--module-first']
 
         apidoc.main(argv)
 
