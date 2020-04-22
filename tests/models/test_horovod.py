@@ -59,7 +59,7 @@ def test_horovod_cpu(tmpdir):
         val_percent_check=0.2,
         distributed_backend='horovod'
     )
-    _horovodrun(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
@@ -74,7 +74,7 @@ def test_horovod_cpu_implicit(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
     )
-    _horovodrun(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
@@ -93,7 +93,7 @@ def test_horovod_multi_gpu(tmpdir):
         gpus=1,
         distributed_backend='horovod'
     )
-    _horovodrun(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
