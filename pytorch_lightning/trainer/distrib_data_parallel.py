@@ -131,6 +131,13 @@ except ImportError:
 else:
     APEX_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerDDPMixin(ABC):
 
@@ -178,10 +185,14 @@ class TrainerDDPMixin(ABC):
         self.use_dp = False
         self.use_ddp = False
         self.use_ddp2 = False
+        self.use_horovod = False
         self.single_gpu = False
 
         if distributed_backend is None:
-            if self.num_gpus == 0:
+            if self.has_horovodrun():
+                self.check_horovod()
+                self.use_horovod = True
+            elif self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
@@ -219,6 +230,9 @@ class TrainerDDPMixin(ABC):
             self.use_ddp = True
             self.data_parallel_device_ids = None
             self.on_gpu = False
+        elif distributed_backend == 'horovod':
+            self.check_horovod()
+            self.use_horovod = True
 
         # throw error to force user ddp or ddp2 choice
         if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
@@ -402,3 +416,23 @@ class TrainerDDPMixin(ABC):
             root_node = name + number
 
         return root_node
+
+    def check_horovod(self):
+        """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
+        if not HOROVOD_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested `distributed_backend="horovod"`, but Horovod is not available. See: '
+                'https://horovod.readthedocs.io/en/stable/install_include.html for installation '
+                'instructions.'
+            )
+
+        if self.num_gpus > 1 or self.num_nodes > 1:
+            raise MisconfigurationException(
+                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
+                'horovodrun / mpirun to configure the number of processes.'
+            )
+
+    @staticmethod
+    def has_horovodrun():
+        """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
+        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ

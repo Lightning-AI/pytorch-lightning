@@ -10,6 +10,7 @@ references:
     run:
       name: Install Dependences
       command: |
+        sudo apt-get update && sudo apt-get install -y cmake
         pip install "$TORCH_VERSION"
         pip install -r requirements.txt -q
         sudo pip install pytest pytest-cov pytest-flake8 -q

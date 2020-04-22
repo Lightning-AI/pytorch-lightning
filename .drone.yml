@@ -6,12 +6,19 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorch/pytorch:1.4-cuda10.1-cudnn7-runtime
+  image: pytorch/pytorch:1.4-cuda10.1-cudnn7-devel
 
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
+    HOROVOD_GPU_ALLREDUCE: NCCL
+    HOROVOD_GPU_BROADCAST: NCCL
+    HOROVOD_WITH_PYTORCH: 1
+    HOROVOD_WITHOUT_TENSORFLOW: 1
+    HOROVOD_WITHOUT_MXNET: 1
+    HOROVOD_WITH_GLOO: 1
+    HOROVOD_WITHOUT_MPI: 1
 
   #volumes:
   #  # Mount pip cache from host
@@ -19,11 +26,13 @@ steps:
   #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
+    - export PATH="$PATH:/root/.local/bin"
     - python --version
     - pip install pip -U
     - pip --version
     - nvidia-smi
     - bash ./tests/install_AMP.sh
+    - apt-get update && apt-get install -y cmake
     - pip install -r requirements.txt --user -q
     - pip install coverage pytest pytest-cov pytest-flake8 codecov -q
     - pip install -r ./tests/requirements.txt --user -q

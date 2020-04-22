@@ -55,20 +55,17 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True):
+def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=True):
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
-    logger = get_default_logger(save_dir)
+    logger = get_default_logger(save_dir, version=version)
+    trainer_options.update(logger=logger)
 
-    # logger file to get weights
-    checkpoint = init_checkpoint_callback(logger)
-
-    # add these to the trainer options
-    trainer_options.update(
-        checkpoint_callback=checkpoint,
-        logger=logger,
-    )
+    if 'checkpoint_callback' not in trainer_options:
+        # logger file to get weights
+        checkpoint = init_checkpoint_callback(logger)
+        trainer_options.update(checkpoint_callback=checkpoint)
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -87,15 +84,16 @@ def run_model_test(trainer_options, model, on_gpu=True):
 
     [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
 
-    if trainer.use_ddp or trainer.use_ddp2:
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
-            trainer.init_optimizers(pretrained_model)
+    if with_hpc:
+        if trainer.use_ddp or trainer.use_ddp2:
+            # on hpc this would work fine... but need to hack it for the purpose of the test
+            trainer.model = pretrained_model
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
+                trainer.init_optimizers(pretrained_model)
 
-    # test HPC loading / saving
-    trainer.hpc_save(save_dir, logger)
-    trainer.hpc_load(save_dir, on_gpu=on_gpu)
+        # test HPC loading / saving
+        trainer.hpc_save(save_dir, logger)
+        trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
 
 def get_default_hparams(continue_training=False, hpc_exp_number=0):
@@ -110,6 +108,8 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
         'data_root': PATH_DATASETS,
         'out_features': 10,
         'hidden_dim': 1000,
+        'b1': 0.5,
+        'b2': 0.999,
     }
 
     if continue_training:
