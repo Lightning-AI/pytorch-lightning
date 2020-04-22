@@ -19,12 +19,7 @@ class TrainerAMPMixin(ABC):
     precision: int
     use_native_amp: bool
 
-    def init_amp(self, use_amp, amp_level, precision):
-        # 16 bit mixed precision training using apex
-        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-        self.amp_level = amp_level
-        self.precision = precision
-
+    def init_amp(self, use_amp):
         # TODO: remove in v 0.8.0
         if self.use_native_amp:
             rank_zero_warn("`amp_level` has been deprecated since v0.7.4 "
@@ -38,9 +33,6 @@ class TrainerAMPMixin(ABC):
             self.precision = 16 if use_amp else 32
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        if self.precision == 16 and self.num_tpu_cores is None:
-            use_amp = True
 
         if use_amp and self.use_native_amp:
             log.info('Using 16bit precision.')
@@ -61,4 +53,9 @@ class TrainerAMPMixin(ABC):
 
     @property
     def use_amp(self) -> bool:
-        return self.precision == 16 and APEX_AVAILABLE
+        if self.use_native_amp:
+            return self.precision == 16
+
+        # TODO: remove in v0.8.0
+        else:
+            return self.precision == 16 and APEX_AVAILABLE

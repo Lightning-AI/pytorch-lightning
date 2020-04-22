@@ -487,7 +487,17 @@ class Trainer(
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
-        self.init_amp(use_amp, amp_level, precision)
+        # AMP init
+        # These are the only lines needed after v0.8.0
+        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
+            self.precision = precision
+
+        # TODO: remove for v0.8.0
+        self.amp_level = amp_level
+        self.precision = precision
+        self.init_amp(use_amp)
 
         # Callback system
         self.on_init_end()
