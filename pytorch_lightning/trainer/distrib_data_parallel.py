@@ -421,9 +421,8 @@ class TrainerDDPMixin(ABC):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `distributed_backend="horovod"`, but Horovod is not available. See: '
-                'https://horovod.readthedocs.io/en/stable/install_include.html for installation '
-                'instructions.'
+                'Requested `distributed_backend="horovod"`, but Horovod is not available.'
+                'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
             )
 
         if self.num_gpus > 1 or self.num_nodes > 1:
