@@ -12,7 +12,7 @@ except ImportError:  # pragma: no-cover
                       ' install it with `pip install test-tube`.')
 
 from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.utilities.distributed import rank_zero_only, get_proc_rank
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -93,7 +93,7 @@ class TestTubeLogger(LightningLoggerBase):
             version=self.version,
             description=self.description,
             create_git_tag=self.create_git_tag,
-            rank=get_proc_rank(),
+            rank=rank_zero_only.rank,
         )
         return self._experiment
 
