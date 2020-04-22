@@ -23,7 +23,7 @@ else:
 
 
 # This script will run the actual test model training in parallel
-TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data/horovod/train_default_model.py')
+TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
 
 
 def _nccl_available():
