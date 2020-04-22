@@ -278,7 +278,8 @@ def run_apidoc(_):
     sys.path.insert(0, apidoc_output_folder)
 
     # delete api-doc files before generating them
-    shutil.rmtree(apidoc_output_folder)
+    if os.path.exists(apidoc_output_folder):
+        shutil.rmtree(apidoc_output_folder)
 
     for pkg in PACKAGES:
         argv = ['-e', '-o', apidoc_output_folder, os.path.join(PATH_ROOT, pkg),
