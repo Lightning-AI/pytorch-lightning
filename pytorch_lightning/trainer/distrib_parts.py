@@ -530,6 +530,10 @@ class TrainerDPMixin(ABC):
 
         model.cuda(self.root_gpu)
 
+        # hack forward to do autocast for the user
+        if self.use_amp and self.use_native_amp:
+            model.forward = torch.cuda.amp.autocast()(model.forward)
+
         # TODO: remove in v0.8.0
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
