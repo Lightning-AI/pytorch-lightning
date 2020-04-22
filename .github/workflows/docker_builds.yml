@@ -1,0 +1,16 @@
+name: Publish Docker
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Publish Releases to Docker
+      # so far only on releases
+      uses: HurricanKai/Publish-Docker-Github-Action@master
+      if: contains(github.ref, 'refs/tags/v')
+      with:
+        name: pytorchlightning/pytorch_lightning
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        tagging: true
