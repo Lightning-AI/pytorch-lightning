@@ -60,15 +60,15 @@ jobs:
         python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
         python -c "req = open('requirements-extra.txt').read().replace('>', '=') ; open('requirements-extra.txt', 'w').write(req)"
 
-#    - name: Cache pip
-#      uses: actions/cache@v1
-#      with:
-#        path: ~/.cache/pip # This path is specific to Ubuntu
-#        # Look to see if there is a cache hit for the corresponding requirements file
-#        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
-#        restore-keys: |
-#          ${{ runner.os }}-pip-${{ matrix.python-version }}-
-#          ${{ runner.os }}-${{ matrix.python-version }}-
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip # This path is specific to Ubuntu
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-${{ matrix.python-version }}-
 
     - name: Cache datasets
       uses: actions/cache@v1
