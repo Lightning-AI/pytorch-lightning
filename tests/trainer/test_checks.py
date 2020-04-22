@@ -122,7 +122,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # ----------------
     # if have test_dataloader should  have test_step
     # ----------------
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(hparams)
         model.test_step = None
         trainer.fit(model)
@@ -146,7 +146,7 @@ def test_warning_on_wrong_test_settigs(tmpdir):
     # ----------------
     # if have test_dataloader and NO test_step tell user to implement  test_step
     # ----------------
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(hparams)
         model.test_dataloader = lambda: None
         model.test_step = None

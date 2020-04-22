@@ -993,8 +993,9 @@ class Trainer(
         # Check val_dataloader, validation_step and validation_epoch_end
         if self.is_overriden('val_dataloader', model):
             if not self.is_overriden('validation_step', model):
-                raise MisconfigurationException('You have passed in a `val_dataloader()`'
-                                                ' but have not defined `validation_step()`.')
+                m = 'You have passed in a `val_dataloader()` ' \
+                    'but have not defined `validation_step()`. This step will not be called.'
+                rank_zero_warn(m)
             else:
                 if not self.is_overriden('validation_epoch_end', model):
                     rank_zero_warn(
@@ -1010,12 +1011,13 @@ class Trainer(
         # Check test_dataloader, test_step and test_epoch_end
         if self.is_overriden('test_dataloader', model):
             if not self.is_overriden('test_step', model):
-                raise MisconfigurationException('You have passed in a `test_dataloader()`'
-                                                ' but have not defined `test_step()`.')
+                m = 'You have passed in a `test_dataloader()` ' \
+                    'but have not defined `test_step()`. This will not be called'
             else:
                 if not self.is_overriden('test_epoch_end', model):
                     rank_zero_warn(
-                        'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
+                        'You have defined a `test_dataloader()` '
+                        'and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
                     )
 
