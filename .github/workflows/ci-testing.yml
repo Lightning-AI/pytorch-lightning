@@ -41,9 +41,15 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+        brew install openmpi  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        python -c "lines = [line for line in open('requirements-extra.txt').readlines() if not line.startswith('horovod')] ; open('requirements-extra.txt', 'w').writelines(lines)"
 
     # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
-    - name: Setup Windows
+    - name: Setup Windows on Latest
       if: runner.os == 'windows' && matrix.requires == 'latest'
       run: |
         python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch<1.5') ; open('requirements.txt', 'w').write(req)"
@@ -75,11 +81,12 @@ jobs:
       run: |
         # python -m pip install --upgrade --user pip
         pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
-        pip install -r ./tests/requirements.txt -q
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./tests/requirements.txt -q
         # pip install tox coverage
         python --version
         pip --version
         pip list
+      shell: bash
 
     - name: Tests
       # env:
