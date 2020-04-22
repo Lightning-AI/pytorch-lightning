@@ -115,7 +115,6 @@ class Trainer(
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
-            amp_level: str = 'O1',
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
@@ -124,6 +123,7 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
+            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -487,21 +487,7 @@ class Trainer(
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
-        # 16 bit mixed precision training using apex
-        self.amp_level = amp_level
-        self.precision = precision
-
-        # Backward compatibility, TODO: remove in v0.9.0
-        if use_amp is not None:
-            rank_zero_warn("`use_amp` has been replaced by `precision` since v0.7.0"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
-            self.precision = 16 if use_amp else 32
-
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        if self.precision == 16 and self.num_tpu_cores is None:
-            use_amp = True
-        self.init_amp(use_amp)
+        self.init_amp(use_amp, amp_level, precision)
 
         # Callback system
         self.on_init_end()
