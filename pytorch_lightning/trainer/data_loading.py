@@ -26,6 +26,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 def _has_len(dataloader: DataLoader) -> bool:
     """ Checks if a given Dataloader has __len__ method implemented i.e. if
@@ -47,6 +54,7 @@ class TrainerDataLoadingMixin(ABC):
     proc_rank: int
     use_ddp: bool
     use_ddp2: bool
+    use_horovod: bool
     shown_warnings: ...
     val_check_interval: float
     use_tpu: bool
@@ -89,7 +97,7 @@ class TrainerDataLoadingMixin(ABC):
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_tpu)
+        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
         if self.replace_sampler_ddp and need_dist_sampler:
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
@@ -104,6 +112,10 @@ class TrainerDataLoadingMixin(ABC):
                     num_replicas=xm.xrt_world_size(),
                     rank=xm.get_ordinal(),
                 )
+            elif self.use_horovod:
+                sampler = DistributedSampler(dataloader.dataset,
+                                             num_replicas=hvd.size(),
+                                             rank=hvd.rank())
             else:
                 world_size = {
                     'ddp': self.num_nodes * self.num_processes,
@@ -253,6 +265,10 @@ class TrainerDataLoadingMixin(ABC):
         elif self.use_tpu and XLA_AVAILABLE:
             # all processes wait until data download has happened
             torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
+
+        elif self.use_horovod:
+            # all processes wait until data download has happened
+            hvd.join()
 
         return dataloader
 

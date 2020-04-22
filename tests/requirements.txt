@@ -2,7 +2,6 @@
 -r ../requirements-extra.txt
 
 # extended list of dependencies dor development and run lint and tests
-tox
 coverage
 codecov
 pytest>=3.0.5

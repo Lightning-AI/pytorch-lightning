@@ -745,6 +745,9 @@ class Trainer(
         elif self.use_dp:
             self.dp_train(model)
 
+        elif self.use_horovod:
+            self.horovod_train(model)
+
         elif self.single_gpu:
             self.single_gpu_train(model)
 
