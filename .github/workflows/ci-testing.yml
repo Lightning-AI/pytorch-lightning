@@ -46,7 +46,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows' && matrix.requires == 'latest'
       run: |
-        python -c "req = open('requirements.txt').read().replace('torch<=1.1', 'torch>1.5') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch<1.5') ; open('requirements.txt', 'w').write(req)"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
