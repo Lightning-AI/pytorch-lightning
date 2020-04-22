@@ -1159,7 +1159,14 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         elif isinstance(optimizer, torch.optim.LBFGS):
             optimizer.step(second_order_closure)
         else:
-            optimizer.step()
+            if self.use_amp and self.use_native_amp:
+                self.trainer.scaler.step(optimizer)
+            else:
+                optimizer.step()
+
+        # in native 16-bit we need to update scaler after optimizer step
+        if self.use_amp and self.use_native_amp:
+            self.trainer.scaler.update()
 
         # model hook
         self.on_before_zero_grad(optimizer)
