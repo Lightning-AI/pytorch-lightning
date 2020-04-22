@@ -609,11 +609,7 @@ class TrainerDPMixin(ABC):
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
         self.proc_rank = hvd.rank()
-        set_proc_rank(self.proc_rank)
-        if self.logger:
-            self.logger.rank = self.proc_rank
-        if model.logger:
-            model.logger.rank = self.proc_rank
+        rank_zero_only.rank = self.proc_rank
 
         with ExitStack() as stack:
             for optimizer in self.optimizers:
