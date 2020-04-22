@@ -7,7 +7,7 @@ from tests.base.datasets import TrialMNIST
 
 
 # from test_models import assert_ok_test_acc, load_model, \
-#     clear_save_dir, get_default_testtube_logger, get_default_hparams, init_save_dir, \
+#     clear_save_dir, get_default_logger, get_default_hparams, init_save_dir, \
 #     init_checkpoint_callback, reset_seed, set_random_master_port
 
 

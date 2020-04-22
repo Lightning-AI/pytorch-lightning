@@ -16,8 +16,10 @@ from tests.base import (
 )
 
 
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_ddp(tmpdir):
+def test_running_test_pretrained_model_distrib(tmpdir, backend):
     """Verify `test()` on pretrained model."""
 
     tutils.reset_seed()
@@ -27,20 +29,20 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     model = LightningTestModel(hparams)
 
     # exp file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
         gpus=[0, 1],
-        distributed_backend='ddp'
+        distributed_backend=backend,
     )
 
     # fit model
@@ -59,6 +61,9 @@ def test_running_test_pretrained_model_ddp(tmpdir):
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(new_trainer)
+
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
@@ -67,7 +72,7 @@ def test_running_test_pretrained_model_ddp(tmpdir):
         tutils.run_prediction(dataloader, pretrained_model)
 
 
-def test_running_test_pretrained_model(tmpdir):
+def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
 
@@ -75,7 +80,7 @@ def test_running_test_pretrained_model(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
@@ -119,7 +124,6 @@ def test_load_model_from_checkpoint(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
         default_root_dir=tmpdir,
     )
 
@@ -151,47 +155,6 @@ def test_load_model_from_checkpoint(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_dp(tmpdir):
-    """Verify test() on pretrained model."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
-
-    # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
-
-    # logger file to get weights
-    checkpoint = tutils.init_checkpoint_callback(logger)
-
-    trainer_options = dict(
-        max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        checkpoint_callback=checkpoint,
-        logger=logger,
-        gpus=[0, 1],
-        distributed_backend='dp'
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=LightningTestModel)
-
-    new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
-
-    # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
 
@@ -207,7 +170,7 @@ def test_dp_resume(tmpdir):
     )
 
     # get logger
-    logger = tutils.get_default_testtube_logger(tmpdir, debug=False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     # logger file to get weights
@@ -235,7 +198,7 @@ def test_dp_resume(tmpdir):
     trainer.hpc_save(tmpdir, logger)
 
     # init new trainer
-    new_logger = tutils.get_default_testtube_logger(tmpdir, version=logger.version)
+    new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
     trainer_options['train_percent_check'] = 0.5
@@ -275,7 +238,7 @@ def test_model_saving_loading(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -356,7 +319,3 @@ def test_load_model_with_missing_hparams(tmpdir):
     # warn if user's model has hparams argument
     with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
         LightningTestModelWithUnusedHyperparametersArg.load_from_checkpoint(last_checkpoint)
-
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])

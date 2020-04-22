@@ -102,10 +102,18 @@ class TrainerDataLoadingMixin(ABC):
                 sampler = DistributedSampler(
                     dataloader.dataset,
                     num_replicas=xm.xrt_world_size(),
-                    rank=xm.get_ordinal()
+                    rank=xm.get_ordinal(),
                 )
             else:
-                sampler = DistributedSampler(dataloader.dataset)
+                world_size = {
+                    'ddp': self.num_nodes * self.num_processes,
+                    'ddp2': self.num_nodes,
+                }
+                sampler = DistributedSampler(
+                    dataloader.dataset,
+                    num_replicas=world_size.get(self.distributed_backend, 0),
+                    rank=self.proc_rank,
+                )
 
             dl_args['sampler'] = sampler
             dataloader = type(dataloader)(**dl_args)
