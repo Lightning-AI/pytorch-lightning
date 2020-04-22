@@ -31,7 +31,7 @@ steps:
     - pip install pip -U
     - pip --version
     - nvidia-smi
-    - bash ./tests/install_AMP.sh
+#    - bash ./tests/install_AMP.sh
     - apt-get update && apt-get install -y cmake
     - pip install -r requirements.txt --user -q
     - pip install coverage pytest pytest-cov pytest-flake8 codecov -q
