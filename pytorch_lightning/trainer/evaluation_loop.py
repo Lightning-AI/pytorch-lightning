@@ -268,7 +268,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                if self.use_amp and self.use_native_amp:
+                    with torch.cuda.amp.autocast():
+                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                else:
+                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:

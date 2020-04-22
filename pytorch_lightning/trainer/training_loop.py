@@ -148,6 +148,7 @@ from typing import Union, List
 
 import numpy as np
 from torch.utils.data import DataLoader
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -588,8 +589,12 @@ class TrainerTrainLoopMixin(ABC):
                 def optimizer_closure():
                     # forward pass
                     with self.profiler.profile('model_forward'):
-                        output_dict = self.training_forward(
-                            split_batch, batch_idx, opt_idx, self.hiddens)
+                        if self.use_amp and self.use_native_amp:
+                            with torch.cuda.amp.autocast():
+                                output_dict = self.training_forward(split_batch, batch_idx,
+                                                                    opt_idx, self.hiddens)
+                        else:
+                            output_dict = self.training_forward(split_batch, batch_idx, opt_idx, self.hiddens)
 
                         # format and reduce outputs accordingly
                         processed_output = self.process_output(output_dict, train=True)
