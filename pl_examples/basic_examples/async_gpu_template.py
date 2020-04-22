@@ -45,7 +45,7 @@ class AsyncModel(LightningTemplateModel):
 
         batch_size = self.hparams.batch_size
 
-        return AsynchronousLoader(dataset=dataset, batch_size=batch_size, num_workers=0)
+        return AsynchronousLoader(dataset, batch_size=batch_size, num_workers=0)
 
 
 def main(hparams):

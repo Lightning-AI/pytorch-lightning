@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
 
@@ -18,30 +19,34 @@ class AsynchronousLoader(object):
 
     Parameters
     ----------
-    dataset: PyTorch Dataset
-        The PyTorch dataset we're loading.
-        Exactly one of dataset or dataloader must be specified
-        This must also be finite and of constant length
-    dataloader: PyTorch DataLoader
-        The PyTorch DataLoader we're using to load.
-        Exactly one of dataset or dataloader must be specified
-        This must also be finite and of constant length
+    data: PyTorch Dataset or PyTorch DataLoader
+        The PyTorch Dataset or DataLoader we're using to load.
     device: PyTorch Device
         The PyTorch device we are loading to
     q_size: Integer
         Size of the queue used to store the data loaded to the device
+    num_batches: Integer or None
+        Number of batches to load.
+        This must be set if the dataloader doesn't have a finite __len__
+        It will also override DataLoader.__len__ if set and DataLoader has a __len__
+        Otherwise can be left as None
     **kwargs:
         Any additional arguments to pass to the dataloader if we're constructing one here
     """
 
-    def __init__(self, dataset=None, dataloader=None, device=torch.device('cuda', 0), q_size=10, **kwargs):
-
-        if dataset is not None and dataloader is None:
-            self.dataloader = DataLoader(dataset, **kwargs)
-        elif dataloader is not None and dataset is None:
-            self.dataloader = dataloader
+    def __init__(self, data, device=torch.device('cuda', 0), q_size=10,
+                 num_batches=None, **kwargs):
+        if isinstance(data, torch.utils.data.DataLoader):
+            self.dataloader = data
         else:
-            raise Exception("Exactly one of dataset or dataloader must be specified")
+            self.dataloader = DataLoader(data, **kwargs)
+
+        if num_batches is not None:
+            self.num_batches = num_batches
+        elif hasattr(self.dataloader, '__len__'):
+            self.num_batches = len(self.dataloader)
+        else:
+            raise Exception("num_batches must be specified or data must have finite __len__")
 
         self.device = device
         self.q_size = q_size
@@ -54,6 +59,8 @@ class AsynchronousLoader(object):
     def load_loop(self):  # The loop that will load into the queue in the background
         for i, sample in enumerate(self.dataloader):
             self.queue.put(self.load_instance(sample))
+            if i == len(self):
+                break
 
     # Recursive loading for each instance based on torch.utils.data.default_collate
     def load_instance(self, sample):
@@ -79,7 +86,7 @@ class AsynchronousLoader(object):
         # If we've reached the number of batches to return
         # or the queue is empty and the worker is dead then exit
         done = not self.worker.is_alive() and self.queue.empty()
-        done = done or self.idx >= len(self.dataloader)
+        done = done or self.idx >= len(self)
         if done:
             self.idx = 0
             self.queue.join()
@@ -92,4 +99,4 @@ class AsynchronousLoader(object):
         return out
 
     def __len__(self):
-        return len(self.dataloader)
+        return self.num_batches
