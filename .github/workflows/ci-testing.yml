@@ -1,6 +1,6 @@
 name: CI testing
 
-# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
   # Trigger the workflow on push or pull request,
   # but only for the master branch
@@ -116,6 +116,7 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
+
     #- name: Try install package
     #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
