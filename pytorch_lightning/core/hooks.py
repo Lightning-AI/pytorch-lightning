@@ -138,8 +138,6 @@ class ModelHooks(torch.nn.Module):
                 else:
                     loss.backward()
 
-        .. note:: with PyTorch 1.6+ + precision=16 + multiple optimizers, set .backward(retrain_graph=True)
-
         """
         if trainer.precision == 16:
             # .backward is not special on 16-bit with TPUs
@@ -147,7 +145,6 @@ class ModelHooks(torch.nn.Module):
                 return
 
             if self.trainer.use_native_amp:
-                # don't forget to retain graph on backward with multiple optimizers
                 self.trainer.scaler.scale(loss).backward()
 
             # TODO: remove in v0.8.0
