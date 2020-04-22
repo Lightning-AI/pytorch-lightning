@@ -80,6 +80,7 @@ jobs:
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
+        rm -rf ~/.cache/pip
         pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
         HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./tests/requirements.txt -q
         # pip install tox coverage
