@@ -41,6 +41,10 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        pip install "torch<=1.5"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
