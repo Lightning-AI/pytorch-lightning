@@ -36,22 +36,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
-    - name: Setup macOS
-      if: runner.os == 'macOS'
-      run: |
-        brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
-    - name: Setup Windows
-      if: runner.os == 'windows'
-      run: |
-        pip install "torch<=1.5"
-
-    - name: Set min. dependencies
-      if: matrix.requires == 'minimal'
-      run: |
-        python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
-        python -c "req = open('requirements-extra.txt').read().replace('>', '=') ; open('requirements-extra.txt', 'w').write(req)"
-
     - name: Cache pip
       uses: actions/cache@v1
       with:
@@ -59,8 +43,20 @@ jobs:
         # Look to see if there is a cache hit for the corresponding requirements file
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
           ${{ runner.os }}-${{ matrix.python-version }}-
+
+    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
+    - name: Setup macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+
+    - name: Set min. dependencies
+      if: matrix.requires == 'minimal'
+      run: |
+        python -c "req = open('requirements.txt').read().replace('>', '=') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements-extra.txt').read().replace('>', '=') ; open('requirements-extra.txt', 'w').write(req)"
 
     - name: Cache datasets
       uses: actions/cache@v1
@@ -79,6 +75,12 @@ jobs:
         pip --version
         pip list
 
+    # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        pip install 'torch<1.5' -U
+
     - name: Tests
       # env:
       #   TOXENV: py${{ matrix.python-version }}
@@ -91,8 +93,8 @@ jobs:
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
       # Use always() to always run this step to publish test results when there are test failures
       if: always()
 
