@@ -146,9 +146,9 @@ class ModelHooks(torch.nn.Module):
             if trainer.on_tpu:
                 return
 
-            if self.use_native_amp:
+            if self.trainer.use_native_amp:
                 # don't forget to retain graph on backward with multiple optimizers
-                self.scaler.scale(loss).backward()
+                self.trainer.scaler.scale(loss).backward()
 
             # TODO: remove in v0.8.0
             else:
