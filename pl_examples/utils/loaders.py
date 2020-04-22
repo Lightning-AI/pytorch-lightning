@@ -34,8 +34,7 @@ class AsynchronousLoader(object):
         Any additional arguments to pass to the dataloader if we're constructing one here
     """
 
-    def __init__(self, data, device=torch.device('cuda', 0), q_size=10,
-                 num_batches=None, **kwargs):
+    def __init__(self, data, device=torch.device('cuda', 0), q_size=10, num_batches=None, **kwargs):
         if isinstance(data, torch.utils.data.DataLoader):
             self.dataloader = data
         else:
