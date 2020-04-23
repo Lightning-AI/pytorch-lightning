@@ -151,6 +151,13 @@ def test_progress_bar_fast_dev_run():
     assert 2 == progress_bar.main_progress_bar.total
     assert 2 == progress_bar.main_progress_bar.n
 
+    trainer.test(model)
+
+    # the test progress bar should display 1 batch
+    assert 1 == progress_bar.test_batch_idx
+    assert 1 == progress_bar.test_progress_bar.total
+    assert 1 == progress_bar.test_progress_bar.n
+
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
 def test_progress_bar_progress_refresh(refresh_rate):
