@@ -745,7 +745,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(copy.copy(batch), hvd.local_rank())
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
             args[0] = batch
             output = self.model.training_step(*args)
 
@@ -764,7 +764,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(copy.copy(batch))
+            batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
             output = self.model.training_step(*args)
 
