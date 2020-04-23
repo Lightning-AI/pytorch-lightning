@@ -180,19 +180,19 @@ def test_progress_bar_progress_refresh(refresh_rate):
         def on_batch_end(self, trainer, pl_module):
             super().on_batch_end(trainer, pl_module)
             assert self.train_batch_idx == trainer.batch_idx + 1
-            if not self.disabled and self.train_batch_idx % self.refresh_rate == 0:
+            if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
 
         def on_validation_batch_end(self, trainer, pl_module):
             super().on_validation_batch_end(trainer, pl_module)
-            if not self.disabled and self.val_batch_idx % self.refresh_rate == 0:
+            if not self.is_disabled and self.val_batch_idx % self.refresh_rate == 0:
                 assert self.val_progress_bar.n == self.val_batch_idx
             self.val_batches_seen += 1
 
         def on_test_batch_end(self, trainer, pl_module):
             super().on_test_batch_end(trainer, pl_module)
-            if not self.disabled and self.test_batch_idx % self.refresh_rate == 0:
+            if not self.is_disabled and self.test_batch_idx % self.refresh_rate == 0:
                 assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
 
