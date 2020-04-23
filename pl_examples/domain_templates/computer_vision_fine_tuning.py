@@ -3,59 +3,60 @@
 This example illustrates how to fine tune a pre-trained ResNet50 on the
 'cats and dogs dataset' (~60MB, see `DATA_URL` below). For the sake of this
 example, the proposed network is trained for 15 epochs. The training includes
-three stages. From epoch 0 to 4, the feature extractor (ResNet50) is frozen
-except for the BatchNorm layers (`train_bn = True` in `hparams`) and lr = 1e-2.
-From epoch 5 to 9, the last two layer groups of the feature extractor are
-unfrozen and lr = 1e-3. From epoch 10, all the layer groups of the feature
-extractor are unfrozen and lr = 1e-4.
+three stages. From epoch 0 to 4, the feature extractor (by default, a ResNet50)
+is frozen except for the BatchNorm layers (`train_bn = True` in `hparams`)
+and lr = 1e-2. From epoch 5 to 9, the last two layer groups of the feature
+extractor are unfrozen and lr = 1e-3. From epoch 10, all the layer groups of
+the feature extractor are unfrozen and lr = 1e-4. For the sake of this example,
+the dataset is downloaded to a temporary folder.
+
+See also: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 """
 
+import argparse
 from collections import OrderedDict
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Optional, Generator
 
 import torch
 import torch.nn.functional as F
 from torch import optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import DataLoader
+from torchvision import models
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from torchvision.models import resnet50
+from torchvision.datasets.utils import download_and_extract_archive
 
 import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 
 BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
+DATA_URL = 'https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip'
 
 
 #  --- Utility functions ---
 
 
-def _make_trainable(module):
+def _make_trainable(module: torch.nn.Module) -> None:
     """Unfreeze a given module.
 
-    Operates in-place.
-
-    Parameters
-    ----------
-    module : instance of `torch.nn.Module`
+    Args:
+        module (torch.nn.Module): The module to unfreeze
     """
     for param in module.parameters():
         param.requires_grad = True
     module.train()
 
 
-def _recursive_freeze(module, train_bn=True):
+def _recursive_freeze(module: torch.nn.Module,
+                      train_bn: Optional[bool] = True) -> None:
     """Freeze the layers of a given module.
 
-    Operates in-place.
-
-    Parameters
-    ----------
-    module : instance of `torch.nn.Module`
-
-    train_bn : bool (default: True)
-        If True, the BatchNorm layers will remain in training mode.
-        Otherwise, they will be set to eval mode along with the other modules.
+    Args:
+        module (torch.nn.Module): The module to freeze
+        train_bn (bool): If True, leave the BatchNorm layers in training mode
     """
     children = list(module.children())
     if not children:
@@ -71,21 +72,15 @@ def _recursive_freeze(module, train_bn=True):
             _recursive_freeze(module=child, train_bn=train_bn)
 
 
-def freeze(module, n=None, train_bn=True):
-    """Freeze the layers up to index n.
+def freeze(module: torch.nn.Module,
+           n: Optional[int] = None,
+           train_bn: Optional[bool] = True) -> None:
+    """Freeze the layers up to index n (if n is not None).
 
-    Operates in-place.
-
-    Parameters
-    ----------
-    module : instance of `torch.nn.Module`
-
-    n : int or None (default: None)
-        By default, all the layers will be frozen. Otherwise (if not None),
-        an integer must be given.
-
-    train_bn : bool (default: True)
-        If True, the BatchNorm layers will remain in training mode.
+    Args:
+        module (torch.nn.Module): The module to freeze (at least partially)
+        n (int): Max depth at which we stop freezing the layers. By default,
+        train_bn (bool): If True, leave the BatchNorm layers in training mode
     """
     children = list(module.children())
     n_max = len(children) if n is None else int(n)
@@ -97,18 +92,16 @@ def freeze(module, n=None, train_bn=True):
         _make_trainable(module=child)
 
 
-def filter_params(module, train_bn=True):
+def filter_params(module: torch.nn.Module,
+                  train_bn: Optional[bool] = True) -> Generator:
     """Yield the trainable parameters of a given module.
 
-    Parameters
-    ----------
-    module : instance of `torch.nn.Module`
+    Args:
+        module (torch.nn.Module): A given module
+        train_bn (bool): If True, leave the BatchNorm layers in training mode
 
-    train_bn : bool (default: True)
-
-    Returns
-    -------
-    generator
+    Returns:
+        Generator
     """
     children = list(module.children())
     if not children:
@@ -137,22 +130,16 @@ def _unfreeze_and_add_param_group(module, optimizer, lr=None, train_bn=True):
 class TransferLearningModel(pl.LightningModule):
     """Transfer Learning with pre-trained ResNet50.
 
-    Parameters
-    ----------
-    hparams : instance of `argparse.Namespace`
-        Model hyperparameters.
-
-    train_dataset : instance of `torch.utils.data.Dataset`
-        Dataset with training images.
-
-    valid_dataset : instance of `torch.utils.data.Dataset`
-        Dataset with validation images.
+    Args:
+        hparams (argparse.Namespace): Model hyperparameters
+        train_dataset (torch.utils.data.Dataset): training dataset
+        valid_dataset (torch.utils.data.Dataset): validation dataset
     """
     def __init__(self,
                  hparams,
                  train_dataset,
                  valid_dataset):
-        super(TransferLearningModel, self).__init__()
+        super().__init__()
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
         self.hparams = hparams
@@ -161,8 +148,9 @@ class TransferLearningModel(pl.LightningModule):
     def __build_model(self):
         """Define model layers & loss."""
 
-        # 1. Load pre-trained ResNet50:
-        backbone = resnet50(pretrained=True)
+        # 1. Load pre-trained network:
+        model_func = getattr(models, self.hparams.backbone)
+        backbone = model_func(pretrained=True)
 
         _layers = list(backbone.children())[:-1]
         self.feature_extractor = torch.nn.Sequential(*_layers)
@@ -202,15 +190,15 @@ class TransferLearningModel(pl.LightningModule):
         return self.loss_func(input=logits, target=labels)
 
     def train(self, mode=True):
-        super(TransferLearningModel, self).train(mode=mode)
+        super().train(mode=mode)
 
         epoch = self.current_epoch
-        if epoch < self.hparams.milestones[0]:
+        if epoch < self.hparams.milestones[0] and mode:
             # feature extractor is frozen (except for BatchNorm layers)
             freeze(module=self.feature_extractor,
                    train_bn=self.hparams.train_bn)
 
-        elif self.hparams.milestones[0] <= epoch < self.hparams.milestones[1]:
+        elif self.hparams.milestones[0] <= epoch < self.hparams.milestones[1] and mode:
             # Unfreeze last two layers of the feature extractor
             freeze(module=self.feature_extractor,
                    n=-2,
@@ -333,73 +321,121 @@ class TransferLearningModel(pl.LightningModule):
         log.info('Validation data loaded.')
         return self.__dataloader(train=False)
 
+    @staticmethod
+    def add_specific_args(parent_parser):
+        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser.add_argument('--backbone',
+                            default='resnet50',
+                            type=str,
+                            metavar='BK',
+                            help='Name (as in ``torchvision.models``) of the feature extractor')
+        parser.add_argument('--epochs',
+                            default=15,
+                            type=int,
+                            metavar='N',
+                            help='total number of epochs',
+                            dest='nb_epochs')
+        parser.add_argument('--batch-size',
+                            default=8,
+                            type=int,
+                            metavar='B',
+                            help='batch size',
+                            dest='batch_size')
+        parser.add_argument('--gpus',
+                            type=int,
+                            default=1,
+                            help='number of gpus to use')
+        parser.add_argument('--lr',
+                            '--learning-rate',
+                            default=1e-2,
+                            type=float,
+                            metavar='LR',
+                            help='initial learning rate',
+                            dest='lr')
+        parser.add_argument('--lr-scheduler-gamma',
+                            default=1e-1,
+                            type=float,
+                            metavar='LRG',
+                            help='Factor by which the learning rate is reduced at each milestone',
+                            dest='lr_scheduler_gamma')
+        parser.add_argument('--num-workers',
+                            default=6,
+                            type=int,
+                            metavar='W',
+                            help='number of CPU workers',
+                            dest='num_workers')
+        parser.add_argument('--train-bn',
+                            default=True,
+                            type=bool,
+                            metavar='TB',
+                            help='Whether the BatchNorm layers should be trainable',
+                            dest='train_bn')
+        parser.add_argument('--milestones',
+                            default=[5, 10],
+                            type=list,
+                            metavar='M',
+                            help='List of two epochs milestones')
+        return parser
 
-def main(hparams, data_path):
 
-    # 1. Load the data
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+def main(hparams):
 
-    train_dataset = ImageFolder(root=data_path.joinpath('train'),
-                                transform=transforms.Compose([
-                                    transforms.Resize((224, 224)),
-                                    transforms.RandomHorizontalFlip(),
-                                    transforms.ToTensor(),
-                                    normalize,
-                                ]))
+    with TemporaryDirectory(dir=hparams.root_data_path) as tmp_dir:
 
-    valid_dataset = ImageFolder(root=data_path.joinpath('validation'),
-                                transform=transforms.Compose([
-                                    transforms.Resize((224, 224)),
-                                    transforms.ToTensor(),
-                                    normalize,
-                                ]))
-
-    # 1. Instantiate model
-    model = TransferLearningModel(hparams,
-                                  train_dataset=train_dataset,
-                                  valid_dataset=valid_dataset)
-
-    # 2. Setup trainer (train for exactly `hparams.nb_epochs` epochs)
-    trainer = pl.Trainer(
-        weights_summary=None,
-        show_progress_bar=True,
-        num_sanity_val_steps=0,
-        gpus=hparams.gpus,
-        min_epochs=hparams.nb_epochs,
-        max_epochs=hparams.nb_epochs)
-
-    trainer.fit(model)
-
-
-if __name__ == '__main__':
-
-    from argparse import Namespace
-    from pathlib import Path
-    from tempfile import TemporaryDirectory
-
-    from torchvision.datasets.utils import download_and_extract_archive
-
-    DATA_URL = 'https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip'
-
-    with TemporaryDirectory(dir=Path.cwd().as_posix()) as tmp_dir:
-
-        # 1. Download the data
+        # 1. Download the images
         download_and_extract_archive(url=DATA_URL,
                                      download_root=tmp_dir,
                                      remove_finished=True)
 
-        # 2. Define hparams
-        _hparams = {'batch_size': 8,
-                    'num_workers': 6,
-                    'lr': 1e-2,
-                    'gpus': [0],
-                    'lr_scheduler_gamma': 0.1,
-                    'nb_epochs': 3,
-                    'train_bn': True,
-                    'milestones': [1, 2]}
-        hyper_parameters = Namespace(**_hparams)
+        data_path = Path(tmp_dir).joinpath('cats_and_dogs_filtered')
 
-        # 3. Train
-        main(hyper_parameters,
-             data_path=Path(tmp_dir).joinpath('cats_and_dogs_filtered'))
+        # 2. Load the data (with preprocessing & data augmentation)
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+
+        train_dataset = ImageFolder(root=data_path.joinpath('train'),
+                                    transform=transforms.Compose([
+                                        transforms.Resize((224, 224)),
+                                        transforms.RandomHorizontalFlip(),
+                                        transforms.ToTensor(),
+                                        normalize,
+                                    ]))
+
+        valid_dataset = ImageFolder(root=data_path.joinpath('validation'),
+                                    transform=transforms.Compose([
+                                        transforms.Resize((224, 224)),
+                                        transforms.ToTensor(),
+                                        normalize,
+                                    ]))
+
+        # 2. Train the proposed model (for exactly `hparams.nb_epochs` epochs)
+        model = TransferLearningModel(hparams,
+                                      train_dataset=train_dataset,
+                                      valid_dataset=valid_dataset)
+
+        trainer = pl.Trainer(
+            weights_summary=None,
+            show_progress_bar=True,
+            num_sanity_val_steps=0,
+            gpus=hparams.gpus,
+            min_epochs=hparams.nb_epochs,
+            max_epochs=hparams.nb_epochs)
+
+        trainer.fit(model)
+
+
+def get_args():
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser.add_argument('--root-data-path',
+                               metavar='DIR',
+                               type=str,
+                               default=Path.cwd().as_posix(),
+                               help='Directory where the data will be downloaded',
+                               dest='root_data_path')
+    parser = TransferLearningModel.add_specific_args(parent_parser)
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+
+    main(get_args())
