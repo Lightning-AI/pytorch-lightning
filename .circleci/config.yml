@@ -14,7 +14,7 @@ references:
         pip install "$TORCH_VERSION"
         pip install -r requirements.txt -q
         sudo pip install pytest pytest-cov pytest-flake8 -q
-        pip install -r ./tests/requirements.txt -q
+        pip install -r ./tests/requirements-devel.txt -q
 
   tests: &tests
    run:
