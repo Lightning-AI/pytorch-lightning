@@ -76,7 +76,7 @@ class ProgressBarBase(Callback):
         return self._test_batch_idx
 
     @property
-    def total_train_batches(self) -> Optional[int]:
+    def total_train_batches(self) -> int:
         """
         The total number of training batches during training, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
@@ -89,7 +89,7 @@ class ProgressBarBase(Callback):
         return total_train_batches
 
     @property
-    def total_val_batches(self) -> Optional[int]:
+    def total_val_batches(self) -> int:
         """
         The total number of training batches during validation, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
@@ -105,7 +105,7 @@ class ProgressBarBase(Callback):
         return total_val_batches
 
     @property
-    def total_test_batches(self) -> Optional[int]:
+    def total_test_batches(self) -> int:
         """
         The total number of training batches during testing, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
