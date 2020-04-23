@@ -68,7 +68,7 @@ class TrainerLoggingMixin(ABC):
             step = scalar_metrics.pop("step")
         else:
             # added metrics by Lightning for convenience
-            metrics['epoch'] = self.current_epoch
+            scalar_metrics['epoch'] = self.current_epoch
             step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
