@@ -1,5 +1,12 @@
+# Existing images:
+# TORCH_VERSION=1.5 CUDA_VERSION=10.1
+# TORCH_VERSION=1.4 CUDA_VERSION=10.1
+# TORCH_VERSION=1.3 CUDA_VERSION=10.1
+# TORCH_VERSION=1.2 CUDA_VERSION=10.0
+# TORCH_VERSION=1.1 CUDA_VERSION=10.0
+
 ARG TORCH_VERSION=1.4
-ARG CUDA_VERSION=10.1
+ARG CUDA_VERSION=10.0
 
 FROM pytorch/pytorch:${TORCH_VERSION}-cuda${CUDA_VERSION}-cudnn7-devel
 
@@ -18,8 +25,8 @@ COPY ./requirements/base.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
 
-# Install AMP
 RUN apt-get update && apt-get install -y cmake && \
+    # Install AMP
     bash install_AMP.sh && \
     pip install -r requirements.txt --user && \
     pip install -r requirements-extra.txt --user && \
