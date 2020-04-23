@@ -609,15 +609,15 @@ class Trainer(
                 if arg == 'gpus':
                     def allowed_type(x):
                         if ',' in x:
-                            return str
+                            return str(x)
                         else:
-                            return int
+                            return int(x)
 
                     def arg_default(x):
                         if ',' in x:
-                            return str
+                            return str(x)
                         else:
-                            return int
+                            return int(x)
 
                 parser.add_argument(
                     f'--{arg}',
