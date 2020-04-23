@@ -1,7 +1,6 @@
 from functools import wraps
 
 import pytest
-
 import torch.multiprocessing as mp
 
 
