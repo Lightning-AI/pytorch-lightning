@@ -290,7 +290,7 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.info(f'using CUDA_VISIBLE_DEVICES: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
