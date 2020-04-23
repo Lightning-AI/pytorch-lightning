@@ -243,15 +243,6 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 1),
-    ([], 2),
-    ([ProgressBar(refresh_rate=1)], 0),
-    ([ProgressBar(refresh_rate=2)], 0),
-    ([ProgressBar(refresh_rate=2)], 1),
-])
-
-
 def test_model_checkpoint_with_non_string_input(tmpdir):
     """ Test that None in checkpoint callback is valid and that chkp_path is
         set correctly """
@@ -276,6 +267,13 @@ def test_model_checkpoint_with_non_string_input(tmpdir):
     assert trainer.ckpt_path != trainer.default_root_dir
 
 
+@pytest.mark.parametrize('callbacks,refresh_rate', [
+    ([], 1),
+    ([], 2),
+    ([ProgressBar(refresh_rate=1)], 0),
+    ([ProgressBar(refresh_rate=2)], 0),
+    ([ProgressBar(refresh_rate=2)], 1),
+])
 def test_progress_bar_on(callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
