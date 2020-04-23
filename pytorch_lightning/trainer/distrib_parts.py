@@ -626,7 +626,6 @@ def normalize_parse_gpu_string_input(s):
         if s == '-1':
             return -1
         else:
-            import pdb; pdb.set_trace()
             return [int(x.strip()) for x in s.split(',')]
     else:
         return s
@@ -697,6 +696,7 @@ def parse_gpu_ids(gpus):
     """
 
     # Check that gpus param is None, Int, String or List
+    import pdb; pdb.set_trace()
     check_gpus_data_type(gpus)
 
     # Handle the case when no gpus are requested
