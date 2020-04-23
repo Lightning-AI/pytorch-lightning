@@ -754,7 +754,7 @@ class TrainerTrainLoopMixin(ABC):
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
-                
+
             # Don't copy the batch since there is a single gpu that the batch could
             # be referenced from and if there are multiple optimizers the batch will
             # wind up copying it to the same device repeatedly.
