@@ -626,6 +626,7 @@ def normalize_parse_gpu_string_input(s):
         if s == '-1':
             return -1
         else:
+            import pdb; pdb.set_trace()
             return [int(x.strip()) for x in s.split(',')]
     else:
         return s
