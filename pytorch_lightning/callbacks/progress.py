@@ -6,7 +6,6 @@ Use or override one of the progress bar callbacks.
 
 """
 import sys
-from typing import Optional
 
 from tqdm.auto import tqdm
 
@@ -28,7 +27,7 @@ class ProgressBarBase(Callback):
                 self.enabled = True
 
             def disable(self):
-                self.enabled = False
+                self.enableenabled = False
 
             def on_batch_end(self, trainer, pl_module):
                 super().on_batch_end(trainer, pl_module)  # don't forget this :)
@@ -234,7 +233,7 @@ class ProgressBar(ProgressBarBase):
 
     @property
     def is_disabled(self) -> bool:
-        return not self.enabled
+        return not self.is_enabled
 
     def disable(self) -> None:
         self._enabled = False
@@ -247,7 +246,7 @@ class ProgressBar(ProgressBarBase):
         bar = tqdm(
             desc='Validation sanity check',
             position=(2 * self.process_position),
-            disable=self.disabled,
+            disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
             file=sys.stdout,
@@ -260,7 +259,7 @@ class ProgressBar(ProgressBarBase):
             desc='Training',
             initial=self.train_batch_idx,
             position=(2 * self.process_position),
-            disable=self.disabled,
+            disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
             file=sys.stdout,
@@ -273,7 +272,7 @@ class ProgressBar(ProgressBarBase):
         bar = tqdm(
             desc='Validating',
             position=(2 * self.process_position + 1),
-            disable=self.disabled,
+            disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
             file=sys.stdout
@@ -285,7 +284,7 @@ class ProgressBar(ProgressBarBase):
         bar = tqdm(
             desc='Testing',
             position=(2 * self.process_position),
-            disable=self.disabled,
+            disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
             file=sys.stdout
@@ -322,7 +321,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
-        if self.enabled and self.train_batch_idx % self.refresh_rate == 0:
+        if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(**trainer.progress_bar_dict)
 
@@ -333,7 +332,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module):
         super().on_validation_batch_end(trainer, pl_module)
-        if self.enabled and self.val_batch_idx % self.refresh_rate == 0:
+        if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.update(self.refresh_rate)
 
@@ -353,7 +352,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_test_batch_end(self, trainer, pl_module):
         super().on_test_batch_end(trainer, pl_module)
-        if self.enabled and self.test_batch_idx % self.refresh_rate == 0:
+        if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
             self.test_progress_bar.update(self.refresh_rate)
 
     def on_test_end(self, trainer, pl_module):
