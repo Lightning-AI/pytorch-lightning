@@ -322,7 +322,7 @@ class TrainerIOMixin(ABC):
 
         # restore native amp scaling
         if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
-            checkpoint['native_amp_scaling_state'] = self.scaler.state_dict
+            checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams"):
             is_namespace = isinstance(model.hparams, Namespace)
