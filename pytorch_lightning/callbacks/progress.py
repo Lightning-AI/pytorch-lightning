@@ -233,7 +233,7 @@ class ProgressBar(ProgressBarBase):
         return self._enabled and self.refresh_rate > 0
 
     @property
-    def disabled(self) -> bool:
+    def is_disabled(self) -> bool:
         return not self.enabled
 
     def disable(self) -> None:
