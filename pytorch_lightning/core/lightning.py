@@ -1159,19 +1159,19 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         elif isinstance(optimizer, torch.optim.LBFGS):
 
             # native amp + lbfgs is a no go right now
-            if self.use_amp and self.use_native_amp:
+            if self.trainer.use_amp and self.trainer.use_native_amp:
                 m = 'native PyTorch amp and lbfgs are not compatible. To request, please file' \
                     'a Github issue in PyTorch and tag @mcarilli'
                 raise MisconfigurationException(m)
             optimizer.step(second_order_closure)
         else:
-            if self.use_amp and self.use_native_amp:
+            if self.trainer.use_amp and self.trainer.use_native_amp:
                 self.trainer.scaler.step(optimizer)
             else:
                 optimizer.step()
 
         # in native 16-bit we need to update scaler after optimizer step
-        if self.use_amp and self.use_native_amp:
+        if self.trainer.use_amp and self.trainer.use_native_amp:
             self.trainer.scaler.update()
 
         # model hook
