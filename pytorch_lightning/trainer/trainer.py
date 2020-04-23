@@ -599,6 +599,9 @@ class Trainer(
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
+
+            if arg == 'gpus':
+                import pdb; pdb.set_trace()
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
