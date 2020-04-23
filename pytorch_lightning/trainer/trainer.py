@@ -492,13 +492,12 @@ class Trainer(
         # we wrap the user's forward with autocast and give it back at the end of fit
         self.autocast_original_forward = None
         self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+        self.precision = precision
         if self.use_native_amp and self.precision == 16:
             self.scaler = torch.cuda.amp.GradScaler()
-            self.precision = precision
 
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
-        self.precision = precision
         self.init_amp(use_amp)
 
         # Callback system
