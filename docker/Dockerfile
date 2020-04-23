@@ -1,9 +1,9 @@
-ARG CUDA_VERSION=10.2
+ARG CUDA_VERSION=10.1
 FROM nvidia/cuda:${CUDA_VERSION}-base
 
 # install versions
-ARG PYTHON_VERSION=3.8
-ARG PYTORCH_VERSION=1.5
+ARG PYTHON_VERSION=3.7
+ARG PYTORCH_VERSION=1.4
 ARG LIGHTNING_VERSION=master
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -33,8 +33,10 @@ ENV PATH /home/containeruser/conda/bin:$PATH
 # install dependencies
 RUN pip install torch==$PYTORCH_VERSION
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single-branch --branch $LIGHTNING_VERSION && \
-        pip install -r pytorch-lightning/requirements.txt && \
-        pip install -r pytorch-lightning/requirements-extra.txt && \
-        pip install ./pytorch-lightning
+    pip install ./pytorch-lightning && \
+    pip install -r pytorch-lightning/requirements-extra.txt && \
+    rm -rf pytorch-lightning
+
+RUN python -c "import pytorch_ligtning as pl; print(pl.__version__)"
         
 CMD ["/bin/bash"]
