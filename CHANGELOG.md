@@ -26,7 +26,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added [Horovod](http://horovod.ai) support as a distributed backend `Trainer(distributed_backend='horovod')` ([#1529](https://github.com/PyTorchLightning/pytorch-lightning/pull/1529))
 
-- Added support for 8 core distributed training on Kaggle TPU's (https://github.com/PyTorchLightning/pytorch-lightning/pull/1568)
+- Added support for 8 core distributed training on Kaggle TPU's ([#1568](https://github.com/PyTorchLightning/pytorch-lightning/pull/1568))
+
+- Added support for native AMP ([#1561](https://github.com/PyTorchLightning/pytorch-lightning/pull/1561), [#1580](https://github.com/PyTorchLightning/pytorch-lightning/pull/1580)) 
 
 ### Changed
 
@@ -63,6 +65,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug that caused the `callbacks` Trainer argument to reference a global variable ([#1534](https://github.com/PyTorchLightning/pytorch-lightning/pull/1534)).
 
 - Fixed a bug that set all boolean CLI arguments from Trainer.add_argparse_args always to True ([#1570](https://github.com/PyTorchLightning/pytorch-lightning/issues/1570))
+
+- Fixed do not copy the batch when training on a single GPU ([#1576](https://github.com/PyTorchLightning/pytorch-lightning/issues/1576), [#1579](https://github.com/PyTorchLightning/pytorch-lightning/issues/1579))
 
 ## [0.7.3] - 2020-04-09
 
