@@ -143,37 +143,45 @@ class LightningTemplateModel(LightningModule):
         # can also return just a scalar instead of a dict (return loss_val)
         return output
 
-    def validation_epoch_end(self, outputs):
+    def _validation_or_test_epoch_end(self, outputs, mode: str):
         """
-        Called at the end of validation to aggregate outputs.
-        :param outputs: list of individual outputs of each validation step.
+        Aggregates outputs for validation or test results
+        :param outputs: list of individual outputs of each validation or test step
+        :param mode: either "val" or "test"
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         # return torch.stack(outputs).mean()
 
-        val_loss_mean = 0
-        val_acc_mean = 0
+        loss_mean = 0
+        acc_mean = 0
         for output in outputs:
-            val_loss = output['val_loss']
+            loss = output[f'{mode}_loss']
 
             # reduce manually when using dp
             if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_loss = torch.mean(val_loss)
-            val_loss_mean += val_loss
+                loss = torch.mean(loss)
+            loss_mean += loss
 
             # reduce manually when using dp
-            val_acc = output['val_acc']
+            acc = output[f'{mode}_acc']
             if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_acc = torch.mean(val_acc)
+                acc = torch.mean(acc)
 
-            val_acc_mean += val_acc
+            acc_mean += acc
 
-        val_loss_mean /= len(outputs)
-        val_acc_mean /= len(outputs)
-        tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': val_loss_mean}
+        loss_mean /= len(outputs)
+        acc_mean /= len(outputs)
+        tqdm_dict = {f'{mode}_loss': loss_mean, f'{mode}_acc': acc_mean}
+        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, f'{mode}_loss': loss_mean}
         return result
+
+    def validation_epoch_end(self, outputs):
+        """
+        Called at the end of validation to aggregate outputs.
+        :param outputs: list of individual outputs of each validation step.
+        """
+        return self._validation_or_test_epoch_end(outputs, "val")
 
     # ---------------------
     # TRAINING SETUP
@@ -242,17 +250,7 @@ class LightningTemplateModel(LightningModule):
         Called at the end of test to aggregate outputs, similar to `validation_epoch_end`.
         :param outputs: list of individual outputs of each test step
         """
-        results = self.validation_step_end(outputs)
-
-        # rename some keys
-        results['progress_bar'].update({
-            'test_loss': results['progress_bar'].pop('val_loss'),
-            'test_acc': results['progress_bar'].pop('val_acc'),
-        })
-        results['log'] = results['progress_bar']
-        results['test_loss'] = results.pop('val_loss')
-
-        return results
+        return self._validation_or_test_epoch_end(outputs, "test")
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
