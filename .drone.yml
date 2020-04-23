@@ -6,7 +6,7 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorch/pytorch:1.4-cuda10.1-cudnn7-devel
+  image: pytorchlightning/pytorch_lightning:devel-pt_1_4
 
   environment:
     SLURM_LOCALID: 0
