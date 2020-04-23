@@ -1,3 +1,5 @@
+import platform
+
 import pytest
 import torch
 
@@ -15,7 +17,6 @@ from tests.base import (
     LightValStepFitMultipleDataloadersMixin,
     LightValStepFitSingleDataloaderMixin,
     LightTrainDataloader,
-    LightValidationDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
     LightInfTestDataloader,
@@ -488,6 +489,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
 def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
     tutils.reset_seed()
@@ -537,23 +539,17 @@ def test_dataloader_reinit_for_subclass():
                      batch_sampler=None, num_workers=0, collate_fn=None,
                      pin_memory=False, drop_last=False, timeout=0,
                      worker_init_fn=None, dummy_kwarg=None):
-            super().__init__(dataset,
-                             batch_size,
-                             shuffle,
-                             sampler,
-                             batch_sampler,
-                             num_workers,
-                             collate_fn,
-                             pin_memory,
-                             drop_last,
-                             timeout,
+            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
+                             num_workers, collate_fn, pin_memory, drop_last, timeout,
                              worker_init_fn)
 
             self.dummy_kwarg = dummy_kwarg
 
-    trainer = Trainer(gpus=[0, 1],
-                      num_nodes=1,
-                      distributed_backend='ddp')
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp',
+    )
 
     class CustomDummyObj:
         sampler = None

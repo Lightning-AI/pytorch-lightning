@@ -10,10 +10,12 @@ import os
 import re
 
 import numpy as np
+from typing import Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+import torch
 
 
 class ModelCheckpoint(Callback):
@@ -35,6 +37,9 @@ class ModelCheckpoint(Callback):
                 >>> checkpoint_callback = ModelCheckpoint(
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
+
+            Can also be set to `None`, then it will be set to default location
+            during trainer construction.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
@@ -77,7 +82,7 @@ class ModelCheckpoint(Callback):
 
     """
 
-    def __init__(self, filepath: str, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
@@ -89,12 +94,14 @@ class ModelCheckpoint(Callback):
 
         self.monitor = monitor
         self.verbose = verbose
-        if os.path.isdir(filepath):
-            self.dirpath, self.filename = filepath, '{epoch}'
+        if filepath is None:  # will be determined by trainer at runtime
+            self.dirpath, self.filename = None, None
         else:
-            self.dirpath, self.filename = os.path.split(filepath)
-
-        os.makedirs(self.dirpath, exist_ok=True)
+            if os.path.isdir(filepath):
+                self.dirpath, self.filename = filepath, '{epoch}'
+            else:
+                self.dirpath, self.filename = os.path.split(filepath)
+            os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
@@ -106,15 +113,17 @@ class ModelCheckpoint(Callback):
         self.best = 0
         self.save_function = None
 
+        torch_inf = torch.tensor(np.Inf)
         mode_dict = {
-            'min': (np.less, np.Inf, 'min'),
-            'max': (np.greater, -np.Inf, 'max'),
-            'auto': (np.greater, -np.Inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-            else (np.less, np.Inf, 'min'),
+            'min': (torch.lt, torch_inf, 'min'),
+            'max': (torch.gt, -torch_inf, 'max'),
+            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (torch.lt, torch_inf, 'min'),
         }
 
         if mode not in mode_dict:
-            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, fallback to auto mode.', RuntimeWarning)
+            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, '
+                           f'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
@@ -136,6 +145,10 @@ class ModelCheckpoint(Callback):
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
+
+        if not isinstance(current, torch.Tensor):
+            current = torch.tensor(current)
+
         return self.monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
@@ -203,7 +216,9 @@ class ModelCheckpoint(Callback):
             current = metrics.get(self.monitor)
 
             if current is None:
-                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
+                rank_zero_warn(
+                    f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
+                )
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch)
             elif self.verbose > 0:

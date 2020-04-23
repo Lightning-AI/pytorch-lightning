@@ -5,6 +5,7 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.utilities import memory_utils
 
 
 class TrainerLoggingMixin(ABC):
@@ -67,7 +68,7 @@ class TrainerLoggingMixin(ABC):
             step = scalar_metrics.pop("step")
         else:
             # added metrics by Lightning for convenience
-            metrics['epoch'] = self.current_epoch
+            scalar_metrics['epoch'] = self.current_epoch
             step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
@@ -173,10 +174,9 @@ class TrainerLoggingMixin(ABC):
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
 
-        # convert tensors to numpy
-        for k, v in callback_metrics.items():
-            if isinstance(v, torch.Tensor):
-                callback_metrics[k] = v.item()
+        # detach all metrics for callbacks to prevent memory leaks
+        # no .item() because it will slow things down
+        callback_metrics = memory_utils.recursive_detach(callback_metrics)
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 

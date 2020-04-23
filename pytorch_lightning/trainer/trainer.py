@@ -23,11 +23,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device,
-    pick_multiple_gpus,
-)
+    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -87,7 +83,7 @@ class Trainer(
             logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
             checkpoint_callback: Union[ModelCheckpoint, bool] = True,
             early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: List[Callback] = [],
+            callbacks: Optional[List[Callback]] = None,
             default_root_dir: Optional[str] = None,
             gradient_clip_val: float = 0,
             process_position: int = 0,
@@ -119,7 +115,6 @@ class Trainer(
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
-            amp_level: str = 'O1',
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
@@ -127,6 +122,8 @@ class Trainer(
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
+            replace_sampler_ddp: bool = True,
+            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -282,6 +279,9 @@ class Trainer(
                 rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
                 To use a different key, set a string instead of True with the key name.
 
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement.
+                If not specified this will toggled automatically ddp is used
+
             benchmark: If true enables cudnn.benchmark.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -289,7 +289,7 @@ class Trainer(
         """
 
         # Init callbacks
-        self.callbacks = callbacks
+        self.callbacks = callbacks or []
         self.on_init_start()
 
         # benchmarking
@@ -362,6 +362,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
@@ -486,20 +487,17 @@ class Trainer(
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
-        # 16 bit mixed precision training using apex
-        self.amp_level = amp_level
+        # AMP init
+        # These are the only lines needed after v0.8.0
+        # we wrap the user's forward with autocast and give it back at the end of fit
+        self.autocast_original_forward = None
+        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
 
-        # Backward compatibility, TODO: remove in v0.9.0
-        if use_amp is not None:
-            rank_zero_warn("`use_amp` has been replaced by `precision` since v0.7.0"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
-            self.precision = 16 if use_amp else 32
-
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        if self.precision == 16 and self.num_tpu_cores is None:
-            use_amp = True
+        # TODO: remove for v0.8.0
+        self.amp_level = amp_level
         self.init_amp(use_amp)
 
         # Callback system
@@ -541,7 +539,10 @@ class Trainer(
               (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
              ...
-             ('callbacks', (<class 'pytorch_lightning.callbacks.base.Callback'>,), []),
+             ('callbacks',
+              (typing.List[pytorch_lightning.callbacks.base.Callback],
+               <class 'NoneType'>),
+               None),
              ('check_val_every_n_epoch', (<class 'int'>,), 1),
              ...
              ('max_epochs', (<class 'int'>,), 1000),
@@ -599,7 +600,7 @@ class Trainer(
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
             for allowed_type in (at for at in allowed_types if at in arg_types):
-                if isinstance(allowed_type, bool):
+                if allowed_type is bool:
                     def allowed_type(x):
                         return bool(distutils.util.strtobool(x))
                 parser.add_argument(
@@ -728,13 +729,10 @@ class Trainer(
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
-
                 # track for predict
                 self.model = model
-
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
@@ -744,6 +742,9 @@ class Trainer(
         elif self.use_dp:
             self.dp_train(model)
 
+        elif self.use_horovod:
+            self.horovod_train(model)
+
         elif self.single_gpu:
             self.single_gpu_train(model)
 
@@ -751,7 +752,7 @@ class Trainer(
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+            start_method = 'fork' if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE') else 'spawn'
 
             # track for predict
             self.model = model
@@ -891,8 +892,9 @@ class Trainer(
             self.main_progress_bar.close()
             self.val_progress_bar.close()
 
+            # verify that early stop has conditioned on a metric that exists
             if self.enable_early_stop:
-                self.early_stop_callback.check_metrics(callback_metrics)
+                self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # init progress bar
         pbar = tqdm(leave=True, position=2 * self.process_position,

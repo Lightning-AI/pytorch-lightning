@@ -337,13 +337,16 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
+from contextlib import ExitStack
 import os
 from abc import ABC, abstractmethod
 import time
 import random
 import torch
+from typing import Union
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -365,6 +368,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerDPMixin(ABC):
 
@@ -384,7 +394,9 @@ class TrainerDPMixin(ABC):
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
+    use_native_amp: bool
     data_parallel_device_ids: ...
+    logger: Union[LightningLoggerBase, bool]
 
     @property
     @abstractmethod
@@ -470,7 +482,8 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        if self.use_amp:
+        # TODO: update for 0.8.0
+        if self.use_amp and not self.use_native_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
@@ -517,9 +530,16 @@ class TrainerDPMixin(ABC):
 
         model.cuda(self.root_gpu)
 
+        # hack forward to do autocast for the user
+        model_autocast_original_forward = model.forward
+        if self.use_amp and self.use_native_amp:
+            # wrap the user's forward in autocast and give it back at the end
+            model.forward = torch.cuda.amp.autocast()(model.forward)
+
+        # TODO: remove in v0.8.0
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp:
+        if self.use_dp and self.use_amp and not self.use_native_amp:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'
@@ -539,6 +559,66 @@ class TrainerDPMixin(ABC):
         model = LightningDataParallel(model, device_ids=device_ids)
 
         self.run_pretrain_routine(model)
+
+        model.forward = model_autocast_original_forward
+
+    def horovod_train(self, model):
+        # Horovod: initialize library
+        hvd.init()
+
+        if torch.cuda.is_available() and self.on_gpu:
+            # Horovod: pin GPU to local rank
+            torch.cuda.set_device(hvd.local_rank())
+            model.cuda(hvd.local_rank())
+
+        # Only show progress bar from the first worker
+        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if hvd.rank() == 0 else 0
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
+
+        # Horovod: scale the learning rate by the number of workers to account for
+        # increased total batch size
+        for optimizer in self.optimizers:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= hvd.size()
+
+        if self.use_amp:
+            # An example
+            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
+            self.optimizers = optimizers
+
+        # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
+        hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+        for optimizer in self.optimizers:
+            hvd.broadcast_optimizer_state(optimizer, root_rank=0)
+
+        def filter_named_parameters(model, optimizer):
+            opt_params = set([p for group in optimizer.param_groups for p in group.get('params', [])])
+            return [(name, p) for name, p in model.named_parameters() if p in opt_params]
+
+        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
+        self.optimizers = [
+            hvd.DistributedOptimizer(optimizer, named_parameters=filter_named_parameters(model, optimizer))
+            for optimizer in self.optimizers
+        ]
+
+        # Update logger rank info from Horovod to avoid race conditions from  different ranks
+        # creating directories / writing files in the same locations.
+        self.proc_rank = hvd.rank()
+        set_proc_rank(self.proc_rank)
+        if self.logger:
+            self.logger.rank = self.proc_rank
+        if model.logger:
+            model.logger.rank = self.proc_rank
+
+        with ExitStack() as stack:
+            for optimizer in self.optimizers:
+                # Synchronization will be performed explicitly following backward()
+                stack.enter_context(optimizer.skip_synchronize())
+
+            self.run_pretrain_routine(model)
 
 
 def normalize_parse_gpu_string_input(s):
@@ -566,7 +646,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    if gpus is not None and type(gpus) not in (int, str, list):
+    if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 

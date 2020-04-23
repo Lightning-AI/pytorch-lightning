@@ -148,6 +148,7 @@ from typing import Union, List
 
 import numpy as np
 from torch.utils.data import DataLoader
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -157,6 +158,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import memory_utils
 
 try:
     from apex import amp
@@ -173,6 +175,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerTrainLoopMixin(ABC):
 
@@ -180,9 +189,11 @@ class TrainerTrainLoopMixin(ABC):
     #  the proper values/initialisation should be done in child class
     max_epochs: int
     min_epochs: int
+    on_gpu: bool
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
+    use_horovod: bool
     single_gpu: bool
     use_tpu: bool
     data_parallel_device_ids: ...
@@ -323,7 +334,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if self.use_ddp \
+                if self.use_ddp or self.use_horovod \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
@@ -444,14 +455,20 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             _outputs = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
-            # detach tensors in batch_output before appending to outputs
-            outputs.append(_recursive_detach(batch_output))
+
+            # only track outputs when user implementes training_epoch_end
+            # otherwise we will build up unecessary memory
+            if self.is_overriden('training_epoch_end', model=self.get_model()):
+                outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
 
-            # update lr
-            self.update_learning_rates(interval='step')
+            # TODO: consolidate all actions that need to take place only after
+            # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
+            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                # update lr
+                self.update_learning_rates(interval='step')
 
             # ---------------
             # RUN VAL STEP
@@ -463,9 +480,14 @@ class TrainerTrainLoopMixin(ABC):
             should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
             should_check_val = can_check_val and should_check_val
 
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
+                self.call_checkpoint_callback()
+                self.call_early_stop_callback()
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
@@ -478,16 +500,6 @@ class TrainerTrainLoopMixin(ABC):
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
-
-            # ---------------
-            # CHECKPOINTING, EARLY STOPPING
-            # ---------------
-            # save checkpoint even when no test or val step are defined
-            if self.fast_dev_run or should_check_val:
-                self.call_checkpoint_callback()
-
-                if self.enable_early_stop:
-                    self.early_stop_callback.check_metrics(self.callback_metrics)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -504,10 +516,11 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-        # process epoch outputs
-        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
-            model = model.module
+        if self.use_horovod:
+            hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
+        # process epoch outputs
+        model = self.get_model()
         if self.is_overriden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(outputs)
             _processed_outputs = self.process_output(epoch_output)
@@ -516,12 +529,10 @@ class TrainerTrainLoopMixin(ABC):
             self.log_metrics(log_epoch_metrics, {})
             self.callback_metrics.update(callback_epoch_metrics)
 
-        # in case validation step is missing and you are not running fast-dev to duplicate last batch
+        # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
-
-            if self.enable_early_stop:
-                self.early_stop_callback.check_metrics(self.callback_metrics)
+            self.call_early_stop_callback()
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
@@ -578,8 +589,12 @@ class TrainerTrainLoopMixin(ABC):
                 def optimizer_closure():
                     # forward pass
                     with self.profiler.profile('model_forward'):
-                        output_dict = self.training_forward(
-                            split_batch, batch_idx, opt_idx, self.hiddens)
+                        if self.use_amp and self.use_native_amp:
+                            with torch.cuda.amp.autocast():
+                                output_dict = self.training_forward(split_batch, batch_idx,
+                                                                    opt_idx, self.hiddens)
+                        else:
+                            output_dict = self.training_forward(split_batch, batch_idx, opt_idx, self.hiddens)
 
                         # format and reduce outputs accordingly
                         processed_output = self.process_output(output_dict, train=True)
@@ -602,13 +617,17 @@ class TrainerTrainLoopMixin(ABC):
                     self.add_tqdm_metrics(progress_bar_metrics)
                     all_log_metrics.append(log_metrics)
 
+                    if self.use_horovod:
+                        # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
+                        optimizer.synchronize()
+
                     # insert after step hook
                     if self.is_function_implemented('on_after_backward'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, output_dict
+                    return closure_loss, callback_metrics
 
                 # calculate loss
                 loss, batch_output = optimizer_closure()
@@ -631,6 +650,8 @@ class TrainerTrainLoopMixin(ABC):
                                 self.track_grad_norm)
 
                     # clip gradients
+                    if self.use_amp and self.use_native_amp:
+                        self.scaler.unscale_(optimizer)
                     self.clip_gradients()
 
                     # calls .step(), .zero_grad()
@@ -729,18 +750,28 @@ class TrainerTrainLoopMixin(ABC):
         if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.model(*args)
 
+        # Horovod
+        elif self.use_horovod and self.on_gpu:
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
+            args[0] = batch
+            output = self.model.training_step(*args)
+
         # single GPU forward
         elif self.single_gpu:
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
+
+            # Don't copy the batch since there is a single gpu that the batch could
+            # be referenced from and if there are multiple optimizers the batch will
+            # wind up copying it to the same device repeatedly.
+            batch = self.transfer_batch_to_gpu(batch, gpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(copy.copy(batch))
+            batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
             output = self.model.training_step(*args)
 
@@ -800,7 +831,10 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
-        self.on_validation_end()
+
+    def call_early_stop_callback(self):
+        if self.early_stop_callback:
+            self.early_stop_callback.on_epoch_end(self, self.get_model())
 
 
 def _with_is_last(iterable):
@@ -814,29 +848,3 @@ def _with_is_last(iterable):
         last = val
     # yield last, no longer has next
     yield last, True
-
-
-def _recursive_detach(in_dict):
-    """Detach all tensors in `in_dict`.
-
-    May operate recursively if some of the values in `in_dict` are dictionaries
-    which contain instances of `torch.Tensor`. Other types in `in_dict` are
-    not affected by this utility function.
-
-    Parameters
-    ----------
-    in_dict : dict
-
-    Returns
-    -------
-    out_dict : dict
-    """
-    out_dict = {}
-    for k, v in in_dict.items():
-        if isinstance(v, dict):
-            out_dict.update({k: _recursive_detach(v)})
-        elif callable(getattr(v, 'detach', None)):
-            out_dict.update({k: v.detach()})
-        else:
-            out_dict.update({k: v})
-    return out_dict

@@ -1,15 +1,15 @@
 import glob
 import math
 import os
-from argparse import Namespace, ArgumentParser
+from argparse import Namespace
 
 import pytest
 import torch
 
 import tests.base.utils as tutils
+from pytorch_lightning import Callback
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning import Callback
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -60,7 +60,7 @@ def test_no_val_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -100,7 +100,7 @@ def test_no_val_end_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -211,7 +211,7 @@ def test_loading_meta_tags(tmpdir):
     hparams = tutils.get_default_hparams()
 
     # save tags
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -335,7 +335,6 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         train_percent_check=0.65,
         val_percent_check=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,

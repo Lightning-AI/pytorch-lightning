@@ -145,6 +145,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerEvaluationLoopMixin(ABC):
 
@@ -153,9 +160,11 @@ class TrainerEvaluationLoopMixin(ABC):
     test_progress_bar: ...
     val_progress_bar: ...
     main_progress_bar: ...
+    on_gpu: bool
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
+    use_horovod: bool
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
@@ -259,7 +268,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                if self.use_amp and self.use_native_amp:
+                    with torch.cuda.amp.autocast():
+                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                else:
+                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
@@ -299,7 +312,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('test_epoch_end', model=model):
@@ -309,7 +322,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('validation_epoch_end', model=model):
@@ -413,6 +426,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # Validation/Test end callbacks
         if test_mode:
             self.on_test_end()
+        else:
+            self.on_validation_end()
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
@@ -426,6 +441,11 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.use_ddp or self.use_dp or self.use_ddp2:
             output = model(*args)
             return output
+
+        # Horovod
+        if self.use_horovod and self.on_gpu:
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
+            args[0] = batch
 
         # single GPU data transfer
         if self.single_gpu:
