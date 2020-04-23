@@ -394,6 +394,7 @@ class TrainerDPMixin(ABC):
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
+    use_native_amp: bool
     data_parallel_device_ids: ...
     logger: Union[LightningLoggerBase, bool]
     progress_bar_callback: ...
@@ -482,7 +483,8 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        if self.use_amp:
+        # TODO: update for 0.8.0
+        if self.use_amp and not self.use_native_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
@@ -530,9 +532,16 @@ class TrainerDPMixin(ABC):
 
         model.cuda(self.root_gpu)
 
+        # hack forward to do autocast for the user
+        model_autocast_original_forward = model.forward
+        if self.use_amp and self.use_native_amp:
+            # wrap the user's forward in autocast and give it back at the end
+            model.forward = torch.cuda.amp.autocast()(model.forward)
+
+        # TODO: remove in v0.8.0
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp:
+        if self.use_dp and self.use_amp and not self.use_native_amp:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'
@@ -552,6 +561,8 @@ class TrainerDPMixin(ABC):
         model = LightningDataParallel(model, device_ids=device_ids)
 
         self.run_pretrain_routine(model)
+
+        model.forward = model_autocast_original_forward
 
     def horovod_train(self, model):
         # Horovod: initialize library

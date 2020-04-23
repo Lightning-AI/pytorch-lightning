@@ -148,6 +148,7 @@ from typing import Union, List
 
 import numpy as np
 from torch.utils.data import DataLoader
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -557,8 +558,12 @@ class TrainerTrainLoopMixin(ABC):
                 def optimizer_closure():
                     # forward pass
                     with self.profiler.profile('model_forward'):
-                        output_dict = self.training_forward(
-                            split_batch, batch_idx, opt_idx, self.hiddens)
+                        if self.use_amp and self.use_native_amp:
+                            with torch.cuda.amp.autocast():
+                                output_dict = self.training_forward(split_batch, batch_idx,
+                                                                    opt_idx, self.hiddens)
+                        else:
+                            output_dict = self.training_forward(split_batch, batch_idx, opt_idx, self.hiddens)
 
                         # format and reduce outputs accordingly
                         processed_output = self.process_output(output_dict, train=True)
@@ -614,6 +619,8 @@ class TrainerTrainLoopMixin(ABC):
                                 self.track_grad_norm)
 
                     # clip gradients
+                    if self.use_amp and self.use_native_amp:
+                        self.scaler.unscale_(optimizer)
                     self.clip_gradients()
 
                     # calls .step(), .zero_grad()
@@ -707,7 +714,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(copy.copy(batch), hvd.local_rank())
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
             args[0] = batch
             output = self.model.training_step(*args)
 
@@ -716,13 +723,17 @@ class TrainerTrainLoopMixin(ABC):
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
+
+            # Don't copy the batch since there is a single gpu that the batch could
+            # be referenced from and if there are multiple optimizers the batch will
+            # wind up copying it to the same device repeatedly.
+            batch = self.transfer_batch_to_gpu(batch, gpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(copy.copy(batch))
+            batch = self.transfer_batch_to_tpu(batch)
             args[0] = batch
             output = self.model.training_step(*args)
 

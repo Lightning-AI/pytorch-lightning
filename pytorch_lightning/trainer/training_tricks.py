@@ -24,6 +24,7 @@ class TrainerTrainingTricksMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def clip_gradients(self):
+
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if self.gradient_clip_val > 0:
