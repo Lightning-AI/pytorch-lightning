@@ -53,9 +53,4 @@ class TrainerAMPMixin(ABC):
 
     @property
     def use_amp(self) -> bool:
-        if self.use_native_amp:
-            return self.precision == 16
-
-        # TODO: remove in v0.8.0
-        else:
-            return self.precision == 16 and APEX_AVAILABLE
+        return self.precision == 16
