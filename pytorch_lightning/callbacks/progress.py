@@ -82,10 +82,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         training dataloader is of infinite size.
         """
-        if self.trainer.fast_dev_run:
-            total_train_batches = 1
-        else:
-            total_train_batches = self.trainer.num_training_batches
+        total_train_batches = 1 if self.trainer.fast_dev_run else self.trainer.num_training_batches
         return total_train_batches
 
     @property
