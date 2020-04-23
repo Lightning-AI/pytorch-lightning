@@ -622,6 +622,7 @@ class TrainerDPMixin(ABC):
 
 
 def normalize_parse_gpu_string_input(s):
+    import pdb; pdb.set_trace()
     if isinstance(s, str):
         if s == '-1':
             return -1
@@ -696,7 +697,6 @@ def parse_gpu_ids(gpus):
     """
 
     # Check that gpus param is None, Int, String or List
-    import pdb; pdb.set_trace()
     check_gpus_data_type(gpus)
 
     # Handle the case when no gpus are requested
