@@ -129,7 +129,7 @@ Test your work locally to speed up your work since so you can focus only in part
  To setup a local development environment, install both local and test dependencies:
 ```bash
 pip install -r requirements.txt
-pip install -r tests/requirements.txt
+pip install -r tests/requirements-devel.txt
 ``` 
 
 You can run the full test-case in your terminal via this bash script: 
