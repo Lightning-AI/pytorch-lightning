@@ -10,6 +10,7 @@ import os
 import re
 
 import numpy as np
+from typing import Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -36,6 +37,9 @@ class ModelCheckpoint(Callback):
                 >>> checkpoint_callback = ModelCheckpoint(
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
+
+            Can also be set to `None`, then it will be set to default location
+            during trainer construction.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
@@ -78,7 +82,7 @@ class ModelCheckpoint(Callback):
 
     """
 
-    def __init__(self, filepath: str, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
@@ -90,12 +94,14 @@ class ModelCheckpoint(Callback):
 
         self.monitor = monitor
         self.verbose = verbose
-        if os.path.isdir(filepath):
-            self.dirpath, self.filename = filepath, '{epoch}'
+        if filepath is None:  # will be determined by trainer at runtime
+            self.dirpath, self.filename = None, None
         else:
-            self.dirpath, self.filename = os.path.split(filepath)
-
-        os.makedirs(self.dirpath, exist_ok=True)
+            if os.path.isdir(filepath):
+                self.dirpath, self.filename = filepath, '{epoch}'
+            else:
+                self.dirpath, self.filename = os.path.split(filepath)
+            os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
