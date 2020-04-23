@@ -754,7 +754,11 @@ class TrainerTrainLoopMixin(ABC):
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(copy.copy(batch), gpu_id)
+
+            # Don't copy the batch since there is a single gpu that the batch could
+            # be referenced from and if there are multiple optimizers the batch will
+            # wind up copying it to the same device repeatedly.
+            batch = self.transfer_batch_to_gpu(batch, gpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 
