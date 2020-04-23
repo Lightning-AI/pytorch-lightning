@@ -603,7 +603,7 @@ class Trainer(
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
             for allowed_type in (at for at in allowed_types if at in arg_types):
-                if isinstance(allowed_type, bool):
+                if allowed_type is bool:
                     def allowed_type(x):
                         return bool(distutils.util.strtobool(x))
                 parser.add_argument(
