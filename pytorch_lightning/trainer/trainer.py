@@ -72,9 +72,9 @@ class Trainer(
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps'
+        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
     )
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict')
 
     def __init__(
             self,
@@ -636,32 +636,6 @@ class Trainer(
         """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
         return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
-
-    @property
-    def training_tqdm_dict(self):
-        """Read-only for progress bar metrics.
-
-        Warning:
-            Deprecated since v0.7.3.
-            Use :meth:`progress_bar_dict` instead.
-
-        """
-        rank_zero_warn("`training_tqdm_dict` was renamed to `progress_bar_dict` in v0.7.3"
-                       " and this method will be removed in v1.0.0", DeprecationWarning)
-        return self.progress_bar_dict
-
-    @property
-    def tng_tqdm_dic(self):
-        """Read-only for progress bar metrics.
-
-        .. warning:: .. deprecated:: 0.5.0
-
-            Use `training_tqdm_dict` instead. Will remove 0.8.0.
-
-        """
-        rank_zero_warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                       " and this method will be removed in v0.8.0", DeprecationWarning)
-        return self.progress_bar_dict
 
     # -----------------------------
     # MODEL TRAINING
