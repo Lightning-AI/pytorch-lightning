@@ -32,8 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing, reproducibility
 
 
 try:
@@ -130,6 +129,8 @@ class Trainer(
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
+            terminate_on_nan: bool = False,
+            seed: Optional[int] = None,
             auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
@@ -140,7 +141,6 @@ class Trainer(
             use_amp=None,  # backward compatible, todo: remove in v0.9.0
             show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
-            terminate_on_nan: bool = False,
             **kwargs
     ):
         r"""
@@ -293,6 +293,8 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
+            seed: integer number to ensure same results from different model runs
+
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
@@ -302,6 +304,9 @@ class Trainer(
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
+
+        # seeding random number generators
+        reproducibility.seed_everything(seed)
 
         # Init callbacks
         self.callbacks = callbacks or []
