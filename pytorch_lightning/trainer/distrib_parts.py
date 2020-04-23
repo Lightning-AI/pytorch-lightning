@@ -622,12 +622,11 @@ class TrainerDPMixin(ABC):
 
 
 def normalize_parse_gpu_string_input(s):
-    import pdb; pdb.set_trace()
     if isinstance(s, str):
         if s == '-1':
             return -1
         else:
-            return [int(x.strip()) for x in s.split(',')]
+            return [int(x.strip()) for x in s.split(',') if len(x) > 0]
     else:
         return s
 
