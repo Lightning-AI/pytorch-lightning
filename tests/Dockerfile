@@ -11,6 +11,7 @@ ENV HOROVOD_WITHOUT_MXNET: 1
 ENV HOROVOD_WITH_GLOO: 1
 ENV HOROVOD_WITHOUT_MPI: 1
 ENV PATH: "$PATH:/root/.local/bin"
+ENV MAKEFLAGS: "-j$(nproc)"
 
 COPY ./tests/install_AMP.sh install_AMP.sh
 COPY ./requirements.txt requirements.txt
