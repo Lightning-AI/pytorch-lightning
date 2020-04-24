@@ -1636,7 +1636,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
+    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
         Additional items to be displayed in the progress bar.
 
@@ -1657,3 +1657,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             tqdm_dict['v_num'] = self.trainer.logger.version
 
         return tqdm_dict
+
+    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
+        """
+        Additional items to be displayed in the progress bar.
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+
+        Warning:
+            Deprecated since v0.7.3.
+            Use :meth:`get_progress_bar_dict` instead.
+        """
+        rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
+                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        return self.get_progress_bar_dict()

@@ -33,10 +33,16 @@ def test_trainer_callback_system(tmpdir):
             super().__init__()
             self.on_init_start_called = False
             self.on_init_end_called = False
+            self.on_sanity_check_start_called = False
+            self.on_sanity_check_end_called = False
             self.on_epoch_start_called = False
             self.on_epoch_end_called = False
             self.on_batch_start_called = False
             self.on_batch_end_called = False
+            self.on_validation_batch_start_called = False
+            self.on_validation_batch_end_called = False
+            self.on_test_batch_start_called = False
+            self.on_test_batch_end_called = False
             self.on_train_start_called = False
             self.on_train_end_called = False
             self.on_validation_start_called = False
@@ -51,6 +57,14 @@ def test_trainer_callback_system(tmpdir):
         def on_init_end(self, trainer):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
+
+        def on_sanity_check_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_sanity_check_start_called = True
+
+        def on_sanity_check_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_sanity_check_end_called = True
 
         def on_epoch_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -67,6 +81,22 @@ def test_trainer_callback_system(tmpdir):
         def on_batch_end(self, trainer, pl_module):
             _check_args(trainer, pl_module)
             self.on_batch_end_called = True
+
+        def on_validation_batch_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_validation_batch_start_called = True
+
+        def on_validation_batch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_validation_batch_end_called = True
+
+        def on_test_batch_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_test_batch_start_called = True
+
+        def on_test_batch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_test_batch_end_called = True
 
         def on_train_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -104,10 +134,16 @@ def test_trainer_callback_system(tmpdir):
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
+    assert not test_callback.on_sanity_check_start_called
+    assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_train_start_called
     assert not test_callback.on_train_end_called
     assert not test_callback.on_validation_start_called
@@ -121,10 +157,16 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert not test_callback.on_sanity_check_start_called
+    assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_train_start_called
     assert not test_callback.on_train_end_called
     assert not test_callback.on_validation_start_called
@@ -136,21 +178,36 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert test_callback.on_sanity_check_start_called
+    assert test_callback.on_sanity_check_end_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_epoch_start_called
     assert test_callback.on_batch_start_called
     assert test_callback.on_batch_end_called
+    assert test_callback.on_validation_batch_start_called
+    assert test_callback.on_validation_batch_end_called
     assert test_callback.on_train_start_called
     assert test_callback.on_train_end_called
     assert test_callback.on_validation_start_called
     assert test_callback.on_validation_end_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
 
-    trainer.test()
+    test_callback = TestCallback()
+    trainer_options['callbacks'] = [test_callback]
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
 
+    assert test_callback.on_test_batch_start_called
+    assert test_callback.on_test_batch_end_called
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
+    assert not test_callback.on_validation_start_called
+    assert not test_callback.on_validation_end_called
+    assert not test_callback.on_validation_batch_end_called
+    assert not test_callback.on_validation_batch_start_called
 
 
 def test_early_stopping_no_val_step(tmpdir):
