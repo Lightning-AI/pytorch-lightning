@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torchvision import transforms
+# from torchvision import transforms
 import tests.base.utils as tutils
 
 from pytorch_lightning import Trainer, LightningModule, seed_everything
@@ -44,7 +44,7 @@ class ParityMNIST(LightningModule):
     def train_dataloader(self):
         return DataLoader(TrialMNIST(train=True,
                                      download=True,
-                                     num_samples=500,
+                                     num_samples=2000,
                                      digits=list(range(5))),
                           batch_size=128)
 

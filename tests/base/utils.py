@@ -24,7 +24,6 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
     print('------------------DIFFS---------------------')
     print(diffs)
     print('---------------------------------------')
-    exit()
 
     assert np.alltrue(diffs < max_diff_per_epoch), \
         f"lightning {diffs} was slower than PT (threshold {max_diff_per_epoch})"
