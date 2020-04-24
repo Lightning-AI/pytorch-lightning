@@ -11,6 +11,12 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
+    from torch.utils.data import IterableDataset
+    ITERABLE_DATASET_EXISTS = True
+except ImportError:
+    ITERABLE_DATASET_EXISTS = False
+
+try:
     from apex import amp
 except ImportError:
     APEX_AVAILABLE = False
@@ -95,7 +101,14 @@ class TrainerDataLoadingMixin(ABC):
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
+        # don't manipulate iterable datasets
+        is_dataloader = isinstance(dataloader, DataLoader)
+
+        is_iterable_ds = False
+        if ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset'):
+            is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
+
+        if not is_dataloader or is_iterable_ds:
             return dataloader
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
         if self.replace_sampler_ddp and need_dist_sampler:
