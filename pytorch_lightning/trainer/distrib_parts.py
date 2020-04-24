@@ -461,10 +461,15 @@ class TrainerDPMixin(ABC):
 
         # when tuple
         if isinstance(batch, tuple):
-            batch = list(batch)
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
-            return tuple(batch)
+            # when namedtuple
+            if hasattr(batch, '_fields'):
+                elem_type = type(batch)
+                return elem_type(*(self.__transfer_data_to_device(x, device, gpu_id) for x in batch))
+            else:
+                batch = list(batch)
+                for i, x in enumerate(batch):
+                    batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
+                return tuple(batch)
 
         # when dict
         if isinstance(batch, dict):
