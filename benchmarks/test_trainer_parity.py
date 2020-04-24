@@ -141,7 +141,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
         model = MODEL()
         trainer = Trainer(
             max_epochs=num_epochs,
-            show_progress_bar=False,
+            progress_bar_refresh_rate=0,
             weights_summary=None,
             gpus=1,
             early_stop_callback=False,
