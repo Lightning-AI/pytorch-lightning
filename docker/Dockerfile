@@ -37,6 +37,6 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single
     pip install -r pytorch-lightning/requirements-extra.txt && \
     rm -rf pytorch-lightning
 
-RUN python -c "import pytorch_ligtning as pl; print(pl.__version__)"
+RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
         
 CMD ["/bin/bash"]
