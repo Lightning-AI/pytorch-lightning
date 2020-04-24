@@ -131,7 +131,6 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
         seed = i
 
         # init model parts
-        model = MODEL()
         trainer = Trainer(
             max_epochs=num_epochs,
             progress_bar_refresh_rate=0,
@@ -143,6 +142,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             seed=seed,
             deterministic=True,
         )
+        model = MODEL()
         trainer.fit(model)
 
         final_loss = trainer.running_loss.last().item()
