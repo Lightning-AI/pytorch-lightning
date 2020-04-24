@@ -22,7 +22,7 @@ def seed_everything(seed: int = None):
         log.info(f"No seed found, seed set to {seed}")
 
     assert seed < max_seed_value, "seed is too big, numpy accepts only uint32"
-    assert seed > min_seed_value, "seed is too small, numpy accepts only uint32"
+    assert seed >= min_seed_value, "seed is too small, numpy accepts only uint32"
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
