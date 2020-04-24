@@ -646,10 +646,6 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    # nothin was passed into the GPUs argument
-    if callable(gpus):
-        return
-
     if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
@@ -698,6 +694,10 @@ def parse_gpu_ids(gpus):
         If no GPUs are available but the value of gpus variable indicates request for GPUs
         then a misconfiguration exception is raised.
     """
+
+    # nothing was passed into the GPUs argument
+    if callable(gpus):
+        return None
 
     # Check that gpus param is None, Int, String or List
     check_gpus_data_type(gpus)
