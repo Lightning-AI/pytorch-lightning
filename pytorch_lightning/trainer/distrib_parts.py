@@ -628,7 +628,7 @@ def normalize_parse_gpu_string_input(s):
         if s == '-1':
             return -1
         else:
-            return [int(x.strip()) for x in s.split(',')]
+            return [int(x.strip()) for x in s.split(',') if len(x) > 0]
     else:
         return s
 
@@ -696,6 +696,10 @@ def parse_gpu_ids(gpus):
         If no GPUs are available but the value of gpus variable indicates request for GPUs
         then a misconfiguration exception is raised.
     """
+
+    # nothing was passed into the GPUs argument
+    if callable(gpus):
+        return None
 
     # Check that gpus param is None, Int, String or List
     check_gpus_data_type(gpus)
