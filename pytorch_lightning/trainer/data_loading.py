@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
@@ -95,7 +95,11 @@ class TrainerDataLoadingMixin(ABC):
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
+        # don't manipulate iterable datasets
+        is_dataloader = isinstance(dataloader, DataLoader)
+        is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
+
+        if not is_dataloader or is_iterable_ds:
             return dataloader
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
         if self.replace_sampler_ddp and need_dist_sampler:
