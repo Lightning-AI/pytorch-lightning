@@ -1,7 +1,9 @@
 import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
+from packaging import version
 
+import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
@@ -97,7 +99,10 @@ class TrainerDataLoadingMixin(ABC):
         # don't do anything if it's not a dataloader
         # don't manipulate iterable datasets
         is_dataloader = isinstance(dataloader, DataLoader)
-        is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
+
+        is_iterable_ds = False
+        if version.parse(torch.__version__) > version.parse('1.1.0') and hasattr(dataloader, 'dataset'):
+            is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
