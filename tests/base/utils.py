@@ -21,7 +21,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
     diffs = pl_times - pt_times
     diffs = diffs / num_epochs
 
-    print('---------------------------------------')
+    print('------------------DIFFS---------------------')
     print(diffs)
     print('---------------------------------------')
 
