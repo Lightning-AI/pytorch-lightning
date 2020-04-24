@@ -539,7 +539,7 @@ def test_disabled_validation():
     model = CurrentModel(hparams)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.0,

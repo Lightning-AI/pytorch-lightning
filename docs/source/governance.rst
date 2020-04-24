@@ -15,3 +15,4 @@ Core Maintainers
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
 - Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Tullie Murrell (`tullie <https://github.com/tullie>`_)
+- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)

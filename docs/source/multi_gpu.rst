@@ -69,6 +69,10 @@ when needed.
         dataset = MNIST(...)
         return DataLoader(dataset)
 
+.. note:: If you don't want this behavior, disable it with `Trainer(replace_sampler_ddp=False)`
+
+.. note:: For iterable datasets, we don't do this automatically.
+
 Distributed modes
 -----------------
 Lightning allows multiple ways of training
@@ -279,3 +283,44 @@ Implement Your Own Distributed (DDP) training
 If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
 
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
+
+
+Batch size
+----------
+When using distributed training make sure to modify your learning rate according to your effective
+batch size.
+
+Let's say you have a batch size of 7 in your dataloader.
+
+.. code-block::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+            return Dataset(..., batch_size=7)
+
+In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+
+.. code-block::
+
+    # effective batch size = 7 * 8
+    Trainer(gpus=8, distributed_backend='ddp|horovod')
+
+    # effective batch size = 7 * 8 * 10
+    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp|horovod')
+
+
+In DDP2, your effective batch size will be 7 * num_nodes.
+The reason is that the full batch is visible to all GPUs on the node when using DDP2.
+
+.. code-block::
+
+    # effective batch size = 7
+    Trainer(gpus=8, distributed_backend='ddp2')
+
+    # effective batch size = 7 * 10
+    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp2')
+
+
+.. note:: Huge batch sizes are actually really bad for convergence. Check out:
+        `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
