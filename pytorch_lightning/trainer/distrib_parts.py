@@ -645,7 +645,10 @@ def check_gpus_data_type(gpus):
         Throws otherwise
     :return: return unmodified gpus variable
     """
-    import pdb; pdb.set_trace()
+
+    # nothin was passed into the GPUs argument
+    if callable(gpus):
+        return
 
     if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")

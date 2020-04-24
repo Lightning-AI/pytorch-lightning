@@ -607,16 +607,12 @@ class Trainer(
 
                 if arg == 'gpus':
                     def allowed_type(x):
-                        if x is None:
-                            return None
                         if ',' in x:
                             return str(x)
                         else:
                             return int(x)
 
                     def arg_default(x):
-                        if x is None:
-                            return None
                         if ',' in x:
                             return str(x)
                         else:
