@@ -14,7 +14,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -33,7 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing, reproducibility
 
 
 try:
@@ -126,7 +125,6 @@ class Trainer(
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[BaseProfiler] = None,
             benchmark: bool = False,
-            deterministic: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
@@ -295,8 +293,6 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
-            deterministic: If true enables cudnn.deterministic
-
             seed: integer number to ensure same results from different model runs
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -310,11 +306,7 @@ class Trainer(
         """
 
         # seeding random number generators
-        if (seed is not None) and not deterministic:
-            log.warning("To ensure full reproducibility deterministic flag should also be set")
-        seed_everything(seed)
-        self.deterministic = deterministic
-        torch.backends.cudnn.deterministic = self.deterministic
+        reproducibility.seed_everything(seed)
 
         # Init callbacks
         self.callbacks = callbacks or []
