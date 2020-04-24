@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
@@ -200,7 +200,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # shuffling in val and test set is bad practice
         for loader in dataloaders:
-            if loader.shuffle is True:
+            if isinstance(loader.sampler, RandomSampler):
                 m = f'Your {mode}_dataloader has shuffle=True, it is best practice to turn' \
                     f'this off for validation and test dataloaders'
                 raise MisconfigurationException(m)
