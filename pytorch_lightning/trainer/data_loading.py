@@ -5,12 +5,18 @@ from packaging import version
 
 import torch
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+try:
+    from torch.utils.data import IterableDataset
+    ITERABLE_DATASET_EXISTS = True
+except ImportError:
+    ITERABLE_DATASET_EXISTS = False
 
 try:
     from apex import amp
@@ -101,7 +107,7 @@ class TrainerDataLoadingMixin(ABC):
         is_dataloader = isinstance(dataloader, DataLoader)
 
         is_iterable_ds = False
-        if version.parse(torch.__version__) > version.parse('1.1.0') and hasattr(dataloader, 'dataset'):
+        if ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset'):
             is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
 
         if not is_dataloader or is_iterable_ds:
