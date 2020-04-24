@@ -3,26 +3,12 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
 
 import numpy as np
 import torch
 
-
-def rank_zero_only(fn: Callable):
-    """Decorate a logger method to run it only on the process with rank 0.
-
-    Args:
-        fn: Function to decorate
-    """
-
-    @wraps(fn)
-    def wrapped_fn(self, *args, **kwargs):
-        if self.rank == 0:
-            fn(self, *args, **kwargs)
-
-    return wrapped_fn
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningLoggerBase(ABC):
@@ -252,16 +238,6 @@ class LightningLoggerBase(ABC):
         self.save()
 
     @property
-    def rank(self) -> int:
-        """Process rank. In general, metrics should only be logged by the process with rank 0."""
-        return self._rank
-
-    @rank.setter
-    def rank(self, value: int) -> None:
-        """Set the process rank."""
-        self._rank = value
-
-    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
@@ -306,11 +282,6 @@ class LoggerCollection(LightningLoggerBase):
 
     def close(self) -> None:
         [logger.close() for logger in self._logger_iterable]
-
-    @LightningLoggerBase.rank.setter
-    def rank(self, value: int) -> None:
-        for logger in self._logger_iterable:
-            logger.rank = value
 
     @property
     def name(self) -> str:

@@ -12,10 +12,10 @@ import re
 import numpy as np
 from typing import Optional
 
+import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
-import torch
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 
 class ModelCheckpoint(Callback):
@@ -91,6 +91,7 @@ class ModelCheckpoint(Callback):
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
+        self._rank = 0
 
         self.monitor = monitor
         self.verbose = verbose
@@ -129,7 +130,8 @@ class ModelCheckpoint(Callback):
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
-        os.remove(filepath)
+        if os.path.isfile(filepath):
+            os.remove(filepath)
 
     def _save_model(self, filepath):
         # make paths
@@ -189,6 +191,7 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.proc_rank != 0:

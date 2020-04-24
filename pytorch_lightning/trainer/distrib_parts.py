@@ -352,7 +352,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import set_proc_rank
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     from apex import amp
@@ -506,7 +506,7 @@ class TrainerDPMixin(ABC):
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
         self.proc_rank = self.tpu_local_core_rank
-        set_proc_rank(self.proc_rank)
+        rank_zero_only.rank = self.proc_rank
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -609,11 +609,7 @@ class TrainerDPMixin(ABC):
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
         self.proc_rank = hvd.rank()
-        set_proc_rank(self.proc_rank)
-        if self.logger:
-            self.logger.rank = self.proc_rank
-        if model.logger:
-            model.logger.rank = self.proc_rank
+        rank_zero_only.rank = self.proc_rank
 
         with ExitStack() as stack:
             for optimizer in self.optimizers:
