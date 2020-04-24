@@ -77,6 +77,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
     errors = []
     times = []
 
+    torch.backends.cudnn.deterministic = True
     for i in range(num_runs):
         time_start = time.perf_counter()
 
@@ -140,6 +141,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             checkpoint_callback=False,
             distributed_backend='dp',
             seed=seed,
+            deterministic=True,
         )
         trainer.fit(model)
 
