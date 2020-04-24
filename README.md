@@ -383,6 +383,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jeff Ling [(jeffling)](https://github.com/jeffling)
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
+- Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
