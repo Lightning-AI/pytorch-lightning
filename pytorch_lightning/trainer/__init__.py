@@ -715,6 +715,23 @@ Set to True to reload dataloaders every epoch.
         train_loader = model.train_dataloader()
         for batch in train_loader:
 
+replace_sampler_ddp
+^^^^^^^^^^^^^^^^^^^
+Enables auto adding of distributed sampler.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(replace_sampler_ddp=True)
+
+By setting to False, you have to add your own distributed sampler:
+
+Example::
+
+    # default used by the Trainer
+    sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 To resume training from a specific checkpoint pass in the path here.
