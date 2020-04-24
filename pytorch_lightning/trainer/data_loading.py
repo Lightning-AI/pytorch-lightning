@@ -198,6 +198,13 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
+        # shuffling in val and test set is bad practice
+        for loader in dataloaders:
+            if loader.shuffle is True:
+                m = f'Your {mode}_dataloader has shuffle=True, it is best practice to turn' \
+                    f'this off for validation and test dataloaders'
+                raise MisconfigurationException(m)
+
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl]
 
