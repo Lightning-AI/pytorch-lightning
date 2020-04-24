@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import tests.base.utils as tutils
 
+from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning import Trainer, LightningModule
 
 
@@ -68,13 +69,6 @@ def test_pytorch_parity(tmpdir):
     tutils.assert_speed_parity(pl_times, pt_times, num_epochs)
 
 
-def set_seed(seed):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-
-
 def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
@@ -88,7 +82,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
-        set_seed(seed)
+        seed_everything(seed)
 
         # init model parts
         model = MODEL()
@@ -134,7 +128,6 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
-        set_seed(seed)
 
         # init model parts
         model = MODEL()
@@ -146,6 +139,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             early_stop_callback=False,
             checkpoint_callback=False,
             distributed_backend='dp',
+            seed=seed,
         )
         trainer.fit(model)
 
