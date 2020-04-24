@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import tests.base.utils as tutils
 
 from pytorch_lightning import Trainer, LightningModule, seed_everything
-from tests.base.datasets import TrialMNIST
+from tests.base.datasets import MNIST
 
 
 class ParityMNIST(LightningModule):
@@ -42,10 +42,7 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TrialMNIST(train=True,
-                                     download=True,
-                                     num_samples=8000,
-                                     digits=list(range(10))),
+        return DataLoader(MNIST(train=True, download=True,),
                           batch_size=128)
 
 
