@@ -1,7 +1,6 @@
 import distutils
 import inspect
 import os
-import sys
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -9,10 +8,9 @@ import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
@@ -74,9 +72,9 @@ class Trainer(
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps'
+        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
     )
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict')
 
     def __init__(
             self,
@@ -123,6 +121,7 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
+            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -162,7 +161,7 @@ class Trainer(
 
                     Use `gradient_clip_val` instead. Will remove 0.9.0.
 
-            process_position: orders the tqdm bar when running multiple models on same machine.
+            process_position: orders the progress bar when running multiple models on same machine.
 
             num_nodes: number of GPU nodes for distributed training.
 
@@ -190,6 +189,7 @@ class Trainer(
                         Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
+                Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -312,7 +312,6 @@ class Trainer(
                            " and this method will be removed in v0.8.0", DeprecationWarning)
             self.gradient_clip = gradient_clip
 
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
@@ -390,7 +389,7 @@ class Trainer(
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
-        self.tqdm_metrics = {}
+        self.progress_bar_metrics = {}
         self.callback_metrics = {}
         self.num_val_batches = 0
         self.num_training_batches = 0
@@ -408,7 +407,6 @@ class Trainer(
         self.optimizer_frequencies = []
         self.global_step = 0
         self.current_epoch = 0
-        self.total_batches = 0
         self.interrupted = False
 
         # configure logger
@@ -464,11 +462,13 @@ class Trainer(
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
-        # can't init progress bar here because starting a new process
-        # means the progress_bar won't survive pickling
         # backward compatibility
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
+
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
+        self.progress_bar_callback = None
+        self.configure_progress_bar()
 
         # logging
         self.log_save_interval = log_save_interval
@@ -632,26 +632,10 @@ class Trainer(
         return self.use_dp or self.use_ddp or self.use_ddp2
 
     @property
-    def training_tqdm_dict(self) -> dict:
-        """Read-only for tqdm metrics.
-        :return:
-        """
+    def progress_bar_dict(self) -> dict:
+        """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
-
-        return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
-
-    @property
-    def tng_tqdm_dic(self):
-        """Read-only for tqdm metrics.
-
-        .. warning:: .. deprecated:: 0.5.0
-
-            Use `training_tqdm_dict` instead. Will remove 0.8.0.
-
-        """
-        rank_zero_warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                       " and this method will be removed in v0.8.0", DeprecationWarning)
-        return self.training_tqdm_dict
+        return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
 
     # -----------------------------
     # MODEL TRAINING
@@ -870,17 +854,12 @@ class Trainer(
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        ref_model.on_sanity_check_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             self.reset_val_dataloader(ref_model)
-            # init progress bars for validation sanity check
-            pbar = tqdm(desc='Validation sanity check',
-                        total=self.num_sanity_val_steps * len(self.val_dataloaders),
-                        leave=False, position=2 * self.process_position,
-                        disable=not self.progress_bar_refresh_rate, dynamic_ncols=True)
-            self.main_progress_bar = pbar
-            # dummy validation progress bar
-            self.val_progress_bar = tqdm(disable=True)
+
+            # hook and callback
+            ref_model.on_sanity_check_start()
+            self.on_sanity_check_start()
 
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
@@ -888,19 +867,11 @@ class Trainer(
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
-            # close progress bars
-            self.main_progress_bar.close()
-            self.val_progress_bar.close()
+            self.on_sanity_check_end()
 
             # verify that early stop has conditioned on a metric that exists
             if self.enable_early_stop:
                 self.early_stop_callback._validate_condition_metric(callback_metrics)
-
-        # init progress bar
-        pbar = tqdm(leave=True, position=2 * self.process_position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout, smoothing=0)
-        self.main_progress_bar = pbar
 
         # clear cache before training
         if self.on_gpu:

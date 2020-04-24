@@ -1,20 +1,25 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List
 
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerCallbackConfigMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
+    callbacks: List[Callback]
     default_root_dir: str
     logger: Union[LightningLoggerBase, bool]
     weights_save_path: str
     ckpt_path: str
     checkpoint_callback: ModelCheckpoint
+    progress_bar_refresh_rate: int
+    process_position: int
 
     @property
     @abstractmethod
@@ -101,3 +106,21 @@ class TrainerCallbackConfigMixin(ABC):
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
+
+    def configure_progress_bar(self):
+        progress_bars = [c for c in self.callbacks if isinstance(c, ProgressBarBase)]
+        if len(progress_bars) > 1:
+            raise MisconfigurationException(
+                'You added multiple progress bar callbacks to the Trainer, but currently only one'
+                ' progress bar is supported.'
+            )
+        elif len(progress_bars) == 1:
+            self.progress_bar_callback = progress_bars[0]
+        elif self.progress_bar_refresh_rate > 0:
+            self.progress_bar_callback = ProgressBar(
+                refresh_rate=self.progress_bar_refresh_rate,
+                process_position=self.process_position,
+            )
+            self.callbacks.append(self.progress_bar_callback)
+        else:
+            self.progress_bar_callback = None

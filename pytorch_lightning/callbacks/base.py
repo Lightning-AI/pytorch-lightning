@@ -22,6 +22,14 @@ class Callback(abc.ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
+    def on_sanity_check_start(self, trainer, pl_module):
+        """Called when the validation sanity check starts."""
+        pass
+
+    def on_sanity_check_end(self, trainer, pl_module):
+        """Called when the validation sanity check ends."""
+        pass
+
     def on_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         pass
@@ -32,6 +40,22 @@ class Callback(abc.ABC):
 
     def on_batch_start(self, trainer, pl_module):
         """Called when the training batch begins."""
+        pass
+
+    def on_validation_batch_start(self, trainer, pl_module):
+        """Called when the validation batch begins."""
+        pass
+
+    def on_validation_batch_end(self, trainer, pl_module):
+        """Called when the validation batch ends."""
+        pass
+
+    def on_test_batch_start(self, trainer, pl_module):
+        """Called when the test batch begins."""
+        pass
+
+    def on_test_batch_end(self, trainer, pl_module):
+        """Called when the test batch ends."""
         pass
 
     def on_batch_end(self, trainer, pl_module):

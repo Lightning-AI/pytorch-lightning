@@ -19,5 +19,6 @@ Trainer
         slurm_job_id,
         tng_tqdm_dic,
         training_tqdm_dict,
+        progress_bar_dict,
         init_optimizers,
         configure_schedulers

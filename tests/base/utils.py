@@ -220,7 +220,7 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.5):
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
-    acc = trainer.training_tqdm_dict[key]
+    acc = trainer.progress_bar_dict[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
