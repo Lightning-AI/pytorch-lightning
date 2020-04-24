@@ -1,9 +1,7 @@
 import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
-from packaging import version
 
-import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
