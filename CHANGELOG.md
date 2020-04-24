@@ -74,6 +74,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed do not copy the batch when training on a single GPU ([#1576](https://github.com/PyTorchLightning/pytorch-lightning/issues/1576), [#1579](https://github.com/PyTorchLightning/pytorch-lightning/issues/1579))
 
+- Fixes automatic parser bug ([#1585](https://github.com/PyTorchLightning/pytorch-lightning/issues/1585))
+
 ## [0.7.3] - 2020-04-09
 
 ### Added
