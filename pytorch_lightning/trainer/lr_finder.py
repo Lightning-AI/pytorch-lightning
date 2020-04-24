@@ -114,7 +114,7 @@ class TrainerLRFinderMixin(ABC):
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
-        self.callbacks = [_LRCallback(num_training, show_progress_bar=True)]
+        self.callbacks = [_LRCallback(num_training, progress_bar_refresh_rate=1)]
 
         # No logging
         self.logger = None
@@ -310,19 +310,19 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch. """
-    def __init__(self, num_training: int, show_progress_bar: bool = False, beta: float = 0.98):
+    def __init__(self, num_training: int, progress_bar_refresh_rate: bool = False, beta: float = 0.98):
         self.num_training = num_training
         self.beta = beta
         self.losses = []
         self.lrs = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
-        self.show_progress_bar = show_progress_bar
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        if self.show_progress_bar and self.progress_bar is None:
+        if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
