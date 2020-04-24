@@ -186,6 +186,33 @@ Example::
     # default used by the Trainer
     trainer = Trainer(benchmark=False)
 
+deterministic
+^^^^^^^^^^^^^
+
+If true enables cudnn.deterministic.
+Might make your system slower, but ensures reproducibility.
+
+For more info check `[pytorch docs]
+<https://pytorch.org/docs/stable/notes/randomness.html>`_.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(deterministic=False)
+
+seed
+^^^^
+
+Set up seed for pseudo-random generators. It sets seeds for numpy, torch, python.random
+and PYTHONHASHSEED.
+
+Example::
+
+    trainer = Trainer(seed=42)
+
+.. note::
+    To ensure full reproducibility, ``deterministic`` flag should also be set.
+
 callbacks
 ^^^^^^^^^
 
