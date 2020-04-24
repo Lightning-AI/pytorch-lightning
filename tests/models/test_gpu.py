@@ -283,13 +283,6 @@ def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
 
 
 @pytest.mark.gpus_param_tests
-def test_parse_gpu_fail_on_empty_string(mocked_device_count):
-    # This currently results in a ValueError instead of MisconfigurationException
-    with pytest.raises(ValueError):
-        parse_gpu_ids('')
-
-
-@pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [[1, 2, 19], -1, '-1'])
 def test_parse_gpu_fail_on_non_existant_id(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
