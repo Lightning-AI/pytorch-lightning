@@ -66,6 +66,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a missing call to the `on_before_zero_grad` model hook ([#1493](https://github.com/PyTorchLightning/pytorch-lightning/pull/1493)). 
 
+- Allow use of sweeps with WandbLogger ([#1512](https://github.com/PyTorchLightning/pytorch-lightning/pull/1512))
+
 - Fixed a bug that caused the `callbacks` Trainer argument to reference a global variable ([#1534](https://github.com/PyTorchLightning/pytorch-lightning/pull/1534)).
 
 - Fixed a bug that set all boolean CLI arguments from Trainer.add_argparse_args always to True ([#1570](https://github.com/PyTorchLightning/pytorch-lightning/issues/1570))
