@@ -435,7 +435,10 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            batch_result, grad_norm_dic, batch_step_metrics, batch_output = self.run_training_batch(batch, batch_idx)
+            (batch_result,
+             grad_norm_dic,
+             batch_step_metrics,
+             batch_output) = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory

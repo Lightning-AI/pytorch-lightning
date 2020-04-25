@@ -27,7 +27,7 @@ class EarlyStopping(Callback):
             change of less than `min_delta`, will count as no
             improvement. Default: ``0``.
         patience: number of passes through the validation set
-            with no improvement after which training will be stopped. 
+            with no improvement after which training will be stopped.
             This will usually correspond with epochs but may vary depending
             on how often you have configured to check validation. Default: ``0``.
         verbose: verbosity mode. Default: ``False``.
@@ -139,8 +139,8 @@ class EarlyStopping(Callback):
 
     def on_train_start(self, trainer, pl_module):
         if not (
-            trainer.is_overriden("validation_step") and
-            trainer.is_overriden("validation_epoch_end")
+            trainer.is_overriden("validation_step") 
+            and trainer.is_overriden("validation_epoch_end")
         ):
             error_msg = (f'''
                 Early stopping is expecting metrics to be returned from
