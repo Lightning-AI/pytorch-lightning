@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
@@ -195,8 +195,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self, model: LightningModule,
-                               mode: str) -> Tuple[int, List[DataLoader]]:
+    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[int, List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -210,6 +209,13 @@ class TrainerDataLoadingMixin(ABC):
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
+
+        # shuffling in val and test set is bad practice
+        for loader in dataloaders:
+            if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
+                raise MisconfigurationException(
+                    f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                    ' this off for validation and test dataloaders.')
 
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl]

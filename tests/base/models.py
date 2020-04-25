@@ -149,7 +149,7 @@ class TestModelBase(LightningModule):
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
-            shuffle=True
+            shuffle=train
         )
 
         return loader
