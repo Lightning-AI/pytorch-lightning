@@ -70,7 +70,11 @@ Call the logger anywhere except ``__init__`` in your
 ...     def training_step(self, batch, batch_idx):
 ...         # example
 ...         self.logger.experiment.whatever_method_summary_writer_supports(...)
-...
+
+            # example if logger is a tensorboard logger
+            self.logger.experiment.add_image('images', grid, 0)
+            self.logger.experiment.add_graph(model, images)
+
 ...     def any_lightning_module_function_or_hook(self):
 ...         self.logger.experiment.add_histogram(...)
 
