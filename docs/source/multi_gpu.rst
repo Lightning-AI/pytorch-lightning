@@ -73,6 +73,46 @@ when needed.
 
 .. note:: For iterable datasets, we don't do this automatically.
 
+Make Model Picklable
+^^^^^^^^^^^^^^^^^^^^
+It's very likely your code is already picklable, so you don't have to do anything to make this change.
+However, if you run distributed and see an error like this:
+
+.. code-block:: bash
+
+    self._launch(process_obj)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
+    in _launch reduction.dump(process_obj, fp)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    _pickle.PicklingError: Can't pickle <function <lambda> at 0x2b599e088ae8>:
+    attribute lookup <lambda> on __main__ failed
+
+This means you have something in your model definition, transforms, optimizer, dataloader or callbacks
+that is cannot be pickled. By pickled we mean
+
+.. code-block:: python
+
+    import pickle
+    pickle.dump(some_object)
+
+This is a limitation of using multiple processes for distributed training within PyTorch.
+To fix this issue, find your piece of code that cannot be pickled. The end of the stacktrace
+is usually helpful.
+
+.. code-block:: bash
+
+    self._launch(process_obj)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
+    in _launch reduction.dump(process_obj, fp)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    _pickle.PicklingError: Can't pickle [THIS IS THE THING TO FIND AND DELETE]:
+    attribute lookup <lambda> on __main__ failed
+
+ie: in the stacktrace example here, there seems to be a lambda function somewhere in the user code
+which cannot be pickled.
+
 Distributed modes
 -----------------
 Lightning allows multiple ways of training
@@ -87,6 +127,8 @@ Data Parallel (dp)
 ^^^^^^^^^^^^^^^^^^
 `DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ splits a batch across k GPUs. That is, if you have a batch of 32 and use dp with 2 gpus,
 each GPU will process 16 samples, after which the root node will aggregate the results.
+
+.. warning:: DP use is discouraged by PyTorch and Lightning. Use ddp which is more stable and at least 3x faster
 
 .. code-block:: python
 
@@ -193,9 +235,9 @@ DP and ddp2 roughly do the following:
         gpu_3_batch = batch[24:]
 
         y_0 = model_copy_gpu_0(gpu_0_batch)
-        y_1 = model_copy_gpu_0(gpu_1_batch)
-        y_2 = model_copy_gpu_0(gpu_2_batch)
-        y_3 = model_copy_gpu_0(gpu_3_batch)
+        y_1 = model_copy_gpu_1(gpu_1_batch)
+        y_2 = model_copy_gpu_2(gpu_2_batch)
+        y_3 = model_copy_gpu_3(gpu_3_batch)
 
         return [y_0, y_1, y_2, y_3]
 
