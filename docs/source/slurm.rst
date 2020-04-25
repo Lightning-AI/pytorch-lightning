@@ -46,10 +46,11 @@ To train a model using multiple-nodes do the following:
        # TRAIN
         main(hyperparams)
 
-4. Submit the appropriate SLURM job
+4. Create the appropriate SLURM job
 
 .. code-block:: bash
 
+    # (submit.sh)
     #!/bin/bash -l
 
     # SLURM SUBMIT SCRIPT
@@ -78,6 +79,17 @@ To train a model using multiple-nodes do the following:
     # run script from above
     srun python3 train.py
 
+5. If you want auto-resubmit (read below), add this line to the submit.sh script
+
+.. code-block:: bash
+
+    #SBATCH --signal=SIGUSR1@90
+
+6. Submit the SLURM job
+
+.. code-block:: bash
+
+    sbatch submit.sh
 
 Walltime auto-resubmit
 -----------------------------------
