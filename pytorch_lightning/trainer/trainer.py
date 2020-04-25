@@ -297,6 +297,15 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
+        # configure logger
+        self.configure_logger(logger)
+
+        # set default save path if user didn't provide one
+        self.default_root_dir = default_root_dir
+
+        if self.default_root_dir is None:
+            self.default_root_dir = os.getcwd()
+
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
         self.callbacks = callbacks or []
@@ -311,17 +320,13 @@ class Trainer(
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
+        self.weights_save_path = weights_save_path
         checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback,
-                                                                 default_root_dir,
-                                                                 logger,
-                                                                 weights_save_path)
+                                                                 self.default_root_dir,
+                                                                 self.logger,
+                                                                 self.weights_save_path)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
-
-        # TODO clean this up and follow same pattern as early_stop_callback
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
-        self.weights_save_path = weights_save_path
 
         # benchmarking
         self.benchmark = benchmark
@@ -392,12 +397,6 @@ class Trainer(
             rank_zero_info('Running in fast_dev_run mode: will run a full train,'
                            ' val and test loop using a single batch')
 
-        # set default save path if user didn't provide one
-        self.default_root_dir = default_root_dir
-
-        if self.default_root_dir is None:
-            self.default_root_dir = os.getcwd()
-
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
@@ -422,9 +421,6 @@ class Trainer(
         self.current_epoch = 0
         self.interrupted = False
         self.should_stop = True
-
-        # configure logger
-        self.configure_logger(logger)
 
         # configure profiler
         if profiler is True:
