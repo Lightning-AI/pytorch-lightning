@@ -508,6 +508,12 @@ class Trainer(
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)
+
+            # in interactive mode, don't make logs use the same job id
+            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
+            if in_slurm_interactive_mode:
+                job_id = None
+
         except Exception:
             job_id = None
         return job_id
