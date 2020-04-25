@@ -320,14 +320,10 @@ class Trainer(
         self.configure_logger(logger)
 
         # set default save path if user didn't provide one
+        if default_root_dir is None:
+            # Backward compatibility, TODO: remove default_save_path in v0.8.0
+            default_root_dir = default_save_path or os.getcwd()
         self.default_root_dir = default_root_dir
-
-        # Backward compatibility, TODO: remove in v0.8.0
-        if default_save_path is not None:
-            self.default_root_dir = default_save_path
-
-        if self.default_root_dir is None:
-            self.default_root_dir = os.getcwd()
 
         # Init callbacks
         self.callbacks = callbacks or []
