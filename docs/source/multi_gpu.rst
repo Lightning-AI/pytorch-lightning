@@ -79,7 +79,7 @@ It's very likely your code is already `picklable <https://docs.python.org/3/libr
 so you don't have to do anything to make this change.
 However, if you run distributed and see an error like this:
 
-.. code-block:: bash
+.. code-block::
 
     self._launch(process_obj)
     File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
@@ -101,7 +101,7 @@ This is a limitation of using multiple processes for distributed training within
 To fix this issue, find your piece of code that cannot be pickled. The end of the stacktrace
 is usually helpful.
 
-.. code-block:: bash
+.. code-block::
 
     self._launch(process_obj)
     File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
@@ -210,7 +210,7 @@ Horovod can be configured in the training script to run with any number of GPUs 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
 
-.. code-block:: bash
+.. code-block::
 
     # run training with 4 GPUs on a single machine
     horovodrun -np 4 python train.py
