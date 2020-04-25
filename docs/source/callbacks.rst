@@ -46,6 +46,18 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
+
+Best Practices
+==============
+
+1. Callbacks should be isolated in their functionality. Your callback should not rely on 
+ the presence of other callbacks in order to work properly.
+2. Do not manually call methods from the callback. The callbacks are designed to be
+ invoked at specific times during training. Directly calling methods (eg. `on_validation_end`)
+ is strongly discouraged.
+3. Whenever possible, your callbacks should not depend on the order in which they are executed.
+
+
 ---------
 
 .. automodule:: pytorch_lightning.callbacks.base
