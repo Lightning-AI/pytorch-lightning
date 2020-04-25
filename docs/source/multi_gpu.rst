@@ -75,7 +75,8 @@ when needed.
 
 Make Model Picklable
 ^^^^^^^^^^^^^^^^^^^^
-It's very likely your code is already picklable, so you don't have to do anything to make this change.
+It's very likely your code is already `picklable <https://docs.python.org/3/library/pickle.html>`_,
+so you don't have to do anything to make this change.
 However, if you run distributed and see an error like this:
 
 .. code-block:: bash
