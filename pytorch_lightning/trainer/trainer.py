@@ -316,6 +316,31 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
+        # training bookeeping
+        self.total_batch_idx = 0
+        self.running_loss = TensorRunningAccum(window_length=20)
+        self.batch_idx = 0
+        self.progress_bar_metrics = {}
+        self.callback_metrics = {}
+        self.num_val_batches = 0
+        self.num_training_batches = 0
+        self.num_test_batches = 0
+        self.train_dataloader = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # training state
+        self.model = None
+        self.testing = False
+        self.disable_validation = False
+        self.lr_schedulers = []
+        self.optimizers = None
+        self.optimizer_frequencies = []
+        self.global_step = 0
+        self.current_epoch = 0
+        self.interrupted = False
+        self.should_stop = True
+
         # set default save path if user didn't provide one
         if default_root_dir is None:
             # Backward compatibility, TODO: remove default_save_path in v0.8.0
@@ -325,9 +350,8 @@ class Trainer(
         # configure logger
         self.configure_logger(logger)
 
-        # Init callbacks
+        # initialize callbacks
         self.callbacks = callbacks or []
-        self.on_init_start()
 
         # configure early stop callback
         # creates a default one if none passed in
@@ -345,6 +369,8 @@ class Trainer(
                                                                  self.weights_save_path)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
+
+        self.on_init_start()
 
         # benchmarking
         self.benchmark = benchmark
@@ -439,31 +465,6 @@ class Trainer(
             self.max_epochs = 1
             log.info('Running in fast_dev_run mode: will run a full train,'
                      ' val and test loop using a single batch')
-
-        # training bookeeping
-        self.total_batch_idx = 0
-        self.running_loss = TensorRunningAccum(window_length=20)
-        self.batch_idx = 0
-        self.progress_bar_metrics = {}
-        self.callback_metrics = {}
-        self.num_val_batches = 0
-        self.num_training_batches = 0
-        self.num_test_batches = 0
-        self.train_dataloader = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # training state
-        self.model = None
-        self.testing = False
-        self.disable_validation = False
-        self.lr_schedulers = []
-        self.optimizers = None
-        self.optimizer_frequencies = []
-        self.global_step = 0
-        self.current_epoch = 0
-        self.interrupted = False
-        self.should_stop = True
 
         # configure profiler
         if profiler is True:
