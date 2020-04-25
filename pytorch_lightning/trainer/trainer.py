@@ -316,14 +316,14 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        # configure logger
-        self.configure_logger(logger)
-
         # set default save path if user didn't provide one
         if default_root_dir is None:
             # Backward compatibility, TODO: remove default_save_path in v0.8.0
             default_root_dir = default_save_path or os.getcwd()
         self.default_root_dir = default_root_dir
+
+        # configure logger
+        self.configure_logger(logger)
 
         # Init callbacks
         self.callbacks = callbacks or []
