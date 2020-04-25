@@ -297,13 +297,13 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        # configure logger
-        self.configure_logger(logger)
-
         # set default save path if user didn't provide one
         if default_root_dir is None:
             default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
+
+        # configure logger
+        self.configure_logger(logger)
 
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
