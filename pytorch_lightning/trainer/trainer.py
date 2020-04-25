@@ -320,6 +320,27 @@ class Trainer(
         self.callbacks = callbacks or []
         self.on_init_start()
 
+        # configure early stop callback
+        # creates a default one if none passed in
+        early_stop_callback = self.configure_early_stopping(early_stop_callback)
+        if early_stop_callback:
+            self.callbacks.append(early_stop_callback)
+
+        # configure checkpoint callback
+        # it is important that this is the last callback to run
+        # pass through the required args to figure out defaults
+        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback,
+                                                                 default_root_dir,
+                                                                 logger,
+                                                                 weights_save_path)
+        if checkpoint_callback:
+            self.callbacks.append(checkpoint_callback)
+
+        # TODO clean this up and follow same pattern as early_stop_callback
+        # configure checkpoint callback
+        self.checkpoint_callback = checkpoint_callback
+        self.weights_save_path = weights_save_path
+
         # benchmarking
         self.benchmark = benchmark
         torch.backends.cudnn.benchmark = self.benchmark
@@ -447,6 +468,7 @@ class Trainer(
         self.global_step = 0
         self.current_epoch = 0
         self.interrupted = False
+        self.should_stop = True
 
         # configure logger
         self.configure_logger(logger)
@@ -455,14 +477,6 @@ class Trainer(
         if profiler is True:
             profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
-
-        # configure early stop callback
-        # creates a default one if none passed in
-        self.configure_early_stopping(early_stop_callback)
-
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
-        self.weights_save_path = weights_save_path
 
         # accumulated grads
         self.accumulate_grad_batches = accumulate_grad_batches

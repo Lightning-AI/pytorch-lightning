@@ -26,8 +26,10 @@ class EarlyStopping(Callback):
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
             improvement. Default: ``0``.
-        patience: number of validation epochs with no improvement
-            after which training will be stopped. Default: ``0``.
+        patience: number of passes through the validation set
+            with no improvement after which training will be stopped. 
+            This will usually correspond with epochs but may vary depending
+            on how often you have configured to check validation. Default: ``0``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
@@ -76,15 +78,29 @@ class EarlyStopping(Callback):
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
 
-        self.monitor_op = self.mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+
+    def state_dict(self):
+        return {
+            'wait': self.wait,
+            'stopped_epoch': self.stopped_epoch,
+            'best': self.best,
+            'patience': self.patience
+        }
+
+    def load_state_dict(self, state_dict):
+        state_dict = deepcopy(state_dict)
+        self.wait = state_dict['wait']
+        self.stopped_epoch = state_dict['stopped_epoch']
+        self.best = state_dict['best']
+        self.patience = state_dict['patience']
 
     def _validate_condition_metric(self, logs):
         """
         Checks that the condition metric for early stopping is good
-        :param logs:
-        :return:
+        :param logs: callback metrics from validation output
+        :return: True if specified metric is available
         """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
@@ -121,14 +137,29 @@ class EarlyStopping(Callback):
         self.best = state_dict['best']
         self.patience = state_dict['patience']
 
+    def on_train_start(self, trainer, pl_module):
+        if not (
+            trainer.is_overriden("validation_step") and
+            trainer.is_overriden("validation_epoch_end")
+        ):
+            error_msg = (f'''
+                Early stopping is expecting metrics to be returned from
+                validation but the Lightning model does not have a validation loop
+                defined with logging. Please ensure that your LightningModule has
+                both `validation_step` and `validation_epoch_end` defined.
+            ''')
+            if self.strict:
+                raise RuntimeError(error_msg)
+            if self.verbose > 0:
+                rank_zero_warn(error_msg, RuntimeWarning)
+
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
-        stop_training = False
         if not self._validate_condition_metric(logs):
-            return stop_training
+            return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
@@ -143,7 +174,8 @@ class EarlyStopping(Callback):
                 self.stopped_epoch = trainer.current_epoch
                 stop_training = True
 
-        return stop_training
+        if stop_training:
+            trainer.should_stop = True
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:

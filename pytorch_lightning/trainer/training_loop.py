@@ -372,15 +372,15 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-                # TODO wrap this logic into the callback
-                if self.enable_early_stop:
-                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
-                        # stop training
-                        stop = should_stop and met_min_epochs
-                        if stop:
-                            self.run_training_teardown()
-                            return
+                if self.should_stop:
+                    # Question: didn't understand the check about self.fast_dev_run
+                    if met_min_epochs and met_min_steps:
+                        self.run_training_teardown()
+                        return
+                    else:
+                        log.info(f'''Trainer was signaled to stop but required minimum epochs
+                                 ({self.min_epochs}) or minimum steps ({self.min_steps}) has
+                                 not been met. Training will continue...''')
 
             self.run_training_teardown()
 
@@ -435,8 +435,7 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            _outputs = self.run_training_batch(batch, batch_idx)
-            batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
+            batch_result, grad_norm_dic, batch_step_metrics, batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
@@ -444,7 +443,8 @@ class TrainerTrainLoopMixin(ABC):
                 outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
-            early_stop_epoch = batch_result == -1
+            if batch_result == -1:
+                self.should_stop = True
 
             # TODO: consolidate all actions that need to take place only after
             # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
@@ -458,26 +458,27 @@ class TrainerTrainLoopMixin(ABC):
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
             can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             can_check_val = not self.disable_validation and can_check_epoch
-            should_check_val = is_val_check_batch or early_stop_epoch
+            should_check_val = is_val_check_batch or self.should_stop
             should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
             should_check_val = can_check_val and should_check_val
 
-            # ---------------
-            # CHECKPOINTING, EARLY STOPPING
-            # ---------------
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
                 self.call_checkpoint_callback()
 
+            # ---------------
+            # CHECKPOINTING, EARLY STOPPING
+            # ---------------
+
             # when logs should be saved
-            should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
+            should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or self.should_stop
             if should_save_log or self.fast_dev_run:
                 if self.proc_rank == 0 and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
-            should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
+            should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
                 self.log_metrics(batch_step_metrics, grad_norm_dic)
@@ -494,7 +495,7 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if early_stop_epoch or self.fast_dev_run:
+            if self.fast_dev_run or self.should_stop:
                 break
 
         if self.use_horovod:
@@ -810,6 +811,10 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
+
+    def call_early_stop_callback(self):
+        if self.early_stop_callback:
+            self.early_stop_callback.on_epoch_end(self, self.get_model())
 
 
 def _with_is_last(iterable):
