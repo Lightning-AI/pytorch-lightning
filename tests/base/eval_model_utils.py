@@ -11,7 +11,7 @@ class ModelTemplateUtils:
         loader = DataLoader(
             dataset=dataset,
             batch_size=self.hparams.batch_size,
-            shuffle=True
+            shuffle=train
         )
         return loader
 
