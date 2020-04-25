@@ -301,10 +301,9 @@ class Trainer(
         self.configure_logger(logger)
 
         # set default save path if user didn't provide one
+        if default_root_dir is None:
+            default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
-
-        if self.default_root_dir is None:
-            self.default_root_dir = os.getcwd()
 
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
