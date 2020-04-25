@@ -1349,7 +1349,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
-                        shuffle=True
+                        shuffle=False
                     )
 
                     return loader
@@ -1394,7 +1394,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
-                        shuffle=True
+                        shuffle=False
                     )
 
                     return loader
