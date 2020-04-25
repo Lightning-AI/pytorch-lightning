@@ -84,9 +84,9 @@ Walltime auto-resubmit
 When you use Lightning in a SLURM cluster, lightning automatically detects when it is about
 to run into the walltime, and it does the following:
 
-1. Saves a temporary checkpoint.
-2. Requeues the job.
-3. When the job starts, it loads the temporary checkpoint.
+    1. Saves a temporary checkpoint.
+    2. Requeues the job.
+    3. When the job starts, it loads the temporary checkpoint.
 
 To get this behavior make sure to add the correct signal to your SLURM script
 
