@@ -74,7 +74,7 @@ Call the logger anywhere except ``__init__`` in your
             # example if logger is a tensorboard logger
             self.logger.experiment.add_image('images', grid, 0)
             self.logger.experiment.add_graph(model, images)
-...
+
 ...     def any_lightning_module_function_or_hook(self):
 ...         self.logger.experiment.add_histogram(...)
 
