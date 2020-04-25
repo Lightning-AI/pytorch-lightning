@@ -90,7 +90,7 @@ However, if you run distributed and see an error like this:
     attribute lookup <lambda> on __main__ failed
 
 This means you have something in your model definition, transforms, optimizer, dataloader or callbacks
-that is cannot be pickled. By pickled we mean
+that is cannot be pickled. By pickled we mean the following would fail.
 
 .. code-block:: python
 
