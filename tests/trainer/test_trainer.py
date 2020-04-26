@@ -79,12 +79,13 @@ def test_no_val_module(tmpdir):
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
-    # load new model
-    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    # assert ckpt has hparams
+    ckpt = torch.load(new_weights_path)
+    assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
+
+    # won't load without hparams in the ckpt
     model_2 = LightningTestModel.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        tags_csv=tags_path
     )
     model_2.eval()
 
