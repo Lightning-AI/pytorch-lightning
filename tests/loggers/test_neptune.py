@@ -1,4 +1,3 @@
-import pickle
 from unittest.mock import patch, MagicMock
 
 import torch
@@ -9,29 +8,9 @@ from pytorch_lightning.loggers import NeptuneLogger
 from tests.base import LightningTestModel
 
 
-def test_neptune_logger(tmpdir):
-    """Verify that basic functionality of neptune logger works."""
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
-    logger = NeptuneLogger(offline_mode=True)
-
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger
-    )
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    assert result == 1, 'Training failed'
-
-
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_online(neptune):
-    logger = NeptuneLogger(api_key='test', project_name='project')
+    logger = NeptuneLogger(api_key='test', offline_mode=False, project_name='project')
     neptune.init.assert_called_once_with(api_token='test', project_qualified_name='project')
 
     assert logger.name == neptune.create_experiment().name
@@ -80,24 +59,6 @@ def test_neptune_additional_methods(neptune):
     neptune.create_experiment().append_tags.assert_called_once_with('two', 'tags')
 
 
-def test_neptune_pickle(tmpdir):
-    """Verify that pickling trainer with neptune logger works."""
-    tutils.reset_seed()
-
-    logger = NeptuneLogger(offline_mode=True)
-
-    trainer_options = dict(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        logger=logger
-    )
-
-    trainer = Trainer(**trainer_options)
-    pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({'acc': 1.0})
-
-
 def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
     tutils.reset_seed()
@@ -109,7 +70,7 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
         logger._experiment = MagicMock()
 
         trainer_options = dict(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             train_percent_check=0.05,
             logger=logger
@@ -121,6 +82,5 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
     logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))
     assert logger_close_after_fit._experiment.stop.call_count == 1
 
-    logger_open_after_fit = _run_training(
-        NeptuneLogger(offline_mode=True, close_after_fit=False))
+    logger_open_after_fit = _run_training(NeptuneLogger(offline_mode=True, close_after_fit=False))
     assert logger_open_after_fit._experiment.stop.call_count == 0

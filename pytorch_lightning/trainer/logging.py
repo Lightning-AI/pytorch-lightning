@@ -5,6 +5,7 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.utilities import memory_utils
 
 
 class TrainerLoggingMixin(ABC):
@@ -15,12 +16,12 @@ class TrainerLoggingMixin(ABC):
     on_gpu: bool
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
-    tqdm_metrics: ...
+    progress_bar_metrics: ...
     global_step: int
     proc_rank: int
     use_dp: bool
     use_ddp2: bool
-    default_save_path: str
+    default_root_dir: str
     slurm_job_id: int
     num_gpus: int
 
@@ -28,11 +29,10 @@ class TrainerLoggingMixin(ABC):
         if logger is True:
             # default logger
             self.logger = TensorBoardLogger(
-                save_dir=self.default_save_path,
+                save_dir=self.default_root_dir,
                 version=self.slurm_job_id,
                 name='lightning_logs'
             )
-            self.logger.rank = 0
         elif logger is False:
             self.logger = None
         else:
@@ -40,7 +40,6 @@ class TrainerLoggingMixin(ABC):
                 self.logger = LoggerCollection(logger)
             else:
                 self.logger = logger
-            self.logger.rank = 0
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -67,19 +66,19 @@ class TrainerLoggingMixin(ABC):
             step = scalar_metrics.pop("step")
         else:
             # added metrics by Lightning for convenience
-            metrics['epoch'] = self.current_epoch
+            scalar_metrics['epoch'] = self.current_epoch
             step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
-            self.logger.log_metrics(scalar_metrics, step=step)
+            self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
-    def add_tqdm_metrics(self, metrics):
+    def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
-            self.tqdm_metrics[k] = v
+            self.progress_bar_metrics[k] = v
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -97,7 +96,7 @@ class TrainerLoggingMixin(ABC):
     def process_output(self, output, train=False):
         """Reduces output according to the training mode.
 
-        Separates loss from logging and tqdm metrics
+        Separates loss from logging and progress bar metrics
         """
         # ---------------
         # EXTRACT CALLBACK KEYS
@@ -112,17 +111,13 @@ class TrainerLoggingMixin(ABC):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
-        for k, v in callback_metrics.items():
-            if isinstance(v, torch.Tensor):
-                callback_metrics[k] = v.item()
-
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
         # ---------------
         try:
             progress_output = output['progress_bar']
 
-            # reduce progress metrics for tqdm when using dp
+            # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
                 num_gpus = self.num_gpus
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
@@ -138,7 +133,7 @@ class TrainerLoggingMixin(ABC):
         try:
             log_output = output['log']
 
-            # reduce progress metrics for tqdm when using dp
+            # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
                 num_gpus = self.num_gpus
                 log_output = self.reduce_distributed_output(log_output, num_gpus)
@@ -177,10 +172,9 @@ class TrainerLoggingMixin(ABC):
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
 
-        # convert tensors to numpy
-        for k, v in callback_metrics.items():
-            if isinstance(v, torch.Tensor):
-                callback_metrics[k] = v.item()
+        # detach all metrics for callbacks to prevent memory leaks
+        # no .item() because it will slow things down
+        callback_metrics = memory_utils.recursive_detach(callback_metrics)
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 

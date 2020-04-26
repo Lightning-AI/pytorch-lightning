@@ -35,7 +35,7 @@ To modify the behavior of checkpointing pass in your own callback.
     # DEFAULTS used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_best_only=True,
+        save_top_k=True,
         verbose=True,
         monitor='val_loss',
         mode='min',
@@ -74,19 +74,19 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
 
 Manual saving
 ^^^^^^^^^^^^^
-
-To save your own checkpoint call:
+You can manually save checkpoints and restore your model from the checkpointed state.
 
 .. code-block:: python
 
-   model.save_checkpoint(PATH)
+    model = MyModel(hparams)
+    trainer.fit(model)
+    trainer.save_checkpoint("example.ckpt")
+    new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
 
 Checkpoint Loading
 ------------------
 
-You might want to not only load a model but also continue training it. Use this method to
-restore the trainer state as well. This will continue from the epoch and global step you last left off.
-However, the dataloaders will start from the first batch again (if you shuffled it shouldn't matter).
+To load a model along with its weights, biases and hyperparameters use following method.
 
 .. code-block:: python
 
@@ -94,5 +94,42 @@ However, the dataloaders will start from the first batch again (if you shuffled 
     model.eval()
     y_hat = model(x)
 
-A LightningModule is no different than a nn.Module. This means you can load it and use it for
-predictions as you would a nn.Module.
+The above only works if you used `hparams` in your model definition
+
+.. code-block:: python
+
+    class MyModel(pl.LightningModule):
+
+        def __init__(self, hparams):
+            self.hparams = hparams
+            self.l1 = nn.Linear(hparams.in_dim, hparams.out_dim)
+
+But if you don't and instead pass individual parameters
+
+.. code-block:: python
+
+    class MyModel(pl.LightningModule):
+
+        def __init__(self, in_dim, out_dim):
+            self.l1 = nn.Linear(in_dim, out_dim)
+
+you can restore the model like this
+
+.. code-block:: python
+
+    model = MyModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
+
+
+Restoring Training State
+------------------------
+
+If you don't just want to load weights, but instead restore the full training,
+do the following:
+
+.. code-block:: python
+
+   model = LitModel()
+   trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+
+   # automatically restores model, epoch, step, LR schedulers, apex, etc...
+   trainer.fit(model)

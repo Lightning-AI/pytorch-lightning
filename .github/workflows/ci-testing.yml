@@ -19,12 +19,16 @@ jobs:
       fail-fast: false
       # max-parallel: 6
       matrix:
-        os: [ubuntu-18.04, windows-2016, macOS-10.15]
-        python-version: [3.6, 3.7]
+        os: [ubuntu-18.04, windows-2019, macOS-10.15]
+        python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
+        exclude:
+          # excludes node 4 on macOS
+          - python-version: 3.8
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -37,6 +41,18 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+        brew install openmpi  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        python -c "lines = [line for line in open('requirements-extra.txt').readlines() if not line.startswith('horovod')] ; open('requirements-extra.txt', 'w').writelines(lines)"
+
+    # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
+    - name: Setup Windows on Latest
+      if: runner.os == 'windows' && matrix.requires == 'latest'
+      run: |
+        python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch<1.5') ; open('requirements.txt', 'w').write(req)"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -57,19 +73,20 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v1
       with:
-        path: tests/datasets # This path is specific to Ubuntu
+        path: tests/Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
         key: mnist-dataset
 
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
-        pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html
-        pip install -r ./tests/requirements.txt
+        pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./tests/requirements-devel.txt -q
         # pip install tox coverage
         python --version
         pip --version
         pip list
+      shell: bash
 
     - name: Tests
       # env:

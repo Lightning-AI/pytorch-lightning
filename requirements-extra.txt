@@ -1,8 +1,11 @@
 # extended list of package dependencies to reach full functionality
 
-neptune-client>=0.4.4
+neptune-client>=0.4.109
 comet-ml>=1.0.56
 mlflow>=1.0.0
 test_tube>=0.7.5
 wandb>=0.8.21
 trains>=0.14.1
+matplotlib>=3.1.1
+# no need to install with [pytorch] as pytorch is already installed and torchvision is required only for Horovod examples
+horovod>=0.19.1

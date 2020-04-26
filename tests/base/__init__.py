@@ -2,7 +2,7 @@
 
 import torch
 
-from tests.base.models import TestModelBase, DictHparamsModel
+from tests.base.eval_model_template import EvalModelTemplate
 from tests.base.mixins import (
     LightEmptyTestStep,
     LightValidationStepMixin,
@@ -18,6 +18,7 @@ from tests.base.mixins import (
     LightValStepFitSingleDataloaderMixin,
     LightValStepFitMultipleDataloadersMixin,
     LightTrainDataloader,
+    LightValidationDataloader,
     LightTestDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
@@ -25,8 +26,11 @@ from tests.base.mixins import (
     LightTestOptimizerWithSchedulingMixin,
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
-    LightTestReduceLROnPlateauMixin
+    LightTestReduceLROnPlateauMixin,
+    LightTestNoneOptimizerMixin,
+    LightZeroLenDataloader
 )
+from tests.base.models import TestModelBase, DictHparamsModel
 
 
 class LightningTestModel(LightTrainDataloader,
@@ -40,7 +44,7 @@ class LightningTestModel(LightTrainDataloader,
 
 
 class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
-    """ without hparams argument in constructor """
+    """Without hparams argument in constructor """
 
     def __init__(self):
         import tests.base.utils as tutils
@@ -51,7 +55,7 @@ class LightningTestModelWithoutHyperparametersArg(LightningTestModel):
 
 
 class LightningTestModelWithUnusedHyperparametersArg(LightningTestModelWithoutHyperparametersArg):
-    """ has hparams argument in constructor but is not used """
+    """It has hparams argument in constructor but is not used."""
 
     def __init__(self, hparams):
         super().__init__()

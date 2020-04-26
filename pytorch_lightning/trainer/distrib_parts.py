@@ -250,8 +250,11 @@ You must configure your job submission script correctly for the trainer to work.
 .. note:: When running in DDP mode, any errors in your code will show up as an NCCL issue.
  Set the `NCCL_DEBUG=INFO` flag to see the ACTUAL error.
 
-Finally, make sure to add a distributed sampler to your dataset. The distributed sampler copies a
- portion of your dataset onto each GPU. (World_size = gpus_per_node * nb_nodes).
+Normally now you would need to add a distributed sampler to your dataset, however
+Lightning automates this for you. But if you still need to set a sampler Lightning will
+not interfere nor automate it.
+
+Here's an example of how to add your own sampler (again no need with Lightning).
 
 .. code-block:: python
 
@@ -334,17 +337,22 @@ Here lightning distributes parts of your module across available GPUs to optimiz
 
 """
 
+from contextlib import ExitStack
 import os
 from abc import ABC, abstractmethod
-
+import time
+import random
 import torch
+from typing import Union
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     from apex import amp
@@ -360,6 +368,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerDPMixin(ABC):
 
@@ -369,7 +384,6 @@ class TrainerDPMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_ddp: bool
-    use_amp: bool
     testing: bool
     single_gpu: bool
     root_gpu: ...
@@ -380,7 +394,15 @@ class TrainerDPMixin(ABC):
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
+    use_native_amp: bool
     data_parallel_device_ids: ...
+    logger: Union[LightningLoggerBase, bool]
+    progress_bar_callback: ...
+
+    @property
+    @abstractmethod
+    def use_amp(self) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def run_pretrain_routine(self, *args):
@@ -459,9 +481,10 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        if self.use_amp:
+        # TODO: update for 0.8.0
+        if self.use_amp and not self.use_native_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
@@ -477,23 +500,24 @@ class TrainerDPMixin(ABC):
         self.tpu_global_core_rank = xm.get_ordinal()
 
         # avoid duplicating progress bar
-        self.show_progress_bar = self.show_progress_bar and self.tpu_global_core_rank == 0
+        if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
 
         # track current tpu
         self.current_tpu_idx = tpu_core_idx
         self.proc_rank = self.tpu_local_core_rank
+        rank_zero_only.rank = self.proc_rank
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         # init 16 bit for TPU
         if self.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        m = f'INIT TPU local core: {self.tpu_local_core_rank}, ' \
-            f'global rank: {self.tpu_global_core_rank}'
-        log.info(m)
+        log.info(f'INIT TPU local core: {self.tpu_local_core_rank},'
+                 f' global rank: {self.tpu_global_core_rank}')
 
         # continue training routine
         self.run_pretrain_routine(model)
@@ -504,20 +528,25 @@ class TrainerDPMixin(ABC):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers = self.init_optimizers(model.configure_optimizers())
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         model.cuda(self.root_gpu)
 
+        # hack forward to do autocast for the user
+        model_autocast_original_forward = model.forward
+        if self.use_amp and self.use_native_amp:
+            # wrap the user's forward in autocast and give it back at the end
+            model.forward = torch.cuda.amp.autocast()(model.forward)
+
+        # TODO: remove in v0.8.0
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp:
+        if self.use_dp and self.use_amp and not self.use_native_amp:
             if self.amp_level == 'O2':
-                m = f"""
-                Amp level {self.amp_level} with DataParallel is not supported.
-                See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.
-                We recommend you switch to ddp if you want to use amp
-                """
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    f'Amp level {self.amp_level} with DataParallel is not supported.'
+                    f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
+                    f' We recommend you switch to ddp if you want to use amp')
             else:
                 model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
 
@@ -526,9 +555,68 @@ class TrainerDPMixin(ABC):
         if isinstance(device_ids, int):
             device_ids = list(range(device_ids))
 
+        # set dp device
+        torch.cuda.set_device(self.root_gpu)
+
         model = LightningDataParallel(model, device_ids=device_ids)
 
         self.run_pretrain_routine(model)
+
+        model.forward = model_autocast_original_forward
+
+    def horovod_train(self, model):
+        # Horovod: initialize library
+        hvd.init()
+
+        if torch.cuda.is_available() and self.on_gpu:
+            # Horovod: pin GPU to local rank
+            torch.cuda.set_device(hvd.local_rank())
+            model.cuda(hvd.local_rank())
+
+        # Only show progress bar from the first worker
+        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if hvd.rank() == 0 else 0
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
+
+        # Horovod: scale the learning rate by the number of workers to account for
+        # increased total batch size
+        for optimizer in self.optimizers:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= hvd.size()
+
+        if self.use_amp:
+            # An example
+            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
+            self.optimizers = optimizers
+
+        # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
+        hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+        for optimizer in self.optimizers:
+            hvd.broadcast_optimizer_state(optimizer, root_rank=0)
+
+        def filter_named_parameters(model, optimizer):
+            opt_params = set([p for group in optimizer.param_groups for p in group.get('params', [])])
+            return [(name, p) for name, p in model.named_parameters() if p in opt_params]
+
+        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
+        self.optimizers = [
+            hvd.DistributedOptimizer(optimizer, named_parameters=filter_named_parameters(model, optimizer))
+            for optimizer in self.optimizers
+        ]
+
+        # Update logger rank info from Horovod to avoid race conditions from  different ranks
+        # creating directories / writing files in the same locations.
+        self.proc_rank = hvd.rank()
+        rank_zero_only.rank = self.proc_rank
+
+        with ExitStack() as stack:
+            for optimizer in self.optimizers:
+                # Synchronization will be performed explicitly following backward()
+                stack.enter_context(optimizer.skip_synchronize())
+
+            self.run_pretrain_routine(model)
 
 
 def normalize_parse_gpu_string_input(s):
@@ -536,7 +624,7 @@ def normalize_parse_gpu_string_input(s):
         if s == '-1':
             return -1
         else:
-            return [int(x.strip()) for x in s.split(',')]
+            return [int(x.strip()) for x in s.split(',') if len(x) > 0]
     else:
         return s
 
@@ -556,7 +644,7 @@ def check_gpus_data_type(gpus):
     :return: return unmodified gpus variable
     """
 
-    if gpus is not None and type(gpus) not in (int, str, list):
+    if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
@@ -584,11 +672,10 @@ def sanitize_gpu_ids(gpus):
     all_available_gpus = get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            message = f"""
-            You requested GPUs: {gpus}
-            But your machine only has: {all_available_gpus}
-            """
-            raise MisconfigurationException(message)
+            raise MisconfigurationException(f"""
+                You requested GPUs: {gpus}
+                But your machine only has: {all_available_gpus}
+            """)
     return gpus
 
 
@@ -605,6 +692,10 @@ def parse_gpu_ids(gpus):
         If no GPUs are available but the value of gpus variable indicates request for GPUs
         then a misconfiguration exception is raised.
     """
+
+    # nothing was passed into the GPUs argument
+    if callable(gpus):
+        return None
 
     # Check that gpus param is None, Int, String or List
     check_gpus_data_type(gpus)
@@ -640,3 +731,44 @@ def determine_root_gpu_device(gpus):
     root_gpu = gpus[0]
 
     return root_gpu
+
+
+def retry_jittered_backoff(f, num_retries=5):
+    # Based on:
+    # https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+    cap = 1.0                  # max sleep time is 1s
+    base = 0.01                # initial sleep time is 10ms
+    sleep = base               # initial sleep time is 10ms
+
+    for i in range(num_retries):
+        try:
+            return f()
+        except RuntimeError as e:
+            if i == num_retries - 1:
+                raise e
+            else:
+                continue
+        time.sleep(sleep)
+        sleep = min(cap, random.uniform(base, sleep * 3))
+
+
+def pick_single_gpu(exclude_gpus=[]):
+    for i in range(torch.cuda.device_count()):
+        if i in exclude_gpus:
+            continue
+        # Try to allocate on device:
+        device = torch.device(f"cuda:{i}")
+        try:
+            torch.ones(1).to(device)
+        except RuntimeError:
+            continue
+        return i
+    raise RuntimeError("No GPUs available.")
+
+
+def pick_multiple_gpus(n):
+    picked = []
+    for _ in range(n):
+        picked.append(pick_single_gpu(exclude_gpus=picked))
+
+    return picked

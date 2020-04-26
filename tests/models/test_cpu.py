@@ -1,8 +1,8 @@
-import math
-import warnings
+import platform
 
 import pytest
 import torch
+from packaging.version import parse as version_parse
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
@@ -14,7 +14,6 @@ from tests.base import (
     LightTrainDataloader,
     LightningTestModel,
     LightTestMixin,
-    LightValidationMixin
 )
 
 
@@ -24,13 +23,11 @@ def test_early_stopping_cpu_model(tmpdir):
 
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         early_stop_callback=stopping,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        show_progress_bar=True,
-        logger=tutils.get_default_testtube_logger(tmpdir),
         train_percent_check=0.1,
         val_percent_check=0.1,
     )
@@ -43,21 +40,47 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
+@pytest.mark.spawn
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif((platform.system() == "Darwin" and
+                     version_parse(torch.__version__) < version_parse("1.3.0")),
+                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+def test_multi_cpu_model_ddp(tmpdir):
+    """Make sure DDP works."""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    model, hparams = tutils.get_default_model()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=None,
+        num_processes=2,
+        distributed_backend='ddp_cpu'
+    )
+
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
+
+
 def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options."""
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=2,
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         weights_summary='top',
         train_percent_check=1.0,
         val_percent_check=0.2,
     )
 
     model, hparams = tutils.get_default_model(lbfgs=True)
-    tutils.run_model_test_no_loggers(trainer_options, model, min_acc=0.30)
+    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -65,17 +88,17 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         train_percent_check=0.01,
         val_percent_check=0.01,
     )
 
     model, hparams = tutils.get_default_model()
-    tutils.run_model_test_no_loggers(trainer_options, model)
+    tutils.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -90,14 +113,14 @@ def test_running_test_after_fitting(tmpdir):
     model = LightningTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        default_save_path=tmpdir,
-        show_progress_bar=False,
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=8,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -115,10 +138,10 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, thr=0.35)
+    tutils.assert_ok_model_acc(trainer, thr=0.5)
 
 
-def test_running_test_without_val(tmpdir):
+def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     tutils.reset_seed()
 
@@ -129,13 +152,13 @@ def test_running_test_without_val(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
@@ -157,60 +180,9 @@ def test_running_test_without_val(tmpdir):
     tutils.assert_ok_model_acc(trainer)
 
 
-def test_disabled_validation():
-    """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
-    tutils.reset_seed()
-
-    class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
-
-        validation_step_invoked = False
-        validation_end_invoked = False
-
-        def validation_step(self, *args, **kwargs):
-            self.validation_step_invoked = True
-            return super().validation_step(*args, **kwargs)
-
-        def validation_end(self, *args, **kwargs):
-            self.validation_end_invoked = True
-            return super().validation_end(*args, **kwargs)
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentModel(hparams)
-
-    trainer_options = dict(
-        show_progress_bar=False,
-        max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.0,
-        fast_dev_run=False,
-    )
-
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    # check that val_percent_check=0 turns off validation
-    assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 1
-    assert not model.validation_step_invoked, '`validation_step` should not run when `val_percent_check=0`'
-    assert not model.validation_end_invoked, '`validation_end` should not run when `val_percent_check=0`'
-
-    # check that val_percent_check has no influence when fast_dev_run is turned on
-    model = CurrentModel(hparams)
-    trainer_options.update(fast_dev_run=True)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-
-    assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 0
-    assert model.validation_step_invoked, 'did not run `validation_step` with `fast_dev_run=True`'
-    assert model.validation_end_invoked, 'did not run `validation_end` with `fast_dev_run=True`'
-
-
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     tutils.reset_seed()
-
-    if not tutils.can_run_gpu_test():
-        return
 
     trainer = Trainer()
 
@@ -259,7 +231,7 @@ def test_simple_cpu(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.1,
@@ -278,9 +250,8 @@ def test_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
-        show_progress_bar=False,
-        logger=tutils.get_default_testtube_logger(tmpdir),
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4
@@ -296,12 +267,11 @@ def test_all_features_cpu_model(tmpdir):
     tutils.reset_seed()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
-        show_progress_bar=False,
-        logger=tutils.get_default_testtube_logger(tmpdir),
+        progress_bar_refresh_rate=0,
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
@@ -362,7 +332,7 @@ def test_tbptt_cpu_model(tmpdir):
             )
 
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
@@ -385,19 +355,16 @@ def test_tbptt_cpu_model(tmpdir):
     assert result == 1, 'training failed to complete'
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_model(tmpdir):
     """Make sure single GPU works (DP mode)."""
     tutils.reset_seed()
 
-    if not torch.cuda.is_available():
-        warnings.warn('test_single_gpu_model cannot run.'
-                      ' Rerun on a GPU node to run this test')
-        return
     model, hparams = tutils.get_default_model()
 
     trainer_options = dict(
-        default_save_path=tmpdir,
-        show_progress_bar=False,
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
@@ -405,64 +372,6 @@ def test_single_gpu_model(tmpdir):
     )
 
     tutils.run_model_test(trainer_options, model)
-
-
-def test_nan_loss_detection(tmpdir):
-    test_step = 8
-
-    class InfLossModel(LightTrainDataloader, TestModelBase):
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == test_step:
-                if isinstance(output, dict):
-                    output['loss'] *= torch.tensor(math.inf)  # make loss infinite
-                else:
-                    output /= 0
-            return output
-
-    hparams = tutils.get_default_hparams()
-    model = InfLossModel(hparams)
-
-    # fit model
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_steps=(test_step + 1),
-    )
-
-    with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
-        trainer.fit(model)
-        assert trainer.global_step == test_step
-
-    for param in model.parameters():
-        assert torch.isfinite(param).all()
-
-
-def test_nan_params_detection(tmpdir):
-    test_step = 8
-
-    class NanParamModel(LightTrainDataloader, TestModelBase):
-
-        def on_after_backward(self):
-            if self.global_step == test_step:
-                # simulate parameter that became nan
-                torch.nn.init.constant_(self.c_d1.bias, math.nan)
-
-    hparams = tutils.get_default_hparams()
-
-    model = NanParamModel(hparams)
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_steps=(test_step + 1),
-    )
-
-    with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
-        trainer.fit(model)
-        assert trainer.global_step == test_step
-
-    # after aborting the training loop, model still has nan-valued params
-    params = torch.cat([param.view(-1) for param in model.parameters()])
-    assert not torch.isfinite(params).all()
 
 
 # if __name__ == '__main__':

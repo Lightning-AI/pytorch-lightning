@@ -43,3 +43,35 @@ Lightning can handle TBTT automatically via this flag.
 
 .. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
     a `hiddens` arg.
+
+Iterable Datasets
+---------------------------------------
+Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
+option when using sequential data.
+
+.. note:: When using an IterableDataset you must set the val_check_interval to 1.0 (the default) or to an int
+    (specifying the number of training batches to run before validation) when initializing the Trainer.
+    This is due to the fact that the IterableDataset does not have a __len__ and Lightning requires this to calculate
+    the validation interval when val_check_interval is less than one.
+
+.. code-block:: python
+
+    # IterableDataset
+    class CustomDataset(IterableDataset):
+
+        def __init__(self, data):
+            self.data_source
+
+        def __iter__(self):
+            return iter(self.data_source)
+
+    # Setup DataLoader
+    def train_dataloader(self):
+        seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
+        iterable_dataset = CustomDataset(seq_data)
+
+        dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
+        return dataloader
+
+    # Set val_check_interval
+    trainer = pl.Trainer()

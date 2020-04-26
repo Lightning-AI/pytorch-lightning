@@ -46,12 +46,6 @@ class ImageNetLightningModel(LightningModule):
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-            acc1 = acc1.unsqueeze(0)
-            acc5 = acc5.unsqueeze(0)
-
         tqdm_dict = {'train_loss': loss_val}
         output = OrderedDict({
             'loss': loss_val,
@@ -68,12 +62,6 @@ class ImageNetLightningModel(LightningModule):
         output = self(images)
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
-
-        # in DP mode (default) make sure if result is scalar, there's another dim in the beginning
-        if self.trainer.use_dp or self.trainer.use_ddp2:
-            loss_val = loss_val.unsqueeze(0)
-            acc1 = acc1.unsqueeze(0)
-            acc5 = acc5.unsqueeze(0)
 
         output = OrderedDict({
             'val_loss': loss_val,
@@ -234,11 +222,11 @@ def main(hparams):
         torch.manual_seed(hparams.seed)
         cudnn.deterministic = True
     trainer = pl.Trainer(
-        default_save_path=hparams.save_path,
+        default_root_dir=hparams.save_path,
         gpus=hparams.gpus,
         max_epochs=hparams.epochs,
         distributed_backend=hparams.distributed_backend,
-        use_amp=hparams.use_16bit
+        precision=16 if hparams.use_16bit else 32,
     )
     if hparams.evaluate:
         trainer.run_evaluation()

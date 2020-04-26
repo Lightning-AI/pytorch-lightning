@@ -7,7 +7,7 @@ Callbacks
 =========
 
 Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your LightningModule to run.
+logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
 An overall Lightning system should have:
 
@@ -15,27 +15,29 @@ An overall Lightning system should have:
 2. LightningModule for all research code.
 3. Callbacks for non-essential code.
 
-Example
 
-.. code-block:: python
+Example:
 
-    import pytorch_lightning as pl
+.. doctest::
 
-    class MyPrintingCallback(pl.Callback):
+    >>> import pytorch_lightning as pl
+    >>> class MyPrintingCallback(pl.Callback):
+    ...
+    ...     def on_init_start(self, trainer):
+    ...         print('Starting to init trainer!')
+    ...
+    ...     def on_init_end(self, trainer):
+    ...         print('trainer is init now')
+    ...
+    ...     def on_train_end(self, trainer, pl_module):
+    ...         print('do something when training ends')
+    ...
+    >>> trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    Starting to init trainer!
+    trainer is init now
 
-        def on_init_start(self, trainer):
-            print('Starting to init trainer!')
-
-        def on_init_end(self, trainer):
-            print('trainer is init now')
-
-        def on_train_end(self, trainer, pl_module):
-            print('do something when training ends')
-
-    # pass to trainer
-    trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
-
-We successfully extended functionality without polluting our super clean LightningModule research code
+We successfully extended functionality without polluting our super clean
+:class:`~pytorch_lightning.core.LightningModule` research code.
 
 ---------
 
@@ -76,3 +78,9 @@ We successfully extended functionality without polluting our super clean Lightni
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+---------
+
+.. automodule:: pytorch_lightning.callbacks.progress
+   :noindex:
+   :exclude-members:

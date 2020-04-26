@@ -5,7 +5,7 @@ Lightning can automate saving and loading checkpoints
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in::
 
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
+    Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
 
 To modify the behavior of checkpointing pass in your own callback.
@@ -39,15 +39,9 @@ Lightning will restore the session if you pass a logger with the same version an
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.loggers import TestTubeLogger
 
-    logger = TestTubeLogger(
-        save_dir='./savepath',
-        version=1  # An existing version with a saved checkpoint
-    )
     trainer = Trainer(
-        logger=logger,
-        default_save_path='./savepath'
+        resume_from_checkpoint=PATH
     )
 
     # this fit call loads model weights and trainer state
@@ -92,7 +86,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 import os
 import re
 import signal
-import warnings
 from abc import ABC
 from argparse import Namespace
 from subprocess import call
@@ -108,6 +101,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     import torch_xla
@@ -149,15 +143,12 @@ class TrainerIOMixin(ABC):
     # --------------------
     # CHECK-POINTING
     # --------------------
-    def restore_weights(self, model):
+    def restore_weights(self, model: LightningModule):
         """
         We attempt to restore weights in this order:
         1. HPC weights.
         2. if no HPC weights restore checkpoint_path weights
         3. otherwise don't restore weights
-
-        :param model:
-        :return:
         """
         # clear cache before restore
         if self.on_gpu:
@@ -236,17 +227,17 @@ class TrainerIOMixin(ABC):
     # --------------------
     # MODEL SAVE CHECKPOINT
     # --------------------
-    def _atomic_save(self, checkpoint, filepath):
+    def _atomic_save(self, checkpoint, filepath: str):
         """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
         This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
         saving is finished.
 
         Args:
-            checkpoint (object): The object to save.
+            checkpoint: The object to save.
                 Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
                 accepts.
-            filepath (str|pathlib.Path): The path to which the checkpoint will be saved.
+            filepath: The path to which the checkpoint will be saved.
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
@@ -266,7 +257,7 @@ class TrainerIOMixin(ABC):
 
                 self._atomic_save(checkpoint, filepath)
 
-    def restore(self, checkpoint_path, on_gpu):
+    def restore(self, checkpoint_path: str, on_gpu: bool):
         """
         Restore training state from checkpoint.
         Also restores all training state like:
@@ -274,10 +265,6 @@ class TrainerIOMixin(ABC):
         - callbacks
         - schedulers
         - optimizer
-        :param checkpoint_path:
-        :param on_gpu:
-
-        :return:
         """
 
         # if on_gpu:
@@ -293,6 +280,10 @@ class TrainerIOMixin(ABC):
         model.load_state_dict(checkpoint['state_dict'])
         if on_gpu:
             model.cuda(self.root_gpu)
+
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
@@ -329,14 +320,17 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
+        # restore native amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
+
         if hasattr(model, "hparams"):
             is_namespace = isinstance(model.hparams, Namespace)
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
         else:
-            warnings.warn(
-                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
-                " hyperparameters"
+            rank_zero_warn(
+                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
             )
 
         # give the model a chance to add a few things
@@ -347,12 +341,8 @@ class TrainerIOMixin(ABC):
     # --------------------
     # HPC IO
     # --------------------
-    def restore_hpc_weights_if_needed(self, model):
-        """
-        If there is a set of hpc weights, use as signal to restore model
-        :param model:
-        :return:
-        """
+    def restore_hpc_weights_if_needed(self, model: LightningModule):
+        """If there is a set of hpc weights, use as signal to restore model."""
         did_restore = False
 
         # look for hpc weights
@@ -389,7 +379,7 @@ class TrainerIOMixin(ABC):
         n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
         expected_steps = self.num_training_batches / n_accum
         if self.num_training_batches != 0 and self.global_step % expected_steps > 1:
-            warnings.warn(
+            rank_zero_warn(
                 "You're resuming from a checkpoint that ended mid-epoch. "
                 "This can cause unreliable results if further training is done, "
                 "consider using an end of epoch checkpoint. "
@@ -458,6 +448,10 @@ class TrainerIOMixin(ABC):
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)

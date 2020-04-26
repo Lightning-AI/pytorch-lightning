@@ -24,6 +24,7 @@ class TrainerTrainingTricksMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def clip_gradients(self):
+
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if self.gradient_clip_val > 0:
@@ -40,8 +41,8 @@ class TrainerTrainingTricksMixin(ABC):
                 device = parameters[0].device
                 total_norm = torch.zeros([], device=device if parameters else None)
                 for p in parameters:
-                    param_norm = p.grad.data.norm(norm_type) ** norm_type
-                total_norm.add_(param_norm)
+                    param_norm = p.grad.data.pow(norm_type).sum()
+                    total_norm.add_(param_norm)
                 total_norm = (total_norm ** (1. / norm_type))
             eps = EPSILON_FP16 if self.precision == 16 else EPSILON
             clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)

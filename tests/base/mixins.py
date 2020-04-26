@@ -14,11 +14,7 @@ class LightValidationStepMixin:
         return self._dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        """
-        Lightning calls this inside the validation loop
-        :param batch:
-        :return:
-        """
+        """Lightning calls this inside the validation loop."""
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)
@@ -66,8 +62,9 @@ class LightValidationMixin(LightValidationStepMixin):
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
+
+        Args:
+            outputs: list of individual outputs of each validation step
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
@@ -92,8 +89,8 @@ class LightValidationMixin(LightValidationStepMixin):
         val_loss_mean /= len(outputs)
         val_acc_mean /= len(outputs)
 
-        tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        results = {'progress_bar': tqdm_dict, 'log': tqdm_dict}
+        metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
 
@@ -206,6 +203,13 @@ class LightTrainDataloader:
         return self._dataloader(train=True)
 
 
+class LightValidationDataloader:
+    """Simple validation dataloader."""
+
+    def val_dataloader(self):
+        return self._dataloader(train=False)
+
+
 class LightTestDataloader:
     """Simple test dataloader."""
 
@@ -253,6 +257,16 @@ class LightInfTestDataloader:
 
     def test_dataloader(self):
         return CustomInfDataloader(self._dataloader(train=False))
+
+
+class LightZeroLenDataloader:
+    """ Simple dataloader that has zero length. """
+
+    def train_dataloader(self):
+        dataloader = self._dataloader(train=True)
+        dataloader.dataset.data = dataloader.dataset.data[:0]
+        dataloader.dataset.targets = dataloader.dataset.targets[:0]
+        return dataloader
 
 
 class LightEmptyTestStep:
@@ -341,8 +355,8 @@ class LightTestMixin(LightTestStepMixin):
         test_loss_mean /= len(outputs)
         test_acc_mean /= len(outputs)
 
-        tqdm_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
-        result = {'progress_bar': tqdm_dict}
+        metrics_dict = {'test_loss': test_loss_mean.item(), 'test_acc': test_acc_mean.item()}
+        result = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return result
 
 
@@ -404,6 +418,9 @@ class LightTestStepMultipleDataloadersMixin:
 
 class LightTestFitSingleTestDataloadersMixin:
     """Test fit single test dataloaders mixin."""
+
+    def test_dataloader(self):
+        return self._dataloader(train=False)
 
     def test_step(self, batch, batch_idx, *args, **kwargs):
         """
@@ -686,6 +703,11 @@ class LightTestReduceLROnPlateauMixin:
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
+
+
+class LightTestNoneOptimizerMixin:
+    def configure_optimizers(self):
+        return None
 
 
 def _get_output_metric(output, name):

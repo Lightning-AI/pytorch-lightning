@@ -46,7 +46,7 @@ class ModelSummary(object):
         return list(mods)
 
     def get_variable_sizes(self) -> None:
-        """ Run sample input through each layer to get output sizes """
+        """ Run sample input through each layer to get output sizes. """
         mods = self.named_modules()
         in_sizes = []
         out_sizes = []
@@ -116,7 +116,7 @@ class ModelSummary(object):
         self.layer_types = layer_types
 
     def get_parameter_sizes(self) -> None:
-        """ Get sizes of all parameters in `model` """
+        """ Get sizes of all parameters in `model`. """
         mods = self.named_modules()
         sizes = []
         for _, m in mods:
@@ -127,7 +127,7 @@ class ModelSummary(object):
         self.param_sizes = sizes
 
     def get_parameter_nums(self) -> None:
-        """ Get number of parameters in each layer """
+        """ Get number of parameters in each layer. """
         param_nums = []
         for mod in self.param_sizes:
             all_params = 0
@@ -235,10 +235,19 @@ def count_mem_items() -> Tuple[int, int]:  # pragma: no-cover
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """ Get a profile of the current memory usage.
 
-    :param mode: There are two modes:
-        - 'all' means return memory for all gpus
-        - 'min_max' means return memory for max and min
-    :return:
+    Args:
+        mode: There are two modes:
+
+            - 'all' means return memory for all gpus
+            - 'min_max' means return memory for max and min
+
+    Return:
+        A dictionary in which the keys are device ids as integers and
+        values are memory usage as integers in MB.
+        If mode is 'min_max', the dictionary will also contain two additional keys:
+
+        - 'min_gpu_mem': the minimum memory usage in MB
+        - 'max_gpu_mem': the maximum memory usage in MB
     """
     memory_map = get_gpu_memory_map()
 
@@ -246,7 +255,7 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
         min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
         max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
 
-        memory_map = {min_index: min_memory, max_index: max_memory}
+        memory_map = {'min_gpu_mem': min_memory, 'max_gpu_mem': max_memory}
 
     return memory_map
 
@@ -280,15 +289,25 @@ def get_human_readable_count(number: int) -> str:
     billions and trillions, respectively.
 
     Examples:
-        123     -> 123
-        1234    -> 1 K       (one thousand)
-        2e6     -> 2 M       (two million)
-        3e9     -> 3 B       (three billion)
-        4e12    -> 4 T       (four trillion)
-        5e15    -> 5,000 T
+        >>> get_human_readable_count(123)
+        '123  '
+        >>> get_human_readable_count(1234)  # (one thousand)
+        '1 K'
+        >>> get_human_readable_count(2e6)   # (two million)
+        '2 M'
+        >>> get_human_readable_count(3e9)   # (three billion)
+        '3 B'
+        >>> get_human_readable_count(4e12)  # (four trillion)
+        '4 T'
+        >>> get_human_readable_count(5e15)  # (more than trillion)
+        '5,000 T'
 
-    :param number: a positive integer number
-    :return: a string formatted according to the pattern described above.
+    Args:
+        number: a positive integer number
+
+    Return:
+        A string formatted according to the pattern described above.
+
     """
     assert number >= 0
     labels = [' ', 'K', 'M', 'B', 'T']

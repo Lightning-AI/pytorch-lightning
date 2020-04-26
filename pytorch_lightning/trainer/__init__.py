@@ -30,6 +30,7 @@ This is the basic use of the trainer:
     trainer = Trainer()
     trainer.fit(model)
 
+
 --------
 
 Best Practices
@@ -57,7 +58,15 @@ So you can run it like so:distributed_backend
 
 .. code-block:: bash
 
-    $ python main.py --gpus 2
+    python main.py --gpus 2
+
+
+.. note::
+    If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
+    The trainer will catch the `KeyboardInterrupt` and attempt a graceful shutdown, including
+    running callbacks such as `on_train_end`. The trainer object will also set an attribute
+    `interrupted` to `True` in such cases. If you have a callback which shuts down compute
+    resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
 ------------
 
@@ -125,6 +134,27 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(amp_level='O1')
+
+auto_lr_find
+^^^^^^^^^^^^
+Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
+before any training, to find optimal initial learning rate.
+
+.. code-block:: python
+
+    # default used by the Trainer (no learning rate finder)
+    trainer = Trainer(auto_lr_find=False)
+
+Example::
+
+    # run learning rate finder, results override hparams.learning_rate
+    trainer = Trainer(auto_lr_find=True)
+
+    # run learning rate finder, results override hparams.my_lr_arg
+    trainer = Trainer(auto_lr_find='my_lr_arg')
+
+.. note::
+    See the `learning rate finder guide <lr_finder.rst>`_
 
 benchmark
 ^^^^^^^^^
@@ -195,14 +225,14 @@ Example::
     # default used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_best_only=True,
+        save_top_k=True,
         verbose=True,
         monitor='val_loss',
         mode='min',
         prefix=''
     )
 
-default_save_path
+default_root_dir
 ^^^^^^^^^^^^^^^^^
 
 Default path for logs and weights when no logger
@@ -213,7 +243,7 @@ are stored. If you don't then use this method for convenience.
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(default_save_path=os.getcwd())
+    trainer = Trainer(default_root_path=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
@@ -221,6 +251,10 @@ The distributed backend to use.
 
 - (```dp```) is DataParallel (split batch among GPUs of same machine)
 - (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
+  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  machine.)
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
@@ -480,6 +514,21 @@ nb_gpu_nodes:
 
     Use `num_nodes` instead. Will remove 0.8.0.
 
+num_processes
+^^^^^^^^^^^^^
+
+Number of processes to train with. Automatically set to the number of GPUs
+when using ``distrbuted_backend="ddp"``. Set to a number greater than 1 when
+using ``distributed_backend="ddp_cpu"`` to mimic distributed training on a
+machine without GPUs. This is useful for debugging, but **will not** provide
+any speedup, since single-process Torch already makes effient use of multiple
+CPUs.
+
+Example::
+
+    # Simulate DDP for debugging on your GPU-less laptop
+    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
+
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -541,7 +590,7 @@ submit this script using the xla_dist script.
 
 Example::
 
-    $ python -m torch_xla.distributed.xla_dist
+    python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1
@@ -595,22 +644,23 @@ Example::
 print_nan_grads
 ^^^^^^^^^^^^^^^
 
-Prints gradients with nan values
+.. warning:: .. deprecated:: 0.7.2.
 
-Example::
+    Has no effect. When detected, NaN grads will be printed automatically.
+    Will remove 0.9.0.
 
-    # default used by the Trainer
-    trainer = Trainer(print_nan_grads=False)
 
 process_position
 ^^^^^^^^^^^^^^^^
-Orders the tqdm bar. Useful when running multiple trainers
-on the same node.
+Orders the progress bar. Useful when running multiple trainers on the same node.
 
 Example::
 
     # default used by the Trainer
     trainer = Trainer(process_position=0)
+
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
@@ -647,6 +697,11 @@ Example::
     # default used by the Trainer
     trainer = Trainer(progress_bar_refresh_rate=1)
 
+    # disable progress bar
+    trainer = Trainer(progress_bar_refresh_rate=0)
+
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -665,9 +720,26 @@ Set to True to reload dataloaders every epoch.
         train_loader = model.train_dataloader()
         for batch in train_loader:
 
+replace_sampler_ddp
+^^^^^^^^^^^^^^^^^^^
+Enables auto adding of distributed sampler.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(replace_sampler_ddp=True)
+
+By setting to False, you have to add your own distributed sampler:
+
+Example::
+
+    # default used by the Trainer
+    sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
-To resume training from a specific checkpoint pass in the path here.k
+To resume training from a specific checkpoint pass in the path here.
 
 Example::
 
@@ -703,12 +775,9 @@ use_amp:
 show_progress_bar
 ^^^^^^^^^^^^^^^^^
 
-If true shows tqdm progress bar
+.. warning:: .. deprecated:: 0.7.2
 
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(show_progress_bar=True)
+    Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check
 ^^^^^^^^^^^^^^^^^^

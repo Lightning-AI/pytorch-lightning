@@ -1,28 +1,8 @@
 """
-Log using `mlflow <https://mlflow.org>`_
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import MLFlowLogger
-    mlf_logger = MLFlowLogger(
-        experiment_name="default",
-        tracking_uri="file:/."
-    )
-    trainer = Trainer(logger=mlf_logger)
-
-
-Use the logger anywhere in you LightningModule as follows:
-
-.. code-block:: python
-
-    def train_step(...):
-        # example
-        self.logger.experiment.whatever_ml_flow_supports(...)
-
-    def any_lightning_module_function_or_hook(...):
-        self.logger.experiment.whatever_ml_flow_supports(...)
-
+MLflow
+------
 """
+import os
 from argparse import Namespace
 from time import time
 from typing import Optional, Dict, Any, Union
@@ -35,22 +15,53 @@ except ImportError:  # pragma: no-cover
                       ' install it with `pip install mlflow`.')
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class MLFlowLogger(LightningLoggerBase):
-    def __init__(self, experiment_name: str, tracking_uri: Optional[str] = None,
-                 tags: Dict[str, Any] = None):
-        r"""
+    """
+    Log using `MLflow <https://mlflow.org>`_. Install it with pip:
 
-        Logs using MLFlow
+    .. code-block:: bash
 
-        Args:
-            experiment_name (str): The name of the experiment
-            tracking_uri (str): where this should track
-            tags (dict): todo this param
-        """
+        pip install mlflow
+
+    Example:
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.loggers import MLFlowLogger
+        >>> mlf_logger = MLFlowLogger(
+        ...     experiment_name="default",
+        ...     tracking_uri="file:./ml-runs"
+        ... )
+        >>> trainer = Trainer(logger=mlf_logger)
+
+    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+
+    >>> from pytorch_lightning import LightningModule
+    >>> class LitModel(LightningModule):
+    ...     def training_step(self, batch, batch_idx):
+    ...         # example
+    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+    ...
+    ...     def any_lightning_module_function_or_hook(self):
+    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+
+    Args:
+        experiment_name: The name of the experiment
+        tracking_uri: Address of local or remote tracking server.
+            If not provided, defaults to the service set by ``mlflow.tracking.set_tracking_uri``.
+        tags: A dictionary tags for the experiment.
+
+    """
+    def __init__(self,
+                 experiment_name: str = 'default',
+                 tracking_uri: Optional[str] = None,
+                 tags: Optional[Dict[str, Any]] = None,
+                 save_dir: Optional[str] = None):
         super().__init__()
+        if not tracking_uri and save_dir:
+            tracking_uri = f'file:{os.sep * 2}{save_dir}'
         self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None
@@ -59,8 +70,8 @@ class MLFlowLogger(LightningLoggerBase):
     @property
     def experiment(self) -> MlflowClient:
         r"""
-
-        Actual mlflow object. To use mlflow features do the following.
+        Actual MLflow object. To use mlflow features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
@@ -102,11 +113,9 @@ class MLFlowLogger(LightningLoggerBase):
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
-    def save(self):
-        pass
-
     @rank_zero_only
     def finalize(self, status: str = 'FINISHED') -> None:
+        super().finalize(status)
         if status == 'success':
             status = 'FINISHED'
         self.experiment.set_terminated(self.run_id, status)

@@ -1,8 +1,11 @@
+import platform
+
 import pytest
+import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.debugging import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import (
     TestModelBase,
     LightningTestModel,
@@ -16,7 +19,8 @@ from tests.base import (
     LightTrainDataloader,
     LightInfTrainDataloader,
     LightInfValDataloader,
-    LightInfTestDataloader
+    LightInfTestDataloader,
+    LightZeroLenDataloader
 )
 
 
@@ -36,7 +40,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=-0.1,
     )
@@ -51,7 +55,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=1.1,
     )
@@ -66,7 +70,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=10000
     )
@@ -81,7 +85,7 @@ def test_dataloader_config_errors(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=1.1
     )
@@ -109,7 +113,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=1.0,
@@ -148,7 +152,7 @@ def test_multiple_test_dataloader(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -182,7 +186,7 @@ def test_train_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -212,7 +216,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -247,7 +251,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -257,12 +261,12 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     model = CurrentTestModel(hparams)
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
+                       val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
 
-    trainer.test()
+    trainer.test(**test_options)
 
     assert result == 1
     assert len(trainer.val_dataloaders) == 1, \
@@ -286,7 +290,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -297,11 +301,12 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(**trainer_options)
     fit_options = dict(train_dataloader=model._dataloader(train=True),
                        val_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)],
-                       test_dataloaders=[model._dataloader(train=False),
-                                         model._dataloader(train=False)])
+                                        model._dataloader(train=False)])
+    test_options = dict(test_dataloaders=[model._dataloader(train=False),
+                                          model._dataloader(train=False)])
+
     results = trainer.fit(model, **fit_options)
-    trainer.test()
+    trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -326,7 +331,7 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # logger file to get meta
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
@@ -339,10 +344,11 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False),
-                       test_dataloaders=model._dataloader(train=False))
+    fit_options = dict(val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
+
     _ = trainer.fit(model, **fit_options)
-    trainer.test()
+    trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -366,17 +372,25 @@ def test_inf_train_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             val_check_interval=0.5
         )
         trainer.fit(model)
 
-    # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=50
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1
     )
     result = trainer.fit(model)
 
@@ -400,7 +414,7 @@ def test_inf_val_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             val_percent_check=0.5
         )
@@ -408,7 +422,7 @@ def test_inf_val_dataloader(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     result = trainer.fit(model)
@@ -434,7 +448,7 @@ def test_inf_test_dataloader(tmpdir):
     # fit model
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(
-            default_save_path=tmpdir,
+            default_root_dir=tmpdir,
             max_epochs=1,
             test_percent_check=0.5
         )
@@ -442,7 +456,7 @@ def test_inf_test_dataloader(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     result = trainer.fit(model)
@@ -450,3 +464,100 @@ def test_inf_test_dataloader(tmpdir):
 
     # verify training completed
     assert result == 1
+
+
+def test_error_on_zero_len_dataloader(tmpdir):
+    """ Test that error is raised if a zero-length dataloader is defined """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightZeroLenDataloader,
+        LightningTestModel
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    # fit model
+    with pytest.raises(ValueError):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            test_percent_check=0.5
+        )
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+def test_warning_with_few_workers(tmpdir):
+    """ Test that error is raised if dataloader with only a few workers is used """
+    tutils.reset_seed()
+
+    class CurrentTestModel(
+        LightTrainDataloader,
+        LightValStepFitSingleDataloaderMixin,
+        LightTestFitSingleTestDataloadersMixin,
+        LightEmptyTestStep,
+        TestModelBase,
+    ):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    fit_options = dict(train_dataloader=model._dataloader(train=True),
+                       val_dataloaders=model._dataloader(train=False))
+    test_options = dict(test_dataloaders=model._dataloader(train=False))
+
+    trainer = Trainer(**trainer_options)
+
+    # fit model
+    with pytest.warns(UserWarning, match='train'):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(UserWarning, match='val'):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(UserWarning, match='test'):
+        trainer.test(**test_options)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_reinit_for_subclass():
+
+    class CustomDataLoader(torch.utils.data.DataLoader):
+        def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
+                     batch_sampler=None, num_workers=0, collate_fn=None,
+                     pin_memory=False, drop_last=False, timeout=0,
+                     worker_init_fn=None, dummy_kwarg=None):
+            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
+                             num_workers, collate_fn, pin_memory, drop_last, timeout,
+                             worker_init_fn)
+
+            self.dummy_kwarg = dummy_kwarg
+
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp',
+    )
+
+    class CustomDummyObj:
+        sampler = None
+
+    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
+
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    assert isinstance(result, torch.utils.data.DataLoader)
+    assert isinstance(result, CustomDataLoader)
+    assert hasattr(result, 'dummy_kwarg')

@@ -1,10 +1,10 @@
-import tempfile
+import os
 import time
 from pathlib import Path
 
 import numpy as np
 import pytest
-from pytorch_lightning.profiler import AdvancedProfiler, Profiler
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
 
@@ -25,17 +25,21 @@ def _sleep_generator(durations):
 
 @pytest.fixture
 def simple_profiler():
-    profiler = Profiler()
+    profiler = SimpleProfiler()
     return profiler
 
 
 @pytest.fixture
-def advanced_profiler():
-    profiler = AdvancedProfiler()
+def advanced_profiler(tmpdir):
+    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
     return profiler
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_simple_profiler_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -50,12 +54,16 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
     )
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
-    for duration in simple_profiler.profile_iterable(iterable, action):
+    for _ in simple_profiler.profile_iterable(iterable, action):
         pass
 
     # we exclude the last item in the recorded durations since that's when StopIteration is raised
@@ -74,9 +82,11 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     assert all(durations < PROFILER_OVERHEAD_MAX_TOLERANCE)
 
 
-def test_simple_profiler_describe(simple_profiler):
+def test_simple_profiler_describe(caplog, simple_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     simple_profiler.describe()
+
+    assert "Profiler Report" in caplog.text
 
 
 def test_simple_profiler_value_errors(simple_profiler):
@@ -94,7 +104,11 @@ def test_simple_profiler_value_errors(simple_profiler):
     simple_profiler.stop(action)
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
     for duration in expected:
@@ -112,12 +126,16 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
     )
 
 
-@pytest.mark.parametrize("action,expected", [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(["action", "expected"], [
+    pytest.param("a", [3, 1]),
+    pytest.param("b", [2]),
+    pytest.param("c", [1])
+])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
-    for duration in advanced_profiler.profile_iterable(iterable, action):
+    for _ in advanced_profiler.profile_iterable(iterable, action):
         pass
 
     recored_total_duration = _get_python_cprofile_total_duration(
@@ -150,12 +168,9 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
-    # log to stdout
+    # log to stdout and print to file
     advanced_profiler.describe()
-    # print to file
-    advanced_profiler.output_filename = Path(tmpdir, "profiler.txt")
-    advanced_profiler.describe()
-    data = Path(advanced_profiler.output_filename).read_text()
+    data = Path(advanced_profiler.output_fname).read_text()
     assert len(data) > 0
 
 

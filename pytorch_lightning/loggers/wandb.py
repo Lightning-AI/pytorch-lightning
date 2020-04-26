@@ -1,9 +1,6 @@
-r"""
-
-.. _wandb:
-
-WandbLogger
--------------
+"""
+Weights and Biases
+------------------
 """
 import os
 from argparse import Namespace
@@ -18,37 +15,56 @@ except ImportError:  # pragma: no-cover
     raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install wandb`.')
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class WandbLogger(LightningLoggerBase):
     """
-    Logger for `W&B <https://www.wandb.com/>`_.
+    Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
+
+    .. code-block:: bash
+
+        pip install wandb
 
     Args:
-        name (str): display name for the run.
-        save_dir (str): path where data is saved.
-        offline (bool): run offline (data can be streamed later to wandb servers).
-        id or version (str): sets the version, mainly used to resume a previous run.
-        anonymous (bool): enables or explicitly disables anonymous logging.
-        project (str): the name of the project to which this run will belong.
-        tags (list of str): tags associated with this run.
+        name: Display name for the run.
+        save_dir: Path where data is saved.
+        offline: Run offline (data can be streamed later to wandb servers).
+        id: Sets the version, mainly used to resume a previous run.
+        anonymous: Enables or explicitly disables anonymous logging.
+        version: Sets the version, mainly used to resume a previous run.
+        project: The name of the project to which this run will belong.
+        tags: Tags associated with this run.
+        log_model: Save checkpoints in wandb dir to upload on W&B servers.
+        experiment: WandB experiment object
+        entity: The team posting this run (default: your username or your default team)
 
-    Example
-    --------
-    .. code-block:: python
+    Example:
+        >>> from pytorch_lightning.loggers import WandbLogger
+        >>> from pytorch_lightning import Trainer
+        >>> wandb_logger = WandbLogger()
+        >>> trainer = Trainer(logger=wandb_logger)
 
-        from pytorch_lightning.loggers import WandbLogger
-        from pytorch_lightning import Trainer
+    See Also:
+        - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
+          Use-Pytorch-Lightning-with-Weights-%26-Biases--Vmlldzo2NjQ1Mw>`__
+          on how to use W&B with Pytorch Lightning.
 
-        wandb_logger = WandbLogger()
-        trainer = Trainer(logger=wandb_logger)
     """
 
-    def __init__(self, name: Optional[str] = None, save_dir: Optional[str] = None,
-                 offline: bool = False, id: Optional[str] = None, anonymous: bool = False,
-                 version: Optional[str] = None, project: Optional[str] = None,
-                 tags: Optional[List[str]] = None, experiment=None, entity=None):
+    def __init__(self,
+                 name: Optional[str] = None,
+                 save_dir: Optional[str] = None,
+                 offline: bool = False,
+                 id: Optional[str] = None,
+                 anonymous: bool = False,
+                 version: Optional[str] = None,
+                 project: Optional[str] = None,
+                 tags: Optional[List[str]] = None,
+                 log_model: bool = False,
+                 experiment=None,
+                 entity=None):
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -59,41 +75,47 @@ class WandbLogger(LightningLoggerBase):
         self._experiment = experiment
         self._offline = offline
         self._entity = entity
+        self._log_model = log_model
 
     def __getstate__(self):
         state = self.__dict__.copy()
+        # args needed to reload correct experiment
+        state['_id'] = self._experiment.id if self._experiment is not None else None
+
         # cannot be pickled
         state['_experiment'] = None
-        # args needed to reload correct experiment
-        state['_id'] = self.experiment.id
         return state
 
     @property
     def experiment(self) -> Run:
         r"""
 
-          Actual wandb object. To use wandb features do the following.
+        Actual wandb object. To use wandb features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
-          Example::
+        Example::
 
-              self.logger.experiment.some_wandb_function()
+            self.logger.experiment.some_wandb_function()
 
-          """
+        """
         if self._experiment is None:
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                id=self._id, resume='allow', tags=self._tags, entity=self._entity)
+                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity)
+            # save checkpoints in wandb dir to upload on W&B servers
+            if self._log_model:
+                self.save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
-        wandb.watch(model, log=log, log_freq=log_freq)
+        self.experiment.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
-        self.experiment.config.update(params)
+        self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -101,18 +123,13 @@ class WandbLogger(LightningLoggerBase):
             metrics['global_step'] = step
         self.experiment.log(metrics)
 
-    @rank_zero_only
-    def finalize(self, status: str = 'success') -> None:
-        try:
-            exit_code = 0 if status == 'success' else 1
-            wandb.join(exit_code)
-        except TypeError:
-            wandb.join()
-
     @property
     def name(self) -> str:
-        return self.experiment.project_name()
+        # don't create an experiment if we don't have one
+        name = self._experiment.project_name() if self._experiment else None
+        return name
 
     @property
     def version(self) -> str:
-        return self.experiment.id
+        # don't create an experiment if we don't have one
+        return self._experiment.id if self._experiment else None

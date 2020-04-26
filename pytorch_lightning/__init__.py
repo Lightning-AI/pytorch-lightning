@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.7.2-dev'
+__version__ = '0.7.4rc9'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -9,10 +9,32 @@ __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
            " Scale your models. Write less boilerplate."
+__long_docs__ = """
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
+ It's more of a style-guide than a framework.
 
-from logging import getLogger
+In Lightning, you organize your code into 3 distinct categories:
 
-_logger = getLogger("lightning")
+1. Research code (goes in the LightningModule).
+2. Engineering code (you delete, and is handled by the Trainer).
+3. Non-essential research code (logging, etc. this goes in Callbacks).
+
+Although your research/production project might start simple, once you add things like GPU AND TPU training,
+ 16-bit precision, etc, you end up spending more time engineering than researching.
+ Lightning automates AND rigorously tests those parts for you.
+
+Overall, Lightning guarantees rigorously tested, correct, modern best practices for the automated parts.
+
+Documentation
+-------------
+- https://pytorch-lightning.readthedocs.io/en/latest
+- https://pytorch-lightning.readthedocs.io/en/stable
+"""
+
+import logging as python_logging
+
+_logger = python_logging.getLogger("lightning")
+python_logging.basicConfig(level=python_logging.INFO)
 
 try:
     # This variable is injected in the __builtins__ by the build
@@ -38,4 +60,13 @@ else:
         'Callback',
         'data_loader'
     ]
+
+    # necessary for regular bolts imports. Skip exception since bolts is not always installed
+    try:
+        from pytorch_lightning import bolts
+    except ImportError:
+        pass
     # __call__ = __all__
+
+# for compatibility with namespace packages
+__import__('pkg_resources').declare_namespace(__name__)
