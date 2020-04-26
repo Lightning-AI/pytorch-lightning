@@ -1,4 +1,3 @@
-import distutils
 import inspect
 import os
 from argparse import ArgumentParser
@@ -609,7 +608,13 @@ class Trainer(
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
-                        return bool(distutils.util.strtobool(x))
+                        # distutils.util.strtobool() has issues
+                        if x.lower() == 'true':
+                            return True
+                        elif x.lower() == 'false':
+                            return False
+                        else:
+                            raise Exception('bool not specified')
 
                 if arg == 'gpus':
                     def allowed_type(x):
