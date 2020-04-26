@@ -70,7 +70,7 @@ Here's an example of how to refactor your research code into a [LightningModule]
 The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
 
-[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/latest/new-project.html)
+[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ## Testing Rigour
 All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
