@@ -325,6 +325,7 @@ class TrainerIOMixin(ABC):
             checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams"):
+            self.__clean_namespace(model.hparams)
             is_namespace = isinstance(model.hparams, Namespace)
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
@@ -337,6 +338,31 @@ class TrainerIOMixin(ABC):
         model.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def __clean_namespace(self, hparams):
+        """
+        Removes all functions from hparams so we can pickle
+        :param hparams:
+        :return:
+        """
+
+        if isinstance(hparams, Namespace):
+            del_attrs = []
+            for k in hparams.__dict__:
+                if callable(getattr(hparams, k)):
+                    del_attrs.append(k)
+
+            for k in del_attrs:
+                delattr(hparams, k)
+
+        elif isinstance(hparams, dict):
+            del_attrs = []
+            for k, v in hparams.items():
+                if callable(v):
+                    del_attrs.append(k)
+
+            for k in del_attrs:
+                del hparams[k]
 
     # --------------------
     # HPC IO
