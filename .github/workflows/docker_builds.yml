@@ -19,7 +19,7 @@ jobs:
       if: contains(github.ref, 'refs/tags/')
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-    - uses: actions/checkout@2.14
+    - uses: actions/checkout@v2
     - name: Publish Releases to Docker
       # only on releases
       uses: elgohr/Publish-Docker-Github-Action@master
