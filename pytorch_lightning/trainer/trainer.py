@@ -610,11 +610,10 @@ class Trainer(
                 if allowed_type is bool:
                     def allowed_type(x):
                         # distutils.util.strtobool() has issues
-                        if x.lower() == 'true':
-                            return True
-                        elif x.lower() == 'false':
-                            return False
-                        else:
+                        try:
+                            # convert any true/TRUE/false/FALSE
+                            return eval(x.lower().capitalize())
+                        except NameError:
                             raise Exception('bool not specified')
 
                 if arg == 'gpus':
