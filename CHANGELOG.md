@@ -87,6 +87,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixes automatic parser bug ([#1585](https://github.com/PyTorchLightning/pytorch-lightning/issues/1585))
 
+- Fixed bool conversion from string ([#1606](https://github.com/PyTorchLightning/pytorch-lightning/issues/1606))
+
 ## [0.7.3] - 2020-04-09
 
 ### Added
