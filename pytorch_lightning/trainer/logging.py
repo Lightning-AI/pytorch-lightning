@@ -5,7 +5,7 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
-from pytorch_lightning.utilities import memory_utils
+from pytorch_lightning.utilities.memory import recursive_detach
 
 
 class TrainerLoggingMixin(ABC):
@@ -174,7 +174,7 @@ class TrainerLoggingMixin(ABC):
 
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
-        callback_metrics = memory_utils.recursive_detach(callback_metrics)
+        callback_metrics = recursive_detach(callback_metrics)
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 

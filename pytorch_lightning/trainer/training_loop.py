@@ -141,7 +141,6 @@ in your model.
 
 """
 
-import copy
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -154,11 +153,9 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import memory_utils
 
 try:
     from apex import amp

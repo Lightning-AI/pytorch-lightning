@@ -1,4 +1,3 @@
-import distutils
 import inspect
 import os
 from argparse import ArgumentParser
@@ -33,6 +32,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import parsing
 
 
 try:
@@ -599,9 +599,11 @@ class Trainer(
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False, )
 
-        depr_arg_names = cls.get_deprecated_arg_names()
+        blacklist = ['kwargs']
+        depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
         allowed_types = (str, float, int, bool)
+
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
@@ -609,7 +611,7 @@ class Trainer(
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
-                        return bool(distutils.util.strtobool(x))
+                        return bool(parsing.strtobool(x))
 
                 if arg == 'gpus':
                     def allowed_type(x):
@@ -636,9 +638,11 @@ class Trainer(
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args):
+    def from_argparse_args(cls, args, **kwargs):
 
         params = vars(args)
+        params.update(**kwargs)
+
         return cls(**params)
 
     @property
