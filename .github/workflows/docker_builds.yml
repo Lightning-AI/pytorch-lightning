@@ -33,7 +33,7 @@ jobs:
         tags: "${{ steps.get_version.outputs.VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},stable-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
     - name: Publish Master
       # publish master
-      uses: elgohr/Publish-Docker-Github-Action@master
+      uses: elgohr/Publish-Docker-Github-Action@2.14
       if: github.event_name == 'push'
       with:
         name: pytorchlightning/pytorch_lightning
