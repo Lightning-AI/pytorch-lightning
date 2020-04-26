@@ -32,6 +32,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import parsing_utils
 
 
 try:
@@ -602,6 +603,7 @@ class Trainer(
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
         allowed_types = (str, float, int, bool)
+
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
@@ -609,13 +611,7 @@ class Trainer(
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
-                        # distutils.util.strtobool() has issues
-                        if x.lower() == 'true':
-                            return True
-                        elif x.lower() == 'false':
-                            return False
-                        else:
-                            raise Exception('bool not specified')
+                        return bool(parsing_utils.strtobool(x))
 
                 if arg == 'gpus':
                     def allowed_type(x):
