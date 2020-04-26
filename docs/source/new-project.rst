@@ -63,7 +63,7 @@ Step 2: Fit with a Trainer
     trainer = Trainer(gpus=8, num_nodes=1)
     trainer.fit(model)
 
- Under the hood, lightning does (in high-level pseudocode):
+Under the hood, lightning does (in high-level pseudocode):
 
 .. code-block:: python
 
@@ -139,7 +139,7 @@ Under the hood in pseudocode, lightning does the following:
 The beauty of Lightning is that it handles the details of when to validate, when to call .eval(),
 turning off gradients, detaching graphs, making sure you don't enable shuffle for val, etc...
 
-ie: Lightning removes all the million details you need to remember during research
+.. note:: Lightning removes all the million details you need to remember during research
 
 Test loop
 ---------
