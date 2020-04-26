@@ -153,6 +153,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -369,8 +370,7 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    # Question: didn't understand the check about self.fast_dev_run
-                    if met_min_epochs and met_min_steps:
+                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         self.run_training_teardown()
                         return
                     else:
@@ -514,6 +514,11 @@ class TrainerTrainLoopMixin(ABC):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
+
+        # when no val loop is present or fast-dev-run still need to call checkpoints
+        if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
+            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):

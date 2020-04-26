@@ -339,7 +339,7 @@ class Trainer(
         self.global_step = 0
         self.current_epoch = 0
         self.interrupted = False
-        self.should_stop = True
+        self.should_stop = False
 
         # set default save path if user didn't provide one
         if default_root_dir is None:

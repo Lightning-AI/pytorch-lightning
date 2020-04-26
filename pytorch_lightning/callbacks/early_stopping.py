@@ -54,7 +54,7 @@ class EarlyStopping(Callback):
     }
 
     def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
-                 verbose: bool = False, mode: str = 'auto', strict: bool = True):
+                 verbose: bool = False, mode: str = 'auto', strict: bool = False):
         super().__init__()
         self.monitor = monitor
         self.patience = patience
@@ -150,6 +150,7 @@ class EarlyStopping(Callback):
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 
+        stop_training = False
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
