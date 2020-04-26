@@ -27,7 +27,7 @@ from tests.base import (
 
 
 def test_hparams_save_load(tmpdir):
-    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10, 'failed_key': lambda x: x})
 
     # logger file to get meta
     trainer_options = dict(
