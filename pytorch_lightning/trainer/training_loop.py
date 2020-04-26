@@ -329,9 +329,6 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('on_train_start'):
             # callbacks
             self.on_train_start()
-            # initialize early stop callback
-            if self.early_stop_callback is not None:
-                self.early_stop_callback.on_train_start(self, self.get_model())
             # model hooks
             model.on_train_start()
 
