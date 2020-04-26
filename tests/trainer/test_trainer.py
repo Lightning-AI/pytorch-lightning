@@ -220,7 +220,7 @@ def test_loading_meta_tags(tmpdir):
 
     tags = load_hparams_from_tags_csv(tags_path)
 
-    assert tags.batch_size == 32 and tags.hidden_dim == 1000
+    assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
 
 
 def test_loading_yaml(tmpdir):
@@ -229,7 +229,7 @@ def test_loading_yaml(tmpdir):
     hparams = tutils.get_default_hparams()
 
     # save tags
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -239,7 +239,7 @@ def test_loading_yaml(tmpdir):
     hparams_path = os.path.join(path_expt_dir, 'hparams.yaml')
     tags = load_hparams_from_yaml(hparams_path)
 
-    assert tags.batch_size == 32 and tags.hidden_dim == 1000
+    assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
 
 
 def test_dp_output_reduce():

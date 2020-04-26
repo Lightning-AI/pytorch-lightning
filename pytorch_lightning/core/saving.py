@@ -2,6 +2,7 @@ import ast
 import csv
 import os
 import yaml
+import logging
 from argparse import Namespace
 from typing import Union, Dict, Any
 
@@ -107,5 +108,6 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
 def convert(val: str) -> Union[int, float, bool, str]:
     try:
         return ast.literal_eval(val)
-    except ValueError:
+    except (ValueError, SyntaxError) as e:
+        logging.debug(e)
         return val
