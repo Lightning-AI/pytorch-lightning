@@ -638,9 +638,11 @@ class Trainer(
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args):
+    def from_argparse_args(cls, args, **kwargs):
 
         params = vars(args)
+        params.update(**kwargs)
+
         return cls(**params)
 
     @property
