@@ -165,6 +165,9 @@ class TrainerLRFinderMixin(ABC):
         self.early_stop_callback = None
         self.enable_early_stop = False
 
+        # Accumulation of gradients
+        self.accumulate_grad_batches = num_accumulation_steps
+
         # Required for saving the model
         self.optimizers, self.schedulers = [], [],
         self.model = model
@@ -216,6 +219,9 @@ class TrainerLRFinderMixin(ABC):
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
             'enable_early_stop': self.enable_early_stop,
+            'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
+            'accumulate_grad_batches': self.accumulate_grad_batches,
+            'progress_bar_callback': self.progress_bar_callback,
             'configure_optimizers': model.configure_optimizers,
         }
 

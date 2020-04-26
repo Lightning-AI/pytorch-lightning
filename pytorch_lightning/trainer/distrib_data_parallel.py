@@ -153,7 +153,6 @@ class TrainerDDPMixin(ABC):
     num_gpu_nodes: int
     gpus: List[int]
     logger: Union[LightningLoggerBase, bool]
-    checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: Optional[str]
     amp_level: str
