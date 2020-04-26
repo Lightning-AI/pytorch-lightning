@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import parsing_utils
+from pytorch_lightning.utilities import parsing
 
 
 try:
@@ -611,7 +611,7 @@ class Trainer(
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
-                        return bool(parsing_utils.strtobool(x))
+                        return bool(parsing.strtobool(x))
 
                 if arg == 'gpus':
                     def allowed_type(x):

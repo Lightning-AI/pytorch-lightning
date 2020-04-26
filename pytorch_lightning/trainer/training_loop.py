@@ -158,7 +158,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import memory_utils
+from pytorch_lightning.utilities import memory
 
 try:
     from apex import amp
