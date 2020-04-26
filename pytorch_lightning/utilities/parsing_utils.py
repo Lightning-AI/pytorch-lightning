@@ -1,5 +1,6 @@
-def strtobool (val):
+def strtobool(val):
     """Convert a string representation of truth to true (1) or false (0).
+    Copied from python
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
@@ -11,4 +12,4 @@ def strtobool (val):
     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
         return 0
     else:
-        raise ValueError("invalid truth value %r" % (val,))
+        raise ValueError(f'invalid truth value {val}')
