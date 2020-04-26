@@ -96,6 +96,7 @@ import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule, CHECKPOINT_KEY_MODULE_ARGS
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -137,7 +138,6 @@ class TrainerIOMixin(ABC):
     use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
-    checkpoint_callback: ...
     proc_rank: int
     weights_save_path: str
     logger: Union[LightningLoggerBase, bool]
@@ -329,12 +329,21 @@ class TrainerIOMixin(ABC):
         }
 
         if not weights_only:
-            if self.checkpoint_callback:
+
+            # TODO support more generic way for callbacks to persist a state_dict in a checkpoint
+            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+            if checkpoint_callbacks:
+                # we add the official checkpoint callback to the end of the list
+                # extra user provided callbacks will not be persisted yet
                 checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
                 checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
 
-            if self.early_stop_callback:
-                checkpoint['early_stop_callback_state_dict'] = self.early_stop_callback.state_dict()
+            if early_stopping_callbacks and checkpoint_callbacks:
+                # we add the official early stopping callback to the end of the list
+                # extra user provided callbacks will not be persisted yet
+                checkpoint['early_stop_callback_state_dict'] = early_stopping_callbacks[-1].state_dict()
 
             # save optimizers
             optimizer_states = []
@@ -399,21 +408,25 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        if self.checkpoint_callback:
+        # TODO support more generic way for callbacks to load callback state_dicts
+        checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+        if checkpoint_callbacks:
             if 'checkpoint_callback_best_model_score' in checkpoint:
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
+                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
             else:
                 # Old naming until version 0.7.6
                 rank_zero_warn(
                     'Loading a checkpoint created with an old version of Lightning; '
                     'this will not be supported in the future.'
                 )
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
-            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
+                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
+            checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
-        if self.early_stop_callback is not None and self.early_stop_callback is not False:
+        if early_stopping_callbacks:
             state = checkpoint['early_stop_callback_state_dict']
-            self.early_stop_callback.load_state_dict(state)
+            early_stopping_callbacks[-1].load_state_dict(state)
 
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']

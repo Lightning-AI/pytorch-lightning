@@ -233,7 +233,6 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     min_steps: int
     total_batch_idx: int
-    checkpoint_callback: ...
     terminate_on_nan: bool
     tpu_id: int
 

@@ -370,6 +370,9 @@ class Trainer(
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
 
+        # TODO refactor codebase (tests) to not directly reach into this callback
+        self.checkpoint_callback = checkpoint_callback
+
         self.on_init_start()
 
         # benchmarking
@@ -1012,9 +1015,6 @@ class Trainer(
         # track model now.
         # if cluster resets state, the model will update with the saved weights
         self.model = model
-
-        # set up checkpoint callback
-        self.configure_checkpoint_callback()
 
         # restore training and model before hpc call
         self.restore_weights(model)
