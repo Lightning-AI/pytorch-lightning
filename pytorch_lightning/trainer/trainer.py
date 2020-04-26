@@ -598,7 +598,8 @@ class Trainer(
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False, )
 
-        depr_arg_names = cls.get_deprecated_arg_names()
+        blacklist = ['kwargs']
+        depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
         allowed_types = (str, float, int, bool)
         # TODO: get "help" from docstring :)
