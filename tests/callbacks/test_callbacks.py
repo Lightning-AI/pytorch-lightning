@@ -124,6 +124,14 @@ def test_trainer_callback_system(tmpdir):
 
     test_callback = TestCallback()
 
+    trainer_options = dict(
+        callbacks=[test_callback],
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2,
+        progress_bar_refresh_rate=0,
+    )
+
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
     assert not test_callback.on_sanity_check_start_called
@@ -144,13 +152,7 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_test_end_called
 
     # fit model
-    trainer = Trainer(
-        callbacks=[test_callback],
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2,
-        progress_bar_refresh_rate=0,
-    )
+    trainer = Trainer(**trainer_options)
 
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
@@ -194,7 +196,7 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_test_end_called
 
     test_callback = TestCallback()
-    trainer_options['callbacks'] = [test_callback]
+    trainer_options.update(callbacks=[test_callback])
     trainer = Trainer(**trainer_options)
     trainer.test(model)
 
