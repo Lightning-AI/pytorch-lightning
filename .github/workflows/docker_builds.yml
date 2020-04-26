@@ -1,10 +1,10 @@
 name: Publish Docker
 on:
-  push: 
+  push:
     branches:
-      - master 
-  release: 
-    types: 
+      - master
+  release:
+    types:
        - created
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       if: contains(github.ref, 'refs/tags/')
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-    - uses: actions/checkout@2.14
+    - uses: actions/checkout@v2
     - name: Publish Releases to Docker
       # only on releases
       uses: elgohr/Publish-Docker-Github-Action@master
@@ -42,5 +42,3 @@ jobs:
         dockerfile: docker/Dockerfile
         buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.get_version.outputs.VERSION }}
         tags: "latest_py${{ matrix.python_version }}_torch${{ matrix.pytorch_version }}"
-  
-
