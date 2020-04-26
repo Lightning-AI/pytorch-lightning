@@ -54,7 +54,8 @@ pip install pytorch-lightning
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
 
 ## What is it?
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework.
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
+It's more of a PyTorch style-guide than a framework. 
 
 In Lightning, you organize your code into 3 distinct categories:
 
@@ -68,6 +69,8 @@ Here's an example of how to refactor your research code into a [LightningModule]
 
 The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
+
+[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/latest/new-project.html)
 
 ## Testing Rigour
 All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
