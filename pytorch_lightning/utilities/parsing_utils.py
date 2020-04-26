@@ -1,6 +1,6 @@
 def strtobool(val):
     """Convert a string representation of truth to true (1) or false (0).
-    Copied from python
+    Copied from the python implementation distutils.utils.strtobool
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
