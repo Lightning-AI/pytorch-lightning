@@ -81,21 +81,6 @@ class EarlyStopping(Callback):
         self.min_delta *= 1 if self.monitor_op == np.greater else -1
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
-    def state_dict(self):
-        return {
-            'wait': self.wait,
-            'stopped_epoch': self.stopped_epoch,
-            'best': self.best,
-            'patience': self.patience
-        }
-
-    def load_state_dict(self, state_dict):
-        state_dict = deepcopy(state_dict)
-        self.wait = state_dict['wait']
-        self.stopped_epoch = state_dict['stopped_epoch']
-        self.best = state_dict['best']
-        self.patience = state_dict['patience']
-
     def _validate_condition_metric(self, logs):
         """
         Checks that the condition metric for early stopping is good
@@ -137,9 +122,13 @@ class EarlyStopping(Callback):
         self.best = state_dict['best']
         self.patience = state_dict['patience']
 
+    def on_sanity_check_end(self, trainer, pl_module):
+        logs = trainer.callback_metrics
+        self._validate_condition_metric(logs)
+
     def on_train_start(self, trainer, pl_module):
         if not (
-            trainer.is_overriden("validation_step") 
+            trainer.is_overriden("validation_step")
             and trainer.is_overriden("validation_epoch_end")
         ):
             error_msg = (f'''

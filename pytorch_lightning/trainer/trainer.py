@@ -1047,10 +1047,6 @@ class Trainer(
 
             self.on_sanity_check_end()
 
-            # verify that early stop has conditioned on a metric that exists
-            if self.enable_early_stop:
-                self.early_stop_callback._validate_condition_metric(callback_metrics)
-
         # clear cache before training
         if self.on_gpu:
             torch.cuda.empty_cache()
