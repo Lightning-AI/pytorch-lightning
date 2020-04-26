@@ -778,7 +778,10 @@ class Trainer(
             self.model = model
 
             # train
-            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+            if self.tpu_id is not None:
+                self.tpu_train(self.tpu_id, model)
+            else:
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
             self.load_spawn_weights(model)
