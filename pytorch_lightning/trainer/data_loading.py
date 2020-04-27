@@ -133,6 +133,7 @@ class TrainerDataLoadingMixin(ABC):
                 world_size = {
                     'ddp': self.num_nodes * self.num_processes,
                     'ddp2': self.num_nodes,
+                    'ddp_cpu': self.num_processes * self.num_nodes
                 }
                 sampler = DistributedSampler(
                     dataloader.dataset,
