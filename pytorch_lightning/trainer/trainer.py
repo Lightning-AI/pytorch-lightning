@@ -620,11 +620,13 @@ class Trainer(
                         else:
                             return int(x)
 
-                    # def arg_default(x):
-                    #     if ',' in x:
-                    #         return str(x)
-                    #     else:
-                    #         return int(x)
+                    def arg_default_fx(x):
+                        if ',' in x:
+                            return str(x)
+                        else:
+                            return int(x)
+
+                    arg_default = arg_default_fx
 
                 parser.add_argument(
                     f'--{arg}',
