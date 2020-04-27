@@ -84,8 +84,26 @@ class TrainerTrainingTricksMixin(ABC):
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
 
-    def scale_batch_size(self, model):
-        """ """
+    def scale_batch_size(self, model,
+                         n_step_per_try: int = 3,
+                         increase_factor: float = 1.5,
+                         decrease_factor: float = 0.5):
+        r""" Will iteratively try to find the largest batch size for a given model
+            that does not not give an out of memory error (OOM)
+
+        Args:
+            model: Model to fit.
+
+            n_step_per_try: number of steps to run with a given batch size.
+                Idealy 1 should be enough to test if a OOM error occurs
+
+            increase_factor: increase the batch size by this value i.e.
+                new_size = int(increase_factor * old_size) if no OOM error is encountered
+
+            decrease_factor: decrease the batch size by this value i.e.
+                new_size = int(decrease_factor * old_size) if an OOM error is encountered
+
+        """
         # Arguments we adjust during the batch size finder, save for restoring
         trainer_arg = self.auto_scale_batch_size
         max_steps = self.max_steps
@@ -95,7 +113,7 @@ class TrainerTrainingTricksMixin(ABC):
         checkpoint_callback = self.checkpoint_callback
 
         self.auto_scale_batch_size = False  # prevent recursion
-        self.max_steps = 3  # take few steps
+        self.max_steps = n_step_per_try  # take few steps
         self.weights_summary = None  # not needed before full run
         self.logger = None  # not needed before full run
         self.callbacks = []  # not needed before full run
@@ -115,14 +133,14 @@ class TrainerTrainingTricksMixin(ABC):
             self.global_step = 0  # reset after each try
             try:
                 self.fit(model)
-                new_size = _adjust_batch_size(self, trainer_arg, 1.5)
+                new_size = _adjust_batch_size(self, trainer_arg, increase_factor)
                 increased += 1
 
             except RuntimeError as exception:
                 if (is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)):
                     if increased > 1:  # if we try to increase two time in row and fail, stop
                         should_break = True
-                    new_size = _adjust_batch_size(self, trainer_arg, 0.5)
+                    new_size = _adjust_batch_size(self, trainer_arg, decrease_factor)
                     garbage_collection_cuda()
                 else:
                     raise  # some other error not memory related
