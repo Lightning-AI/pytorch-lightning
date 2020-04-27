@@ -1,23 +1,63 @@
 import numbers
 from collections import Mapping, Sequence
+from functools import partial
 
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import accuracy_score, average_precision_score, auc
+from sklearn.metrics import accuracy_score, average_precision_score, auc, confusion_matrix, f1_score, \
+    fbeta_score, precision_score, recall_score, precision_recall_curve, roc_curve, roc_auc_score
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
-from pytorch_lightning.metrics.sklearn import Accuracy, AveragePrecision, AUC
+from pytorch_lightning.metrics.sklearn import Accuracy, AveragePrecision, AUC, ConfusionMatrix, F1, FBeta, \
+    Precision, Recall, PrecisionRecallCurve, ROC, AUROC
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+
+
+def xy_only(func):
+    def new_func(*args, **kwargs):
+        return np.array(func(*args, **kwargs)[:2])
+
+    return new_func
 
 
 @pytest.mark.parametrize(['metric_class', 'sklearn_func', 'inputs'], [
     pytest.param(Accuracy(), accuracy_score,
-                 {'y_pred': torch.randint(low=0, high=10, size=(10,)),
-                  'y_true': torch.randint(low=0, high=10, size=(10,))}),
-    pytest.param(AUC(), auc, {'x': torch.arange(10, dtype=torch.float)/10,
+                 {'y_pred': torch.randint(low=0, high=10, size=(128,)),
+                  'y_true': torch.randint(low=0, high=10, size=(128,))}),
+    pytest.param(AUC(), auc, {'x': torch.arange(10, dtype=torch.float) / 10,
                               'y': torch.tensor([0.2, 0.2, 0.2, 0.2, 0.2,
-                                                 0.2, 0.3, 0.5, 0.6, 0.7])})
+                                                 0.2, 0.3, 0.5, 0.6, 0.7])}),
+    pytest.param(AveragePrecision(), average_precision_score,
+                 {'y_score': torch.randint(2, size=(128,)),
+                  'y_true': torch.randint(2, size=(128,))}),
+    pytest.param(ConfusionMatrix(), confusion_matrix,
+                 {'y_pred': torch.randint(10, size=(128,)),
+                  'y_true': torch.randint(10, size=(128,))}),
+    pytest.param(F1(average='macro'), partial(f1_score, average='macro'),
+                 {'y_pred': torch.randint(10, size=(128,)),
+                  'y_true': torch.randint(10, size=(128,))}),
+    pytest.param(FBeta(beta=0.5, average='macro'), partial(fbeta_score,
+                                                           beta=0.5,
+                                                           average='macro'),
+                 {'y_pred': torch.randint(10, size=(128,)),
+                  'y_true': torch.randint(10, size=(128,))}),
+    pytest.param(Precision(average='macro'), partial(precision_score,
+                                                     average='macro'),
+                 {'y_pred': torch.randint(10, size=(128,)),
+                  'y_true': torch.randint(10, size=(128,))}),
+    pytest.param(Recall(average='macro'), partial(recall_score, average='macro'),
+                 {'y_pred': torch.randint(10, size=(128,)),
+                  'y_true': torch.randint(10, size=(128,))}),
+    pytest.param(PrecisionRecallCurve(), xy_only(precision_recall_curve),
+                 {'probas_pred': torch.rand(size=(128,)),
+                  'y_true': torch.randint(2, size=(128,))}),
+    pytest.param(ROC(), xy_only(roc_curve),
+                 {'y_score': torch.rand(size=(128,)),
+                  'y_true': torch.randint(2, size=(128,))}),
+    pytest.param(AUROC(), roc_auc_score,
+                 {'y_score': torch.rand(size=(128,)),
+                  'y_true': torch.randint(2, size=(128,))}),
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs: dict):
     numpy_inputs = apply_to_collection(
