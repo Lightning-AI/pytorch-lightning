@@ -24,7 +24,6 @@ from tests.base import (
     LightTestDataloader,
     LightValidationMixin,
 )
-from tests.base import TestModelBase
 
 
 def test_model_pickle(tmpdir):
