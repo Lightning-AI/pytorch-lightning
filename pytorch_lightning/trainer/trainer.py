@@ -750,8 +750,9 @@ class Trainer(
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
                 # load weights if not interrupted
-                self.load_spawn_weights(model)
-                self.model = model
+                if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE'):
+                    self.load_spawn_weights(model)
+                    self.model = model
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
