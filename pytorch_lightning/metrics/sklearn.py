@@ -597,7 +597,7 @@ class ROC(SklearnMetric):
     """
 
     def __init__(self,
-                 pos_labels: Union[str, int] = 1,
+                 pos_label: Union[str, int] = 1,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
@@ -616,7 +616,7 @@ class ROC(SklearnMetric):
         super().__init__('roc_curve',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
-                         pos_labels=pos_labels)
+                         pos_label=pos_label)
 
     def forward(self, y_score: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
