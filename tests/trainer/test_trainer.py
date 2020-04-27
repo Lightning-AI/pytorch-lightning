@@ -24,6 +24,14 @@ from tests.base import (
     LightTestDataloader,
     LightValidationMixin,
 )
+from tests.base import TestModelBase
+
+
+def test_model_pickle(tmpdir):
+    import pickle
+
+    model = TestModelBase()
+    pickle.dumps(model)
 
 
 def test_hparams_save_load(tmpdir):

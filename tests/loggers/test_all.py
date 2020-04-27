@@ -77,6 +77,8 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
+    import pickle
+
     """Verify that pickling trainer with logger works."""
     tutils.reset_seed()
 
@@ -87,6 +89,9 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
+
+    # test pickling loggers
+    pickle.dumps(logger)
 
     trainer = Trainer(
         max_epochs=1,
