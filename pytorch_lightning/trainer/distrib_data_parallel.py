@@ -378,7 +378,6 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
-        import pdb; pdb.set_trace()
         if self.proc_rank == 0:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
