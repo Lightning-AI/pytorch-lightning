@@ -681,7 +681,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # summarize profile results
         self.profiler.describe()
-        
+
         self._teardown_already_run = True
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
