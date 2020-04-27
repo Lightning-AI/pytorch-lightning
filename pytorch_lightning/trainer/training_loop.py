@@ -679,7 +679,7 @@ class TrainerTrainLoopMixin(ABC):
 
     @atexit.register
     def run_training_teardown(self, signum=None, frame=None):
-        if hasattr('_teardown_already_run') and self._teardown_already_run:
+        if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
         # Train end events
         with self.profiler.profile('on_train_end'):
