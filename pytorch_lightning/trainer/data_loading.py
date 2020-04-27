@@ -134,6 +134,7 @@ class TrainerDataLoadingMixin(ABC):
                     'ddp': self.num_nodes * self.num_processes,
                     'ddp2': self.num_nodes,
                 }
+                import pdb; pdb.set_trace()
                 sampler = DistributedSampler(
                     dataloader.dataset,
                     num_replicas=world_size.get(self.distributed_backend, 0),
