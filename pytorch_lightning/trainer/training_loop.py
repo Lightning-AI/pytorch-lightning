@@ -141,23 +141,23 @@ in your model.
 
 """
 
+import atexit
+import signal
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
-import atexit
-import signal
 
 import numpy as np
-from torch.utils.data import DataLoader
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -181,9 +181,11 @@ except ImportError:
 else:
     HOROVOD_AVAILABLE = True
 
+# constant which signals should be catched for graceful trainer shutdown
+SIGNAL_TERMINATE = ('SIGTERM', 'SIGKILL', 'SIGSEGV', 'SIGINT')
+
 
 class TrainerTrainLoopMixin(ABC):
-
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     max_epochs: int
@@ -302,6 +304,12 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
+        # add signal handlers for process kills
+        orig_signal_handlers = {}
+        for sig_name in SIGNAL_TERMINATE:
+            orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
+                                                           self.run_training_teardown)
+
         # get model
         model = self.get_model()
 
@@ -374,8 +382,8 @@ class TrainerTrainLoopMixin(ABC):
             self.run_training_teardown()
 
             # reset signal handlers
-            for sig_name in sig_names:
-              signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
+            for sig_name in SIGNAL_TERMINATE:
+                signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
 
         except KeyboardInterrupt:
             if self.proc_rank == 0:
@@ -411,7 +419,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
