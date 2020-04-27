@@ -299,9 +299,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
-        rank_zero_warn('Displayed epoch numbers in the progress bar start from "1" until v0.6.x,'
-                       ' but will start from "0" in v0.8.0.', RuntimeWarning)
-
         # get model
         model = self.get_model()
 
