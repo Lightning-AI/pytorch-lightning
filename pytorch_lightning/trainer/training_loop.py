@@ -144,7 +144,6 @@ in your model.
 import atexit
 import signal
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Callable
 from typing import Union, List
 
@@ -308,6 +307,7 @@ class TrainerTrainLoopMixin(ABC):
         # add signal handlers for process kills
         def _signal_kill_handler(*args):
             return TrainerTrainLoopMixin.run_training_teardown(self)
+
         orig_signal_handlers = {}
         for sig_name in SIGNAL_TERMINATE:
             orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
@@ -829,4 +829,3 @@ def _with_is_last(iterable):
         last = val
     # yield last, no longer has next
     yield last, True
-
