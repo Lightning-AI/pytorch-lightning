@@ -77,7 +77,8 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "layer": torch.nn.BatchNorm1d
     }
     logger.log_hyperparams(hparams)
-    
+
+
 def test_tensorboard_log_hparams_and_metrics
     logger = TensorBoardLogger(tmpdir)
     hparams = {
