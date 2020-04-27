@@ -79,7 +79,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
     logger.log_hyperparams(hparams)
 
 
-def test_tensorboard_log_hparams_and_metrics
+def test_tensorboard_log_hparams_and_metrics(tmpdir):
     logger = TensorBoardLogger(tmpdir)
     hparams = {
         "float": 0.3,
@@ -93,4 +93,3 @@ def test_tensorboard_log_hparams_and_metrics
     }
     metrics = {'abc': torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
-    
