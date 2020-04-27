@@ -700,7 +700,7 @@ class Trainer(
 
             val_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined 731val_dataloaders method this will be skipped
+                If the model has a predefined val_dataloaders method this will be skipped
 
         Example::
 
