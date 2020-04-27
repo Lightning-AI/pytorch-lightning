@@ -54,10 +54,10 @@ class LearningRateLogger(Callback):
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use LearningRateLogger callback with Trainer that has no logger.')
-        
+
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
-        
+
         # Initialize for storing values
         self.lrs = dict.fromkeys(names, [])
 
@@ -87,7 +87,7 @@ class LearningRateLogger(Callback):
                     self.lrs[name].append(param_groups[0]['lr'])
                     latest_stat[name] = param_groups[0]['lr']
         return latest_stat
-    
+
     def _find_names(self, lr_schedulers):
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
