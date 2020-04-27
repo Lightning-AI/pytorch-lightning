@@ -146,6 +146,7 @@ import signal
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
+from functools import partial
 
 import numpy as np
 import torch
@@ -308,7 +309,8 @@ class TrainerTrainLoopMixin(ABC):
         orig_signal_handlers = {}
         for sig_name in SIGNAL_TERMINATE:
             orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-                                                           self.run_training_teardown)
+                                                           partial(_signal_kill_handler, 
+                                                                   self=self)
 
         # get model
         model = self.get_model()
@@ -678,7 +680,7 @@ class TrainerTrainLoopMixin(ABC):
         return [(opt_idx, self.optimizers[opt_idx])]
 
     @atexit.register
-    def run_training_teardown(self, signum=None, frame=None):
+    def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
         # Train end events
@@ -826,3 +828,8 @@ def _with_is_last(iterable):
         last = val
     # yield last, no longer has next
     yield last, True
+
+
+def _signal_kill_handler(signum, frame, *args, **kwargs):
+    return TrainerTrainLoopMixin.run_training_teardown(*args, **kwargs)
+   
