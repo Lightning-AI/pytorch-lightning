@@ -242,29 +242,17 @@ class LightningTemplateModel(LightningModule):
         Called at the end of test to aggregate outputs, similar to `validation_epoch_end`.
         :param outputs: list of individual outputs of each test step
         """
-        test_loss_mean = 0
-        test_acc_mean = 0
-        for output in outputs:
-            test_loss = output['test_loss']
+        results = self.validation_step_end(outputs)
 
-            # reduce manually when using dp
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                test_loss = torch.mean(test_loss)
-            test_loss_mean += test_loss
+        # rename some keys
+        results['progress_bar'].update({
+            'test_loss': results['progress_bar'].pop('val_loss'),
+            'test_acc': results['progress_bar'].pop('val_acc'),
+        })
+        results['log'] = results['progress_bar']
+        results['test_loss'] = results.pop('val_loss')
 
-            # reduce manually when using dp
-            test_acc = output['test_acc']
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                test_acc = torch.mean(test_acc)
-
-            test_acc_mean += test_acc
-
-        test_loss_mean /= len(outputs)
-        test_acc_mean /= len(outputs)
-        tqdm_dict = {'test_loss': test_loss_mean, 'test_acc': test_acc_mean}
-        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'test_loss': test_loss_mean}
-
-        return result
+        return results
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
