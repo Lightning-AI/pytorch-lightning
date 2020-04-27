@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 ### Changed
+ 
+- Allow logging of metrics togther with hparams ([#1630](https://github.com/PyTorchLightning/pytorch-lightning/pull/1630))
 
 ### Deprecated
 
