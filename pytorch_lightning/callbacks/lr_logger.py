@@ -37,8 +37,8 @@ class LearningRateLogger(Callback):
             return [optimizer], [lr_scheduler]
     """
     def __init__(self):
-        self.lrs = {}
-        self.names = []
+        self.lrs = None
+        self.lr_sch_names = []
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -54,37 +54,12 @@ class LearningRateLogger(Callback):
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use LearningRateLogger callback with Trainer that has no logger.')
-
-        # Create uniqe names in the case we have multiple of the same learning
-        # rate schduler + multiple parameter groups
-        names = []
-        for scheduler in trainer.lr_schedulers:
-            sch = scheduler['scheduler']
-            if 'name' in scheduler:
-                name = scheduler['name']
-            else:
-                opt_name = 'lr-' + sch.optimizer.__class__.__name__
-                i, name = 1, opt_name
-                # Multiple schduler of the same type
-                while True:
-                    if name not in names:
-                        break
-                    i, name = i + 1, f'{opt_name}-{i}'
-
-            # Multiple param groups for the same schduler
-            param_groups = sch.optimizer.param_groups
-            if len(param_groups) != 1:
-                for i, pg in enumerate(param_groups):
-                    temp = name + '/pg' + str(i + 1)
-                    names.append(temp)
-            else:
-                names.append(name)
-
-            self.names.append(name)
-
+        
+        # Find names for schedulers
+        names = self._find_names(trainer.lr_schedulers)
+        
         # Initialize for storing values
-        for name in names:
-            self.lrs[name] = []
+        self.lrs = dict.fromkeys(names, [])
 
     def on_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
@@ -112,3 +87,32 @@ class LearningRateLogger(Callback):
                     self.lrs[name].append(param_groups[0]['lr'])
                     latest_stat[name] = param_groups[0]['lr']
         return latest_stat
+    
+    def _find_names(self, lr_schedulers):
+        # Create uniqe names in the case we have multiple of the same learning
+        # rate schduler + multiple parameter groups
+        names = []
+        for scheduler in lr_schedulers:
+            sch = scheduler['scheduler']
+            if 'name' in scheduler:
+                name = scheduler['name']
+            else:
+                opt_name = 'lr-' + sch.optimizer.__class__.__name__
+                i, name = 1, opt_name
+                # Multiple schduler of the same type
+                while True:
+                    if name not in names:
+                        break
+                    i, name = i + 1, f'{opt_name}-{i}'
+
+            # Multiple param groups for the same schduler
+            param_groups = sch.optimizer.param_groups
+            if len(param_groups) != 1:
+                for i, pg in enumerate(param_groups):
+                    temp = name + '/pg' + str(i + 1)
+                    names.append(temp)
+            else:
+                names.append(name)
+
+            self.lr_sch_names.append(name)
+        return names
