@@ -101,7 +101,7 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], 
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
                         metrics: Optional[Dict[str, Any]] = None) -> None:
         params = self._convert_params(params)
         params = self._flatten_dict(params)
