@@ -116,10 +116,10 @@ class ModelCheckpoint(Callback):
 
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
-            'min': (torch.lt, torch_inf, 'min'),
-            'max': (torch.gt, -torch_inf, 'max'),
-            'auto': (torch.gt, -torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-            else (torch.lt, torch_inf, 'min'),
+            'min': (torch_inf, 'min'),
+            'max': (-torch_inf, 'max'),
+            'auto': (-torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (torch_inf, 'min'),
         }
 
         if mode not in mode_dict:
@@ -127,7 +127,7 @@ class ModelCheckpoint(Callback):
                            f'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
-        self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
+        self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
         if os.path.isfile(filepath):
@@ -151,7 +151,12 @@ class ModelCheckpoint(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
-        return self.monitor_op(current, self.best_k_models[self.kth_best_model])
+        monitor_op = {
+            "min": torch.lt,
+            "max": torch.gt,
+        }[self.mode]
+
+        return monitor_op(current, self.best_k_models[self.kth_best_model])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according to the defined template.
