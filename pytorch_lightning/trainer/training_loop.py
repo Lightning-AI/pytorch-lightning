@@ -144,6 +144,7 @@ in your model.
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
+import atexit
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -663,7 +664,10 @@ class TrainerTrainLoopMixin(ABC):
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.optimizers[opt_idx])]
 
+    @atexit.register
     def run_training_teardown(self):
+        if hasattr('_teardown_already_run') and self._teardown_already_run:
+            return
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
@@ -677,6 +681,8 @@ class TrainerTrainLoopMixin(ABC):
 
         # summarize profile results
         self.profiler.describe()
+        
+        self._teardown_already_run = True
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
