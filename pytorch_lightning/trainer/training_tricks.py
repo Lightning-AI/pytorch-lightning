@@ -1,7 +1,8 @@
 import math
 import sys
 from abc import ABC, abstractmethod
-import gc, os
+import gc
+import os
 
 import torch
 from torch import Tensor
@@ -86,20 +87,20 @@ class TrainerTrainingTricksMixin(ABC):
     def scale_batch_size(self, model):
         """ """
         # Arguments we adjust during the batch size finder, save for restoring
-        trainer_arg = self.auto_scale_batch_size 
+        trainer_arg = self.auto_scale_batch_size
         max_steps = self.max_steps
         weights_summary = self.weights_summary
         logger = self.logger
         callbacks = self.callbacks
         checkpoint_callback = self.checkpoint_callback
-        
+
         self.auto_scale_batch_size = False  # prevent recursion
-        self.max_steps = 3  # take few steps 
+        self.max_steps = 3  # take few steps
         self.weights_summary = None  # not needed before full run
         self.logger = None  # not needed before full run
         self.callbacks = []  # not needed before full run
         self.checkpoint_callback = False  # required for saving
-        self.optimizers, self.schedulers = [], [], # required for saving
+        self.optimizers, self.schedulers = [], []  # required for saving
         self.model = model  # required for saving
 
         # Save initial model, that is loaded after batch size is found
@@ -112,57 +113,59 @@ class TrainerTrainingTricksMixin(ABC):
         should_break = False
         while True:
             self.global_step = 0  # reset after each try
-            try:       
+            try:
                 self.fit(model)
                 new_size = _adjust_batch_size(self, trainer_arg, 1.5)
                 increased += 1
-                
+
             except RuntimeError as exception:
                 if (is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)):
-                    if increased > 1: # if we try to increase two time in row and fail, stop
-                        should_break = True 
+                    if increased > 1:  # if we try to increase two time in row and fail, stop
+                        should_break = True
                     new_size = _adjust_batch_size(self, trainer_arg, 0.5)
                     garbage_collection_cuda()
                 else:
                     raise  # some other error not memory related
-            
+
             if should_break:
                 break
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
-        
+
         # Restore initial state of model
         self.restore(str(save_path), on_gpu=self.on_gpu)
         os.remove(save_path)
-        
-         # Finish by resetting variables so trainer is ready to fit model
+
+        # Finish by resetting variables so trainer is ready to fit model
         self.max_steps = max_steps
         self.weights_summary = weights_summary
         self.logger = logger
         self.callbacks = callbacks
         self.checkpoint_callback = checkpoint_callback
 
+
 def is_cuda_out_of_memory(exception):
     return (
-        isinstance(exception, RuntimeError)
-        and len(exception.args) == 1
-        and "CUDA out of memory." in exception.args[0]
+        isinstance(exception, RuntimeError) and
+        len(exception.args) == 1 and
+        "CUDA out of memory." in exception.args[0]
     )
 
 
 def is_cudnn_snafu(exception):
     return (
-        isinstance(exception, RuntimeError)
-        and len(exception.args) == 1
-        and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
+        isinstance(exception, RuntimeError) and
+        len(exception.args) == 1 and
+        "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
     )
 
 
 def is_out_of_cpu_memory(exception):
     return (
-        isinstance(exception, RuntimeError)
-        and len(exception.args) == 1
-        and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
+        isinstance(exception, RuntimeError) and
+        len(exception.args) == 1 and
+        "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
     )
+
 
 def garbage_collection_cuda():
     """Garbage collection Torch (CUDA) memory."""
@@ -170,13 +173,13 @@ def garbage_collection_cuda():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-     
+
 def _adjust_batch_size(trainer, trainer_arg, factor):
     trainer_arg = trainer_arg if isinstance(trainer_arg, str) else 'batch_size'
-    
+
     model = trainer.get_model()
     string = 'succeeded' if factor > 1 else 'failed'
-    
+
     if hasattr(model.hparams, trainer_arg):
         batch_size = getattr(model.hparams, trainer_arg)
         if batch_size > 1:

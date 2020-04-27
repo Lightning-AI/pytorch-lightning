@@ -294,7 +294,7 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
-                
+
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
                 The results will be stored in self.hparams.batch_size in the lightning module.
@@ -700,7 +700,7 @@ class Trainer(
 
             val_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
+                If the model has a predefined 731val_dataloaders method this will be skipped
 
         Example::
 
@@ -742,11 +742,11 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
-        
+
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             self.scale_batch_size(model)
-        
+
         # Run learning rate finder:
         if self.auto_lr_find:
             self._run_lr_finder_internally(model)
