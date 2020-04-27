@@ -116,7 +116,6 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
-
     #- name: Try install package
     #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
