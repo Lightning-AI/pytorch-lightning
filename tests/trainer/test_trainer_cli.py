@@ -47,6 +47,11 @@ def test_add_argparse_args_redefined(cli_args):
         assert depr_name not in args
 
     trainer = Trainer.from_argparse_args(args=args)
+
+    # make sure trainer can be pickled
+    import pickle
+    pickle.dumps(trainer)
+
     assert isinstance(trainer, Trainer)
 
 
