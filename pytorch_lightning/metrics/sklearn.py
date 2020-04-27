@@ -310,7 +310,7 @@ class FBeta(SklearnMetric):
         """
 
     def __init__(self, beta: float, labels: Optional[Sequence] = None,
-                 pos_labels: Union[str, int] = 1,
+                 pos_label: Union[str, int] = 1,
                  average: Optional[str] = 'binary',
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
@@ -319,7 +319,7 @@ class FBeta(SklearnMetric):
         Args:
             beta: Weight of precision in harmonic mean.
             labels: Integer array of labels.
-            pos_labels: The class to report if ``average='binary'``.
+            pos_label: The class to report if ``average='binary'``.
             average: This parameter is required for multiclass/multilabel targets.
                 If ``None``, the scores for each class are returned. Otherwise, this
                 determines the type of averaging performed on the data:
@@ -354,7 +354,7 @@ class FBeta(SklearnMetric):
                          reduce_op=reduce_op,
                          beta=beta,
                          labels=labels,
-                         pos_labels=pos_labels,
+                         pos_label=pos_label,
                          average=average)
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
