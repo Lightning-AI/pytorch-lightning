@@ -711,6 +711,10 @@ class Trainer(
         model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
