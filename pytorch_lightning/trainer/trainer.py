@@ -614,19 +614,8 @@ class Trainer(
                         return bool(parsing.strtobool(x))
 
                 if arg == 'gpus':
-                    def allowed_type(x):
-                        if ',' in x:
-                            return str(x)
-                        else:
-                            return int(x)
-
-                    def arg_default_fx(x):
-                        if ',' in x:
-                            return str(x)
-                        else:
-                            return int(x)
-
-                    arg_default = arg_default_fx
+                    allowed_type = Trainer.allowed_type
+                    arg_default = Trainer.arg_default
 
                 parser.add_argument(
                     f'--{arg}',
@@ -638,6 +627,18 @@ class Trainer(
                 break
 
         return parser
+
+    def allowed_type(x):
+        if ',' in x:
+            return str(x)
+        else:
+            return int(x)
+
+    def arg_default(x):
+        if ',' in x:
+            return str(x)
+        else:
+            return int(x)
 
     @classmethod
     def from_argparse_args(cls, args, **kwargs):
