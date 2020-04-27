@@ -30,7 +30,7 @@ from tests.base import TestModelBase
 def test_model_pickle(tmpdir):
     import pickle
 
-    model = TestModelBase()
+    model = TestModelBase(tutils.get_default_hparams())
     pickle.dumps(model)
 
 
