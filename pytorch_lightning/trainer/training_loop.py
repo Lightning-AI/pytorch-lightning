@@ -145,6 +145,7 @@ from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
 import atexit
+import signal
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -371,6 +372,10 @@ class TrainerTrainLoopMixin(ABC):
                             return
 
             self.run_training_teardown()
+
+            # reset signal handlers
+            for sig_name in sig_names:
+              signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
 
         except KeyboardInterrupt:
             if self.proc_rank == 0:
