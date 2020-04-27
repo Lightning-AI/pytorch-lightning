@@ -1,6 +1,7 @@
 import inspect
 from argparse import ArgumentParser, Namespace
 from unittest import mock
+import pickle
 
 import pytest
 
@@ -42,11 +43,16 @@ def test_add_argparse_args_redefined(cli_args):
 
     args = parser.parse_args(cli_args)
 
+    # make sure we can pickle args
+    pickle.dumps(args)
+
     # Check few deprecated args are not in namespace:
     for depr_name in ('gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs'):
         assert depr_name not in args
 
     trainer = Trainer.from_argparse_args(args=args)
+    pickle.dumps(trainer)
+
     assert isinstance(trainer, Trainer)
 
 

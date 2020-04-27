@@ -26,6 +26,13 @@ from tests.base import (
 )
 
 
+def test_model_pickle(tmpdir):
+    import pickle
+
+    model = TestModelBase(tutils.get_default_hparams())
+    pickle.dumps(model)
+
+
 def test_hparams_save_load(tmpdir):
     model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10, 'failed_key': lambda x: x})
 
