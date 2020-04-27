@@ -240,6 +240,15 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs
 
 
+def test_pickling(tmpdir):
+    import pickle
+    early_stopping = EarlyStopping()
+    ckpt = ModelCheckpoint(tmpdir)
+
+    pickle.dumps(ckpt)
+    pickle.dumps(early_stopping)
+
+
 def test_model_checkpoint_with_non_string_input(tmpdir):
     """ Test that None in checkpoint callback is valid and that chkp_path is
         set correctly """
