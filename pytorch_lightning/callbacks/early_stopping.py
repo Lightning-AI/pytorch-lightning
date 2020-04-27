@@ -57,6 +57,7 @@ class EarlyStopping(Callback):
         self.min_delta = min_delta
         self.wait = 0
         self.stopped_epoch = 0
+        self.mode = mode
 
         mode_dict = {
             'min': torch.lt,
@@ -67,9 +68,8 @@ class EarlyStopping(Callback):
         if mode not in mode_dict:
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
-            mode = 'auto'
+            self.mode = 'auto'
 
-        self.monitor_op = mode_dict[mode]
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
 
     def _validate_condition_metric(self, logs):
@@ -93,6 +93,15 @@ class EarlyStopping(Callback):
             return False
 
         return True
+
+    @property
+    def monitor_op(self):
+        mode_dict = {
+            'min': torch.lt,
+            'max': torch.gt,
+            'auto': torch.gt if 'acc' in self.monitor else torch.lt
+        }
+        return mode_dict[self.mode]
 
     def on_train_start(self, trainer, pl_module):
         # Allow instances to be re-used
