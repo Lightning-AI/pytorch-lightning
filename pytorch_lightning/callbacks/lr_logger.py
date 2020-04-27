@@ -75,7 +75,7 @@ class LearningRateLogger(Callback):
         """ Extracts learning rates for lr schedulers and saves information
             into dict structure. """
         latest_stat = {}
-        for name, scheduler in zip(self.names, trainer.lr_schedulers):
+        for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
             if scheduler['interval'] == interval:
                 param_groups = scheduler['scheduler'].optimizer.param_groups
                 if len(param_groups) != 1:
