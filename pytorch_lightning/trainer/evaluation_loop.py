@@ -123,14 +123,12 @@ In this second case, the options you pass to trainer will be used when running
 
 """
 
-import sys
 from abc import ABC, abstractmethod
 from pprint import pprint
 from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
@@ -145,26 +143,31 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerEvaluationLoopMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    test_progress_bar: ...
-    val_progress_bar: ...
-    main_progress_bar: ...
+    on_gpu: bool
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
+    use_horovod: bool
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
     num_test_batches: int
     num_val_batches: int
     fast_dev_run: ...
-    process_position: ...
     process_output: ...
-    training_tqdm_dict: ...
+    progress_bar_dict: ...
     proc_rank: int
     current_epoch: int
     callback_metrics: ...
@@ -172,9 +175,12 @@ class TrainerEvaluationLoopMixin(ABC):
     val_dataloaders: DataLoader
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
-    progress_bar_refresh_rate: ...
 
     # Callback system
+    on_validation_batch_start: Callable
+    on_validation_batch_end: Callable
+    on_test_batch_start: Callable
+    on_test_batch_end: Callable
     on_validation_start: Callable
     on_validation_end: Callable
     on_test_start: Callable
@@ -201,7 +207,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_tqdm_metrics(self, *args):
+    def add_progress_bar_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -256,10 +262,20 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= max_batches:
                     break
 
+                # callbacks
+                if test_mode:
+                    self.on_test_batch_start()
+                else:
+                    self.on_validation_batch_start()
+
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                if self.use_amp and self.use_native_amp:
+                    with torch.cuda.amp.autocast():
+                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                else:
+                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
@@ -267,22 +283,17 @@ class TrainerEvaluationLoopMixin(ABC):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
                             output = model_ref.test_step_end(output)
+                    self.on_test_batch_end()
                 else:
                     if self.is_overriden('validation_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('validation_step_end'):
                             output = model_ref.validation_step_end(output)
+                    self.on_validation_batch_end()
 
                 # track outputs for collation
                 dl_outputs.append(output)
 
-                # batch done
-                if self.progress_bar_refresh_rate >= 1 and batch_idx % self.progress_bar_refresh_rate == 0:
-                    if test_mode:
-                        self.test_progress_bar.update(self.progress_bar_refresh_rate)
-                    else:
-                        self.val_progress_bar.update(self.progress_bar_refresh_rate)
-                        self.main_progress_bar.update(self.progress_bar_refresh_rate)
             outputs.append(dl_outputs)
 
         eval_results = {}
@@ -299,7 +310,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('test_epoch_end', model=model):
@@ -309,7 +320,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overriden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overriden('validation_epoch_end', model=model):
@@ -329,12 +340,6 @@ class TrainerEvaluationLoopMixin(ABC):
             raise MisconfigurationException(
                 "You called `.test()` without defining model's `.test_step()`."
                 " Please define and try again")
-
-        # Validation/Test begin callbacks
-        if test_mode:
-            self.on_test_start()
-        else:
-            self.on_validation_start()
 
         # hook
         model = self.get_model()
@@ -359,21 +364,18 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.fast_dev_run:
             max_batches = 1
 
-        # init validation or test progress bar
-        # main progress bar will already be closed when testing so initial position is free
-        position = 2 * self.process_position + (not test_mode)
-        desc = 'Testing' if test_mode else 'Validating'
-        total = max_batches if max_batches != float('inf') else None
-        pbar = tqdm(desc=desc, total=total, leave=test_mode, position=position,
-                    disable=not self.progress_bar_refresh_rate, dynamic_ncols=True, file=sys.stdout)
-        setattr(self, f'{"test" if test_mode else "val"}_progress_bar', pbar)
+        # Validation/Test begin callbacks
+        if test_mode:
+            self.on_test_start()
+        else:
+            self.on_validation_start()
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
         # add metrics to prog bar
-        self.add_tqdm_metrics(prog_bar_metrics)
+        self.add_progress_bar_metrics(prog_bar_metrics)
 
         # log results of test
         if test_mode and self.proc_rank == 0:
@@ -390,16 +392,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # hook
         model.on_post_performance_check()
-
-        # add model specific metrics
-        if not test_mode:
-            self.main_progress_bar.set_postfix(**self.training_tqdm_dict)
-
-        # close progress bar
-        if test_mode:
-            self.test_progress_bar.close()
-        else:
-            self.val_progress_bar.close()
 
         # eventual dataset reloading
         if test_mode:
@@ -428,6 +420,11 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.use_ddp or self.use_dp or self.use_ddp2:
             output = model(*args)
             return output
+
+        # Horovod
+        if self.use_horovod and self.on_gpu:
+            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
+            args[0] = batch
 
         # single GPU data transfer
         if self.single_gpu:

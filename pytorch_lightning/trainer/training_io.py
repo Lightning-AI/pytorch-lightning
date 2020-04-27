@@ -281,6 +281,10 @@ class TrainerIOMixin(ABC):
         if on_gpu:
             model.cuda(self.root_gpu)
 
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
@@ -316,7 +320,12 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
+        # restore native amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
+
         if hasattr(model, "hparams"):
+            self.__clean_namespace(model.hparams)
             is_namespace = isinstance(model.hparams, Namespace)
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
@@ -329,6 +338,31 @@ class TrainerIOMixin(ABC):
         model.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def __clean_namespace(self, hparams):
+        """
+        Removes all functions from hparams so we can pickle
+        :param hparams:
+        :return:
+        """
+
+        if isinstance(hparams, Namespace):
+            del_attrs = []
+            for k in hparams.__dict__:
+                if callable(getattr(hparams, k)):
+                    del_attrs.append(k)
+
+            for k in del_attrs:
+                delattr(hparams, k)
+
+        elif isinstance(hparams, dict):
+            del_attrs = []
+            for k, v in hparams.items():
+                if callable(v):
+                    del_attrs.append(k)
+
+            for k in del_attrs:
+                del hparams[k]
 
     # --------------------
     # HPC IO
@@ -440,6 +474,10 @@ class TrainerIOMixin(ABC):
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)

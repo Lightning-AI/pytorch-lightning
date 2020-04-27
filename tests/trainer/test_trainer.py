@@ -1,15 +1,15 @@
 import glob
 import math
 import os
-from argparse import Namespace, ArgumentParser
+from argparse import Namespace
 
 import pytest
 import torch
 
 import tests.base.utils as tutils
+from pytorch_lightning import Callback
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning import Callback
 from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -27,7 +27,7 @@ from tests.base import (
 
 
 def test_hparams_save_load(tmpdir):
-    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10})
+    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10, 'failed_key': lambda x: x})
 
     # logger file to get meta
     trainer_options = dict(
@@ -60,7 +60,7 @@ def test_no_val_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -79,12 +79,13 @@ def test_no_val_module(tmpdir):
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
     trainer.save_checkpoint(new_weights_path)
 
-    # load new model
-    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    # assert ckpt has hparams
+    ckpt = torch.load(new_weights_path)
+    assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
+
+    # won't load without hparams in the ckpt
     model_2 = LightningTestModel.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        tags_csv=tags_path
     )
     model_2.eval()
 
@@ -100,7 +101,7 @@ def test_no_val_end_module(tmpdir):
     model = CurrentTestModel(hparams)
 
     # logger file to get meta
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
 
     trainer_options = dict(
         max_epochs=1,
@@ -211,7 +212,7 @@ def test_loading_meta_tags(tmpdir):
     hparams = tutils.get_default_hparams()
 
     # save tags
-    logger = tutils.get_default_testtube_logger(tmpdir, False)
+    logger = tutils.get_default_logger(tmpdir)
     logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
     logger.log_hyperparams(hparams)
     logger.save()
@@ -335,7 +336,6 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         train_percent_check=0.65,
         val_percent_check=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
@@ -540,7 +540,7 @@ def test_disabled_validation():
     model = CurrentModel(hparams)
 
     trainer_options = dict(
-        show_progress_bar=False,
+        progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.0,

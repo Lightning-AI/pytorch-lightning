@@ -3,26 +3,12 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
 
 import numpy as np
 import torch
 
-
-def rank_zero_only(fn: Callable):
-    """Decorate a logger method to run it only on the process with rank 0.
-
-    Args:
-        fn: Function to decorate
-    """
-
-    @wraps(fn)
-    def wrapped_fn(self, *args, **kwargs):
-        if self.rank == 0:
-            fn(self, *args, **kwargs)
-
-    return wrapped_fn
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningLoggerBase(ABC):
@@ -252,16 +238,6 @@ class LightningLoggerBase(ABC):
         self.save()
 
     @property
-    def rank(self) -> int:
-        """Process rank. In general, metrics should only be logged by the process with rank 0."""
-        return self._rank
-
-    @rank.setter
-    def rank(self, value: int) -> None:
-        """Set the process rank."""
-        self._rank = value
-
-    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
@@ -280,6 +256,7 @@ class LoggerCollection(LightningLoggerBase):
     Args:
         logger_iterable: An iterable collection of loggers
     """
+
     def __init__(self, logger_iterable: Iterable[LightningLoggerBase]):
         super().__init__()
         self._logger_iterable = logger_iterable
@@ -305,11 +282,6 @@ class LoggerCollection(LightningLoggerBase):
 
     def close(self) -> None:
         [logger.close() for logger in self._logger_iterable]
-
-    @LightningLoggerBase.rank.setter
-    def rank(self, value: int) -> None:
-        for logger in self._logger_iterable:
-            logger.rank = value
 
     @property
     def name(self) -> str:
@@ -347,20 +319,28 @@ def merge_dicts(
 
     Examples:
         >>> import pprint
-        >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1}
-        >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1}
-        >>> d3 = {'a': 1.1, 'v': 2.3}
+        >>> d1 = {'a': 1.7, 'b': 2.0, 'c': 1, 'd': {'d1': 1, 'd3': 3}}
+        >>> d2 = {'a': 1.1, 'b': 2.2, 'v': 1, 'd': {'d1': 2, 'd2': 3}}
+        >>> d3 = {'a': 1.1, 'v': 2.3, 'd': {'d3': 3, 'd4': {'d5': 1}}}
         >>> dflt_func = min
-        >>> agg_funcs = {'a': np.mean, 'v': max}
+        >>> agg_funcs = {'a': np.mean, 'v': max, 'd': {'d1': sum}}
         >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
-        {'a': 1.3, 'b': 2.0, 'c': 1, 'v': 2.3}
+        {'a': 1.3,
+         'b': 2.0,
+         'c': 1,
+         'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
+         'v': 2.3}
     """
-
+    agg_key_funcs = agg_key_funcs or dict()
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
     d_out = {}
     for k in keys:
-        fn = agg_key_funcs.get(k, default_func) if agg_key_funcs else default_func
-        agg_val = fn([v for v in [d_in.get(k) for d_in in dicts] if v is not None])
-        d_out[k] = agg_val
+        fn = agg_key_funcs.get(k)
+        values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
+
+        if isinstance(values_to_agg[0], dict):
+            d_out[k] = merge_dicts(values_to_agg, fn, default_func)
+        else:
+            d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out

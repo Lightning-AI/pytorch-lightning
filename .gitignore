@@ -131,3 +131,8 @@ ENV/
 .data/
 datasets/
 mnist/
+
+# pl tests
+ml-runs/
+*.zip
+pytorch\ lightning

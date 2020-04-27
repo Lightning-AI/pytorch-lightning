@@ -7,7 +7,6 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
-from tests.base import LightningTestModel
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -63,9 +62,9 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
-    assert log_metric_names == [(0, ['val_acc', 'val_loss']),
-                                (0, ['train_some_val']),
-                                (1, ['test_acc', 'test_loss'])]
+    assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
+                                (0, ['epoch', 'train_some_val']),
+                                (1, ['epoch', 'test_acc', 'test_loss'])]
 
 
 @pytest.mark.parametrize("logger_class", [

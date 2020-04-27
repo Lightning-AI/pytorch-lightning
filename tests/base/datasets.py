@@ -7,10 +7,10 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from tests import TEST_ROOT
+from tests import PACKAGE_ROOT
 
 #: local path to test datasets
-PATH_DATASETS = os.path.join(TEST_ROOT, 'Datasets')
+PATH_DATASETS = os.path.join(PACKAGE_ROOT, 'Datasets')
 
 
 class MNIST(Dataset):

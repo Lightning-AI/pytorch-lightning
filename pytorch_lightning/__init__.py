@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.7.4rc1'
+__version__ = '0.7.5rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -60,4 +60,13 @@ else:
         'Callback',
         'data_loader'
     ]
+
+    # necessary for regular bolts imports. Skip exception since bolts is not always installed
+    try:
+        from pytorch_lightning import bolts
+    except ImportError:
+        pass
     # __call__ = __all__
+
+# for compatibility with namespace packages
+__import__('pkg_resources').declare_namespace(__name__)

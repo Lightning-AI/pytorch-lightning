@@ -1,7 +1,5 @@
-import distutils
 import inspect
 import os
-import sys
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -9,10 +7,9 @@ import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
@@ -23,11 +20,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin,
-    parse_gpu_ids,
-    determine_root_gpu_device,
-    pick_multiple_gpus,
-)
+    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -39,6 +32,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import parsing
 
 
 try:
@@ -78,9 +72,9 @@ class Trainer(
 ):
     DEPRECATED_IN_0_8 = (
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps'
+        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
     )
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar')
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict')
 
     def __init__(
             self,
@@ -119,7 +113,6 @@ class Trainer(
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
-            amp_level: str = 'O1',
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
@@ -128,6 +121,8 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
+            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
+            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
             nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
@@ -166,7 +161,7 @@ class Trainer(
 
                     Use `gradient_clip_val` instead. Will remove 0.9.0.
 
-            process_position: orders the tqdm bar when running multiple models on same machine.
+            process_position: orders the progress bar when running multiple models on same machine.
 
             num_nodes: number of GPU nodes for distributed training.
 
@@ -194,6 +189,7 @@ class Trainer(
                         Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
+                Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
@@ -316,7 +312,6 @@ class Trainer(
                            " and this method will be removed in v0.8.0", DeprecationWarning)
             self.gradient_clip = gradient_clip
 
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.check_val_every_n_epoch = check_val_every_n_epoch
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
@@ -394,7 +389,7 @@ class Trainer(
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
-        self.tqdm_metrics = {}
+        self.progress_bar_metrics = {}
         self.callback_metrics = {}
         self.num_val_batches = 0
         self.num_training_batches = 0
@@ -412,7 +407,6 @@ class Trainer(
         self.optimizer_frequencies = []
         self.global_step = 0
         self.current_epoch = 0
-        self.total_batches = 0
         self.interrupted = False
 
         # configure logger
@@ -468,11 +462,13 @@ class Trainer(
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
-        # can't init progress bar here because starting a new process
-        # means the progress_bar won't survive pickling
         # backward compatibility
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
+
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
+        self.progress_bar_callback = None
+        self.configure_progress_bar()
 
         # logging
         self.log_save_interval = log_save_interval
@@ -491,20 +487,17 @@ class Trainer(
         self.determine_data_use_amount(train_percent_check, val_percent_check,
                                        test_percent_check, overfit_pct)
 
-        # 16 bit mixed precision training using apex
-        self.amp_level = amp_level
+        # AMP init
+        # These are the only lines needed after v0.8.0
+        # we wrap the user's forward with autocast and give it back at the end of fit
+        self.autocast_original_forward = None
+        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
 
-        # Backward compatibility, TODO: remove in v0.9.0
-        if use_amp is not None:
-            rank_zero_warn("`use_amp` has been replaced by `precision` since v0.7.0"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
-            self.precision = 16 if use_amp else 32
-
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        if self.precision == 16 and self.num_tpu_cores is None:
-            use_amp = True
+        # TODO: remove for v0.8.0
+        self.amp_level = amp_level
         self.init_amp(use_amp)
 
         # Callback system
@@ -515,6 +508,12 @@ class Trainer(
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)
+
+            # in interactive mode, don't make logs use the same job id
+            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
+            if in_slurm_interactive_mode:
+                job_id = None
+
         except Exception:
             job_id = None
         return job_id
@@ -600,16 +599,33 @@ class Trainer(
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False, )
 
-        depr_arg_names = cls.get_deprecated_arg_names()
+        blacklist = ['kwargs']
+        depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
         allowed_types = (str, float, int, bool)
+
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
+
             for allowed_type in (at for at in allowed_types if at in arg_types):
-                if isinstance(allowed_type, bool):
+                if allowed_type is bool:
                     def allowed_type(x):
-                        return bool(distutils.util.strtobool(x))
+                        return bool(parsing.strtobool(x))
+
+                if arg == 'gpus':
+                    def allowed_type(x):
+                        if ',' in x:
+                            return str(x)
+                        else:
+                            return int(x)
+
+                    def arg_default(x):
+                        if ',' in x:
+                            return str(x)
+                        else:
+                            return int(x)
+
                 parser.add_argument(
                     f'--{arg}',
                     default=arg_default,
@@ -622,9 +638,11 @@ class Trainer(
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args):
+    def from_argparse_args(cls, args, **kwargs):
 
         params = vars(args)
+        params.update(**kwargs)
+
         return cls(**params)
 
     @property
@@ -639,26 +657,10 @@ class Trainer(
         return self.use_dp or self.use_ddp or self.use_ddp2
 
     @property
-    def training_tqdm_dict(self) -> dict:
-        """Read-only for tqdm metrics.
-        :return:
-        """
+    def progress_bar_dict(self) -> dict:
+        """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
-
-        return dict(**ref_model.get_tqdm_dict(), **self.tqdm_metrics)
-
-    @property
-    def tng_tqdm_dic(self):
-        """Read-only for tqdm metrics.
-
-        .. warning:: .. deprecated:: 0.5.0
-
-            Use `training_tqdm_dict` instead. Will remove 0.8.0.
-
-        """
-        rank_zero_warn("`tng_tqdm_dic` has renamed to `training_tqdm_dict` since v0.5.0"
-                       " and this method will be removed in v0.8.0", DeprecationWarning)
-        return self.training_tqdm_dict
+        return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
 
     # -----------------------------
     # MODEL TRAINING
@@ -736,13 +738,10 @@ class Trainer(
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
-
                 # track for predict
                 self.model = model
-
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
                 # load weights if not interrupted
                 self.load_spawn_weights(model)
                 self.model = model
@@ -752,6 +751,9 @@ class Trainer(
         elif self.use_dp:
             self.dp_train(model)
 
+        elif self.use_horovod:
+            self.horovod_train(model)
+
         elif self.single_gpu:
             self.single_gpu_train(model)
 
@@ -759,7 +761,7 @@ class Trainer(
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if os.getenv('COLAB_GPU') else 'spawn'
+            start_method = 'fork' if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE') else 'spawn'
 
             # track for predict
             self.model = model
@@ -877,17 +879,12 @@ class Trainer(
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        ref_model.on_sanity_check_start()
         if not self.disable_validation and self.num_sanity_val_steps > 0:
             self.reset_val_dataloader(ref_model)
-            # init progress bars for validation sanity check
-            pbar = tqdm(desc='Validation sanity check',
-                        total=self.num_sanity_val_steps * len(self.val_dataloaders),
-                        leave=False, position=2 * self.process_position,
-                        disable=not self.progress_bar_refresh_rate, dynamic_ncols=True)
-            self.main_progress_bar = pbar
-            # dummy validation progress bar
-            self.val_progress_bar = tqdm(disable=True)
+
+            # hook and callback
+            ref_model.on_sanity_check_start()
+            self.on_sanity_check_start()
 
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
@@ -895,19 +892,11 @@ class Trainer(
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
-            # close progress bars
-            self.main_progress_bar.close()
-            self.val_progress_bar.close()
+            self.on_sanity_check_end()
 
             # verify that early stop has conditioned on a metric that exists
             if self.enable_early_stop:
                 self.early_stop_callback._validate_condition_metric(callback_metrics)
-
-        # init progress bar
-        pbar = tqdm(leave=True, position=2 * self.process_position,
-                    disable=not self.show_progress_bar, dynamic_ncols=True,
-                    file=sys.stdout, smoothing=0)
-        self.main_progress_bar = pbar
 
         # clear cache before training
         if self.on_gpu:

@@ -120,9 +120,10 @@ from typing import Union
 
 import torch
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import set_proc_rank, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 try:
     from apex import amp
@@ -130,6 +131,13 @@ except ImportError:
     APEX_AVAILABLE = False
 else:
     APEX_AVAILABLE = True
+
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
 
 
 class TrainerDDPMixin(ABC):
@@ -139,11 +147,14 @@ class TrainerDDPMixin(ABC):
     on_gpu: bool
     num_gpu_nodes: int
     logger: Union[LightningLoggerBase, bool]
+    checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: str
     amp_level: str
     use_tpu: bool
     default_root_dir: str
+    use_native_amp: bool
+    progress_bar_callback: ...
 
     @property
     @abstractmethod
@@ -178,10 +189,14 @@ class TrainerDDPMixin(ABC):
         self.use_dp = False
         self.use_ddp = False
         self.use_ddp2 = False
+        self.use_horovod = False
         self.single_gpu = False
 
         if distributed_backend is None:
-            if self.num_gpus == 0:
+            if self.has_horovodrun():
+                self.check_horovod()
+                self.use_horovod = True
+            elif self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
@@ -219,6 +234,9 @@ class TrainerDDPMixin(ABC):
             self.use_ddp = True
             self.data_parallel_device_ids = None
             self.on_gpu = False
+        elif distributed_backend == 'horovod':
+            self.check_horovod()
+            self.use_horovod = True
 
         # throw error to force user ddp or ddp2 choice
         if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
@@ -275,7 +293,7 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
@@ -295,9 +313,8 @@ class TrainerDDPMixin(ABC):
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
-        self.progress_bar_refresh_rate = (
-            self.progress_bar_refresh_rate if self.node_rank == 0 and process_idx == 0 else 0
-        )
+        if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
 
         # determine which process we are and world size
         if self.use_ddp:
@@ -307,12 +324,9 @@ class TrainerDDPMixin(ABC):
         elif self.use_ddp2:
             self.proc_rank = self.node_rank
             self.world_size = self.num_nodes
-        # set warning rank
-        set_proc_rank(self.proc_rank)
 
-        # let the exp know the rank to avoid overwriting logs
-        if self.logger is not None:
-            self.logger.rank = self.proc_rank
+        # set warning rank
+        rank_zero_only.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -327,7 +341,7 @@ class TrainerDDPMixin(ABC):
         # MODEL
         # copy model to each gpu
         if self.on_gpu:
-            self.root_gpu = self.data_parallel_device_ids[process_idx]
+            self.root_gpu = process_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
@@ -336,8 +350,8 @@ class TrainerDDPMixin(ABC):
 
         # AMP
         # run through amp wrapper before going to distributed DP
-        if self.use_amp:
-            # An example
+        # TODO: remove in v0.8.0
+        if self.use_amp and not self.use_native_amp:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
@@ -402,3 +416,22 @@ class TrainerDDPMixin(ABC):
             root_node = name + number
 
         return root_node
+
+    def check_horovod(self):
+        """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
+        if not HOROVOD_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
+                'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
+            )
+
+        if self.num_gpus > 1 or self.num_nodes > 1:
+            raise MisconfigurationException(
+                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
+                'horovodrun / mpirun to configure the number of processes.'
+            )
+
+    @staticmethod
+    def has_horovodrun():
+        """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
+        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ

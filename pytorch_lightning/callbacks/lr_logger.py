@@ -53,7 +53,7 @@ class LearningRateLogger(Callback):
 
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use LearningRateLogger callback with Trainer that have no logger.')
+                'Cannot use LearningRateLogger callback with Trainer that has no logger.')
 
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups

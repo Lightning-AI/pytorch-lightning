@@ -1157,9 +1157,22 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if self.trainer.use_tpu and XLA_AVAILABLE:
             xm.optimizer_step(optimizer)
         elif isinstance(optimizer, torch.optim.LBFGS):
+
+            # native amp + lbfgs is a no go right now
+            if self.trainer.use_amp and self.trainer.use_native_amp:
+                m = 'native PyTorch amp and lbfgs are not compatible. To request, please file' \
+                    'a Github issue in PyTorch and tag @mcarilli'
+                raise MisconfigurationException(m)
             optimizer.step(second_order_closure)
         else:
-            optimizer.step()
+            if self.trainer.use_amp and self.trainer.use_native_amp:
+                self.trainer.scaler.step(optimizer)
+            else:
+                optimizer.step()
+
+        # in native 16-bit we need to update scaler after optimizer step
+        if self.trainer.use_amp and self.trainer.use_native_amp:
+            self.trainer.scaler.update()
 
         # model hook
         self.on_before_zero_grad(optimizer)
@@ -1336,7 +1349,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
-                        shuffle=True
+                        shuffle=False
                     )
 
                     return loader
@@ -1381,7 +1394,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
                         batch_size=self.hparams.batch_size,
-                        shuffle=True
+                        shuffle=False
                     )
 
                     return loader
@@ -1623,7 +1636,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         """
 
-    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
+    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
         Additional items to be displayed in the progress bar.
 
@@ -1644,3 +1657,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             tqdm_dict['v_num'] = self.trainer.logger.version
 
         return tqdm_dict
+
+    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
+        """
+        Additional items to be displayed in the progress bar.
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+
+        Warning:
+            Deprecated since v0.7.3.
+            Use :meth:`get_progress_bar_dict` instead.
+        """
+        rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
+                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        return self.get_progress_bar_dict()

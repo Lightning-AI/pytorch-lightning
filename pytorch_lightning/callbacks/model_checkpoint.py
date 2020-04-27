@@ -10,11 +10,12 @@ import os
 import re
 
 import numpy as np
+from typing import Optional
 
+import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
-import torch
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 
 class ModelCheckpoint(Callback):
@@ -36,6 +37,9 @@ class ModelCheckpoint(Callback):
                 >>> checkpoint_callback = ModelCheckpoint(
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
+
+            Can also be set to `None`, then it will be set to default location
+            during trainer construction.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
@@ -78,7 +82,7 @@ class ModelCheckpoint(Callback):
 
     """
 
-    def __init__(self, filepath: str, monitor: str = 'val_loss', verbose: bool = False,
+    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
@@ -87,15 +91,18 @@ class ModelCheckpoint(Callback):
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
+        self._rank = 0
 
         self.monitor = monitor
         self.verbose = verbose
-        if os.path.isdir(filepath):
-            self.dirpath, self.filename = filepath, '{epoch}'
+        if filepath is None:  # will be determined by trainer at runtime
+            self.dirpath, self.filename = None, None
         else:
-            self.dirpath, self.filename = os.path.split(filepath)
-
-        os.makedirs(self.dirpath, exist_ok=True)
+            if os.path.isdir(filepath):
+                self.dirpath, self.filename = filepath, '{epoch}'
+            else:
+                self.dirpath, self.filename = os.path.split(filepath)
+            os.makedirs(self.dirpath, exist_ok=True)
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
@@ -123,7 +130,8 @@ class ModelCheckpoint(Callback):
         self.monitor_op, self.kth_value, self.mode = mode_dict[mode]
 
     def _del_model(self, filepath):
-        os.remove(filepath)
+        if os.path.isfile(filepath):
+            os.remove(filepath)
 
     def _save_model(self, filepath):
         # make paths
@@ -183,6 +191,7 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.proc_rank != 0:

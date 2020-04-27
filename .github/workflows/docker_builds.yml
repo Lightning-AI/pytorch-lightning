@@ -1,0 +1,44 @@
+name: Publish Docker
+on:
+  push:
+    branches:
+      - master
+  release:
+    types:
+       - created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.6, 3.7, 3.8]
+        pytorch_version: [1.1, 1.2, 1.3, 1.4, 1.5]
+    steps:
+    - name: Extract Current Tag
+      if: contains(github.ref, 'refs/tags/')
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    - uses: actions/checkout@v2
+    - name: Publish Releases to Docker
+      # only on releases
+      uses: elgohr/Publish-Docker-Github-Action@master
+      if: contains(github.ref, 'refs/tags/') && !contains(${{ steps.get_version.outputs.VERSION }}, 'rc') %% !contains(${{ steps.get_version.outputs.VERSION }}, 'dev')
+      with:
+        name: pytorchlightning/pytorch_lightning
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: docker/Dockerfile
+        buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.get_version.outputs.VERSION }}
+        tags: "${{ steps.get_version.outputs.VERSION }}_py${{ matrix.python_version }}_torch${{ matrix.pytorch_version }},stable_py${{ matrix.python_version }}_torch${{ matrix.pytorch_version }}"
+    - name: Publish Master
+      # publish master
+      uses: elgohr/Publish-Docker-Github-Action@master
+      if: github.event_name == 'push'
+      with:
+        name: pytorchlightning/pytorch_lightning
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: docker/Dockerfile
+        buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.get_version.outputs.VERSION }}
+        tags: "latest_py${{ matrix.python_version }}_torch${{ matrix.pytorch_version }}"
