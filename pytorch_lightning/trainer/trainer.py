@@ -999,6 +999,7 @@ class Trainer(
                                           self.num_sanity_val_steps,
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
+            self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
 
