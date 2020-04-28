@@ -341,8 +341,6 @@ def test_tbptt_cpu_model(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_model(tmpdir):
     """Make sure single GPU works (DP mode)."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
