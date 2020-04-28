@@ -123,6 +123,9 @@ class TensorBoardLogger(LightningLoggerBase):
             writer.add_summary(ssi)
             writer.add_summary(sei)
 
+            for k, v in metrics.items():
+                writer.add_scalar(k, v)
+
         # some alternative should be added
         self.tags.update(sanitized_params)
 
