@@ -13,7 +13,6 @@ from tests.base import (
 
 def test_error_on_more_than_1_optimizer(tmpdir):
     ''' Check that error is thrown when more than 1 optimizer is passed '''
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTestMultipleOptimizersWithSchedulingMixin,
@@ -37,7 +36,6 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
 def test_model_reset_correctly(tmpdir):
     ''' Check that model weights are correctly reset after lr_find() '''
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTrainDataloader,
@@ -67,7 +65,6 @@ def test_model_reset_correctly(tmpdir):
 
 def test_trainer_reset_correctly(tmpdir):
     ''' Check that all trainer parameters are reset correctly after lr_find() '''
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTrainDataloader,
@@ -104,7 +101,6 @@ def test_trainer_reset_correctly(tmpdir):
 
 
 def test_trainer_arg_bool(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTrainDataloader,
@@ -129,7 +125,6 @@ def test_trainer_arg_bool(tmpdir):
 
 
 def test_trainer_arg_str(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTrainDataloader,
@@ -155,7 +150,6 @@ def test_trainer_arg_str(tmpdir):
 
 
 def test_call_to_trainer_method(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightTrainDataloader,

@@ -15,7 +15,6 @@ from tests.base import (
 
 def test_error_on_no_train_step(tmpdir):
     """ Test that an error is thrown when no `training_step()` is defined """
-    tutils.reset_seed()
 
     class CurrentTestModel(LightningModule):
         def forward(self, x):
@@ -30,7 +29,6 @@ def test_error_on_no_train_step(tmpdir):
 
 def test_error_on_no_train_dataloader(tmpdir):
     """ Test that an error is thrown when no `training_dataloader()` is defined """
-    tutils.reset_seed()
     hparams = tutils.get_default_hparams()
 
     class CurrentTestModel(TestModelBase):
@@ -45,7 +43,6 @@ def test_error_on_no_train_dataloader(tmpdir):
 
 def test_error_on_no_configure_optimizers(tmpdir):
     """ Test that an error is thrown when no `configure_optimizers()` is defined """
-    tutils.reset_seed()
 
     class CurrentTestModel(LightTrainDataloader, LightningModule):
         def forward(self, x):
@@ -68,7 +65,6 @@ def test_warning_on_wrong_validation_settings(tmpdir):
             throw warning if `val_epoch_end()` is not defined
         * error if `validation_step()` is overriden but `val_dataloader()` is not
     """
-    tutils.reset_seed()
     hparams = tutils.get_default_hparams()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -111,7 +107,6 @@ def test_warning_on_wrong_test_settigs(tmpdir):
             throw warning if `test_epoch_end()` is not defined
         * error if `test_step()` is overriden but `test_dataloader()` is not
     """
-    tutils.reset_seed()
     hparams = tutils.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 

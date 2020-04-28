@@ -11,8 +11,6 @@ from pytorch_lightning.loggers import WandbLogger
 def test_wandb_logger(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
-    tutils.reset_seed()
-
     logger = WandbLogger(anonymous=True, offline=True)
 
     logger.log_metrics({'acc': 1.0})
@@ -38,8 +36,6 @@ def test_wandb_pickle(wandb):
 
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
-    tutils.reset_seed()
-
     class Experiment:
         id = 'the_id'
 

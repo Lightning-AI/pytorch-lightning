@@ -13,7 +13,6 @@ from pytorch_lightning import Trainer
             return_value=Namespace(**Trainer.default_attributes()))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
-    tutils.reset_seed()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)

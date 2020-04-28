@@ -1,6 +1,7 @@
 import glob
 import math
 import os
+import types
 from argparse import Namespace
 
 import pytest
@@ -53,7 +54,6 @@ def test_hparams_save_load(tmpdir):
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
 
@@ -92,7 +92,6 @@ def test_no_val_module(tmpdir):
 
 def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    tutils.reset_seed()
 
     class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
@@ -132,7 +131,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
     """
     Test grad accumulation by the freq of optimizer updates
     """
-    tutils.reset_seed()
 
     # test incorrect configs
     with pytest.raises(IndexError):
@@ -205,7 +203,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 
 def test_loading_meta_tags(tmpdir):
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
 
@@ -225,7 +222,6 @@ def test_loading_meta_tags(tmpdir):
 
 def test_dp_output_reduce():
     mixin = TrainerLoggingMixin()
-    tutils.reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
@@ -291,7 +287,6 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
 
 
 def test_model_freeze_unfreeze():
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -300,11 +295,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint(tmpdir):
-    """Verify resuming from checkpoint (epoch, batch numbers and on_load_checkpoint())"""
-    import types
-
-    tutils.reset_seed()
+def test_resume_from_checkpoint_epoch_restored(tmpdir):
+    """Verify resuming from checkpoint runs the right number of epochs"""
 
     hparams = tutils.get_default_hparams()
 
@@ -371,7 +363,6 @@ def test_resume_from_checkpoint(tmpdir):
 
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
-    tutils.reset_seed()
     model = EvalModelTemplate(tutils.get_default_hparams())
 
     # define train epoch to 5% of data
@@ -460,7 +451,6 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightValidationMultipleDataloadersMixin,
@@ -523,7 +513,6 @@ def test_testpass_overrides(tmpdir):
 
 def test_disabled_validation():
     """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
-    tutils.reset_seed()
 
     class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
 
@@ -666,7 +655,6 @@ def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
     """
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)

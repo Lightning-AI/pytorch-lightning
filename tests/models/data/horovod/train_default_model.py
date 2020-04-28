@@ -40,7 +40,6 @@ parser.add_argument('--on-gpu', action='store_true', default=False)
 
 def run_test_from_config(trainer_options):
     """Trains the default model with the given config."""
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     ckpt_path = trainer_options['default_root_dir']

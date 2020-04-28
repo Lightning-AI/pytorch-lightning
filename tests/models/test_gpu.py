@@ -19,8 +19,6 @@ PRETEND_N_OF_GPUS = 16
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
     """Make sure DDP works."""
-
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -45,8 +43,6 @@ def test_multi_gpu_model(tmpdir, backend):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     trainer_options = dict(default_root_dir=tmpdir,
@@ -68,8 +64,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -139,8 +133,6 @@ def test_cpu_slurm_save_load(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,

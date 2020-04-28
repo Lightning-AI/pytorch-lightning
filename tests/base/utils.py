@@ -27,6 +27,8 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
+    reset_seed()
+
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
@@ -54,6 +56,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
 
 
 def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=True):
+    reset_seed()
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
@@ -215,6 +218,7 @@ def reset_seed():
 
 
 def set_random_master_port():
+    reset_seed()
     port = RANDOM_PORTS.pop()
     os.environ['MASTER_PORT'] = str(port)
 

@@ -21,8 +21,6 @@ from tests.base import (
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    tutils.reset_seed()
-
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -50,7 +48,6 @@ def test_early_stopping_cpu_model(tmpdir):
                     reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -70,8 +67,6 @@ def test_multi_cpu_model_ddp(tmpdir):
 
 def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -91,8 +86,6 @@ def test_lbfgs_cpu_model(tmpdir):
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -113,8 +106,6 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -147,8 +138,6 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    tutils.reset_seed()
-
     class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
         pass
 
@@ -184,8 +173,6 @@ def test_running_test_no_val(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
-    tutils.reset_seed()
-
     trainer = Trainer()
 
     # batch is just a tensor
@@ -233,8 +220,6 @@ def test_single_gpu_batch_parse():
 
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -253,8 +238,6 @@ def test_simple_cpu(tmpdir):
 
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -270,8 +253,6 @@ def test_cpu_model(tmpdir):
 
 def test_all_features_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
@@ -290,8 +271,6 @@ def test_all_features_cpu_model(tmpdir):
 
 def test_tbptt_cpu_model(tmpdir):
     """Test truncated back propagation through time works."""
-    tutils.reset_seed()
-
     truncated_bptt_steps = 2
     sequence_size = 30
     batch_size = 30
@@ -362,8 +341,6 @@ def test_tbptt_cpu_model(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_model(tmpdir):
     """Make sure single GPU works (DP mode)."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,

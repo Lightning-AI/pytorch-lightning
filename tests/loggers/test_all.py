@@ -30,8 +30,6 @@ def _get_logger_args(logger_class, save_dir):
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
-    tutils.reset_seed()
-
     # prevent comet logger from trying to print at exit, since
     # pytest's stdout/stderr redirection breaks it
     import atexit
@@ -79,8 +77,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    tutils.reset_seed()
-
     # prevent comet logger from trying to print at exit, since
     # pytest's stdout/stderr redirection breaks it
     import atexit
