@@ -14,8 +14,6 @@ from tests.base import LightningTestModel, EvalModelTemplate
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_single_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,

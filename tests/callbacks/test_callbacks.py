@@ -249,9 +249,7 @@ def test_pickling(tmpdir):
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
-    """ Test that None in checkpoint callback is valid and that chkp_path is
-        set correctly """
-    tutils.reset_seed()
+    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
 
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
         pass
