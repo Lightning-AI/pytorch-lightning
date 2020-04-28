@@ -12,7 +12,7 @@ from tests.base import (
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
-    ''' Check that error is thrown when more than 1 optimizer is passed '''
+    """ Check that error is thrown when more than 1 optimizer is passed """
 
     class CurrentTestModel(
         LightTestMultipleOptimizersWithSchedulingMixin,
@@ -35,7 +35,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
 
 def test_model_reset_correctly(tmpdir):
-    ''' Check that model weights are correctly reset after lr_find() '''
+    """ Check that model weights are correctly reset after lr_find() """
 
     class CurrentTestModel(
         LightTrainDataloader,
@@ -64,7 +64,7 @@ def test_model_reset_correctly(tmpdir):
 
 
 def test_trainer_reset_correctly(tmpdir):
-    ''' Check that all trainer parameters are reset correctly after lr_find() '''
+    """ Check that all trainer parameters are reset correctly after lr_find() """
 
     class CurrentTestModel(
         LightTrainDataloader,
