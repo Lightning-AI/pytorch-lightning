@@ -6,9 +6,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import (
-    LightningTestModel,
-)
+from tests.base import LightningTestModel, EvalModelTemplate
 
 
 @pytest.mark.spawn
@@ -18,7 +16,8 @@ def test_amp_single_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    model, hparams = tutils.get_default_model()
+
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -42,7 +41,7 @@ def test_amp_multi_gpu(tmpdir, backend):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -113,7 +112,7 @@ def test_cpu_model_with_amp(tmpdir):
         precision=16
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tutils.run_model_test(trainer_options, model, on_gpu=False)

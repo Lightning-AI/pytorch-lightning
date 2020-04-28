@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from tests.base import EvalModelTemplate
 import tests.base.utils as tutils  # noqa: E402
 
 
@@ -43,9 +44,9 @@ def run_test_from_config(trainer_options):
     tutils.set_random_master_port()
 
     ckpt_path = trainer_options['default_root_dir']
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(ckpt_path)
+    trainer_options.update(checkpoint_callback=ModelCheckpoint(ckpt_path))
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test(trainer_options, model, on_gpu=args.on_gpu, version=0, with_hpc=False)
 
     # Horovod should be initialized following training. If not, this will raise an exception.

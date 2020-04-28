@@ -12,7 +12,7 @@ from tests.base import (
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
     LightTestReduceLROnPlateauMixin,
-    LightTestNoneOptimizerMixin
+    LightTestNoneOptimizerMixin, EvalModelTemplate
 )
 
 
@@ -171,7 +171,7 @@ def test_optimizer_return_options():
     tutils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -229,8 +229,8 @@ def test_none_optimizer_warning():
     tutils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = tutils.get_default_model()
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     model.configure_optimizers = lambda: None
 
     with pytest.warns(UserWarning, match='will run with no optimizer'):

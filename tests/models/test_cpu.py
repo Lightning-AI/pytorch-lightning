@@ -15,6 +15,7 @@ from tests.base import (
     LightTrainDataloader,
     LightningTestModel,
     LightTestMixin,
+    EvalModelTemplate,
 )
 
 
@@ -33,7 +34,7 @@ def test_early_stopping_cpu_model(tmpdir):
         val_percent_check=0.1,
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -52,7 +53,6 @@ def test_multi_cpu_model_ddp(tmpdir):
     tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -64,6 +64,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         distributed_backend='ddp_cpu'
     )
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -80,9 +81,12 @@ def test_lbfgs_cpu_model(tmpdir):
         val_percent_check=0.2,
     )
 
-    model, hparams = tutils.get_default_model(lbfgs=True)
-    # the test is there for the closure not the performance
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.)
+    hparams = tutils.get_default_hparams()
+    setattr(hparams, 'optimizer_name', 'lbfgs')
+    setattr(hparams, 'learning_rate', 0.002)
+    model = EvalModelTemplate(hparams)
+    model.configure_optimizers = model.configure_optimizers_lbfgs
+    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -99,7 +103,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         val_percent_check=0.01,
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
@@ -259,7 +263,7 @@ def test_cpu_model(tmpdir):
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
@@ -280,7 +284,7 @@ def test_all_features_cpu_model(tmpdir):
         val_percent_check=0.4
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -360,8 +364,6 @@ def test_single_gpu_model(tmpdir):
     """Make sure single GPU works (DP mode)."""
     tutils.reset_seed()
 
-    model, hparams = tutils.get_default_model()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -371,8 +373,5 @@ def test_single_gpu_model(tmpdir):
         gpus=1
     )
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     tutils.run_model_test(trainer_options, model)
-
-
-# if __name__ == '__main__':
-#     pytest.main([__file__])

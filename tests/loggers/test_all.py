@@ -7,6 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
+from tests.base import EvalModelTemplate
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -36,7 +37,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    model, _ = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
