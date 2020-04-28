@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed ModelCheckpoint not being fixable ([#1632](https://github.com/PyTorchLightning/pytorch-lightning/pull/1632))
 - Fixed CPU DDP breaking change and DDP change ([#1635](https://github.com/PyTorchLightning/pytorch-lightning/pull/1635))
 - Tested pickling ([#1636](https://github.com/PyTorchLightning/pytorch-lightning/pull/1636))
+- Fixed wandb logger 'global_step' affects other loggers ([#1485](https://github.com/PyTorchLightning/pytorch-lightning/issues/1485))
 
 
 ## [0.7.4] - 2020-04-26
