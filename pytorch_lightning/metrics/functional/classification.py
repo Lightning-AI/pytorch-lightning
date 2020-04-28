@@ -11,9 +11,10 @@ def to_onehot(tensor: torch.Tensor,
     if n_classes is None:
         n_classes = int(tensor.max().detach().item() + 1)
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], n_classes, *shape[2:],
+    tensor_onehot = torch.zeros(shape[0], n_classes, *shape[1:],
                                 dtype=dtype, device=device)
-    return tensor_onehot.scatter_(1, tensor, 1.0)
+    index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
+    return tensor_onehot.scatter_(1, index, 1.0)
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
@@ -26,7 +27,7 @@ def get_num_classes(pred: torch.Tensor, target: torch.Tensor,
         if pred.ndim > target.ndim:
             num_classes = pred.size(1)
         else:
-            num_classes = target.max().detach().item()
+            num_classes = int(target.max().detach().item() + 1)
     return num_classes
 
 
@@ -56,10 +57,10 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
-    tps = torch.zeros(num_classes, device=pred.device)
-    fps = torch.zeros(num_classes, device=pred.device)
-    tns = torch.zeros(num_classes, device=pred.device)
-    fns = torch.zeros(num_classes, device=pred.device)
+    tps = torch.zeros((num_classes,), device=pred.device)
+    fps = torch.zeros((num_classes,), device=pred.device)
+    tns = torch.zeros((num_classes,), device=pred.device)
+    fns = torch.zeros((num_classes,), device=pred.device)
 
     for c in range(num_classes):
         tps[c], fps[c], tns[c], fns[c] = stat_scores(pred=pred, target=target,
@@ -71,10 +72,13 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
 def accuracy(pred: torch.Tensor, target: torch.Tensor,
              num_classes: Optional[int] = None,
              reduction='elementwise_mean') -> torch.Tensor:
-    tps, _, _, _ = stat_scores_multiple_classes(pred=pred, target=target,
-                                                num_classes=num_classes)
+    tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
+                                                      num_classes=num_classes)
 
-    accuracies = tps / target.size(0)
+    if not (target > 0).any() and num_classes is None:
+        raise RuntimeError("cannot infer num_classes when target is all zero")
+
+    accuracies = (tps + tns) / (tps + tns + fps + fns)
 
     return reduce(accuracies, reduction=reduction)
 
@@ -86,13 +90,13 @@ def confusion_matrix(pred: torch.Tensor, target: torch.Tensor,
     d = target.size(-1)
     batch_vec = torch.arange(target.size(-1))
     # this will account for multilabel
-    unique_labels = batch_vec * num_classes ** 2 + target * num_classes + pred
+    unique_labels = batch_vec * num_classes ** 2 + target.view(-1) * num_classes + pred.view(-1)
 
     bins = torch.bincount(unique_labels, minlength=d * num_classes ** 2)
-    cm = bins.reshape(d, num_classes, num_classes).squeeze()
+    cm = bins.reshape(d, num_classes, num_classes).squeeze().float()
 
     if normalize:
-        cm = cm / target.size(0)
+        cm = cm / cm.sum(-1)
 
     return cm
 
