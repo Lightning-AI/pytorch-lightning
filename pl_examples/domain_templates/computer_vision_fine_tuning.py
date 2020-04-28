@@ -6,9 +6,14 @@ example, the proposed network is trained for 15 epochs. The training includes
 three stages. From epoch 0 to 4, the feature extractor (by default, a ResNet50)
 is frozen except for the BatchNorm layers (`train_bn = True` in `hparams`)
 and lr = 1e-2. From epoch 5 to 9, the last two layer groups of the feature
-extractor are unfrozen and lr = 1e-3. From epoch 10, all the layer groups of
-the feature extractor are unfrozen and lr = 1e-4. For the sake of this example,
-the dataset is downloaded to a temporary folder.
+extractor are unfrozen and added to the optimizer as a new parameter group
+with lr = 1e-4 (while lr = 1e-3 for the first parameter group in the
+optimizer). Eventually, from epoch 10, all the remaining layer groups of the
+feature extractor are unfrozen and added to the optimizer as a third parameter
+group. From epoch 10, the parameters of the feature extractor are trained
+with lr = 1e-5 while those of the MLP (`self.fc` in `TransferLearningModel`)
+are trained with lr = 1e-4. For the sake of this example, the dataset is
+downloaded to a temporary folder.
 
 See also: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 """
@@ -111,7 +116,8 @@ def filter_params(module: torch.nn.Module,
                     yield param
     else:
         for child in children:
-            filter_params(module=child, train_bn=train_bn)
+            for param in filter_params(module=child, train_bn=train_bn):
+                yield param
 
 
 def _unfreeze_and_add_param_group(module, optimizer, lr=None, train_bn=True):
@@ -120,7 +126,7 @@ def _unfreeze_and_add_param_group(module, optimizer, lr=None, train_bn=True):
     params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
     optimizer.add_param_group(
         {'params': filter_params(module=module, train_bn=train_bn),
-         'lr': params_lr,
+         'lr': params_lr / 10.,
          })
 
 
