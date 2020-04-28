@@ -363,6 +363,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
+    tutils.reset_seed()
     model = EvalModelTemplate(tutils.get_default_hparams())
 
     # define train epoch to 5% of data
