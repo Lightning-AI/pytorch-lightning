@@ -2,7 +2,8 @@ import pytest
 import torch
 
 from pytorch_lightning.metrics.functional.classification import to_onehot, to_categorical, get_num_classes, \
-    stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score
+    stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score, \
+    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc
 
 
 def test_onehot():
@@ -183,3 +184,110 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
 def test_fbeta_score(pred, target, beta, exp_score):
     score = fbeta_score(pred, target, beta, reduction='none')
     assert torch.allclose(score, exp_score)
+
+
+@pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
+    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
+                 torch.tensor([0.5, 0.5])),
+    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
+                 torch.tensor([0.5, 0.5]))
+])
+def test_f1_score(pred, target, exp_score):
+    score = f1_score(pred, target, reduction='none')
+    assert torch.allclose(score, exp_score)
+
+
+@pytest.mark.parametrize(
+    ['pred', 'target', 'sample_weight', 'pos_label', ], [
+        pytest.param(torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100,
+                     torch.tensor([int(bool(idx % 2)) for idx in range(100)]),
+                     1., 1.
+                     ),
+        pytest.param(torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100,
+                     torch.tensor([int(bool(idx % 2)) for idx in range(100)]),
+                     None, 1.
+                     )
+    ]
+)
+def test_binary_clf_curve(pred, target, sample_weight, pos_label):
+    fps, tps, thresh = _binary_clf_curve(pred, target, sample_weight, pos_label)
+    assert isinstance(tps, torch.Tensor)
+    assert isinstance(fps, torch.Tensor)
+    assert isinstance(thresh, torch.Tensor)
+    assert tps.shape == (40,)
+    assert fps.shape == (40,)
+    assert thresh.shape == (40,)
+
+
+@pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
+    pytest.param(torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1]),
+                 torch.tensor([1 / 3, 0.5, 1., 1.]), torch.tensor([0.5, 0.5, 0.5, 0.]),
+                 torch.tensor([2, 3, 4]))
+
+])
+def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
+    p, r, t = precision_recall_curve(pred, target)
+    assert p.size() == r.size()
+    assert p.size(0) == t.size(0) + 1
+
+    assert torch.allclose(p, expected_p.to(p))
+    assert torch.allclose(r, expected_r.to(r))
+    assert torch.allclose(t, expected_t.to(t))
+
+
+@pytest.mark.parametrize(['pred', 'target', 'expected_tpr', 'expected_fpr'], [
+    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), torch.tensor([0, 0, 1]),
+                 torch.tensor([0, 1, 1])),
+    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), torch.tensor([0, 1, 1]),
+                 torch.tensor([0, 0, 1])),
+    pytest.param(torch.tensor([1, 1]), torch.tensor([1, 0]), torch.tensor([0, 1]),
+                 torch.tensor([0, 1])),
+    pytest.param(torch.tensor([1, 0]), torch.tensor([1, 0]), torch.tensor([0, 0, 1]),
+                 torch.tensor([0, 1, 1])),
+    pytest.param(torch.tensor([0.5, 0.5]), torch.tensor([1, 0]), torch.tensor([0, 1]),
+                 torch.tensor([0, 1]))
+])
+def test_roc_curve(pred, target, expected_tpr, expected_fpr):
+    fpr, tpr, thresh = roc(pred, target)
+
+    assert fpr.shape == tpr.shape
+    assert fpr.size(0) == thresh.size(0)
+    assert torch.allclose(fpr, expected_fpr.to(fpr))
+    assert torch.allclose(tpr, expected_tpr.to(tpr))
+
+
+@pytest.mark.parametrize(['pred', 'target', 'expected'], [
+    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), 1.),
+    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), 0.),
+    pytest.param(torch.tensor([1, 1]), torch.tensor([1, 0]), 0.5),
+    pytest.param(torch.tensor([1, 0]), torch.tensor([1, 0]), 1.),
+    pytest.param(torch.tensor([0.5, 0.5]), torch.tensor([1, 0]), 0.5)
+])
+# TODO: FIx
+def test_auroc(pred, target, expected):
+    score = auroc(pred, target).item()
+    assert score == expected
+
+
+# TODO: Fix
+def test_average_precision_constant_values():
+    # Check the average_precision_score of a constant predictor is
+    # the TPR
+
+    # Generate a dataset with 25% of positives
+    target = torch.zeros(100, dtype=torch.float)
+    target[::4] = 1
+    # And a constant score
+    pred = torch.ones(100)
+    # The precision is then the fraction of positive whatever the recall
+    # is, as there is only one threshold:
+    assert average_precision(pred, target).item() == .25
+
+
+@pytest.mark.skip
+# TODO
+def test_dice_score():
+    dice_score()
+
+# example data taken from
+# https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
