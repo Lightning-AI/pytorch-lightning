@@ -11,17 +11,14 @@ To train a model using multiple-nodes do the following:
 
 1. Design your LightningModule.
 
-2. Add `torch.DistributedSampler <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
-   which enables access to a subset of your full dataset to each GPU.
-
-3. Enable ddp in the trainer
+2. Enable ddp in the trainer
 
 .. code-block:: python
 
    # train on 32 GPUs across 4 nodes
    trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
 
-4. It's a good idea to structure your train.py file like this:
+3. It's a good idea to structure your train.py file like this:
 
 .. code-block:: python
 
@@ -90,6 +87,8 @@ To train a model using multiple-nodes do the following:
 .. code-block:: bash
 
     sbatch submit.sh
+
+.. note:: using `torch.DistributedSampler` is already handled by Lightning.
 
 Walltime auto-resubmit
 -----------------------------------
