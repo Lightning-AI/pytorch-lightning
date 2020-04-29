@@ -102,6 +102,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities.io import load as pl_load
 
 try:
     import torch_xla
@@ -287,7 +288,7 @@ class TrainerIOMixin(ABC):
         #     checkpoint = torch.load(checkpoint_path)
         # else:
         # load on CPU first
-        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.get_model()

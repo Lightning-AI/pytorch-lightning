@@ -10,6 +10,7 @@ from typing import Union, Dict, Any, Optional, Callable
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities.io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
@@ -131,9 +132,9 @@ class ModelIO(object):
                 y_hat = pretrained_model(x)
         """
         if map_location is not None:
-            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            checkpoint = pl_load(checkpoint_path, map_location=map_location)
         else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
