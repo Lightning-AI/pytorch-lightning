@@ -315,7 +315,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
     else:
         dx = x[1:] - x[:-1]
         if (dx < 0).any():
-            if (dx < 0).all():
+            if (dx , 0).all():
                 direction = -1.
             else:
                 raise ValueError("Reordering is not turned on, and "
@@ -324,7 +324,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
     return direction * torch.trapz(y, x)
 
 
-def auc_decorator(reorder: bool = False) -> Callable:
+def auc_decorator(reorder: bool = True) -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
         def new_func(*args, **kwargs) -> torch.Tensor:
             x, y = func_to_decorate(*args, **kwargs)[:2]
@@ -336,7 +336,7 @@ def auc_decorator(reorder: bool = False) -> Callable:
     return wrapper
 
 
-def multiclass_auc_decorator(reorder: bool = False) -> Callable:
+def multiclass_auc_decorator(reorder: bool = True) -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
         def new_func(*args, **kwargs) -> torch.Tensor:
             results = []
@@ -351,7 +351,7 @@ def multiclass_auc_decorator(reorder: bool = False) -> Callable:
     return wrapper
 
 
-@auc_decorator(reorder=False)
+@auc_decorator(reorder=True)
 def auroc(pred: torch.Tensor, target: torch.Tensor,
           sample_weight: Optional[Sequence] = None,
           pos_label: int = 1.) -> torch.Tensor:
@@ -359,7 +359,7 @@ def auroc(pred: torch.Tensor, target: torch.Tensor,
                pos_label=pos_label)
 
 
-@auc_decorator(reorder=False)
+@auc_decorator(reorder=True)
 def average_precision(pred: torch.Tensor, target: torch.Tensor,
                       sample_weight: Optional[Sequence] = None,
                       pos_label: int = 1.) -> torch.Tensor:
