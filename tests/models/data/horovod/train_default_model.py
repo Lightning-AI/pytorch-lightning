@@ -27,7 +27,7 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 import tests.base.utils as tutils  # noqa: E402
 
