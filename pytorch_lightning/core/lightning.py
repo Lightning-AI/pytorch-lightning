@@ -1548,7 +1548,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
 
         # load the state_dict on the model automatically
-        if hparams: # only when the model has `hparams` argument
+        if hparams:
             kwargs.update(hparams=hparams)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
