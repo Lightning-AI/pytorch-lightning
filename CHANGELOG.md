@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed Horovod distributed backend to set the `root_gpu` property ([#1669](https://github.com/PyTorchLightning/pytorch-lightning/pull/1669))
 
-- Fixed wandb logger `global_step` affects other loggers ([#1485](https://github.com/PyTorchLightning/pytorch-lightning/issues/1485))
+- Fixed wandb logger `global_step` affects other loggers ([#1492](https://github.com/PyTorchLightning/pytorch-lightning/issues/1485))
 
 ## [0.7.5] - 2020-04-27
 
