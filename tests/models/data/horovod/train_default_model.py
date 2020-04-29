@@ -23,8 +23,6 @@ import sys
 
 import horovod.torch as hvd
 
-from tests.base import EvalModelTemplate
-
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
