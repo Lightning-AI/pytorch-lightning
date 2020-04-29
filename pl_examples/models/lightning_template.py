@@ -74,7 +74,7 @@ class LightningTemplateModel(LightningModule):
         # forward pass
         x, y = batch
         y_hat = self(x)
-        loss = F.nll_loss(y_hat, y)
+        loss = F.cross_entropy(y_hat, y)
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
 
