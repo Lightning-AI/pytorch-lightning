@@ -930,14 +930,17 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if 'MASTER_ADDR' not in os.environ:
             log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ['MASTER_ADDR'] = '127.0.0.1'
+        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
         if 'MASTER_PORT' not in os.environ:
             log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ['MASTER_PORT'] = '12910'
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
             log.warning("WORLD_SIZE environment variable is not equal to the computed "
                         "world size. Ignored.")
+        log.debug(f"WORLD_SIZE: {os.environ['WORLD_SIZE']}")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
