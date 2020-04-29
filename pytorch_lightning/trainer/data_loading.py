@@ -3,12 +3,18 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+try:
+    from torch.utils.data import IterableDataset
+    ITERABLE_DATASET_EXISTS = True
+except ImportError:
+    ITERABLE_DATASET_EXISTS = False
 
 try:
     from apex import amp
@@ -95,7 +101,14 @@ class TrainerDataLoadingMixin(ABC):
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
+        # don't manipulate iterable datasets
+        is_dataloader = isinstance(dataloader, DataLoader)
+
+        is_iterable_ds = False
+        if ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset'):
+            is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
+
+        if not is_dataloader or is_iterable_ds:
             return dataloader
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
         if self.replace_sampler_ddp and need_dist_sampler:
@@ -120,6 +133,7 @@ class TrainerDataLoadingMixin(ABC):
                 world_size = {
                     'ddp': self.num_nodes * self.num_processes,
                     'ddp2': self.num_nodes,
+                    'ddp_cpu': self.num_processes * self.num_nodes
                 }
                 sampler = DistributedSampler(
                     dataloader.dataset,
@@ -182,8 +196,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self, model: LightningModule,
-                               mode: str) -> Tuple[int, List[DataLoader]]:
+    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[int, List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -197,6 +210,13 @@ class TrainerDataLoadingMixin(ABC):
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
+
+        # shuffling in val and test set is bad practice
+        for loader in dataloaders:
+            if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
+                raise MisconfigurationException(
+                    f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                    ' this off for validation and test dataloaders.')
 
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl]

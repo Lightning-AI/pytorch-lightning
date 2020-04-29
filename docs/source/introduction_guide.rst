@@ -604,71 +604,7 @@ Notice the epoch is MUCH faster!
 
 ---------
 
-Hyperparameters
----------------
-Normally, we don't hard-code the values to a model. We usually use the command line to
-modify the network.
-
-.. code-block:: python
-
-    from argparse import ArgumentParser
-
-    parser = ArgumentParser()
-
-    # parametrize the network
-    parser.add_argument('--layer_1_dim', type=int, default=128)
-    parser.add_argument('--layer_2_dim', type=int, default=256)
-    parser.add_argument('--batch_size', type=int, default=64)
-
-    args = parser.parse_args()
-
-Now we can parametrize the LightningModule.
-
-.. code-block:: python
-    :emphasize-lines: 5,6,7,12,14
-
-    class LitMNIST(pl.LightningModule):
-      def __init__(self, hparams):
-        super().__init__()
-        self.hparams = hparams
-
-        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
-        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
-        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
-
-      def forward(self, x):
-        ...
-
-      def train_dataloader(self):
-        ...
-        return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
-
-      def configure_optimizers(self):
-        return Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-    hparams = parse_args()
-    model = LitMNIST(hparams)
-
-.. note:: Bonus! if (hparams) is in your module, Lightning will save it into the checkpoint and restore your
-    model using those hparams exactly.
-
-And we can also add all the flags available in the Trainer to the Argparser.
-
-.. code-block:: python
-
-    # add all the available Trainer options to the ArgParser
-    parser = pl.Trainer.add_argparse_args(parser)
-    args = parser.parse_args()
-
-And now you can start your program with
-
-.. code-block:: bash
-
-    # now you can use any trainer flag
-    $ python main.py --num_nodes 2 --gpus 8
-
-
-For a full guide on using hyperparameters, `check out the hyperparameters docs <hyperparameters.rst>`_.
+.. include:: hyperparameters.rst
 
 ---------
 
@@ -718,7 +654,7 @@ sample split in the `train_dataloader` method.
       def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
-        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+        return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
       def val_dataloader(self):
         transform=transforms.Compose([transforms.ToTensor(),
@@ -774,7 +710,7 @@ Just like the validation loop, we define exactly the same steps for testing:
       def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         tensorboard_logs = {'val_loss': avg_loss}
-        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+        return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
       def test_dataloader(self):
         transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])

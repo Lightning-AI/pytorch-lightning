@@ -69,6 +69,51 @@ when needed.
         dataset = MNIST(...)
         return DataLoader(dataset)
 
+.. note:: If you don't want this behavior, disable it with `Trainer(replace_sampler_ddp=False)`
+
+.. note:: For iterable datasets, we don't do this automatically.
+
+Make Model Picklable
+^^^^^^^^^^^^^^^^^^^^
+It's very likely your code is already `picklable <https://docs.python.org/3/library/pickle.html>`_,
+so you don't have to do anything to make this change.
+However, if you run distributed and see an error like this:
+
+.. code-block::
+
+    self._launch(process_obj)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
+    in _launch reduction.dump(process_obj, fp)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    _pickle.PicklingError: Can't pickle <function <lambda> at 0x2b599e088ae8>:
+    attribute lookup <lambda> on __main__ failed
+
+This means you have something in your model definition, transforms, optimizer, dataloader or callbacks
+that is cannot be pickled. By pickled we mean the following would fail.
+
+.. code-block:: python
+
+    import pickle
+    pickle.dump(some_object)
+
+This is a limitation of using multiple processes for distributed training within PyTorch.
+To fix this issue, find your piece of code that cannot be pickled. The end of the stacktrace
+is usually helpful.
+
+.. code-block::
+
+    self._launch(process_obj)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/popen_spawn_posix.py", line 47,
+    in _launch reduction.dump(process_obj, fp)
+    File "/net/software/local/python/3.6.5/lib/python3.6/multiprocessing/reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    _pickle.PicklingError: Can't pickle [THIS IS THE THING TO FIND AND DELETE]:
+    attribute lookup <lambda> on __main__ failed
+
+ie: in the stacktrace example here, there seems to be a lambda function somewhere in the user code
+which cannot be pickled.
+
 Distributed modes
 -----------------
 Lightning allows multiple ways of training
@@ -83,6 +128,8 @@ Data Parallel (dp)
 ^^^^^^^^^^^^^^^^^^
 `DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ splits a batch across k GPUs. That is, if you have a batch of 32 and use dp with 2 gpus,
 each GPU will process 16 samples, after which the root node will aggregate the results.
+
+.. warning:: DP use is discouraged by PyTorch and Lightning. Use ddp which is more stable and at least 3x faster
 
 .. code-block:: python
 
@@ -163,7 +210,7 @@ Horovod can be configured in the training script to run with any number of GPUs 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
 
-.. code-block:: bash
+.. code-block::
 
     # run training with 4 GPUs on a single machine
     horovodrun -np 4 python train.py
@@ -189,9 +236,9 @@ DP and ddp2 roughly do the following:
         gpu_3_batch = batch[24:]
 
         y_0 = model_copy_gpu_0(gpu_0_batch)
-        y_1 = model_copy_gpu_0(gpu_1_batch)
-        y_2 = model_copy_gpu_0(gpu_2_batch)
-        y_3 = model_copy_gpu_0(gpu_3_batch)
+        y_1 = model_copy_gpu_1(gpu_1_batch)
+        y_2 = model_copy_gpu_2(gpu_2_batch)
+        y_3 = model_copy_gpu_3(gpu_3_batch)
 
         return [y_0, y_1, y_2, y_3]
 
@@ -279,3 +326,44 @@ Implement Your Own Distributed (DDP) training
 If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
 
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
+
+
+Batch size
+----------
+When using distributed training make sure to modify your learning rate according to your effective
+batch size.
+
+Let's say you have a batch size of 7 in your dataloader.
+
+.. code-block::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+            return Dataset(..., batch_size=7)
+
+In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+
+.. code-block::
+
+    # effective batch size = 7 * 8
+    Trainer(gpus=8, distributed_backend='ddp|horovod')
+
+    # effective batch size = 7 * 8 * 10
+    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp|horovod')
+
+
+In DDP2, your effective batch size will be 7 * num_nodes.
+The reason is that the full batch is visible to all GPUs on the node when using DDP2.
+
+.. code-block::
+
+    # effective batch size = 7
+    Trainer(gpus=8, distributed_backend='ddp2')
+
+    # effective batch size = 7 * 10
+    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp2')
+
+
+.. note:: Huge batch sizes are actually really bad for convergence. Check out:
+        `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_

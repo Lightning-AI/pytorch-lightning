@@ -23,7 +23,7 @@ def test_wandb_logger(wandb):
     wandb.init().log.assert_called_once_with({'global_step': 3, 'acc': 1.0})
 
     logger.log_hyperparams({'test': None})
-    wandb.init().config.update.assert_called_once_with({'test': None})
+    wandb.init().config.update.assert_called_once_with({'test': None}, allow_val_change=True)
 
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)

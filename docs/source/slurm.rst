@@ -11,17 +11,14 @@ To train a model using multiple-nodes do the following:
 
 1. Design your LightningModule.
 
-2. Add `torch.DistributedSampler <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
-   which enables access to a subset of your full dataset to each GPU.
-
-3. Enable ddp in the trainer
+2. Enable ddp in the trainer
 
 .. code-block:: python
 
    # train on 32 GPUs across 4 nodes
    trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
 
-4. It's a good idea to structure your train.py file like this:
+3. It's a good idea to structure your train.py file like this:
 
 .. code-block:: python
 
@@ -46,10 +43,11 @@ To train a model using multiple-nodes do the following:
        # TRAIN
         main(hyperparams)
 
-4. Submit the appropriate SLURM job
+4. Create the appropriate SLURM job
 
 .. code-block:: bash
 
+    # (submit.sh)
     #!/bin/bash -l
 
     # SLURM SUBMIT SCRIPT
@@ -78,15 +76,28 @@ To train a model using multiple-nodes do the following:
     # run script from above
     srun python3 train.py
 
+5. If you want auto-resubmit (read below), add this line to the submit.sh script
+
+.. code-block:: bash
+
+    #SBATCH --signal=SIGUSR1@90
+
+6. Submit the SLURM job
+
+.. code-block:: bash
+
+    sbatch submit.sh
+
+.. note:: using :class:`~torch.utils.data.distributed.DistributedSampler` is already handled by Lightning.
 
 Walltime auto-resubmit
 -----------------------------------
 When you use Lightning in a SLURM cluster, lightning automatically detects when it is about
 to run into the walltime, and it does the following:
 
-1. Saves a temporary checkpoint.
-2. Requeues the job.
-3. When the job starts, it loads the temporary checkpoint.
+    1. Saves a temporary checkpoint.
+    2. Requeues the job.
+    3. When the job starts, it loads the temporary checkpoint.
 
 To get this behavior make sure to add the correct signal to your SLURM script
 

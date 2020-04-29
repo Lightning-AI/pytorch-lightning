@@ -120,9 +120,10 @@ from typing import Union
 
 import torch
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import set_proc_rank, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 try:
     from apex import amp
@@ -146,11 +147,14 @@ class TrainerDDPMixin(ABC):
     on_gpu: bool
     num_gpu_nodes: int
     logger: Union[LightningLoggerBase, bool]
+    checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: str
     amp_level: str
     use_tpu: bool
     default_root_dir: str
+    use_native_amp: bool
+    progress_bar_callback: ...
 
     @property
     @abstractmethod
@@ -289,7 +293,7 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.info(f'VISIBLE GPUS: {os.environ["CUDA_VISIBLE_DEVICES"]}')
+        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
@@ -309,9 +313,8 @@ class TrainerDDPMixin(ABC):
             self.node_rank = 0
 
         # show progressbar only on progress_rank 0
-        self.progress_bar_refresh_rate = (
-            self.progress_bar_refresh_rate if self.node_rank == 0 and process_idx == 0 else 0
-        )
+        if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
 
         # determine which process we are and world size
         if self.use_ddp:
@@ -321,12 +324,9 @@ class TrainerDDPMixin(ABC):
         elif self.use_ddp2:
             self.proc_rank = self.node_rank
             self.world_size = self.num_nodes
-        # set warning rank
-        set_proc_rank(self.proc_rank)
 
-        # let the exp know the rank to avoid overwriting logs
-        if self.logger is not None:
-            self.logger.rank = self.proc_rank
+        # set warning rank
+        rank_zero_only.rank = self.proc_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -350,8 +350,8 @@ class TrainerDDPMixin(ABC):
 
         # AMP
         # run through amp wrapper before going to distributed DP
-        if self.use_amp:
-            # An example
+        # TODO: remove in v0.8.0
+        if self.use_amp and not self.use_native_amp:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 

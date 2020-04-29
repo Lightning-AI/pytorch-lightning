@@ -12,7 +12,7 @@
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.7.1)](https://pytorch-lightning.readthedocs.io/en/stable/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=0.7.5)](https://pytorch-lightning.readthedocs.io/en/stable/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-May%2006-<COLOR>.svg)](https://shields.io/)
@@ -44,6 +44,7 @@ pip install pytorch-lightning
 
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
+- [0.7.5](https://pytorch-lightning.readthedocs.io/en/0.7.5/)
 - [0.7.3](https://pytorch-lightning.readthedocs.io/en/0.7.3/)
 - [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
@@ -54,7 +55,10 @@ pip install pytorch-lightning
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
 
 ## What is it?
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering. It's more of a style-guide than a framework.
+[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
+
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
+It's more of a PyTorch style-guide than a framework. 
 
 In Lightning, you organize your code into 3 distinct categories:
 
@@ -383,16 +387,17 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jeff Ling [(jeffling)](https://github.com/jeffling)
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
+- Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
+
 ```bibtex
-@misc{Falcon2019,
-  author = {Falcon, W.A. et al.},
-  title = {PyTorch Lightning},
-  year = {2019},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/PytorchLightning/pytorch-lightning}}
+@article{falcon2019pytorch,
+  title={PyTorch Lightning},
+  author={Falcon, WA},
+  journal={GitHub. Note: https://github. com/williamFalcon/pytorch-lightning Cited by},
+  volume={3},
+  year={2019}
 }
 ```

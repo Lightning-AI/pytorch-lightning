@@ -10,13 +10,14 @@ from tests.base.eval_model_test_epoch_ends import TestEpochEndVariations
 from tests.base.eval_model_test_steps import TestStepVariations
 from tests.base.eval_model_train_dataloaders import TrainDataloaderVariations
 from tests.base.eval_model_train_steps import TrainingStepVariations
-from tests.base.eval_model_utils import ModelTemplateUtils
+from tests.base.eval_model_utils import ModelTemplateUtils, ModelTemplateData
 from tests.base.eval_model_valid_dataloaders import ValDataloaderVariations
 from tests.base.eval_model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.eval_model_valid_steps import ValidationStepVariations
 
 
 class EvalModelTemplate(
+    ModelTemplateData,
     ModelTemplateUtils,
     TrainingStepVariations,
     ValidationStepVariations,
