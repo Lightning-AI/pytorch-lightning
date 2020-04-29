@@ -32,25 +32,25 @@ def is_OOM_error(exception):
 
 def is_cuda_out_of_memory(exception):
     return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "CUDA out of memory." in exception.args[0]
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
+        and "CUDA out of memory." in exception.args[0]
     )
 
 
 def is_cudnn_snafu(exception):
     return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
+        and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
     )
 
 
 def is_out_of_cpu_memory(exception):
     return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
+        and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
     )
 
 
