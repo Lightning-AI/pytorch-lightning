@@ -745,7 +745,7 @@ class Trainer(
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
-            self.scale_batch_size(model)
+            _ = self.scale_batch_size(model)
 
         # Run learning rate finder:
         if self.auto_lr_find:

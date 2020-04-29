@@ -212,6 +212,8 @@ class TrainerTrainingTricksMixin(ABC):
         self.callbacks = callbacks
         self.checkpoint_callback = checkpoint_callback
 
+        return new_size
+
 
 def _adjust_batch_size(trainer,
                        trainer_arg: str,
