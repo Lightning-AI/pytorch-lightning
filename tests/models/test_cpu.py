@@ -66,6 +66,7 @@ def test_lbfgs_cpu_model(tmpdir):
         weights_summary='top',
         train_percent_check=1.0,
         val_percent_check=0.2,
+        seed=29,
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
