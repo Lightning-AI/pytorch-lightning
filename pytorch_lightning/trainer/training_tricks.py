@@ -12,6 +12,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import is_OOM_error, garbage_collection_cuda
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
@@ -91,7 +92,7 @@ class TrainerTrainingTricksMixin(ABC):
                          mode: str = 'power',
                          n_step_per_try: int = 3,
                          init_val: int = 2,
-                         n_max_try: int = 15):
+                         n_max_try: int = 20):
         r""" Will iteratively try to find the largest batch size for a given model
             that does not not give an out of memory (OOM) error
 
@@ -140,7 +141,7 @@ class TrainerTrainingTricksMixin(ABC):
         save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
         self.save_checkpoint(str(save_path))
 
-        # Start increase/decrease batch size
+        # Initially we just double in size until an OOM is encountered
         new_size = _adjust_batch_size(self, trainer_arg, value=init_val)  # initially set to init_val
         high = None
         count = 0
@@ -149,42 +150,54 @@ class TrainerTrainingTricksMixin(ABC):
             self.global_step = 0  # reset after each try
             try:
                 # Try fit
-                self.fit(model)
-
-                # Keep track of how many times we have tried
+                self.fit(model) 
                 count += 1
                 if count > n_max_try:
                     break
-
-                # Double in size if we are currently in power phase, or set to
-                # midvalue if we are in binsearch
-                if mode == 'binsearch':
-                    low = new_size
-                    if high:
-                        midval = (high + low) // 2
-                        new_size = _adjust_batch_size(self, trainer_arg, value=midval, string='succeeded')
-                    else:
-                        new_size = _adjust_batch_size(self, trainer_arg, factor=2.0, string='succeeded')
-                else:
-                    new_size = _adjust_batch_size(self, trainer_arg, factor=2.0, string='succeeded')
+                
+                # Double in size
+                low = new_size
+                new_size = _adjust_batch_size(self, trainer_arg, factor=2.0, string='succeeded')
             except RuntimeError as exception:
                 # Only these errors should trigger an adjustment
-                if (is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)):
-                    garbage_collection_cuda()
+                if is_OOM_error(exception):
                     # If we fail in power mode, half the size and return
-                    if mode == 'power':
+                    garbage_collection_cuda()
+                    high = new_size
+                    if mode != 'binsearch':
                         new_size = _adjust_batch_size(self, trainer_arg, factor=0.5, string='failed')
+                    break
+                else:
+                    raise  # some other error not memory related
+        
+        # If in binsearch mode, further refine the search for optimal batch size
+        if mode == 'binsearch':
+            while True:
+                garbage_collection_cuda()
+                self.global_step = 0  # reset after each try
+                try:
+                    # Try fit
+                    self.fit(model)
+                    count += 1
+                    if count > n_max_try:
                         break
-                    # if we fail in binsearch, adjust to midval
-                    elif mode == 'binsearch':
+                    
+                    # Adjust batch size
+                    low = new_size
+                    midval = (high + low) // 2
+                    new_size = _adjust_batch_size(self, trainer_arg, value=midval, string='succeeded')
+                except RuntimeError as exception:
+                    # Only these errors should trigger an adjustment
+                    if is_OOM_error(exception):
+                        garbage_collection_cuda()
                         high = new_size
-                        if low >= high:
+                        if high - low <= 1:
                             break
                         midval = (high + low) // 2
                         new_size = _adjust_batch_size(self, trainer_arg, value=midval, string='failed')
-                else:
-                    raise  # some other error not memory related
-
+                    else:
+                        raise  # some other error not memory related
+        
         garbage_collection_cuda()
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
@@ -198,37 +211,6 @@ class TrainerTrainingTricksMixin(ABC):
         self.logger = logger
         self.callbacks = callbacks
         self.checkpoint_callback = checkpoint_callback
-
-
-def is_cuda_out_of_memory(exception):
-    return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "CUDA out of memory." in exception.args[0]
-    )
-
-
-def is_cudnn_snafu(exception):
-    return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
-    )
-
-
-def is_out_of_cpu_memory(exception):
-    return (
-        isinstance(exception, RuntimeError) and
-        len(exception.args) == 1 and
-        "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
-    )
-
-
-def garbage_collection_cuda():
-    """Garbage collection Torch (CUDA) memory."""
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
 
 
 def _adjust_batch_size(trainer,
