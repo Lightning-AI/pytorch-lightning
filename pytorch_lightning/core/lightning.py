@@ -1160,9 +1160,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             # native amp + lbfgs is a no go right now
             if self.trainer.use_amp and self.trainer.use_native_amp:
-                m = 'native PyTorch amp and lbfgs are not compatible. To request, please file' \
-                    'a Github issue in PyTorch and tag @mcarilli'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'native PyTorch amp and lbfgs are not compatible.'
+                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
             optimizer.step(second_order_closure)
         else:
             if self.trainer.use_amp and self.trainer.use_native_amp:
