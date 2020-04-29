@@ -215,7 +215,7 @@ class TrainerIOMixin(ABC):
             if result == 0:
                 log.info(f'requeued exp {job_id}')
             else:
-                log.warn('requeue failed...')
+                log.warning('requeue failed...')
 
             # close experiment to avoid issues
             self.logger.close()
