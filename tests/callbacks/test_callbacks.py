@@ -1,3 +1,4 @@
+import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
@@ -249,7 +250,8 @@ def test_pickling(tmpdir):
     pickle.dumps(early_stopping)
 
 
-def test_model_checkpoint_with_non_string_input(tmpdir):
+@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is
         set correctly """
     tutils.reset_seed()
@@ -260,7 +262,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    checkpoint = ModelCheckpoint(filepath=None, save_top_k=-1)
+    checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
     trainer = Trainer(default_root_dir=tmpdir,
                       checkpoint_callback=checkpoint,
