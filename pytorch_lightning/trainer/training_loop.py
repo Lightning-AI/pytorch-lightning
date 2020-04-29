@@ -530,7 +530,7 @@ class TrainerTrainLoopMixin(ABC):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
+            [c.on_epoch_end(self, self.get_model()) for c in checkpoint_callbacks]
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
