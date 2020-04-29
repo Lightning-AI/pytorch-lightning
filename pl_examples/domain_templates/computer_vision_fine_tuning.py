@@ -228,7 +228,7 @@ class TransferLearningModel(pl.LightningModule):
 
         # 2. Compute loss & accuracy:
         train_loss = self.loss(y_true, y_logits)
-        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum().item()
+        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
         # 3. Outputs:
         tqdm_dict = {'train_loss': train_loss}
@@ -261,7 +261,7 @@ class TransferLearningModel(pl.LightningModule):
 
         # 2. Compute loss & accuracy:
         val_loss = self.loss(y_true, y_logits)
-        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum().item()
+        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
         return {'val_loss': val_loss,
                 'num_correct': num_correct}
