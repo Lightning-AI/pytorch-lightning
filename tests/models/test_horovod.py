@@ -40,8 +40,12 @@ def _nccl_available():
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
-    cmdline = ['horovodrun', '-np', '2', sys.executable, TEST_SCRIPT,
-               '--trainer-options', shlex.quote(json.dumps(trainer_options))]
+    cmdline = [
+        'horovodrun',
+        '-np', '2',
+        sys.executable, TEST_SCRIPT,
+        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+    ]
     if on_gpu:
         cmdline += ['--on-gpu']
     exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())

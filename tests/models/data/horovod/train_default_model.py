@@ -31,6 +31,7 @@ from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from tests.base import EvalModelTemplate
 import tests.base.utils as tutils  # noqa: E402
+from tests.base import EvalModelTemplate
 
 
 parser = argparse.ArgumentParser()
