@@ -246,7 +246,6 @@ class TransferLearningModel(pl.LightningModule):
                                        for output in outputs]).mean()
         train_acc_mean = torch.stack([output['num_correct']
                                       for output in outputs]).sum().float()
-        train_loss_mean /= len(outputs)
         train_acc_mean /= (len(outputs) * self.hparams.batch_size)
         return {'log': {'train_loss': train_loss_mean,
                         'train_acc': train_acc_mean,
@@ -274,7 +273,6 @@ class TransferLearningModel(pl.LightningModule):
                                      for output in outputs]).mean()
         val_acc_mean = torch.stack([output['num_correct']
                                     for output in outputs]).sum().float()
-        val_loss_mean /= len(outputs)
         val_acc_mean /= (len(outputs) * self.hparams.batch_size)
         return {'log': {'val_loss': val_loss_mean,
                         'val_acc': val_acc_mean,
