@@ -88,7 +88,7 @@ To train a model using multiple-nodes do the following:
 
     sbatch submit.sh
 
-.. note:: using `torch.DistributedSampler` is already handled by Lightning.
+.. note:: using :class:`~torch.utils.data.distributed.DistributedSampler` is already handled by Lightning.
 
 Walltime auto-resubmit
 -----------------------------------
