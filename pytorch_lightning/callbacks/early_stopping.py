@@ -26,10 +26,8 @@ class EarlyStopping(Callback):
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
             improvement. Default: ``0``.
-        patience: number of passes through the validation set
-            with no improvement after which training will be stopped.
-            This will usually correspond with epochs but may vary depending
-            on how often you have configured to check validation. Default: ``0``.
+        patience: number of epochs with no improvement
+            after which training will be stopped. Default: ``0``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
@@ -125,22 +123,6 @@ class EarlyStopping(Callback):
     def on_sanity_check_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         self._validate_condition_metric(logs)
-
-    def on_train_start(self, trainer, pl_module):
-        if not (
-            trainer.is_overriden("validation_step")
-            and trainer.is_overriden("validation_epoch_end")
-        ):
-            error_msg = (f'''
-                Early stopping is expecting metrics to be returned from
-                validation but the Lightning model does not have a validation loop
-                defined with logging. Please ensure that your LightningModule has
-                both `validation_step` and `validation_epoch_end` defined.
-            ''')
-            if self.strict:
-                raise RuntimeError(error_msg)
-            if self.verbose > 0:
-                rank_zero_warn(error_msg, RuntimeWarning)
 
     def on_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
