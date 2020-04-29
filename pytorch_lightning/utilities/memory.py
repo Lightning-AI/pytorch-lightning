@@ -1,6 +1,7 @@
 import gc
 import torch
 
+
 def recursive_detach(in_dict: dict) -> dict:
     """Detach all tensors in `in_dict`.
 

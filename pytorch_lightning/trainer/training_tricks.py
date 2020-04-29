@@ -150,11 +150,11 @@ class TrainerTrainingTricksMixin(ABC):
             self.global_step = 0  # reset after each try
             try:
                 # Try fit
-                self.fit(model) 
+                self.fit(model)
                 count += 1
                 if count > n_max_try:
                     break
-                
+
                 # Double in size
                 low = new_size
                 new_size = _adjust_batch_size(self, trainer_arg, factor=2.0, string='succeeded')
@@ -169,7 +169,7 @@ class TrainerTrainingTricksMixin(ABC):
                     break
                 else:
                     raise  # some other error not memory related
-        
+
         # If in binsearch mode, further refine the search for optimal batch size
         if mode == 'binsearch':
             while True:
@@ -181,7 +181,7 @@ class TrainerTrainingTricksMixin(ABC):
                     count += 1
                     if count > n_max_try:
                         break
-                    
+
                     # Adjust batch size
                     low = new_size
                     midval = (high + low) // 2
@@ -197,7 +197,7 @@ class TrainerTrainingTricksMixin(ABC):
                         new_size = _adjust_batch_size(self, trainer_arg, value=midval, string='failed')
                     else:
                         raise  # some other error not memory related
-        
+
         garbage_collection_cuda()
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
