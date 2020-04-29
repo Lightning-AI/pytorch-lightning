@@ -2,9 +2,6 @@ from threading import Thread
 from queue import Queue
 
 import torch
-from torch import Tensor
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 

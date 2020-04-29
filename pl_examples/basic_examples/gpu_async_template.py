@@ -14,7 +14,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 
 from pl_examples.models.lightning_template import LightningTemplateModel
-from pl_examples.utils.loaders import AsynchronousLoader
+from pl_examples.dataloaders.async_loader import AsynchronousLoader
 
 SEED = 2334
 torch.manual_seed(SEED)
