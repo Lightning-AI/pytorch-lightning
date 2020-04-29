@@ -53,7 +53,8 @@ def run_test_from_config(trainer_options):
 
     if args.on_gpu:
         # Test the root_gpu property
-        trainer = Trainer(gpus=1, distributed_backend='horovod')
+        model, hparams = tutils.get_default_model()
+        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
         trainer.fit(model)
         assert trainer.root_gpu == hvd.local_rank()
 
