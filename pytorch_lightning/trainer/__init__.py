@@ -135,6 +135,24 @@ Example::
     # default used by the Trainer
     trainer = Trainer(amp_level='O1')
 
+auto_scale_batch_size
+^^^^^^^^^^^^^^^^^^^^^
+Automatically tries to find the largest batch size that fits into memory,
+before any training.
+
+.. code-block:: python
+
+    # defeault use by the Trainer (no scaling of batch size)
+    trainer = Trainer(auto_scale_batch_size=False)
+
+Example::
+
+    # run batch size scaling, result override hparams.batch_size
+    trainer = Trainer(auto_scale_batch_size=True)
+
+    # run batch size scaling, result override hparams.my_batch_size_arg
+    trainer = Trainer(auto_scale_batch_size='my_batch_size_arg')
+
 auto_lr_find
 ^^^^^^^^^^^^
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
