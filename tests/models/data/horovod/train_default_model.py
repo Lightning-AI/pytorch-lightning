@@ -53,7 +53,9 @@ def run_test_from_config(trainer_options):
 
     if args.on_gpu:
         # Test the root_gpu property
-        assert Trainer(gpus=1, distributed_backend='horovod').root_gpu == hvd.local_rank()
+        trainer = Trainer(gpus=1, distributed_backend='horovod')
+        trainer.fit(model)
+        assert trainer.root_gpu == hvd.local_rank()
 
 
 if __name__ == "__main__":
