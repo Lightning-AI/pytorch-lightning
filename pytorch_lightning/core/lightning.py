@@ -940,7 +940,6 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
             log.warning("WORLD_SIZE environment variable is not equal to the computed "
                         "world size. Ignored.")
-        log.debug(f"WORLD_SIZE: {os.environ['WORLD_SIZE']}")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
