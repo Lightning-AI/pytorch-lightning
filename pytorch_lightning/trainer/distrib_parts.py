@@ -575,8 +575,9 @@ class TrainerDPMixin(ABC):
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
-            torch.cuda.set_device(hvd.local_rank())
-            model.cuda(hvd.local_rank())
+            self.root_gpu = hvd.local_rank()
+            torch.cuda.set_device(self.root_gpu)
+            model.cuda(self.root_gpu)
 
         # Only show progress bar from the first worker
         self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if hvd.rank() == 0 else 0
