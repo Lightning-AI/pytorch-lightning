@@ -2,11 +2,12 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, LearningRateLogger, ModelCheckpoint
 from tests.base import (
     LightTrainDataloader,
     LightTestMixin,
     LightValidationMixin,
+    LightTestOptimizersWithMixedSchedulingMixin,
     TestModelBase
 )
 
@@ -273,3 +274,59 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     # These should be different if the dirpath has be overridden
     assert trainer.ckpt_path != trainer.default_root_dir
+
+
+def test_lr_logger_single_lr(tmpdir):
+    """ Test that learning rates are extracted and logged for single lr scheduler"""
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightTrainDataloader, TestModelBase):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    lr_logger = LearningRateLogger()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=5,
+        val_percent_check=0.1,
+        train_percent_check=0.5,
+        callbacks=[lr_logger]
+    )
+    results = trainer.fit(model)
+
+    assert lr_logger.lrs, 'No learning rates logged'
+    assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
+        'Number of learning rates logged does not match number of lr schedulers'
+    assert all([k in ['lr-Adam'] for k in lr_logger.lrs.keys()]), \
+        'Names of learning rates not set correctly'
+
+
+def test_lr_logger_multi_lrs(tmpdir):
+    """ Test that learning rates are extracted and logged for multi lr schedulers """
+    tutils.reset_seed()
+
+    class CurrentTestModel(LightTestOptimizersWithMixedSchedulingMixin,
+                           LightTrainDataloader,
+                           TestModelBase):
+        pass
+
+    hparams = tutils.get_default_hparams()
+    model = CurrentTestModel(hparams)
+
+    lr_logger = LearningRateLogger()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.5,
+        callbacks=[lr_logger]
+    )
+    results = trainer.fit(model)
+
+    assert lr_logger.lrs, 'No learning rates logged'
+    assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
+        'Number of learning rates logged does not match number of lr schedulers'
+    assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_logger.lrs.keys()]), \
+        'Names of learning rates not set correctly'

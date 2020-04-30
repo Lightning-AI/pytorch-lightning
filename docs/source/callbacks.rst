@@ -84,3 +84,11 @@ We successfully extended functionality without polluting our super clean
 .. automodule:: pytorch_lightning.callbacks.progress
    :noindex:
    :exclude-members:
+
+---------
+
+.. automodule:: pytorch_lightning.callbacks.lr_logger
+    :noindex:
+    :exclude-members:
+        _extract_lr,
+        _find_names
