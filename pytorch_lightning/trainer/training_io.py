@@ -325,7 +325,7 @@ class TrainerIOMixin(ABC):
         """
         checkpoint = {
             'epoch': self.current_epoch + 1,
-            'global_step': self.global_step + 1,
+            'global_step': self.global_step,
         }
 
         if not weights_only:

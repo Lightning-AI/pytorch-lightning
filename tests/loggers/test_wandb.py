@@ -38,6 +38,9 @@ def test_wandb_pickle(wandb):
     class Experiment:
         id = 'the_id'
 
+        def project_name(self):
+            return 'the_project_name'
+
     wandb.init.return_value = Experiment()
 
     logger = WandbLogger(id='the_id', offline=True)
