@@ -277,6 +277,10 @@ class TrainerDDPMixin(ABC):
         except Exception as e:
             pass
 
+        # notify user the that slurm is managing tasks
+        if self.is_slurm_managing_tasks:
+            log.info('Multi-processing is handled by Slurm.')
+
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
             return
@@ -293,7 +297,7 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
+        log.debug(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
