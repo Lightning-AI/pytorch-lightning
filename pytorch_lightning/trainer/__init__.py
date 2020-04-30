@@ -213,6 +213,15 @@ Example::
 .. note::
     To ensure full reproducibility, ``deterministic`` flag should also be set.
 
+You can set the seed before running the Trainer:
+
+.. code-block:: python
+    from pytorch-lightning import seed_everything
+    seed_for_reproducibility=1985
+    seed_everything(seed=seed_for_reproducibility)
+    # But notice that you would have to set the seed also in the Trainer class.
+    Trainer(seed=seed_for_reproducibility)
+
 callbacks
 ^^^^^^^^^
 
@@ -1007,5 +1016,6 @@ Trainer class
 """
 
 from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.trainer.seed import seed_everything
 
-__all__ = ['Trainer']
+__all__ = ['Trainer', 'seed_everything']
