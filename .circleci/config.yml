@@ -68,7 +68,7 @@ references:
        sudo pip install -r docs/requirements.txt
        # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
-       cd docs; make doctest
+       make doctest
 
 jobs:
 
