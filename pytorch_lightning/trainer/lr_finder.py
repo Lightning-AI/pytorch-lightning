@@ -105,7 +105,7 @@ class TrainerLRFinderMixin(ABC):
         """
         save_path = os.path.join(self.default_root_dir, 'lr_find_temp.ckpt')
 
-        self._dump_params(model)
+        self._lr_finder_dump_params(model)
 
         # Prevent going into infinite loop
         self.auto_lr_find = False
@@ -129,9 +129,11 @@ class TrainerLRFinderMixin(ABC):
         # Accumulation of gradients
         self.accumulate_grad_batches = num_accumulation_steps
 
-        # Disable standard checkpoint
+        # Disable standard checkpoint & early stopping
         self.checkpoint_callback = False
-
+        self.early_stop_callback = None
+        self.enable_early_stop = False
+        
         # Required for saving the model
         self.optimizers, self.schedulers = [], [],
         self.model = model
@@ -165,13 +167,13 @@ class TrainerLRFinderMixin(ABC):
         os.remove(save_path)
 
         # Finish by resetting variables so trainer is ready to fit model
-        self._restore_params(model)
+        self._lr_finder_restore_params(model)
         if self.progress_bar_callback:
             self.progress_bar_callback.enable()
 
         return lr_finder
 
-    def _dump_params(self, model):
+    def _lr_finder_dump_params(self, model):
         # Prevent going into infinite loop
         self._params = {
             'auto_lr_find': self.auto_lr_find,
@@ -181,11 +183,13 @@ class TrainerLRFinderMixin(ABC):
             'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
             'accumulate_grad_batches': self.accumulate_grad_batches,
             'checkpoint_callback': self.checkpoint_callback,
+            'early_stop_callback': self.early_stop_callback,
+            'enable_early_stop': self.enable_early_stop,
             'progress_bar_callback': self.progress_bar_callback,
             'configure_optimizers': model.configure_optimizers,
         }
 
-    def _restore_params(self, model):
+    def _lr_finder_restore_params(self, model):
         self.auto_lr_find = self._params['auto_lr_find']
         self.logger = self._params['logger']
         self.callbacks = self._params['callbacks']
@@ -193,6 +197,8 @@ class TrainerLRFinderMixin(ABC):
         self.progress_bar_refresh_rate = self._params['progress_bar_refresh_rate']
         self.accumulate_grad_batches = self._params['accumulate_grad_batches']
         self.checkpoint_callback = self._params['checkpoint_callback']
+        self.early_stop_callback = self._params['early_stop_callback']
+        self.enable_early_stop = self._params['enable_early_stop']
         self.progress_bar_callback = self._params['progress_bar_callback']
         model.configure_optimizers = self._params['configure_optimizers']
 
