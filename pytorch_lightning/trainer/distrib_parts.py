@@ -570,12 +570,9 @@ class TrainerDPMixin(ABC):
         model.forward = model_autocast_original_forward
 
     def horovod_train(self, model):
-        # Horovod: initialize library
-        hvd.init()
-
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
-            self.root_gpu = hvd.local_rank()
+            assert self.root_gpu == hvd.local_rank()
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
