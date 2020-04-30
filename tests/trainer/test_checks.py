@@ -41,7 +41,7 @@ def test_wrong_configure_optimizers(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(tutils.get_default_hparams())
-        model.configure_optimizers = LightningModule.configure_optimizers
+        model.configure_optimizers = None
         trainer.fit(model)
 
 
