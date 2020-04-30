@@ -106,7 +106,7 @@ Snapshot hyperparameters
 When training a model, it's useful to know what hyperparams went into that model.
 When Lightning creates a checkpoint, it stores a key "hparams" with the hyperparams.
 
-
+.. code-block:: python
 
     lightning_checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
     hyperparams = lightning_checkpoint['hparams']
