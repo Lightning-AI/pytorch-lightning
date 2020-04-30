@@ -25,7 +25,7 @@ def test_wrong_train_setting(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.train_dataloader = LightningModule.train_dataloader
+        model.train_dataloader = None
         trainer.fit(model)
 
     with pytest.raises(MisconfigurationException):
@@ -59,7 +59,7 @@ def test_wrong_validation_settings(tmpdir):
     # check val_dataloader -> val_step
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.validation_step = LightningModule.validation_step
+        model.validation_step = None
         trainer.fit(model)
 
     # check val_dataloader + val_step -> val_epoch_end
@@ -71,7 +71,7 @@ def test_wrong_validation_settings(tmpdir):
     # check val_step -> val_dataloader
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.val_dataloader = LightningModule.val_dataloader
+        model.val_dataloader = None
         trainer.fit(model)
 
 
