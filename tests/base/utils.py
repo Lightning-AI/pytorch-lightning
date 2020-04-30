@@ -102,7 +102,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TensorBoardLogger(save_dir, name='lightning_logs', version=version)
+    logger = TensorBoardLogger(str(save_dir), name='lightning_logs', version=version)
     return logger
 
 
