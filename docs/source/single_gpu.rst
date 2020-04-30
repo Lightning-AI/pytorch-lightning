@@ -8,7 +8,7 @@ Make sure you are running on a machine that has at least one GPU. Lightning hand
 there's no need to set them yourself.
 
 .. doctest::
-    :skipif: torch.cuda.device_count() < 1
+    :skipif: int(torch.cuda.device_count()) < 1
 
     # train on 1 GPU (using dp mode)
     >>> trainer = Trainer(gpus=1)
