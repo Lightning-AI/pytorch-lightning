@@ -309,8 +309,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(tmpdir):
-    """Verify resuming from checkpoint runs the right number of epochs"""
+def test_resume_from_checkpoint(tmpdir):
+    """Verify resuming from checkpoint (epoch, batch numbers and on_load_checkpoint())"""
     import types
 
     tutils.reset_seed()
@@ -322,6 +322,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         model = LightningTestModel(hparams)
         model.num_epochs_seen = 0
         model.num_batches_seen = 0
+        model.num_on_load_checkpoint_called = 0
 
         def increment_epoch(self):
             self.num_epochs_seen += 1
@@ -329,10 +330,14 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         def increment_batch(self, _):
             self.num_batches_seen += 1
 
-        # Bind the increment_epoch function on_epoch_end so that the
-        # model keeps track of the number of epochs it has seen.
+        def increment_on_load_checkpoint(self, _):
+            self.num_on_load_checkpoint_called += 1
+
+        # Bind methods to keep track of epoch numbers, batch numbers it has seen
+        # as well as number of times it has called on_load_checkpoint()
         model.on_epoch_end = types.MethodType(increment_epoch, model)
         model.on_batch_start = types.MethodType(increment_batch, model)
+        model.on_load_checkpoint = types.MethodType(increment_on_load_checkpoint, model)
         return model
 
     model = _new_model()
@@ -356,6 +361,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     assert model.num_epochs_seen == 2
     assert model.num_batches_seen == training_batches * 2
+    assert model.num_on_load_checkpoint_called == 0
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
@@ -369,6 +375,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
         new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
         new_trainer.fit(next_model)
         assert state['global_step'] + next_model.num_batches_seen == training_batches * trainer_options['max_epochs']
+        assert next_model.num_on_load_checkpoint_called == 1
 
 
 def _init_steps_model():
