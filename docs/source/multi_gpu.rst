@@ -2,6 +2,7 @@
 
     import torch
     from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
 
 .. _multi-gpu-training:
 
@@ -18,7 +19,7 @@ Delete .cuda() or .to() calls
 
 Delete any calls to .cuda() or .to(device).
 
-.. code-block:: python
+.. testcode::
 
     # before lightning
     def forward(self, x):
@@ -35,7 +36,7 @@ Init using type_as
 When you need to create a new tensor, use `type_as`.
 This will make your code scale to any arbitrary number of GPUs or TPUs with Lightning
 
-.. code-block:: python
+.. testcode::
 
     # before lightning
     def forward(self, x):
@@ -52,7 +53,7 @@ Remove samplers
 For multi-node or TPU training, in PyTorch we must use `torch.nn.DistributedSampler`. The
 sampler makes sure each GPU sees the appropriate part of your data.
 
-.. code-block:: python
+.. testcode::
 
     # without lightning
     def train_dataloader(self):
@@ -67,7 +68,7 @@ sampler makes sure each GPU sees the appropriate part of your data.
 With Lightning, you don't need to do this because it takes care of adding the correct samplers
 when needed.
 
-.. code-block:: python
+.. testcode::
 
     # with lightning
     def train_dataloader(self):
@@ -136,11 +137,11 @@ each GPU will process 16 samples, after which the root node will aggregate the r
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. Use ddp which is more stable and at least 3x faster
 
-.. doctest::
+.. testcode::
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using dp mode)
-    >>> trainer = Trainer(gpus=2, distributed_backend='dp')
+    trainer = Trainer(gpus=2, distributed_backend='dp')
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -160,14 +161,13 @@ Distributed Data Parallel
 
 6. Each process updates its optimizer.
 
-.. doctest::
-    :skipif: torch.cuda.device_count() < 8
+.. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    >>> trainer = Trainer(gpus=8, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, distributed_backend='ddp')
 
     # train on 32 GPUs (4 nodes)
-    >>> trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)  # doctest: +SKIP
+    trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -186,10 +186,10 @@ In  this case, we can use ddp2 which behaves like dp in a machine and ddp across
 
 5. Applies the optimizer updates.
 
-.. doctest::
+.. code-block:: python
 
     # train on 32 GPUs (4 nodes)
-    >>> trainer = Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)  # doctest: +SKIP
+    trainer = Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)
 
 Horovod
 ^^^^^^^
@@ -209,15 +209,15 @@ Horovod can be configured in the training script to run with any number of GPUs 
 .. code-block:: python
 
     # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = pl.Trainer(distributed_backend='horovod', gpus=1)
+    trainer = Trainer(distributed_backend='horovod', gpus=1)
 
     # train Horovod on CPU (number of processes / machines provided on command-line)
-    trainer = pl.Trainer(distributed_backend='horovod')
+    trainer = Trainer(distributed_backend='horovod')
 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
 
-.. code-block::
+.. code-block:: bash
 
     # run training with 4 GPUs on a single machine
     horovodrun -np 4 python train.py
@@ -233,7 +233,7 @@ DP/DDP2 caveats
 In DP and DDP2 each GPU within a machine sees a portion of a batch.
 DP and ddp2 roughly do the following:
 
-.. code-block:: python
+.. testcode::
 
     def distributed_forward(batch, model):
         batch = torch.Tensor(32, 8)
@@ -252,7 +252,7 @@ DP and ddp2 roughly do the following:
 So, when Lightning calls any of the `training_step`, `validation_step`, `test_step`
 you will only be operating on one of those pieces.
 
-.. code-block:: python
+.. testcode::
 
     # the batch here is a portion of the FULL batch
     def training_step(self, batch, batch_idx):
@@ -262,7 +262,7 @@ For most metrics, this doesn't really matter. However, if you want
 to add something to your computational graph (like softmax)
 using all batch parts you can use the `training_step_end` step.
 
-.. code-block:: python
+.. testcode::
 
     def training_step_end(self, outputs):
         # only use when  on dp
@@ -295,7 +295,7 @@ In pseudocode, the full sequence is:
 
 to illustrate why this is needed, let's look at dataparallel
 
-.. code-block:: python
+.. testcode::
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -320,13 +320,13 @@ it will behave the same no matter the backend.
 
 Validation and test step also have the same option when using dp
 
-.. code-block:: python
+.. testcode::
 
-        def validation_step_end(self, batch_parts_outputs):
-            ...
+    def validation_step_end(self, batch_parts_outputs):
+        ...
 
-        def test_step_end(self, batch_parts_outputs):
-            ...
+    def test_step_end(self, batch_parts_outputs):
+        ...
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -342,7 +342,7 @@ batch size.
 
 Let's say you have a batch size of 7 in your dataloader.
 
-.. code-block::
+.. testcode::
 
     class LitModel(LightningModule):
 
@@ -351,7 +351,7 @@ Let's say you have a batch size of 7 in your dataloader.
 
 In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
 
-.. code-block::
+.. code-block:: python
 
     # effective batch size = 7 * 8
     Trainer(gpus=8, distributed_backend='ddp|horovod')
@@ -363,7 +363,7 @@ In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
 In DDP2, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.
 
-.. code-block::
+.. code-block:: python
 
     # effective batch size = 7
     Trainer(gpus=8, distributed_backend='ddp2')

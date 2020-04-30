@@ -29,45 +29,46 @@ will automatically be run before any training is done. The ``lr`` that is found
 and used will be written to the console and logged together with all other
 hyperparameters of the model.
     
-.. doctest::
+.. testcode::
         
     # default, no automatic learning rate finder
-    >>> trainer = Trainer(auto_lr_find=True)
+    trainer = Trainer(auto_lr_find=True)
 
 When the ``lr`` or ``learning_rate`` key in hparams exists, this flag sets your learning_rate.
 In both cases, if the respective fields are not found, an error will be thrown.
         
-.. doctest::
+.. testcode::
 
-    >>> class LitModel(LightningModule):
-    ...     def __init__(self, hparams):
-    ...         self.hparams = hparams
-    ...
-    ...     def configure_optimizers(self):
-    ...         return Adam(self.parameters(), lr=self.hparams.lr|self.hparams.learning_rate)
+    class LitModel(LightningModule):
+
+        def __init__(self, hparams):
+            self.hparams = hparams
+
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=self.hparams.lr|self.hparams.learning_rate)
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
-    >>> trainer = Trainer(auto_lr_find=True)
+    trainer = Trainer(auto_lr_find=True)
 
 To use an arbitrary value set it in the parameter.
 
-.. doctest::
+.. testcode::
 
     # to set to your own hparams.my_value
-    >>> trainer = Trainer(auto_lr_find='my_value')
+    trainer = Trainer(auto_lr_find='my_value')
 
 Under the hood, when you call fit, this is what happens.  
 
 1. Run learning rate finder.
 2. Run actual fit.   
 
-.. doctest::
+.. code-block:: python
         
     # when you call .fit() this happens
     # 1. find learning rate
     # 2. actually run fit
-    >>> trainer.fit(model)  # doctest: +SKIP
+    trainer.fit(model)
 
 If you want to inspect the results of the learning rate finder before doing any
 actual training or just play around with the parameters of the algorithm, this
