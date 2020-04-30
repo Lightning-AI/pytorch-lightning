@@ -6,7 +6,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import LightningTestModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 
 
 @pytest.mark.spawn
@@ -61,8 +61,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     tutils.set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
