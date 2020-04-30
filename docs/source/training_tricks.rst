@@ -14,10 +14,10 @@ The effect is a large effective batch size of size KxN.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-.. doctest::
+.. testcode::
 
     # DEFAULT (ie: no accumulated grads)
-    >>> trainer = Trainer(accumulate_grad_batches=1)
+    trainer = Trainer(accumulate_grad_batches=1)
 
 
 Gradient Clipping
@@ -27,10 +27,10 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-.. doctest::
+.. testcode::
 
     # DEFAULT (ie: don't clip)
-    >>> trainer = Trainer(gradient_clip_val=0)
+    trainer = Trainer(gradient_clip_val=0)
 
     # clip gradients with norm above 0.5
-    >>> trainer = Trainer(gradient_clip_val=0.5)
+    trainer = Trainer(gradient_clip_val=0.5)

@@ -1,3 +1,10 @@
+.. testsetup:: *
+
+    import os
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+
+
 Saving and loading weights
 ==========================
 
@@ -22,13 +29,13 @@ Automatic saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
 
-.. code-block:: python
+.. testcode::
 
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
+    trainer = Trainer(default_save_path='/your/path/to/save/checkpoints')
 
 To modify the behavior of checkpointing pass in your own callback.
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -47,17 +54,16 @@ To modify the behavior of checkpointing pass in your own callback.
 
 Or disable it by passing
 
-.. code-block:: python
+.. testcode::
 
-        trainer = Trainer(checkpoint_callback=False)
+   trainer = Trainer(checkpoint_callback=False)
 
 
 The Lightning checkpoint also saves the hparams (hyperparams) passed into the LightningModule init.
 
 .. note:: hparams is a `Namespace <https://docs.python.org/2/library/argparse.html#argparse.Namespace>`_.
 
-.. code-block:: python
-   :emphasize-lines: 8
+.. testcode::
 
    from argparse import Namespace
 
@@ -67,9 +73,9 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
    # define you module to have hparams as the first arg
    # this means your checkpoint will have everything that went into making
    # this model (in this case, learning rate)
-   class MyLightningModule(pl.LightningModule):
+   class MyLightningModule(LightningModule):
 
-       def __init__(self, hparams, ...):
+       def __init__(self, hparams, *args, **kwargs):
            self.hparams = hparams
 
 Manual saving
@@ -78,7 +84,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
 
 .. code-block:: python
 
-    model = MyModel(hparams)
+    model = MyLightningModule(hparams)
     trainer.fit(model)
     trainer.save_checkpoint("example.ckpt")
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
@@ -96,9 +102,9 @@ To load a model along with its weights, biases and hyperparameters use following
 
 The above only works if you used `hparams` in your model definition
 
-.. code-block:: python
+.. testcode::
 
-    class MyModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def __init__(self, hparams):
             self.hparams = hparams
@@ -106,9 +112,9 @@ The above only works if you used `hparams` in your model definition
 
 But if you don't and instead pass individual parameters
 
-.. code-block:: python
+.. testcode::
 
-    class MyModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def __init__(self, in_dim, out_dim):
             self.l1 = nn.Linear(in_dim, out_dim)
@@ -117,7 +123,7 @@ you can restore the model like this
 
 .. code-block:: python
 
-    model = MyModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
+    model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
 
 
 Restoring Training State
