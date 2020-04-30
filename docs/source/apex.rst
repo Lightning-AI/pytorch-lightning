@@ -43,10 +43,10 @@ Install apex
 Enable 16-bit
 ^^^^^^^^^^^^^
 
-.. doctest::
+.. testcode::
 
     # turn on 16-bit
-    >>> trainer = Trainer(amp_level='O1', precision=16)  # doctest: +SKIP
+    trainer = Trainer(amp_level='O1', precision=16)
 
 If you need to configure the apex init for your particular use case or want to use a different way of doing
 16-bit training, override   :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
@@ -55,10 +55,10 @@ TPU 16-bit
 ----------
 16-bit on TPus is much simpler. To use 16-bit with TPUs set precision to 16 when using the tpu flag
 
-.. doctest::
+.. testcode::
 
     # DEFAULT
-    >>> trainer = Trainer(num_tpu_cores=8, precision=32)
+    trainer = Trainer(num_tpu_cores=8, precision=32)
 
     # turn on 16-bit
-    >>> trainer = Trainer(num_tpu_cores=8, precision=16)
+    trainer = Trainer(num_tpu_cores=8, precision=16)

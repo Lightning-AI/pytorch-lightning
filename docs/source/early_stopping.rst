@@ -26,22 +26,22 @@ There are two ways to enable early stopping using callbacks on epoch end.
 -   Set early_stop_callback to True. Will look for 'val_loss' in validation_epoch_end() return dict.
     If it is not found an error is raised.
 
-    .. doctest::
+    .. testcode::
 
-        >>> trainer = Trainer(early_stop_callback=True)
+        trainer = Trainer(early_stop_callback=True)
 
 -   Or configure your own callback
 
-    .. doctest::
+    .. testcode::
 
-        >>> early_stop_callback = EarlyStopping(
-        ...    monitor='val_loss',
-        ...    min_delta=0.00,
-        ...    patience=3,
-        ...    verbose=False,
-        ...    mode='min'
-        ... )
-        >>> trainer = Trainer(early_stop_callback=early_stop_callback)
+        early_stop_callback = EarlyStopping(
+            monitor='val_loss',
+            min_delta=0.00,
+            patience=3,
+            verbose=False,
+            mode='min'
+        )
+        trainer = Trainer(early_stop_callback=early_stop_callback)
 
 In any case, the callback will fall back to the training metrics (returned in
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,

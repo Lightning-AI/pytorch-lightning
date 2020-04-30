@@ -23,20 +23,23 @@ An overall Lightning system should have:
 
 Example:
 
-.. doctest::
+.. testcode::
 
-    >>> class MyPrintingCallback(Callback):
-    ...
-    ...     def on_init_start(self, trainer):
-    ...         print('Starting to init trainer!')
-    ...
-    ...     def on_init_end(self, trainer):
-    ...         print('trainer is init now')
-    ...
-    ...     def on_train_end(self, trainer, pl_module):
-    ...         print('do something when training ends')
-    ...
-    >>> trainer = Trainer(callbacks=[MyPrintingCallback()])
+    class MyPrintingCallback(Callback):
+
+        def on_init_start(self, trainer):
+            print('Starting to init trainer!')
+
+        def on_init_end(self, trainer):
+            print('trainer is init now')
+
+        def on_train_end(self, trainer, pl_module):
+            print('do something when training ends')
+
+    trainer = Trainer(callbacks=[MyPrintingCallback()])
+
+.. testoutput::
+
     Starting to init trainer!
     trainer is init now
 
