@@ -53,6 +53,7 @@ class TrainerLRFinderMixin(ABC):
     def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
+                val_dataloaders: Optional[DataLoader] = None,
                 min_lr: float = 1e-8,
                 max_lr: float = 1,
                 num_training: int = 100,
@@ -133,7 +134,7 @@ class TrainerLRFinderMixin(ABC):
         self.checkpoint_callback = False
         self.early_stop_callback = None
         self.enable_early_stop = False
-        
+
         # Required for saving the model
         self.optimizers, self.schedulers = [], [],
         self.model = model
@@ -152,7 +153,9 @@ class TrainerLRFinderMixin(ABC):
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
 
         # Fit, lr & loss logged in callback
-        self.fit(model, train_dataloader=train_dataloader)
+        self.fit(model,
+                 train_dataloader=train_dataloader,
+                 val_dataloaders=val_dataloaders)
 
         # Prompt if we stopped early
         if self.global_step != num_training:
