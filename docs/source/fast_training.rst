@@ -53,19 +53,19 @@ If you don't want to check 100% of the training/validation/test set (for debuggi
 
 .. doctest::
 
-   # DEFAULT
-   trainer = Trainer(
-       train_percent_check=1.0,
-       val_percent_check=1.0,
-       test_percent_check=1.0
-   )
+    # DEFAULT
+    >>> trainer = Trainer(
+    ...     train_percent_check=1.0,
+    ...     val_percent_check=1.0,
+    ...     test_percent_check=1.0
+    ... )
 
-   # check 10%, 20%, 30% only, respectively for training, validation and test set
-   trainer = Trainer(
-       train_percent_check=0.1,
-       val_percent_check=0.2,
-       test_percent_check=0.3
-   )
+    # check 10%, 20%, 30% only, respectively for training, validation and test set
+    >>> trainer = Trainer(
+    ... train_percent_check=0.1,
+    ... val_percent_check=0.2,
+    ... test_percent_check=0.3
+    ... )
 
 .. note:: ``train_percent_check``, ``val_percent_check`` and ``test_percent_check`` will be overwritten by ``overfit_pct`` if ``overfit_pct`` > 0. ``val_percent_check`` will be ignored if ``fast_dev_run=True``.
 
