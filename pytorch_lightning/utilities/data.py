@@ -10,10 +10,12 @@ else:
     XLA_AVAILABLE = True
 
 
-# Utility function to copy data to given device
-# Works for any form of nested lists, tuples or dictionaries containting tensors
 def transfer_data_to_device(batch, device_type, idx=None, warn_on_transfer=False):
-    # Deal with TPUs separately, they don't use device indexes for some reason
+    """
+    Utility function to copy data to given device
+    Works for any form of nested lists, tuples or dictionaries containting tensors
+    Deal with TPUs separately, they don't use device indexes for some reason
+    """
     if device_type == 'tpu' and XLA_AVAILABLE:
         if callable(getattr(batch, 'to', None)):
             if warn_on_transfer:
