@@ -286,7 +286,7 @@ class AdvancedProfiler(BaseProfiler):
             self.output_file.close()
 
 
-class AutogradProfiler(profiler.BaseProfiler):
+class AutogradProfiler(BaseProfiler):
     """
     This profiler uses Pytorch's torch.autograd.profiler.profile as a backend. It allows to
     profile backend calls and optimize model forward/backward performance.
