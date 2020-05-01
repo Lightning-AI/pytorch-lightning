@@ -344,10 +344,7 @@ class Trainer(
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
         self.weights_save_path = weights_save_path
-        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback,
-                                                                 self.default_root_dir,
-                                                                 self.logger,
-                                                                 self.weights_save_path)
+        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
 
