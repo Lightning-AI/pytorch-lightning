@@ -163,12 +163,6 @@ def test_dp_resume(tmpdir):
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-    )
-
     # get logger
     logger = tutils.get_default_logger(tmpdir)
 
@@ -176,9 +170,13 @@ def test_dp_resume(tmpdir):
     # logger file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    # add these to the trainer options
-    trainer_options['logger'] = logger
-    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options = dict(
+        max_epochs=1,
+        gpus=2,
+        distributed_backend='dp',
+        logger=logger,
+        checkpoint_callback=checkpoint,
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -199,11 +197,13 @@ def test_dp_resume(tmpdir):
 
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
-    trainer_options['logger'] = new_logger
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.5
-    trainer_options['val_percent_check'] = 0.2
-    trainer_options['max_epochs'] = 1
+    trainer_options.update(
+        logger=new_logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+        train_percent_check=0.5,
+        val_percent_check=0.2,
+        max_epochs=1,
+    )
     new_trainer = Trainer(**trainer_options)
 
     # set the epoch start hook so we can predict before the model does the full training
@@ -240,14 +240,12 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
@@ -289,16 +287,14 @@ def test_model_saving_loading(tmpdir):
 
 
 def test_load_model_with_missing_hparams(tmpdir):
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         progress_bar_refresh_rate=0,
         max_epochs=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
         default_root_dir=tmpdir,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
 
     model = LightningTestModelWithoutHyperparametersArg()
     trainer.fit(model)

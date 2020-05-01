@@ -21,8 +21,7 @@ def test_error_on_no_train_step(tmpdir):
         def forward(self, x):
             pass
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel()
@@ -37,8 +36,7 @@ def test_error_on_no_train_dataloader(tmpdir):
     class CurrentTestModel(TestModelBase):
         pass
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel(hparams)
@@ -56,8 +54,7 @@ def test_error_on_no_configure_optimizers(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             pass
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
         model = CurrentTestModel()
@@ -74,8 +71,7 @@ def test_warning_on_wrong_validation_settings(tmpdir):
     tutils.reset_seed()
     hparams = tutils.get_default_hparams()
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     class CurrentTestModel(LightTrainDataloader,
                            LightValidationDataloader,
