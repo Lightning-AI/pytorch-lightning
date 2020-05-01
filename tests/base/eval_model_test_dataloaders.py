@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from tests.base.mixins import CustomInfDataloader
+
 
 class TestDataloaderVariations(ABC):
 
@@ -9,6 +11,9 @@ class TestDataloaderVariations(ABC):
 
     def test_dataloader(self):
         return self.dataloader(train=False)
+
+    def test_dataloader__infinite(self):
+        return CustomInfDataloader(self.dataloader(train=False))
 
     def test_dataloader__empty(self):
         return None
