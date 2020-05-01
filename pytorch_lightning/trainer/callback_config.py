@@ -28,28 +28,24 @@ class TrainerCallbackConfigMixin(ABC):
     def save_checkpoint(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def configure_checkpoint_callback(self,
-                                      checkpoint_callback,
-                                      default_root_dir,
-                                      logger,
-                                      weights_save_path):
+    def configure_checkpoint_callback(self, checkpoint_callback):
         """
         Weight path set in this priority:
         Checkpoint_callback's path (if passed in).
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        ckpt_path = default_root_dir
+        ckpt_path = self.default_root_dir
         if checkpoint_callback:
             # init a default one
-            if logger is not None:
-                save_dir = (getattr(logger, 'save_dir', None)
-                            or getattr(logger, '_save_dir', None)
-                            or default_root_dir)
+            if self.logger is not None:
+                save_dir = (getattr(self.logger, 'save_dir', None)
+                            or getattr(self.logger, '_save_dir', None)
+                            or self.default_root_dir)
 
                 # weights_save_path overrides anything
-                if weights_save_path is not None:
-                    save_dir = weights_save_path
+                if self.weights_save_path is not None:
+                    save_dir = self.weights_save_path
 
                 version = self.logger.version if isinstance(
                     self.logger.version, str) else f'version_{self.logger.version}'
@@ -60,7 +56,7 @@ class TrainerCallbackConfigMixin(ABC):
                     "checkpoints"
                 )
             else:
-                ckpt_path = os.path.join(default_root_dir, "checkpoints")
+                ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
 
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overridden('validation_step')
