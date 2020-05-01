@@ -27,8 +27,6 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
-    # save_dir = trainer_options['default_root_dir']
-
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)

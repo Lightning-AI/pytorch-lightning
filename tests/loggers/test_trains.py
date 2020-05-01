@@ -18,13 +18,12 @@ def test_trains_logger(tmpdir):
                                  web_host='http://integration.trains.allegro.ai:8080', )
     logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger
     )
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     print('result finished')
@@ -44,13 +43,11 @@ def test_trains_pickle(tmpdir):
                                  web_host='http://integration.trains.allegro.ai:8080', )
     logger = TrainsLogger(project_name="lightning_log", task_name="pytorch lightning test")
 
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger
     )
-
-    trainer = Trainer(**trainer_options)
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})

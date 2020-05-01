@@ -50,19 +50,19 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.set_random_master_port()
 
     model, hparams = tutils.get_default_model()
-    trainer_options = dict(default_root_dir=tmpdir,
-                           progress_bar_refresh_rate=0,
-                           max_epochs=1,
-                           train_percent_check=0.4,
-                           val_percent_check=0.2,
-                           gpus=[0, 1],
-                           distributed_backend='ddp')
 
-    fit_options = dict(train_dataloader=model.train_dataloader(),
-                       val_dataloaders=model.val_dataloader())
-
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model, **fit_options)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
+    result = trainer.fit(model,
+                         train_dataloader=model.train_dataloader(),
+                         val_dataloaders=model.val_dataloader())
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
@@ -77,14 +77,12 @@ def test_cpu_slurm_save_load(tmpdir):
     logger = tutils.get_default_logger(tmpdir)
     version = logger.version
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     real_global_step = trainer.global_step
 
@@ -115,12 +113,11 @@ def test_cpu_slurm_save_load(tmpdir):
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
-    trainer_options = dict(
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
-    trainer = Trainer(**trainer_options)
     model = LightningTestModel(hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
