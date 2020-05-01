@@ -194,8 +194,7 @@ class TrainerDDPMixin(ABC):
 
         if distributed_backend is None:
             if self.has_horovodrun():
-                self.check_horovod()
-                self.use_horovod = True
+                self._set_horovod_backend()
             elif self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
@@ -235,8 +234,7 @@ class TrainerDDPMixin(ABC):
             self.data_parallel_device_ids = None
             self.on_gpu = False
         elif distributed_backend == 'horovod':
-            self.check_horovod()
-            self.use_horovod = True
+            self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
         if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
@@ -420,6 +418,16 @@ class TrainerDDPMixin(ABC):
             root_node = name + number
 
         return root_node
+
+    def _set_horovod_backend(self):
+        self.check_horovod()
+        self.use_horovod = True
+
+        # Initialize Horovod to get rank / size info
+        hvd.init()
+        if self.on_gpu:
+            # Horovod assigns one local GPU per process
+            self.root_gpu = hvd.local_rank()
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""

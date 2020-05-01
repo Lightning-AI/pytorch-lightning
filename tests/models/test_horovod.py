@@ -38,10 +38,12 @@ def _nccl_available():
         return False
 
 
-def _run_horovod(trainer_options):
+def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
     cmdline = ['horovodrun', '-np', '2', sys.executable, TEST_SCRIPT,
                '--trainer-options', shlex.quote(json.dumps(trainer_options))]
+    if on_gpu:
+        cmdline += ['--on-gpu']
     exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 
@@ -93,7 +95,7 @@ def test_horovod_multi_gpu(tmpdir):
         gpus=1,
         distributed_backend='horovod'
     )
-    _run_horovod(trainer_options)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
@@ -159,5 +161,6 @@ def test_horovod_multi_optimizer(tmpdir):
     def get_optimizer_params(optimizer):
         return set([p for group in optimizer.param_groups for p in group.get('params', [])])
 
+    assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
