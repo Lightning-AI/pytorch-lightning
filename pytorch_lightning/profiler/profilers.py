@@ -283,3 +283,71 @@ class AdvancedProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+
+class AutogradProfiler(profiler.BaseProfiler):
+    """
+    This profiler uses Pytorch's torch.autograd.profiler.profile as a backend. It allows to
+    profile backend calls and optimize model forward/backward performance.
+    """
+    def __init__(self, use_cuda = False, output_filename: str = None, row_limit: int = 20):
+        """
+        Args:
+            use_cuda: set to True to also profile CUDA times.
+            output_filename: optionally save profile results to file instead of printing
+                to std out when training is finished.
+            row_limit: limits number of rows reported for each action.
+        """
+        self.use_cuda = use_cuda
+        self.row_limit = row_limit
+        self.profiled_actions = {}
+        self.profilers = {}
+
+        self.output_fname = output_filename
+        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+
+        streaming_out = [self.output_file.write] if self.output_file else [log.info]
+        super().__init__(output_streams=streaming_out)
+
+    def start(self, action_name: str) -> None:
+        prof = torch.autograd.profiler.profile(use_cuda=self.use_cuda)
+        prof.__enter__()
+        self.profilers[action_name] = prof
+
+    def stop(self, action_name: str) -> None:
+        prof = self.profilers.get(action_name)
+        if prof is None:
+            raise ValueError(  # pragma: no-cover
+                f"Attempting to stop recording an action ({action_name}) which was never started."
+            )
+        prof.__exit__(None, None, None)
+        del self.profilers[action_name]
+
+        events = prof.function_events
+        if action_name not in self.profiled_actions:
+            self.profiled_actions[action_name] = events
+        else:
+            self.profiled_actions[action_name] += events
+
+    def summary(self) -> str:
+        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+
+        for name, events in self.profiled_actions.items():
+            report = events.key_averages().table(
+                sort_by=("cuda_time_total" if self.use_cuda else "cpu_time_total"),
+                row_limit=self.row_limit
+            )
+            output_string += f"{os.linesep}Profile stats for: {name}{os.linesep}{report}"
+
+        return output_string
+
+    def describe(self):
+        """Logs a profile report after the conclusion of the training run."""
+        super().describe()
+        if self.output_file:
+            self.output_file.flush()
+
+    def __del__(self):
+        """Close profiler's stream."""
+        if self.output_file:
+            self.output_file.close()
