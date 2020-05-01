@@ -45,7 +45,7 @@ class TestStepVariations(ABC):
             })
             return output
 
-    def test_step_multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
+    def test_step__multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
         """
         Default, baseline test_step
         :param batch:
