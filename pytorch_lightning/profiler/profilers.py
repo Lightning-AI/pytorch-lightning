@@ -290,7 +290,7 @@ class AutogradProfiler(profiler.BaseProfiler):
     This profiler uses Pytorch's torch.autograd.profiler.profile as a backend. It allows to
     profile backend calls and optimize model forward/backward performance.
     """
-    def __init__(self, use_cuda = False, output_filename: str = None, row_limit: int = 20):
+    def __init__(self, use_cuda: bool = False, output_filename: str = None, row_limit: int = 20):
         """
         Args:
             use_cuda: set to True to also profile CUDA times.
