@@ -24,7 +24,7 @@ class ProgressBarBase(Callback):
 
             def __init__(self):
                 super().__init__()  # don't forget this :)
-                self.enabled = True
+                self.enable = True
 
             def disable(self):
                 self.enable = False
