@@ -213,7 +213,7 @@ Now we can allow each model to inject the arguments it needs in the main.py
         parser.add_argument('--model_name', type=str, default='gan', help='gan or mnist')
 
         # THIS LINE IS KEY TO PULL THE MODEL NAME
-        temp_args = parser.parse_known_args()
+        temp_args, _ = parser.parse_known_args()
 
         # let the model add what it wants
         if temp_args.model_name == 'gan':
