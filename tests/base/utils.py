@@ -127,7 +127,7 @@ def get_default_model(lbfgs=False):
     hparams = get_default_hparams()
     if lbfgs:
         setattr(hparams, 'optimizer_name', 'lbfgs')
-        setattr(hparams, 'learning_rate', 0.002)
+        setattr(hparams, 'learning_rate', 0.005)
 
     model = LightningTestModel(hparams)
 
