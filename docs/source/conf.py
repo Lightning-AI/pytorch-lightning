@@ -325,6 +325,7 @@ MOCK_MANUAL_PACKAGES = [
     'wandb',
     'neptune',
     'trains',
+    'horovod',
 ]
 autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
 # for mod_name in MOCK_REQUIRE_PACKAGES:
