@@ -78,6 +78,7 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
+      - *install_deps
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
