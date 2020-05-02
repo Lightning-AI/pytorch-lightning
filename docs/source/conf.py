@@ -409,6 +409,7 @@ doctest_test_doctest_blocks = ''
 
 doctest_global_setup = """
 
+import os
 import torch
 
 """
