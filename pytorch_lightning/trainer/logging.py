@@ -196,8 +196,8 @@ class TrainerLoggingMixin(ABC):
             elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:
                 pass
 
-            # reduce only metrics that have the same number of gpus
-            elif output[k].size(0) == num_gpus:
-                reduced = torch.mean(output[k])
-                output[k] = reduced
+            # do not reduce metrics that have batch size > num gpus
+            elif output[k].size(0) <= num_gpus:
+                output[k] = torch.mean(output[k])
+
         return output
