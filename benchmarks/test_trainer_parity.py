@@ -10,8 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import tests.base.utils as tutils
 
-from pytorch_lightning.trainer.seed import seed_everything
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer, LightningModule, seed_everything
 from tests.base.datasets import TrialMNIST
 
 
@@ -130,6 +129,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
+        seed_everything(seed)
 
         # init model parts
         trainer = Trainer(
@@ -139,7 +139,6 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             gpus=1,
             early_stop_callback=False,
             checkpoint_callback=False,
-            seed=seed,
             deterministic=True,
         )
         model = MODEL()

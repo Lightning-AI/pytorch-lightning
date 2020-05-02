@@ -101,6 +101,23 @@ Use it to do whatever!
     out = pretrained_model(x)
     api_write({'response': out}
 
+------------
+
+Reproducibility
+---------------
+
+To ensure full reproducibility from run to run you need to set seeds for pseud-random generators,
+and set ``deterministic``` flag in ``Trainer``.
+
+.. code-block:: python
+    from pytorch-lightning import Trainer, seed_everything
+
+    seed_everything(42)
+    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    model = Model()
+    trainer = Trainer(deterministic=True)
+
+
 -------
 
 Trainer flags
@@ -199,25 +216,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(deterministic=False)
-
-seed
-^^^^
-
-Set up seed for pseudo-random generators. It sets seeds for numpy, torch, python.random
-and PYTHONHASHSEED.
-
-Example::
-
-    trainer = Trainer(seed=42)
-
-.. note::
-    To ensure full reproducibility, ``deterministic`` flag should also be set.
-
-.. note::
-    You can set the seed before running the Trainer with
-    ``from pytorch-lightning import seed_everything``, but
-    notice that you would have to set the seed also in the Trainer class.
-    Otherwise it would be set automatically.
 
 callbacks
 ^^^^^^^^^

@@ -297,8 +297,6 @@ class Trainer(
 
             deterministic: If true enables cudnn.deterministic
 
-            seed: integer number to ensure same results from different model runs
-
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
@@ -309,10 +307,6 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
 
-        # seeding random number generators
-        if (seed is not None) and not deterministic:
-            log.warning("To ensure full reproducibility deterministic flag should also be set")
-        seed_everything(seed)
         self.deterministic = deterministic
         torch.backends.cudnn.deterministic = self.deterministic
 

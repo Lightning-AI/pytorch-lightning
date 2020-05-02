@@ -8,8 +8,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import tests.base.utils as tutils
 
-from pytorch_lightning.trainer.seed import seed_everything
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer, LightningModule, seed_everything
 
 
 class AverageDataset(Dataset):
@@ -129,6 +128,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
 
         # set seed
         seed = i
+        seed_everything(seed)
 
         # init model parts
         trainer = Trainer(
@@ -139,7 +139,6 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             early_stop_callback=False,
             checkpoint_callback=False,
             distributed_backend='dp',
-            seed=seed,
             deterministic=True,
         )
         model = MODEL()
