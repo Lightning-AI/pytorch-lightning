@@ -24,10 +24,10 @@ class ProgressBarBase(Callback):
 
             def __init__(self):
                 super().__init__()  # don't forget this :)
-                self.enabled = True
+                self.enable = True
 
             def disable(self):
-                self.enableenabled = False
+                self.enable = False
 
             def on_batch_end(self, trainer, pl_module):
                 super().on_batch_end(trainer, pl_module)  # don't forget this :)
