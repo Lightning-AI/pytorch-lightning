@@ -387,7 +387,16 @@ def test_batch_size_smaller_than_num_gpus():
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            # batch norm doesn't work with batch size 1, we replace it
             self.c_d1_bn = torch.nn.ReLU()
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            loss = output['loss']
+            # we make sure to add some metrics to the output dict,
+            # this is essential for this test
+            output['progress_bar'] = {'train_loss': loss}
+            return output
 
         def train_dataloader(self):
             dataloader = super().train_dataloader()
@@ -408,6 +417,7 @@ def test_batch_size_smaller_than_num_gpus():
 
     trainer = Trainer(
         max_epochs=1,
+        val_percent_check=0,
         gpus=num_gpus,
     )
 
