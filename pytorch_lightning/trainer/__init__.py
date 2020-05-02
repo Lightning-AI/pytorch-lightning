@@ -110,6 +110,7 @@ To ensure full reproducibility from run to run you need to set seeds for pseud-r
 and set ``deterministic``` flag in ``Trainer``.
 
 .. code-block:: python
+
     from pytorch-lightning import Trainer, seed_everything
 
     seed_everything(42)
