@@ -7,6 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
+from tests.base import EvalModelTemplate
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -29,14 +30,12 @@ def _get_logger_args(logger_class, save_dir):
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
-    tutils.reset_seed()
-
     # prevent comet logger from trying to print at exit, since
     # pytest's stdout/stderr redirection breaks it
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    model, _ = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
@@ -78,8 +77,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    tutils.reset_seed()
-
     # prevent comet logger from trying to print at exit, since
     # pytest's stdout/stderr redirection breaks it
     import atexit

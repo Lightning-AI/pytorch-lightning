@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import LightningTestModel
+from tests.base import LightningTestModel, EvalModelTemplate
 
 PRETEND_N_OF_GPUS = 16
 
@@ -19,11 +19,8 @@ PRETEND_N_OF_GPUS = 16
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
     """Make sure DDP works."""
-
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -33,6 +30,7 @@ def test_multi_gpu_model(tmpdir, backend):
         distributed_backend=backend,
     )
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     # tutils.run_model_test(trainer_options, model)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
@@ -45,31 +43,27 @@ def test_multi_gpu_model(tmpdir, backend):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_default_model()
+    trainer_options = dict(default_root_dir=tmpdir,
+                           progress_bar_refresh_rate=0,
+                           max_epochs=1,
+                           train_percent_check=0.4,
+                           val_percent_check=0.2,
+                           gpus=[0, 1],
+                           distributed_backend='ddp')
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=[0, 1],
-        distributed_backend='ddp'
-    )
-    result = trainer.fit(model,
-                         train_dataloader=model.train_dataloader(),
-                         val_dataloaders=model.val_dataloader())
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    fit_options = dict(train_dataloader=model.train_dataloader(),
+                       val_dataloaders=model.val_dataloader())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -139,9 +133,6 @@ def test_cpu_slurm_save_load(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-    tutils.reset_seed()
-
-    model, hparams = tutils.get_default_model()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -151,6 +142,7 @@ def test_multi_gpu_none_backend(tmpdir):
         gpus='-1'
     )
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     with pytest.warns(UserWarning):
         tutils.run_model_test(trainer_options, model)
 

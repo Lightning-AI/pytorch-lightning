@@ -33,7 +33,7 @@ class EvalModelTemplate(
     """
     This template houses all  combinations of model  configurations  we want to test
     """
-    def __init__(self, hparams):
+    def __init__(self, hparams: object) -> object:
         """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
         super().__init__()

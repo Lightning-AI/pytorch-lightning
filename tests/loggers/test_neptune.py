@@ -61,10 +61,7 @@ def test_neptune_additional_methods(neptune):
 
 def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = LightningTestModel(tutils.get_default_hparams())
 
     def _run_training(logger):
         logger._experiment = MagicMock()
