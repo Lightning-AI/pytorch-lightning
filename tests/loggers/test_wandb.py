@@ -14,11 +14,11 @@ def test_wandb_logger(wandb):
     logger = WandbLogger(anonymous=True, offline=True)
 
     logger.log_metrics({'acc': 1.0})
-    wandb.init().log.assert_called_once_with({'acc': 1.0})
+    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
     wandb.init().log.reset_mock()
     logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_once_with({'global_step': 3, 'acc': 1.0})
+    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
 
     logger.log_hyperparams({'test': None})
     wandb.init().config.update.assert_called_once_with({'test': None}, allow_val_change=True)
