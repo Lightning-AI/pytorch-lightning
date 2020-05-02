@@ -64,6 +64,7 @@ references:
      name: Make Documentation
      command: |
        # sudo apt-get install pandoc
+       apt-get update && apt-get install -y cmake
        pip install -r requirements.txt --user
        sudo pip install -r docs/requirements.txt
        pip install -r requirements-extra.txt --user  # for doctesting loggers etc.
@@ -78,7 +79,6 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
-      - *install_deps
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
