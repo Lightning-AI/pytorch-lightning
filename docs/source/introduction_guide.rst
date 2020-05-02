@@ -212,6 +212,7 @@ Here's the PyTorch code for loading MNIST
     mnist_train = DataLoader(mnist_train, batch_size=64)
 
 .. testoutput::
+    :hide:
     :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST'))
 
     Downloading ...
