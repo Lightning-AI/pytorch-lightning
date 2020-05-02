@@ -49,7 +49,7 @@ Example: Imagenet (computer Vision)
 
     import torchvision.models as models
 
-    class ImagenetTranferLearning(LightningModule):
+    class ImagenetTransferLearning(LightningModule):
         def __init__(self):
             # init a pretrained resnet
             num_target_classes = 10
@@ -70,7 +70,7 @@ Finetune
 
 .. code-block:: python
 
-    model = ImagenetTranferLearning()
+    model = ImagenetTransferLearning()
     trainer = Trainer()
     trainer.fit(model)
 
@@ -78,7 +78,7 @@ And use it to predict your data of interest
 
 .. code-block:: python
 
-    model = ImagenetTranferLearning.load_from_checkpoint(PATH)
+    model = ImagenetTransferLearning.load_from_checkpoint(PATH)
     model.freeze()
 
     x = some_images_from_cifar10()
