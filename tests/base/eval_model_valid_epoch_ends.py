@@ -17,8 +17,8 @@ class ValidationEpochEndVariations(ABC):
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         # return torch.stack(outputs).mean()
-        val_loss_mean = torch.stack(x['val_loss'] for x in outputs).mean()
-        val_acc_mean = torch.stack(x['val_acc'] for x in outputs).mean()
+        val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
+        val_acc_mean = torch.stack([x['val_acc'] for x in outputs]).mean()
         for output in outputs:
             val_loss = self.get_output_metric(output, 'val_loss')
 
