@@ -576,9 +576,6 @@ class TrainerDPMixin(ABC):
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
-        # Only show progress bar from the first worker
-        self.progress_bar_refresh_rate = self.progress_bar_refresh_rate if hvd.rank() == 0 else 0
-
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)

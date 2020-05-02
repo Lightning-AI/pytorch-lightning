@@ -245,6 +245,15 @@ class TrainerDDPMixin(ABC):
 
         log.info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
 
+    def configure_progress_bar_distrib(self, progress_bar_refresh_rate):
+        if self.use_horovod:
+            # Only show progress bar from the first worker when using Horovod
+            return progress_bar_refresh_rate if hvd.rank() == 0 else 0
+
+        # No adjustment for other frameworks
+        return progress_bar_refresh_rate
+
+
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
