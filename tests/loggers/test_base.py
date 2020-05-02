@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import LightningTestModel
+from tests.base import LightningTestModel, EvalModelTemplate
 
 
 def test_logger_collection():
@@ -139,7 +139,7 @@ def test_adding_step_key(tmpdir):
 
         return decorated
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     model.validation_epoch_end = _validation_epoch_end
     model.training_epoch_end = _training_epoch_end
     trainer = Trainer(

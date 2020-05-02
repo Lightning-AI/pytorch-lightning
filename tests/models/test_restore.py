@@ -21,8 +21,6 @@ from tests.base import (
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib(tmpdir, backend):
     """Verify `test()` on pretrained model."""
-
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     hparams = tutils.get_default_hparams()
@@ -74,8 +72,6 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -113,8 +109,6 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
 def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -157,9 +151,6 @@ def test_load_model_from_checkpoint(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
@@ -232,8 +223,6 @@ def test_dp_resume(tmpdir):
 
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 

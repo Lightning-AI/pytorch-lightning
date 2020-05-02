@@ -8,8 +8,6 @@ from tests.base import LightningTestModel
 
 def test_trains_logger(tmpdir):
     """Verify that basic functionality of TRAINS logger works."""
-    tutils.reset_seed()
-
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
     TrainsLogger.set_bypass_mode(True)
@@ -33,8 +31,6 @@ def test_trains_logger(tmpdir):
 
 def test_trains_pickle(tmpdir):
     """Verify that pickling trainer with TRAINS logger works."""
-    tutils.reset_seed()
-
     # hparams = tutils.get_default_hparams()
     # model = LightningTestModel(hparams)
     TrainsLogger.set_bypass_mode(True)
