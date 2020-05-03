@@ -576,6 +576,10 @@ class TrainerDPMixin(ABC):
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
+        # avoid duplicating progress bar
+        if hvd.rank() != 0 and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
