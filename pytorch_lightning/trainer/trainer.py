@@ -1,5 +1,6 @@
 import inspect
 import os
+import logging as python_logging
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -301,6 +302,9 @@ class Trainer(
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
+
+        # set up a logging handler in case the user hasn't defined one already in their code
+        python_logging.basicConfig(level=python_logging.INFO)
 
         # Init callbacks
         self.callbacks = callbacks or []
