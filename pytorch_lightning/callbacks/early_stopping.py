@@ -49,7 +49,6 @@ class EarlyStopping(Callback):
     def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
                  verbose: bool = False, mode: str = 'auto', strict: bool = True):
         super().__init__()
-
         self.monitor = monitor
         self.patience = patience
         self.verbose = verbose
@@ -58,14 +57,13 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
         self.mode = mode
-
-        mode_dict = {
+        self.mode_dict = {
             'min': torch.lt,
             'max': torch.gt,
             'auto': torch.gt if 'acc' in self.monitor else torch.lt
         }
 
-        if mode not in mode_dict:
+        if mode not in self.mode_dict:
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             self.mode = 'auto'
@@ -96,12 +94,7 @@ class EarlyStopping(Callback):
 
     @property
     def monitor_op(self):
-        mode_dict = {
-            'min': torch.lt,
-            'max': torch.gt,
-            'auto': torch.gt if 'acc' in self.monitor else torch.lt
-        }
-        return mode_dict[self.mode]
+        return self.mode_dict[self.mode]
 
     def on_train_start(self, trainer, pl_module):
         # Allow instances to be re-used

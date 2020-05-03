@@ -243,8 +243,14 @@ def test_pickling(tmpdir):
     early_stopping = EarlyStopping()
     ckpt = ModelCheckpoint(tmpdir)
 
-    pickle.dumps(ckpt)
-    pickle.dumps(early_stopping)
+    early_stopping_pickled = pickle.dumps(early_stopping)
+    ckpt_pickled = pickle.dumps(ckpt)
+
+    early_stopping_loaded = pickle.loads(early_stopping_pickled)
+    ckpt_loaded = pickle.loads(ckpt_pickled)
+
+    assert vars(early_stopping) == vars(early_stopping_loaded)
+    assert vars(ckpt) == vars(ckpt_loaded)
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
