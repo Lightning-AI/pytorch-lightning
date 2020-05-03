@@ -31,7 +31,7 @@ def _nccl_available():
         return False
 
     try:
-        return nccl_built()
+        return nccl_built(verbose=True)
     except AttributeError:
         # Horovod 0.19.1 nccl_built() does not yet work with Python 3.8:
         # See: https://github.com/horovod/horovod/issues/1891

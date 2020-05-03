@@ -473,7 +473,7 @@ class Trainer(
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
 
-        self.progress_bar_refresh_rate = self.configure_progress_bar_distrib(progress_bar_refresh_rate)
+        self.progress_bar_refresh_rate = self._configure_progress_bar_distrib(progress_bar_refresh_rate)
         self.progress_bar_callback = None
         self.configure_progress_bar()
 
