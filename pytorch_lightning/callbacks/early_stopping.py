@@ -45,6 +45,10 @@ class EarlyStopping(Callback):
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(early_stop_callback=early_stopping)
     """
+    mode_dict = {
+        'min': torch.lt,
+        'max': torch.gt,
+    }
 
     def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
                  verbose: bool = False, mode: str = 'auto', strict: bool = True):
@@ -57,16 +61,19 @@ class EarlyStopping(Callback):
         self.wait = 0
         self.stopped_epoch = 0
         self.mode = mode
-        self.mode_dict = {
-            'min': torch.lt,
-            'max': torch.gt,
-            'auto': torch.gt if 'acc' in self.monitor else torch.lt
-        }
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             self.mode = 'auto'
+
+        if self.mode == 'auto':
+            if self.monitor == 'acc':
+                self.mode = 'max'
+            else:
+                self.mode = 'min'
+            if self.verbose > 0:
+                log.info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
 
