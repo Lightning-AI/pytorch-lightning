@@ -121,7 +121,7 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
         """Back compatibility, will be removed in v0.9.0"""
         rank_zero_warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
                        " and this method will be removed in v0.9.0", DeprecationWarning)
-        return self.progress_bar_refresh_rate >= 1
+        return self.progress_bar_callback and self.progress_bar_callback.refresh_rate >= 1
 
     @show_progress_bar.setter
     def show_progress_bar(self, tf):
