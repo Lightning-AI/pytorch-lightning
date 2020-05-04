@@ -337,11 +337,8 @@ def test_lr_logger_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler"""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTestOptimizerWithParamGroups, LightTrainDataloader, TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__param_groups
 
     lr_logger = LearningRateLogger()
     trainer = Trainer(
