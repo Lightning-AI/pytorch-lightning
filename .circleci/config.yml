@@ -70,7 +70,7 @@ references:
        pip install -r requirements-extra.txt --user  # for doctesting loggers etc.
        # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
-       make doctest
+       make doctest; make coverage
 
 jobs:
 
