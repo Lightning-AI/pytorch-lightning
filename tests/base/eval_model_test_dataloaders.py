@@ -17,3 +17,6 @@ class TestDataloaderVariations(ABC):
 
     def test_dataloader__empty(self):
         return None
+
+    def test_dataloader__multiple(self):
+        return [self.dataloader(train=False), self.dataloader(train=False)]

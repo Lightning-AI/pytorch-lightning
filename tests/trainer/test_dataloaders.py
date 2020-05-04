@@ -35,6 +35,8 @@ def test_multiple_val_dataloader(tmpdir):
     """Verify multiple val_dataloader."""
 
     model = EvalModelTemplate(tutils.get_default_hparams())
+    model.val_dataloader = model.val_dataloader__multiple
+    model.validation_step = model.validation_step__multiple_dataloaders
 
     # fit model
     trainer = Trainer(
@@ -61,8 +63,8 @@ def test_multiple_test_dataloader(tmpdir):
     """Verify multiple test_dataloader."""
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.test_step = model.test_step__empty
-    model.test_step_end = model.test_step_end__multiple_dataloaders
+    model.test_dataloader = model.test_dataloader__multiple
+    model.test_step = model.test_step__multiple_dataloaders
 
     # fit model
     trainer = Trainer(
@@ -97,7 +99,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-    fit_options = dict(train_dataloader=model._dataloader(train=True))
+    fit_options = dict(train_dataloader=model.dataloader(train=True))
     result = trainer.fit(model, **fit_options)
 
     assert result == 1
@@ -114,8 +116,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
+    fit_options = dict(train_dataloader=model.dataloader(train=True),
+                       val_dataloaders=model.dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
     assert result == 1
@@ -136,9 +138,9 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=model._dataloader(train=False))
-    test_options = dict(test_dataloaders=model._dataloader(train=False))
+    fit_options = dict(train_dataloader=model.dataloader(train=True),
+                       val_dataloaders=model.dataloader(train=False))
+    test_options = dict(test_dataloaders=model.dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
     trainer.test(**test_options)
@@ -164,13 +166,14 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-    fit_options = dict(train_dataloader=model._dataloader(train=True),
-                       val_dataloaders=[model._dataloader(train=False),
-                                        model._dataloader(train=False)])
-    test_options = dict(test_dataloaders=[model._dataloader(train=False),
-                                          model._dataloader(train=False)])
+    fit_options = dict(train_dataloader=model.dataloader(train=True),
+                       val_dataloaders=[model.dataloader(train=False),
+                                        model.dataloader(train=False)])
+    test_options = dict(test_dataloaders=[model.dataloader(train=False),
+                                          model.dataloader(train=False)])
 
-    trainer.test(test_dataloaders=[model._dataloader(train=False), model._dataloader(train=False)])
+    trainer.fit(**fit_options)
+    trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -192,17 +195,14 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False))
-    results = trainer.fit(model, **fit_options)
+    results = trainer.fit(model, val_dataloaders=model.dataloader(train=False))
     assert results
 
     # fit model
     trainer = Trainer(**trainer_options)
-    fit_options = dict(val_dataloaders=model._dataloader(train=False))
-    test_options = dict(test_dataloaders=model._dataloader(train=False))
-
-    _ = trainer.fit(model, **fit_options)
-    trainer.test(**test_options)
+    results = trainer.fit(model, val_dataloaders=model.dataloader(train=False))
+    assert results
+    trainer.test(test_dataloaders=model.dataloader(train=False))
 
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -227,7 +227,7 @@ def test_inf_dataloader_error(tmpdir, check_interval):
 
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(**trainer_options)
-    # fit model
+        # fit model
         trainer.fit(model)
 
 
@@ -290,7 +290,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
     """ Test that error is raised if a zero-length dataloader is defined """
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.train_dataloader = model.train_dataloader__zero_length()
+    model.train_dataloader = model.train_dataloader__zero_length
 
     # fit model
     with pytest.raises(ValueError):
