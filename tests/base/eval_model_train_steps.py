@@ -1,11 +1,16 @@
+import math
 from abc import ABC
 from collections import OrderedDict
+
+import torch
 
 
 class TrainingStepVariations(ABC):
     """
     Houses all variations of training steps
     """
+    test_step_inf_loss = float('inf')
+
     def training_step(self, batch, batch_idx, optimizer_idx=None):
         """Lightning calls this inside the training loop"""
         # forward pass
@@ -28,3 +33,12 @@ class TrainingStepVariations(ABC):
 
         if self.trainer.batch_idx % 2 == 0:
             return loss_val
+
+    def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
+        output = self.training_step(batch, batch_idx, optimizer_idx)
+        if batch_idx == self.test_step_inf_loss:
+            if isinstance(output, dict):
+                output['loss'] *= torch.tensor(math.inf)  # make loss infinite
+            else:
+                output /= 0
+        return output
