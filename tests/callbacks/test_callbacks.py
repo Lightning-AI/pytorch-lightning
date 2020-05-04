@@ -208,7 +208,7 @@ def test_early_stopping_no_val_step(tmpdir):
             return output
 
     model = CurrentModel(tutils.get_default_hparams())
-    model.validation_step = LightningModule.validation_step
+    model.validation_step = None
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
