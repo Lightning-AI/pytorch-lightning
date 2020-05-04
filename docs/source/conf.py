@@ -397,12 +397,10 @@ autosectionlabel_prefix_document = True
 
 # only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ''
-
 doctest_global_setup = """
 
 import os
 import torch
 
 """
-
 coverage_skip_undoc_in_source = True
