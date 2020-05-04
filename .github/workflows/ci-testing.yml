@@ -75,7 +75,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
 
-    # Avoid Horovod cache
+    # Install dependencies. If `torch` is updated, we need to force install Horovod from source
+    # (`--no-cache-dir`) to ensure library compatibility.
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
