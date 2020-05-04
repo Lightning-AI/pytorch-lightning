@@ -204,11 +204,11 @@ def test_early_stopping_no_val_step(tmpdir):
     class CurrentModel(EvalModelTemplate):
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            loss = output['loss']  # could be anything else
-            output.update({'my_train_metric': loss})
+            output.update({'my_train_metric': output['loss']})  # could be anything else
+            return output
 
     model = CurrentModel(tutils.get_default_hparams())
-    model.validation_step = None
+    model.validation_step = LightningModule.validation_step
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
