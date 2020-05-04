@@ -4,25 +4,14 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import (
-    LightTrainDataloader,
-    TestModelBase,
-    LightTestMultipleOptimizersWithSchedulingMixin,
-)
+from tests.base import EvalModelTemplate
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
     """ Check that error is thrown when more than 1 optimizer is passed """
 
-    class CurrentTestModel(
-        LightTestMultipleOptimizersWithSchedulingMixin,
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     # logger file to get meta
     trainer = Trainer(
@@ -37,14 +26,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 def test_model_reset_correctly(tmpdir):
     """ Check that model weights are correctly reset after lr_find() """
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     trainer = Trainer(
@@ -66,14 +48,7 @@ def test_model_reset_correctly(tmpdir):
 def test_trainer_reset_correctly(tmpdir):
     """ Check that all trainer parameters are reset correctly after lr_find() """
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     trainer = Trainer(
@@ -102,15 +77,10 @@ def test_trainer_reset_correctly(tmpdir):
 
 def test_trainer_arg_bool(tmpdir):
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
     before_lr = hparams.learning_rate
+
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -126,15 +96,10 @@ def test_trainer_arg_bool(tmpdir):
 
 def test_trainer_arg_str(tmpdir):
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
     hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
+
     before_lr = hparams.my_fancy_lr
     # logger file to get meta
     trainer = Trainer(
@@ -151,14 +116,9 @@ def test_trainer_arg_str(tmpdir):
 
 def test_call_to_trainer_method(tmpdir):
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
+
     before_lr = hparams.learning_rate
     # logger file to get meta
     trainer = Trainer(
