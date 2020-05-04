@@ -79,8 +79,13 @@ jobs:
       run: |
         # python -m pip install --upgrade --user pip
         pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
-        pip install -r ./tests/requirements-devel.txt -q
+        pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./tests/requirements-devel.txt -q
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+          pip uninstall -y horovod
+          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
+        fi
         # pip install tox coverage
         python --version
         pip --version
