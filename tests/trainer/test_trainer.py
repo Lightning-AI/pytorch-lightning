@@ -35,7 +35,7 @@ def test_model_pickle(tmpdir):
 
 
 def test_hparams_save_load(tmpdir):
-    model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10, 'failed_key': lambda x: x})
+    model = EvalModelTemplate(vars(tutils.get_default_hparams()))
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -48,19 +48,15 @@ def test_hparams_save_load(tmpdir):
     # try to load the model now
     pretrained_model = tutils.load_model_from_checkpoint(
         trainer.checkpoint_callback.dirpath,
-        module_class=DictHparamsModel
+        module_class=EvalModelTemplate
     )
+    assert pretrained_model
 
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    hparams = tutils.get_default_hparams()
-
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
-        pass
-
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -93,11 +89,7 @@ def test_no_val_module(tmpdir):
 def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
