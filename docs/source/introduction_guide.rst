@@ -214,7 +214,7 @@ Here's the PyTorch code for loading MNIST
 
 .. testoutput::
     :hide:
-    :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST'))
+    :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST')) or not TORCHVISION_AVAILABLE
 
     Downloading ...
     Extracting ...
