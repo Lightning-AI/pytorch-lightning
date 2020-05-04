@@ -34,3 +34,51 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
     # clip gradients with norm above 0.5
     trainer = Trainer(gradient_clip_val=0.5)
+
+Auto scaling of batch size
+-------------------------------------
+Auto scaling of batch size may be enabled to find the largest batch size that fits into
+memory. Larger batch size often give better estimates of 
+
+.. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
+
+.. code-block:: python
+
+    # DEFAULT (ie: don't scale batch size automatically)
+    trainer = Trainer(auto_scale_batch_size=False)
+
+    # Autoscale batch size 
+    trainer = Trainer(auto_scale_batch_size=True|'power'|'binsearch')
+
+Setting the feature to `True` enables `'power'` scaling, that starting from a
+batch size of 1 keeps double the batch size until an out-of-memory (OMM) error is
+encountered. Setting the argument to `'binsearch'` continue to finetune the batch
+size by duing a binary search. 
+
+.. note:: 
+
+    This feature expects that a `batch_size` field exist in the `hparams` of your model i.e.
+    `model.hparams.batch_size` should exist and will be overriden by the results of this
+    algorithm. Settin
+
+The scaling algorithm has a number of parameters, that the user can control by
+invoking the `.scale_batch_size` method themself.
+
+.. code-block:: python
+
+    # Use default in trainer construction
+    trainer = Trainer()
+
+    # Invoke method
+    new_batch_size = trainer.scale_batch_size(...)
+
+    # Override old batch size
+    model.hparams.batch_size = new_batch_size
+    
+    # Fit as normal
+    trainer.fit(model)
+
+Below
+
+.. autoclass: 
+    
