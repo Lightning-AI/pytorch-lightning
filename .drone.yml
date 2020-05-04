@@ -34,7 +34,6 @@ steps:
     #- bash ./tests/install_AMP.sh
     - apt-get update && apt-get install -y cmake
     - pip install -r requirements.txt --user -q
-    - pip install -r requirements-extra.txt --user -q
     - pip install -r ./tests/requirements-devel.txt --user -q
     - pip install -r ./docs/requirements.txt --user -q
     - pip list
