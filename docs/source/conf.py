@@ -404,3 +404,5 @@ import os
 import torch
 
 """
+
+coverage_skip_undoc_in_source = True
