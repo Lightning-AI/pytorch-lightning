@@ -87,7 +87,7 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
+      if: runner.os != 'windows' && matrix.python-version != '3.8'
       run: |
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
