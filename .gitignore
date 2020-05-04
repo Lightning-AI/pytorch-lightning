@@ -13,9 +13,7 @@ test_tube_data/
 test_tube_exp/
 
 # Documentations
-docs/source/pl_examples*.rst
-docs/source/pytorch_lightning*.rst
-docs/source/tests*.rst
+docs/source/api
 docs/source/*.md
 
 # Byte-compiled / optimized / DLL files
