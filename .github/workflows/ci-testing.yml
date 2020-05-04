@@ -75,6 +75,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
 
+    # Avoid Horovod cache
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
