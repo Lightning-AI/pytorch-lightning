@@ -12,13 +12,12 @@ from tests.base import (
     LightTestMultipleOptimizersWithSchedulingMixin,
     LightTestOptimizersWithMixedSchedulingMixin,
     LightTestReduceLROnPlateauMixin,
-    LightTestNoneOptimizerMixin
+    LightTestNoneOptimizerMixin, EvalModelTemplate
 )
 
 
 def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
-    tutils.reset_seed()
 
     class CurrentTestModel(
             LightTestOptimizerWithSchedulingMixin,
@@ -29,16 +28,13 @@ def test_optimizer_with_scheduling(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     results = trainer.fit(model)
 
     init_lr = hparams.learning_rate
@@ -57,7 +53,6 @@ def test_optimizer_with_scheduling(tmpdir):
 
 def test_multi_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
-    tutils.reset_seed()
 
     class CurrentTestModel(
             LightTestMultipleOptimizersWithSchedulingMixin,
@@ -68,16 +63,13 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     results = trainer.fit(model)
 
     init_lr = hparams.learning_rate
@@ -100,7 +92,6 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
             LightTestOptimizersWithMixedSchedulingMixin,
@@ -111,16 +102,13 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     results = trainer.fit(model)
 
     init_lr = hparams.learning_rate
@@ -147,7 +135,6 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
 
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
             LightTestReduceLROnPlateauMixin,
@@ -160,17 +147,15 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     results = trainer.fit(model)
+    assert results
 
     assert trainer.lr_schedulers[0] == \
         dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='val_loss',
@@ -179,10 +164,9 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
 
 
 def test_optimizer_return_options():
-    tutils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -237,11 +221,10 @@ def test_optimizer_return_options():
 
 
 def test_none_optimizer_warning():
-    tutils.reset_seed()
 
     trainer = Trainer()
-    model, hparams = tutils.get_default_model()
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     model.configure_optimizers = lambda: None
 
     with pytest.warns(UserWarning, match='will run with no optimizer'):
@@ -249,7 +232,6 @@ def test_none_optimizer_warning():
 
 
 def test_none_optimizer(tmpdir):
-    tutils.reset_seed()
 
     class CurrentTestModel(
             LightTestNoneOptimizerMixin,
@@ -260,16 +242,13 @@ def test_none_optimizer(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # verify training completed
@@ -291,9 +270,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     hparams = tutils.get_default_hparams()
     model = CurrentTestModel(hparams)
 
-    trainer_options = dict(default_save_path=tmpdir, max_epochs=1)
-
     # fit model
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(default_save_path=tmpdir, max_epochs=1)
     result = trainer.fit(model)
     assert result == 1

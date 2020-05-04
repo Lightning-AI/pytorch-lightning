@@ -46,22 +46,6 @@ class LightningTemplateModel(LightningModule):
         # init superclass
         super().__init__()
         self.hparams = hparams
-
-        self.batch_size = hparams.batch_size
-
-        # if you specify an example input, the summary will show input/output for each layer
-        self.example_input_array = torch.rand(5, 28 * 28)
-
-        # build model
-        self.__build_model()
-
-    # ---------------------
-    # MODEL SETUP
-    # ---------------------
-    def __build_model(self):
-        """
-        Layout the model.
-        """
         self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
                               out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
@@ -70,27 +54,17 @@ class LightningTemplateModel(LightningModule):
         self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
                               out_features=self.hparams.out_features)
 
-    # ---------------------
-    # TRAINING
-    # ---------------------
     def forward(self, x):
         """
         No special modification required for Lightning, define it as you normally would
         in the `nn.Module` in vanilla PyTorch.
         """
-        x = self.c_d1(x)
+        x = self.c_d1(x.view(x.size(0), -1))
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
         x = self.c_d1_drop(x)
-
         x = self.c_d2(x)
-        logits = F.log_softmax(x, dim=1)
-
-        return logits
-
-    def loss(self, labels, logits):
-        nll = F.nll_loss(logits, labels)
-        return nll
+        return x
 
     def training_step(self, batch, batch_idx):
         """
@@ -99,22 +73,10 @@ class LightningTemplateModel(LightningModule):
         """
         # forward pass
         x, y = batch
-        x = x.view(x.size(0), -1)
-
         y_hat = self(x)
-
-        # calculate loss
-        loss_val = self.loss(y, y_hat)
-
-        tqdm_dict = {'train_loss': loss_val}
-        output = OrderedDict({
-            'loss': loss_val,
-            'progress_bar': tqdm_dict,
-            'log': tqdm_dict
-        })
-
-        # can also return just a scalar instead of a dict (return loss_val)
-        return output
+        loss = F.cross_entropy(y_hat, y)
+        tensorboard_logs = {'train_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         """
@@ -122,58 +84,35 @@ class LightningTemplateModel(LightningModule):
         passed in as `batch`.
         """
         x, y = batch
-        x = x.view(x.size(0), -1)
         y_hat = self(x)
-
-        loss_val = self.loss(y, y_hat)
-
-        # acc
+        val_loss = F.cross_entropy(y_hat, y)
         labels_hat = torch.argmax(y_hat, dim=1)
-        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        val_acc = torch.tensor(val_acc)
+        n_correct_pred = torch.sum(y == labels_hat).item()
+        return {'val_loss': val_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
 
-        if self.on_gpu:
-            val_acc = val_acc.cuda(loss_val.device.index)
-
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
-
-        # can also return just a scalar instead of a dict (return loss_val)
-        return output
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        test_loss = F.cross_entropy(y_hat, y)
+        labels_hat = torch.argmax(y_hat, dim=1)
+        n_correct_pred = torch.sum(y == labels_hat).item()
+        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
 
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs.
         :param outputs: list of individual outputs of each validation step.
         """
-        # if returned a scalar from validation_step, outputs is a list of tensor scalars
-        # we return just the average in this case (if we want)
-        # return torch.stack(outputs).mean()
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        val_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
+        tensorboard_logs = {'val_loss': avg_loss, 'val_acc': val_acc}
+        return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
-        val_loss_mean = 0
-        val_acc_mean = 0
-        for output in outputs:
-            val_loss = output['val_loss']
-
-            # reduce manually when using dp
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_loss = torch.mean(val_loss)
-            val_loss_mean += val_loss
-
-            # reduce manually when using dp
-            val_acc = output['val_acc']
-            if self.trainer.use_dp or self.trainer.use_ddp2:
-                val_acc = torch.mean(val_acc)
-
-            val_acc_mean += val_acc
-
-        val_loss_mean /= len(outputs)
-        val_acc_mean /= len(outputs)
-        tqdm_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
-        result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': val_loss_mean}
-        return result
+    def test_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+        test_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
+        tensorboard_logs = {'test_loss': avg_loss, 'test_acc': test_acc}
+        return {'test_loss': avg_loss, 'log': tensorboard_logs}
 
     # ---------------------
     # TRAINING SETUP
@@ -187,72 +126,23 @@ class LightningTemplateModel(LightningModule):
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
         return [optimizer], [scheduler]
 
-    def __dataloader(self, train):
-        # this is neede when you want some info about dataset before binding to trainer
-        self.prepare_data()
-        # init data generators
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        dataset = MNIST(root=self.hparams.data_root, train=train,
-                        transform=transform, download=False)
-
-        # when using multi-node (ddp) we need to add the  datasampler
-        batch_size = self.hparams.batch_size
-
-        loader = DataLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            num_workers=0
-        )
-
-        return loader
-
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        _ = MNIST(root=self.hparams.data_root, train=True,
-                  transform=transform, download=True)
+        self.mnist_train = MNIST(self.hparams.data_root, train=True, download=True, transform=transform)
+        self.mnist_test = MNIST(self.hparams.data_root, train=False, download=True, transform=transform)
 
     def train_dataloader(self):
         log.info('Training data loader called.')
-        return self.__dataloader(train=True)
+        return DataLoader(self.mnist_train, batch_size=self.hparams.batch_size, num_workers=4)
 
     def val_dataloader(self):
         log.info('Validation data loader called.')
-        return self.__dataloader(train=False)
+        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
 
     def test_dataloader(self):
         log.info('Test data loader called.')
-        return self.__dataloader(train=False)
-
-    def test_step(self, batch, batch_idx):
-        """
-        Lightning calls this during testing, similar to `validation_step`,
-        with the data from the test dataloader passed in as `batch`.
-        """
-        output = self.validation_step(batch, batch_idx)
-        # Rename output keys
-        output['test_loss'] = output.pop('val_loss')
-        output['test_acc'] = output.pop('val_acc')
-
-        return output
-
-    def test_epoch_end(self, outputs):
-        """
-        Called at the end of test to aggregate outputs, similar to `validation_epoch_end`.
-        :param outputs: list of individual outputs of each test step
-        """
-        results = self.validation_step_end(outputs)
-
-        # rename some keys
-        results['progress_bar'].update({
-            'test_loss': results['progress_bar'].pop('val_loss'),
-            'test_acc': results['progress_bar'].pop('val_acc'),
-        })
-        results['log'] = results['progress_bar']
-        results['test_loss'] = results.pop('val_loss')
-
-        return results
+        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover

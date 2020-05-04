@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import LightningTestModel
+from tests.base import EvalModelTemplate
 
 
 def test_logger_collection():
@@ -61,18 +61,16 @@ class CustomLogger(LightningLoggerBase):
 
 def test_custom_logger(tmpdir):
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     logger = CustomLogger()
 
-    trainer_options = dict(
+    trainer = Trainer(
         max_epochs=1,
         train_percent_check=0.05,
         logger=logger,
         default_root_dir=tmpdir
     )
-
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
     assert logger.hparams_logged == hparams
@@ -82,19 +80,17 @@ def test_custom_logger(tmpdir):
 
 def test_multiple_loggers(tmpdir):
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(hparams)
 
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer_options = dict(
+    trainer = Trainer(
         max_epochs=1,
         train_percent_check=0.05,
         logger=[logger1, logger2],
         default_root_dir=tmpdir
     )
-
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
 
@@ -113,9 +109,7 @@ def test_multiple_loggers_pickle(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer_options = dict(max_epochs=1, logger=[logger1, logger2])
-
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(max_epochs=1, logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)
@@ -145,17 +139,16 @@ def test_adding_step_key(tmpdir):
 
         return decorated
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
     model.validation_epoch_end = _validation_epoch_end
     model.training_epoch_end = _training_epoch_end
-    trainer_options = dict(
+    trainer = Trainer(
         max_epochs=4,
         default_root_dir=tmpdir,
         train_percent_check=0.001,
         val_percent_check=0.01,
         num_sanity_val_steps=0,
     )
-    trainer = Trainer(**trainer_options)
     trainer.logger.log_metrics = _log_metrics_decorator(
         trainer.logger.log_metrics)
     trainer.fit(model)

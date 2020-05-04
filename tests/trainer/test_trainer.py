@@ -1,6 +1,7 @@
 import glob
 import math
 import os
+import types
 from argparse import Namespace
 
 import pytest
@@ -22,7 +23,7 @@ from tests.base import (
     LightValidationMultipleDataloadersMixin,
     LightTrainDataloader,
     LightTestDataloader,
-    LightValidationMixin,
+    LightValidationMixin, EvalModelTemplate,
 )
 
 
@@ -36,16 +37,12 @@ def test_model_pickle(tmpdir):
 def test_hparams_save_load(tmpdir):
     model = DictHparamsModel({'in_features': 28 * 28, 'out_features': 10, 'failed_key': lambda x: x})
 
-    # logger file to get meta
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
     )
-
     # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-
     assert result == 1
 
     # try to load the model now
@@ -57,7 +54,6 @@ def test_hparams_save_load(tmpdir):
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
 
@@ -69,16 +65,13 @@ def test_no_val_module(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
-
     # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-
     # training complete
     assert result == 1, 'amp + ddp model failed to complete'
 
@@ -99,7 +92,6 @@ def test_no_val_module(tmpdir):
 
 def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    tutils.reset_seed()
 
     class CurrentTestModel(LightTrainDataloader, LightValidationStepMixin, TestModelBase):
         pass
@@ -110,14 +102,12 @@ def test_no_val_end_module(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
@@ -141,7 +131,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
     """
     Test grad accumulation by the freq of optimizer updates
     """
-    tutils.reset_seed()
 
     # test incorrect configs
     with pytest.raises(IndexError):
@@ -214,7 +203,6 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 
 def test_loading_meta_tags(tmpdir):
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
 
@@ -234,7 +222,6 @@ def test_loading_meta_tags(tmpdir):
 
 def test_dp_output_reduce():
     mixin = TrainerLoggingMixin()
-    tutils.reset_seed()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)
@@ -300,7 +287,6 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
 
 
 def test_model_freeze_unfreeze():
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
@@ -309,11 +295,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint(tmpdir):
-    """Verify resuming from checkpoint (epoch, batch numbers and on_load_checkpoint())"""
-    import types
-
-    tutils.reset_seed()
+def test_resume_from_checkpoint_epoch_restored(tmpdir):
+    """Verify resuming from checkpoint runs the right number of epochs"""
 
     hparams = tutils.get_default_hparams()
 
@@ -353,8 +336,8 @@ def test_resume_from_checkpoint(tmpdir):
         val_check_interval=1.,
     )
 
-    # fit model
     trainer = Trainer(**trainer_options)
+    # fit model
     trainer.fit(model)
 
     training_batches = trainer.num_training_batches
@@ -380,8 +363,7 @@ def test_resume_from_checkpoint(tmpdir):
 
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
-    tutils.reset_seed()
-    model, _ = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # define train epoch to 5% of data
     train_percent = 0.5
@@ -399,11 +381,11 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define less train steps than epochs
-    trainer_options.update(dict(
+    trainer_options.update(
         default_root_dir=tmpdir,
         max_epochs=3,
         max_steps=num_train_samples + 10
-    ))
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -414,10 +396,10 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
-    trainer_options.update(dict(
+    trainer_options.update(
         max_epochs=2,
         max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
-    ))
+    )
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -434,13 +416,13 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     model, trainer_options, num_train_samples = _init_steps_model()
 
     # define callback for stopping the model and default epochs
-    trainer_options.update(dict(
+    trainer_options.update(
         default_root_dir=tmpdir,
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
         max_epochs=5
-    ))
+    )
 
     # define less min steps than 1 epoch
     trainer_options['min_steps'] = math.floor(num_train_samples / 2)
@@ -469,7 +451,6 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
-    tutils.reset_seed()
 
     class CurrentTestModel(
         LightValidationMultipleDataloadersMixin,
@@ -484,15 +465,12 @@ def test_benchmark_option(tmpdir):
     # verify torch.backends.cudnn.benchmark is not turned on
     assert not torch.backends.cudnn.benchmark
 
-    # logger file to get meta
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         benchmark=True,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # verify training completed
@@ -535,7 +513,6 @@ def test_testpass_overrides(tmpdir):
 
 def test_disabled_validation():
     """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
-    tutils.reset_seed()
 
     class CurrentModel(LightTrainDataloader, LightValidationMixin, TestModelBase):
 
@@ -660,17 +637,15 @@ def test_trainer_interrupted_flag(tmpdir):
 
     interrupt_callback = InterruptCallback()
 
-    trainer_options = {
-        'callbacks': [interrupt_callback],
-        'max_epochs': 1,
-        'val_percent_check': 0.1,
-        'train_percent_check': 0.2,
-        'progress_bar_refresh_rate': 0,
-        'logger': False,
-        'default_root_dir': tmpdir,
-    }
-
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(
+        callbacks=[interrupt_callback],
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
     assert not trainer.interrupted
     trainer.fit(model)
     assert trainer.interrupted
@@ -680,7 +655,6 @@ def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
     """
-    tutils.reset_seed()
 
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)

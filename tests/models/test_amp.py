@@ -6,9 +6,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import (
-    LightningTestModel,
-)
+from tests.base import LightningTestModel, EvalModelTemplate
 
 
 @pytest.mark.spawn
@@ -18,9 +16,7 @@ def test_amp_single_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    model, hparams = tutils.get_default_model()
-
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
@@ -28,9 +24,8 @@ def test_amp_single_gpu(tmpdir, backend):
         precision=16
     )
 
+    model = EvalModelTemplate(tutils.get_default_hparams())
     # tutils.run_model_test(trainer_options, model)
-
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     assert result == 1
@@ -41,10 +36,9 @@ def test_amp_single_gpu(tmpdir, backend):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_multi_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -65,8 +59,6 @@ def test_amp_multi_gpu(tmpdir, backend):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
-    tutils.reset_seed()
-
     # simulate setting slurm flags
     tutils.set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
@@ -74,25 +66,21 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     hparams = tutils.get_default_hparams()
     model = LightningTestModel(hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=[0],
-        distributed_backend='ddp',
-        precision=16
-    )
-
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
-    # add these to the trainer options
-    trainer_options['checkpoint_callback'] = checkpoint
-    trainer_options['logger'] = logger
-
     # fit model
-    trainer = Trainer(**trainer_options)
+    trainer = Trainer(
+        max_epochs=1,
+        gpus=[0],
+        distributed_backend='ddp',
+        precision=16,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+    )
     trainer.is_slurm_managing_tasks = True
     result = trainer.fit(model)
 
@@ -108,8 +96,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
-    tutils.reset_seed()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -119,7 +105,7 @@ def test_cpu_model_with_amp(tmpdir):
         precision=16
     )
 
-    model, hparams = tutils.get_default_model()
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tutils.run_model_test(trainer_options, model, on_gpu=False)

@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
-from tests.base import LightningTestModel
+from tests.base import LightningTestModel, EvalModelTemplate
 from tests.base.datasets import PATH_DATASETS
 
 
@@ -27,7 +27,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
-    # save_dir = trainer_options['default_root_dir']
+    reset_seed()
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -56,6 +56,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
 
 
 def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=True):
+    reset_seed()
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
@@ -97,8 +98,6 @@ def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=T
 
 
 def get_default_hparams(continue_training=False, hpc_exp_number=0):
-    _ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
     args = {
         'drop_prob': 0.2,
         'batch_size': 32,
@@ -120,18 +119,6 @@ def get_default_hparams(continue_training=False, hpc_exp_number=0):
 
     hparams = Namespace(**args)
     return hparams
-
-
-def get_default_model(lbfgs=False):
-    # set up model with these hyperparams
-    hparams = get_default_hparams()
-    if lbfgs:
-        setattr(hparams, 'optimizer_name', 'lbfgs')
-        setattr(hparams, 'learning_rate', 0.002)
-
-    model = LightningTestModel(hparams)
-
-    return model, hparams
 
 
 def get_default_logger(save_dir, version=None):
@@ -231,6 +218,7 @@ def reset_seed():
 
 
 def set_random_master_port():
+    reset_seed()
     port = RANDOM_PORTS.pop()
     os.environ['MASTER_PORT'] = str(port)
 
