@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,7 +39,7 @@ class EvalModelTemplate(
         """Pass in parsed HyperOptArgumentParser to the model."""
         # init superclass
         super().__init__()
-        self.hparams = hparams
+        self.hparams = Namespace(**hparams) if isinstance(hparams, dict) else hparams
 
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)

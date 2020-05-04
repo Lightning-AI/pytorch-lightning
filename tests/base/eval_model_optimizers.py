@@ -12,7 +12,7 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         return optimizer
 
-    def configure_optimizers_empty(self):
+    def configure_optimizers__empty(self):
         return None
 
     def configure_optimizers__lbfgs(self):
