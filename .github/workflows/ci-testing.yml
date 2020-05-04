@@ -75,20 +75,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
 
-    # Install dependencies. If `torch` is updated, we need to force install Horovod from source
-    # (`--no-cache-dir`) to ensure library compatibility.
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
-        OLD_VERSION=$(python -c "import torch; print(torch.__version__)") || true
         pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
-        NEW_VERSION=$(python -c "import torch; print(torch.__version__)") || true
-        CACHE_ARGS=""
-        if [[ $OLD_VERSION != $NEW_VERSION ]]; then
-          pip uninstall -y horovod
-          CACHE_ARGS="--no-cache-dir"
-        fi
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install $CACHE_ARGS -r ./tests/requirements-devel.txt -q
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
+        pip install -r ./tests/requirements-devel.txt -q
         # pip install tox coverage
         python --version
         pip --version
