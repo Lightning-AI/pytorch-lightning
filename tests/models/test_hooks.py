@@ -2,29 +2,19 @@ import pytest
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from tests.base import (
-    LightTrainDataloader,
-    LightValidationMixin,
-    TestModelBase,
-    LightTestMixin)
+from tests.base import EvalModelTemplate
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
 def test_on_before_zero_grad_called(max_steps):
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightValidationMixin,
-        LightTestMixin,
-        TestModelBase,
-    ):
+    class CurrentTestModel(EvalModelTemplate):
         on_before_zero_grad_called = 0
 
         def on_before_zero_grad(self, optimizer):
             self.on_before_zero_grad_called += 1
 
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = CurrentTestModel(tutils.get_default_hparams())
 
     trainer = Trainer(
         max_steps=max_steps,

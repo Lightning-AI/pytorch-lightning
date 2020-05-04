@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import LightningTestModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 
 PRETEND_N_OF_GPUS = 16
 
@@ -65,7 +65,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(hparams)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -112,7 +112,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_pred_same():
