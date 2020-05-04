@@ -202,7 +202,7 @@ def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.validation_step = None
+    model.validation_step = LightningModule.validation_step
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='loss', min_delta=0.1)
@@ -251,6 +251,7 @@ def test_lr_logger_single_lr(tmpdir):
     tutils.reset_seed()
 
     model = EvalModelTemplate(tutils.get_default_hparams())
+    model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     lr_logger = LearningRateLogger()
     trainer = Trainer(
