@@ -298,7 +298,9 @@ class Trainer(
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
                 The results will be stored in self.hparams.batch_size in the lightning module.
-                To use a different key, set a string instead of True with the key name.
+                Additionally, can be set to either `power` (same as `True`) that
+                estimates the batch size through a power search or `binseach` that
+                estimates the batch size through a binary search.
         """
 
         # Init callbacks
@@ -745,7 +747,9 @@ class Trainer(
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
-            _ = self.scale_batch_size(model)
+            if self.auto_scale_batch_size is True:
+                self.auto_scale_batch_size = 'power'
+            _ = self.scale_batch_size(model, mode = self.auto_scale_batch_size)
 
         # Run learning rate finder:
         if self.auto_lr_find:

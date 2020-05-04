@@ -38,7 +38,8 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 Auto scaling of batch size
 -------------------------------------
 Auto scaling of batch size may be enabled to find the largest batch size that fits into
-memory. Larger batch size often give better estimates of 
+memory. Larger batch size often give better estimates of gradients, but may also give
+longer training time.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
@@ -58,11 +59,11 @@ size by duing a binary search.
 .. note:: 
 
     This feature expects that a `batch_size` field exist in the `hparams` of your model i.e.
-    `model.hparams.batch_size` should exist and will be overriden by the results of this
-    algorithm. Settin
+    `model.hparams.batch_size` should exist and will be overridden by the results of this
+    algorithm.
 
 The scaling algorithm has a number of parameters, that the user can control by
-invoking the `.scale_batch_size` method themself.
+invoking the trainer method `.scale_batch_size` themself.
 
 .. code-block:: python
 
@@ -70,7 +71,7 @@ invoking the `.scale_batch_size` method themself.
     trainer = Trainer()
 
     # Invoke method
-    new_batch_size = trainer.scale_batch_size(...)
+    new_batch_size = trainer.scale_batch_size(model, ...)
 
     # Override old batch size
     model.hparams.batch_size = new_batch_size
@@ -78,7 +79,6 @@ invoking the `.scale_batch_size` method themself.
     # Fit as normal
     trainer.fit(model)
 
-Below
-
-.. autoclass: 
-    
+.. autoclass:: pytorch_lightning.trainer.training_tricks.TrainerTrainingTricksMixin
+   :members: scale_batch_size
+   :noindex:

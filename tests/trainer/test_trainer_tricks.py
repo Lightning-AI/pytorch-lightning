@@ -115,18 +115,17 @@ def test_trainer_arg_str(tmpdir):
         pass
 
     hparams = tutils.get_default_hparams()
-    hparams.__dict__['my_fancy_batch_size'] = 17  # update with non-standard field
     model = CurrentTestModel(hparams)
-    before_batch_size = hparams.my_fancy_batch_size
+    before_batch_size = hparams.batch_size
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        auto_lr_find='my_fancy_batch_size'
+        auto_scale_batch_size='binsearch'
     )
 
     trainer.fit(model)
-    after_batch_size = model.hparams.my_fancy_batch_size
+    after_batch_size = model.hparams.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
