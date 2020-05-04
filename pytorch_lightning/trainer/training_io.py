@@ -112,6 +112,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerIOMixin(ABC):
 
@@ -123,6 +130,7 @@ class TrainerIOMixin(ABC):
     resume_from_checkpoint: ...
     use_ddp: bool
     use_ddp2: bool
+    use_horovod: bool
     checkpoint_callback: ...
     proc_rank: int
     weights_save_path: str
@@ -174,6 +182,10 @@ class TrainerIOMixin(ABC):
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
+
+        elif self.use_horovod:
+            # wait for all processes to catch up
+            hvd.join()
 
         # clear cache after restore
         if self.on_gpu:
