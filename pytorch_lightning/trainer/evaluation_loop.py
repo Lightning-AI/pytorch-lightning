@@ -175,7 +175,6 @@ class TrainerEvaluationLoopMixin(ABC):
     val_dataloaders: DataLoader
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
-    progress_bar_refresh_rate: ...
     tpu_id: int
 
     # Callback system
