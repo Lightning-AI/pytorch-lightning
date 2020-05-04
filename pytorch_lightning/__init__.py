@@ -52,6 +52,7 @@ if __LIGHTNING_SETUP__:
 else:
     from pytorch_lightning.core import LightningModule
     from pytorch_lightning.trainer import Trainer
+    from pytorch_lightning.trainer.seed import seed_everything
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
 
@@ -60,6 +61,7 @@ else:
         'LightningModule',
         'Callback',
         'data_loader'
+        'seed_everything'
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed
