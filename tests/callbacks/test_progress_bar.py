@@ -4,12 +4,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import (
-    LightTrainDataloader,
-    LightTestMixin,
-    LightValidationMixin,
-    TestModelBase
-)
+from tests.base import EvalModelTemplate
 
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
@@ -63,16 +58,7 @@ def test_progress_bar_misconfiguration():
 def test_progress_bar_totals():
     """Test that the progress finishes with the correct total steps processed."""
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMixin,
-        LightValidationMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     trainer = Trainer(
         progress_bar_refresh_rate=1,
@@ -121,16 +107,7 @@ def test_progress_bar_totals():
 
 
 def test_progress_bar_fast_dev_run():
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMixin,
-        LightValidationMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     trainer = Trainer(
         fast_dev_run=True,
@@ -163,16 +140,7 @@ def test_progress_bar_fast_dev_run():
 def test_progress_bar_progress_refresh(refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMixin,
-        LightValidationMixin,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     class CurrentProgressBar(ProgressBar):
 
