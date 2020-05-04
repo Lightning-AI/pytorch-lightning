@@ -46,6 +46,7 @@ Example: Imagenet (computer Vision)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     import torchvision.models as models
 
@@ -53,7 +54,7 @@ Example: Imagenet (computer Vision)
         def __init__(self):
             # init a pretrained resnet
             num_target_classes = 10
-            self.feature_extractor = model.resnet50(
+            self.feature_extractor = models.resnet50(
                                         pretrained=True,
                                         num_classes=num_target_classes)
             self.feature_extractor.eval()

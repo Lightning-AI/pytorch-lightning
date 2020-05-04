@@ -399,8 +399,11 @@ autosectionlabel_prefix_document = True
 doctest_test_doctest_blocks = ''
 doctest_global_setup = """
 
+import importlib
 import os
 import torch
+
+TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
 
 """
 coverage_skip_undoc_in_source = True

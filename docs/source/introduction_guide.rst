@@ -196,6 +196,7 @@ The Lightning Module organizes your dataloaders and data processing as well.
 Here's the PyTorch code for loading MNIST
 
 .. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
@@ -228,6 +229,7 @@ When using PyTorch Lightning, we use the exact same code except we organize it i
 the LightningModule
 
 .. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST

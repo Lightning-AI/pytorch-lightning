@@ -21,6 +21,7 @@ Step 1: Define a LightningModule
 ---------------------------------
 
 .. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     import os
 
