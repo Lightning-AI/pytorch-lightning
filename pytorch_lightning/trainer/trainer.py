@@ -51,6 +51,13 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class Trainer(
     TrainerIOMixin,
@@ -852,6 +859,10 @@ class Trainer(
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
+
+        elif self.use_horovod:
+            # wait for all processes to catch up
+            hvd.join()
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
