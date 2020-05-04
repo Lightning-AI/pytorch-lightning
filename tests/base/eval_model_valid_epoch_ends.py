@@ -16,9 +16,13 @@ class ValidationEpochEndVariations(ABC):
         """
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
+        def _mean(res, key):
+            # recursive mean for multilevel dicts
+            return torch.stack([x[key] if isinstance(x, dict) else _mean(x, key) for x in res]).mean()
+
         # return torch.stack(outputs).mean()
-        val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
-        val_acc_mean = torch.stack([x['val_acc'] for x in outputs]).mean()
+        val_loss_mean = _mean(outputs, 'val_loss')
+        val_acc_mean = _mean(outputs, 'val_acc')
         for output in outputs:
             val_loss = self.get_output_metric(output, 'val_loss')
 
