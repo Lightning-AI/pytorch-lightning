@@ -87,16 +87,15 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-        if: runner.os != 'windows'
-        run: |
-          HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
-          if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-            pip uninstall -y horovod
-            HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
-          fi
-          horovodrun --check-build
-        shell: bash
-
+      if: runner.os != 'windows'
+      run: |
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+          pip uninstall -y horovod
+          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
+        fi
+        horovodrun --check-build
+      shell: bash
 
     - name: Cache datasets
       uses: actions/cache@v1
