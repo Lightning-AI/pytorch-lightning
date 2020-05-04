@@ -5,7 +5,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import LightningTestModel
+from tests.base import EvalModelTemplate
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -61,7 +61,7 @@ def test_neptune_additional_methods(neptune):
 
 def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
-    model = LightningTestModel(tutils.get_default_hparams())
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     def _run_training(logger):
         logger._experiment = MagicMock()
