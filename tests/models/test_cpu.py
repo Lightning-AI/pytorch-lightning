@@ -7,16 +7,8 @@ from packaging.version import parse as version_parse
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-)
-from tests.base import (
-    TestModelBase,
-    LightTrainDataloader,
-    LightningTestModel,
-    LightTestMixin,
-    EvalModelTemplate,
-)
+from pytorch_lightning.callbacks import EarlyStopping
+from tests.base import EvalModelTemplate
 
 
 def test_early_stopping_cpu_model(tmpdir):
@@ -106,8 +98,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -138,11 +129,7 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    class CurrentTestModel(LightTrainDataloader, LightTestMixin, TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -220,8 +207,7 @@ def test_single_gpu_batch_parse():
 
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # fit model
     trainer = Trainer(
@@ -285,7 +271,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(LightTrainDataloader, TestModelBase):
+    class BpttTestModel(EvalModelTemplate):
         def __init__(self, hparams):
             super().__init__(hparams)
             self.test_hidden = None

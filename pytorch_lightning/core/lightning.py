@@ -1535,8 +1535,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 rank_zero_warn(
-                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ "
-                    f"contains argument 'hparams'. Will pass in an empty Namespace instead."
+                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
+                    " contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"
                 )
                 hparams = Namespace()
