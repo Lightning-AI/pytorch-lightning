@@ -113,7 +113,7 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.fit(model)
     trainer.test()
 
-    # verify there are 2 val loaders
+    # verify there are 2 test loaders
     assert len(trainer.test_dataloaders) == 2, \
         'Multiple test_dataloaders not initiated properly'
 
@@ -125,7 +125,7 @@ def test_multiple_test_dataloader(tmpdir):
     trainer.test()
 
 
-def test_train_dataloaders_passed_to_fit(tmpdir):
+def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit """
 
     class CurrentTestModel(LightTrainDataloader, TestModelBase):
@@ -175,7 +175,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
-    """Verify train, val & test dataloader can be passed to fit """
+    """Verify train, val & test dataloader(s) can be passed to fit and test method"""
 
     class CurrentTestModel(
         LightTrainDataloader,

@@ -672,7 +672,7 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[DataLoader] = None
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -913,7 +913,11 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self, model: Optional[LightningModule] = None, test_dataloaders: Optional[DataLoader] = None):
+    def test(
+            self,
+            model: Optional[LightningModule] = None,
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+    ):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
