@@ -129,7 +129,6 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     """Verify train, val & test dataloader(s) can be passed to fit and test method"""
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.test_step = model.test_step__empty
 
     # train, val and test passed to fit
     trainer = Trainer(
@@ -156,8 +155,8 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     """Verify that multiple val & test dataloaders can be passed to fit."""
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.validation_step = model.validation_step_multiple_dataloaders
-    model.test_step = model.test_step_multiple_dataloaders
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
 
     # train, multiple val and multiple test passed to fit
     trainer = Trainer(
@@ -172,7 +171,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     test_options = dict(test_dataloaders=[model.dataloader(train=False),
                                           model.dataloader(train=False)])
 
-    trainer.fit(**fit_options)
+    trainer.fit(model, **fit_options)
     trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
@@ -210,25 +209,37 @@ def test_mixing_of_dataloader_options(tmpdir):
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-@pytest.mark.parametrize('check_interval', ['train', 'val', 'test'])
-def test_inf_dataloader_error(tmpdir, check_interval):
+def test_train_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
-
     model = EvalModelTemplate(tutils.get_default_hparams())
-    if check_interval == 'train':
-        model.train_dataloader = model.train_dataloader__infinite
-    elif check_interval == 'val':
-        model.val_dataloader = model.val_dataloader__infinite
-    elif check_interval == 'test':
-        model.test_dataloader = model.test_dataloader__infinite
+    model.train_dataloader = model.train_dataloader__infinite
 
-    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1)
-    trainer_options[check_interval + '_check_interval'] = 0.5
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
 
-    with pytest.raises(MisconfigurationException):
-        trainer = Trainer(**trainer_options)
-        # fit model
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.fit(model)
+
+
+def test_val_inf_dataloader_error(tmpdir):
+    """Test inf train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    model.val_dataloader = model.val_dataloader__infinite
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.fit(model)
+
+
+def test_test_inf_dataloader_error(tmpdir):
+    """Test inf train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    model.test_dataloader = model.test_dataloader__infinite
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.test(model)
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
@@ -248,7 +259,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     assert result == 1
 
 
-@pytest.mark.parametrize('check_interval', [50, 1.0])
+@pytest.mark.parametrize('check_interval', [1.0])
 def test_inf_val_dataloader(tmpdir, check_interval):
     """Test inf val data loader (e.g. IterableDataset)"""
 
@@ -307,7 +318,6 @@ def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate(tutils.get_default_hparams())
-    model.test_step = model.test_step__empty
 
     # logger file to get meta
     trainer_options = dict(
@@ -372,10 +382,7 @@ def test_batch_size_smaller_than_num_gpus():
     num_gpus = 3
     batch_size = 3
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
+    class CurrentTestModel(EvalModelTemplate):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)

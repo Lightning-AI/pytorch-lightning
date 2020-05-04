@@ -46,8 +46,8 @@ def _has_len(dataloader: DataLoader) -> bool:
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError('Dataloader returned 0 length. Please make sure'
-                             ' that your Dataloader atleast returns 1 batch')
+            raise ValueError('`Dataloader` returned 0 length.'
+                             ' Please make sure that your Dataloader atleast returns 1 batch')
         return True
     except TypeError:
         return False
@@ -186,10 +186,10 @@ class TrainerDataLoadingMixin(ABC):
                     self.val_check_batch = float('inf')
                 else:
                     raise MisconfigurationException(
-                        'When using an infinite DataLoader (e.g. with an IterableDataset or when '
-                        'DataLoader does not implement `__len__`) for `train_dataloader`, '
-                        '`Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies '
-                        'checking validation every k training batches.')
+                        'When using an infinite DataLoader (e.g. with an IterableDataset'
+                        ' or when DataLoader does not implement `__len__`) for `train_dataloader`,'
+                        ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
+                        ' checking validation every k training batches.')
             else:
                 self._percent_range_check('val_check_interval')
 
@@ -240,9 +240,9 @@ class TrainerDataLoadingMixin(ABC):
                 num_batches = int(num_batches * percent_check)
             elif percent_check not in (0.0, 1.0):
                 raise MisconfigurationException(
-                    'When using an infinite DataLoader (e.g. with an IterableDataset or when '
-                    f'DataLoader does not implement `__len__`) for `{mode}_dataloader`, '
-                    f'`Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+                    'When using an infinite DataLoader (e.g. with an IterableDataset'
+                    f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
+                    f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
         return num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:
@@ -252,7 +252,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overriden('validation_step'):
-            self.num_val_batches, self.val_dataloaders =\
+            self.num_val_batches, self.val_dataloaders = \
                 self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
