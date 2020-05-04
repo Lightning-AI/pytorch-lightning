@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
+from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 
 try:
