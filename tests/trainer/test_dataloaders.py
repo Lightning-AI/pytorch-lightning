@@ -10,6 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
+
 @pytest.mark.parametrize("dataloader_options", [
     dict(train_percent_check=-0.1),
     dict(train_percent_check=1.1),
