@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import LightningTestModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 
 
 def test_logger_collection():
@@ -61,7 +61,7 @@ class CustomLogger(LightningLoggerBase):
 
 def test_custom_logger(tmpdir):
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     logger = CustomLogger()
 
@@ -80,7 +80,7 @@ def test_custom_logger(tmpdir):
 
 def test_multiple_loggers(tmpdir):
     hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(hparams)
 
     logger1 = CustomLogger()
     logger2 = CustomLogger()
