@@ -8,6 +8,7 @@ class TestStepVariations(ABC):
     """
     Houses all variations of test steps
     """
+
     def test_step(self, batch, batch_idx, *args, **kwargs):
         """
         Default, baseline test_step
@@ -87,3 +88,6 @@ class TestStepVariations(ABC):
                 f'test_acc_{dataloader_idx}': test_acc,
             })
             return output
+
+    def test_step__empty(self, batch, batch_idx, *args, **kwargs):
+        return {}
