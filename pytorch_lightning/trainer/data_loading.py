@@ -219,7 +219,7 @@ class TrainerDataLoadingMixin(ABC):
                     ' this off for validation and test dataloaders.')
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl]
+        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
 
         num_batches = 0
 
