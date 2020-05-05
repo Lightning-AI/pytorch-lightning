@@ -131,7 +131,7 @@ def test_trainer_arg_str(tmpdir):
 
 
 def test_call_to_trainer_method(tmpdir):
-    ''' Test that calling the trainer method itself works '''
+    """ Test that calling the trainer method itself works. """
     tutils.reset_seed()
 
     class CurrentTestModel(
