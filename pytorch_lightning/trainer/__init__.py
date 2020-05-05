@@ -142,15 +142,15 @@ before any training.
 
 .. code-block:: python
 
-    # defeault use by the Trainer (no scaling of batch size)
+    # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=False)
 
 Example::
 
-    # run batch size scaling, result override hparams.batch_size
+    # run batch size scaling, result overrides hparams.batch_size
     trainer = Trainer(auto_scale_batch_size=True)
 
-    # run batch size scaling, result override hparams.my_batch_size_arg
+    # run batch size scaling, result overrides hparams.my_batch_size_arg
     trainer = Trainer(auto_scale_batch_size='my_batch_size_arg')
 
 auto_lr_find

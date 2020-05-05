@@ -36,7 +36,7 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
     trainer = Trainer(gradient_clip_val=0.5)
 
 Auto scaling of batch size
--------------------------------------
+--------------------------
 Auto scaling of batch size may be enabled to find the largest batch size that fits into
 memory. Larger batch size often yields better estimates of gradients, but may also result in
 longer training time.
@@ -52,17 +52,17 @@ longer training time.
     trainer = Trainer(auto_scale_batch_size=True|'power'|'binsearch')
 
 Setting the feature to `True` enables `'power'` scaling, that starting from a
-batch size of 1 keeps double the batch size until an out-of-memory (OMM) error is
-encountered. Setting the argument to `'binsearch'` continue to finetune the batch
-size by duing a binary search. 
+batch size of 1 keeps doubling the batch size until an out-of-memory (OOM) error is
+encountered. Setting the argument to `'binsearch'` continues to finetune the batch
+size by performing a binary search. 
 
 .. note:: 
 
-    This feature expects that a `batch_size` field exist in the `hparams` of your model i.e.
+    This feature expects that a `batch_size` field in the `hparams` of your model, i.e.,
     `model.hparams.batch_size` should exist and will be overridden by the results of this
     algorithm.
 
-The scaling algorithm has a number of parameters, that the user can control by
+The scaling algorithm has a number of parameters that the user can control by
 invoking the trainer method `.scale_batch_size` themself.
 
 .. code-block:: python

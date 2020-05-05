@@ -42,7 +42,7 @@ def test_model_reset_correctly(tmpdir):
 
 
 def test_trainer_reset_correctly(tmpdir):
-    ''' Check that all trainer parameters are reset correctly after scaling batch size'''
+    """ Check that all trainer parameters are reset correctly after scaling batch size. """
     tutils.reset_seed()
 
     class CurrentTestModel(
@@ -79,7 +79,7 @@ def test_trainer_reset_correctly(tmpdir):
 
 
 def test_trainer_arg_bool(tmpdir):
-    ''' Check that trainer arg works with bool input '''
+    """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
     class CurrentTestModel(

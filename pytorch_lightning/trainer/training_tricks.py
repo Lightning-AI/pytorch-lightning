@@ -95,7 +95,7 @@ class TrainerTrainingTricksMixin(ABC):
                          n_max_try: int = 25):
         r"""
         Will iteratively try to find the largest batch size for a given model
-        that does not not give an out of memory (OOM) error
+        that does not give an out of memory (OOM) error.
 
         Args:
             model: Model to fit.
@@ -104,22 +104,21 @@ class TrainerTrainingTricksMixin(ABC):
                 If mode is `power` we keep multiplying the batch size by 2, until
                 we get an OOM error. If mode is 'binsearch', we will initially
                 also keep multiplying by 2 and after encountering an OOM error
-                do a binary search between the last succeded batch size and the
+                do a binary search between the last successful batch size and the
                 batch size that failed.
 
             n_step_per_try: number of steps to run with a given batch size.
                 Idealy 1 should be enough to test if a OOM error occurs,
-                however in practise a few is needed
+                however in practise a few are needed
 
-            init_val: initial batch size to do the search from
+            init_val: initial batch size to start the search with
 
             n_max_try: max number of increase in batch size done before
                algorithm is terminated
 
         """
         if mode not in ['power', 'binsearch']:
-            raise ValueError('mode in method `scale_batch_size`'
-                             ' can only be `power` or `binsearch')
+            raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
 
         # Arguments we adjust during the batch size finder, save for restoring
         max_steps = self.max_steps
