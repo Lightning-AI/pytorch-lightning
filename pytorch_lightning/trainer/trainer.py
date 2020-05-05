@@ -749,7 +749,7 @@ class Trainer(
         if self.auto_scale_batch_size:
             if self.auto_scale_batch_size is True:
                 self.auto_scale_batch_size = 'power'
-            _ = self.scale_batch_size(model, mode = self.auto_scale_batch_size)
+            _ = self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
         if self.auto_lr_find:
