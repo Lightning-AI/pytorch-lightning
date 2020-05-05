@@ -29,6 +29,8 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 builtins.__LIGHTNING_SETUP__ = True
 
+IS_READTHEDOCS_BUILD = os.environ.get('READTHEDOCS', False)
+
 import pytorch_lightning  # noqa: E402
 
 # -- Project documents -------------------------------------------------------
@@ -305,23 +307,31 @@ for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
     shutil.copy(path_ipynb, path_ipynb2)
 
+
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
+def package_list_from_file(file):
+    mocked_packages = []
+    with open(file, 'r') as fp:
+        for ln in fp.readlines():
+            found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
+            pkg = ln[:min(found)] if found else ln
+            if pkg.rstrip():
+                mocked_packages.append(pkg.rstrip())
+    return mocked_packages
 
-MOCK_REQUIRE_PACKAGES = []
-with open(os.path.join(PATH_ROOT, 'requirements-extra.txt'), 'r') as fp:
-    for ln in fp.readlines():
-        found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
-        pkg = ln[:min(found)] if found else ln
-        if pkg.rstrip():
-            MOCK_REQUIRE_PACKAGES.append(pkg.rstrip())
 
-# TODO: better parse from package since the import name and package name may differ
+MOCK_PACKAGES = package_list_from_file(os.path.join(PATH_ROOT, 'requirements-extra.txt'))
+if IS_READTHEDOCS_BUILD:
+    # mock also base packages when we are on RTD since we don't install them there
+    base_packages = package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
+    MOCK_PACKAGES.extend(base_packages)
+
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
     'PIL',
 ]
-autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
+autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
 
 
 # Options for the linkcode extension
