@@ -323,11 +323,12 @@ def package_list_from_file(file):
 
 MOCK_PACKAGES = package_list_from_file(os.path.join(PATH_ROOT, 'requirements-extra.txt'))
 if IS_READTHEDOCS_BUILD:
-    # mock also base packages when we are on RTD since we don't do any testing there
+    # mock also base packages when we are on RTD since we don't install them there
     base_packages = package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES.extend(base_packages)
 
 MOCK_MANUAL_PACKAGES = [
+    'torchvision',
     'PIL',
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
