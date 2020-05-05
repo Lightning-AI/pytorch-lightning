@@ -12,7 +12,7 @@ from tests.base import (
 
 
 def test_model_reset_correctly(tmpdir):
-    ''' Check that model weights are correctly reset after scaling batch size'''
+    """ Check that model weights are correctly reset after scaling batch size. """
     tutils.reset_seed()
 
     class CurrentTestModel(
