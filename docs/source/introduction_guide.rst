@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+
+
 Introduction Guide
 ==================
 PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
@@ -126,14 +132,14 @@ The LightningModule provides the structure on how to organize these 5 ingredient
 Let's first start with the model. In this case we'll design
 a 3-layer neural network.
 
-.. code-block:: default
+.. testcode::
 
     import torch
     from torch.nn import functional as F
     from torch import nn
-    import pytorch_lightning as pl
+    from pytorch_lightning.core.lightning import LightningModule
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
       def __init__(self):
         super().__init__()
@@ -169,7 +175,7 @@ Notice this is a `LightningModule` instead of a `torch.nn.Module`. A LightningMo
 equivalent to a PyTorch Module except it has added functionality. However, you can use it
 EXACTLY the same as you would a PyTorch Module.
 
-.. code-block:: default
+.. testcode::
 
     net = LitMNIST()
     x = torch.Tensor(1, 1, 28, 28)
@@ -189,13 +195,13 @@ Data
 The Lightning Module organizes your dataloaders and data processing as well.
 Here's the PyTorch code for loading MNIST
 
-.. code-block:: default
+.. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
     import os
     from torchvision import datasets, transforms
-
 
     # transforms
     # prepare transforms standard to MNIST
@@ -206,24 +212,38 @@ Here's the PyTorch code for loading MNIST
     mnist_train = MNIST(os.getcwd(), train=True, download=True)
     mnist_train = DataLoader(mnist_train, batch_size=64)
 
+.. testoutput::
+    :hide:
+    :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST')) or not TORCHVISION_AVAILABLE
+
+    Downloading ...
+    Extracting ...
+    Downloading ...
+    Extracting ...
+    Downloading ...
+    Extracting ...
+    Processing...
+    Done!
+
 When using PyTorch Lightning, we use the exact same code except we organize it into
 the LightningModule
 
-.. code-block:: python
+.. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
     import os
     from torchvision import datasets, transforms
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
-      def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                            transform=transform)
-        return DataLoader(mnist_train, batch_size=64)
+        def train_dataloader(self):
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Normalize((0.1307,), (0.3081,))])
+            mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                                transform=transform)
+            return DataLoader(mnist_train, batch_size=64)
 
 Notice the code is exactly the same, except now the training dataloading has been organized by the LightningModule
 under the `train_dataloader` method. This is great because if you run into a project that uses Lightning and want
@@ -232,21 +252,21 @@ to figure out how they prepare their training data you can just look in the `tra
 Usually though, we want to separate the things that write to disk in data-processing from
 things like transforms which happen in memory.
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
-      def prepare_data(self):
-        # download only
-        MNIST(os.getcwd(), train=True, download=True)
+        def prepare_data(self):
+            # download only
+            MNIST(os.getcwd(), train=True, download=True)
 
-      def train_dataloader(self):
-        # no download, just transform
-        transform=transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                            transform=transform)
-        return DataLoader(mnist_train, batch_size=64)
+        def train_dataloader(self):
+            # no download, just transform
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Normalize((0.1307,), (0.3081,))])
+            mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                                transform=transform)
+            return DataLoader(mnist_train, batch_size=64)
 
 Doing it in the `prepare_data` method ensures that when you have
 multiple GPUs you won't overwrite the data. This is a contrived example
@@ -254,24 +274,24 @@ but it gets more complicated with things like NLP or Imagenet.
 
 In general fill these methods with the following:
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
-      def prepare_data(self):
-        # stuff here is done once at the very beginning of training
-        # before any distributed training starts
+        def prepare_data(self):
+            # stuff here is done once at the very beginning of training
+            # before any distributed training starts
 
-        # download stuff
-        # save to disk
-        # etc...
+            # download stuff
+            # save to disk
+            # etc...
+            ...
 
-      def train_dataloader(self):
-        # data transforms
-        # dataset creation
-        # return a DataLoader
-
-
+        def train_dataloader(self):
+            # data transforms
+            # dataset creation
+            # return a DataLoader
+            ...
 
 Optimizer
 ^^^^^^^^^
@@ -287,20 +307,20 @@ In PyTorch we do it as follows:
 
 In Lightning we do the same but organize it under the configure_optimizers method.
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
-      def configure_optimizers(self):
-        return Adam(self.parameters(), lr=1e-3)
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=1e-3)
 
 .. note:: The LightningModule itself has the parameters, so pass in self.parameters()
 
 However, if you have multiple optimizers use the matching parameters
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
         def configure_optimizers(self):
             return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
@@ -340,16 +360,16 @@ In the case of MNIST we do the following
 In Lightning, everything that is in the training step gets organized under the `training_step` function
 in the LightningModule
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y)
-        return {'loss': loss}
-        # return loss (also works)
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
+            return {'loss': loss}
+            # return loss (also works)
 
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
@@ -367,43 +387,43 @@ So far we defined 4 key ingredients in pure PyTorch but organized the code insid
 
 For clarity, we'll recall that the full LightningModule now looks like this.
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
-      def __init__(self):
-        super().__init__()
-        self.layer_1 = torch.nn.Linear(28 * 28, 128)
-        self.layer_2 = torch.nn.Linear(128, 256)
-        self.layer_3 = torch.nn.Linear(256, 10)
+    class LitMNIST(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer_1 = torch.nn.Linear(28 * 28, 128)
+            self.layer_2 = torch.nn.Linear(128, 256)
+            self.layer_3 = torch.nn.Linear(256, 10)
 
-      def forward(self, x):
-        batch_size, channels, width, height = x.size()
-        x = x.view(batch_size, -1)
-        x = self.layer_1(x)
-        x = torch.relu(x)
-        x = self.layer_2(x)
-        x = torch.relu(x)
-        x = self.layer_3(x)
-        x = torch.log_softmax(x, dim=1)
-        return x
+        def forward(self, x):
+            batch_size, channels, width, height = x.size()
+            x = x.view(batch_size, -1)
+            x = self.layer_1(x)
+            x = torch.relu(x)
+            x = self.layer_2(x)
+            x = torch.relu(x)
+            x = self.layer_3(x)
+            x = torch.log_softmax(x, dim=1)
+            return x
 
-      def train_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
-        return DataLoader(mnist_train, batch_size=64)
+        def train_dataloader(self):
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Normalize((0.1307,), (0.3081,))])
+            mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+            return DataLoader(mnist_train, batch_size=64)
 
-      def configure_optimizers(self):
-        return Adam(self.parameters(), lr=1e-3)
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=1e-3)
 
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y)
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
 
-        # add logging
-        logs = {'loss': loss}
-        return {'loss': loss, 'log': logs}
+            # add logging
+            logs = {'loss': loss}
+            return {'loss': loss, 'log': logs}
 
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
@@ -551,33 +571,33 @@ will cause all sorts of issues.
 To solve this problem, move the download code to the `prepare_data` method in the LightningModule.
 In this method we do all the preparation we need to do once (instead of on every gpu).
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
-      def prepare_data(self):
-        # transform
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    class LitMNIST(LightningModule):
+        def prepare_data(self):
+            # transform
+            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-        # download
-        mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-        mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
+            # download
+            mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
+            mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
 
-        # train/val split
-        mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
+            # train/val split
+            mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
 
-        # assign to use in dataloaders
-        self.train_dataset = mnist_train
-        self.val_dataset = mnist_val
-        self.test_dataset = mnist_test
+            # assign to use in dataloaders
+            self.train_dataset = mnist_train
+            self.val_dataset = mnist_val
+            self.test_dataset = mnist_test
 
-      def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=64)
+        def train_dataloader(self):
+            return DataLoader(self.train_dataset, batch_size=64)
 
-      def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=64)
+        def val_dataloader(self):
+            return DataLoader(self.val_dataset, batch_size=64)
 
-      def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=64)
+        def test_dataloader(self):
+            return DataLoader(self.test_dataset, batch_size=64)
 
 The `prepare_data` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).
@@ -642,28 +662,28 @@ In addition, we define a `val_dataloader` method which tells the trainer what da
 Notice we split the train split of MNIST into train, validation. We also have to make sure to do the
 sample split in the `train_dataloader` method.
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
-      def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y)
-        return {'val_loss': loss}
+    class LitMNIST(LightningModule):
+        def validation_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
+            return {'val_loss': loss}
 
-      def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        tensorboard_logs = {'val_loss': avg_loss}
-        return {'val_loss': avg_loss, 'log': tensorboard_logs}
+        def validation_epoch_end(self, outputs):
+            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+            tensorboard_logs = {'val_loss': avg_loss}
+            return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
-      def val_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                            transform=transform)
-        _, mnist_val = random_split(mnist_train, [55000, 5000])
-        mnist_val = DataLoader(mnist_val, batch_size=64)
-        return mnist_val
+        def val_dataloader(self):
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Normalize((0.1307,), (0.3081,))])
+            mnist_train = MNIST(os.getcwd(), train=True, download=False,
+                                transform=transform)
+            _, mnist_val = random_split(mnist_train, [55000, 5000])
+            mnist_val = DataLoader(mnist_val, batch_size=64)
+            return mnist_val
 
 Again, we've just organized the regular PyTorch code into two steps, the `validation_step` method which
 operates on a single batch and the `validation_epoch_end` method to compute statistics on all batches.
@@ -698,26 +718,26 @@ Just like the validation loop, we define exactly the same steps for testing:
 - test_epoch_end
 - test_dataloader
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
-      def test_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y)
-        return {'val_loss': loss}
+    class LitMNIST(LightningModule):
+        def test_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
+            return {'val_loss': loss}
 
-      def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        tensorboard_logs = {'val_loss': avg_loss}
-        return {'val_loss': avg_loss, 'log': tensorboard_logs}
+        def test_epoch_end(self, outputs):
+            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+            tensorboard_logs = {'val_loss': avg_loss}
+            return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
-      def test_dataloader(self):
-        transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        mnist_train = MNIST(os.getcwd(), train=False, download=False, transform=transform)
-        _, mnist_val = random_split(mnist_train, [55000, 5000])
-        mnist_val = DataLoader(mnist_val, batch_size=64)
-        return mnist_val
+        def test_dataloader(self):
+            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+            mnist_train = MNIST(os.getcwd(), train=False, download=False, transform=transform)
+            _, mnist_val = random_split(mnist_train, [55000, 5000])
+            mnist_val = DataLoader(mnist_val, batch_size=64)
+            return mnist_val
 
 However, to make sure the test set isn't used inadvertently, Lightning has a separate API to run tests.
 Once you train your model simply call `.test()`.
@@ -773,26 +793,26 @@ On the surface, it looks like `forward` and `training_step` are similar. General
 what we want the model to do is what happens in the `forward`. whereas the `training_step` likely calls forward from
 within it.
 
-.. code-block:: python
+.. testcode::
 
-    class MNISTClassifier(pl.LightningModule):
+    class MNISTClassifier(LightningModule):
 
-      def forward(self, x):
-        batch_size, channels, width, height = x.size()
-        x = x.view(batch_size, -1)
-        x = self.layer_1(x)
-        x = torch.relu(x)
-        x = self.layer_2(x)
-        x = torch.relu(x)
-        x = self.layer_3(x)
-        x = torch.log_softmax(x, dim=1)
-        return x
+        def forward(self, x):
+            batch_size, channels, width, height = x.size()
+            x = x.view(batch_size, -1)
+            x = self.layer_1(x)
+            x = torch.relu(x)
+            x = self.layer_2(x)
+            x = torch.relu(x)
+            x = self.layer_3(x)
+            x = torch.log_softmax(x, dim=1)
+            return x
 
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y)
-        return loss
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
+            return loss
 
 .. code-block:: python
 
@@ -802,27 +822,27 @@ within it.
 
 In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
 
-.. code-block:: python
+.. testcode::
 
-    class MNISTRepresentator(pl.LightningModule):
+    class MNISTRepresentator(LightningModule):
 
-      def forward(self, x):
-        batch_size, channels, width, height = x.size()
-        x = x.view(batch_size, -1)
-        x = self.layer_1(x)
-        x1 = torch.relu(x)
-        x = self.layer_2(x1)
-        x2 = torch.relu(x)
-        x3 = self.layer_3(x2)
-        return [x, x1, x2, x3]
+        def forward(self, x):
+            batch_size, channels, width, height = x.size()
+            x = x.view(batch_size, -1)
+            x = self.layer_1(x)
+            x1 = torch.relu(x)
+            x = self.layer_2(x1)
+            x2 = torch.relu(x)
+            x3 = self.layer_3(x2)
+            return [x, x1, x2, x3]
 
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        out, l1_feats, l2_feats, l3_feats = self(x)
-        logits = torch.log_softmax(out, dim=1)
-        ce_loss = F.nll_loss(logits, y)
-        loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
-        return loss
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            out, l1_feats, l2_feats, l3_feats = self(x)
+            logits = torch.log_softmax(out, dim=1)
+            ce_loss = F.nll_loss(logits, y)
+            loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
+            return loss
 
 .. code-block:: python
 
@@ -832,21 +852,21 @@ In this case, we've set this LightningModel to predict logits. But we could also
 
 Or maybe we have a model that we use to do generation
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNISTDreamer(pl.LightningModule):
+    class LitMNISTDreamer(LightningModule):
 
-      def forward(self, z):
-        imgs = self.decoder(z)
-        return imgs
+        def forward(self, z):
+            imgs = self.decoder(z)
+            return imgs
 
-      def training_step(self, batch, batch_idx):
-        x, y = batch
-        representation = self.encoder(x)
-        imgs = self(representation)
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            representation = self.encoder(x)
+            imgs = self(representation)
 
-        loss = perceptual_loss(imgs, x)
-        return loss
+            loss = perceptual_loss(imgs, x)
+            return loss
 
 .. code-block:: python
 
@@ -871,7 +891,7 @@ Any part of the training, validation and testing loop can be modified.
 For instance, if you wanted to do your own backward pass, you would override the
 default implementation
 
-.. code-block:: python
+.. testcode::
 
     def backward(self, use_amp, loss, optimizer):
         if use_amp:
@@ -882,9 +902,9 @@ default implementation
 
 With your own
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
         def backward(self, use_amp, loss, optimizer):
             # do a custom way of backward
@@ -892,7 +912,7 @@ With your own
 
 Or if you wanted to initialize ddp in a different way than the default one
 
-.. code-block:: python
+.. testcode::
 
     def configure_ddp(self, model, device_ids):
         # Lightning DDP simply routes to test_step, val_step, etc...
@@ -905,9 +925,9 @@ Or if you wanted to initialize ddp in a different way than the default one
 
 you could do your own:
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
 
         def configure_ddp(self, model, device_ids):
 
@@ -916,7 +936,7 @@ you could do your own:
             return model
 
 Every single part of training is configurable this way.
-For a full list look at `lightningModule <lightning-module.rst>`_.
+For a full list look at `LightningModule <lightning-module.rst>`_.
 
 ---------
 
@@ -925,26 +945,32 @@ Callbacks
 Another way to add arbitrary functionality is to add a custom callback
 for hooks that you might care about
 
-.. code-block:: python
+.. testcode::
 
-    import pytorch_lightning as pl
+    from pytorch_lightning.callbacks import Callback
 
-    class MyPrintingCallback(pl.Callback):
+    class MyPrintingCallback(Callback):
 
         def on_init_start(self, trainer):
             print('Starting to init trainer!')
 
         def on_init_end(self, trainer):
-            print('trainer is init now')
+            print('Trainer is init now')
 
         def on_train_end(self, trainer, pl_module):
             print('do something when training ends')
 
 And pass the callbacks into the trainer
 
-.. code-block:: python
+.. testcode::
 
-    Trainer(callbacks=[MyPrintingCallback()])
+    trainer = Trainer(callbacks=[MyPrintingCallback()])
+
+.. testoutput::
+    :hide:
+
+    Starting to init trainer!
+    Trainer is init now
 
 .. note::
     See full list of 12+ hooks in the :ref:`callbacks`.

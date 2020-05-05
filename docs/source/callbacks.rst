@@ -1,3 +1,8 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.callbacks.base import Callback
+
 .. role:: hidden
     :class: hidden-section
 
@@ -18,21 +23,23 @@ An overall Lightning system should have:
 
 Example:
 
-.. doctest::
+.. testcode::
 
-    >>> import pytorch_lightning as pl
-    >>> class MyPrintingCallback(pl.Callback):
-    ...
-    ...     def on_init_start(self, trainer):
-    ...         print('Starting to init trainer!')
-    ...
-    ...     def on_init_end(self, trainer):
-    ...         print('trainer is init now')
-    ...
-    ...     def on_train_end(self, trainer, pl_module):
-    ...         print('do something when training ends')
-    ...
-    >>> trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    class MyPrintingCallback(Callback):
+
+        def on_init_start(self, trainer):
+            print('Starting to init trainer!')
+
+        def on_init_end(self, trainer):
+            print('trainer is init now')
+
+        def on_train_end(self, trainer, pl_module):
+            print('do something when training ends')
+
+    trainer = Trainer(callbacks=[MyPrintingCallback()])
+
+.. testoutput::
+
     Starting to init trainer!
     trainer is init now
 

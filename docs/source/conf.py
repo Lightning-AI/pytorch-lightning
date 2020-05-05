@@ -309,7 +309,7 @@ for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 
 MOCK_REQUIRE_PACKAGES = []
-with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
+with open(os.path.join(PATH_ROOT, 'requirements-extra.txt'), 'r') as fp:
     for ln in fp.readlines():
         found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
         pkg = ln[:min(found)] if found else ln
@@ -318,19 +318,10 @@ with open(os.path.join(PATH_ROOT, 'requirements.txt'), 'r') as fp:
 
 # TODO: better parse from package since the import name and package name may differ
 MOCK_MANUAL_PACKAGES = [
-    'torch',
     'torchvision',
     'PIL',
-    'test_tube',
-    'mlflow',
-    'comet_ml',
-    'wandb',
-    'neptune',
-    'trains',
 ]
 autodoc_mock_imports = MOCK_REQUIRE_PACKAGES + MOCK_MANUAL_PACKAGES
-# for mod_name in MOCK_REQUIRE_PACKAGES:
-#     sys.modules[mod_name] = mock.Mock()
 
 
 # Options for the linkcode extension
@@ -405,3 +396,16 @@ html_add_permalinks = "¶"
 #  Useful for avoiding ambiguity when the same section heading appears in different documents.
 # http://www.sphinx-doc.org/en/master/usage/extensions/autosectionlabel.html
 autosectionlabel_prefix_document = True
+
+# only run doctests marked with a ".. doctest::" directive
+doctest_test_doctest_blocks = ''
+doctest_global_setup = """
+
+import importlib
+import os
+import torch
+
+TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
+
+"""
+coverage_skip_undoc_in_source = True
