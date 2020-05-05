@@ -5,7 +5,7 @@ Learning rate scheduling
 -------------------------------------
 Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
 
-.. code-block:: python
+.. testcode::
 
    # no LR scheduler
    def configure_optimizers(self):
@@ -44,7 +44,7 @@ Use multiple optimizers (like GANs)
 -------------------------------------
 To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
 
-.. code-block:: python
+.. testcode::
 
    # one optimizer
    def configure_optimizers(self):
@@ -79,7 +79,7 @@ override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 
-.. code-block:: python
+.. testcode::
 
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
         optimizer.step()
@@ -104,7 +104,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 Here we add a learning-rate warm up
 
-.. code-block:: python
+.. testcode::
 
     # learning rate warm-up
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
