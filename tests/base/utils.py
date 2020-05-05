@@ -9,8 +9,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
-from tests.base import LightningTestModel, EvalModelTemplate
 from tests.base.datasets import PATH_DATASETS
+from tests.base.model_template import EvalModelTemplate
 
 
 def assert_speed_parity(pl_times, pt_times, num_epochs):
@@ -148,7 +148,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model(logger, root_weights_dir, module_class=LightningTestModel, path_expt=None):
+def load_model(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
     # load trained model
     path_expt_dir = get_data_path(logger, path_dir=path_expt)
     tags_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_CSV_TAGS)
@@ -166,7 +166,7 @@ def load_model(logger, root_weights_dir, module_class=LightningTestModel, path_e
     return trained_model
 
 
-def load_model_from_checkpoint(root_weights_dir, module_class=LightningTestModel):
+def load_model_from_checkpoint(root_weights_dir, module_class=EvalModelTemplate):
     # load trained model
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
