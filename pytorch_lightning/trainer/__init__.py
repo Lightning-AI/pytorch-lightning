@@ -213,7 +213,7 @@ Might make your system slower, but ensures reproducibility.
 For more info check `[pytorch docs]
 <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(deterministic=False)
