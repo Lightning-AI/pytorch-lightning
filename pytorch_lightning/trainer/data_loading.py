@@ -9,6 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning import _logger as log
 
 try:
     from torch.utils.data import IterableDataset
@@ -212,14 +213,19 @@ class TrainerDataLoadingMixin(ABC):
             dataloaders = [dataloaders]
 
         # shuffling in val and test set is bad practice
+        dataloadersClean = []
         for loader in dataloaders:
-            if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
-                raise MisconfigurationException(
-                    f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
-                    ' this off for validation and test dataloaders.')
+            if loader is not None:
+                if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
+                    raise MisconfigurationException(
+                        f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                        ' this off for validation and test dataloaders.')
+                dataloadersClean.append(loader)
+            else:
+                log.warning("One of validation dataloaders is None.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
+        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloadersClean]
 
         num_batches = 0
 
