@@ -38,7 +38,7 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 Auto scaling of batch size
 -------------------------------------
 Auto scaling of batch size may be enabled to find the largest batch size that fits into
-memory. Larger batch size often give better estimates of gradients, but may also give
+memory. Larger batch size often yields better estimates of gradients, but may also result in
 longer training time.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
