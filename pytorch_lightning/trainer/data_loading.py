@@ -9,7 +9,6 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
 
 try:
     from torch.utils.data import IterableDataset
