@@ -41,8 +41,11 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1
     )
 
-    changed_attributes = ['max_steps', 'weights_summary', 'logger',
-                          'callbacks', 'checkpoint_callback']
+    changed_attributes = ['max_steps',
+                          'weights_summary',
+                          'logger',
+                          'callbacks',
+                          'checkpoint_callback']
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -59,7 +62,8 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-def test_trainer_arg_bool(tmpdir):
+@pytest.mark.parametrize('scale_arg', [True, 'power', 'binsearch'])
+def test_trainer_arg(tmpdir, scale_arg):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
@@ -71,7 +75,7 @@ def test_trainer_arg_bool(tmpdir):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        auto_scale_batch_size=True
+        auto_scale_batch_size=scale_arg,
     )
 
     trainer.fit(model)
@@ -80,28 +84,8 @@ def test_trainer_arg_bool(tmpdir):
         'Batch size was not altered after running auto scaling of batch size'
 
 
-def test_trainer_arg_str(tmpdir):
-    ''' Check that trainer arg works with str input '''
-    tutils.reset_seed()
-
-    hparams = tutils.get_default_hparams()
-    model = EvalModelTemplate(hparams)
-
-    before_batch_size = hparams.batch_size
-    # logger file to get meta
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=1,
-        auto_scale_batch_size='binsearch'
-    )
-
-    trainer.fit(model)
-    after_batch_size = model.hparams.batch_size
-    assert before_batch_size != after_batch_size, \
-        'Batch size was not altered after running auto scaling of batch size'
-
-
-def test_call_to_trainer_method(tmpdir):
+@pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
+def test_call_to_trainer_method(tmpdir, scale_method):
     """ Test that calling the trainer method itself works. """
     tutils.reset_seed()
 
@@ -115,7 +99,7 @@ def test_call_to_trainer_method(tmpdir):
         max_epochs=1,
     )
 
-    after_batch_size = trainer.scale_batch_size(model, mode='binsearch')
+    after_batch_size = trainer.scale_batch_size(model, mode=scale_method, n_max_try=5)
     model.hparams.batch_size = after_batch_size
     trainer.fit(model)
 
