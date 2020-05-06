@@ -7,24 +7,40 @@ import tests.base.utils as tutils
 
 
 def test_training_epoch_end_metrics_collection(tmpdir):
-
+    """ Test that progress bar metrics also get collected at the end of an epoch. """
+    num_epochs = 3
     class CurrentModel(EvalModelTemplate):
 
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            output['progress_bar'].update({'step_metric': torch.tensor(-1)})
+            output['progress_bar'].update({'shared_metric': 100})
+            return output
+
         def training_epoch_end(self, outputs):
+            # add a new metric every epoch
+            epoch = self.current_epoch
             return {
                 'progress_bar': {
-                    'new_metric': torch.tensor(3)
+                    f'epoch_metric_{epoch}': torch.tensor(epoch),
+                    'shared_metric': torch.tensor(111),
                 }
             }
 
     model = CurrentModel(tutils.get_default_hparams())
     trainer = Trainer(
-        max_epochs=1,
+        max_epochs=num_epochs,
         default_root_dir=tmpdir,
-        train_percent_check=0.001,
-        val_percent_check=0.01,
+        overfit_pct=0.1,
     )
-    trainer.fit(model)
+    result = trainer.fit(model)
+    assert result == 1
+    metrics = trainer.progress_bar_dict
 
-
-    assert trainer.progress_bar_dict['new_metric'] == 3
+    # metrics added in training step should be unchanged by epoch end method
+    assert metrics['step_metric'] == -1
+    # metric shared in both methods gets overwritten by epoch_end
+    assert metrics['shared_metric'] == 111
+    # metrics are kept after each epoch
+    for i in range(num_epochs):
+        assert metrics[f'epoch_metric_{i}'] == i
