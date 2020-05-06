@@ -12,7 +12,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import is_OOM_error, garbage_collection_cuda
+from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
@@ -148,7 +148,7 @@ class TrainerTrainingTricksMixin(ABC):
                 new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded')
             except RuntimeError as exception:
                 # Only these errors should trigger an adjustment
-                if is_OOM_error(exception):
+                if is_oom_error(exception):
                     # If we fail in power mode, half the size and return
                     garbage_collection_cuda()
                     high = new_size
@@ -176,7 +176,7 @@ class TrainerTrainingTricksMixin(ABC):
                     new_size = _adjust_batch_size(self, value=midval, desc='succeeded')
                 except RuntimeError as exception:
                     # Only these errors should trigger an adjustment
-                    if is_OOM_error(exception):
+                    if is_oom_error(exception):
                         garbage_collection_cuda()
                         high = new_size
                         if high - low <= 1:
