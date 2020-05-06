@@ -26,7 +26,7 @@ def recursive_detach(in_dict: dict) -> dict:
     return out_dict
 
 
-def is_OOM_error(exception):
+def is_oom_error(exception):
     return is_cuda_out_of_memory(exception) \
         or is_cudnn_snafu(exception) \
         or is_out_of_cpu_memory(exception)
