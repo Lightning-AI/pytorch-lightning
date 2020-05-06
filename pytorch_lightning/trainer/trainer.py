@@ -321,8 +321,7 @@ class Trainer(
         self.tpu_cores = tpu_cores
         assert tpu_cores in [1, 8, None] or len(tpu_cores) == 1, 'tpu_cores can only be 1, 8 or [<1-8>]'
 
-        if isinstance(tpu_cores, list):
-            self.tpu_id = tpu_cores[0]
+        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
