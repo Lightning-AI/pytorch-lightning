@@ -145,7 +145,7 @@ class TrainerTrainingTricksMixin(ABC):
 
                 # Double in size
                 low = new_size
-                new_size = _adjust_batch_size(self, factor=2.0, string='succeeded')
+                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded')
             except RuntimeError as exception:
                 # Only these errors should trigger an adjustment
                 if is_OOM_error(exception):
@@ -153,7 +153,7 @@ class TrainerTrainingTricksMixin(ABC):
                     garbage_collection_cuda()
                     high = new_size
                     if mode != 'binsearch':
-                        new_size = _adjust_batch_size(self, factor=0.5, string='failed')
+                        new_size = _adjust_batch_size(self, factor=0.5, desc='failed')
                     break
                 else:
                     raise  # some other error not memory related
@@ -173,7 +173,7 @@ class TrainerTrainingTricksMixin(ABC):
                     # Adjust batch size
                     low = new_size
                     midval = (high + low) // 2
-                    new_size = _adjust_batch_size(self, value=midval, string='succeeded')
+                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded')
                 except RuntimeError as exception:
                     # Only these errors should trigger an adjustment
                     if is_OOM_error(exception):
@@ -182,7 +182,7 @@ class TrainerTrainingTricksMixin(ABC):
                         if high - low <= 1:
                             break
                         midval = (high + low) // 2
-                        new_size = _adjust_batch_size(self, value=midval, string='failed')
+                        new_size = _adjust_batch_size(self, value=midval, desc='failed')
                     else:
                         raise  # some other error not memory related
 
@@ -238,7 +238,7 @@ class TrainerTrainingTricksMixin(ABC):
 def _adjust_batch_size(trainer,
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       string: str = None):
+                       desc: str = None):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
@@ -252,7 +252,7 @@ def _adjust_batch_size(trainer,
         value: if a value is given, will override the batch size with this value.
             Note that the value of `factor` will not have an effect in this case
 
-        string: either `succeeded` or `failed`. Used purely for logging
+        desc: either `succeeded` or `failed`. Used purely for logging
 
     """
     trainer_arg = 'batch_size'
@@ -264,13 +264,13 @@ def _adjust_batch_size(trainer,
         if value:
             setattr(model.hparams, trainer_arg, value)
             new_size = value
-            if string:
-                log.info(f'Batch size {batch_size} {string}, trying batch size {new_size}')
+            if desc:
+                log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
         else:
             if batch_size > 1:
                 new_size = int(batch_size * factor)
-                if string:
-                    log.info(f'Batch size {batch_size} {string}, trying batch size {new_size}')
+                if desc:
+                    log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
                 setattr(model.hparams, trainer_arg, new_size)
             else:
                 raise ValueError('Could not reduce batch size any further')
