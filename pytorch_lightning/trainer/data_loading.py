@@ -213,19 +213,19 @@ class TrainerDataLoadingMixin(ABC):
             dataloaders = [dataloaders]
 
         # shuffling in val and test set is bad practice
-        dataloadersClean = []
+        dataloaders_clean = []
         for loader in dataloaders:
             if loader is not None:
                 if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
                     raise MisconfigurationException(
                         f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
                         ' this off for validation and test dataloaders.')
-                dataloadersClean.append(loader)
+                dataloaders_clean.append(loader)
             else:
                 log.warning("One of validation dataloaders is None.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloadersClean]
+        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders_clean]
 
         num_batches = 0
 
