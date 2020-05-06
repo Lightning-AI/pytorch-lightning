@@ -1,10 +1,40 @@
 import pytest
 import torch
+import inspect
+from functools import partial
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score, \
+    f1_score as f1_score_sk, fbeta_score as fbeta_score_sk, \
+    confusion_matrix as confusion_matrix_sk
 
 from pytorch_lightning.metrics.functional.classification import to_onehot, to_categorical, get_num_classes, \
     stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score, \
     f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc
 
+
+@pytest.mark.parametrize('mode', ['micro', 'macro', 'weighted', None])
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    (accuracy_score, accuracy),
+    (precision_score, precision),
+    (recall_score, recall),
+    (f1_score_sk, f1_score),
+    (partial(fbeta_score_sk, beta=2), partial(fbeta_score, beta=2)),
+    (confusion_matrix_sk, confusion_matrix)
+])
+def test_against_sklearn(mode, sklearn_metric, torch_metric):
+    pred = torch.randint(10, (500,))
+    target = torch.randint(10, (500,))
+    
+    specs = inspect.getfullargspec(sklearn_metric)
+    if 'average' in specs.args or 'average' in specs.kwonlyargs:
+        assert torch.allclose(
+            torch.tensor(sklearn_metric(target, pred, average=mode), dtype=torch.float), 
+            torch_metric(pred, target, reduction=mode))
+    else:
+        assert torch.allclose(
+            torch.tensor(sklearn_metric(target, pred), dtype=torch.float), 
+            torch_metric(pred, target))
+    
 
 def test_onehot():
     test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
@@ -96,34 +126,36 @@ def test_get_num_classes(pred, target, num_classes, expected_num_classes):
     assert get_num_classes(pred, target, num_classes) == expected_num_classes
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1)
+@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn', 'expected_support'], [
+    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1, 2),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1, 2)
 ])
-def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
-    tp, fp, tn, fn = stat_scores(pred, target, class_index=4)
+def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+    tp, fp, tn, fn, sup = stat_scores(pred, target, class_index=4)
 
     assert tp.item() == expected_tp
     assert fp.item() == expected_fp
     assert tn.item() == expected_tn
     assert fn.item() == expected_fn
+    assert sup.item() == expected_support
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
+@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn', 'expected_support'], [
     pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
                  torch.tensor([1, 0, 0, 0, 1]), torch.tensor([0, 0, 1, 0, 1]), torch.tensor([3, 4, 3, 3, 1]),
-                 torch.tensor([0, 0, 0, 1, 1])),
+                 torch.tensor([0, 0, 0, 1, 1]), torch.tensor([1, 0, 0, 1, 2])),
     pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
                  torch.tensor([1, 0, 0, 0, 1]), torch.tensor([0, 0, 1, 0, 1]), torch.tensor([3, 4, 3, 3, 1]),
-                 torch.tensor([0, 0, 0, 1, 1]))
+                 torch.tensor([0, 0, 0, 1, 1]), torch.tensor([1, 0, 0, 1, 2]))
 ])
-def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
-    tp, fp, tn, fn = stat_scores_multiple_classes(pred, target)
+def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+    tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target)
 
     assert torch.allclose(expected_tp.to(tp), tp)
     assert torch.allclose(expected_fp.to(fp), fp)
     assert torch.allclose(expected_tn.to(tn), tn)
     assert torch.allclose(expected_fn.to(fn), fn)
+    assert torch.allclose(expected_support.to(sup), sup)
 
 
 def test_multilabel_accuracy():
@@ -131,7 +163,7 @@ def test_multilabel_accuracy():
     y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
     y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
 
-    assert torch.allclose(accuracy(y1, y2, reduction='none'), torch.tensor([0.8333333134651184] * 2))
+    assert torch.allclose(accuracy(y1, y2, reduction='none'), torch.tensor([0.6666666666667, 1.]))
     assert torch.allclose(accuracy(y1, y1, reduction='none'), torch.tensor([1., 1.]))
     assert torch.allclose(accuracy(y2, y2, reduction='none'), torch.tensor([1., 1.]))
     assert torch.allclose(accuracy(y2, torch.logical_not(y2), reduction='none'), torch.tensor([0., 0.]))

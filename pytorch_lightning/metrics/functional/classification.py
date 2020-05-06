@@ -42,8 +42,9 @@ def stat_scores(pred: torch.Tensor, target: torch.Tensor,
     fp = ((pred == class_index) * (target != class_index)).to(torch.long).sum()
     tn = ((pred != class_index) * (target != class_index)).to(torch.long).sum()
     fn = ((pred != class_index) * (target == class_index)).to(torch.long).sum()
-
-    return tp, fp, tn, fn
+    sup = (target == class_index).to(torch.long).sum()
+    
+    return tp, fp, tn, fn, sup
 
 
 def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
@@ -62,38 +63,36 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
     tns = torch.zeros((num_classes,), device=pred.device)
     fns = torch.zeros((num_classes,), device=pred.device)
 
-    for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c] = stat_scores(pred=pred, target=target,
-                                                     class_index=c)
+    sup = torch.zeros((num_classes,), device=pred.device)
 
-    return tps, fps, tns, fns
+    for c in range(num_classes):
+        tps[c], fps[c], tns[c], fns[c], sup[c] = stat_scores(pred=pred, 
+                                                             target=target,
+                                                             class_index=c)
+
+    return tps.float(), fps.float(), tns.float(), fns.float(), sup.float()
 
 
 def accuracy(pred: torch.Tensor, target: torch.Tensor,
              num_classes: Optional[int] = None,
-             reduction='elementwise_mean') -> torch.Tensor:
-    tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
-                                                      num_classes=num_classes)
-
+             reduction='micro') -> torch.Tensor:
+    
+    tps, fps, tns, fns, sup = stat_scores_multiple_classes(pred=pred, 
+                                                           target=target,
+                                                           num_classes=num_classes)
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
-
-    accuracies = (tps + tns) / (tps + tns + fps + fns)
-
-    return reduce(accuracies, reduction=reduction)
+    return reduce(tps, sup, sup, reduction=reduction)
 
 
 def confusion_matrix(pred: torch.Tensor, target: torch.Tensor,
                      normalize: bool = False) -> torch.Tensor:
     num_classes = get_num_classes(pred, target, None)
 
-    d = target.size(-1)
-    batch_vec = torch.arange(target.size(-1))
-    # this will account for multilabel
-    unique_labels = batch_vec * num_classes ** 2 + target.view(-1) * num_classes + pred.view(-1)
+    unique_labels = target.view(-1) * num_classes + pred.view(-1)
 
-    bins = torch.bincount(unique_labels, minlength=d * num_classes ** 2)
-    cm = bins.reshape(d, num_classes, num_classes).squeeze().float()
+    bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
+    cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
         cm = cm / cm.sum(-1)
@@ -105,20 +104,16 @@ def precision_recall(pred: torch.Tensor, target: torch.Tensor,
                      num_classes: Optional[int] = None,
                      reduction: str = 'elementwise_mean'
                      ) -> Tuple[torch.Tensor, torch.Tensor]:
-    tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred,
-                                                      target=target,
-                                                      num_classes=num_classes)
-
-    tps = tps.to(torch.float)
-    fps = fps.to(torch.float)
-    fns = fns.to(torch.float)
+    tps, fps, tns, fns, sup = stat_scores_multiple_classes(pred=pred,
+                                                           target=target,
+                                                           num_classes=num_classes)
 
     precision = tps / (tps + fps)
     recall = tps / (tps + fns)
 
-    precision = reduce(precision, reduction=reduction)
-    recall = reduce(recall, reduction=reduction)
-    return precision, recall
+    precision = reduce(tps, tps + fps, sup, reduction=reduction)
+    recall = reduce(tps, tps + fns, sup, reduction=reduction)
+    return precision, recall, sup
 
 
 def precision(pred: torch.Tensor, target: torch.Tensor,
@@ -138,15 +133,19 @@ def recall(pred: torch.Tensor, target: torch.Tensor,
 def fbeta_score(pred: torch.Tensor, target: torch.Tensor, beta: float,
                 num_classes: Optional[int] = None,
                 reduction: str = 'elementwise_mean') -> torch.Tensor:
-    prec, rec = precision_recall(pred=pred, target=target,
-                                 num_classes=num_classes,
-                                 reduction='none')
-
+    # Special case, where we need to reduce early on
+    if reduction=='micro':
+        prec, rec, sup = precision_recall(pred=pred, target=target,
+                                          num_classes=num_classes,
+                                          reduction=reduction)
+    else:
+        prec, rec, sup = precision_recall(pred=pred, target=target,
+                                          num_classes=num_classes,
+                                          reduction='none')
+    
     nom = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
-    fbeta = nom / denom
-
-    return reduce(fbeta, reduction=reduction)
+    return reduce(nom, denom, sup, reduction=reduction)
 
 
 def f1_score(pred: torch.Tensor, target: torch.Tensor,
