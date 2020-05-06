@@ -19,10 +19,11 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
         def training_epoch_end(self, outputs):
             epoch = self.current_epoch
+            # both scalar tensors and Python numbers are accepted
             return {
                 'progress_bar': {
                     f'epoch_metric_{epoch}': torch.tensor(epoch),  # add a new metric key every epoch
-                    'shared_metric': torch.tensor(111),
+                    'shared_metric': 111,
                 }
             }
 
