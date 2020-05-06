@@ -589,7 +589,7 @@ Now we can train the LightningModule on a TPU without doing anything else!
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
 You'll now see the TPU cores booting up.
@@ -676,7 +676,7 @@ while checking the validation set.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
 You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 5 batches
@@ -727,7 +727,7 @@ Once you train your model simply call `.test()`.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
     # run test set
@@ -749,7 +749,7 @@ You can also run the test from a saved lightning model
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.

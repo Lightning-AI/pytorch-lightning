@@ -550,7 +550,7 @@ nb_sanity_val_steps:
 
     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
-num_tpu_cores
+tpu_cores
 ^^^^^^^^^^^^^
 How many TPU cores to train on (1 or 8).
 
@@ -569,21 +569,21 @@ Example::
     # your_trainer_file.py
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(num_tpu_cores=None)
+    trainer = Trainer(tpu_cores=None)
 
     # int: train on a single core
-    trainer = Trainer(num_tpu_cores=1)
+    trainer = Trainer(tpu_cores=1)
 
     # int: train on all cores few cores
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
 
     # for 8+ cores must submit via xla script with
     # a max of 8 cores specified. The XLA script
     # will duplicate script onto each TPU in the POD
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
 
     # -1: train on all available TPUs
-    trainer = Trainer(num_tpu_cores=-1)
+    trainer = Trainer(tpu_cores=-1)
 
 To train on more than 8 cores (ie: a POD),
 submit this script using the xla_dist script.

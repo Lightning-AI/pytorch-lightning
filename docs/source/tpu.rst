@@ -156,7 +156,7 @@ To use a full TPU pod skip to the TPU pod section.
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(num_tpu_cores=8)
+    trainer = pl.Trainer(tpu_cores=8)
     trainer.fit(my_model)
 
 That's it! Your model will train on all 8 TPU cores.
@@ -195,7 +195,7 @@ set the 16-bit flag.
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(num_tpu_cores=8, precision=16)
+    trainer = pl.Trainer(tpu_cores=8, precision=16)
     trainer.fit(my_model)
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.

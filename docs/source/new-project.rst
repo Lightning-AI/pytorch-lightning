@@ -177,7 +177,7 @@ However, this time you need to specifically call test (this is done so you don't
     # OPTION 2:
     # test after loading weights
     model = LitModel.load_from_checkpoint(PATH)
-    trainer = Trainer(num_tpu_cores=1)
+    trainer = Trainer(tpu_cores=1)
     trainer.test()
 
 Again, under the hood, lightning does the following in (pseudocode):
