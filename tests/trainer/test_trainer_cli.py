@@ -1,7 +1,7 @@
 import inspect
+import pickle
 from argparse import ArgumentParser, Namespace
 from unittest import mock
-import pickle
 
 import pytest
 

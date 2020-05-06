@@ -8,9 +8,8 @@ import sys
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-
 import tests.base.utils as tutils
+from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
 

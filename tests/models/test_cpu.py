@@ -1,5 +1,5 @@
-from collections import namedtuple
 import platform
+from collections import namedtuple
 
 import pytest
 import torch

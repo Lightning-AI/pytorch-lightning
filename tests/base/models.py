@@ -1,11 +1,9 @@
 from collections import OrderedDict
-from typing import Dict
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import optim
 from torch.utils.data import DataLoader
 
 from tests.base.datasets import TrialMNIST
