@@ -121,20 +121,9 @@ class TrainerTrainingTricksMixin(ABC):
             raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
 
         # Arguments we adjust during the batch size finder, save for restoring
-        max_steps = self.max_steps
-        weights_summary = self.weights_summary
-        logger = self.logger
-        callbacks = self.callbacks
-        checkpoint_callback = self.checkpoint_callback
+        self.__scale_batch_dump_params()
 
-        self.auto_scale_batch_size = False  # prevent recursion
-        self.max_steps = steps_per_iter  # take few steps
-        self.weights_summary = None  # not needed before full run
-        self.logger = None  # not needed before full run
-        self.callbacks = []  # not needed before full run
-        self.checkpoint_callback = False  # required for saving
-        self.optimizers, self.schedulers = [], []  # required for saving
-        self.model = model  # required for saving
+        self.__scale_batch_reset_params(model, steps_per_iter)
 
         # Save initial model, that is loaded after batch size is found
         save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
@@ -205,13 +194,45 @@ class TrainerTrainingTricksMixin(ABC):
         os.remove(save_path)
 
         # Finish by resetting variables so trainer is ready to fit model
-        self.max_steps = max_steps
-        self.weights_summary = weights_summary
-        self.logger = logger
-        self.callbacks = callbacks
-        self.checkpoint_callback = checkpoint_callback
+        self.__scale_batch_restore_params()
 
         return new_size
+
+    def __scale_batch_dump_params(self):
+        # Prevent going into infinite loop
+        self.__dumped_params = {
+            'max_steps': self.max_steps,
+            'weights_summary': self.weights_summary,
+            'logger': self.logger,
+            'callbacks': self.callbacks,
+            'checkpoint_callback': self.checkpoint_callback,
+            'auto_scale_batch_size': self.auto_scale_batch_size,
+            'optimizers': self.optimizers,
+            'schedulers': self.schedulers,
+            'model': self.model,
+        }
+
+    def __scale_batch_reset_params(self, model, steps_per_iter):
+        self.auto_scale_batch_size = False  # prevent recursion
+        self.max_steps = steps_per_iter  # take few steps
+        self.weights_summary = None  # not needed before full run
+        self.logger = None  # not needed before full run
+        self.callbacks = []  # not needed before full run
+        self.checkpoint_callback = False  # required for saving
+        self.optimizers, self.schedulers = [], []  # required for saving
+        self.model = model  # required for saving
+
+    def __scale_batch_restore_params(self):
+        self.max_steps = self.__dumped_params['max_steps']
+        self.weights_summary = self.__dumped_params['weights_summary']
+        self.logger = self.__dumped_params['logger']
+        self.callbacks = self.__dumped_params['callbacks']
+        self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
+        self.auto_scale_batch_size = self.__dumped_params['auto_scale_batch_size']
+        self.optimizers = self.__dumped_params['optimizers']
+        self.schedulers = self.__dumped_params['schedulers']
+        self.model = self.__dumped_params['model']
+        del self.__dumped_params
 
 
 def _adjust_batch_size(trainer,
