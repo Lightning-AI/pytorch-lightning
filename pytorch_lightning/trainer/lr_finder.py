@@ -94,7 +94,7 @@ class TrainerLRFinderMixin(ABC):
 
             # Inspect results
             fig = lr_finder.plot(); fig.show()
-            suggested_lr = lr_finder.suggest()
+            suggested_lr = lr_finder.suggestion()
 
             # Overwrite lr and create new model
             hparams.lr = suggested_lr
