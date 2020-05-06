@@ -89,8 +89,7 @@ class Trainer(
             num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             auto_select_gpus: bool = False,
-            num_tpu_cores: Optional[int] = None,
-            tpu_id: Optional[int] = None,
+            tpu_cores: Optional[Union[List[int], int]] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
@@ -180,7 +179,7 @@ class Trainer(
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
 
-            num_tpu_cores: How many TPU cores to train on (1 or 8).
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
@@ -318,11 +317,12 @@ class Trainer(
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
-        self.on_tpu = num_tpu_cores is not None
-        self.num_tpu_cores = num_tpu_cores
-        assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
+        self.on_tpu = tpu_cores is not None
+        self.tpu_cores = tpu_cores
+        assert tpu_cores in [1, 8, None] or len(tpu_cores) == 1, 'tpu_cores can only be 1, 8 or [<1-8>]'
 
-        self.tpu_id = tpu_id
+        if isinstance(tpu_cores, list):
+            self.tpu_id = tpu_cores[0]
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
@@ -454,7 +454,7 @@ class Trainer(
         # override dist backend when using tpus
         if self.on_tpu:
             self.init_tpu()
-            self.current_tpu_idx = None
+            self.current_tpu_idx = self.tpu_id
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -769,7 +769,7 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.num_tpu_cores} TPU cores')
+            log.info(f'training on {self.tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE') else 'spawn'
@@ -781,7 +781,7 @@ class Trainer(
             if self.tpu_id is not None:
                 self.tpu_train(self.tpu_id, model)
             else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
             self.load_spawn_weights(model)
