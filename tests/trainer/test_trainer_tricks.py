@@ -3,26 +3,14 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import (
-    LightTrainDataloader,
-    TestModelBase,
-    LightTestMultipleOptimizersWithSchedulingMixin,
-)
+from tests.base import EvalModelTemplate
 
 
 def test_model_reset_correctly(tmpdir):
     """ Check that model weights are correctly reset after scaling batch size. """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     trainer = Trainer(
@@ -45,14 +33,7 @@ def test_trainer_reset_correctly(tmpdir):
     """ Check that all trainer parameters are reset correctly after scaling batch size. """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     # logger file to get meta
     trainer = Trainer(
@@ -82,14 +63,9 @@ def test_trainer_arg_bool(tmpdir):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
+
     before_batch_size = hparams.batch_size
     # logger file to get meta
     trainer = Trainer(
@@ -108,14 +84,9 @@ def test_trainer_arg_str(tmpdir):
     ''' Check that trainer arg works with str input '''
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
+
     before_batch_size = hparams.batch_size
     # logger file to get meta
     trainer = Trainer(
@@ -134,14 +105,9 @@ def test_call_to_trainer_method(tmpdir):
     """ Test that calling the trainer method itself works. """
     tutils.reset_seed()
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
+
     before_batch_size = hparams.batch_size
     # logger file to get meta
     trainer = Trainer(
