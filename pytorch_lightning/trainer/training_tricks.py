@@ -238,7 +238,7 @@ class TrainerTrainingTricksMixin(ABC):
 def _adjust_batch_size(trainer,
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       string: str = None):
+                       name: str = None):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
@@ -264,13 +264,13 @@ def _adjust_batch_size(trainer,
         if value:
             setattr(model.hparams, trainer_arg, value)
             new_size = value
-            if string:
-                log.info(f'Batch size {batch_size} {string}, trying batch size {new_size}')
+            if name:
+                log.info(f'Batch size {batch_size} {name}, trying batch size {new_size}')
         else:
             if batch_size > 1:
                 new_size = int(batch_size * factor)
-                if string:
-                    log.info(f'Batch size {batch_size} {string}, trying batch size {new_size}')
+                if name:
+                    log.info(f'Batch size {batch_size} {name}, trying batch size {new_size}')
                 setattr(model.hparams, trainer_arg, new_size)
             else:
                 raise ValueError('Could not reduce batch size any further')
