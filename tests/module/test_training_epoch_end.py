@@ -18,11 +18,10 @@ def test_training_epoch_end_metrics_collection(tmpdir):
             return output
 
         def training_epoch_end(self, outputs):
-            # add a new metric every epoch
             epoch = self.current_epoch
             return {
                 'progress_bar': {
-                    f'epoch_metric_{epoch}': torch.tensor(epoch),
+                    f'epoch_metric_{epoch}': torch.tensor(epoch),  # add a new metric key every epoch
                     'shared_metric': torch.tensor(111),
                 }
             }
@@ -39,7 +38,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
     # metrics added in training step should be unchanged by epoch end method
     assert metrics['step_metric'] == -1
-    # metric shared in both methods gets overwritten by epoch_end
+    # a metric shared in both methods gets overwritten by epoch_end
     assert metrics['shared_metric'] == 111
     # metrics are kept after each epoch
     for i in range(num_epochs):
