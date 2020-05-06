@@ -3,7 +3,9 @@ import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateLogger, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
+from pathlib import Path
 
 
 def test_trainer_callback_system(tmpdir):
@@ -256,6 +258,28 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     # These should be different if the dirpath has be overridden
     assert trainer.ckpt_path != trainer.default_root_dir
+
+
+@pytest.mark.parametrize(
+    'logger_version,expected',
+    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+)
+def test_model_checkpoint_path(tmpdir, logger_version, expected):
+    """Test that "version_" prefix is only added when logger's version is an integer"""
+    tutils.reset_seed()
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    logger = TensorBoardLogger(str(tmpdir), version=logger_version)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        overfit_pct=0.2,
+        max_epochs=5,
+        logger=logger
+    )
+    trainer.fit(model)
+
+    ckpt_version = Path(trainer.ckpt_path).parent.name
+    assert ckpt_version == expected
 
 
 def test_lr_logger_single_lr(tmpdir):
