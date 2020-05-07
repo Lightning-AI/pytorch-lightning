@@ -129,7 +129,7 @@ class Trainer(
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
-            auto_scale_batch_size: Union[bool, str] = False,
+            auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -298,9 +298,8 @@ class Trainer(
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
                 The result will be stored in self.hparams.batch_size in the LightningModule.
-                Additionally, can be set to either `power` (same as `True`) that
-                estimates the batch size through a power search or `binsearch` that
-                estimates the batch size through a binary search.
+                Additionally, can be set to either `power` that estimates the batch size through
+                a power search or `binsearch` that estimates the batch size through a binary search.
         """
 
         # Init callbacks
@@ -483,7 +482,7 @@ class Trainer(
             self.show_progress_bar = show_progress_bar
 
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = None
+        self.progress_bar_callback = progress_bar_callback
         self.configure_progress_bar()
 
         # logging
@@ -747,9 +746,7 @@ class Trainer(
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
-            if self.auto_scale_batch_size is True:
-                self.auto_scale_batch_size = 'power'
-            _ = self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
         if self.auto_lr_find:
