@@ -39,7 +39,7 @@ def _nccl_available():
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
-    seed_everything(42)
+    tutils.reset_seed()
     cmdline = [
         'horovodrun',
         '-np', '2',
