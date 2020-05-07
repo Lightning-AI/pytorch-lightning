@@ -25,9 +25,22 @@ class TrainerTrainingTricksMixin(ABC):
     #  the proper values/initialisation should be done in child class
     gradient_clip_val: ...
     precision: ...
+    on_gpu: bool
 
     @abstractmethod
     def get_model(self):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def restore(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def fit(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def clip_gradients(self):
@@ -92,9 +105,9 @@ class TrainerTrainingTricksMixin(ABC):
                          model: LightningModule,
                          train_dataloader: Optional[DataLoader] = None,
                          mode: str = 'power',
-                         steps_per_iter: int = 3,
+                         steps_per_trial: int = 3,
                          init_val: int = 2,
-                         max_iters: int = 25):
+                         max_trials: int = 25):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -109,19 +122,19 @@ class TrainerTrainingTricksMixin(ABC):
                 do a binary search between the last successful batch size and the
                 batch size that failed.
 
-            steps_per_iter: number of steps to run with a given batch size.
+            steps_per_trial: number of steps to run with a given batch size.
                 Idealy 1 should be enough to test if a OOM error occurs,
                 however in practise a few are needed
 
             init_val: initial batch size to start the search with
 
-            max_iters: max number of increase in batch size done before
+            max_trials: max number of increase in batch size done before
                algorithm is terminated
 
         """
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()
-        
+
         # Set to values that are required by the algorithm
         self.__scale_batch_reset_params(model, steps_per_iter)
 
@@ -195,7 +208,7 @@ class TrainerTrainingTricksMixin(ABC):
 def _adjust_batch_size(trainer,
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       name: str = None):
+                       desc: str = None):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
@@ -209,7 +222,7 @@ def _adjust_batch_size(trainer,
         value: if a value is given, will override the batch size with this value.
             Note that the value of `factor` will not have an effect in this case
 
-        string: either `succeeded` or `failed`. Used purely for logging
+        desc: either `succeeded` or `failed`. Used purely for logging
 
     """
     model = trainer.get_model()    
@@ -218,13 +231,13 @@ def _adjust_batch_size(trainer,
         if value:
             setattr(model.hparams, 'batch_size', value)
             new_size = value
-            if name:
-                log.info(f'Batch size {batch_size} {name}, trying batch size {new_size}')
+            if desc:
+                log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
         else:
             if batch_size > 1:
                 new_size = int(batch_size * factor)
-                if name:
-                    log.info(f'Batch size {batch_size} {name}, trying batch size {new_size}')
+                if desc:
+                    log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
                 setattr(model.hparams, 'batch_size', new_size)
             else:
                 raise ValueError('Could not reduce batch size any further')
