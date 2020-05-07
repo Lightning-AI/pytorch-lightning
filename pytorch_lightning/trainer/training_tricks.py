@@ -24,9 +24,22 @@ class TrainerTrainingTricksMixin(ABC):
     #  the proper values/initialisation should be done in child class
     gradient_clip_val: ...
     precision: ...
+    on_gpu: bool
 
     @abstractmethod
     def get_model(self):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def restore(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def fit(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def clip_gradients(self):
@@ -131,7 +144,7 @@ class TrainerTrainingTricksMixin(ABC):
 
         # Initially we just double in size until an OOM is encountered
         new_size = _adjust_batch_size(self, value=init_val)  # initially set to init_val
-        high = None
+        low, high = 1, None
         count = 0
         while True:
             garbage_collection_cuda()
