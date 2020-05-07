@@ -209,6 +209,7 @@ deterministic
 
 If true enables cudnn.deterministic.
 Might make your system slower, but ensures reproducibility.
+Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
 For more info check `[pytorch docs]
 <https://pytorch.org/docs/stable/notes/randomness.html>`_.
