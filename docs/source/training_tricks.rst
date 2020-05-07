@@ -46,10 +46,10 @@ longer training time.
 .. code-block:: python
 
     # DEFAULT (ie: don't scale batch size automatically)
-    trainer = Trainer(auto_scale_batch_size=False)
+    trainer = Trainer(auto_scale_batch_size=None)
 
     # Autoscale batch size 
-    trainer = Trainer(auto_scale_batch_size=True|'power'|'binsearch')
+    trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
 
 Setting the feature to `True` enables `'power'` scaling, that starting from a
 batch size of 1 keeps doubling the batch size until an out-of-memory (OOM) error is
