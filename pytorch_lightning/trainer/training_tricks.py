@@ -152,13 +152,6 @@ class TrainerTrainingTricksMixin(ABC):
             try:
                 # Try fit
                 self.fit(model)
-                count += 1
-                if count > max_trials:
-                    break
-
-                # Double in size
-                low = new_size
-                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded')
             except RuntimeError as exception:
                 # Only these errors should trigger an adjustment
                 if is_oom_error(exception):
@@ -170,6 +163,13 @@ class TrainerTrainingTricksMixin(ABC):
                     break
                 else:
                     raise  # some other error not memory related
+            else:
+                count += 1
+                if count > max_trials:
+                    break
+                # Double in size
+                low = new_size
+                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded')
 
         # If in binsearch mode, further refine the search for optimal batch size
         if mode == 'binsearch':
@@ -179,14 +179,6 @@ class TrainerTrainingTricksMixin(ABC):
                 try:
                     # Try fit
                     self.fit(model)
-                    count += 1
-                    if count > max_trials:
-                        break
-
-                    # Adjust batch size
-                    low = new_size
-                    midval = (high + low) // 2
-                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded')
                 except RuntimeError as exception:
                     # Only these errors should trigger an adjustment
                     if is_oom_error(exception):
@@ -198,6 +190,15 @@ class TrainerTrainingTricksMixin(ABC):
                         new_size = _adjust_batch_size(self, value=midval, desc='failed')
                     else:
                         raise  # some other error not memory related
+                else:
+                    count += 1
+                    if count > max_trials:
+                        break
+
+                    # Adjust batch size
+                    low = new_size
+                    midval = (high + low) // 2
+                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded')
 
         garbage_collection_cuda()
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
