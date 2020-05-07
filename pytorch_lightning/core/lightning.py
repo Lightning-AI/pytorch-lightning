@@ -875,7 +875,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def _init_slurm_connection(self) -> None:
         """
-        Sets up environemnt variables necessary for pytorch distributed communications
+        Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
         """
         # use slurm job id for the port number

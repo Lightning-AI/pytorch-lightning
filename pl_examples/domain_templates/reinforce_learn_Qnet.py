@@ -257,7 +257,7 @@ class DQNLightning(pl.LightningModule):
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
         """
         Carries out a single step through the environment to update the replay buffer.
-        Then calculates loss based on the minibatch recieved
+        Then calculates loss based on the minibatch received
 
         Args:
             batch: current mini batch of replay data

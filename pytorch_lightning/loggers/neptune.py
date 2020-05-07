@@ -31,7 +31,7 @@ class NeptuneLogger(LightningLoggerBase):
         pip install neptune-client
 
     The Neptune logger can be used in the online mode or offline (silent) mode.
-    To log experiment data in online mode, :class:`NeptuneLogger` requries an API key.
+    To log experiment data in online mode, :class:`NeptuneLogger` requires an API key.
     In offline mode, Neptune will log to a local directory.
 
     **ONLINE MODE**
