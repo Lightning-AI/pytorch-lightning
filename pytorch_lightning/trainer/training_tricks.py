@@ -158,12 +158,17 @@ class TrainerTrainingTricksMixin(ABC):
                         if phase == 'binsearch':
                             if high - low <= 1:
                                 break
-                            new_size = _adjust_batch_size(self, value=(high + low) // 2,
-                                                          desc='failed', batch_arg_name=batch_arg_name)
-                        else:
-                            if mode != 'binsearch':
-                                new_size = _adjust_batch_size(self, factor=0.5, desc='failed',
-                                                              batch_arg_name=batch_arg_name)
+                            new_size = (high + low) // 2
+                        elif mode != 'binsearch':
+                            if new_size <= 1:
+                                break
+                            new_size = int(new_size * 0.5)
+
+                        log.debug(f'Batch size {getattr(model.hparams, batch_arg_name)} failed,'
+                                  f' trying batch size {new_size}')
+                        setattr(model.hparams, batch_arg_name, new_size)
+
+                        if phase != 'binsearch':
                             break
                     else:
                         raise  # some other error not memory related
@@ -174,17 +179,20 @@ class TrainerTrainingTricksMixin(ABC):
                     # Adjust batch size
                     low = new_size
                     if phase == 'binsearch':
-                        new_size = _adjust_batch_size(self, value=(high + low) // 2,
-                                                      desc='succeeded', batch_arg_name=batch_arg_name)
+                        new_size = (high + low) // 2
                     else:
-                        new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded', batch_arg_name=batch_arg_name)
+                        new_size = new_size * 2
+
+                    log.debug(f'Batch size {getattr(model.hparams, batch_arg_name)} succeeded,'
+                              f' trying batch size {new_size}')
+                    setattr(model.hparams, batch_arg_name, new_size)
             return new_size, low, high, count
 
         if not hasattr(model.hparams, batch_arg_name):
             raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
         # Initially we just double in size until an OOM is encountered
-        new_size = _adjust_batch_size(self, value=init_val, batch_arg_name=batch_arg_name)  # initially set to init_val
-        new_size, low, high, count = _search_loop(new_size, low=1, high=None, count=0, phase='power')
+        setattr(model.hparams, batch_arg_name, init_val)  # initially set to init_val
+        new_size, low, high, count = _search_loop(new_size=init_val, low=1, high=None, count=0, phase='power')
 
         # If in binsearch mode, further refine the search for optimal batch size
         if mode == 'binsearch':
@@ -237,43 +245,3 @@ class TrainerTrainingTricksMixin(ABC):
         # self.schedulers = self.__dumped_params['schedulers']
         self.model = self.__dumped_params['model']
         del self.__dumped_params
-
-
-def _adjust_batch_size(trainer,
-                       factor: float = 1.0,
-                       value: Optional[int] = None,
-                       desc: str = None,
-                       batch_arg_name: str = 'batch_size'):
-    """ Function for adjusting the batch size. It is expected that the user
-        has provided a model that has a hparam field called `batch_size` i.e.
-        `model.hparams.batch_size` should exist.
-
-    Args:
-        trainer: instance of pytorch_lightning.Trainer
-
-        factor: value which the old batch size is multiplied by to get the
-            new batch size
-
-        value: if a value is given, will override the batch size with this value.
-            Note that the value of `factor` will not have an effect in this case
-
-        desc: either `succeeded` or `failed`. Used purely for logging
-
-    """
-    model = trainer.get_model()
-
-    batch_size = getattr(model.hparams, batch_arg_name)
-    if value:
-        setattr(model.hparams, batch_arg_name, value)
-        new_size = value
-        if desc:
-            log.debug(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-    else:
-        if batch_size > 1:
-            new_size = int(batch_size * factor)
-            if desc:
-                log.debug(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-            setattr(model.hparams, batch_arg_name, new_size)
-        else:
-            raise ValueError('Could not reduce batch size any further')
-    return new_size
