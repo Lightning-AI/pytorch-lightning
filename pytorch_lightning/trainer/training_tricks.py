@@ -208,7 +208,7 @@ class TrainerTrainingTricksMixin(ABC):
             'checkpoint_callback': self.checkpoint_callback,
             'auto_scale_batch_size': self.auto_scale_batch_size,
             'optimizers': self.optimizers,
-            'schedulers': self.schedulers,
+            # 'schedulers': self.schedulers,
             'model': self.model,
         }
 
@@ -230,7 +230,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.auto_scale_batch_size = self.__dumped_params['auto_scale_batch_size']
         self.optimizers = self.__dumped_params['optimizers']
-        self.schedulers = self.__dumped_params['schedulers']
+        # self.schedulers = self.__dumped_params['schedulers']
         self.model = self.__dumped_params['model']
         del self.__dumped_params
 
