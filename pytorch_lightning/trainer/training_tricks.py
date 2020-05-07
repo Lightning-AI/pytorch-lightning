@@ -180,6 +180,8 @@ class TrainerTrainingTricksMixin(ABC):
                         new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded', batch_arg_name=batch_arg_name)
             return new_size, low, high, count
 
+        if not hasattr(model.hparams, batch_arg_name):
+            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
         # Initially we just double in size until an OOM is encountered
         new_size = _adjust_batch_size(self, value=init_val, batch_arg_name=batch_arg_name)  # initially set to init_val
         new_size, low, high, count = _search_loop(new_size, low=1, high=None, count=0, phase='power')
