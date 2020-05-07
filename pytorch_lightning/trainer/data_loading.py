@@ -78,7 +78,7 @@ class TrainerDataLoadingMixin(ABC):
     replace_sampler_ddp: bool
 
     @abstractmethod
-    def is_overriden(self, *args):
+    def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def _percent_range_check(self, name: str) -> None:
@@ -251,7 +251,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        if self.is_overriden('validation_step'):
+        if self.is_overridden('validation_step'):
             self.num_val_batches, self.val_dataloaders = \
                 self._reset_eval_dataloader(model, 'val')
 
@@ -261,7 +261,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        if self.is_overriden('test_step'):
+        if self.is_overridden('test_step'):
             self.num_test_batches, self.test_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')
 

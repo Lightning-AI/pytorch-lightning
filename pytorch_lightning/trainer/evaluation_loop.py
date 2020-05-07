@@ -195,7 +195,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overriden(self, *args):
+    def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -279,13 +279,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
-                    if self.is_overriden('test_step_end'):
+                    if self.is_overridden('test_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
                             output = model_ref.test_step_end(output)
                     self.on_test_batch_end()
                 else:
-                    if self.is_overriden('validation_step_end'):
+                    if self.is_overridden('validation_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('validation_step_end'):
                             output = model_ref.validation_step_end(output)
@@ -307,23 +307,23 @@ class TrainerEvaluationLoopMixin(ABC):
             model = model.module
 
         if test_mode:
-            if self.is_overriden('test_end', model=model):
+            if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
-            elif self.is_overriden('test_epoch_end', model=model):
+            elif self.is_overridden('test_epoch_end', model=model):
                 eval_results = model.test_epoch_end(outputs)
 
         else:
-            if self.is_overriden('validation_end', model=model):
+            if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
-            elif self.is_overriden('validation_epoch_end', model=model):
+            elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(outputs)
 
         # enable train mode again
@@ -336,7 +336,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def run_evaluation(self, test_mode: bool = False):
         # when testing make sure user defined a test step
-        if test_mode and not self.is_overriden('test_step'):
+        if test_mode and not self.is_overridden('test_step'):
             raise MisconfigurationException(
                 "You called `.test()` without defining model's `.test_step()`."
                 " Please define and try again")
