@@ -105,7 +105,8 @@ class TrainerTrainingTricksMixin(ABC):
                          mode: str = 'power',
                          steps_per_trial: int = 3,
                          init_val: int = 2,
-                         max_trials: int = 25):
+                         max_trials: int = 25,
+                         batch_arg_name: str = 'batch_size'):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -143,7 +144,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.save_checkpoint(str(save_path))
 
         # Initially we just double in size until an OOM is encountered
-        new_size = _adjust_batch_size(self, value=init_val)  # initially set to init_val
+        new_size = _adjust_batch_size(self, value=init_val, batch_arg_name=batch_arg_name)  # initially set to init_val
         low, high = 1, None
         count = 0
         while True:
@@ -159,7 +160,7 @@ class TrainerTrainingTricksMixin(ABC):
                     garbage_collection_cuda()
                     high = new_size
                     if mode != 'binsearch':
-                        new_size = _adjust_batch_size(self, factor=0.5, desc='failed')
+                        new_size = _adjust_batch_size(self, factor=0.5, desc='failed', batch_arg_name=batch_arg_name)
                     break
                 else:
                     raise  # some other error not memory related
@@ -169,7 +170,7 @@ class TrainerTrainingTricksMixin(ABC):
                     break
                 # Double in size
                 low = new_size
-                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded')
+                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded', batch_arg_name=batch_arg_name)
 
         # If in binsearch mode, further refine the search for optimal batch size
         if mode == 'binsearch':
@@ -187,18 +188,17 @@ class TrainerTrainingTricksMixin(ABC):
                         if high - low <= 1:
                             break
                         midval = (high + low) // 2
-                        new_size = _adjust_batch_size(self, value=midval, desc='failed')
+                        new_size = _adjust_batch_size(self, value=midval, desc='failed', batch_arg_name=batch_arg_name)
                     else:
                         raise  # some other error not memory related
                 else:
                     count += 1
                     if count > max_trials:
                         break
-
                     # Adjust batch size
                     low = new_size
                     midval = (high + low) // 2
-                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded')
+                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded', batch_arg_name=batch_arg_name)
 
         garbage_collection_cuda()
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
@@ -252,7 +252,8 @@ class TrainerTrainingTricksMixin(ABC):
 def _adjust_batch_size(trainer,
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       desc: str = None):
+                       desc: str = None,
+                       batch_arg_name: str = 'batch_size'):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
@@ -269,26 +270,20 @@ def _adjust_batch_size(trainer,
         desc: either `succeeded` or `failed`. Used purely for logging
 
     """
-    trainer_arg = 'batch_size'
-
     model = trainer.get_model()
 
-    if hasattr(model.hparams, trainer_arg):
-        batch_size = getattr(model.hparams, trainer_arg)
-        if value:
-            setattr(model.hparams, trainer_arg, value)
-            new_size = value
+    batch_size = getattr(model.hparams, batch_arg_name)
+    if value:
+        setattr(model.hparams, batch_arg_name, value)
+        new_size = value
+        if desc:
+            log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+    else:
+        if batch_size > 1:
+            new_size = int(batch_size * factor)
             if desc:
                 log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+            setattr(model.hparams, batch_arg_name, new_size)
         else:
-            if batch_size > 1:
-                new_size = int(batch_size * factor)
-                if desc:
-                    log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-                setattr(model.hparams, trainer_arg, new_size)
-            else:
-                raise ValueError('Could not reduce batch size any further')
-    else:
-        raise MisconfigurationException(
-            f'Field {trainer_arg} not found in model.hparams')
+            raise ValueError('Could not reduce batch size any further')
     return new_size
