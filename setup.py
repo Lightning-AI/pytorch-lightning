@@ -32,7 +32,7 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
     return reqs
 
 
-def load_long_describtion():
+def load_long_description():
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     url = os.path.join(pytorch_lightning.__homepage__, 'raw', pytorch_lightning.__version__, 'docs')
     text = open('README.md', encoding='utf-8').read()
@@ -59,7 +59,7 @@ setup(
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
-    long_description=load_long_describtion(),
+    long_description=load_long_description(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,

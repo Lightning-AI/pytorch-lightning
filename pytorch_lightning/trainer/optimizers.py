@@ -81,7 +81,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
     def configure_schedulers(self, schedulers: list):
-        # Convert each scheduler into dict sturcture with relevant information
+        # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = {'interval': 'epoch',  # default every epoch
                           'frequency': 1,  # default every epoch/batch
