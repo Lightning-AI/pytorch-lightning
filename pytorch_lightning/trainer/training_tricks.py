@@ -103,9 +103,9 @@ class TrainerTrainingTricksMixin(ABC):
     def scale_batch_size(self,
                          model: LightningModule,
                          mode: str = 'power',
-                         steps_per_iter: int = 3,
+                         steps_per_trial: int = 3,
                          init_val: int = 2,
-                         max_iters: int = 25):
+                         max_trials: int = 25):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -120,13 +120,13 @@ class TrainerTrainingTricksMixin(ABC):
                 do a binary search between the last successful batch size and the
                 batch size that failed.
 
-            steps_per_iter: number of steps to run with a given batch size.
+            steps_per_trial: number of steps to run with a given batch size.
                 Idealy 1 should be enough to test if a OOM error occurs,
                 however in practise a few are needed
 
             init_val: initial batch size to start the search with
 
-            max_iters: max number of increase in batch size done before
+            max_trials: max number of increase in batch size done before
                algorithm is terminated
 
         """
@@ -136,7 +136,7 @@ class TrainerTrainingTricksMixin(ABC):
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()
 
-        self.__scale_batch_reset_params(model, steps_per_iter)
+        self.__scale_batch_reset_params(model, steps_per_trial)
 
         # Save initial model, that is loaded after batch size is found
         save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
@@ -153,7 +153,7 @@ class TrainerTrainingTricksMixin(ABC):
                 # Try fit
                 self.fit(model)
                 count += 1
-                if count > max_iters:
+                if count > max_trials:
                     break
 
                 # Double in size
@@ -180,7 +180,7 @@ class TrainerTrainingTricksMixin(ABC):
                     # Try fit
                     self.fit(model)
                     count += 1
-                    if count > max_iters:
+                    if count > max_trials:
                         break
 
                     # Adjust batch size
