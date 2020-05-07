@@ -49,17 +49,19 @@ class TrainerCallbackConfigMixin(ABC):
                 if self.weights_save_path is not None:
                     save_dir = self.weights_save_path
 
+                version = self.logger.version if isinstance(
+                    self.logger.version, str) else f'version_{self.logger.version}'
                 ckpt_path = os.path.join(
                     save_dir,
                     self.logger.name,
-                    f'version_{self.logger.version}',
+                    version,
                     "checkpoints"
                 )
             else:
                 ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
 
             # when no val step is defined, use 'loss' otherwise 'val_loss'
-            train_step_only = not self.is_overriden('validation_step')
+            train_step_only = not self.is_overridden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
 
             if self.checkpoint_callback is True:

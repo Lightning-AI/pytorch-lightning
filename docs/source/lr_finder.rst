@@ -15,7 +15,7 @@ To reduce the amount of guesswork concerning choosing a good initial learning
 rate, a `learning rate finder` can be used. As described in this `paper <https://arxiv.org/abs/1506.01186>`_ 
 a learning rate finder does a small run where the learning rate is increased 
 after each processed batch and the corresponding loss is logged. The result of 
-this is a `lr` vs. `loss` plot that can be used as guidence for choosing a optimal
+this is a `lr` vs. `loss` plot that can be used as guidance for choosing a optimal
 initial lr. 
 
 .. warning:: For the moment, this feature only works with models having a single optimizer.
