@@ -143,37 +143,7 @@ class TrainerTrainingTricksMixin(ABC):
         save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
         self.save_checkpoint(str(save_path))
 
-        # Initially we just double in size until an OOM is encountered
-        new_size = _adjust_batch_size(self, value=init_val, batch_arg_name=batch_arg_name)  # initially set to init_val
-        low, high = 1, None
-        count = 0
-        while True:
-            garbage_collection_cuda()
-            self.global_step = 0  # reset after each try
-            try:
-                # Try fit
-                self.fit(model)
-            except RuntimeError as exception:
-                # Only these errors should trigger an adjustment
-                if is_oom_error(exception):
-                    # If we fail in power mode, half the size and return
-                    garbage_collection_cuda()
-                    high = new_size
-                    if mode != 'binsearch':
-                        new_size = _adjust_batch_size(self, factor=0.5, desc='failed', batch_arg_name=batch_arg_name)
-                    break
-                else:
-                    raise  # some other error not memory related
-            else:
-                count += 1
-                if count > max_trials:
-                    break
-                # Double in size
-                low = new_size
-                new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded', batch_arg_name=batch_arg_name)
-
-        # If in binsearch mode, further refine the search for optimal batch size
-        if mode == 'binsearch':
+        def _search_loop(new_size, low, high, count, phase):
             while True:
                 garbage_collection_cuda()
                 self.global_step = 0  # reset after each try
@@ -185,10 +155,16 @@ class TrainerTrainingTricksMixin(ABC):
                     if is_oom_error(exception):
                         garbage_collection_cuda()
                         high = new_size
-                        if high - low <= 1:
+                        if phase == 'binsearch':
+                            if high - low <= 1:
+                                break
+                            new_size = _adjust_batch_size(self, value=(high + low) // 2,
+                                                          desc='failed', batch_arg_name=batch_arg_name)
+                        else:
+                            if mode != 'binsearch':
+                                new_size = _adjust_batch_size(self, factor=0.5, desc='failed',
+                                                              batch_arg_name=batch_arg_name)
                             break
-                        midval = (high + low) // 2
-                        new_size = _adjust_batch_size(self, value=midval, desc='failed', batch_arg_name=batch_arg_name)
                     else:
                         raise  # some other error not memory related
                 else:
@@ -197,8 +173,20 @@ class TrainerTrainingTricksMixin(ABC):
                         break
                     # Adjust batch size
                     low = new_size
-                    midval = (high + low) // 2
-                    new_size = _adjust_batch_size(self, value=midval, desc='succeeded', batch_arg_name=batch_arg_name)
+                    if phase == 'binsearch':
+                        new_size = _adjust_batch_size(self, value=(high + low) // 2,
+                                                      desc='succeeded', batch_arg_name=batch_arg_name)
+                    else:
+                        new_size = _adjust_batch_size(self, factor=2.0, desc='succeeded', batch_arg_name=batch_arg_name)
+            return new_size, low, high, count
+
+        # Initially we just double in size until an OOM is encountered
+        new_size = _adjust_batch_size(self, value=init_val, batch_arg_name=batch_arg_name)  # initially set to init_val
+        new_size, low, high, count = _search_loop(new_size, low=1, high=None, count=0, phase='power')
+
+        # If in binsearch mode, further refine the search for optimal batch size
+        if mode == 'binsearch':
+            _search_loop(new_size, low, high, count, phase='binsearch')
 
         garbage_collection_cuda()
         log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
@@ -277,12 +265,12 @@ def _adjust_batch_size(trainer,
         setattr(model.hparams, batch_arg_name, value)
         new_size = value
         if desc:
-            log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+            log.debug(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
     else:
         if batch_size > 1:
             new_size = int(batch_size * factor)
             if desc:
-                log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+                log.debug(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
             setattr(model.hparams, batch_arg_name, new_size)
         else:
             raise ValueError('Could not reduce batch size any further')
