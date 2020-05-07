@@ -3,13 +3,12 @@ import pickle
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TrainsLogger
-from tests.base import LightningTestModel
+from tests.base import EvalModelTemplate
 
 
 def test_trains_logger(tmpdir):
     """Verify that basic functionality of TRAINS logger works."""
-    hparams = tutils.get_default_hparams()
-    model = LightningTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
     TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
                                  files_host='http://integration.trains.allegro.ai:8081',

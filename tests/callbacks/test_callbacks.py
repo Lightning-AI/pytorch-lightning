@@ -3,28 +3,16 @@ import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateLogger, ModelCheckpoint
-from tests.base import (
-    LightTrainDataloader,
-    LightTestMixin,
-    LightValidationMixin,
-    LightTestOptimizersWithMixedSchedulingMixin,
-    TestModelBase
-)
+from pytorch_lightning.loggers import TensorBoardLogger
+from tests.base import EvalModelTemplate
+from pathlib import Path
 
 
 def test_trainer_callback_system(tmpdir):
     """Test the callback system."""
 
-    class CurrentTestModel(
-        LightTrainDataloader,
-        LightTestMixin,
-        LightValidationMixin,
-        TestModelBase,
-    ):
-        pass
-
     hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(hparams)
 
     def _check_args(trainer, pl_module):
         assert isinstance(trainer, Trainer)
@@ -214,18 +202,18 @@ def test_trainer_callback_system(tmpdir):
 
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
-    class ModelWithoutValStep(LightTrainDataloader, TestModelBase):
 
+    class CurrentModel(EvalModelTemplate):
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            loss = output['loss']  # could be anything else
-            output.update({'my_train_metric': loss})
+            output.update({'my_train_metric': output['loss']})  # could be anything else
             return output
 
-    model = ModelWithoutValStep(tutils.get_default_hparams())
+    model = CurrentModel(tutils.get_default_hparams())
+    model.validation_step = None
+    model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
@@ -243,21 +231,21 @@ def test_pickling(tmpdir):
     early_stopping = EarlyStopping()
     ckpt = ModelCheckpoint(tmpdir)
 
-    pickle.dumps(ckpt)
-    pickle.dumps(early_stopping)
+    early_stopping_pickled = pickle.dumps(early_stopping)
+    ckpt_pickled = pickle.dumps(ckpt)
+
+    early_stopping_loaded = pickle.loads(early_stopping_pickled)
+    ckpt_loaded = pickle.loads(ckpt_pickled)
+
+    assert vars(early_stopping) == vars(early_stopping_loaded)
+    assert vars(ckpt) == vars(ckpt_loaded)
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
-    """ Test that None in checkpoint callback is valid and that chkp_path is
-        set correctly """
+    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
-
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
@@ -272,15 +260,34 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     assert trainer.ckpt_path != trainer.default_root_dir
 
 
+@pytest.mark.parametrize(
+    'logger_version,expected',
+    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+)
+def test_model_checkpoint_path(tmpdir, logger_version, expected):
+    """Test that "version_" prefix is only added when logger's version is an integer"""
+    tutils.reset_seed()
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    logger = TensorBoardLogger(str(tmpdir), version=logger_version)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        overfit_pct=0.2,
+        max_epochs=5,
+        logger=logger
+    )
+    trainer.fit(model)
+
+    ckpt_version = Path(trainer.ckpt_path).parent.name
+    assert ckpt_version == expected
+
+
 def test_lr_logger_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler"""
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTrainDataloader, TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     lr_logger = LearningRateLogger()
     trainer = Trainer(
@@ -292,6 +299,7 @@ def test_lr_logger_single_lr(tmpdir):
     )
     results = trainer.fit(model)
 
+    assert results == 1
     assert lr_logger.lrs, 'No learning rates logged'
     assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
@@ -303,13 +311,8 @@ def test_lr_logger_multi_lrs(tmpdir):
     """ Test that learning rates are extracted and logged for multi lr schedulers """
     tutils.reset_seed()
 
-    class CurrentTestModel(LightTestOptimizersWithMixedSchedulingMixin,
-                           LightTrainDataloader,
-                           TestModelBase):
-        pass
-
-    hparams = tutils.get_default_hparams()
-    model = CurrentTestModel(hparams)
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_logger = LearningRateLogger()
     trainer = Trainer(
@@ -321,6 +324,7 @@ def test_lr_logger_multi_lrs(tmpdir):
     )
     results = trainer.fit(model)
 
+    assert results == 1
     assert lr_logger.lrs, 'No learning rates logged'
     assert len(lr_logger.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'

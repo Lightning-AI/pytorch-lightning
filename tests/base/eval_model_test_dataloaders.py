@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from tests.base.eval_model_utils import CustomInfDataloader
+
 
 class TestDataloaderVariations(ABC):
 
@@ -9,3 +11,12 @@ class TestDataloaderVariations(ABC):
 
     def test_dataloader(self):
         return self.dataloader(train=False)
+
+    def test_dataloader__infinite(self):
+        return CustomInfDataloader(self.dataloader(train=False))
+
+    def test_dataloader__empty(self):
+        return None
+
+    def test_dataloader__multiple(self):
+        return [self.dataloader(train=False), self.dataloader(train=False)]

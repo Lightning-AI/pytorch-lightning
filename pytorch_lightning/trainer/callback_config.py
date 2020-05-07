@@ -49,10 +49,12 @@ class TrainerCallbackConfigMixin(ABC):
                 if self.weights_save_path is not None:
                     save_dir = self.weights_save_path
 
+                version = self.logger.version if isinstance(
+                    self.logger.version, str) else f'version_{self.logger.version}'
                 ckpt_path = os.path.join(
                     save_dir,
                     self.logger.name,
-                    f'version_{self.logger.version}',
+                    version,
                     "checkpoints"
                 )
             else:

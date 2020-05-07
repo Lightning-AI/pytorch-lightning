@@ -1,3 +1,10 @@
+.. testsetup:: *
+
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+
+
+
 Quick Start
 ===========
 
@@ -13,7 +20,8 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 Step 1: Define a LightningModule
 ---------------------------------
 
-.. code-block:: python
+.. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     import os
 
@@ -22,10 +30,9 @@ Step 1: Define a LightningModule
     from torch.utils.data import DataLoader
     from torchvision.datasets import MNIST
     from torchvision import transforms
+    from pytorch_lightning.core.lightning import LightningModule
 
-    import pytorch_lightning as pl
-
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -53,7 +60,8 @@ Step 1: Define a LightningModule
 Step 2: Fit with a Trainer
 --------------------------
 
-.. code-block:: python
+.. testcode::
+    :skipif: torch.cuda.device_count() < 8
 
     from pytorch_lightning import Trainer
 
@@ -68,13 +76,13 @@ Under the hood, lightning does (in high-level pseudocode):
 .. code-block:: python
 
     model = LitModel()
-    train_dataloader = model.train_dataloader
+    train_dataloader = model.train_dataloader()
     optimizer = model.configure_optimizers()
 
     for epoch in epochs:
         train_outs = []
         for batch in train_dataloader:
-            loss = model.training_step()
+            loss = model.training_step(batch)
             loss.backward()
             train_outs.append(loss.detach())
 
@@ -88,9 +96,9 @@ Validation loop
 ---------------
 To also add a validation loop add the following functions
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def validation_step(self, batch, batch_idx):
             x, y = batch
@@ -118,7 +126,11 @@ And now the trainer will call the validation loop automatically
 
 Under the hood in pseudocode, lightning does the following:
 
-.. code-block:: python
+.. testsetup:: *
+
+    train_dataloader = []
+
+.. testcode::
 
     # ...
     for batch in train_dataloader:
@@ -145,9 +157,9 @@ Test loop
 ---------
 You might also need a test loop
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def test_step(self, batch, batch_idx):
             x, y = batch

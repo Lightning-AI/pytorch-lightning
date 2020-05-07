@@ -71,9 +71,9 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-extra.txt') }}
+        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-extra.txt') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.python-version }}-pip-
+          ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
 
     - name: Install dependencies
       run: |
@@ -84,6 +84,17 @@ jobs:
         python --version
         pip --version
         pip list
+      shell: bash
+
+    - name: Reinstall Horovod if necessary
+      if: runner.os != 'windows' && matrix.python-version != '3.8'
+      run: |
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+          pip uninstall -y horovod
+          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
+        fi
+        horovodrun --check-build
       shell: bash
 
     - name: Cache datasets
@@ -99,14 +110,14 @@ jobs:
       run: |
         # tox --sitepackages
         # flake8 .
-        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         coverage report
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
       # Use always() to always run this step to publish test results when there are test failures
       if: always()
 

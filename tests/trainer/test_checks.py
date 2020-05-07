@@ -1,106 +1,75 @@
 import pytest
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base import (
-    TestModelBase,
-    LightValidationDataloader,
-    LightValidationStepMixin,
-    LightValStepFitSingleDataloaderMixin,
-    LightTrainDataloader,
-)
+
+# TODO: add matching messages
 
 
-def test_error_on_no_train_step(tmpdir):
-    """ Test that an error is thrown when no `training_step()` is defined """
-
-    class CurrentTestModel(LightningModule):
-        def forward(self, x):
-            pass
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel()
-        trainer.fit(model)
-
-
-def test_error_on_no_train_dataloader(tmpdir):
-    """ Test that an error is thrown when no `training_dataloader()` is defined """
+def test_wrong_train_setting(tmpdir):
+    """
+    * Test that an error is thrown when no `training_dataloader()` is defined
+    * Test that an error is thrown when no `training_step()` is defined
+    """
+    tutils.reset_seed()
     hparams = tutils.get_default_hparams()
-
-    class CurrentTestModel(TestModelBase):
-        pass
-
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = EvalModelTemplate(hparams)
+        model.train_dataloader = None
+        trainer.fit(model)
+
+    with pytest.raises(MisconfigurationException):
+        model = EvalModelTemplate(hparams)
+        model.training_step = None
         trainer.fit(model)
 
 
-def test_error_on_no_configure_optimizers(tmpdir):
+def test_wrong_configure_optimizers(tmpdir):
     """ Test that an error is thrown when no `configure_optimizers()` is defined """
-
-    class CurrentTestModel(LightTrainDataloader, LightningModule):
-        def forward(self, x):
-            pass
-
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            pass
-
+    tutils.reset_seed()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel()
+        model = EvalModelTemplate(tutils.get_default_hparams())
+        model.configure_optimizers = None
         trainer.fit(model)
 
 
-def test_warning_on_wrong_validation_settings(tmpdir):
+def test_wrong_validation_settings(tmpdir):
     """ Test the following cases related to validation configuration of model:
         * error if `val_dataloader()` is overriden but `validation_step()` is not
         * if both `val_dataloader()` and `validation_step()` is overriden,
             throw warning if `val_epoch_end()` is not defined
         * error if `validation_step()` is overriden but `val_dataloader()` is not
     """
+    tutils.reset_seed()
     hparams = tutils.get_default_hparams()
-
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValidationDataloader,
-                           TestModelBase):
-        pass
 
     # check val_dataloader -> val_step
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = EvalModelTemplate(hparams)
+        model.validation_step = None
         trainer.fit(model)
-
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValidationStepMixin,
-                           TestModelBase):
-        pass
 
     # check val_dataloader + val_step -> val_epoch_end
     with pytest.warns(RuntimeWarning):
-        model = CurrentTestModel(hparams)
+        model = EvalModelTemplate(hparams)
+        model.validation_epoch_end = None
         trainer.fit(model)
-
-    class CurrentTestModel(LightTrainDataloader,
-                           LightValStepFitSingleDataloaderMixin,
-                           TestModelBase):
-        pass
 
     # check val_step -> val_dataloader
     with pytest.raises(MisconfigurationException):
-        model = CurrentTestModel(hparams)
+        model = EvalModelTemplate(hparams)
+        model.val_dataloader = None
         trainer.fit(model)
 
 
-def test_warning_on_wrong_test_settigs(tmpdir):
+def test_wrong_test_settigs(tmpdir):
     """ Test the following cases related to test configuration of model:
         * error if `test_dataloader()` is overriden but `test_step()` is not
         * if both `test_dataloader()` and `test_step()` is overriden,

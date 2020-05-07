@@ -11,7 +11,7 @@ import torch
 from pytorch_lightning import Trainer
 
 import tests.base.utils as tutils
-from tests.base import LightningTestModel
+from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
 
 try:
@@ -107,7 +107,8 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
-    class TestTrainingStepModel(LightningTestModel):
+
+    class TestTrainingStepModel(EvalModelTemplate):
         def training_step(self, batch, *args, **kwargs):
             x, y = batch
             assert str(x.device) != 'cpu'

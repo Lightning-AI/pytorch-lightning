@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+
+
 Experiment Logging
 ==================
 
@@ -14,31 +20,29 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> import os
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import CometLogger
-    >>> comet_logger = CometLogger(
-    ...     api_key=os.environ.get('COMET_API_KEY'),
-    ...     workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-    ...     save_dir='.',  # Optional
-    ...     project_name='default_project',  # Optional
-    ...     rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-    ...     experiment_name='default'  # Optional
-    ... )
-    >>> trainer = Trainer(logger=comet_logger)
+    import os
+    from pytorch_lightning.loggers import CometLogger
+    comet_logger = CometLogger(
+        api_key=os.environ.get('COMET_API_KEY'),
+        workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
+        save_dir='.',  # Optional
+        project_name='default_project',  # Optional
+        rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
+        experiment_name='default'  # Optional
+    )
+    trainer = Trainer(logger=comet_logger)
 
 The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.add_image('generated_images', some_img, 0)
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.CometLogger` docs.
@@ -56,15 +60,14 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import MLFlowLogger
-    >>> mlf_logger = MLFlowLogger(
-    ...     experiment_name="default",
-    ...     tracking_uri="file:/."
-    ... )
-    >>> trainer = Trainer(logger=mlf_logger)
+    from pytorch_lightning.loggers import MLFlowLogger
+    mlf_logger = MLFlowLogger(
+        experiment_name="default",
+        tracking_uri="file:./ml-runs"
+    )
+    trainer = Trainer(logger=mlf_logger)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.MLFlowLogger` docs.
@@ -82,29 +85,27 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import NeptuneLogger
-    >>> neptune_logger = NeptuneLogger(
-    ...     api_key='ANONYMOUS',  # replace with your own
-    ...     project_name='shared/pytorch-lightning-integration',
-    ...     experiment_name='default',  # Optional,
-    ...     params={'max_epochs': 10},  # Optional,
-    ...     tags=['pytorch-lightning', 'mlp'],  # Optional,
-    ... )
-    >>> trainer = Trainer(logger=neptune_logger)
+    from pytorch_lightning.loggers import NeptuneLogger
+    neptune_logger = NeptuneLogger(
+        api_key='ANONYMOUS',  # replace with your own
+        project_name='shared/pytorch-lightning-integration',
+        experiment_name='default',  # Optional,
+        params={'max_epochs': 10},  # Optional,
+        tags=['pytorch-lightning', 'mlp'],  # Optional,
+    )
+    trainer = Trainer(logger=neptune_logger)
 
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.add_image('generated_images', some_img, 0)
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
@@ -122,28 +123,31 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import TrainsLogger
-    >>> trains_logger = TrainsLogger(
-    ...     project_name='examples',
-    ...     task_name='pytorch lightning test',
-    ... ) # doctest: +ELLIPSIS
+    from pytorch_lightning.loggers import TrainsLogger
+    trains_logger = TrainsLogger(
+        project_name='examples',
+        task_name='pytorch lightning test',
+    )
+    trainer = Trainer(logger=trains_logger)
+
+.. testoutput::
+    :options: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    :hide:
+
     TRAINS Task: ...
     TRAINS results page: ...
-    >>> trainer = Trainer(logger=trains_logger)
 
 The :class:`~pytorch_lightning.loggers.TrainsLogger` is available anywhere in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def __init__(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.log_image('debug', 'generated_image_0', some_img, 0)
+    class MyModule(LightningModule):
+        def __init__(self):
+            some_img = fake_image()
+            self.logger.experiment.log_image('debug', 'generated_image_0', some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TrainsLogger` docs.
@@ -153,23 +157,21 @@ Tensorboard
 
 To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.loggers import TensorBoardLogger
-    >>> logger = TensorBoardLogger('tb_logs', name='my_model')
-    >>> trainer = Trainer(logger=logger)
+    from pytorch_lightning.loggers import TensorBoardLogger
+    logger = TensorBoardLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=logger)
 
 The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.add_image('generated_images', some_img, 0)
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
@@ -188,22 +190,21 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning.loggers import TestTubeLogger
-    >>> logger = TestTubeLogger('tb_logs', name='my_model')
-    >>> trainer = Trainer(logger=logger)
+    from pytorch_lightning.loggers import TestTubeLogger
+    logger = TestTubeLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=logger)
 
 The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.add_image('generated_images', some_img, 0)
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
@@ -221,24 +222,23 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning.loggers import WandbLogger
-    >>> wandb_logger = WandbLogger()
-    >>> trainer = Trainer(logger=wandb_logger)
+    from pytorch_lightning.loggers import WandbLogger
+    wandb_logger = WandbLogger()
+    trainer = Trainer(logger=wandb_logger)
 
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         self.logger.experiment.log({
-    ...             "generated_images": [wandb.Image(some_img, caption="...")]
-    ...         })
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.log({
+                 "generated_images": [wandb.Image(some_img, caption="...")]
+            })
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.WandbLogger` docs.
@@ -249,23 +249,22 @@ Multiple Loggers
 Lightning supports the use of multiple loggers, just pass a list to the
 :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-    >>> logger1 = TensorBoardLogger('tb_logs', name='my_model')
-    >>> logger2 = TestTubeLogger('tb_logs', name='my_model')
-    >>> trainer = Trainer(logger=[logger1, logger2])
+    from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+    logger1 = TensorBoardLogger('tb_logs', name='my_model')
+    logger2 = TestTubeLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=[logger1, logger2])
    
 The loggers are available as a list anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. doctest::
+.. testcode::
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class MyModule(LightningModule):
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         some_img = fake_image()
-    ...         # Option 1
-    ...         self.logger.experiment[0].add_image('generated_images', some_img, 0)
-    ...         # Option 2
-    ...         self.logger[0].experiment.add_image('generated_images', some_img, 0)
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            # Option 1
+            self.logger.experiment[0].add_image('generated_images', some_img, 0)
+            # Option 2
+            self.logger[0].experiment.add_image('generated_images', some_img, 0)

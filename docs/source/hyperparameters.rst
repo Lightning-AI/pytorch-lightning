@@ -1,3 +1,13 @@
+.. testsetup:: *
+
+    import torch
+    from argparse import ArgumentParser, Namespace
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+    import sys
+    sys.argv = ['foo']
+
+
 Hyperparameters
 ---------------
 Lightning has utilities to interact seamlessly with the command line ArgumentParser
@@ -7,13 +17,11 @@ ArgumentParser
 ^^^^^^^^^^^^^^
 Lightning is designed to augment a lot of the functionality of the built-in Python ArgumentParser
 
-.. code-block:: python
+.. testcode::
 
     from argparse import ArgumentParser
-
     parser = ArgumentParser()
     parser.add_argument('--layer_1_dim', type=int, default=128)
-
     args = parser.parse_args()
 
 This allows you to call your program like so:
@@ -35,9 +43,9 @@ We can do this as follows. First, in your LightningModule, define the arguments
 specific to that module. Remember that data splits or data paths may also be specific to
 a module (ie: if your project has a model that trains on Imagenet and another on CIFAR-10).
 
-.. code-block:: python
+.. testcode::
 
-        class LitModel(LightningModule):
+    class LitModel(LightningModule):
 
         @staticmethod
         def add_model_specific_args(parent_parser):
@@ -48,13 +56,12 @@ a module (ie: if your project has a model that trains on Imagenet and another on
 
 Now in your main trainer file, add the Trainer args, the program args, and add the model args
 
-.. code-block:: python
+.. testcode::
 
     # ----------------
     # trainer_main.py
     # ----------------
     from argparse import ArgumentParser
-
     parser = ArgumentParser()
 
     # add PROGRAM level args
@@ -66,7 +73,7 @@ Now in your main trainer file, add the Trainer args, the program args, and add t
 
     # add all the available trainer options to argparse
     # ie: now --gpus --num_nodes ... --fast_dev_run all work in the cli
-    parser = pl.Trainer.add_argparse_args(parser)
+    parser = Trainer.add_argparse_args(parser)
 
     hparams = parser.parse_args()
 
@@ -78,9 +85,7 @@ Now you can call run your program like so
 
 Finally, make sure to start the training like so:
 
-.. code-block:: bash
-
-    hparams = parser.parse_args()
+.. code-block:: python
 
     # YES
     model = LitModel(hparams)
@@ -88,59 +93,56 @@ Finally, make sure to start the training like so:
 
     # NO
     # model = LitModel(learning_rate=hparams.learning_rate, ...)
-    #trainer = Trainer(gpus=hparams.gpus, ...)
+    # trainer = Trainer(gpus=hparams.gpus, ...)
 
-
-LightiningModule hparams
-^^^^^^^^^^^^^^^^^^^^^^^^
+LightningModule hparams
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Normally, we don't hard-code the values to a model. We usually use the command line to
 modify the network and read those values in the LightningModule
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
-      def __init__(self, hparams):
-        super().__init__()
+    class LitMNIST(LightningModule):
 
-        # do this to save all arguments in any logger (tensorboard)
-        self.hparams = hparams
+        def __init__(self, hparams):
+            super().__init__()
 
-        self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
-        self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
-        self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+            # do this to save all arguments in any logger (tensorboard)
+            self.hparams = hparams
 
-      def forward(self, x):
-        ...
+            self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
+            self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
+            self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
 
-      def train_dataloader(self):
-        ...
-        return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
+        def train_dataloader(self):
+            return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
 
-      def configure_optimizers(self):
-        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-      @staticmethod
-      def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-
-        parser.add_argument('--layer_1_dim', type=int, default=128)
-        parser.add_argument('--layer_2_dim', type=int, default=256)
-        parser.add_argument('--batch_size', type=int, default=64)
-        parser.add_argument('--learning_rate', type=float, default=0.002)
-        return parser
+        @staticmethod
+        def add_model_specific_args(parent_parser):
+            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser.add_argument('--layer_1_dim', type=int, default=128)
+            parser.add_argument('--layer_2_dim', type=int, default=256)
+            parser.add_argument('--batch_size', type=int, default=64)
+            parser.add_argument('--learning_rate', type=float, default=0.002)
+            return parser
 
 Now pass in the params when you init your model
 
 .. code-block:: python
 
-    hparams = parse_args()
+    parser = ArgumentParser()
+    parser = LitMNIST.add_model_specific_args(parser)
+    hparams = parser.parse_args()
     model = LitMNIST(hparams)
 
 The line `self.hparams = hparams` is very special. This line assigns your hparams to the LightningModule.
 This does two things:
 
-1.  It adds them automatically to tensorboard logs under the hparams tab.
+1.  It adds them automatically to TensorBoard logs under the hparams tab.
 2.  Lightning will save those hparams to the checkpoint and use them to restore the module correctly.
 
 Trainer args
@@ -165,9 +167,10 @@ Multiple Lightning Modules
 We often have multiple Lightning Modules where each one has different arguments. Instead of
 polluting the main.py file, the LightningModule lets you define arguments for each one.
 
-.. code-block:: python
+.. testcode::
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(LightningModule):
+
         def __init__(self, hparams):
             super().__init__()
             self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
@@ -178,7 +181,10 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
             parser.add_argument('--layer_1_dim', type=int, default=128)
             return parser
 
-    class GoodGAN(pl.LightningModule):
+.. testcode::
+
+    class GoodGAN(LightningModule):
+
         def __init__(self, hparams):
             super().__init__()
             self.encoder = Encoder(layers=hparams.encoder_layers)
@@ -189,7 +195,8 @@ polluting the main.py file, the LightningModule lets you define arguments for ea
             parser.add_argument('--encoder_layers', type=int, default=12)
             return parser
 
-Now we can allow each model to inject the arguments it needs in the main.py
+
+Now we can allow each model to inject the arguments it needs in the ``main.py``
 
 .. code-block:: python
 
@@ -213,7 +220,7 @@ Now we can allow each model to inject the arguments it needs in the main.py
         parser.add_argument('--model_name', type=str, default='gan', help='gan or mnist')
 
         # THIS LINE IS KEY TO PULL THE MODEL NAME
-        temp_args = parser.parse_known_args()
+        temp_args, _ = parser.parse_known_args()
 
         # let the model add what it wants
         if temp_args.model_name == 'gan':
@@ -226,7 +233,7 @@ Now we can allow each model to inject the arguments it needs in the main.py
         # train
         main(args)
 
-and now we can train MNIST or the gan using the command line interface!
+and now we can train MNIST or the GAN using the command line interface!
 
 .. code-block:: bash
 
