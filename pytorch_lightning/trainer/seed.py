@@ -18,12 +18,26 @@ def seed_everything(seed: int = None):
     try:
         seed = int(seed)
     except (TypeError, ValueError):
-        seed = random.randint(0, max_seed_value)
-        log.info(f"No seed found, seed set to {seed}")
+        seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    assert seed <= max_seed_value, "seed is too big, numpy accepts only uint32"
-    assert seed >= min_seed_value, "seed is too small, numpy accepts only uint32"
+    if (seed > max_seed_value) or (seed < min_seed_value):
+        log.warning(
+            f"{seed} is not in bounds, \
+            numpy accepts from {min_seed_value} to {max_seed_value}"
+        )
+        seed = _select_seed_randomly(min_seed_value, max_seed_value)
+
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+    # fixing non-deterministic part of horovod
+    # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+    os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
+
+
+def _select_seed_randomly(min_seed_value, max_seed_value) -> int:
+    seed = random.randint(min_seed_value, max_seed_value)
+    log.warning(f"No correct seed found, seed set to {seed}")
+    return seed
