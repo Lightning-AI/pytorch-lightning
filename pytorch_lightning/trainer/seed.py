@@ -32,10 +32,6 @@ def seed_everything(seed: int = None):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    # fixing non-deterministic part of horovod
-    # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
-    os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
 
 def _select_seed_randomly(min_seed_value, max_seed_value) -> int:
     seed = random.randint(min_seed_value, max_seed_value)

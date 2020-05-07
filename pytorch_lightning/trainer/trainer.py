@@ -309,6 +309,10 @@ class Trainer(
 
         self.deterministic = deterministic
         torch.backends.cudnn.deterministic = self.deterministic
+        if self.deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # Init callbacks
         self.callbacks = callbacks or []
