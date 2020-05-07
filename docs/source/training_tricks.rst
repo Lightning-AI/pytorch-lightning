@@ -79,6 +79,18 @@ invoking the trainer method `.scale_batch_size` themself.
     # Fit as normal
     trainer.fit(model)
 
+The algorithm in short works by:
+    1. Dumping the current state of the model and trainer
+    2. Iteratively:
+        - Evaluate `steps_per_iter` (default 3) number of training steps
+        - If and OOM error is encountered, decrease batch size else increase it.
+          How much the batch size is increased/decreased is determined by the choosen
+          stratrgy.
+        - End when either the chosen strategy has converged or the maximum number
+          of tries `max_iters` (default 25) has been reached
+    3. The found batch size is saved to `model.hparams.batch_size`
+    4. Restore the initial state of model and trainer
+
 .. autoclass:: pytorch_lightning.trainer.training_tricks.TrainerTrainingTricksMixin
    :members: scale_batch_size
    :noindex:
