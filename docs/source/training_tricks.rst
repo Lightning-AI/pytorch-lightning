@@ -46,10 +46,10 @@ longer training time.
 .. code-block:: python
 
     # DEFAULT (ie: don't scale batch size automatically)
-    trainer = Trainer(auto_scale_batch_size=False)
+    trainer = Trainer(auto_scale_batch_size=None)
 
     # Autoscale batch size 
-    trainer = Trainer(auto_scale_batch_size=True|'power'|'binsearch')
+    trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
 
 Setting the feature to `True` enables `'power'` scaling, that starting from a
 batch size of 1 keeps doubling the batch size until an out-of-memory (OOM) error is
@@ -67,9 +67,12 @@ size by performing a binary search.
         
         def train_dataloader(self):
             return DataLoader(train_dataset, batch_size=self.hparams.batch_size)
+            
+    Due to these contrains, this features does *NOT* work when passing dataloaders directly
+    to `.fit()`. 
 
 The scaling algorithm has a number of parameters that the user can control by
-invoking the trainer method `.scale_batch_size` themself.
+invoking the trainer method `.scale_batch_size` themself (see description below).
 
 .. code-block:: python
 
@@ -87,9 +90,12 @@ invoking the trainer method `.scale_batch_size` themself.
 
 The algorithm in short works by:
     1. Dumping the current state of the model and trainer
-    2. Iteratively until convergence or maximum number of tries `max_iters` (default 25) has been reached:
-        - Call `fit()` method of trainer. This internally evaluates `steps_per_iter` (default 3) number of training steps, that 
-        - If and OOM error is encountered, decrease batch size else increase it.
+    2. Iteratively until convergence or maximum number of tries `max_trials` (default 25) has been reached:
+        - Call `fit()` method of trainer. This evaluates `steps_per_trial` (default 3) number of 
+          training steps. Each training step can trigger an OOM error if the tensors 
+          (training batch, weights, gradients ect.) allocated during the steps have a 
+          too large memory footprint.
+        - If an OOM error is encountered, decrease batch size else increase it.
           How much the batch size is increased/decreased is determined by the choosen
           stratrgy.
     3. The found batch size is saved to `model.hparams.batch_size`

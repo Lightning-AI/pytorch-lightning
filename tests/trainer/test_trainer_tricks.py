@@ -45,7 +45,10 @@ def test_trainer_reset_correctly(tmpdir):
                           'weights_summary',
                           'logger',
                           'callbacks',
-                          'checkpoint_callback']
+                          'checkpoint_callback',
+                          'early_stop_callback',
+                          'enable_early_stop',
+                          'train_percent_check']
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -62,7 +65,7 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@pytest.mark.parametrize('scale_arg', [True, 'power', 'binsearch'])
+@pytest.mark.parametrize('scale_arg', ['power', 'binsearch'])
 def test_trainer_arg(tmpdir, scale_arg):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()

@@ -143,15 +143,10 @@ before any training.
 .. code-block:: python
 
     # default used by the Trainer (no scaling of batch size)
-    trainer = Trainer(auto_scale_batch_size=False)
-
-Example::
+    trainer = Trainer(auto_scale_batch_size=None)
 
     # run batch size scaling, result overrides hparams.batch_size
-    trainer = Trainer(auto_scale_batch_size=True)
-
-    # run batch size scaling, result overrides hparams.my_batch_size_arg
-    trainer = Trainer(auto_scale_batch_size='my_batch_size_arg')
+    trainer = Trainer(auto_scale_batch_size='binsearch')
 
 auto_lr_find
 ^^^^^^^^^^^^
