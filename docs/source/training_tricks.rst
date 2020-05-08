@@ -60,7 +60,13 @@ size by performing a binary search.
 
     This feature expects that a `batch_size` field in the `hparams` of your model, i.e.,
     `model.hparams.batch_size` should exist and will be overridden by the results of this
-    algorithm.
+    algorithm. Additionally, your `train_dataloader()` method should depend on this field
+    for this feature to work i.e.
+
+    .. code-block:: python
+        
+        def train_dataloader(self):
+            return DataLoader(train_dataset, batch_size=self.hparams.batch_size)
 
 The scaling algorithm has a number of parameters that the user can control by
 invoking the trainer method `.scale_batch_size` themself.
@@ -81,13 +87,11 @@ invoking the trainer method `.scale_batch_size` themself.
 
 The algorithm in short works by:
     1. Dumping the current state of the model and trainer
-    2. Iteratively:
-        - Evaluate `steps_per_iter` (default 3) number of training steps
+    2. Iteratively until convergence or maximum number of tries `max_iters` (default 25) has been reached:
+        - Call `fit()` method of trainer. This internally evaluates `steps_per_iter` (default 3) number of training steps, that 
         - If and OOM error is encountered, decrease batch size else increase it.
           How much the batch size is increased/decreased is determined by the choosen
           stratrgy.
-        - End when either the chosen strategy has converged or the maximum number
-          of tries `max_iters` (default 25) has been reached
     3. The found batch size is saved to `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
 
