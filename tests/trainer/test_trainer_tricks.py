@@ -110,6 +110,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
+
 def test_error_on_dataloader_passed_to_fit(tmpdir):
     """Verify that when the auto scale batch size feature raises an error
        if a train dataloader is passed to fit """
@@ -124,6 +125,6 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         auto_scale_batch_size='power'
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))
-    
+
     with pytest.raises(MisconfigurationException):
         trainer.fit(model, **fit_options)
