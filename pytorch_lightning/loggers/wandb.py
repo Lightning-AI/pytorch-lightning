@@ -106,7 +106,8 @@ class WandbLogger(LightningLoggerBase):
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity, group=self._group)
+                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity,
+                group=self._group)
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self.save_dir = self._experiment.dir
