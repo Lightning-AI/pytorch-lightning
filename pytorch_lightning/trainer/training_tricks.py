@@ -132,6 +132,14 @@ class TrainerTrainingTricksMixin(ABC):
                algorithm is terminated
 
         """
+        if not hasattr(model.hparams, batch_arg_name):
+            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')        
+        
+        if hasattr(model.train_dataloader, 'patch_loader_code'):
+            raise MisconfigurationException(f'The batch scaling feature cannot be used with dataloaders'
+                                            ' passed directly to `.fit()`. Please disable the feature or'
+                                            ' incorporate the dataloader into the model')
+        
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()
 
@@ -141,9 +149,6 @@ class TrainerTrainingTricksMixin(ABC):
         # Save initial model, that is loaded after batch size is found
         save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
         self.save_checkpoint(str(save_path))
-
-        if not hasattr(model.hparams, batch_arg_name):
-            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
 
         if self.progress_bar_callback:
             self.progress_bar_callback.disable()
@@ -296,7 +301,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
             # Double in size
             low = new_size
             if high:
-                if high - low <= 2:
+                if high - low <= 1:
                     break
                 midval = (high + low) // 2
                 new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
@@ -308,10 +313,10 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
                 high = new_size
-                if high - low <= 2:
-                    break
                 midval = (high + low) // 2
                 new_size = _adjust_batch_size(trainer, value=midval, desc='failed')
+                if high - low <= 1:
+                    break
             else:
                 raise  # some other error not memory related
     return new_size

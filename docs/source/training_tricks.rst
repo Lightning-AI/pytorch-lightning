@@ -51,10 +51,11 @@ longer training time.
     # Autoscale batch size 
     trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
 
-Setting the feature to `True` enables `'power'` scaling, that starting from a
-batch size of 1 keeps doubling the batch size until an out-of-memory (OOM) error is
-encountered. Setting the argument to `'binsearch'` continues to finetune the batch
-size by performing a binary search. 
+Currently, this feature supports two modes `'power'` scaling and `'binsearch'`
+scaling. In `'power'` scaling, starting from a batch size of 1 keeps doubling 
+the batch size until an out-of-memory (OOM) error is encountered. Setting the 
+argument to `'binsearch'` continues to finetune the batch size by performing 
+a binary search. 
 
 .. note:: 
 
@@ -67,6 +68,8 @@ size by performing a binary search.
         
         def train_dataloader(self):
             return DataLoader(train_dataset, batch_size=self.hparams.batch_size)
+
+.. warning::
             
     Due to these contrains, this features does *NOT* work when passing dataloaders directly
     to `.fit()`. 

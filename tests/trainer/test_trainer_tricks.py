@@ -3,6 +3,7 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
@@ -108,3 +109,21 @@ def test_call_to_trainer_method(tmpdir, scale_method):
 
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+
+def test_error_on_dataloader_passed_to_fit(tmpdir):
+    """Verify that when the auto scale batch size feature raises an error
+       if a train dataloader is passed to fit """
+
+    # only train passed to fit
+    model = EvalModelTemplate(tutils.get_default_hparams())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2,
+        auto_scale_batch_size='power'
+    )
+    fit_options = dict(train_dataloader=model.dataloader(train=True))
+    
+    with pytest.raises(MisconfigurationException):
+        trainer.fit(model, **fit_options)
