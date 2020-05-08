@@ -220,7 +220,8 @@ class AdvancedProfiler(BaseProfiler):
     """
     This profiler uses Python's cProfiler to record more detailed information about
     time spent in each function call recorded during a given action. The output is quite
-    verbose and you should only use this if you want very detailed reports.
+    verbose and you should only use this if you want very detailed reports. This profiler
+    is most helpful when trying to identify code bottlenecks outside of your neural network.
     """
 
     def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
@@ -288,8 +289,10 @@ class AdvancedProfiler(BaseProfiler):
 
 class AutogradProfiler(BaseProfiler):
     """
-    This profiler uses Pytorch's torch.autograd.profiler.profile as a backend. It allows to
-    profile backend calls and optimize model forward/backward performance.
+    This profiler uses Pytorch's torch.autograd.profiler.profile as a backend. This profiler
+    can record PyTorch operations on both CPU and GPU, recording the events of functions
+    being executed under the hood in C++. This profiler is most useful when trying to optimize
+    the forward and backward pass of your neural network.
     """
     def __init__(self, use_cuda: bool = False, output_filename: str = None, row_limit: int = 20):
         """

@@ -49,8 +49,58 @@ The profiler's results will be printed at the completion of a training `fit()`.
     on_train_end            |  5.449e-06            |  5.449e-06
 
 
+Autograd Profiling
+------------------
+If you would like to focus your profiling on the PyTorch-specific components, you should use the autograd 
+profiler. This leverages the native `torch.autograd.profiler`_ context manager to accurately measure time
+spent on PyTorch ops on both the CPU and GPU.
+
+.. _`torch.autograd.profiler`: https://pytorch.org/docs/stable/autograd.html#profiler
+
+.. code-block:: python
+
+    profiler = AutogradProfiler()
+    trainer = Trainer(..., profiler=profiler)
+
+The profiler's results will be printed at the completion of a training `fit()`. This profiler
+report can be quite long, so you can also specify an `output_filename` to save the report instead
+of logging it to the output in your terminal. The output below shows the profiling for the action
+`model_forward`.
+
+.. code-block:: python
+
+    Profiler Report
+
+    Profile stats for: model_forward
+    --------------------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  
+    Name                        Self CPU total %  Self CPU total   CPU total %      CPU total        CPU time avg     Number of Calls  
+    --------------------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  
+    batch_norm                  0.05%            4.000us          65.88%           5.365ms          5.365ms          1                
+    _batch_norm_impl_index      0.06%            5.000us          65.83%           5.361ms          5.361ms          1                
+    native_batch_norm           65.75%           5.355ms          65.75%           5.355ms          5.355ms          1                
+    addmm                       13.03%           1.061ms          13.03%           1.061ms          530.500us        2                
+    dropout                     0.10%            8.000us          8.53%            695.000us        695.000us        1                
+    mul                         6.47%            527.000us        6.47%            527.000us        175.667us        3                
+    tanh                        4.44%            362.000us        4.44%            362.000us        362.000us        1                
+    unsigned short              3.76%            306.000us        3.76%            306.000us        153.000us        2                
+    log_softmax                 0.04%            3.000us          3.25%            265.000us        265.000us        1                
+    _log_softmax                3.22%            262.000us        3.22%            262.000us        262.000us        1                
+    bernoulli_                  1.71%            139.000us        1.71%            139.000us        139.000us        1                
+    div_                        0.52%            42.000us         0.52%            42.000us         42.000us         1                
+    nll_loss                    0.04%            3.000us          0.33%            27.000us         27.000us         1                
+    view                        0.32%            26.000us         0.32%            26.000us         26.000us         1                
+    nll_loss_forward            0.29%            24.000us         0.29%            24.000us         24.000us         1                
+    add                         0.11%            9.000us          0.11%            9.000us          9.000us          1                
+    empty                       0.05%            4.000us          0.05%            4.000us          2.000us          2                
+    empty_like                  0.01%            1.000us          0.05%            4.000us          4.000us          1                
+    detach                      0.04%            3.000us          0.04%            3.000us          1.000us          3                
+    --------------------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  
+    Self CPU time total: 8.144ms
+
+
+
 Advanced Profiling
---------------------
+------------------
 
 If you want more information on the functions called during each event, you can use the `AdvancedProfiler`.
 This option uses Python's cProfiler_ to provide a report of time spent on *each* function called within your code.
@@ -91,6 +141,11 @@ of logging it to the output in your terminal. The output below shows the profili
         60000    1.651    0.000    6.839    0.000 functional.py:42(to_tensor)
         60000    0.260    0.000    5.734    0.000 transforms.py:167(__call__)
 
+
+
+Profiling custom events
+-----------------------
+
 You can also reference this profiler in your LightningModule to profile specific actions of interest.
 If you don't want to always have the profiler turned on, you can optionally pass a `PassThroughProfiler`
 which will allow you to skip profiling without having to make any code changes. Each profiler has a
@@ -116,11 +171,18 @@ to track and the profiler will record performance for code executed within this 
 
 """
 
-from pytorch_lightning.profiler.profilers import SimpleProfiler, AdvancedProfiler, PassThroughProfiler, BaseProfiler
+from pytorch_lightning.profiler.profilers import (
+    SimpleProfiler,
+    AdvancedProfiler,
+    AutogradProfiler,
+    PassThroughProfiler,
+    BaseProfiler,
+)
 
 __all__ = [
     'BaseProfiler',
     'SimpleProfiler',
     'AdvancedProfiler',
+    'AutogradProfiler',
     'PassThroughProfiler',
 ]
