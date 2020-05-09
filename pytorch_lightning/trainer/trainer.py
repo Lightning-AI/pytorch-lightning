@@ -129,6 +129,7 @@ class Trainer(
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
+            auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -293,6 +294,12 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+            auto_scale_batch_size: If set to True, will `initially` run a batch size
+                finder trying to find the largest batch size that fits into memory.
+                The result will be stored in self.hparams.batch_size in the LightningModule.
+                Additionally, can be set to either `power` that estimates the batch size through
+                a power search or `binsearch` that estimates the batch size through a binary search.
         """
 
         # Init callbacks
@@ -368,6 +375,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.auto_scale_batch_size = auto_scale_batch_size
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -474,7 +482,7 @@ class Trainer(
             self.show_progress_bar = show_progress_bar
 
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = None
+        self.progress_bar_callback = progress_bar_callback
         self.configure_progress_bar()
 
         # logging
@@ -735,6 +743,10 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
+
+        # Run auto batch size scaling
+        if self.auto_scale_batch_size:
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
         if self.auto_lr_find:
