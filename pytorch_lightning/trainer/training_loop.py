@@ -272,7 +272,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overriden(self, *args):
+    def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -420,9 +420,9 @@ class TrainerTrainLoopMixin(ABC):
             _outputs = self.run_training_batch(batch, batch_idx)
             batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
 
-            # only track outputs when user implementes training_epoch_end
-            # otherwise we will build up unecessary memory
-            if self.is_overriden('training_epoch_end', model=self.get_model()):
+            # only track outputs when user implements training_epoch_end
+            # otherwise we will build up unnecessary memory
+            if self.is_overridden('training_epoch_end', model=self.get_model()):
                 outputs.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
@@ -485,16 +485,17 @@ class TrainerTrainLoopMixin(ABC):
 
         # process epoch outputs
         model = self.get_model()
-        if self.is_overriden('training_epoch_end', model=model):
+        if self.is_overridden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(outputs)
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
             callback_epoch_metrics = _processed_outputs[3]
             self.log_metrics(log_epoch_metrics, {})
             self.callback_metrics.update(callback_epoch_metrics)
+            self.add_progress_bar_metrics(_processed_outputs[1])
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
-        if not self.is_overriden('validation_step') and not (self.fast_dev_run or should_check_val):
+        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
             self.call_early_stop_callback()
 
@@ -540,7 +541,7 @@ class TrainerTrainLoopMixin(ABC):
             self.split_idx = split_idx
 
             for opt_idx, optimizer in self._get_optimizers_iterable():
-                # make sure only the gradients of the current optimizer's paramaters are calculated
+                # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.optimizers) > 1:
                     for param in self.get_model().parameters():
@@ -738,14 +739,14 @@ class TrainerTrainLoopMixin(ABC):
 
         # allow any mode to define training_step_end
         # do something will all the dp outputs (like softmax)
-        if self.is_overriden('training_step_end'):
+        if self.is_overridden('training_step_end'):
             model_ref = self.get_model()
             with self.profiler.profile('training_step_end'):
                 output = model_ref.training_step_end(output)
 
         # allow any mode to define training_end
         # TODO: remove in 1.0.0
-        if self.is_overriden('training_end'):
+        if self.is_overridden('training_end'):
             model_ref = self.get_model()
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)

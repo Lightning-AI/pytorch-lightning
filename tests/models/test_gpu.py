@@ -273,13 +273,13 @@ def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [[1, 2, 19], -1, '-1'])
-def test_parse_gpu_fail_on_non_existant_id(mocked_device_count_0, gpus):
+def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
         parse_gpu_ids(gpus)
 
 
 @pytest.mark.gpus_param_tests
-def test_parse_gpu_fail_on_non_existant_id_2(mocked_device_count):
+def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
     with pytest.raises(MisconfigurationException):
         parse_gpu_ids([1, 2, 19])
 

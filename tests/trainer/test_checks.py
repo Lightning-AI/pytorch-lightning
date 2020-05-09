@@ -41,10 +41,10 @@ def test_wrong_configure_optimizers(tmpdir):
 
 def test_wrong_validation_settings(tmpdir):
     """ Test the following cases related to validation configuration of model:
-        * error if `val_dataloader()` is overriden but `validation_step()` is not
-        * if both `val_dataloader()` and `validation_step()` is overriden,
+        * error if `val_dataloader()` is overridden but `validation_step()` is not
+        * if both `val_dataloader()` and `validation_step()` is overridden,
             throw warning if `val_epoch_end()` is not defined
-        * error if `validation_step()` is overriden but `val_dataloader()` is not
+        * error if `validation_step()` is overridden but `val_dataloader()` is not
     """
     tutils.reset_seed()
     hparams = tutils.get_default_hparams()
@@ -71,10 +71,10 @@ def test_wrong_validation_settings(tmpdir):
 
 def test_wrong_test_settigs(tmpdir):
     """ Test the following cases related to test configuration of model:
-        * error if `test_dataloader()` is overriden but `test_step()` is not
-        * if both `test_dataloader()` and `test_step()` is overriden,
+        * error if `test_dataloader()` is overridden but `test_step()` is not
+        * if both `test_dataloader()` and `test_step()` is overridden,
             throw warning if `test_epoch_end()` is not defined
-        * error if `test_step()` is overriden but `test_dataloader()` is not
+        * error if `test_step()` is overridden but `test_dataloader()` is not
     """
     hparams = tutils.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)

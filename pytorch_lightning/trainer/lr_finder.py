@@ -214,7 +214,7 @@ class _LRFinder(object):
 
         lr_min: lr to start search from
 
-        lr_max: lr to stop seach
+        lr_max: lr to stop search
 
         num_training: number of steps to take between lr_min and lr_max
 
