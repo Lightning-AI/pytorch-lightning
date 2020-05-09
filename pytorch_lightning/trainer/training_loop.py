@@ -491,6 +491,7 @@ class TrainerTrainLoopMixin(ABC):
             callback_epoch_metrics = _processed_outputs[3]
             self.log_metrics(log_epoch_metrics, {})
             self.callback_metrics.update(callback_epoch_metrics)
+            self.add_progress_bar_metrics(_processed_outputs[1])
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
