@@ -282,25 +282,28 @@ def test_load_model_with_missing_hparams(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
 
+    class CurrentModelWithoutHparams(EvalModelTemplate):
+        def __init__(self):
+            super().__init__()
+
     class CurrentModelUnusedHparams(EvalModelTemplate):
         def __init__(self, hparams):
-            hparams = EvalModelTemplate.get_default_hparams()
-            super().__init__(hparams)
+            super().__init__()
 
-    model = EvalModelTemplate()
+    model = CurrentModelWithoutHparams()
     trainer.fit(model)
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
 
     # try to load a checkpoint that has hparams but model is missing hparams arg
     with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
-        EvalModelTemplate.load_from_checkpoint(last_checkpoint)
+        CurrentModelWithoutHparams.load_from_checkpoint(last_checkpoint)
 
     # create a checkpoint without hyperparameters
     # if the model does not take a hparams argument, it should not throw an error
     ckpt = torch.load(last_checkpoint)
     del(ckpt['hparams'])
     torch.save(ckpt, last_checkpoint)
-    EvalModelTemplate.load_from_checkpoint(last_checkpoint)
+    CurrentModelWithoutHparams.load_from_checkpoint(last_checkpoint)
 
     # load checkpoint without hparams again
     # warn if user's model has hparams argument
