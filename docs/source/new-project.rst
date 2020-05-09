@@ -236,7 +236,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
     # train on TPUs using 16 bit precision with early stopping
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = Trainer(
-        nb_tpu_cores=8,
+        tpu_cores=8,
         precision=16,
         early_stop_checkpoint=True,
         train_percent_check=0.5,
