@@ -395,7 +395,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # on TPU we have to wrap it under the ParallelLoader
         if self.use_tpu and self.tpu_id is None:
-            device = xm.xla_device(self.tpu_id)
+            device = xm.xla_device()
             train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
             train_dataloader = train_dataloader.per_device_loader(device)
 

@@ -552,7 +552,8 @@ nb_sanity_val_steps:
 
 tpu_cores
 ^^^^^^^^^^^^^
-How many TPU cores to train on (1 or 8).
+- How many TPU cores to train on (1 or 8).
+- Which TPU core to train on [1-8]
 
 A single TPU v2 or v3 has 8 cores. A TPU pod has
 up to 2048 cores. A slice of a POD means you get as many cores
@@ -573,6 +574,9 @@ Example::
 
     # int: train on a single core
     trainer = Trainer(tpu_cores=1)
+
+    # list: train on a single selected core
+    trainer = Trainer(tpu_cores=[2])
 
     # int: train on all cores few cores
     trainer = Trainer(tpu_cores=8)
