@@ -268,7 +268,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
     tutils.reset_seed()
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
     trainer = Trainer(
