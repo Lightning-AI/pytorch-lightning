@@ -120,7 +120,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
             assert str(y.device) != 'cpu'
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = TestTrainingStepModel(hparams)
 
     trainer_options = dict(
@@ -138,7 +138,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = TestGAN(hparams)
 
     trainer_options = dict(

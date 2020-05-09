@@ -61,7 +61,7 @@ def test_neptune_additional_methods(neptune):
 
 def test_neptune_leave_open_experiment_after_fit(tmpdir):
     """Verify that neptune experiment was closed after training"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     def _run_training(logger):
         logger._experiment = MagicMock()

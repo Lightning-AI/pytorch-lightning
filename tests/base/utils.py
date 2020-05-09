@@ -9,7 +9,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
-from tests.base.datasets import PATH_DATASETS
 from tests.base.model_template import EvalModelTemplate
 
 
@@ -95,30 +94,6 @@ def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=T
         # test HPC loading / saving
         trainer.hpc_save(save_dir, logger)
         trainer.hpc_load(save_dir, on_gpu=on_gpu)
-
-
-def get_default_hparams(continue_training=False, hpc_exp_number=0):
-    args = {
-        'drop_prob': 0.2,
-        'batch_size': 32,
-        'in_features': 28 * 28,
-        'learning_rate': 0.001 * 8,
-        'optimizer_name': 'adam',
-        'data_root': PATH_DATASETS,
-        'out_features': 10,
-        'hidden_dim': 1000,
-        'b1': 0.5,
-        'b2': 0.999,
-    }
-
-    if continue_training:
-        args.update(
-            test_tube_do_checkpoint_load=True,
-            hpc_exp_number=hpc_exp_number,
-        )
-
-    hparams = Namespace(**args)
-    return hparams
 
 
 def get_default_logger(save_dir, version=None):

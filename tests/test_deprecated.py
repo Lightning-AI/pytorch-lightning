@@ -159,7 +159,7 @@ class ModelVer0_7(EvalModelTemplate):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     model = ModelVer0_6(hparams)
 

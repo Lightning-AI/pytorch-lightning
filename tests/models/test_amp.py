@@ -23,7 +23,7 @@ def test_amp_single_gpu(tmpdir, backend):
         precision=16
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
     result = trainer.fit(model)
 
@@ -37,7 +37,7 @@ def test_amp_multi_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -62,7 +62,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     tutils.set_random_master_port()
     os.environ['SLURM_LOCALID'] = str(0)
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -103,7 +103,7 @@ def test_cpu_model_with_amp(tmpdir):
         precision=16
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tutils.run_model_test(trainer_options, model, on_gpu=False)

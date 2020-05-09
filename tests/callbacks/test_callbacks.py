@@ -12,7 +12,7 @@ from pathlib import Path
 def test_trainer_callback_system(tmpdir):
     """Test the callback system."""
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     def _check_args(trainer, pl_module):
@@ -210,7 +210,7 @@ def test_early_stopping_no_val_step(tmpdir):
             output.update({'my_train_metric': output['loss']})  # could be anything else
             return output
 
-    model = CurrentModel(tutils.get_default_hparams())
+    model = CurrentModel()
     model.validation_step = None
     model.val_dataloader = None
 
@@ -246,7 +246,7 @@ def test_pickling(tmpdir):
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
@@ -287,7 +287,7 @@ def test_lr_logger_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler"""
     tutils.reset_seed()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     lr_logger = LearningRateLogger()
@@ -312,7 +312,7 @@ def test_lr_logger_multi_lrs(tmpdir):
     """ Test that learning rates are extracted and logged for multi lr schedulers """
     tutils.reset_seed()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_logger = LearningRateLogger()
