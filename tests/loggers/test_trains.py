@@ -8,7 +8,7 @@ from tests.base import EvalModelTemplate
 
 def test_trains_logger(tmpdir):
     """Verify that basic functionality of TRAINS logger works."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     TrainsLogger.set_bypass_mode(True)
     TrainsLogger.set_credentials(api_host='http://integration.trains.allegro.ai:8008',
                                  files_host='http://integration.trains.allegro.ai:8081',

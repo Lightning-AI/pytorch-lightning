@@ -60,8 +60,8 @@ class CustomLogger(LightningLoggerBase):
 
 
 def test_custom_logger(tmpdir):
-    hparams = tutils.get_default_hparams()
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(hparams)
 
     logger = CustomLogger()
 
@@ -79,7 +79,7 @@ def test_custom_logger(tmpdir):
 
 
 def test_multiple_loggers(tmpdir):
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     logger1 = CustomLogger()
@@ -139,7 +139,7 @@ def test_adding_step_key(tmpdir):
 
         return decorated
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.validation_epoch_end = _validation_epoch_end
     model.training_epoch_end = _training_epoch_end
     trainer = Trainer(

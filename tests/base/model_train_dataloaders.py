@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from tests.base.eval_model_utils import CustomInfDataloader
+from tests.base.dataloaders import CustomInfDataloader
 
 
 class TrainDataloaderVariations(ABC):

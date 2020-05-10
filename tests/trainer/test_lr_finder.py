@@ -10,7 +10,7 @@ from tests.base import EvalModelTemplate
 def test_error_on_more_than_1_optimizer(tmpdir):
     """ Check that error is thrown when more than 1 optimizer is passed """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     # logger file to get meta
@@ -26,7 +26,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 def test_model_reset_correctly(tmpdir):
     """ Check that model weights are correctly reset after lr_find() """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     trainer = Trainer(
@@ -48,7 +48,7 @@ def test_model_reset_correctly(tmpdir):
 def test_trainer_reset_correctly(tmpdir):
     """ Check that all trainer parameters are reset correctly after lr_find() """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     trainer = Trainer(
@@ -77,7 +77,7 @@ def test_trainer_reset_correctly(tmpdir):
 
 def test_trainer_arg_bool(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     before_lr = hparams.learning_rate
 
@@ -96,7 +96,7 @@ def test_trainer_arg_bool(tmpdir):
 
 def test_trainer_arg_str(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
     model = EvalModelTemplate(hparams)
 
@@ -116,7 +116,7 @@ def test_trainer_arg_str(tmpdir):
 
 def test_call_to_trainer_method(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     before_lr = hparams.learning_rate

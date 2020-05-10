@@ -58,7 +58,7 @@ def test_progress_bar_misconfiguration():
 def test_progress_bar_totals():
     """Test that the progress finishes with the correct total steps processed."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     trainer = Trainer(
         progress_bar_refresh_rate=1,
@@ -107,7 +107,7 @@ def test_progress_bar_totals():
 
 
 def test_progress_bar_fast_dev_run():
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     trainer = Trainer(
         fast_dev_run=True,
@@ -140,7 +140,7 @@ def test_progress_bar_fast_dev_run():
 def test_progress_bar_progress_refresh(refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     class CurrentProgressBar(ProgressBar):
 

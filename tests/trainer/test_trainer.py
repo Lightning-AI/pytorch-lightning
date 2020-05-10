@@ -20,12 +20,12 @@ from tests.base import EvalModelTemplate
 def test_model_pickle(tmpdir):
     import pickle
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     pickle.dumps(model)
 
 
 def test_hparams_save_load(tmpdir):
-    model = EvalModelTemplate(vars(tutils.get_default_hparams()))
+    model = EvalModelTemplate(vars(EvalModelTemplate.get_default_hparams()))
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -46,7 +46,7 @@ def test_hparams_save_load(tmpdir):
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -79,7 +79,7 @@ def test_no_val_module(tmpdir):
 def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -167,7 +167,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         # clear gradients
         optimizer.zero_grad()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
@@ -185,7 +185,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 def test_loading_meta_tags(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     # save tags
     logger = tutils.get_default_logger(tmpdir)
@@ -266,7 +266,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
 
 def test_model_freeze_unfreeze():
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     model.freeze()
     model.unfreeze()
@@ -275,7 +275,7 @@ def test_model_freeze_unfreeze():
 def test_resume_from_checkpoint_epoch_restored(tmpdir):
     """Verify resuming from checkpoint runs the right number of epochs"""
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
@@ -340,7 +340,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # define train epoch to 5% of data
     train_percent = 0.5
@@ -429,7 +429,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple
 
     # verify torch.backends.cudnn.benchmark is not turned on
@@ -452,7 +452,7 @@ def test_benchmark_option(tmpdir):
 
 def test_testpass_overrides(tmpdir):
     # todo: check duplicated tests against trainer_checks
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
@@ -491,7 +491,7 @@ def test_disabled_validation():
             self.validation_epoch_end_invoked = True
             return super().validation_epoch_end(*args, **kwargs)
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = CurrentModel(hparams)
 
     trainer_options = dict(
@@ -541,7 +541,7 @@ def test_nan_loss_detection(tmpdir):
                     output /= 0
             return output
 
-    model = CurrentModel(tutils.get_default_hparams())
+    model = CurrentModel()
 
     # fit model
     trainer = Trainer(
@@ -568,7 +568,7 @@ def test_nan_params_detection(tmpdir):
                 # simulate parameter that became nan
                 torch.nn.init.constant_(self.c_d1.bias, math.nan)
 
-    model = CurrentModel(tutils.get_default_hparams())
+    model = CurrentModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_nan + 1),
@@ -587,7 +587,7 @@ def test_nan_params_detection(tmpdir):
 def test_trainer_interrupted_flag(tmpdir):
     """Test the flag denoting that a user interrupted training."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -617,7 +617,7 @@ def test_gradient_clipping(tmpdir):
     Test gradient clipping
     """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # test that gradient is clipped correctly
     def _optimizer_step(*args, **kwargs):

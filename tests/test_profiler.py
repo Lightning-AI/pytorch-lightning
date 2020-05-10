@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001

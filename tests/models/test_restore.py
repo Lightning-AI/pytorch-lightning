@@ -19,7 +19,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -67,7 +67,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -103,7 +103,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
 def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     trainer_options = dict(
@@ -145,7 +145,7 @@ def test_load_model_from_checkpoint(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     trainer_options = dict(
@@ -217,7 +217,7 @@ def test_dp_resume(tmpdir):
 
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -284,13 +284,11 @@ def test_load_model_with_missing_hparams(tmpdir):
 
     class CurrentModelWithoutHparams(EvalModelTemplate):
         def __init__(self):
-            hparams = tutils.get_default_hparams()
-            super().__init__(hparams)
+            super().__init__()
 
     class CurrentModelUnusedHparams(EvalModelTemplate):
         def __init__(self, hparams):
-            hparams = tutils.get_default_hparams()
-            super().__init__(hparams)
+            super().__init__()
 
     model = CurrentModelWithoutHparams()
     trainer.fit(model)

@@ -9,7 +9,7 @@ from tests.base import EvalModelTemplate
 def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     model.configure_optimizers = model.configure_optimizers__single_scheduler
 
@@ -40,7 +40,7 @@ def test_optimizer_with_scheduling(tmpdir):
 def test_multi_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
@@ -75,7 +75,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
@@ -114,7 +114,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     model.configure_optimizers = model.configure_optimizers__reduce_lr_on_plateau
 
@@ -137,7 +137,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
 def test_optimizer_return_options():
 
     trainer = Trainer()
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
@@ -195,7 +195,7 @@ def test_none_optimizer_warning():
 
     trainer = Trainer()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.configure_optimizers = lambda: None
 
     with pytest.warns(UserWarning, match='will run with no optimizer'):
@@ -204,7 +204,7 @@ def test_none_optimizer_warning():
 
 def test_none_optimizer(tmpdir):
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
     model.configure_optimizers = model.configure_optimizers__empty
 
@@ -231,7 +231,7 @@ def test_configure_optimizer_from_dict(tmpdir):
             }
             return config
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = CurrentModel(hparams)
 
     # fit model

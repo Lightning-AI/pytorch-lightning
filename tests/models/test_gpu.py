@@ -30,7 +30,7 @@ def test_multi_gpu_model(tmpdir, backend):
         distributed_backend=backend,
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
@@ -53,7 +53,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
                            gpus=[0, 1],
                            distributed_backend='ddp')
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),
                        val_dataloaders=model.val_dataloader())
 
@@ -64,7 +64,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     # logger file to get meta
@@ -142,7 +142,7 @@ def test_multi_gpu_none_backend(tmpdir):
         gpus='-1'
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     with pytest.warns(UserWarning):
         tutils.run_model_test(trainer_options, model)
 

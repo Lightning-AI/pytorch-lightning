@@ -11,7 +11,7 @@ def test_model_reset_correctly(tmpdir):
     """ Check that model weights are correctly reset after scaling batch size. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     trainer = Trainer(
@@ -34,7 +34,7 @@ def test_trainer_reset_correctly(tmpdir):
     """ Check that all trainer parameters are reset correctly after scaling batch size. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     trainer = Trainer(
@@ -71,7 +71,7 @@ def test_trainer_arg(tmpdir, scale_arg):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     before_batch_size = hparams.batch_size
@@ -93,7 +93,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     """ Test that calling the trainer method itself works. """
     tutils.reset_seed()
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
     before_batch_size = hparams.batch_size
@@ -116,7 +116,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
        if a train dataloader is passed to fit """
 
     # only train passed to fit
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
