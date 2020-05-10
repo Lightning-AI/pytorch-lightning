@@ -7,6 +7,7 @@ from argparse import Namespace
 from typing import Union, Dict, Any
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ModelIO(object):
@@ -84,19 +85,20 @@ def update_hparams(hparams: dict, updates: dict) -> None:
 
 def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     if not os.path.isfile(tags_csv):
-        log.warning(f'Missing Tags: {tags_csv}.')
+        rank_zero_warn(f'Missing Tags: {tags_csv}.', RuntimeWarning)
         return {}
-
+    
     with open(tags_csv) as f:
         csv_reader = csv.reader(f, delimiter=',')
         tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
-
+        
     return tags
 
 
 def save_hparams_to_tags_csv(tags_csv: str, hparams: dict) -> None:
     if not os.path.isdir(os.path.dirname(tags_csv)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(tags_csv)}.')
+
     with open(tags_csv, 'w') as f:
         fieldnames = ['key', 'value']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -109,14 +111,17 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
     if not os.path.isfile(config_yaml):
         rank_zero_warn(f'Missing Tags: {config_yaml}.', RuntimeWarning)
         return {}
+
     with open(config_yaml) as f:
         tags = yaml.load(f, Loader=yaml.SafeLoader)
+
     return tags
 
 
 def save_hparams_to_yaml(config_yaml, hparams: dict) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
+
     with open(config_yaml, 'w', newline='') as f:
         yaml.dump(hparams, f)
 
@@ -125,5 +130,5 @@ def convert(val: str) -> Union[int, float, bool, str]:
     try:
         return ast.literal_eval(val)
     except (ValueError, SyntaxError) as e:
-        logging.debug(e)
+        log.debug(e)
         return val
