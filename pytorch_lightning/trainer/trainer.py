@@ -1052,9 +1052,9 @@ class Trainer(
 
     def check_testing_model_configuration(self, model: LightningModule):
 
-        has_test_step = self.is_overriden('test_step', model)
-        has_test_epoch_end = self.is_overriden('test_epoch_end', model)
-        gave_test_loader = self.is_overriden('test_dataloader', model)
+        has_test_step = self.is_overridden('test_step', model)
+        has_test_epoch_end = self.is_overridden('test_epoch_end', model)
+        gave_test_loader = self.is_overridden('test_dataloader', model)
 
         if gave_test_loader and not has_test_step:
             raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')
