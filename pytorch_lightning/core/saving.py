@@ -123,7 +123,7 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
-    >>> path_yaml = './testing-hparams.csv'
+    >>> path_yaml = './testing-hparams.yaml'
     >>> save_hparams_to_yaml(path_yaml, hparams)
     >>> hparams_new = load_hparams_from_yaml(path_yaml)
     >>> vars(hparams) == hparams_new

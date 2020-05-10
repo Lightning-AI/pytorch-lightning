@@ -3,7 +3,6 @@ TensorBoard
 -----------
 """
 
-import csv
 import os
 import yaml
 from argparse import Namespace

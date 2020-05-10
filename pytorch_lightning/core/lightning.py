@@ -1447,21 +1447,21 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
-        with an argument called ``hparams`` which is a :class:`~argparse.Namespace`
-        (output of :meth:`~argparse.ArgumentParser.parse_args` when parsing command line arguments).
+        with an argument called ``hparams`` which is an object of :class:`~dict` or
+        :class:`~argparse.Namespace` (output of :meth:`~argparse.ArgumentParser.parse_args`
+        when parsing command line arguments).
         Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
 
         Example:
             .. code-block:: python
 
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
+                hparams = {'learning_rate': 0.1}
 
                 model = MyModel(hparams)
 
                 class MyModel(LightningModule):
                     def __init__(self, hparams):
-                        self.learning_rate = hparams.learning_rate
+                        self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1470,19 +1470,32 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
-            tags_csv: Optional path to a .csv file with two columns (key, value)
+            hparams_file: Optional path to a .yaml file with hierarchical structure.
+                as in this example::
+
+                    model:
+                        drop_prob: 0.2
+                    dataloader:
+                        batch_size: 32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a .yaml file with the hparams you'd like to use.
+                These will be converted into a :class:`~dict` and passed into your
+                :class:`LightningModule` for use.
+                .csv files are acceptable till v0.9.0, see tags_csv argument for detailed usage.
+            tags_csv:
+                .. warning:: .. deprecated:: 0.7.6
+                    `tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0.
+                Optional path to a .csv file with two columns (key, value)
                 as in this example::
 
                     key,value
                     drop_prob,0.2
                     batch_size,32
 
-                You most likely won't need this since Lightning will always save the hyperparameters
-                to the checkpoint.
-                However, if your checkpoint weights don't have the hyperparameters saved,
-                use this method to pass in a .csv file with the hparams you'd like to use.
-                These will be converted into a :class:`~argparse.Namespace` and passed into your
-                :class:`LightningModule` for use.
+                Use this method to pass in a .csv file with the hparams you'd like to use.
             hparam_overrides: A dictionary with keys to override in the hparams
 
         Return:
@@ -1504,7 +1517,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # or load weights and hyperparameters from separate files.
                 MyLightningModule.load_from_checkpoint(
                     'path/to/checkpoint.ckpt',
-                    tags_csv='/path/to/hparams_file.csv'
+                    hparams_file='/path/to/hparams_file.yaml'
                 )
 
                 # override some of the params with new values
