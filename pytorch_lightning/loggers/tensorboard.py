@@ -15,6 +15,7 @@ from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -158,8 +159,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file
-        with open(hparams_file, 'w', newline='') as f:
-            yaml.dump(self.hparams, f)
+        save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
