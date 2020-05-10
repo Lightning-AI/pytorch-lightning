@@ -1564,7 +1564,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                hparams_type = checkpoint.get('hparams_type')
+                hparams_type = checkpoint.get('hparams_type', 'Namespace')
                 if hparams_type.lower() == 'dict':
                     hparams = ckpt_hparams
                 elif hparams_type.lower() == 'namespace':
