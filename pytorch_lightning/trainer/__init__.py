@@ -551,7 +551,7 @@ nb_sanity_val_steps:
     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
 tpu_cores
-^^^^^^^^^^^^^
+^^^^^^^^^
 - How many TPU cores to train on (1 or 8).
 - Which TPU core to train on [1-8]
 
