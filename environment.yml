@@ -13,6 +13,7 @@ dependencies:
     - pytorch>=1.1
     - tensorboard>=1.14
     - future>=0.17.1
+    - pyyaml>=3.0
 
     # For dev and testing
     - tox
