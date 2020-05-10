@@ -84,46 +84,72 @@ def update_hparams(hparams: dict, updates: dict) -> None:
 
 
 def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
+    """Load hparams from a file.
+
+    >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
+    >>> path_csv = './testing-hparams.csv'
+    >>> save_hparams_to_tags_csv(path_csv, hparams)
+    >>> hparams_new = load_hparams_from_tags_csv(path_csv)
+    >>> vars(hparams) == hparams_new
+    True
+    >>> os.remove(path_csv)
+    """
     if not os.path.isfile(tags_csv):
         rank_zero_warn(f'Missing Tags: {tags_csv}.', RuntimeWarning)
         return {}
-    
-    with open(tags_csv) as f:
-        csv_reader = csv.reader(f, delimiter=',')
+
+    with open(tags_csv) as fp:
+        csv_reader = csv.reader(fp, delimiter=',')
         tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
-        
+
     return tags
 
 
-def save_hparams_to_tags_csv(tags_csv: str, hparams: dict) -> None:
+def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(tags_csv)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(tags_csv)}.')
 
-    with open(tags_csv, 'w') as f:
+    if isinstance(hparams, Namespace):
+        hparams = vars(hparams)
+
+    with open(tags_csv, 'w') as fp:
         fieldnames = ['key', 'value']
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({'key': 'key', 'value': 'value'})
         for k, v in hparams.items():
             writer.writerow({'key': k, 'value': v})
 
 
 def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+    """Load hparams from a file.
+
+    >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
+    >>> path_yaml = './testing-hparams.csv'
+    >>> save_hparams_to_yaml(path_yaml, hparams)
+    >>> hparams_new = load_hparams_from_yaml(path_yaml)
+    >>> vars(hparams) == hparams_new
+    True
+    >>> os.remove(path_yaml)
+    """
     if not os.path.isfile(config_yaml):
         rank_zero_warn(f'Missing Tags: {config_yaml}.', RuntimeWarning)
         return {}
 
-    with open(config_yaml) as f:
-        tags = yaml.load(f, Loader=yaml.SafeLoader)
+    with open(config_yaml) as fp:
+        tags = yaml.load(fp, Loader=yaml.SafeLoader)
 
     return tags
 
 
-def save_hparams_to_yaml(config_yaml, hparams: dict) -> None:
+def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
-    with open(config_yaml, 'w', newline='') as f:
-        yaml.dump(hparams, f)
+    if isinstance(hparams, Namespace):
+        hparams = vars(hparams)
+
+    with open(config_yaml, 'w', newline='') as fp:
+        yaml.dump(hparams, fp)
 
 
 def convert(val: str) -> Union[int, float, bool, str]:
