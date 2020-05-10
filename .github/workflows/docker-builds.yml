@@ -28,7 +28,7 @@ jobs:
     - name: Publish Releases to Docker
       # only on releases
       uses: elgohr/Publish-Docker-Github-Action@2.14
-      if: contains(github.ref, 'refs/tags/') && contains(${{ steps.extract_tag.outputs.tag }}, 'rc') != true && contains(${{ steps.extract_tag.outputs.tag }}, 'dev') != true
+      if: contains(github.ref, 'refs/tags/') && !contains(${{ steps.extract_tag.outputs.tag }}, 'rc') && !contains(${{ steps.extract_tag.outputs.tag }}, 'dev')
       with:
         name: pytorchlightning/pytorch_lightning
         username: ${{ secrets.DOCKER_USERNAME }}
