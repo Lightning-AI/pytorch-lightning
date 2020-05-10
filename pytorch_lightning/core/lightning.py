@@ -1487,7 +1487,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 .csv files are acceptable till v0.9.0, see tags_csv argument for detailed usage.
             tags_csv:
                 .. warning:: .. deprecated:: 0.7.6
+
                     `tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0.
+
                 Optional path to a .csv file with two columns (key, value)
                 as in this example::
 
