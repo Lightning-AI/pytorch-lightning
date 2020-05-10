@@ -101,7 +101,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = None
         trainer.test(model)
 
     # ----------------
@@ -109,7 +109,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = None
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
 
@@ -118,6 +118,6 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = None
         model.test_epoch_end = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
