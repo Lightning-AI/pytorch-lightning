@@ -352,7 +352,7 @@ class TrainerIOMixin(ABC):
             else:
                 raise ValueError(
                     'The acceptable hparams type is dict or argparse.Namespace,',
-                    f'not {checkpoint["hparams_type"]}'
+                    f' not {checkpoint["hparams_type"]}'
                 )
         else:
             rank_zero_warn(

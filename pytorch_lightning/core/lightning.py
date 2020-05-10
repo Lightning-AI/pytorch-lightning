@@ -1440,7 +1440,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None,
+            tags_csv: Optional[str] = None, # backward compatible, todo: remove in v0.9.0
             hparam_overrides: Optional[Dict] = None,
             *args, **kwargs
     ) -> 'LightningModule':
@@ -1538,12 +1538,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         if hparams_file is not None:
             extension = hparams_file.split('.')[-1]
-            if extension.lower() in ['csv']:
+            if extension.lower() in ('csv'):
                 hparams = load_hparams_from_tags_csv(hparams_file)
-            elif extension.lower() in ['yml', 'yaml']:
+            elif extension.lower() in ('yml', 'yaml'):
                 hparams = load_hparams_from_yaml(hparams_file)
             else:
-                raise ValueError('.csv, .yml or .yaml is required for hparams_file')
+                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
 
             hparams['on_gpu'] = False
 
