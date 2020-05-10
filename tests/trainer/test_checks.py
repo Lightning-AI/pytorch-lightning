@@ -1,7 +1,7 @@
 import pytest
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -101,7 +101,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = None
+        model.test_dataloader = LightningModule.test_dataloader
         trainer.test(model)
 
     # ----------------
@@ -109,7 +109,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = None
+        model.test_dataloader = LightningModule.test_dataloader
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
 
@@ -118,6 +118,6 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = None
+        model.test_dataloader = LightningModule.test_dataloader
         model.test_epoch_end = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
