@@ -204,11 +204,11 @@ def test_loading_meta_tags(tmpdir):
     # load hparams
     path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
-    hparams = load_hparans_from_yaml(hparams_path)
+    hparams = load_hparams_from_yaml(hparams_path)
 
     # save as legacy meta_tags.csv
     tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
-    save_hparams_to_tag_csv(tags_path, hparams)
+    save_hparams_to_tags_csv(tags_path, hparams)
 
     tags = load_hparams_from_tags_csv(tags_path)
 
