@@ -12,11 +12,8 @@ import yaml
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    ModelCheckpoint,
-)
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv, load_hparams_from_yaml
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -206,17 +203,11 @@ def test_loading_meta_tags(tmpdir):
     # load hparams
     path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(path_expt_dir, 'hparams.yaml')
-    with open(hparams_path, 'r') as f:  # store as a dict
-        hparams = yaml.load(f)
+    hparams = load_hparans_from_yaml(hparams_path)
 
     # save as legacy meta_tags.csv
     tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
-    with open(tags_path, 'w') as f:
-        fieldnames = ['key', 'value']
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writerow({'key': 'key', 'value': 'value'})
-        for k, v in hparams.items():
-            writer.writerow({'key': k, 'value': v})
+    save_hparams_to_tag_csv(tags_path, hparams)
 
     tags = load_hparams_from_tags_csv(tags_path)
 
