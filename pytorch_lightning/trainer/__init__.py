@@ -214,7 +214,7 @@ Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 For more info check `[pytorch docs]
 <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
-.. testcode::
+Example::
 
     # default used by the Trainer
     trainer = Trainer(deterministic=False)
