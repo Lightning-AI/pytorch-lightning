@@ -1534,7 +1534,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
             hparams_file = tags_csv
-            warnings.warn('tags_csv argument is deprecated, use hparams_file argument instead.')
+            rank_zero_warn('`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0', DeprecationWarning)
 
         if hparams_file is not None:
             extension = hparams_file.split('.')[-1]
