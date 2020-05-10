@@ -5,17 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import TrialMNIST
-from tests.base.eval_model_optimizers import ConfigureOptimizersPool
-from tests.base.eval_model_test_dataloaders import TestDataloaderVariations
-from tests.base.eval_model_test_epoch_ends import TestEpochEndVariations
-from tests.base.eval_model_test_steps import TestStepVariations
-from tests.base.eval_model_train_dataloaders import TrainDataloaderVariations
-from tests.base.eval_model_train_steps import TrainingStepVariations
-from tests.base.eval_model_utils import ModelTemplateUtils, ModelTemplateData
-from tests.base.eval_model_valid_dataloaders import ValDataloaderVariations
-from tests.base.eval_model_valid_epoch_ends import ValidationEpochEndVariations
-from tests.base.eval_model_valid_steps import ValidationStepVariations
+from tests.base.datasets import TrialMNIST, PATH_DATASETS
+from tests.base.model_optimizers import ConfigureOptimizersPool
+from tests.base.model_test_dataloaders import TestDataloaderVariations
+from tests.base.model_test_epoch_ends import TestEpochEndVariations
+from tests.base.model_test_steps import TestStepVariations
+from tests.base.model_train_dataloaders import TrainDataloaderVariations
+from tests.base.model_train_steps import TrainingStepVariations
+from tests.base.model_utilities import ModelTemplateUtils, ModelTemplateData
+from tests.base.model_valid_dataloaders import ValDataloaderVariations
+from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
+from tests.base.model_valid_steps import ValidationStepVariations
 
 
 class EvalModelTemplate(
@@ -35,8 +35,10 @@ class EvalModelTemplate(
     """
     This template houses all  combinations of model  configurations  we want to test
     """
-    def __init__(self, hparams: object) -> object:
+    def __init__(self, hparams: object = None) -> object:
         """Pass in parsed HyperOptArgumentParser to the model."""
+        if hparams is None:
+            hparams = EvalModelTemplate.get_default_hparams()
         # init superclass
         super().__init__()
         self.hparams = Namespace(**hparams) if isinstance(hparams, dict) else hparams
@@ -81,3 +83,27 @@ class EvalModelTemplate(
 
     def prepare_data(self):
         _ = TrialMNIST(root=self.hparams.data_root, train=True, download=True)
+
+    @staticmethod
+    def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> Namespace:
+        args = dict(
+            drop_prob=0.2,
+            batch_size=32,
+            in_features=28 * 28,
+            learning_rate=0.001 * 8,
+            optimizer_name='adam',
+            data_root=PATH_DATASETS,
+            out_features=10,
+            hidden_dim=1000,
+            b1=0.5,
+            b2=0.999,
+        )
+
+        if continue_training:
+            args.update(
+                test_tube_do_checkpoint_load=True,
+                hpc_exp_number=hpc_exp_number,
+            )
+
+        hparams = Namespace(**args)
+        return hparams
