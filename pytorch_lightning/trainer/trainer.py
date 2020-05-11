@@ -729,7 +729,8 @@ class Trainer(
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
         # check that model is configured correctly
-        self.check_model_configuration(model)
+        if not self.testing:
+            self.check_model_configuration(model)
 
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
@@ -961,6 +962,7 @@ class Trainer(
         self.testing = True
 
         if test_dataloaders is not None:
+            self.test_dataloaders = None
             if model:
                 self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
             else:
@@ -1042,7 +1044,7 @@ class Trainer(
 
         has_test_step = self.is_overriden('test_step', model)
         has_test_epoch_end = self.is_overriden('test_epoch_end', model)
-        gave_test_loader = hasattr(model, 'test_dataloader') and model.test_dataloader()
+        gave_test_loader = self.is_overriden('test_dataloader', model)
 
         if gave_test_loader and not has_test_step:
             raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')
