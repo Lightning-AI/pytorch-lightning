@@ -59,3 +59,13 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
+
+    def configure_optimizers__param_groups(self):
+        param_groups = [
+            {'params': list(self.parameters())[:2], 'lr': self.hparams.learning_rate * 0.1},
+            {'params': list(self.parameters())[2:], 'lr': self.hparams.learning_rate}
+        ]
+
+        optimizer = optim.Adam(param_groups)
+        lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
+        return [optimizer], [lr_scheduler]

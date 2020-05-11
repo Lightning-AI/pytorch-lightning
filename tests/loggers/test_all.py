@@ -35,7 +35,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     import atexit
     monkeypatch.setattr(atexit, 'register', lambda _: None)
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):
         def __init__(self, *args, **kwargs):
