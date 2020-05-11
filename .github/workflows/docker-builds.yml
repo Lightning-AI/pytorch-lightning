@@ -52,5 +52,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
-          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}","latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
         timeout-minutes: 30
