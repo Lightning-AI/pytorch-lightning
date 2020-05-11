@@ -1,12 +1,7 @@
 name: Publish Docker Releases
-on:
-  push:
-    branches: 
-      - master
-  release:
-    types:
-       - created
 
+on: []
+  
 jobs:
   build:
     runs-on: ubuntu-latest
