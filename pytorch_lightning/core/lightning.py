@@ -1470,7 +1470,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
-            hparams_file: Optional path to a .yaml file with hierarchical structure.
+            hparams_file: Optional path to a .yaml file with hierarchical structure
                 as in this example::
 
                     model:
