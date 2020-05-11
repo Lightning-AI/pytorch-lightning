@@ -270,7 +270,7 @@ def test_dp_output_reduce():
 def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_files):
     """Test ModelCheckpoint options."""
 
-    def mock_save_function(filepath):
+    def mock_save_function(filepath, *args):
         open(filepath, 'a').close()
 
     # simulated losses
