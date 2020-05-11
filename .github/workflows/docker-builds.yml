@@ -20,12 +20,13 @@ jobs:
       shell: bash
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
+      uses: actions/checkout@v2
     - name: Extract Tag name
       if: startsWith(github.event.ref, 'refs/tags')
       shell: bash
       run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
       id: extract_tag
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
     - name: Publish Releases to Docker
       # only on releases
       uses: elgohr/Publish-Docker-Github-Action@2.14
