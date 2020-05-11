@@ -360,6 +360,10 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
+        # enable fast_dev_run without val loop
+        if dataloaders is None:
+            return
+
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
             max_batches = 1
