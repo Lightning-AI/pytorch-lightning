@@ -1450,19 +1450,37 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         with an argument called ``hparams`` which is an object of :class:`~dict` or
         :class:`~argparse.Namespace` (output of :meth:`~argparse.ArgumentParser.parse_args`
         when parsing command line arguments).
+        If you want `hparams` to have a hierarchical structure, you have to define it as :class:`~dict`.
         Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
 
         Example:
             .. code-block:: python
 
+                # define hparams as Namespace
                 from argparse import Namespace
                 hparams = Namespace(**{'learning_rate': 0.1})
 
                 model = MyModel(hparams)
 
                 class MyModel(LightningModule):
-                    def __init__(self, hparams):
+                    def __init__(self, hparams: Namespace):
                         self.learning_rate = hparams.learning_rate
+
+                # ----------
+
+                # define hparams as dict
+                hparams = {
+                    drop_prob: 0.2,
+                    dataloader: {
+                        batch_size: 32
+                    }
+                }
+
+                model = MyModel(hparams)
+
+                class MyModel(LightningModule):
+                    def __init__(self, hparams: dict):
+                        self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1474,8 +1492,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hparams_file: Optional path to a .yaml file with hierarchical structure
                 as in this example::
 
-                    model:
-                        drop_prob: 0.2
+                    drop_prob: 0.2
                     dataloader:
                         batch_size: 32
 
@@ -1485,7 +1502,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 use this method to pass in a .yaml file with the hparams you'd like to use.
                 These will be converted into a :class:`~dict` and passed into your
                 :class:`LightningModule` for use.
-                .csv files are acceptable till v0.9.0, see tags_csv argument for detailed usage.
+
+                If your model's `hparams` argument is :class:`~argparse.Namespace`
+                and .yaml file has hierarchical structure, you need to refactor your model to treat
+                `hparams` as :class:`~dict`.
+
+                .csv files are acceptable here till v0.9.0, see tags_csv argument for detailed usage.
             tags_csv:
                 .. warning:: .. deprecated:: 0.7.6
 
