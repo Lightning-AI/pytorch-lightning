@@ -93,7 +93,7 @@ class ProgressBarBase(Callback):
         """
         trainer = self.trainer
         total_val_batches = 0
-        if trainer.fast_dev_run:
+        if trainer.fast_dev_run and trainer.val_dataloaders is not None:
             total_val_batches = len(trainer.val_dataloaders)
         elif not self.trainer.disable_validation:
             is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
