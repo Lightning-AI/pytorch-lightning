@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get release version
-        if: !startsWith(github.event.ref, 'refs/tags')
+        # if: !startsWith(github.event.ref, 'refs/tags')
         id: get_version
         run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
       - name: Show version
