@@ -1455,13 +1455,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Example:
             .. code-block:: python
 
-                hparams = {'learning_rate': 0.1}
+                from argparse import Namespace
+                hparams = Namespace(**{'learning_rate': 0.1})
 
                 model = MyModel(hparams)
 
                 class MyModel(LightningModule):
                     def __init__(self, hparams):
-                        self.learning_rate = hparams['learning_rate']
+                        self.learning_rate = hparams.learning_rate
 
         Args:
             checkpoint_path: Path to checkpoint.
