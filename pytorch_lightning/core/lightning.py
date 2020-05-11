@@ -1603,6 +1603,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # load the state_dict on the model automatically
         if cls_takes_hparams:
             kwargs.update(hparams=hparams)
+        model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
