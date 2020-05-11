@@ -32,6 +32,7 @@ jobs:
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
           tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+        timeout-minutes: 20
 
       - name: Publish Releases to Docker
         # only on releases
@@ -44,3 +45,4 @@ jobs:
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
           tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+        timeout-minutes: 20
