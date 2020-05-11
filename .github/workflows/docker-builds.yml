@@ -22,9 +22,16 @@ jobs:
         id: get_version
         run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:11})
 
+      - name: show
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+          echo (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release')
+          echo contains(${{ env.RELEASE_VERSION }}, "rc")
+          echo (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
+
       - name: Publish Master to Docker
         # publish master
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v1.1
         if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
@@ -33,11 +40,11 @@ jobs:
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
           tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 20
+        timeout-minutes: 30
 
       - name: Publish Releases to Docker
         # only on releases
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v1.1
         if: (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
         with:
           repository: pytorchlightning/pytorch_lightning
@@ -45,5 +52,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
-          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 20
+          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}","latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+        timeout-minutes: 30
