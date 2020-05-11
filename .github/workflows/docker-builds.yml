@@ -31,7 +31,7 @@ jobs:
 
       - name: Publish Master to Docker
         # publish master
-        uses: docker/build-push-action@v1.1
+        uses: docker/build-push-action@v1.1.0
         if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
@@ -44,7 +44,7 @@ jobs:
 
       - name: Publish Releases to Docker
         # only on releases
-        uses: docker/build-push-action@v1.1
+        uses: docker/build-push-action@v1.1.0
         if: (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
         with:
           repository: pytorchlightning/pytorch_lightning
