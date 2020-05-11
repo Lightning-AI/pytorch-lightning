@@ -26,9 +26,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Updated LightningTemplateModel to look more like Colab example ([#1577](https://github.com/PyTorchLightning/pytorch-lightning/pull/1577))
 
-- Don't convert `namedtuple` to `tuple` ([#1589](https://github.com/PyTorchLightning/pytorch-lightning/pull/1589))
+- Don't convert `namedtuple` to `tuple` when transferring the batch to target device ([#1589](https://github.com/PyTorchLightning/pytorch-lightning/pull/1589))
 
-- Changed lightning module params to dict when loading ([#1639](https://github.com/PyTorchLightning/pytorch-lightning/pull/1639))
+- Allow passing hparams as keyword argument to LightningModule when loading from checkpoint ([#1639](https://github.com/PyTorchLightning/pytorch-lightning/pull/1639))
 
 ### Deprecated
 
