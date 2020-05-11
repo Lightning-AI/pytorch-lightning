@@ -20,14 +20,10 @@ jobs:
         # if: !startsWith(github.event.ref, 'refs/tags')
         id: get_version
         run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:11})
-      - name: Show version
-        run: |
-          echo ${GITHUB_REF}
-          echo ${{ env.RELEASE_VERSION }}
 
       - name: Publish Master to Docker
         # publish master
-        uses: elgohr/Publish-Docker-Github-Action@2.14
+        uses: docker/build-push-action@v1
         if: github.event_name == 'push'
         with:
           name: pytorchlightning/pytorch_lightning
@@ -39,7 +35,7 @@ jobs:
 
       - name: Publish Releases to Docker
         # only on releases
-        uses: elgohr/Publish-Docker-Github-Action@2.14
+        uses: docker/build-push-action@v1
         if: (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
         with:
           name: pytorchlightning/pytorch_lightning
