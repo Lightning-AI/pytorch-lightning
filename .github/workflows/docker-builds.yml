@@ -27,15 +27,15 @@ jobs:
       - name: Publish Releases to Docker
         # only on releases
         uses: elgohr/Publish-Docker-Github-Action@2.14
-        if: startsWith(github.event.ref, 'refs/tags') && !contains(${{ env.RELEASE_VERSION }}, 'rc') && !contains(${{ env.RELEASE_VERSION }}, 'dev')
+        if: (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
         with:
           name: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: docker/Dockerfile
           buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
-          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},stable-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-      - name: Publish Master
+          tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+      - name: Publish Master to Docker
         # publish master
         uses: elgohr/Publish-Docker-Github-Action@2.14
         if: github.event_name == 'push'
