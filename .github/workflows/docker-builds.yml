@@ -1,4 +1,5 @@
 name: Publish Docker Releases
+# https://www.docker.com/blog/first-docker-github-action-is-here
 on:
   push:
     branches: 
@@ -26,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v1
         if: github.event_name == 'push'
         with:
-          name: pytorchlightning/pytorch_lightning
+          repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: docker/Dockerfile
@@ -39,7 +40,7 @@ jobs:
         uses: docker/build-push-action@v1
         if: (startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') && !contains(${{ env.RELEASE_VERSION }}, "rc")
         with:
-          name: pytorchlightning/pytorch_lightning
+          repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: docker/Dockerfile
