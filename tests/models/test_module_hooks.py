@@ -9,6 +9,7 @@ import tests.base.utils as tutils
 def test_training_epoch_end_metrics_collection(tmpdir):
     """ Test that progress bar metrics also get collected at the end of an epoch. """
     num_epochs = 3
+
     class CurrentModel(EvalModelTemplate):
 
         def training_step(self, *args, **kwargs):

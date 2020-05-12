@@ -11,6 +11,42 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_fit_train_loader_only(tmpdir):
+
+    model = EvalModelTemplate()
+    train_dataloader = model.train_dataloader()
+
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+
+    model.validation_step = None
+    model.validation_epoch_end = None
+
+    model.test_step = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
+    trainer.fit(model, train_dataloader=train_dataloader)
+
+
+def test_fit_val_loader_only(tmpdir):
+
+    model = EvalModelTemplate()
+    train_dataloader = model.train_dataloader()
+    val_dataloader = model.val_dataloader()
+
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+
+    model.test_step = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
+    trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloader)
+
+
 @pytest.mark.parametrize("dataloader_options", [
     dict(train_percent_check=-0.1),
     dict(train_percent_check=1.1),

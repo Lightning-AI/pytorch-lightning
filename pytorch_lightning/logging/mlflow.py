@@ -3,8 +3,7 @@
 """
 
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.loggers.mlflow import MLFlowLogger  # noqa: F403
 
 rank_zero_warn("`logging.mlflow` module has been renamed to `loggers.mlflow` since v0.7.0."
                " The deprecated module name will be removed in v0.9.0.", DeprecationWarning)
-
-from pytorch_lightning.loggers.mlflow import MLFlowLogger  # noqa: F403

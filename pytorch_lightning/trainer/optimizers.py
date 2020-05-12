@@ -90,7 +90,7 @@ class TrainerOptimizersMixin(ABC):
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:
-                    raise ValueError(f'Lr scheduler should have key `scheduler`',
+                    raise ValueError('Lr scheduler should have key `scheduler`',
                                      ' with item being a lr scheduler')
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
