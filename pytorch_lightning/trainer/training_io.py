@@ -338,8 +338,8 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        # restore native amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+        # save native amp scaling
+        if self.use_amp and self.use_native_amp:
             checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams"):
