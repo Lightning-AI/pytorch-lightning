@@ -41,7 +41,6 @@ def test_fit_val_loader_only(tmpdir):
     model.test_dataloader = None
 
     model.validation_step = None
-    model.validation_epoch_end = None
 
     model.test_step = None
     model.test_epoch_end = None
