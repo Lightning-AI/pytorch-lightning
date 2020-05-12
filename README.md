@@ -62,7 +62,7 @@ Here's a minimal example without a validation or test loop.
 class LitClassifier(pl.LightningModule):
 
     def __init__(self):
-        super(MNISTModel, self).__init__()
+        super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
     def forward(self, x):
