@@ -635,6 +635,7 @@ class Trainer(
              'check_val_every_n_epoch': 1,
              'checkpoint_callback': True,
              'default_root_dir': None,
+             'deterministic': False,
              'distributed_backend': None,
              'early_stop_callback': False,
              ...
