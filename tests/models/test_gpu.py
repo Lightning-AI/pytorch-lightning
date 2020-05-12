@@ -130,6 +130,7 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
