@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 # from pl_examples import LightningTemplateModel
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
@@ -188,8 +188,7 @@ def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
 
 def reset_seed():
     seed = RANDOM_SEEDS.pop()
-    torch.manual_seed(seed)
-    np.random.seed(seed)
+    seed_everything(seed)
 
 
 def set_random_master_port():

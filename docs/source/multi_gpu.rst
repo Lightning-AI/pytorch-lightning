@@ -132,6 +132,8 @@ Lightning allows multiple ways of training
 - Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (`num_tpu_cores=8|x`) (tpu or TPU pod)
 
+.. note:: If you request multiple GPUs without setting a mode, ddp will be automatically used.
+
 Data Parallel (dp)
 ^^^^^^^^^^^^^^^^^^
 `DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ splits a batch across k GPUs. That is, if you have a batch of 32 and use dp with 2 gpus,

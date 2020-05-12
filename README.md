@@ -50,9 +50,46 @@ pip install pytorch-lightning
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
+## Refactoring your PyTorch code + benefits + full walk-through
+[![Watch the video](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.png)](https://www.youtube.com/watch?v=QHww1JH7IDU)
+
 ## Demo
-[MNIST, GAN, BERT, DQN on COLAB!](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)   
-[MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
+Here's a minimal example without a validation or test loop.
+
+```python
+# this is just a plain nn.Module with some structure
+
+class LitClassifier(pl.LightningModule):
+
+    def __init__(self):
+        super().__init__()
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        tensorboard_logs = {'train_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+# train!
+train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+
+model = LitClassifier()
+trainer = pl.Trainer(gpus=8, precision=16)    
+trainer.fit(model, train_loader) 
+```
+
+Other examples:    
+[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)     
+[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)    
+[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
+[MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)    
 
 ## What is it?
 [READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
@@ -115,7 +152,8 @@ This is how lightning separates the science (red) from the engineering (blue).
 If your code is not a huge mess you should be able to organize it into a LightningModule in less than 1 hour.
 If your code IS a mess, then you needed to clean up anyhow ;)
 
-[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
+[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).    
+[Or watch this video](https://www.youtube.com/watch?v=QHww1JH7IDU).
 
 
 ## Starting a new project?
@@ -315,29 +353,33 @@ If you have any questions, feel free to:
 
 ---
 ## FAQ
-**How do I use Lightning for rapid research?**
+**How do I use Lightning for rapid research?**    
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
-**Why was Lightning created?**
+**Why was Lightning created?**    
 Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
 2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.
 3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
 
-**How does Lightning compare with Ignite and fast.ai?**
+**How does Lightning compare with Ignite and fast.ai?**    
 [Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
 
-**Is this another library I have to learn?**
+**Is this another library I have to learn?**    
 Nope! We use pure Pytorch everywhere and don't add unnecessary abstractions!
 
-**Are there plans to support Python 2?**
+**Are there plans to support Python 2?**    
 Nope.
 
-**Are there plans to support virtualenv?**
-Nope. Please use anaconda or miniconda.
+**Are there plans to support virtualenv?**    
+Nope. Please use anaconda or miniconda.    
+```bash
+conda activate my_env
+pip install pytorch-lightning
+```
 
-**Which PyTorch versions do you support?**
+**Which PyTorch versions do you support?**    
 - **PyTorch 1.1.0**
     ```bash
     # install pytorch 1.1.0 using the official instructions
@@ -348,8 +390,10 @@ Nope. Please use anaconda or miniconda.
     # install latest Lightning version without upgrading deps
     pip install -U --no-deps pytorch-lightning
     ```
-- **PyTorch 1.2.0, 1.3.0,**
-    Install via pip as normal
+- **PyTorch 1.2.0+**
+   ```python
+   pip install pytorch-lightning
+   ```
 
 ## Custom installation
 
@@ -388,6 +432,15 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
+
+#### Funding    
+Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
+hire a full-time staff, attend conferences, and move faster through implementing features you request.
+
+Our goal is to build an incredible research platform and a big supportive community. Many open-source projects
+have gone on to fund operations through things like support and special help for big corporations!
+
+If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
 
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
