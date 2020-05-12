@@ -123,9 +123,10 @@ class TensorBoardLogger(LightningLoggerBase):
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
-            
-            # necessary for hparam comparison with metrics
-            self.log_metrics(metrics)
+
+            if metrics:
+                # necessary for hparam comparison with metrics
+                self.log_metrics(metrics)
 
         # some alternative should be added
         self.tags.update(sanitized_params)
