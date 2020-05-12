@@ -39,6 +39,7 @@ def _nccl_available():
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
+    tutils.reset_seed()
     cmdline = [
         'horovodrun',
         '-np', '2',
@@ -62,7 +63,8 @@ def test_horovod_cpu(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
+        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -78,6 +80,7 @@ def test_horovod_cpu_implicit(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -96,6 +99,7 @@ def test_horovod_multi_gpu(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=1,
+        deterministic=True,
         distributed_backend='horovod'
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -130,6 +134,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         gpus=1,
+        deterministic=True,
         distributed_backend='horovod'
     )
     tutils.run_model_test_without_loggers(trainer_options, model)
@@ -147,6 +152,7 @@ def test_horovod_multi_optimizer(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        deterministic=True,
         distributed_backend='horovod'
     )
 
