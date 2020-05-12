@@ -127,7 +127,7 @@ class TrainerLRFinderMixin(ABC):
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
-        self.callbacks = [_LRCallback(num_training, 
+        self.callbacks = [_LRCallback(num_training,
                                       early_stop_threshold,
                                       progress_bar_refresh_rate=1)]
 
@@ -175,7 +175,7 @@ class TrainerLRFinderMixin(ABC):
         lr_finder.results.update({'lr': self.callbacks[0].lrs,
                                   'loss': self.callbacks[0].losses})
         lr_finder._total_batch_idx = self.total_batch_idx  # for debug purpose
-        
+
         # Reset model state
         self.restore(str(save_path), on_gpu=self.on_gpu)
         os.remove(save_path)
@@ -249,7 +249,7 @@ class _LRFinder(object):
         self.lr_min = lr_min
         self.lr_max = lr_max
         self.num_training = num_training
-        
+
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
@@ -337,9 +337,9 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch. """
-    def __init__(self, num_training: int, 
+    def __init__(self, num_training: int,
                  early_stop_threshold: float = 4.0,
-                 progress_bar_refresh_rate: bool = False, 
+                 progress_bar_refresh_rate: bool = False,
                  beta: float = 0.98):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold

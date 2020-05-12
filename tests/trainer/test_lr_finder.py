@@ -116,7 +116,7 @@ def test_trainer_arg_str(tmpdir):
 
 def test_call_to_trainer_method(tmpdir):
     """ Test that directly calling the trainer method works """
-    
+
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
@@ -139,7 +139,7 @@ def test_call_to_trainer_method(tmpdir):
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
-    
+
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
@@ -157,13 +157,13 @@ def test_accumulation_and_early_stopping(tmpdir):
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100*2, \
+    assert lrfinder._total_batch_idx == 100 * 2, \
         'Accumulation parameter did not work'
 
 
 def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
-    
+
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(hparams)
 
@@ -172,7 +172,7 @@ def test_suggestion_parameters_work(tmpdir):
         default_save_path=tmpdir,
         max_epochs=10,
     )
-    
+
     lrfinder = trainer.lr_find(model)
     lr1 = lrfinder.suggestion()
     lr2 = lrfinder.suggestion(skip_begin=0)
@@ -182,4 +182,3 @@ def test_suggestion_parameters_work(tmpdir):
         'Default skipping parameter should not influence suggested learning rate'
     assert lr1 != lr3, \
         'Skipping parameter did not influence learning rate'
-        
