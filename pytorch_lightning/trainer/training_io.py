@@ -391,6 +391,13 @@ class TrainerIOMixin(ABC):
         :param checkpoint:
         :return:
         """
+        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+            raise KeyError(
+                f'Trying to restore training state but checkpoint contains only the model. '
+                f'This is probably due to `ModelCheckpoint.save_weights_only` being set to '
+                f'True.'
+            )
+
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 
