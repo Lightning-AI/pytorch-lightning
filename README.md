@@ -438,7 +438,7 @@ Building open-source software with only a few part-time people is hard! We've se
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
 Our goal is to build an incredible research platform and a big supportive community. Many open-source projects
-have gone on to monetize through things like support and special help for big corporations!
+have gone on to fund operations through things like support and special help for big corporations!
 
 If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
 
