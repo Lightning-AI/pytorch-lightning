@@ -530,10 +530,6 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def device(self) -> Union[None, str, object]:
-        return self._device
-
-    @property
     def slurm_job_id(self) -> int:
         try:
             job_id = os.environ['SLURM_JOB_ID']
