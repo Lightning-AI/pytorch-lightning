@@ -16,7 +16,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, update_hparams
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -1537,8 +1537,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         # override the hparam keys that were passed in
         if hparam_overrides is not None:
-            for k, v in hparam_overrides.items():
-                checkpoint['hparams'][k] = v
+            update_hparams(hparams, hparam_overrides)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model

@@ -48,6 +48,36 @@ class ModelIO(object):
         """
 
 
+def update_hparams(hparams, updates):
+    """
+    Overrides hparams with new values
+
+    >>> hparams = {'a', {'b': 2}, 'c': 1}
+    >>> updates = {'a': {'b': 4}, 'c': 1}
+    >>> update_hparams(hparams, updates)
+    >>> assert hparams['a']['b'] == 4, 'update hparams failed'
+
+    Args:
+        hparams:
+        updates:
+
+    Returns:
+
+    """
+    for k, v in updates.items():
+        # if missing, add the key
+        if k not in hparams:
+            hparams[k] = v
+            continue
+
+        # recurse if dictionary
+        if isinstance(v, dict):
+            update_hparams(hparams[k], updates[k])
+
+        # update the value
+        hparams[k] = v
+
+
 def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')
