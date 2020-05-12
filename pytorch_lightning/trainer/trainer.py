@@ -508,8 +508,7 @@ class Trainer(
         self.autocast_original_forward = None
         self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
-        if self.use_native_amp and self.precision == 16:
-            self.scaler = None
+        self.scaler = None
 
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
