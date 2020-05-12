@@ -52,11 +52,13 @@ def update_hparams(hparams, updates):
     """
     Overrides hparams with new values
 
-    >>> hparams = {'a', {'b': 2}, 'c': 1}
+    >>> hparams = {'a': {'b': 2}, 'c': 1}
     >>> updates = {'a': {'b': 4}, 'c': 7}
     >>> update_hparams(hparams, updates)
-    >>> assert hparams['a']['b'] == 4, 'update hparams failed'
-    >>> assert hparams['c'] == 7, 'update hparams failed'
+    >>> hparams['a']['b']
+    4
+    >>> hparams['c']
+    7
 
     Args:
         hparams:
