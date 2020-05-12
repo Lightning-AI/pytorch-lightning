@@ -16,6 +16,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.properties import ModuleProperties
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -29,7 +30,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, GradInformation, ModelIO, ModelHooks, ModuleProperties):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,11 +74,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.hparams = None
 
         #: device reference
-        self._device = None
-
-    @property
-    def device(self) -> Union[None, str, object]:
-        return self._device
+        self._dtype = torch.get_default_dtype()
+        self._device = torch.device('cpu')
 
     def print(self, *args, **kwargs) -> None:
         r"""
