@@ -79,7 +79,10 @@ class DeviceDtypeModuleMixin(torch.nn.Module):
             >>> module.weight #doctest: +ELLIPSIS
             tensor([[...]], dtype=torch.float16)
         """
-        device, dtype, non_blocking = torch._C._nn._parse_to(*args, **kwargs)
+        # there is diff nb vars in PT 1.5
+        out = torch._C._nn._parse_to(*args, **kwargs)
+        device = out[0]
+        dtype = out[1]
         if device is not None:
             self._device = device
 
