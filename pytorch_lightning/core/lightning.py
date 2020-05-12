@@ -73,7 +73,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.hparams = None
 
         #: device reference
-        self.device = None
+        self._device = None
+
+    @property
+    def device(self) -> Union[None, str, object]:
+        return self._device
 
     def print(self, *args, **kwargs) -> None:
         r"""
