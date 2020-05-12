@@ -136,7 +136,7 @@ class TrainerTrainingTricksMixin(ABC):
             raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
-            raise MisconfigurationException(f'The batch scaling feature cannot be used with dataloaders'
+            raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
                                             ' passed directly to `.fit()`. Please disable the feature or'
                                             ' incorporate the dataloader into the model.')
 
