@@ -2,7 +2,7 @@ r"""
 Early Stopping
 ==============
 
-Stop training when a monitored quantity has stopped improving.
+Monitor a validation metric and stop training when it stops improving.
 
 """
 
@@ -25,7 +25,7 @@ class EarlyStopping(Callback):
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
             improvement. Default: ``0``.
-        patience: number of epochs with no improvement
+        patience: number of validation epochs with no improvement
             after which training will be stopped. Default: ``0``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
@@ -36,7 +36,7 @@ class EarlyStopping(Callback):
             mode, the direction is automatically inferred
             from the name of the monitored quantity. Default: ``'auto'``.
         strict: whether to crash the training if `monitor` is
-            not found in the metrics. Default: ``True``.
+            not found in the validation metrics. Default: ``True``.
 
     Example::
 
