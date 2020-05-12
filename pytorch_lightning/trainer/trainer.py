@@ -1040,10 +1040,10 @@ class Trainer(
 
     def check_model_configuration(self, model: LightningModule):
         r"""
-        Checks that the model is configured correctly before training is started.
+        Checks that the model is configured correctly before training or testing is started.
 
         Args:
-            model: The model to test.
+            model: The model to check the configuration.
 
         """
         # Check training_step, train_dataloader, configure_optimizer methods
