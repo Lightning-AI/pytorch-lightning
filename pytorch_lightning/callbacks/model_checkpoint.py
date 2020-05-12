@@ -112,6 +112,7 @@ class ModelCheckpoint(Callback):
         # {filename: monitor}
         self.kth_best_model = ''
         self.best = 0
+        self.best_model = ''
         self.save_function = None
 
         torch_inf = torch.tensor(np.Inf)
@@ -265,7 +266,8 @@ class ModelCheckpoint(Callback):
             self.kth_value = self.best_k_models[self.kth_best_model]
 
         _op = min if self.mode == 'min' else max
-        self.best = _op(self.best_k_models.values())
+        self.best_model = _op(self.best_k_models, key=self.best_k_models.get)
+        self.best = self.best_k_models[self.best_model]
 
         if self.verbose > 0:
             log.info(

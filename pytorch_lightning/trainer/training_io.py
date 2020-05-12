@@ -315,6 +315,7 @@ class TrainerIOMixin(ABC):
         if not weights_only:
             if self.checkpoint_callback:
                 checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
+                checkpoint['checkpoint_callback_best_model'] = self.checkpoint_callback.best_model
 
             if self.early_stop_callback:
                 checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
@@ -398,10 +399,11 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
+        if self.checkpoint_callback:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
+            self.checkpoint_callback.best_model = checkpoint['checkpoint_callback_best_model']
 
-        if self.early_stop_callback is not None and self.early_stop_callback is not False:
+        if self.early_stop_callback:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 
