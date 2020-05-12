@@ -353,29 +353,33 @@ If you have any questions, feel free to:
 
 ---
 ## FAQ
-**How do I use Lightning for rapid research?**
+**How do I use Lightning for rapid research?**    
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
-**Why was Lightning created?**
+**Why was Lightning created?**    
 Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
 2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.
 3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
 
-**How does Lightning compare with Ignite and fast.ai?**
+**How does Lightning compare with Ignite and fast.ai?**    
 [Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
 
-**Is this another library I have to learn?**
+**Is this another library I have to learn?**    
 Nope! We use pure Pytorch everywhere and don't add unnecessary abstractions!
 
-**Are there plans to support Python 2?**
+**Are there plans to support Python 2?**    
 Nope.
 
-**Are there plans to support virtualenv?**
-Nope. Please use anaconda or miniconda.
+**Are there plans to support virtualenv?**    
+Nope. Please use anaconda or miniconda.    
+```bash
+conda activate my_env
+pip install pytorch-lightning
+```
 
-**Which PyTorch versions do you support?**
+**Which PyTorch versions do you support?**    
 - **PyTorch 1.1.0**
     ```bash
     # install pytorch 1.1.0 using the official instructions
@@ -386,8 +390,10 @@ Nope. Please use anaconda or miniconda.
     # install latest Lightning version without upgrading deps
     pip install -U --no-deps pytorch-lightning
     ```
-- **PyTorch 1.2.0, 1.3.0,**
-    Install via pip as normal
+- **PyTorch 1.1.0+**
+   ```python
+   pip install pytorch-lightning
+   ```
 
 ## Custom installation
 
