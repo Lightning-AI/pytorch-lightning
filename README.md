@@ -118,7 +118,7 @@ This is how lightning separates the science (red) from the engineering (blue).
 If your code is not a huge mess you should be able to organize it into a LightningModule in less than 1 hour.
 If your code IS a mess, then you needed to clean up anyhow ;)
 
-[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
+[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).    
 [Or watch this video](https://www.youtube.com/watch?v=QHww1JH7IDU).
 
 
