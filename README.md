@@ -433,6 +433,15 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 
+#### Funding    
+Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
+hire a full-time staff, attend conferences, and move faster through implementing features you request.
+
+Our goal is to build an incredible research platform and a big supportive community. Many open-source projects
+have gone on to monetize through things like support and special help for big corporations!
+
+If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
+
 ## Bibtex
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 
