@@ -1021,8 +1021,6 @@ class Trainer(
             else:
                 self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
-        # give proper warnings if user only passed in loader without hooks
-        self.check_testing_model_configuration(model if model else self.model)
 
         if model is not None:
             self.model = model
