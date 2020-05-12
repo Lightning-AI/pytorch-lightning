@@ -120,7 +120,7 @@ Overall, Lightning guarantees rigorously tested, correct, modern best practices 
 ## How flexible is it?
 As you see, you're just organizing your PyTorch code - there's no abstraction.
 
-And for the stuff that the Trainer abstracts out, you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implementing your own distributed training, 16-bit precision, or even a custom backward pass.
+And for the stuff that the Trainer abstracts out, you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backward pass.
 
 For example, here you could do your own backward pass
 
