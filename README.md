@@ -59,7 +59,7 @@ Here's a minimal example without a validation or test loop.
 ```python
 # this is just a plain nn.Module with some structure
 
-class MNISTModel(pl.LightningModule):
+class LitClassifier(pl.LightningModule):
 
     def __init__(self):
         super(MNISTModel, self).__init__()
@@ -80,7 +80,7 @@ class MNISTModel(pl.LightningModule):
 # train!
 train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
-mnist_model = MNISTModel()
+mnist_model = LitClassifier()
 trainer = pl.Trainer(gpus=8, precision=16)    
 trainer.fit(mnist_model, train_loader) 
 ```
