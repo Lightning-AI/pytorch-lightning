@@ -5,4 +5,4 @@ numpy>=1.16.4
 torch>=1.1
 tensorboard>=1.14
 future>=0.17.1  # required for builtins in setup.py
-pyyaml>=3.10
+pyyaml>=3.13
