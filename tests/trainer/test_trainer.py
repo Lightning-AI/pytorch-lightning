@@ -217,7 +217,7 @@ def test_loading_meta_tags(tmpdir):
 def test_loading_yaml(tmpdir):
     tutils.reset_seed()
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     # save tags
     logger = tutils.get_default_logger(tmpdir)
