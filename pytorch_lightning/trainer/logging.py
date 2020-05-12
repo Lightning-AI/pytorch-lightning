@@ -184,10 +184,6 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         hiddens = output.get('hiddens')
 
-        # use every metric passed in as a candidate for callback
-        callback_metrics.update(progress_bar_metrics)
-        callback_metrics.update(log_metrics)
-
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
