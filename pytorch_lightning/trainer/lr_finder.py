@@ -15,6 +15,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerLRFinderMixin(ABC):
@@ -58,7 +59,8 @@ class TrainerLRFinderMixin(ABC):
                 max_lr: float = 1,
                 num_training: int = 100,
                 mode: str = 'exponential',
-                num_accumulation_steps: int = 1):
+                early_stop_threshold: float = 4.0,
+                num_accumulation_steps=None):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
         to reduce the amount of guesswork in picking a good starting learning rate.
@@ -81,7 +83,12 @@ class TrainerLRFinderMixin(ABC):
                 after each batch. If set to 'exponential', will increase learning
                 rate exponentially.
 
-            num_accumulation_steps: number of batches to calculate loss over.
+            early_stop_threshold: threshold for stopping the search. If the
+                loss at any point is larger than early_stop_threshold*best_loss
+                then the search is stopped. To disable, set to None.
+
+            num_accumulation_steps: deprepecated, number of batches to calculate loss over.
+                Set trainer argument `accumulate_grad_batches` instead.
 
         Example::
 
@@ -104,6 +111,11 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
+        if num_accumulation_steps is not None:
+            rank_zero_warn("Argument `num_accumulation_steps` has been deprepecated."
+                           "Please set trainer argument `accumulate_grad_batches`"
+                           " instead.", DeprecationWarning)
+
         save_path = os.path.join(self.default_root_dir, 'lr_find_temp.ckpt')
 
         self.__lr_finder_dump_params(model)
@@ -115,7 +127,9 @@ class TrainerLRFinderMixin(ABC):
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
-        self.callbacks = [_LRCallback(num_training, progress_bar_refresh_rate=1)]
+        self.callbacks = [_LRCallback(num_training, 
+                                      early_stop_threshold,
+                                      progress_bar_refresh_rate=1)]
 
         # No logging
         self.logger = None
@@ -126,9 +140,6 @@ class TrainerLRFinderMixin(ABC):
         # Disable standard progress bar for fit
         if self.progress_bar_callback:
             self.progress_bar_callback.disable()
-
-        # Accumulation of gradients
-        self.accumulate_grad_batches = num_accumulation_steps
 
         # Disable standard checkpoint & early stopping
         self.checkpoint_callback = False
@@ -149,7 +160,6 @@ class TrainerLRFinderMixin(ABC):
             raise MisconfigurationException(
                 f'`model.configure_optimizers()` returned {len(optimizers)}, but'
                 ' learning rate finder only works with single optimizer')
-        configure_optimizers = model.configure_optimizers
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
 
         # Fit, lr & loss logged in callback
@@ -164,7 +174,8 @@ class TrainerLRFinderMixin(ABC):
         # Transfer results from callback to lr finder object
         lr_finder.results.update({'lr': self.callbacks[0].lrs,
                                   'loss': self.callbacks[0].losses})
-
+        lr_finder._total_batch_idx = self.total_batch_idx  # for debug purpose
+        
         # Reset model state
         self.restore(str(save_path), on_gpu=self.on_gpu)
         os.remove(save_path)
@@ -184,7 +195,6 @@ class TrainerLRFinderMixin(ABC):
             'logger': self.logger,
             'max_steps': self.max_steps,
             'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
-            'accumulate_grad_batches': self.accumulate_grad_batches,
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
             'enable_early_stop': self.enable_early_stop,
@@ -198,7 +208,6 @@ class TrainerLRFinderMixin(ABC):
         self.callbacks = self.__dumped_params['callbacks']
         self.max_steps = self.__dumped_params['max_steps']
         self.progress_bar_refresh_rate = self.__dumped_params['progress_bar_refresh_rate']
-        self.accumulate_grad_batches = self.__dumped_params['accumulate_grad_batches']
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
         self.enable_early_stop = self.__dumped_params['enable_early_stop']
@@ -240,8 +249,9 @@ class _LRFinder(object):
         self.lr_min = lr_min
         self.lr_max = lr_max
         self.num_training = num_training
-
+        
         self.results = {}
+        self._total_batch_idx = 0  # for debug purpose
 
     def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
         """ Construct a new `configure_optimizers()` method, that has a optimizer
@@ -307,7 +317,7 @@ class _LRFinder(object):
 
             skip_begin: how many samples to skip in the beginning.
                 Prevent too naive estimates
-                
+
             skip_end: how many samples to skip in the end.
                 Prevent too optimistic estimates
 
@@ -315,8 +325,8 @@ class _LRFinder(object):
         try:
             loss = self.results["loss"][skip_begin:-skip_end]
             min_grad = (np.gradient(np.array(loss))).argmin()
-            self._optimal_idx = min_grad
-            return self.results["lr"][min_grad]
+            self._optimal_idx = min_grad + skip_begin
+            return self.results["lr"][self._optimal_idx]
         except Exception:
             log.warning('Failed to compute suggesting for `lr`.'
                         ' There might not be enough points.')
@@ -327,8 +337,12 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch. """
-    def __init__(self, num_training: int, progress_bar_refresh_rate: bool = False, beta: float = 0.98):
+    def __init__(self, num_training: int, 
+                 early_stop_threshold: float = 4.0,
+                 progress_bar_refresh_rate: bool = False, 
+                 beta: float = 0.98):
         self.num_training = num_training
+        self.early_stop_threshold = early_stop_threshold
         self.beta = beta
         self.losses = []
         self.lrs = []
@@ -339,34 +353,37 @@ class _LRCallback(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        if self.progress_bar_refresh_rate and self.progress_bar is None:
-            self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
+        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches == 0:
+            if self.progress_bar_refresh_rate and self.progress_bar is None:
+                self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
+            self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
-        if self.progress_bar:
-            self.progress_bar.update()
-
-        current_loss = trainer.running_loss.last().item()
-        current_step = trainer.global_step + 1  # remove the +1 in 1.0
-
-        # Avg loss (loss with momentum) + smoothing
-        self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta**current_step)
-
-        # Check if we diverging
-        if current_step > 1 and smoothed_loss > 4 * self.best_loss:
-            trainer.max_steps = current_step  # stop signal
+        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches == 0:
             if self.progress_bar:
-                self.progress_bar.close()
+                self.progress_bar.update()
 
-        # Save best loss for diverging checking
-        if smoothed_loss < self.best_loss or current_step == 1:
-            self.best_loss = smoothed_loss
+            current_loss = trainer.running_loss.last().item()
+            current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
-        self.losses.append(smoothed_loss)
+            # Avg loss (loss with momentum) + smoothing
+            self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
+            smoothed_loss = self.avg_loss / (1 - self.beta**current_step)
+
+            # Check if we diverging
+            if self.early_stop_threshold is not None:
+                if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
+                    trainer.max_steps = current_step  # stop signal
+                    if self.progress_bar:
+                        self.progress_bar.close()
+
+            # Save best loss for diverging checking
+            if smoothed_loss < self.best_loss or current_step == 1:
+                self.best_loss = smoothed_loss
+
+            self.losses.append(smoothed_loss)
 
 
 class _LinearLR(_LRScheduler):
