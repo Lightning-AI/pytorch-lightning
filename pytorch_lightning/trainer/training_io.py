@@ -101,7 +101,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, parsing
 
 try:
     import torch_xla
@@ -111,6 +111,13 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
 
 
 class TrainerIOMixin(ABC):
@@ -123,6 +130,7 @@ class TrainerIOMixin(ABC):
     resume_from_checkpoint: ...
     use_ddp: bool
     use_ddp2: bool
+    use_horovod: bool
     checkpoint_callback: ...
     proc_rank: int
     weights_save_path: str
@@ -175,6 +183,10 @@ class TrainerIOMixin(ABC):
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
 
+        elif self.use_horovod:
+            # wait for all processes to catch up
+            hvd.join()
+
         # clear cache after restore
         if self.on_gpu:
             torch.cuda.empty_cache()
@@ -215,7 +227,7 @@ class TrainerIOMixin(ABC):
             if result == 0:
                 log.info(f'requeued exp {job_id}')
             else:
-                log.info('requeue failed...')
+                log.warning('requeue failed...')
 
             # close experiment to avoid issues
             self.logger.close()
@@ -251,9 +263,11 @@ class TrainerIOMixin(ABC):
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)
-            except AttributeError:
+            except AttributeError as e:
                 if 'hparams' in checkpoint:
                     del checkpoint['hparams']
+                rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+                               f' An attribute is not picklable {e}')
 
                 self._atomic_save(checkpoint, filepath)
 
@@ -278,6 +292,10 @@ class TrainerIOMixin(ABC):
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        # give model a chance to load something
+        model.on_load_checkpoint(checkpoint)
+
         if on_gpu:
             model.cuda(self.root_gpu)
 
@@ -320,11 +338,12 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        # restore native amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+        # save native amp scaling
+        if self.use_amp and self.use_native_amp:
             checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams"):
+            parsing.clean_namespace(model.hparams)
             is_namespace = isinstance(model.hparams, Namespace)
             checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
             checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
@@ -429,9 +448,11 @@ class TrainerIOMixin(ABC):
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
             self._atomic_save(checkpoint, filepath)
-        except AttributeError:
+        except AttributeError as e:
             if 'hparams' in checkpoint:
                 del checkpoint['hparams']
+            rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+                           f' An attribute is not picklable {e}')
 
             self._atomic_save(checkpoint, filepath)
 

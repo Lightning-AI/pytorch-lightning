@@ -45,11 +45,10 @@ class GradientAccumulationScheduler(Callback):
                 raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
-        rank_zero_warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
-                       ' but will start from "0" in v0.8.0.', DeprecationWarning)
+        # rank_zero_warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
+        #                ' but will start from "0" in v0.8.0.', DeprecationWarning)
         if minimal_epoch < 1:
-            msg = f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
-            raise IndexError(msg)
+            raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
         if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
             scheduling.update({1: 1})
 

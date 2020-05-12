@@ -1,6 +1,6 @@
-import distutils
 import inspect
 import os
+import logging as python_logging
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -33,6 +33,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import parsing
 
 
 try:
@@ -50,6 +51,13 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
 
 
 class Trainer(
@@ -122,6 +130,7 @@ class Trainer(
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
+            auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -186,7 +195,7 @@ class Trainer(
             show_progress_bar:
                 .. warning:: .. deprecated:: 0.7.2
 
-                        Set `progress_bar_refresh_rate` to postive integer to enable. Will remove 0.9.0.
+                        Set `progress_bar_refresh_rate` to positive integer to enable. Will remove 0.9.0.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
@@ -286,6 +295,12 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+            auto_scale_batch_size: If set to True, will `initially` run a batch size
+                finder trying to find the largest batch size that fits into memory.
+                The result will be stored in self.hparams.batch_size in the LightningModule.
+                Additionally, can be set to either `power` that estimates the batch size through
+                a power search or `binsearch` that estimates the batch size through a binary search.
         """
 
         # Init callbacks
@@ -361,6 +376,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.auto_scale_batch_size = auto_scale_batch_size
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -447,6 +463,7 @@ class Trainer(
         # distributed backend choice
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend)
+        self.device = torch.device('cpu')
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -467,7 +484,7 @@ class Trainer(
             self.show_progress_bar = show_progress_bar
 
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = None
+        self.progress_bar_callback = progress_bar_callback
         self.configure_progress_bar()
 
         # logging
@@ -493,8 +510,7 @@ class Trainer(
         self.autocast_original_forward = None
         self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
-        if self.use_native_amp and self.precision == 16:
-            self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = None
 
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
@@ -599,9 +615,11 @@ class Trainer(
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False, )
 
-        depr_arg_names = cls.get_deprecated_arg_names()
+        blacklist = ['kwargs']
+        depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
         allowed_types = (str, float, int, bool)
+
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
@@ -609,20 +627,11 @@ class Trainer(
             for allowed_type in (at for at in allowed_types if at in arg_types):
                 if allowed_type is bool:
                     def allowed_type(x):
-                        return bool(distutils.util.strtobool(x))
+                        return bool(parsing.strtobool(x))
 
                 if arg == 'gpus':
-                    def allowed_type(x):
-                        if ',' in x:
-                            return str(x)
-                        else:
-                            return int(x)
-
-                    def arg_default(x):
-                        if ',' in x:
-                            return str(x)
-                        else:
-                            return int(x)
+                    allowed_type = Trainer.allowed_type
+                    arg_default = Trainer.arg_default
 
                 parser.add_argument(
                     f'--{arg}',
@@ -635,10 +644,24 @@ class Trainer(
 
         return parser
 
+    def allowed_type(x):
+        if ',' in x:
+            return str(x)
+        else:
+            return int(x)
+
+    def arg_default(x):
+        if ',' in x:
+            return str(x)
+        else:
+            return int(x)
+
     @classmethod
-    def from_argparse_args(cls, args):
+    def from_argparse_args(cls, args, **kwargs):
 
         params = vars(args)
+        params.update(**kwargs)
+
         return cls(**params)
 
     @property
@@ -665,7 +688,7 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[DataLoader] = None
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -707,6 +730,10 @@ class Trainer(
         model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
 
@@ -717,6 +744,10 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
+
+        # Run auto batch size scaling
+        if self.auto_scale_batch_size:
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
         if self.auto_lr_find:
@@ -739,8 +770,9 @@ class Trainer(
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
                 # load weights if not interrupted
-                self.load_spawn_weights(model)
-                self.model = model
+                if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE'):
+                    self.load_spawn_weights(model)
+                    self.model = model
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -825,6 +857,10 @@ class Trainer(
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
 
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
+
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
@@ -840,6 +876,10 @@ class Trainer(
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
+
+        elif self.use_horovod:
+            # wait for all processes to catch up
+            hvd.join()
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
@@ -870,7 +910,7 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not (self.is_overriden('validation_step') and self.val_percent_check > 0) \
+        self.disable_validation = not (self.is_overridden('validation_step') and self.val_percent_check > 0) \
             and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
@@ -901,7 +941,11 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
 
-    def test(self, model: Optional[LightningModule] = None, test_dataloaders: Optional[DataLoader] = None):
+    def test(
+            self,
+            model: Optional[LightningModule] = None,
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+    ):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
@@ -967,45 +1011,45 @@ class Trainer(
 
         """
         # Check training_step, train_dataloader, configure_optimizer methods
-        if not self.is_overriden('training_step', model):
+        if not self.is_overridden('training_step', model):
             raise MisconfigurationException(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
-        if not self.is_overriden('train_dataloader', model):
+        if not self.is_overridden('train_dataloader', model):
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
-        if not self.is_overriden('configure_optimizers', model):
+        if not self.is_overridden('configure_optimizers', model):
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
         # Check val_dataloader, validation_step and validation_epoch_end
-        if self.is_overriden('val_dataloader', model):
-            if not self.is_overriden('validation_step', model):
+        if self.is_overridden('val_dataloader', model):
+            if not self.is_overridden('validation_step', model):
                 raise MisconfigurationException('You have passed in a `val_dataloader()`'
                                                 ' but have not defined `validation_step()`.')
             else:
-                if not self.is_overriden('validation_epoch_end', model):
+                if not self.is_overridden('validation_epoch_end', model):
                     rank_zero_warn(
                         'You have defined a `val_dataloader()` and have defined a `validation_step()`,'
                         ' you may also want to define `validation_epoch_end()` for accumulating stats.',
                         RuntimeWarning
                     )
         else:
-            if self.is_overriden('validation_step', model):
+            if self.is_overridden('validation_step', model):
                 raise MisconfigurationException('You have defined `validation_step()`,'
                                                 ' but have not passed in a val_dataloader().')
 
         # Check test_dataloader, test_step and test_epoch_end
-        if self.is_overriden('test_dataloader', model):
-            if not self.is_overriden('test_step', model):
+        if self.is_overridden('test_dataloader', model):
+            if not self.is_overridden('test_step', model):
                 raise MisconfigurationException('You have passed in a `test_dataloader()`'
                                                 ' but have not defined `test_step()`.')
             else:
-                if not self.is_overriden('test_epoch_end', model):
+                if not self.is_overridden('test_epoch_end', model):
                     rank_zero_warn(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
@@ -1013,9 +1057,9 @@ class Trainer(
 
     def check_testing_model_configuration(self, model: LightningModule):
 
-        has_test_step = self.is_overriden('test_step', model)
-        has_test_epoch_end = self.is_overriden('test_epoch_end', model)
-        gave_test_loader = hasattr(model, 'test_dataloader') and model.test_dataloader()
+        has_test_step = self.is_overridden('test_step', model)
+        has_test_epoch_end = self.is_overridden('test_epoch_end', model)
+        gave_test_loader = self.is_overridden('test_dataloader', model)
 
         if gave_test_loader and not has_test_step:
             raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')

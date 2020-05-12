@@ -77,3 +77,19 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "layer": torch.nn.BatchNorm1d
     }
     logger.log_hyperparams(hparams)
+
+
+def test_tensorboard_log_hparams_and_metrics(tmpdir):
+    logger = TensorBoardLogger(tmpdir)
+    hparams = {
+        "float": 0.3,
+        "int": 1,
+        "string": "abc",
+        "bool": True,
+        "dict": {'a': {'b': 'c'}},
+        "list": [1, 2, 3],
+        "namespace": Namespace(foo=Namespace(bar='buzz')),
+        "layer": torch.nn.BatchNorm1d
+    }
+    metrics = {'abc': torch.tensor([0.54])}
+    logger.log_hyperparams(hparams, metrics)

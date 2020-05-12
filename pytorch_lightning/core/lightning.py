@@ -72,6 +72,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.hparams = None
 
+        #: device reference
+        self.device = None
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
@@ -257,6 +260,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             May contain the following optional keys:
 
             - log (metrics to be added to the logger; only tensors)
+            - progress_bar (dict for progress bar display)
             - any metric used in a callback (e.g. early stopping).
 
         Note:
@@ -280,7 +284,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
                     # log training accuracy at the end of an epoch
                     results = {
-                        'log': {'train_acc': train_acc_mean.item()}
+                        'log': {'train_acc': train_acc_mean.item()},
+                        'progress_bar': {'train_acc': train_acc_mean},
                     }
                     return results
 
@@ -303,6 +308,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                     # log training accuracy at the end of an epoch
                     results = {
                         'log': {'train_acc': train_acc_mean.item(), 'step': self.current_epoch}
+                        'progress_bar': {'train_acc': train_acc_mean},
                     }
                     return results
         """
@@ -875,7 +881,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
     def _init_slurm_connection(self) -> None:
         """
-        Sets up environemnt variables necessary for pytorch distributed communications
+        Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
         """
         # use slurm job id for the port number
@@ -930,10 +936,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         if 'MASTER_ADDR' not in os.environ:
             log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ['MASTER_ADDR'] = '127.0.0.1'
+        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
         if 'MASTER_PORT' not in os.environ:
             log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ['MASTER_PORT'] = '12910'
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
             log.warning("WORLD_SIZE environment variable is not equal to the computed "
@@ -1160,9 +1168,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
             # native amp + lbfgs is a no go right now
             if self.trainer.use_amp and self.trainer.use_native_amp:
-                m = 'native PyTorch amp and lbfgs are not compatible. To request, please file' \
-                    'a Github issue in PyTorch and tag @mcarilli'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    'native PyTorch amp and lbfgs are not compatible.'
+                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
             optimizer.step(second_order_closure)
         else:
             if self.trainer.use_amp and self.trainer.use_native_amp:
@@ -1533,8 +1541,8 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
             else:
                 rank_zero_warn(
-                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__ "
-                    f"contains argument 'hparams'. Will pass in an empty Namespace instead."
+                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
+                    " contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"
                 )
                 hparams = Namespace()
@@ -1548,8 +1556,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
 
         # load the state_dict on the model automatically
-        model_args = [hparams] if hparams else []
-        model = cls(*model_args, *args, **kwargs)
+        if hparams:
+            kwargs.update(hparams=hparams)
+        model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something

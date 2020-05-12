@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+
 Early stopping
 ==============
 
@@ -17,23 +23,25 @@ Enable Early Stopping using Callbacks on epoch end
 --------------------------------------------------
 There are two ways to enable early stopping using callbacks on epoch end.
 
-.. doctest::
+-   Set early_stop_callback to True. Will look for 'val_loss' in validation_epoch_end() return dict.
+    If it is not found an error is raised.
 
-    >>> from pytorch_lightning import Trainer
-    >>> from pytorch_lightning.callbacks import EarlyStopping
+    .. testcode::
 
-    # A) Set early_stop_callback to True. Will look for 'val_loss'
-    # in validation_epoch_end() return dict. If it is not found an error is raised.
-    >>> trainer = Trainer(early_stop_callback=True)
-    # B) Or configure your own callback
-    >>> early_stop_callback = EarlyStopping(
-    ...    monitor='val_loss',
-    ...    min_delta=0.00,
-    ...    patience=3,
-    ...    verbose=False,
-    ...    mode='min'
-    ... )
-    >>> trainer = Trainer(early_stop_callback=early_stop_callback)
+        trainer = Trainer(early_stop_callback=True)
+
+-   Or configure your own callback
+
+    .. testcode::
+
+        early_stop_callback = EarlyStopping(
+            monitor='val_loss',
+            min_delta=0.00,
+            patience=3,
+            verbose=False,
+            mode='min'
+        )
+        trainer = Trainer(early_stop_callback=early_stop_callback)
 
 In any case, the callback will fall back to the training metrics (returned in
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
@@ -43,7 +51,8 @@ looking for a key to monitor if validation is disabled or
 is not defined.
 
 .. seealso::
-    :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    - :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 
 Disable Early Stopping with callbacks on epoch end
 --------------------------------------------------
@@ -53,4 +62,5 @@ Note that ``None`` will not disable early stopping but will lead to the
 default behaviour.
 
 .. seealso::
-    :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    - :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`

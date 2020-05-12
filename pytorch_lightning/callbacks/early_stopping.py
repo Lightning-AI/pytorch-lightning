@@ -45,11 +45,14 @@ class EarlyStopping(Callback):
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(early_stop_callback=early_stopping)
     """
+    mode_dict = {
+        'min': torch.lt,
+        'max': torch.gt,
+    }
 
     def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
                  verbose: bool = False, mode: str = 'auto', strict: bool = True):
         super().__init__()
-
         self.monitor = monitor
         self.patience = patience
         self.verbose = verbose
@@ -57,19 +60,21 @@ class EarlyStopping(Callback):
         self.min_delta = min_delta
         self.wait = 0
         self.stopped_epoch = 0
+        self.mode = mode
 
-        mode_dict = {
-            'min': torch.lt,
-            'max': torch.gt,
-            'auto': torch.gt if 'acc' in self.monitor else torch.lt
-        }
-
-        if mode not in mode_dict:
+        if mode not in self.mode_dict:
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
-            mode = 'auto'
+            self.mode = 'auto'
 
-        self.monitor_op = mode_dict[mode]
+        if self.mode == 'auto':
+            if self.monitor == 'acc':
+                self.mode = 'max'
+            else:
+                self.mode = 'min'
+            if self.verbose > 0:
+                log.info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
+
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
 
     def _validate_condition_metric(self, logs):
@@ -80,8 +85,9 @@ class EarlyStopping(Callback):
         """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Available metrics are:'
-                     f' `{"`, `".join(list(logs.keys()))}`')
+                     f' which is not available. Either add `{self.monitor}` to the return of '
+                     f' validation_epoch end or modify your EarlyStopping callback to use any of the '
+                     f'following: `{"`, `".join(list(logs.keys()))}`')
 
         if monitor_val is None:
             if self.strict:
@@ -92,6 +98,10 @@ class EarlyStopping(Callback):
             return False
 
         return True
+
+    @property
+    def monitor_op(self):
+        return self.mode_dict[self.mode]
 
     def on_train_start(self, trainer, pl_module):
         # Allow instances to be re-used

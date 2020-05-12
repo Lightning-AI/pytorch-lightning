@@ -1,3 +1,8 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+
 Learning Rate Finder
 --------------------
 
@@ -10,7 +15,7 @@ To reduce the amount of guesswork concerning choosing a good initial learning
 rate, a `learning rate finder` can be used. As described in this `paper <https://arxiv.org/abs/1506.01186>`_ 
 a learning rate finder does a small run where the learning rate is increased 
 after each processed batch and the corresponding loss is logged. The result of 
-this is a `lr` vs. `loss` plot that can be used as guidence for choosing a optimal
+this is a `lr` vs. `loss` plot that can be used as guidance for choosing a optimal
 initial lr. 
 
 .. warning:: For the moment, this feature only works with models having a single optimizer.
@@ -24,17 +29,18 @@ will automatically be run before any training is done. The ``lr`` that is found
 and used will be written to the console and logged together with all other
 hyperparameters of the model.
     
-.. code-block:: python
+.. testcode::
         
     # default, no automatic learning rate finder
-    Trainer(auto_lr_find=True)
+    trainer = Trainer(auto_lr_find=True)
 
 When the ``lr`` or ``learning_rate`` key in hparams exists, this flag sets your learning_rate.
 In both cases, if the respective fields are not found, an error will be thrown.
         
-.. code-block:: python
+.. testcode::
 
     class LitModel(LightningModule):
+
         def __init__(self, hparams):
             self.hparams = hparams
 
@@ -43,14 +49,14 @@ In both cases, if the respective fields are not found, an error will be thrown.
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
-    Trainer(auto_lr_find=True)
+    trainer = Trainer(auto_lr_find=True)
 
 To use an arbitrary value set it in the parameter.
 
-.. code-block:: python
+.. testcode::
 
     # to set to your own hparams.my_value
-    Trainer(auto_lr_find='my_value')
+    trainer = Trainer(auto_lr_find='my_value')
 
 Under the hood, when you call fit, this is what happens.  
 
@@ -72,7 +78,7 @@ of this would look like
 .. code-block:: python
 
     model = MyModelClass(hparams)
-    trainer = pl.Trainer()
+    trainer = Trainer()
     
     # Run learning rate finder
     lr_finder = trainer.lr_find(model)

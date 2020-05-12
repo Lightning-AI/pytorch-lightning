@@ -1,3 +1,7 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+
 Debugging
 =========
 The following are flags that make debugging much easier.
@@ -11,9 +15,9 @@ a full epoch to crash.
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
 
 Inspect gradient norms
 ----------------------
@@ -22,10 +26,10 @@ Logs (to a logger), the norm of each weight matrix.
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.track_grad_norm`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
     # the 2-norm
-    trainer = pl.Trainer(track_grad_norm=2)
+    trainer = Trainer(track_grad_norm=2)
 
 Log GPU usage
 -------------
@@ -34,9 +38,9 @@ Logs (to a logger) the GPU usage for each GPU on the master machine.
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_gpu_memory`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
-    trainer = pl.Trainer(log_gpu_memory=True)
+    trainer = Trainer(log_gpu_memory=True)
 
 Make model overfit on subset of data
 ------------------------------------
@@ -47,9 +51,9 @@ and try to get your model to overfit. If it can't, it's a sign it won't work wit
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.overfit_pct`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
-    trainer = pl.Trainer(overfit_pct=0.01)
+    trainer = Trainer(overfit_pct=0.01)
 
 Print the parameter count by layer
 ----------------------------------
@@ -59,9 +63,9 @@ To disable this behavior, turn off this flag:
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_summary`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
-    trainer = pl.Trainer(weights_summary=None)
+    trainer = Trainer(weights_summary=None)
 
 
 Set the number of validation sanity steps
@@ -72,7 +76,7 @@ This avoids crashing in the validation loop sometime deep into a lengthy trainin
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.num_sanity_val_steps`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. code-block:: python
+.. testcode::
 
     # DEFAULT
     trainer = Trainer(num_sanity_val_steps=5)

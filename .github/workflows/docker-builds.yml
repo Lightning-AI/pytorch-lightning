@@ -1,0 +1,49 @@
+name: Publish Docker Releases
+on:
+  push:
+    branches: 
+      - master
+  release:
+    types:
+       - created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.6, 3.7, 3.8]
+        pytorch_version: [1.1, 1.2, 1.3, 1.4, 1.5]
+    steps:
+    - name: Extract branch name
+      if: contains(github.ref, 'refs/tags/') != true
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_tag
+    - name: Extract Tag name
+      if: contains(github.ref, 'refs/tags')
+      shell: bash
+      run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
+    - uses: actions/checkout@v2
+    - name: Publish Releases to Docker
+      # only on releases
+      uses: elgohr/Publish-Docker-Github-Action@2.14
+      if: contains(github.ref, 'refs/tags/') && !contains(${{ steps.extract_tag.outputs.tag }}, 'rc') && !contains(${{ steps.extract_tag.outputs.tag }}, 'dev')
+      with:
+        name: pytorchlightning/pytorch_lightning
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: docker/Dockerfile
+        buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.extract_tag.outputs.tag }}
+        tags: "${{ steps.extract_tag.outputs.tag }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},stable-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+    - name: Publish Master
+      # publish master
+      uses: elgohr/Publish-Docker-Github-Action@2.14
+      if: github.event_name == 'push'
+      with:
+        name: pytorchlightning/pytorch_lightning
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: docker/Dockerfile
+        buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.extract_branch.outputs.branch }}
+        tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"

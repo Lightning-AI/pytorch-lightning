@@ -194,8 +194,7 @@ class TrainerDDPMixin(ABC):
 
         if distributed_backend is None:
             if self.has_horovodrun():
-                self.check_horovod()
-                self.use_horovod = True
+                self._set_horovod_backend()
             elif self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
@@ -235,8 +234,7 @@ class TrainerDDPMixin(ABC):
             self.data_parallel_device_ids = None
             self.on_gpu = False
         elif distributed_backend == 'horovod':
-            self.check_horovod()
-            self.use_horovod = True
+            self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
         if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
@@ -277,6 +275,10 @@ class TrainerDDPMixin(ABC):
         except Exception as e:
             pass
 
+        # notify user the that slurm is managing tasks
+        if self.is_slurm_managing_tasks:
+            log.info('Multi-processing is handled by Slurm.')
+
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
             return
@@ -293,7 +295,7 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
+        log.debug(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
@@ -342,6 +344,7 @@ class TrainerDDPMixin(ABC):
         # copy model to each gpu
         if self.on_gpu:
             self.root_gpu = process_idx
+            self.device = torch.device('cuda', self.root_gpu)
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
@@ -416,6 +419,16 @@ class TrainerDDPMixin(ABC):
             root_node = name + number
 
         return root_node
+
+    def _set_horovod_backend(self):
+        self.check_horovod()
+        self.use_horovod = True
+
+        # Initialize Horovod to get rank / size info
+        hvd.init()
+        if self.on_gpu:
+            # Horovod assigns one local GPU per process
+            self.root_gpu = hvd.local_rank()
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
