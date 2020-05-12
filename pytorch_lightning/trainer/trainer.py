@@ -124,7 +124,7 @@ class Trainer(
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[BaseProfiler] = None,
+            profiler: Optional[Union[BaseProfiler, bool]] = None,
             benchmark: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
