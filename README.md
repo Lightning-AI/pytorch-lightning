@@ -390,7 +390,7 @@ pip install pytorch-lightning
     # install latest Lightning version without upgrading deps
     pip install -U --no-deps pytorch-lightning
     ```
-- **PyTorch 1.1.0+**
+- **PyTorch 1.2.0+**
    ```python
    pip install pytorch-lightning
    ```
