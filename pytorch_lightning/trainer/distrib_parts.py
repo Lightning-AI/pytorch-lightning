@@ -627,6 +627,9 @@ class TrainerDPMixin(ABC):
 
             self.run_pretrain_routine(model)
 
+        # Make sure all workers have finished training before returning to the user
+        hvd.join()
+
 
 def normalize_parse_gpu_string_input(s):
     if isinstance(s, str):
