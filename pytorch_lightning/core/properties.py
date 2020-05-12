@@ -3,7 +3,7 @@ from typing import Union, Optional
 import torch
 
 
-class ModuleProperties(torch.nn.Module):
+class DeviceDtypeModuleMixin(torch.nn.Module):
     _device: ...
     _dtype: Union[str, torch.dtype]
 
@@ -57,7 +57,7 @@ class ModuleProperties(torch.nn.Module):
             Module: self
 
         Example::
-            >>> class ExampleModule(ModuleProperties):
+            >>> class ExampleModule(DeviceDtypeModuleMixin):
             ...     def __init__(self, weight: torch.Tensor):
             ...         super().__init__()
             ...         self.register_buffer('weight', weight)

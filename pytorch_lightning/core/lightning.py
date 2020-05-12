@@ -16,7 +16,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.properties import ModuleProperties
+from pytorch_lightning.core.properties import DeviceDtypeModuleMixin
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -30,7 +30,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, ModuleProperties, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
