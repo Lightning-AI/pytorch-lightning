@@ -116,7 +116,16 @@ class TensorBoardLogger(LightningLoggerBase):
         else:
             from torch.utils.tensorboard.summary import hparams
 
-            self.experiment.add_hparams(sanitized_params, metrics)
+            if metrics is None:
+                metrics = {}
+            exp, ssi, sei = hparams(sanitized_params, metrics)
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
+            
+            # necessary for hparam comparison with metrics
+            self.log_metrics(metrics)
 
         # some alternative should be added
         self.tags.update(sanitized_params)
