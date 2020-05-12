@@ -35,9 +35,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        #: Current dtype
-        self._dtype = torch.FloatTensor
-
         self.exp_save_path = None
 
         #: The current epoch
@@ -73,8 +70,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         self.hparams = None
 
+        #: Current dtype
+        self._dtype = torch.FloatTensor
         #: device reference
-        self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
 
     def print(self, *args, **kwargs) -> None:
