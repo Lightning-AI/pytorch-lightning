@@ -1,18 +1,11 @@
-from abc import ABC
 from typing import Union, Optional
 
 import torch
 
 
-class ModuleProperties(ABC, torch.nn.Module):
-    def __init__(self, *args, **kwargs):
-        """
-        Args:
-            name: the metric's name
-        """
-        super().__init__(*args, **kwargs)
-        self._dtype = torch.get_default_dtype()
-        self._device = torch.device('cpu')
+class ModuleProperties(torch.nn.Module):
+    _device: ...
+    _dtype: Union[str, torch.dtype]
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:

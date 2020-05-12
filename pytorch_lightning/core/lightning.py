@@ -30,13 +30,13 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, GradInformation, ModelIO, ModelHooks, ModuleProperties):
+class LightningModule(ABC, ModuleProperties, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         #: Current dtype
-        self.dtype = torch.FloatTensor
+        self._dtype = torch.FloatTensor
 
         self.exp_save_path = None
 
