@@ -72,6 +72,9 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.hparams = None
 
+        #: device reference
+        self.device = None
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.

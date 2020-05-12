@@ -46,7 +46,9 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
-        z = z.type_as(x)
+        z = z.type_as(x, device=self.device)
+
+Every LightningModule knows what device it is on. You can access that reference via `self.device`.
 
 Remove samplers
 ^^^^^^^^^^^^^^^
