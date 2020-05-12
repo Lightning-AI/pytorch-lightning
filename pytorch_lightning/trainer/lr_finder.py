@@ -298,16 +298,23 @@ class _LRFinder(object):
 
         return fig
 
-    def suggestion(self):
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
         """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 
         Returns:
             lr: suggested initial learning rate to use
 
+            skip_begin: how many samples to skip in the beginning.
+                Prevent too naive estimates
+                
+            skip_end: how many samples to skip in the end.
+                Prevent too optimistic estimates
+
         """
         try:
-            min_grad = (np.gradient(np.array(self.results["loss"]))).argmin()
+            loss = self.results["loss"][skip_begin:-skip_end]
+            min_grad = (np.gradient(np.array(loss))).argmin()
             self._optimal_idx = min_grad
             return self.results["lr"][min_grad]
         except Exception:
