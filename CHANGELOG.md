@@ -96,6 +96,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed shell injection vulnerability in subprocess call ([#2786](https://github.com/PyTorchLightning/pytorch-lightning/pull/2786))
 
+- Fixed callback metric getting overwritten by progress bar or log metric ([#1800](https://github.com/PyTorchLightning/pytorch-lightning/pull/1800))
+
 ## [0.8.5] - 2020-07-09
 
 ### Added
