@@ -574,6 +574,7 @@ class Trainer(
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
               (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
+               <class 'bool'>,
                <class 'NoneType'>),
               None),
              ...
