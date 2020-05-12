@@ -18,8 +18,11 @@ def test_fit_train_loader_only(tmpdir):
 
     model.train_dataloader = None
     model.val_dataloader = None
+    model.test_dataloader = None
+
     model.validation_step = None
     model.validation_epoch_end = None
+
     model.test_step = None
     model.test_epoch_end = None
 
@@ -35,8 +38,11 @@ def test_fit_val_loader_only(tmpdir):
 
     model.train_dataloader = None
     model.val_dataloader = None
+    model.test_dataloader = None
+
     model.validation_step = None
     model.validation_epoch_end = None
+
     model.test_step = None
     model.test_epoch_end = None
 
