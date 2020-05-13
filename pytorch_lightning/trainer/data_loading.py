@@ -130,6 +130,7 @@ class TrainerDataLoadingMixin(ABC):
                                              num_replicas=hvd.size(),
                                              rank=hvd.rank())
             else:
+                print('----------------- SAMPLER --------------------')
                 world_size = {
                     'ddp': self.num_nodes * self.num_processes,
                     'ddp2': self.num_nodes,
