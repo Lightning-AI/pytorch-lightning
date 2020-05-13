@@ -137,7 +137,7 @@ class TrainerDataLoadingMixin(ABC):
                 }
                 sampler = DistributedSampler(
                     dataloader.dataset,
-                    num_replicas=world_size.get(self.distributed_backend, 0),
+                    num_replicas=world_size[self.distributed_backend],
                     rank=self.proc_rank,
                 )
 
