@@ -112,8 +112,7 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
-        print(need_dist_sampler)
-        print(self.replace_sampler_ddp)
+        print(self.use_ddp, self.use_ddp2)
         if self.replace_sampler_ddp and need_dist_sampler:
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
