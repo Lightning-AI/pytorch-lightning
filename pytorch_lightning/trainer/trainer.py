@@ -462,6 +462,7 @@ class Trainer(
             self.gpus = gpus
 
         self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
+        print(self.data_parallel_device_ids)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
