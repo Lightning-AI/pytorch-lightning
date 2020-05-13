@@ -206,7 +206,8 @@ class TrainerDDPMixin(ABC):
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=ddp for you.')
                 self.use_ddp = True
-        elif distributed_backend == "dp":
+
+        if distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
                 self.single_gpu = True
@@ -214,7 +215,6 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 self.use_dp = True
         elif distributed_backend == "ddp":
-            import pdb; pdb.set_trace()
             if self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
