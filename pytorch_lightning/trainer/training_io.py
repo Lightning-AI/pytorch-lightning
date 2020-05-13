@@ -313,10 +313,10 @@ class TrainerIOMixin(ABC):
         }
 
         if not weights_only:
-            if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
+            if self.checkpoint_callback:
                 checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-            if self.early_stop_callback is not None and self.checkpoint_callback is not False:
+            if self.early_stop_callback:
                 checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
                 checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
@@ -393,9 +393,8 @@ class TrainerIOMixin(ABC):
         """
         if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
             raise KeyError(
-                f'Trying to restore training state but checkpoint contains only the model. '
-                f'This is probably due to `ModelCheckpoint.save_weights_only` being set to '
-                f'True.'
+                'Trying to restore training state but checkpoint contains only the model.'
+                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
