@@ -72,6 +72,9 @@ references:
    run:
      name: Testing Documentation
      command: |
+       # Second run examples in docs
+       sudo apt-get update && sudo apt-get install -y cmake
+       sudo pip install -r docs/requirements.txt
        cd docs; make doctest; make coverage
 
 jobs:
@@ -79,13 +82,9 @@ jobs:
   Build-Docs:
     docker:
       - image: circleci/python:3.7
-    environment:
-        - TORCH_VERSION: "torch"
     steps:
       - checkout
-      - *install_deps
       - *make_docs
-      - *test_docs
       - store_artifacts:
           # allows us to preview the generated html pages
           path: docs/build/html/
@@ -166,9 +165,11 @@ jobs:
       - image: circleci/python:3.7
     environment:
         - TORCH_VERSION: "torch"
+        - SPHINX_MOCK_REQUIREMENTS: 0
     steps:
       - checkout
       - *install_deps
+      - *test_docs
       - *examples
 
   Install-pkg:
