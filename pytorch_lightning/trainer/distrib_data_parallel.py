@@ -206,6 +206,7 @@ class TrainerDDPMixin(ABC):
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=ddp for you.')
                 self.use_ddp = True
+                self.distributed_backend = 'ddp'
 
         if distributed_backend == "dp":
             # do nothing if num_gpus == 0
