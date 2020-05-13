@@ -21,10 +21,9 @@ To run the test set on a pre-trained model, use this method.
 
 .. code-block:: python
 
-    model = MyLightningModule.load_from_metrics(
-        weights_path='/path/to/pytorch_checkpoint.ckpt',
-        tags_csv='/path/to/test_tube/experiment/version/meta_tags.csv',
-        on_gpu=True,
+    model = MyLightningModule.load_from_checkpoint(
+        checkpoint_path='/path/to/pytorch_checkpoint.ckpt',
+        hparams_file='/path/to/test_tube/experiment/version/hparams.yaml',
         map_location=None
     )
 
