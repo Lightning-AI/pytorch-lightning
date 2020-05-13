@@ -121,7 +121,7 @@ class Trainer(
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
             weights_summary: Optional[str] = 'full',
             weights_save_path: Optional[str] = None,
-            num_sanity_val_steps: int = 5,
+            num_sanity_val_steps: int = 2,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
             profiler: Optional[Union[BaseProfiler, bool]] = None,
