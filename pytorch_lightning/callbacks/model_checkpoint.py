@@ -223,7 +223,7 @@ class ModelCheckpoint(Callback):
         if self.save_top_k != -1:
             current = metrics.get(self.monitor)
 
-            if not isinstance(current, 'str'):
+            if not isinstance(current, str):
                 rank_zero_warn(
                     f'The metric you returned {current} must be a Torch.Tensor instance'
                 )
