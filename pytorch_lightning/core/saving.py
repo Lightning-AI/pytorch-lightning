@@ -48,23 +48,21 @@ class ModelIO(object):
         """
 
 
-def update_hparams(hparams, updates):
+def update_hparams(hparams: dict, updates: dict) -> None:
     """
     Overrides hparams with new values
 
-    >>> hparams = {'a': {'b': 2}, 'c': 1}
-    >>> updates = {'a': {'b': 4}, 'c': 7}
-    >>> update_hparams(hparams, updates)
-    >>> hparams['a']['b']
-    4
-    >>> hparams['c']
-    7
+    >>> hparams = {'c': 4}
+    >>> update_hparams(hparams, {'a': {'b': 2}, 'c': 1})
+    >>> hparams['a']['b'], hparams['c']
+    (2, 1)
+    >>> update_hparams(hparams, {'a': {'b': 4}, 'c': 7})
+    >>> hparams['a']['b'], hparams['c']
+    (4, 7)
 
     Args:
-        hparams:
-        updates:
-
-    Returns:
+        hparams: the orifinal params and also resulting
+        updates: new params to be used as update
 
     """
     for k, v in updates.items():
