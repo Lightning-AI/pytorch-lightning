@@ -315,10 +315,8 @@ class _LRFinder(object):
 
         Returns:
             lr: suggested initial learning rate to use
-            skip_begin: how many samples to skip in the beginning.
-                Prevent too naive estimates
-            skip_end: how many samples to skip in the end.
-                Prevent too optimistic estimates
+            skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
+            skip_end: how many samples to skip in the end. Prevent too optimistic estimates
 
         """
         try:
