@@ -304,6 +304,7 @@ class TrainerDDPMixin(ABC):
         return int(rank)
 
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
+        import pdb; pdb.set_trace()
         if data_parallel_device_ids is None:
             return
 
