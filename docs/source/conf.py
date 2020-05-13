@@ -423,3 +423,7 @@ TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
 
 """
 coverage_skip_undoc_in_source = True
+
+suppress_warnings = [
+    'epub.unknown_project_files'
+]
