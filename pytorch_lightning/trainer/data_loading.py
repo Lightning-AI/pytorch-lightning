@@ -135,6 +135,7 @@ class TrainerDataLoadingMixin(ABC):
                     'ddp2': self.num_nodes,
                     'ddp_cpu': self.num_processes * self.num_nodes
                 }
+                print(world_size['ddp'])
                 sampler = DistributedSampler(
                     dataloader.dataset,
                     num_replicas=world_size.get(self.distributed_backend, 0),
