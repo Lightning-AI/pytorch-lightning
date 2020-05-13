@@ -16,8 +16,7 @@ try:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-
-    _COMET_AVAILABLE = True
+    from comet_ml.config import get_config, get_api_key
 except ImportError:  # pragma: no-cover
     CometExperiment = None
     CometExistingExperiment = None
@@ -25,6 +24,8 @@ except ImportError:  # pragma: no-cover
     CometBaseExperiment = None
     API = None
     _COMET_AVAILABLE = False
+else:
+    _COMET_AVAILABLE = True
 
 
 import torch
@@ -108,15 +109,17 @@ class CometLogger(LightningLoggerBase):
         self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if api_key is not None:
-            self.mode = "online"
-            self.api_key = api_key
-        elif save_dir is not None:
+        if save_dir is not None:
             self.mode = "offline"
             self._save_dir = save_dir
         else:
-            # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
+            api_key = get_api_key(api_key, get_config())
+            if api_key is not None:
+                self.mode = "online"
+                self.api_key = api_key
+            else:
+                # If neither api_key nor save_dir are passed as arguments, raise an exception
+                raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
