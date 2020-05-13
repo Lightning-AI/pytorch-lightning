@@ -326,7 +326,7 @@ class Trainer(
         # tpu config
         self.on_tpu = tpu_cores is not None
         self.tpu_cores = tpu_cores
-        assert tpu_cores in [1, 8, None] or len(tpu_cores) == 1, 'tpu_cores can only be 1, 8 or [<1-8>]'
+        assert self.tpu_cores in (1, 8, None) or (isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1), '`tpu_cores` can only be 1, 8 or [<1-8>]'
 
         self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
 
