@@ -113,7 +113,7 @@ class TrainerLRFinderMixin(ABC):
         """
         if num_accumulation_steps is not None:
             rank_zero_warn("Argument `num_accumulation_steps` has been deprepecated"
-                           " since v0.8.0 and will be removed in v1.0.0. Please"
+                           " since v0.7.6 and will be removed in 0.9. Please"
                            " set trainer argument `accumulate_grad_batches` instead.",
                            DeprecationWarning)
 
@@ -338,20 +338,17 @@ class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
     each batch.
+
     Args:
-
         num_training: number of iterations done by the learning rate finder
-
         early_stop_threshold: threshold for stopping the search. If the
-                loss at any point is larger than early_stop_threshold*best_loss
-                then the search is stopped. To disable, set to None.
-
+                loss at any point is larger than `early_stop_threshold*best_loss`
+                then the search is stopped. To disable, set to `None`.
         progress_bar_refresh_rate: rate to refresh the progress bar for
             the learning rate finder
-
         beta: smoothing value, the loss being logged is a running average of
-            loss values logged until now. beta controls the forget rate i.e.
-            if beta=0 all past information is ignored.
+            loss values logged until now. `beta` controls the forget rate i.e.
+            if `beta=0` all past information is ignored.
 
     """
     def __init__(self, num_training: int,
