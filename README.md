@@ -120,7 +120,7 @@ Overall, Lightning guarantees rigorously tested, correct, modern best practices 
 ## How flexible is it?
 As you see, you're just organizing your PyTorch code - there's no abstraction.
 
-And for the stuff that the Trainer abstracts out you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backwards pass.
+And for the stuff that the Trainer abstracts out, you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backward pass.
 
 For example, here you could do your own backward pass
 
@@ -136,7 +136,7 @@ For anything else you might need, we have an extensive [callback system](https:/
 
 ## Who is Lightning for?
 - Professional researchers
-- PhD students
+- Ph.D. students
 - Corporate production teams
 
 If you're just getting into deep learning, we recommend you learn PyTorch first! Once you've implemented a few models, come back and use all the advanced features of Lightning :)
@@ -144,7 +144,7 @@ If you're just getting into deep learning, we recommend you learn PyTorch first!
 ## What does lightning control for me?
 
 Everything in Blue!
-This is how lightning separates the science (red) from the engineering (blue).
+This is how lightning separates the science (red) from engineering (blue).
 
 ![Overview](docs/source/_images/general/pl_overview.gif)
 
@@ -163,7 +163,7 @@ If your code IS a mess, then you needed to clean up anyhow ;)
 Although your research/production project might start simple, once you add things like GPU AND TPU training, 16-bit precision, etc, you end up spending more time engineering than researching. Lightning automates AND rigorously tests those parts for you.
 
 ## Support
-- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, PhD students from top AI labs. 
+- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs. 
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
@@ -361,7 +361,7 @@ Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
 2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.
-3. Democratizing PyTorch power user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
+3. Democratizing PyTorch power-user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
 
 **How does Lightning compare with Ignite and fast.ai?**    
 [Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
