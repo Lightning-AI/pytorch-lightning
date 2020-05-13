@@ -388,7 +388,7 @@ class Trainer(
         self.auto_lr_find = auto_lr_find
         self.replace_sampler_ddp = replace_sampler_ddp
 
-        # auto-scale bs
+        # auto-scale bs (if just true, then use power)
         self.auto_scale_batch_size = auto_scale_batch_size
         if isinstance(self.auto_scale_batch_size, bool) and self.auto_scale_batch_size:
             self.auto_scale_batch_size = 'power'
