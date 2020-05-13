@@ -390,7 +390,7 @@ class Trainer(
 
         # auto-scale bs (if just true, then use power)
         self.auto_scale_batch_size = auto_scale_batch_size
-        if isinstance(self.auto_scale_batch_size, bool) and self.auto_scale_batch_size:
+        if self.auto_scale_batch_size is True:
             self.auto_scale_batch_size = 'power'
 
         self.truncated_bptt_steps = truncated_bptt_steps
