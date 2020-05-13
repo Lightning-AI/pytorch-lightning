@@ -1,6 +1,7 @@
 import collections
 import inspect
 import os
+import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
@@ -16,7 +17,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml, update_hparams
+from pytorch_lightning.core.properties import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -29,13 +31,10 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        #: Current dtype
-        self.dtype = torch.FloatTensor
 
         self.exp_save_path = None
 
@@ -71,6 +70,11 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         self.use_amp = False
 
         self.hparams = None
+
+        #: Current dtype
+        self._dtype = torch.FloatTensor
+        #: device reference
+        self._device = torch.device('cpu')
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -940,11 +944,12 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             os.environ['MASTER_PORT'] = '12910'
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != world_size:
-            log.warning("WORLD_SIZE environment variable is not equal to the computed "
-                        "world size. Ignored.")
+        if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
+            log.warning(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                        f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        log.info(f"initializing proc_rank {proc_rank} world {world_size}")
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
     def configure_apex(
@@ -1435,27 +1440,48 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
             cls,
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            tags_csv: Optional[str] = None,
+            hparams_file: Optional[str] = None,
+            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
+            hparam_overrides: Optional[Dict] = None,
             *args, **kwargs
     ) -> 'LightningModule':
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
-        with an argument called ``hparams`` which is a :class:`~argparse.Namespace`
-        (output of :meth:`~argparse.ArgumentParser.parse_args` when parsing command line arguments).
+        with an argument called ``hparams`` which is an object of :class:`~dict` or
+        :class:`~argparse.Namespace` (output of :meth:`~argparse.ArgumentParser.parse_args`
+        when parsing command line arguments).
+        If you want `hparams` to have a hierarchical structure, you have to define it as :class:`~dict`.
         Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
 
         Example:
             .. code-block:: python
 
+                # define hparams as Namespace
                 from argparse import Namespace
                 hparams = Namespace(**{'learning_rate': 0.1})
 
                 model = MyModel(hparams)
 
                 class MyModel(LightningModule):
-                    def __init__(self, hparams):
+                    def __init__(self, hparams: Namespace):
                         self.learning_rate = hparams.learning_rate
+
+                # ----------
+
+                # define hparams as dict
+                hparams = {
+                    drop_prob: 0.2,
+                    dataloader: {
+                        batch_size: 32
+                    }
+                }
+
+                model = MyModel(hparams)
+
+                class MyModel(LightningModule):
+                    def __init__(self, hparams: dict):
+                        self.learning_rate = hparams['learning_rate']
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1464,19 +1490,39 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
-            tags_csv: Optional path to a .csv file with two columns (key, value)
+            hparams_file: Optional path to a .yaml file with hierarchical structure
+                as in this example::
+
+                    drop_prob: 0.2
+                    dataloader:
+                        batch_size: 32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a .yaml file with the hparams you'd like to use.
+                These will be converted into a :class:`~dict` and passed into your
+                :class:`LightningModule` for use.
+
+                If your model's `hparams` argument is :class:`~argparse.Namespace`
+                and .yaml file has hierarchical structure, you need to refactor your model to treat
+                `hparams` as :class:`~dict`.
+
+                .csv files are acceptable here till v0.9.0, see tags_csv argument for detailed usage.
+            tags_csv:
+                .. warning:: .. deprecated:: 0.7.6
+
+                    `tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0.
+
+                Optional path to a .csv file with two columns (key, value)
                 as in this example::
 
                     key,value
                     drop_prob,0.2
                     batch_size,32
 
-                You most likely won't need this since Lightning will always save the hyperparameters
-                to the checkpoint.
-                However, if your checkpoint weights don't have the hyperparameters saved,
-                use this method to pass in a .csv file with the hparams you'd like to use.
-                These will be converted into a :class:`~argparse.Namespace` and passed into your
-                :class:`LightningModule` for use.
+                Use this method to pass in a .csv file with the hparams you'd like to use.
+            hparam_overrides: A dictionary with keys to override in the hparams
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
@@ -1497,7 +1543,13 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 # or load weights and hyperparameters from separate files.
                 MyLightningModule.load_from_checkpoint(
                     'path/to/checkpoint.ckpt',
-                    tags_csv='/path/to/hparams_file.csv'
+                    hparams_file='/path/to/hparams_file.yaml'
+                )
+
+                # override some of the params with new values
+                MyLightningModule.load_from_checkpoint(
+                    PATH,
+                    hparam_overrides={'num_layers': 128, 'pretrained_ckpt_path': NEW_PATH}
                 )
 
                 # or load passing whatever args the model takes to load
@@ -1518,11 +1570,28 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
+        # add the hparams from csv file to checkpoint
         if tags_csv is not None:
-            # add the hparams from csv file to checkpoint
-            hparams = load_hparams_from_tags_csv(tags_csv)
-            hparams.__setattr__('on_gpu', False)
-            checkpoint['hparams'] = vars(hparams)
+            hparams_file = tags_csv
+            rank_zero_warn('`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0', DeprecationWarning)
+
+        if hparams_file is not None:
+            extension = hparams_file.split('.')[-1]
+            if extension.lower() in ('csv'):
+                hparams = load_hparams_from_tags_csv(hparams_file)
+            elif extension.lower() in ('yml', 'yaml'):
+                hparams = load_hparams_from_yaml(hparams_file)
+            else:
+                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
+
+            hparams['on_gpu'] = False
+
+            # overwrite hparams by the given file
+            checkpoint['hparams'] = hparams
+
+        # override the hparam keys that were passed in
+        if hparam_overrides is not None:
+            update_hparams(hparams, hparam_overrides)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
@@ -1534,15 +1603,18 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         if cls_takes_hparams:
             if ckpt_hparams is not None:
-                is_namespace = checkpoint.get('hparams_type', 'namespace') == 'namespace'
-                hparams = Namespace(**ckpt_hparams) if is_namespace else ckpt_hparams
+                hparams_type = checkpoint.get('hparams_type', 'Namespace')
+                if hparams_type.lower() == 'dict':
+                    hparams = ckpt_hparams
+                elif hparams_type.lower() == 'namespace':
+                    hparams = Namespace(**ckpt_hparams)
             else:
                 rank_zero_warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
                     " contains argument 'hparams'. Will pass in an empty Namespace instead."
                     " Did you forget to store your model hyperparameters in self.hparams?"
                 )
-                hparams = Namespace()
+                hparams = {}
         else:  # The user's LightningModule does not define a hparams argument
             if ckpt_hparams is None:
                 hparams = None
@@ -1553,7 +1625,7 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
                 )
 
         # load the state_dict on the model automatically
-        if hparams:
+        if cls_takes_hparams:
             kwargs.update(hparams=hparams)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])

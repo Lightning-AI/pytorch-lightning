@@ -1,9 +1,10 @@
 import pytest
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+
 
 # TODO: add matching messages
 
@@ -14,7 +15,7 @@ def test_wrong_train_setting(tmpdir):
     * Test that an error is thrown when no `training_step()` is defined
     """
     tutils.reset_seed()
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
@@ -34,7 +35,7 @@ def test_wrong_configure_optimizers(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(tutils.get_default_hparams())
+        model = EvalModelTemplate()
         model.configure_optimizers = None
         trainer.fit(model)
 
@@ -47,7 +48,7 @@ def test_wrong_validation_settings(tmpdir):
         * error if `validation_step()` is overridden but `val_dataloader()` is not
     """
     tutils.reset_seed()
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # check val_dataloader -> val_step
@@ -76,7 +77,7 @@ def test_wrong_test_settigs(tmpdir):
             throw warning if `test_epoch_end()` is not defined
         * error if `test_step()` is overridden but `test_dataloader()` is not
     """
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # ----------------
@@ -100,7 +101,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = LightningModule.test_dataloader
         trainer.test(model)
 
     # ----------------
@@ -108,7 +109,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = LightningModule.test_dataloader
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
 
@@ -117,6 +118,6 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = lambda: None
+        model.test_dataloader = LightningModule.test_dataloader
         model.test_epoch_end = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))

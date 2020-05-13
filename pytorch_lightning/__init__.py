@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.7.5'
+__version__ = '0.7.6rc2'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -34,7 +34,8 @@ Documentation
 import logging as python_logging
 
 _logger = python_logging.getLogger("lightning")
-python_logging.basicConfig(level=python_logging.INFO)
+_logger.addHandler(python_logging.StreamHandler())
+_logger.setLevel(python_logging.INFO)
 
 try:
     # This variable is injected in the __builtins__ by the build
@@ -51,6 +52,7 @@ if __LIGHTNING_SETUP__:
 else:
     from pytorch_lightning.core import LightningModule
     from pytorch_lightning.trainer import Trainer
+    from pytorch_lightning.trainer.seed import seed_everything
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
 
@@ -59,6 +61,7 @@ else:
         'LightningModule',
         'Callback',
         'data_loader'
+        'seed_everything'
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

@@ -14,7 +14,7 @@ def test_on_before_zero_grad_called(max_steps):
         def on_before_zero_grad(self, optimizer):
             self.on_before_zero_grad_called += 1
 
-    model = CurrentTestModel(tutils.get_default_hparams())
+    model = CurrentTestModel()
 
     trainer = Trainer(
         max_steps=max_steps,

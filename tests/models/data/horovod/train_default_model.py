@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.utils import set_random_master_port, get_default_hparams, run_model_test  # noqa: E402
+from tests.base.utils import set_random_master_port, run_model_test  # noqa: E402
 
 
 parser = argparse.ArgumentParser()
@@ -45,15 +45,16 @@ def run_test_from_config(trainer_options):
     ckpt_path = trainer_options['default_root_dir']
     trainer_options.update(checkpoint_callback=ModelCheckpoint(ckpt_path))
 
-    model = EvalModelTemplate(get_default_hparams())
+    model = EvalModelTemplate()
     run_model_test(trainer_options, model, on_gpu=args.on_gpu, version=0, with_hpc=False)
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     assert hvd.size() == 2
 
     if args.on_gpu:
+        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
         # Test the root_gpu property
-        assert Trainer(gpus=1, distributed_backend='horovod', max_epochs=1).root_gpu == hvd.local_rank()
+        assert trainer.root_gpu == hvd.local_rank()
 
 
 if __name__ == "__main__":

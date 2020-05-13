@@ -1,5 +1,6 @@
 import inspect
 import os
+import logging as python_logging
 from argparse import ArgumentParser
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -13,6 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
+from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -31,8 +33,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing
 
 
 try:
@@ -124,12 +125,15 @@ class Trainer(
             num_sanity_val_steps: int = 5,
             truncated_bptt_steps: Optional[int] = None,
             resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[BaseProfiler] = None,
+            profiler: Optional[Union[BaseProfiler, bool]] = None,
             benchmark: bool = False,
+            deterministic: bool = False,
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
+            terminate_on_nan: bool = False,
+            auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -139,7 +143,6 @@ class Trainer(
             use_amp=None,  # backward compatible, todo: remove in v0.9.0
             show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
-            terminate_on_nan: bool = False,
             **kwargs
     ):
         r"""
@@ -295,9 +298,24 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
+            deterministic: If true enables cudnn.deterministic
+
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+            auto_scale_batch_size: If set to True, will `initially` run a batch size
+                finder trying to find the largest batch size that fits into memory.
+                The result will be stored in self.hparams.batch_size in the LightningModule.
+                Additionally, can be set to either `power` that estimates the batch size through
+                a power search or `binsearch` that estimates the batch size through a binary search.
         """
+
+        self.deterministic = deterministic
+        torch.backends.cudnn.deterministic = self.deterministic
+        if self.deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # Init callbacks
         self.callbacks = callbacks or []
@@ -375,6 +393,7 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
+        self.auto_scale_batch_size = auto_scale_batch_size
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -461,6 +480,7 @@ class Trainer(
         # distributed backend choice
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend)
+        self._device = torch.device('cpu')
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -470,8 +490,8 @@ class Trainer(
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
-        self.node_rank = 0
         self.configure_slurm_ddp(self.num_nodes)
+        self.node_rank = self.determine_ddp_node_rank()
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -481,7 +501,7 @@ class Trainer(
             self.show_progress_bar = show_progress_bar
 
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = None
+        self.progress_bar_callback = progress_bar_callback
         self.configure_progress_bar()
 
         # logging
@@ -507,8 +527,7 @@ class Trainer(
         self.autocast_original_forward = None
         self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
-        if self.use_native_amp and self.precision == 16:
-            self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = None
 
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
@@ -572,6 +591,7 @@ class Trainer(
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
               (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
+               <class 'bool'>,
                <class 'NoneType'>),
               None),
              ...
@@ -610,6 +630,33 @@ class Trainer(
 
         Only arguments of the allowed types (str, float, int, bool) will
         extend the `parent_parser`.
+
+        Examples:
+            >>> import argparse
+            >>> import pprint
+            >>> parser = argparse.ArgumentParser()
+            >>> parser = Trainer.add_argparse_args(parser)
+            >>> args = parser.parse_args([])
+            >>> pprint.pprint(vars(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+            {...
+             'check_val_every_n_epoch': 1,
+             'checkpoint_callback': True,
+             'default_root_dir': None,
+             'deterministic': False,
+             'distributed_backend': None,
+             'early_stop_callback': False,
+             ...
+             'logger': True,
+             'max_epochs': 1000,
+             'max_steps': None,
+             'min_epochs': 1,
+             'min_steps': None,
+             ...
+             'profiler': None,
+             'progress_bar_callback': True,
+             'progress_bar_refresh_rate': 1,
+             ...}
+
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False, )
 
@@ -743,6 +790,10 @@ class Trainer(
         # only on proc 0 because no spawn has happened yet
         model.prepare_data()
 
+        # Run auto batch size scaling
+        if self.auto_scale_batch_size:
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+
         # Run learning rate finder:
         if self.auto_lr_find:
             self._run_lr_finder_internally(model)
@@ -752,10 +803,13 @@ class Trainer(
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
             self.ddp_train(task, model)
-
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
+                self.ddp_train(task, model)
+            # torchelastic
+            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+                task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
@@ -853,6 +907,10 @@ class Trainer(
 
         # set local properties on the model
         self.copy_trainer_model_properties(ref_model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
         if self.logger is not None:
@@ -1007,17 +1065,17 @@ class Trainer(
         if not self.is_overridden('training_step', model):
             raise MisconfigurationException(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
         if not self.is_overridden('train_dataloader', model):
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
         if not self.is_overridden('configure_optimizers', model):
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
         # Check val_dataloader, validation_step and validation_epoch_end
         if self.is_overridden('val_dataloader', model):
@@ -1052,7 +1110,7 @@ class Trainer(
 
         has_test_step = self.is_overridden('test_step', model)
         has_test_epoch_end = self.is_overridden('test_epoch_end', model)
-        gave_test_loader = hasattr(model, 'test_dataloader') and model.test_dataloader()
+        gave_test_loader = self.is_overridden('test_dataloader', model)
 
         if gave_test_loader and not has_test_step:
             raise MisconfigurationException('You passed in a `test_dataloader` but did not implement `test_step()`')

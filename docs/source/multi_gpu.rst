@@ -46,7 +46,9 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
-        z = z.type_as(x)
+        z = z.type_as(x, device=self.device)
+
+Every LightningModule knows what device it is on. You can access that reference via `self.device`.
 
 Remove samplers
 ^^^^^^^^^^^^^^^
@@ -129,6 +131,8 @@ Lightning allows multiple ways of training
 - DistributedDataParallel2 (`distributed_backend='ddp2'`) (dp in a machine, ddp across machines).
 - Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
+
+.. note:: If you request multiple GPUs without setting a mode, ddp will be automatically used.
 
 Data Parallel (dp)
 ^^^^^^^^^^^^^^^^^^

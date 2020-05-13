@@ -203,8 +203,8 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                               ' Setting distributed_backend=dp for you.')
-                self.use_dp = True
+                               ' Setting distributed_backend=ddp for you.')
+                self.use_ddp = True
         elif distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
@@ -279,6 +279,25 @@ class TrainerDDPMixin(ABC):
         if self.is_slurm_managing_tasks:
             log.info('Multi-processing is handled by Slurm.')
 
+    def determine_ddp_node_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_NODEID'])
+
+        # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
+        # otherwise use given node rank or default to node rank 0
+        env_vars = ['NODE_RANK', 'GROUP_RANK']
+        node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
+        node_ids = [(k, v) for k, v in node_ids if v is not None]
+        if len(node_ids) == 0:
+            log.warning("No environment variable for node rank defined. Set as 0.")
+            return 0
+        if len(node_ids) > 1:
+            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. "
+                        f"Using the first one.")
+        k, rank = node_ids.pop()
+        log.info(f"Using environment variable {k} for node rank ({rank}).")
+        return int(rank)
+
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
         if data_parallel_device_ids is None:
             return
@@ -305,15 +324,6 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
-        # node rank using relative slurm id if under slurm management
-        # otherwise use given node rank or default to node rank 0
-        try:
-            node_id = os.environ['SLURM_NODEID'] if self.is_slurm_managing_tasks else os.environ['NODE_RANK']
-            self.node_rank = int(node_id)
-        except KeyError:
-            log.warning("SLURM_NODEID or NODE_RANK environment variable is not defined. Set as 0.")
-            self.node_rank = 0
-
         # show progressbar only on progress_rank 0
         if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
@@ -344,6 +354,7 @@ class TrainerDDPMixin(ABC):
         # copy model to each gpu
         if self.on_gpu:
             self.root_gpu = process_idx
+            self._device = torch.device('cuda', self.root_gpu)
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 

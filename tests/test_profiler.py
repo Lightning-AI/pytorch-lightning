@@ -4,9 +4,10 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 
-PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
+PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
 def _get_python_cprofile_total_duration(profile):

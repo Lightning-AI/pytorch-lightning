@@ -11,6 +11,42 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_fit_train_loader_only(tmpdir):
+
+    model = EvalModelTemplate()
+    train_dataloader = model.train_dataloader()
+
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+
+    model.validation_step = None
+    model.validation_epoch_end = None
+
+    model.test_step = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
+    trainer.fit(model, train_dataloader=train_dataloader)
+
+
+def test_fit_val_loader_only(tmpdir):
+
+    model = EvalModelTemplate()
+    train_dataloader = model.train_dataloader()
+    val_dataloader = model.val_dataloader()
+
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+
+    model.test_step = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir)
+    trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloader)
+
+
 @pytest.mark.parametrize("dataloader_options", [
     dict(train_percent_check=-0.1),
     dict(train_percent_check=1.1),
@@ -19,7 +55,7 @@ from tests.base import EvalModelTemplate
 ])
 def test_dataloader_config_errors(tmpdir, dataloader_options):
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # fit model
     trainer = Trainer(
@@ -35,7 +71,7 @@ def test_dataloader_config_errors(tmpdir, dataloader_options):
 def test_multiple_val_dataloader(tmpdir):
     """Verify multiple val_dataloader."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple
     model.validation_step = model.validation_step__multiple_dataloaders
 
@@ -63,7 +99,7 @@ def test_multiple_val_dataloader(tmpdir):
 def test_multiple_test_dataloader(tmpdir):
     """Verify multiple test_dataloader."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__multiple
     model.test_step = model.test_step__multiple_dataloaders
 
@@ -93,7 +129,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit """
 
     # only train passed to fit
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -110,7 +146,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     """ Verify that train & val dataloader can be passed to fit """
 
     # train, val passed to fit
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -129,7 +165,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 def test_all_dataloaders_passed_to_fit(tmpdir):
     """Verify train, val & test dataloader(s) can be passed to fit and test method"""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # train, val and test passed to fit
     trainer = Trainer(
@@ -155,7 +191,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
     """Verify that multiple val & test dataloaders can be passed to fit."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
     model.test_step = model.test_step__multiple_dataloaders
 
@@ -184,7 +220,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
 def test_mixing_of_dataloader_options(tmpdir):
     """Verify that dataloaders can be passed to fit"""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -212,7 +248,7 @@ def test_mixing_of_dataloader_options(tmpdir):
 
 def test_train_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
@@ -223,7 +259,7 @@ def test_train_inf_dataloader_error(tmpdir):
 
 def test_val_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
@@ -234,7 +270,7 @@ def test_val_inf_dataloader_error(tmpdir):
 
 def test_test_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__infinite
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
@@ -247,7 +283,7 @@ def test_test_inf_dataloader_error(tmpdir):
 def test_inf_train_dataloader(tmpdir, check_interval):
     """Test inf train data loader (e.g. IterableDataset)"""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
 
     trainer = Trainer(
@@ -264,7 +300,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
 def test_inf_val_dataloader(tmpdir, check_interval):
     """Test inf val data loader (e.g. IterableDataset)"""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
 
     # logger file to get meta
@@ -283,7 +319,7 @@ def test_inf_val_dataloader(tmpdir, check_interval):
 def test_inf_test_dataloader(tmpdir, check_interval):
     """Test inf test data loader (e.g. IterableDataset)"""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__infinite
 
     # logger file to get meta
@@ -301,7 +337,7 @@ def test_inf_test_dataloader(tmpdir, check_interval):
 def test_error_on_zero_len_dataloader(tmpdir):
     """ Test that error is raised if a zero-length dataloader is defined """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__zero_length
 
     # fit model
@@ -318,7 +354,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
 def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     trainer_options = dict(
@@ -411,7 +447,7 @@ def test_batch_size_smaller_than_num_gpus():
             )
             return dataloader
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     hparams.batch_size = batch_size
     model = CurrentTestModel(hparams)
 

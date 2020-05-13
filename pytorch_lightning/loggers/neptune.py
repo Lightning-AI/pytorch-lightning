@@ -32,7 +32,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     The Neptune logger can be used in the online mode or offline (silent) mode.
     To log experiment data in online mode, :class:`NeptuneLogger` requires an API key.
-    In offline mode, Neptune will log to a local directory.
+    In offline mode, the logger does not connect to Neptune.
 
     **ONLINE MODE**
 
@@ -83,7 +83,7 @@ class NeptuneLogger(LightningLoggerBase):
     ...         self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
     ...         self.logger.experiment.whatever_neptune_supports(...)
 
-    If you want to log objects after the training is finished use ``close_after_train=False``:
+    If you want to log objects after the training is finished use ``close_after_fit=False``:
 
     .. code-block:: python
 
@@ -135,7 +135,7 @@ class NeptuneLogger(LightningLoggerBase):
             "namespace/project_name" for example "tom/minst-classification".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable will be taken.
             You need to create the project in https://neptune.ai first.
-        offline_mode: Optional default False. If ``True`` no logs will be sent
+        offline_mode: Optional default ``False``. If ``True`` no logs will be sent
             to Neptune. Usually used for debug purposes.
         close_after_fit: Optional default ``True``. If ``False`` the experiment
             will not be closed after training and additional metrics,
@@ -167,6 +167,7 @@ class NeptuneLogger(LightningLoggerBase):
             Tags are displayed in the experiment’s Details section and can be viewed
             in the experiments view as a column.
     """
+
     def __init__(self,
                  api_key: Optional[str] = None,
                  project_name: Optional[str] = None,
@@ -188,24 +189,20 @@ class NeptuneLogger(LightningLoggerBase):
         self.params = params
         self.properties = properties
         self.tags = tags
-        self._experiment = None
         self._kwargs = kwargs
+        self._experiment_id = None
+        self._experiment = self._create_or_get_experiment()
 
-        if offline_mode:
-            self.mode = 'offline'
-            neptune.init(project_qualified_name='dry-run/project',
-                         backend=neptune.OfflineBackend())
-        else:
-            self.mode = 'online'
-            neptune.init(api_token=self.api_key,
-                         project_qualified_name=self.project_name)
-
-        log.info(f'NeptuneLogger was initialized in {self.mode} mode')
+        log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # cannot be pickled
+
+        # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
         state['_experiment'] = None
+        if self.offline_mode:
+            state['_experiment_id'] = None
+
         return state
 
     @property
@@ -220,14 +217,11 @@ class NeptuneLogger(LightningLoggerBase):
 
         """
 
+        # Note that even though we initialize self._experiment in __init__,
+        # it may still end up being None after being pickled and un-pickled
         if self._experiment is None:
-            self._experiment = neptune.create_experiment(
-                name=self.experiment_name,
-                params=self.params,
-                properties=self.properties,
-                tags=self.tags,
-                upload_source_files=self.upload_source_files,
-                **self._kwargs)
+            self._experiment = self._create_or_get_experiment()
+
         return self._experiment
 
     @rank_zero_only
@@ -261,14 +255,14 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        if self.mode == 'offline':
+        if self.offline_mode:
             return 'offline-name'
         else:
             return self.experiment.name
 
     @property
     def version(self) -> str:
-        if self.mode == 'offline':
+        if self.offline_mode:
             return 'offline-id-1234'
         else:
             return self.experiment.id
@@ -363,3 +357,24 @@ class NeptuneLogger(LightningLoggerBase):
         if str(tags) == tags:
             tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)
+
+    def _create_or_get_experiment(self):
+        if self.offline_mode:
+            project = neptune.Session(backend=neptune.OfflineBackend()).get_project('dry-run/project')
+        else:
+            session = neptune.Session.with_default_backend(api_token=self.api_key)
+            project = session.get_project(self.project_name)
+
+        if self._experiment_id is None:
+            exp = project.create_experiment(
+                name=self.experiment_name,
+                params=self.params,
+                properties=self.properties,
+                tags=self.tags,
+                upload_source_files=self.upload_source_files,
+                **self._kwargs)
+        else:
+            exp = project.get_experiments(id=self._experiment_id)[0]
+
+        self._experiment_id = exp.id
+        return exp

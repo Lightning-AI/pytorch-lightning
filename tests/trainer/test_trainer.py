@@ -6,12 +6,14 @@ from argparse import Namespace
 
 import pytest
 import torch
+import yaml
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
+from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -20,12 +22,12 @@ from tests.base import EvalModelTemplate
 def test_model_pickle(tmpdir):
     import pickle
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     pickle.dumps(model)
 
 
 def test_hparams_save_load(tmpdir):
-    model = EvalModelTemplate(vars(tutils.get_default_hparams()))
+    model = EvalModelTemplate(vars(EvalModelTemplate.get_default_hparams()))
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -46,7 +48,7 @@ def test_hparams_save_load(tmpdir):
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -69,9 +71,12 @@ def test_no_val_module(tmpdir):
     ckpt = torch.load(new_weights_path)
     assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
 
-    # won't load without hparams in the ckpt
+    # load new model
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
+        hparams_file=hparams_path
     )
     model_2.eval()
 
@@ -79,7 +84,7 @@ def test_no_val_module(tmpdir):
 def test_no_val_end_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -100,11 +105,11 @@ def test_no_val_end_module(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        tags_csv=tags_path
+        hparams_file=hparams_path
     )
     model_2.eval()
 
@@ -167,7 +172,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
         # clear gradients
         optimizer.zero_grad()
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
@@ -184,8 +189,10 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 
 def test_loading_meta_tags(tmpdir):
+    """ test for backward compatibility to meta_tags.csv """
+    tutils.reset_seed()
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     # save tags
     logger = tutils.get_default_logger(tmpdir)
@@ -193,12 +200,37 @@ def test_loading_meta_tags(tmpdir):
     logger.log_hyperparams(hparams)
     logger.save()
 
-    # load tags
+    # load hparams
     path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
+    hparams = load_hparams_from_yaml(hparams_path)
+
+    # save as legacy meta_tags.csv
     tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
+    save_hparams_to_tags_csv(tags_path, hparams)
+
     tags = load_hparams_from_tags_csv(tags_path)
 
-    assert tags.batch_size == 32 and tags.hidden_dim == 1000
+    assert hparams == tags
+
+
+def test_loading_yaml(tmpdir):
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    # save tags
+    logger = tutils.get_default_logger(tmpdir)
+    logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
+    logger.log_hyperparams(hparams)
+    logger.save()
+
+    # load hparams
+    path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(path_expt_dir, 'hparams.yaml')
+    tags = load_hparams_from_yaml(hparams_path)
+
+    assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
 
 
 def test_dp_output_reduce():
@@ -266,7 +298,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
 
 def test_model_freeze_unfreeze():
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     model.freeze()
     model.unfreeze()
@@ -275,7 +307,7 @@ def test_model_freeze_unfreeze():
 def test_resume_from_checkpoint_epoch_restored(tmpdir):
     """Verify resuming from checkpoint runs the right number of epochs"""
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
@@ -340,7 +372,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
 def _init_steps_model():
     """private method for initializing a model with 5% train epochs"""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # define train epoch to 5% of data
     train_percent = 0.5
@@ -429,7 +461,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple
 
     # verify torch.backends.cudnn.benchmark is not turned on
@@ -452,12 +484,12 @@ def test_benchmark_option(tmpdir):
 
 def test_testpass_overrides(tmpdir):
     # todo: check duplicated tests against trainer_checks
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
         model = EvalModelTemplate(hparams)
-        model.test_dataloader = model.test_dataloader__empty
+        model.test_dataloader = LightningModule.test_dataloader
         Trainer().test(model)
 
     # Misconfig when neither test_step or test_end is implemented
@@ -491,7 +523,7 @@ def test_disabled_validation():
             self.validation_epoch_end_invoked = True
             return super().validation_epoch_end(*args, **kwargs)
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     model = CurrentModel(hparams)
 
     trainer_options = dict(
@@ -541,7 +573,7 @@ def test_nan_loss_detection(tmpdir):
                     output /= 0
             return output
 
-    model = CurrentModel(tutils.get_default_hparams())
+    model = CurrentModel()
 
     # fit model
     trainer = Trainer(
@@ -568,7 +600,7 @@ def test_nan_params_detection(tmpdir):
                 # simulate parameter that became nan
                 torch.nn.init.constant_(self.c_d1.bias, math.nan)
 
-    model = CurrentModel(tutils.get_default_hparams())
+    model = CurrentModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_nan + 1),
@@ -587,7 +619,7 @@ def test_nan_params_detection(tmpdir):
 def test_trainer_interrupted_flag(tmpdir):
     """Test the flag denoting that a user interrupted training."""
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -617,7 +649,7 @@ def test_gradient_clipping(tmpdir):
     Test gradient clipping
     """
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # test that gradient is clipped correctly
     def _optimizer_step(*args, **kwargs):
@@ -712,7 +744,7 @@ def test_gpu_choice(tmpdir):
     ),
     pytest.param(
         dict(distributed_backend=None, gpus=2),
-        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
     pytest.param(

@@ -338,15 +338,22 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        # restore native amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+        # save native amp scaling
+        if self.use_amp and self.use_native_amp:
             checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
-            is_namespace = isinstance(model.hparams, Namespace)
-            checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
-            checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
+            checkpoint['hparams_type'] = model.hparams.__class__.__name__
+            if checkpoint['hparams_type'] == 'dict':
+                checkpoint['hparams'] = model.hparams
+            elif checkpoint['hparams_type'] == 'Namespace':
+                checkpoint['hparams'] = vars(model.hparams)
+            else:
+                raise ValueError(
+                    'The acceptable hparams type is dict or argparse.Namespace,',
+                    f' not {checkpoint["hparams_type"]}'
+                )
         else:
             rank_zero_warn(
                 "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."

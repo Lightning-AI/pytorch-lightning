@@ -105,10 +105,9 @@ Second case is where you load a model and run the test set
 
 .. code-block:: python
 
-    model = MyLightningModule.load_from_metrics(
-        weights_path='/path/to/pytorch_checkpoint.ckpt',
-        tags_csv='/path/to/test_tube/experiment/version/meta_tags.csv',
-        on_gpu=True,
+    model = MyLightningModule.load_from_checkpoint(
+        checkpoint_path='/path/to/pytorch_checkpoint.ckpt',
+        hparams_file='/path/to/test_tube/experiment/version/hparams.yaml',
         map_location=None
     )
 
@@ -360,6 +359,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
             dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
+
+        # enable fast_dev_run without val loop
+        if dataloaders is None:
+            return
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:

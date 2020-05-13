@@ -1,5 +1,5 @@
-from collections import namedtuple
 import platform
+from collections import namedtuple
 
 import pytest
 import torch
@@ -24,7 +24,7 @@ def test_early_stopping_cpu_model(tmpdir):
         val_percent_check=0.1,
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -53,7 +53,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         distributed_backend='ddp_cpu'
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -68,7 +68,7 @@ def test_lbfgs_cpu_model(tmpdir):
         val_percent_check=0.2,
     )
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     setattr(hparams, 'optimizer_name', 'lbfgs')
     setattr(hparams, 'learning_rate', 0.002)
     model = EvalModelTemplate(hparams)
@@ -88,7 +88,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         val_percent_check=0.01,
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     tutils.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
@@ -98,7 +98,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -129,7 +129,7 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -207,7 +207,7 @@ def test_single_gpu_batch_parse():
 
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     # fit model
     trainer = Trainer(
@@ -232,7 +232,7 @@ def test_cpu_model(tmpdir):
         val_percent_check=0.4
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
 
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
@@ -251,7 +251,7 @@ def test_all_features_cpu_model(tmpdir):
         val_percent_check=0.4
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -302,7 +302,7 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    hparams = tutils.get_default_hparams()
+    hparams = EvalModelTemplate.get_default_hparams()
     hparams.batch_size = batch_size
     hparams.in_features = truncated_bptt_steps
     hparams.hidden_dim = truncated_bptt_steps
@@ -336,5 +336,5 @@ def test_single_gpu_model(tmpdir):
         gpus=1
     )
 
-    model = EvalModelTemplate(tutils.get_default_hparams())
+    model = EvalModelTemplate()
     tutils.run_model_test(trainer_options, model)
