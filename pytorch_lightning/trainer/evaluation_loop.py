@@ -105,10 +105,9 @@ Second case is where you load a model and run the test set
 
 .. code-block:: python
 
-    model = MyLightningModule.load_from_metrics(
-        weights_path='/path/to/pytorch_checkpoint.ckpt',
-        tags_csv='/path/to/test_tube/experiment/version/meta_tags.csv',
-        on_gpu=True,
+    model = MyLightningModule.load_from_checkpoint(
+        checkpoint_path='/path/to/pytorch_checkpoint.ckpt',
+        hparams_file='/path/to/test_tube/experiment/version/hparams.yaml',
         map_location=None
     )
 

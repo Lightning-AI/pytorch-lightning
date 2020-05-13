@@ -6,12 +6,14 @@ from argparse import Namespace
 
 import pytest
 import torch
+import yaml
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.lightning import load_hparams_from_tags_csv
+from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -69,9 +71,12 @@ def test_no_val_module(tmpdir):
     ckpt = torch.load(new_weights_path)
     assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
 
-    # won't load without hparams in the ckpt
+    # load new model
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
+        hparams_file=hparams_path
     )
     model_2.eval()
 
@@ -100,11 +105,11 @@ def test_no_val_end_module(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    tags_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    tags_path = os.path.join(tags_path, 'meta_tags.csv')
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        tags_csv=tags_path
+        hparams_file=hparams_path
     )
     model_2.eval()
 
@@ -184,6 +189,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
 
 def test_loading_meta_tags(tmpdir):
+    """ test for backward compatibility to meta_tags.csv """
+    tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
 
@@ -193,12 +200,37 @@ def test_loading_meta_tags(tmpdir):
     logger.log_hyperparams(hparams)
     logger.save()
 
-    # load tags
+    # load hparams
     path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
+    hparams = load_hparams_from_yaml(hparams_path)
+
+    # save as legacy meta_tags.csv
     tags_path = os.path.join(path_expt_dir, 'meta_tags.csv')
+    save_hparams_to_tags_csv(tags_path, hparams)
+
     tags = load_hparams_from_tags_csv(tags_path)
 
-    assert tags.batch_size == 32 and tags.hidden_dim == 1000
+    assert hparams == tags
+
+
+def test_loading_yaml(tmpdir):
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    # save tags
+    logger = tutils.get_default_logger(tmpdir)
+    logger.log_hyperparams(Namespace(some_str='a_str', an_int=1, a_float=2.0))
+    logger.log_hyperparams(hparams)
+    logger.save()
+
+    # load hparams
+    path_expt_dir = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(path_expt_dir, 'hparams.yaml')
+    tags = load_hparams_from_yaml(hparams_path)
+
+    assert tags['batch_size'] == 32 and tags['hidden_dim'] == 1000
 
 
 def test_dp_output_reduce():
