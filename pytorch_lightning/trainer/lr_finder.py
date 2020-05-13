@@ -342,8 +342,8 @@ class _LRCallback(Callback):
     Args:
         num_training: number of iterations done by the learning rate finder
         early_stop_threshold: threshold for stopping the search. If the
-                loss at any point is larger than `early_stop_threshold*best_loss`
-                then the search is stopped. To disable, set to `None`.
+            loss at any point is larger than `early_stop_threshold*best_loss`
+            then the search is stopped. To disable, set to `None`.
         progress_bar_refresh_rate: rate to refresh the progress bar for
             the learning rate finder
         beta: smoothing value, the loss being logged is a running average of
