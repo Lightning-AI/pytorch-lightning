@@ -483,8 +483,8 @@ class Trainer(
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
-        self.node_rank = 0
         self.configure_slurm_ddp(self.num_nodes)
+        self.node_rank = self.determine_ddp_node_rank()
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -796,10 +796,13 @@ class Trainer(
         if self.use_ddp2:
             task = int(os.environ['SLURM_LOCALID'])
             self.ddp_train(task, model)
-
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
+                self.ddp_train(task, model)
+            # torchelastic
+            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+                task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
             else:
                 self.__set_random_port()
