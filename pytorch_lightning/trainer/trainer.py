@@ -526,6 +526,8 @@ class Trainer(
         self.amp_level = amp_level
         self.init_amp(use_amp)
 
+        self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+
         # Callback system
         self.on_init_end()
 
@@ -811,7 +813,7 @@ class Trainer(
                 # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
                 # load weights if not interrupted
-                if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE'):
+                if self.on_colab_kaggle:
                     self.load_spawn_weights(model)
                     self.model = model
 
@@ -830,7 +832,7 @@ class Trainer(
             log.info(f'training on {self.num_tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE') else 'spawn'
+            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
 
             # track for predict
             self.model = model
