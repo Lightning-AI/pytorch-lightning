@@ -226,7 +226,7 @@ In summary, you:
 [Check out the COLAB demo here](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What types of research works?
-Anything! Remember, that this is just an organized PyTorch code.
+Anything! Remember, that this is just organized PyTorch code.
 The Training step defines the core complexity found in the training loop.
 
 #### Could be as complex as a seq2seq
