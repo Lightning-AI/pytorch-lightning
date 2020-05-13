@@ -81,7 +81,7 @@ class Trainer(
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
         'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
     )
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict')
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
             self,
@@ -95,6 +95,7 @@ class Trainer(
             num_nodes: int = 1,
             num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
+            num_tpu_cores: Optional[int] = None, # backward compatible, todo: remove in v0.9.0
             auto_select_gpus: bool = False,
             tpu_cores: Optional[Union[List[int], int]] = None,
             log_gpu_memory: Optional[str] = None,
@@ -187,6 +188,9 @@ class Trainer(
                 that only one process at a time can access them.
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+
+            num_tpu_cores: How many TPU cores to train on (1 or 8)
+                .. warning:: .. deprecated:: 0.7.6. Will remove 0.9.0.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
@@ -324,6 +328,12 @@ class Trainer(
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
+        if num_tpu_cores is not None:
+            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                           " and this argument will be removed in v0.9.0", DeprecationWarning)
+
+        if tpu_cores is None:
+            tpu_cores = num_tpu_cores
         self.on_tpu = tpu_cores is not None
         self.tpu_cores = tpu_cores
         assert self.tpu_cores in (1, 8, None) or (isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1), '`tpu_cores` can only be 1, 8 or [<1-8>]'

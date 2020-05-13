@@ -550,6 +550,20 @@ nb_sanity_val_steps:
 
     Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
+num_tpu_cores
+^^^^^^^^^^^^^
+.. warning:: .. deprecated:: 0.7.6
+
+    Use `tpu_cores` instead. Will remove 0.9.0.
+
+Example::
+
+    python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    --env=XLA_USE_BF16=1
+    -- python your_trainer_file.py
+
 tpu_cores
 ^^^^^^^^^
 - How many TPU cores to train on (1 or 8).
@@ -585,9 +599,6 @@ Example::
     # a max of 8 cores specified. The XLA script
     # will duplicate script onto each TPU in the POD
     trainer = Trainer(tpu_cores=8)
-
-    # -1: train on all available TPUs
-    trainer = Trainer(tpu_cores=-1)
 
 To train on more than 8 cores (ie: a POD),
 submit this script using the xla_dist script.
