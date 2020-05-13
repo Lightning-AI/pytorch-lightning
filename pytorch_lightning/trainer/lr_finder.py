@@ -88,7 +88,7 @@ class TrainerLRFinderMixin(ABC):
                 then the search is stopped. To disable, set to None.
 
             num_accumulation_steps: deprepecated, number of batches to calculate loss over.
-                Set trainer argument `accumulate_grad_batches` instead.
+                Set trainer argument ``accumulate_grad_batches`` instead.
 
         Example::
 
@@ -315,10 +315,8 @@ class _LRFinder(object):
 
         Returns:
             lr: suggested initial learning rate to use
-
             skip_begin: how many samples to skip in the beginning.
                 Prevent too naive estimates
-
             skip_end: how many samples to skip in the end.
                 Prevent too optimistic estimates
 
@@ -329,8 +327,7 @@ class _LRFinder(object):
             self._optimal_idx = min_grad + skip_begin
             return self.results["lr"][self._optimal_idx]
         except Exception:
-            log.exception('Failed to compute suggesting for `lr`.'
-                          ' There might not be enough points.')
+            log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None
 
 
@@ -342,13 +339,13 @@ class _LRCallback(Callback):
     Args:
         num_training: number of iterations done by the learning rate finder
         early_stop_threshold: threshold for stopping the search. If the
-            loss at any point is larger than `early_stop_threshold*best_loss`
-            then the search is stopped. To disable, set to `None`.
+            loss at any point is larger than ``early_stop_threshold*best_loss``
+            then the search is stopped. To disable, set to ``None``.
         progress_bar_refresh_rate: rate to refresh the progress bar for
             the learning rate finder
         beta: smoothing value, the loss being logged is a running average of
-            loss values logged until now. `beta` controls the forget rate i.e.
-            if `beta=0` all past information is ignored.
+            loss values logged until now. ``beta`` controls the forget rate i.e.
+            if ``beta=0`` all past information is ignored.
 
     """
     def __init__(self, num_training: int,
