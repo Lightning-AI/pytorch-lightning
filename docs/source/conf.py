@@ -330,6 +330,7 @@ if IS_READTHEDOCS_BUILD:
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
     'PIL',
+    'yaml',
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
 
