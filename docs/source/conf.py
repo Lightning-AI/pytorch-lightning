@@ -330,7 +330,10 @@ if IS_READTHEDOCS_BUILD:
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
     'PIL',
+    # packages with different package name compare to import name
     'yaml',
+    'comet_ml',
+    'neptune',
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
 
