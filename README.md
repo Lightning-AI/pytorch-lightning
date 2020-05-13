@@ -52,7 +52,7 @@ pip install pytorch-lightning
 - [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Refactoring your PyTorch code + benefits + full walk-through
-[![Watch the video](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.png)](https://www.youtube.com/watch?v=QHww1JH7IDU)
+[![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
 
 ## Demo
 Here's a minimal example without a validation or test loop.
