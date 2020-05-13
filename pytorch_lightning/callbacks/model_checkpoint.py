@@ -149,6 +149,10 @@ class ModelCheckpoint(Callback):
             return True
 
         if not isinstance(current, torch.Tensor):
+            rank_zero_warn(
+                f'{current} is supposed to be a torch.Tensor. Saving checkpoint may not work correctly',
+                f'hint: check the value of {self.monitor} in your validation loop'
+            )
             current = torch.tensor(current)
 
         monitor_op = {
