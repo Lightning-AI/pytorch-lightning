@@ -342,7 +342,7 @@ class TrainerIOMixin(ABC):
         if self.use_amp and self.use_native_amp:
             checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
-        if hasattr(model, "hparams"):
+        if hasattr(model, "hparams") and model.hparams is not None:
             parsing.clean_namespace(model.hparams)
             checkpoint['hparams_type'] = model.hparams.__class__.__name__
             if checkpoint['hparams_type'] == 'dict':
