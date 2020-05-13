@@ -221,7 +221,8 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp = True
             elif self.num_gpus > 1:
                 self.use_ddp = True
-                self.num_processes = self.num_gpus
+            self.num_processes = self.num_gpus
+
         elif distributed_backend == "ddp2":
             # do nothing if num_gpus == 0
             if self.num_gpus >= 1:
