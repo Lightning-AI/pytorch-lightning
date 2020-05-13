@@ -48,6 +48,37 @@ class ModelIO(object):
         """
 
 
+def update_hparams(hparams: dict, updates: dict) -> None:
+    """
+    Overrides hparams with new values
+
+    >>> hparams = {'c': 4}
+    >>> update_hparams(hparams, {'a': {'b': 2}, 'c': 1})
+    >>> hparams['a']['b'], hparams['c']
+    (2, 1)
+    >>> update_hparams(hparams, {'a': {'b': 4}, 'c': 7})
+    >>> hparams['a']['b'], hparams['c']
+    (4, 7)
+
+    Args:
+        hparams: the original params and also target object
+        updates: new params to be used as update
+
+    """
+    for k, v in updates.items():
+        # if missing, add the key
+        if k not in hparams:
+            hparams[k] = v
+            continue
+
+        # recurse if dictionary
+        if isinstance(v, dict):
+            update_hparams(hparams[k], updates[k])
+        else:
+            # update the value
+            hparams.update({k: v})
+
+
 def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
     if not os.path.isfile(tags_csv):
         log.warning(f'Missing Tags: {tags_csv}.')

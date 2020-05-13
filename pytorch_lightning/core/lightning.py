@@ -16,8 +16,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, update_hparams
 from pytorch_lightning.core.properties import DeviceDtypeModuleMixin
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -1439,6 +1439,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             tags_csv: Optional[str] = None,
+            hparam_overrides: Optional[Dict] = None,
             *args, **kwargs
     ) -> 'LightningModule':
         r"""
@@ -1480,6 +1481,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 use this method to pass in a .csv file with the hparams you'd like to use.
                 These will be converted into a :class:`~argparse.Namespace` and passed into your
                 :class:`LightningModule` for use.
+            hparam_overrides: A dictionary with keys to override in the hparams
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
@@ -1503,6 +1505,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     tags_csv='/path/to/hparams_file.csv'
                 )
 
+                # override some of the params with new values
+                MyLightningModule.load_from_checkpoint(
+                    PATH,
+                    hparam_overrides={'num_layers': 128, 'pretrained_ckpt_path': NEW_PATH}
+                )
+
                 # or load passing whatever args the model takes to load
                 MyLightningModule.load_from_checkpoint(
                     'path/to/checkpoint.ckpt',
@@ -1521,11 +1529,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
+        # add the hparams from csv file to checkpoint
         if tags_csv is not None:
-            # add the hparams from csv file to checkpoint
             hparams = load_hparams_from_tags_csv(tags_csv)
             hparams.__setattr__('on_gpu', False)
             checkpoint['hparams'] = vars(hparams)
+
+        # override the hparam keys that were passed in
+        if hparam_overrides is not None:
+            update_hparams(hparams, hparam_overrides)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
