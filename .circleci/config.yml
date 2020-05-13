@@ -83,8 +83,8 @@ jobs:
         - TORCH_VERSION: "torch"
     steps:
       - checkout
-      - *make_docs
       - *install_deps
+      - *make_docs
       - *test_docs
       - store_artifacts:
           # allows us to preview the generated html pages
