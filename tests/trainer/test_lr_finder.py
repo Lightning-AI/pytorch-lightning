@@ -174,11 +174,8 @@ def test_suggestion_parameters_work(tmpdir):
     )
 
     lrfinder = trainer.lr_find(model)
-    lr1 = lrfinder.suggestion()
-    lr2 = lrfinder.suggestion(skip_begin=0)
-    lr3 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
+    lr1 = lrfinder.suggestion(skip_begin=10)  # default
+    lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
 
-    assert lr1 == lr2, \
-        'Default skipping parameter should not influence suggested learning rate'
-    assert lr1 != lr3, \
+    assert lr1 != lr2, \
         'Skipping parameter did not influence learning rate'
