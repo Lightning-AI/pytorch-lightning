@@ -473,7 +473,7 @@ class Trainer(
         # distributed backend choice
         self.distributed_backend = distributed_backend
         self.set_distributed_mode(distributed_backend)
-        self.device = torch.device('cpu')
+        self._device = torch.device('cpu')
 
         # override dist backend when using tpus
         if self.on_tpu:

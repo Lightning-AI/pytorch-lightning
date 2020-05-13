@@ -17,6 +17,7 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, update_hparams
+from pytorch_lightning.core.properties import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -29,13 +30,10 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        #: Current dtype
-        self.dtype = torch.FloatTensor
 
         self.exp_save_path = None
 
@@ -72,8 +70,10 @@ class LightningModule(ABC, GradInformation, ModelIO, ModelHooks):
 
         self.hparams = None
 
+        #: Current dtype
+        self._dtype = torch.FloatTensor
         #: device reference
-        self.device = None
+        self._device = torch.device('cpu')
 
     def print(self, *args, **kwargs) -> None:
         r"""
