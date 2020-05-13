@@ -327,11 +327,6 @@ class Trainer(
         self.track_grad_norm = track_grad_norm
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
-        # tpu config
-        if num_tpu_cores is not None:
-            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
-
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
         self.on_tpu = tpu_cores is not None
