@@ -206,8 +206,8 @@ class TrainerDDPMixin(ABC):
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=ddp for you.')
                 self.distributed_backend = 'ddp'
+                distributed_backend = 'ddp'
 
-        import pdb; pdb.set_trace()
         if distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
