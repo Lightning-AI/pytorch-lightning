@@ -330,7 +330,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     assert 'lr_schedulers' not in checkpoint, 'checkpoint should contain only model weights'
 
     # assert restoring train state fails
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match='checkpoint contains only the model'):
         trainer.restore_training_state(checkpoint)
 
 
