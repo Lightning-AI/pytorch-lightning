@@ -13,7 +13,7 @@ references:
         sudo apt-get update && sudo apt-get install -y cmake
         pip install "$TORCH_VERSION"
         pip install -r requirements.txt -q
-        sudo pip install pytest pytest-cov pytest-flake8 -q
+        sudo pip install pytest -q
         pip install -r ./tests/requirements-devel.txt -q
 
   tests: &tests
@@ -63,23 +63,29 @@ references:
    run:
      name: Make Documentation
      command: |
-       # sudo apt-get install pandoc
+       # First run the same pipeline as Read-The-Docs
        sudo apt-get update && sudo apt-get install -y cmake
-       pip install -r requirements.txt --user
        sudo pip install -r docs/requirements.txt
-       pip install -r requirements-extra.txt --user  # for doctesting loggers etc.
-       # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
-       make doctest; make coverage
+
+  test_docs: &test_docs
+   run:
+     name: Testing Documentation
+     command: |
+       cd docs; make doctest; make coverage
 
 jobs:
 
   Build-Docs:
     docker:
       - image: circleci/python:3.7
+    environment:
+        - TORCH_VERSION: "torch"
     steps:
       - checkout
       - *make_docs
+      - *install_deps
+      - *test_docs
       - store_artifacts:
           # allows us to preview the generated html pages
           path: docs/build/html/
