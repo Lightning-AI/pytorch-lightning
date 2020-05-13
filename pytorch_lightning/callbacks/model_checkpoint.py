@@ -225,7 +225,8 @@ class ModelCheckpoint(Callback):
 
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
-                    f'The metric you returned {current} must be a Torch.Tensor instance'
+                    f'The metric you returned {current} must be a Torch.Tensor instance, checkpoint not saved',
+                    f'hint: what is the value of {self.monitor} in validation_*_end()?'
                 )
 
             if current is None:
