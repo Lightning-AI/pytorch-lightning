@@ -99,6 +99,7 @@ class TrainerDataLoadingMixin(ABC):
                            ' in the `DataLoader` init to improve performance.')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
+        print('----------------- SAMPLER --------------------')
 
         # don't do anything if it's not a dataloader
         # don't manipulate iterable datasets
@@ -130,7 +131,6 @@ class TrainerDataLoadingMixin(ABC):
                                              num_replicas=hvd.size(),
                                              rank=hvd.rank())
             else:
-                print('----------------- SAMPLER --------------------')
                 world_size = {
                     'ddp': self.num_nodes * self.num_processes,
                     'ddp2': self.num_nodes,
