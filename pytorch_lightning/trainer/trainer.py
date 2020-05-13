@@ -142,7 +142,6 @@ class Trainer(
             use_amp=None,  # backward compatible, todo: remove in v0.9.0
             show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
             nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
-            **kwargs
     ):
         r"""
 
