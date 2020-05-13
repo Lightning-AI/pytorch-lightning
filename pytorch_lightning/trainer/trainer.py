@@ -1090,10 +1090,6 @@ class Trainer(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
                         ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
                     )
-<<<<<<< HEAD
-
-=======
->>>>>>> Fix test configuration check and testing
         else:
             if self.testing and self.is_overridden('test_step', model):
                 raise MisconfigurationException('You have defined `test_step()` but did not'
