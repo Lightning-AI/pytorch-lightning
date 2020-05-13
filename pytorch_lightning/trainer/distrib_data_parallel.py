@@ -155,6 +155,7 @@ class TrainerDDPMixin(ABC):
     default_root_dir: str
     use_native_amp: bool
     progress_bar_callback: ...
+    num_processes: int
 
     @property
     @abstractmethod
@@ -204,14 +205,17 @@ class TrainerDDPMixin(ABC):
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=ddp for you.')
-                self.use_ddp = True
-        elif distributed_backend == "dp":
+                self.distributed_backend = 'ddp'
+                distributed_backend = 'ddp'
+
+        if distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
                 self.single_gpu = True
                 self.use_dp = True
             elif self.num_gpus > 1:
                 self.use_dp = True
+
         elif distributed_backend == "ddp":
             if self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
@@ -222,6 +226,7 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 self.use_ddp = True
                 self.num_processes = self.num_gpus
+
         elif distributed_backend == "ddp2":
             # do nothing if num_gpus == 0
             if self.num_gpus >= 1:
@@ -314,7 +319,8 @@ class TrainerDDPMixin(ABC):
                 gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
-        log.debug(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
+        # don't make this debug... this is good UX
+        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def ddp_train(self, process_idx, model):
         """
