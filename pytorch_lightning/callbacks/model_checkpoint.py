@@ -222,6 +222,7 @@ class ModelCheckpoint(Callback):
 
         if self.save_top_k != -1:
             current = metrics.get(self.monitor)
+            print(current, self.monitor)
 
             if current is None:
                 rank_zero_warn(
