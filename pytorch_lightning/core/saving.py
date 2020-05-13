@@ -61,7 +61,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     (4, 7)
 
     Args:
-        hparams: the orifinal params and also resulting
+        hparams: the original params and also target object
         updates: new params to be used as update
 
     """
@@ -74,9 +74,9 @@ def update_hparams(hparams: dict, updates: dict) -> None:
         # recurse if dictionary
         if isinstance(v, dict):
             update_hparams(hparams[k], updates[k])
-
-        # update the value
-        hparams[k] = v
+        else:
+            # update the value
+            hparams.update({k: v})
 
 
 def load_hparams_from_tags_csv(tags_csv: str) -> Namespace:
