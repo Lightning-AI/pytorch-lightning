@@ -1440,7 +1440,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             checkpoint_path: str,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None, # backward compatible, todo: remove in v0.9.0
+            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
             hparam_overrides: Optional[Dict] = None,
             *args, **kwargs
     ) -> 'LightningModule':
