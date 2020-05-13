@@ -289,7 +289,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_check_interval=check_interval,
+        val_check_interval=check_interval
     )
     result = trainer.fit(model)
     # verify training completed
