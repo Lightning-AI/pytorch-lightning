@@ -155,6 +155,7 @@ class TrainerDDPMixin(ABC):
     default_root_dir: str
     use_native_amp: bool
     progress_bar_callback: ...
+    num_processes: int
 
     @property
     @abstractmethod
@@ -213,6 +214,7 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 self.use_dp = True
         elif distributed_backend == "ddp":
+            import pdb; pdb.set_trace()
             if self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
