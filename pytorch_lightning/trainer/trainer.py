@@ -386,8 +386,12 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         self.auto_lr_find = auto_lr_find
-        self.auto_scale_batch_size = auto_scale_batch_size
         self.replace_sampler_ddp = replace_sampler_ddp
+
+        # auto-scale bs
+        self.auto_scale_batch_size = auto_scale_batch_size
+        if isinstance(self.auto_scale_batch_size, bool) and self.auto_scale_batch_size:
+            self.auto_scale_batch_size = 'power'
 
         self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
