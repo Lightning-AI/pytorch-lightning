@@ -6,11 +6,10 @@ from pytorch_lightning.callbacks import Callback
 
 class TrainerCallbackHookMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        # the proper values/initialisation should be done in child class
-        self.callbacks: List[Callback] = []
-        self.get_model: Callable = ...
+    # this is just a summary on variables used in this abstract class,
+    # the proper values/initialisation should be done in child class
+    callbacks: List[Callback] = []
+    get_model: Callable = ...
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""

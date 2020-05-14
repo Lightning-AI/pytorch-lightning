@@ -304,6 +304,7 @@ class Trainer(
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
+        super().__init__()
 
         self.deterministic = deterministic
         torch.backends.cudnn.deterministic = self.deterministic
