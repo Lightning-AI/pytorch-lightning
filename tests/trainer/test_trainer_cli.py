@@ -99,7 +99,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []
-    with mock.patch("argparse._sys.argv",["any.py"] + cli_args):
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparse(parser)
