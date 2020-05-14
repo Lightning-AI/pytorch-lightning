@@ -140,9 +140,6 @@ class TrainerTrainingTricksMixin(ABC):
                                             ' passed directly to `.fit()`. Please disable the feature or'
                                             ' incorporate the dataloader into the model.')
 
-        # init amp scaler if requested
-        if self.use_native_amp and self.precision == 16:
-            self.scaler = torch.cuda.amp.GradScaler()
 
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()

@@ -526,6 +526,10 @@ class Trainer(
         self.precision = precision
         self.scaler = None
 
+        # init amp scaler if requested (re-inits in pretrain)
+        if self.use_native_amp and self.precision == 16:
+            self.scaler = torch.cuda.amp.GradScaler()
+
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
         self.init_amp(use_amp)
@@ -674,7 +678,7 @@ class Trainer(
                         return bool(parsing.strtobool(x))
 
                     # Bool args with default of True parsed as flags not key value pair
-                    if arg_types == (bool,) and arg_default is False:
+                    if bool in arg_types and arg_default is False:
                         parser.add_argument(
                             f'--{arg}',
                             action='store_true',
@@ -800,8 +804,6 @@ class Trainer(
         model.prepare_data()
 
         # Run auto batch size scaling
-        import pdb;
-        pdb.set_trace()
         if self.auto_scale_batch_size:
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
