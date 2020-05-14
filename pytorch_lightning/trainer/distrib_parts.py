@@ -389,7 +389,6 @@ class TrainerDPMixin(ABC):
     root_gpu: ...
     amp_level: str
     precision: ...
-    current_tpu_idx: ...
     proc_rank: int
     tpu_local_core_rank: int
     tpu_global_core_rank: int
@@ -513,8 +512,6 @@ class TrainerDPMixin(ABC):
         if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        # track current tpu
-        self.current_tpu_idx = tpu_core_idx
         self.proc_rank = self.tpu_local_core_rank
         rank_zero_only.rank = self.proc_rank
 
