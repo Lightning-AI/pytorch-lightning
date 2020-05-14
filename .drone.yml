@@ -42,8 +42,16 @@ steps:
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests benchmarks -v --doctest-modules #  --flake8
     - cd docs; make doctest; make coverage
     - coverage report
-    - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
+    #- codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
     - python tests/collect_env_details.py
+
+  - name: coverage
+    image: plugins/codecov
+    settings:
+      token: $CODECOV_TOKEN
+      paths:
+        - .
+        - docs
 
 trigger:
   branch:
