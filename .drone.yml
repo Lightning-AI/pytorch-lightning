@@ -19,6 +19,7 @@ steps:
     HOROVOD_WITHOUT_MXNET: 1
     HOROVOD_WITH_GLOO: 1
     HOROVOD_WITHOUT_MPI: 1
+    SPHINX_MOCK_REQUIREMENTS: 0
 
   #volumes:
   #  # Mount pip cache from host
