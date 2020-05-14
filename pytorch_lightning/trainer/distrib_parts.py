@@ -99,35 +99,22 @@ class TrainerDPMixin(ABC):
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
 
-    def transfer_batch_to_tpu(self, batch):
-        return self.__transfer_data_to_device(batch, device='tpu')
+    def transfer_batch_to_tpu(self, batch: Any):
+        device = xm.xla_device() if XLA_AVAILABLE else torch.device('cpu')
+        return self.__transfer_data_to_device(batch, device)
 
-    def transfer_batch_to_gpu(self, batch, gpu_id):
-        return self.__transfer_data_to_device(batch, device='gpu', gpu_id=gpu_id)
+    def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):
+        device = torch.device('cuda', gpu_id)
+        return self.__transfer_data_to_device(batch, device)
 
-    def __transfer_data_to_device(self, batch, device, gpu_id=None):
-        if device == 'tpu' and XLA_AVAILABLE:
-            # base case: object can be directly moved using `to`
-            if callable(getattr(batch, 'to', None)):
-                xla_device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
-                return batch.to(xla_device)
-
-        if device == 'gpu':
-            # base case: object can be directly moved using `cuda` or `to`
-            if callable(getattr(batch, 'cuda', None)):
-                # non_blocking will be ignored if tensor is not pinned.
-                # so we can always set it to True
-                return batch.cuda(gpu_id, non_blocking=True)
-
-            if callable(getattr(batch, 'to', None)):
-                # non_blocking will be ignored if tensor is not pinned.
-                # so we can always set it to True
-                return batch.to(torch.device('cuda', gpu_id), non_blocking=True)
+    def __transfer_data_to_device(self, batch: Any, device: torch.device):
+        if callable(getattr(batch, 'to', None)):
+            return batch.to(device)
 
         # when list
         if isinstance(batch, list):
             for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
+                batch[i] = self.__transfer_data_to_device(x, device)
             return batch
 
         # when tuple
@@ -135,17 +122,59 @@ class TrainerDPMixin(ABC):
             # when namedtuple
             if hasattr(batch, '_fields'):
                 elem_type = type(batch)
-                return elem_type(*(self.__transfer_data_to_device(x, device, gpu_id) for x in batch))
+                return elem_type(*(self.__transfer_data_to_device(x, device) for x in batch))
             else:
                 batch = list(batch)
                 for i, x in enumerate(batch):
-                    batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
+                    batch[i] = self.__transfer_data_to_device(x, device)
                 return tuple(batch)
 
         # when dict
         if isinstance(batch, dict):
             for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(v, device, gpu_id)
+                batch[k] = self.__transfer_data_to_device(v, device)
+
+            return batch
+
+        # check if the model hook can move the data
+        model = self.get_model()
+        if model is not None and self.is_overridden('transfer_batch_to_device', model):
+            batch = model.transfer_batch_to_device(batch, device)
+
+        # nothing matches, return the value as is without transform
+        return batch
+
+    def __transfer_data_to_device(self, batch: Any, device: torch.device):
+
+        if self.is_overriden('transfer_batch_to_device'):
+            return self.get_model().transfer_batch_to_device(batch, device)
+
+        # base case: object can be directly moved using `to`
+        if callable(getattr(batch, 'to', None)):
+            return batch.to(device, non_blocking=True)
+
+        # when list
+        if isinstance(batch, list):
+            for i, x in enumerate(batch):
+                batch[i] = self.__transfer_data_to_device(x, device)
+            return batch
+
+        # when tuple
+        if isinstance(batch, tuple):
+            # when namedtuple
+            if hasattr(batch, '_fields'):
+                elem_type = type(batch)
+                return elem_type(*(self.__transfer_data_to_device(x, device) for x in batch))
+            else:
+                batch = list(batch)
+                for i, x in enumerate(batch):
+                    batch[i] = self.__transfer_data_to_device(x, device)
+                return tuple(batch)
+
+        # when dict
+        if isinstance(batch, dict):
+            for k, v in batch.items():
+                batch[k] = self.__transfer_data_to_device(v, device)
 
             return batch
 

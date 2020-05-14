@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 import torch
 
@@ -68,3 +70,32 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     # metrics are kept after each epoch
     for i in range(num_epochs):
         assert metrics[f'epoch_metric_{i}'] == i
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_transfer_batch_hook():
+
+    class CustomBatch:
+
+        def __init__(self, data):
+            self.samples = data[0]
+            self.targets = data[1]
+
+    class CurrentTestModel(EvalModelTemplate):
+
+        def transfer_batch_to_device(self, batch, device):
+            if isinstance(batch, CustomBatch):
+                batch.samples = batch.samples.to(device)
+                batch.targets = batch.targets.to(device)
+            return batch
+
+    model = CurrentTestModel(tutils.get_default_hparams())
+    batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
+
+    trainer = Trainer()
+    # running .fit() would require us to implement custom data loaders, we mock the model reference instead
+    trainer.get_model = MagicMock(return_value=model)
+
+    batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)
+    device = torch.device('cuda', 0)
+    assert batch_gpu.samples.device == batch_gpu.targets.device == device
