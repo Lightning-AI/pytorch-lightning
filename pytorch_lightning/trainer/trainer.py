@@ -132,7 +132,7 @@ class Trainer(
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
-            auto_scale_batch_size: Optional[str] = None,
+            auto_scale_batch_size: Union[str, bool] = False,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -806,6 +806,8 @@ class Trainer(
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
+            if isinstance(self.auto_scale_batch_size, bool):
+                self.auto_scale_batch_size = 'power'
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
