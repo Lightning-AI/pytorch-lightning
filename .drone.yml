@@ -48,7 +48,8 @@ steps:
 - name: coverage
   image: plugins/codecov
   settings:
-    token: $CODECOV_TOKEN
+    token:
+      from_secret: codecov_token
     files:
       - .coverage
     paths:
