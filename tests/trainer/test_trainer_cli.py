@@ -88,3 +88,25 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 
     with pytest.raises(_UnkArgError):
         parser.parse_args(cli_args)
+
+
+# todo: add also testing for "gpus"
+@pytest.mark.parametrize(['cli_args', 'expected'], [
+    pytest.param('--auto_lr_find --auto_scale_batch_size power',
+                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
+    pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
+                 {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
+    pytest.param('--early_stop_callback',
+                 {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
+])
+def test_argparse_args_parsing(cli_args, expected):
+    """Test multi type argument with bool."""
+    cli_args = cli_args.split(' ') if cli_args else []
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        parser = ArgumentParser(add_help=False)
+        parser = Trainer.add_argparse_args(parent_parser=parser)
+        args = Trainer.parse_argparser(parser)
+
+    for k, v in expected.items():
+        assert getattr(args, k) == v
+    assert Trainer.from_argparse_args(args)
