@@ -18,7 +18,9 @@ after each processed batch and the corresponding loss is logged. The result of
 this is a `lr` vs. `loss` plot that can be used as guidance for choosing a optimal
 initial lr. 
 
-.. warning:: For the moment, this feature only works with models having a single optimizer.
+Warnings:
+- For the moment, this feature only works with models having a single optimizer.
+- LR support for DDP is not implemented yet, it is comming soon.
 
 Using Lightnings build-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

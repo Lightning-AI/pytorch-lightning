@@ -71,7 +71,7 @@ a binary search.
 
 .. warning::
             
-    Due to these contrains, this features does *NOT* work when passing dataloaders directly
+    Due to these constraints, this features does *NOT* work when passing dataloaders directly
     to `.fit()`. 
 
 The scaling algorithm has a number of parameters that the user can control by
@@ -107,3 +107,5 @@ The algorithm in short works by:
 .. autoclass:: pytorch_lightning.trainer.training_tricks.TrainerTrainingTricksMixin
    :members: scale_batch_size
    :noindex:
+
+.. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
