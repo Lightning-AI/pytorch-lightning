@@ -139,6 +139,7 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
     @property
     def num_tpu_cores(self):
         """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("`num_tpu_cores` is now set by `tpu_cores` in v0.7.6"
-                       " and this method will be removed in v0.9.0", DeprecationWarning)
+        rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                       " and this argument will be removed in v0.9.0", DeprecationWarning)
+
         return self.num_tpu_cores
