@@ -389,6 +389,7 @@ class Trainer(
         self.replace_sampler_ddp = replace_sampler_ddp
 
         # default to power
+        import pdb; pdb.set_trace()
         self.auto_scale_batch_size = auto_scale_batch_size
         if self.auto_scale_batch_size == 'True':
             self.auto_scale_batch_size = 'power'
@@ -800,12 +801,12 @@ class Trainer(
         model.prepare_data()
 
         # Run auto batch size scaling
+        import pdb; pdb.set_trace()
         if self.auto_scale_batch_size:
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
-        import pdb; pdb.set_trace()
-        if self.auto_lr_find is not None:
+        if self.auto_lr_find:
             self._run_lr_finder_internally(model)
 
         # route to appropriate start method
