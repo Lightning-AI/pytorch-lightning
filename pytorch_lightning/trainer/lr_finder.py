@@ -168,8 +168,7 @@ class TrainerLRFinderMixin(ABC):
                  train_dataloader=train_dataloader,
                  val_dataloaders=val_dataloaders)
         lr_finder._total_batch_idx = self.total_batch_idx  # for debug purpose
-        import pdb
-        pdb.set_trace()
+
         # Prompt if we stopped early
         if self.global_step != num_training:
             log.info('LR finder stopped early due to diverging loss.')
