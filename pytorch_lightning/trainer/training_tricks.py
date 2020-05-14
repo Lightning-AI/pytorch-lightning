@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 
@@ -195,7 +196,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.auto_scale_batch_size = None  # prevent recursion
         self.max_steps = steps_per_trial  # take few steps
         self.weights_summary = None  # not needed before full run
-        self.logger = None  # not needed before full run
+        self.logger = DummyLogger()
         self.callbacks = []  # not needed before full run
         self.checkpoint_callback = False  # required for saving
         self.early_stop_callback = None

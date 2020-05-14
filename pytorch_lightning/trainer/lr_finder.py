@@ -13,6 +13,7 @@ import os
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -133,7 +134,7 @@ class TrainerLRFinderMixin(ABC):
                                       progress_bar_refresh_rate=1)]
 
         # No logging
-        self.logger = None
+        self.logger = DummyLogger()
 
         # Max step set to number of iterations
         self.max_steps = num_training
