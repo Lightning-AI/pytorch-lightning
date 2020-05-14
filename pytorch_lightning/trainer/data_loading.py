@@ -111,8 +111,8 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
-        if self.replace_sampler_ddp and need_dist_sampler:
 
+        if self.replace_sampler_ddp and need_dist_sampler:
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
             dl_args = {
@@ -137,7 +137,7 @@ class TrainerDataLoadingMixin(ABC):
                 }
                 sampler = DistributedSampler(
                     dataloader.dataset,
-                    num_replicas=world_size.get(self.distributed_backend, 0),
+                    num_replicas=world_size[self.distributed_backend],
                     rank=self.proc_rank,
                 )
 

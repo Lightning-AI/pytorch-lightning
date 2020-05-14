@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 builtins.__LIGHTNING_SETUP__ = True
 
-IS_READTHEDOCS_BUILD = os.environ.get('READTHEDOCS', False)
+SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
 import pytorch_lightning  # noqa: E402
 
@@ -321,15 +321,19 @@ def package_list_from_file(file):
     return mocked_packages
 
 
-MOCK_PACKAGES = package_list_from_file(os.path.join(PATH_ROOT, 'requirements-extra.txt'))
-if IS_READTHEDOCS_BUILD:
+MOCK_PACKAGES = []
+if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    base_packages = package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
-    MOCK_PACKAGES.extend(base_packages)
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements-extra.txt'))
 
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
     'PIL',
+    # packages with different package name compare to import name
+    'yaml',
+    'comet_ml',
+    'neptune',
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
 

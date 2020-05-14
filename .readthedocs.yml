@@ -6,6 +6,7 @@
 version: 2
 
 # Build documentation in the docs/ directory with Sphinx
+# reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
   configuration: docs/source/conf.py
   fail_on_warning: true

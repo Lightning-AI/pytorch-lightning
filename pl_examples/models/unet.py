@@ -33,7 +33,7 @@ class UNet(nn.Module):
             feats *= 2
 
         for _ in range(num_layers - 1):
-            layers.append(Up(feats, feats // 2), bilinear)
+            layers.append(Up(feats, feats // 2, bilinear))
             feats //= 2
 
         layers.append(nn.Conv2d(feats, num_classes, kernel_size=1))
