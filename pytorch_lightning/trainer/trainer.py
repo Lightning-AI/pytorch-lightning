@@ -673,13 +673,15 @@ class Trainer(
                                             if at[0] not in depr_arg_names):
 
             for allowed_type in (at for at in allowed_types if at in arg_types):
+                if arg == 'auto_scale_batch_size':
+                    import pdb; pdb.set_trace()
+
                 if allowed_type is bool:
                     def allowed_type(x):
                         return bool(parsing.strtobool(x))
 
                     # Bool args with default of True parsed as flags not key value pair
                     if bool in arg_types and arg_default is False:
-                        import pdb; pdb.set_trace()
                         parser.add_argument(
                             f'--{arg}',
                             action='store_true',
