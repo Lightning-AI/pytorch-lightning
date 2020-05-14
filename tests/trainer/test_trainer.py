@@ -744,7 +744,7 @@ def test_gpu_choice(tmpdir):
     ),
     pytest.param(
         dict(distributed_backend=None, gpus=2),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=2),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
     pytest.param(

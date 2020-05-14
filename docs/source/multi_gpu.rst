@@ -378,3 +378,37 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
+                
+PytorchElastic
+--------------
+Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+
+.. code-block:: python
+
+    Trainer(gpus=8, distributed_backend='ddp')
+    
+    
+Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/0.2.0/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
+
+.. code-block:: bash
+
+    etcd --enable-v2
+         --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
+         --advertise-client-urls PUBLIC_HOSTNAME:2379
+         
+     
+And then launch the elastic job with:
+
+.. code-block:: bash
+
+    python -m torchelastic.distributed.launch
+            --nnodes=MIN_SIZE:MAX_SIZE
+            --nproc_per_node=TRAINERS_PER_NODE
+            --rdzv_id=JOB_ID
+            --rdzv_backend=etcd
+            --rdzv_endpoint=ETCD_HOST:ETCD_PORT
+            YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
+            
+
+See the official `PytorchElastic documentation <https://pytorch.org/elastic/0.2.0/index.html>`_ for details
+on installation and more use cases.
