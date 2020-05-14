@@ -10,8 +10,8 @@ steps:
 
   environment:
     SLURM_LOCALID: 0
-    CODECOV_TOKEN:
-      from_secret: codecov_token
+#    CODECOV_TOKEN:
+#      from_secret: codecov_token
     HOROVOD_GPU_ALLREDUCE: NCCL
     HOROVOD_GPU_BROADCAST: NCCL
     HOROVOD_WITH_PYTORCH: 1
