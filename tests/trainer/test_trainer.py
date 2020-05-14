@@ -807,3 +807,7 @@ def test_trainer_subclassing():
     assert result == 1
     assert trainer.custom_kwarg == 'custom'
     assert trainer.fast_dev_run
+
+    # when we pass in an unknown arg, the base class should complain
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'") as e:
+        TrainerSubclass(abcdefg='unknown_arg')
