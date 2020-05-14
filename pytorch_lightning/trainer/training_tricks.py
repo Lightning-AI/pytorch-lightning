@@ -178,6 +178,9 @@ class TrainerTrainingTricksMixin(ABC):
         if self.progress_bar_callback:
             self.progress_bar_callback.enable()
 
+        # remove scaler since it cannot be pickled
+        self.scaler = None
+
         return new_size
 
     def __scale_batch_dump_params(self):
