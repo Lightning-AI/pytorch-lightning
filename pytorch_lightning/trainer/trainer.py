@@ -800,6 +800,8 @@ class Trainer(
         model.prepare_data()
 
         # Run auto batch size scaling
+        import pdb;
+        pdb.set_trace()
         if self.auto_scale_batch_size:
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
