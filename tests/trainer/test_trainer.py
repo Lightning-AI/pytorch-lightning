@@ -807,4 +807,3 @@ def test_trainer_subclassing():
     assert result == 1
     assert trainer.custom_kwarg == 'custom'
     assert trainer.fast_dev_run
-
