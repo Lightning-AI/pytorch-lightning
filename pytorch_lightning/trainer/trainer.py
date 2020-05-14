@@ -666,16 +666,13 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (bool, str, float, int)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
 
             for allowed_type in (at for at in allowed_types if at in arg_types):
-                if arg == 'auto_scale_batch_size':
-                    import pdb; pdb.set_trace()
-
                 if allowed_type is bool:
                     def allowed_type(x):
                         return bool(parsing.strtobool(x))
