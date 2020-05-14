@@ -6,8 +6,11 @@
 version: 2
 
 # Build documentation in the docs/ directory with Sphinx
+# reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
   configuration: docs/source/conf.py
+  # TODO: set it true and debug failing
+  fail_on_warning: false
 
 # Build documentation with MkDocs
 #mkdocs:
