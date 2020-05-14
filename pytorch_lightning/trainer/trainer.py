@@ -673,6 +673,9 @@ class Trainer(
                                             if at[0] not in depr_arg_names):
 
             for allowed_type in (at for at in allowed_types if at in arg_types):
+                if arg == 'auto_lr_find':
+                    import pdb; pdb.set_trace()
+
                 if allowed_type is bool:
                     def allowed_type(x):
                         return bool(parsing.strtobool(x))
