@@ -722,10 +722,12 @@ class Trainer(
         Example:
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
-            >>> trainer = Trainer.from_argparse_args(parser.parse_args(""))
+            >>> args = Trainer.parse_argparser(parser.parse_args(""))
+            >>> trainer = Trainer.from_argparse_args(args)
         """
-
-        params = vars(Trainer.parse_argparser(args))
+        if isinstance(args, ArgumentParser):
+            args = Trainer.parse_argparser(args)
+        params = vars(args)
         params.update(**kwargs)
 
         return cls(**params)
