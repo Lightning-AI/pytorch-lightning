@@ -71,7 +71,7 @@ a binary search.
 
 .. warning::
             
-    Due to these constrains, this features does *NOT* work when passing dataloaders directly
+    Due to these constraints, this features does *NOT* work when passing dataloaders directly
     to `.fit()`. 
 
 The scaling algorithm has a number of parameters that the user can control by
