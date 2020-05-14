@@ -105,7 +105,7 @@ def test_argparse_args_parsing(cli_args, expected):
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
-        args = Trainer.parse_argparse(parser)
+        args = Trainer.parse_argparser(parser)
 
     for k, v in expected.items():
         assert getattr(args, k) == v

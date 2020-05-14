@@ -709,16 +709,23 @@ class Trainer(
             return int(x)
 
     @staticmethod
-    def parse_argparse(cli_parser: ArgumentParser) -> Namespace:
+    def parse_argparser(arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
         """Parse CLI arguments, required for custom bool types."""
-        args = vars(cli_parser.parse_args())
-        args = {k: True if v is None else v for k, v in args.items()}
+        args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
+        args = {k: True if v is None else v for k, v in vars(args).items()}
         return Namespace(**args)
 
     @classmethod
-    def from_argparse_args(cls, args, **kwargs) -> 'Trainer':
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
+        """create an instance from CLI arguments
 
-        params = vars(args)
+        Example:
+            >>> parser = ArgumentParser(add_help=False)
+            >>> parser = Trainer.add_argparse_args(parser)
+            >>> trainer = Trainer.from_argparse_args(parser.parse_args(""))
+        """
+
+        params = vars(Trainer.parse_argparser(args))
         params.update(**kwargs)
 
         return cls(**params)
