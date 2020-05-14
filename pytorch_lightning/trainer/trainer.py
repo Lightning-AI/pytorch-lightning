@@ -679,6 +679,7 @@ class Trainer(
 
                     # Bool args with default of True parsed as flags not key value pair
                     if bool in arg_types and arg_default is False:
+                        import pdb; pdb.set_trace()
                         parser.add_argument(
                             f'--{arg}',
                             action='store_true',
