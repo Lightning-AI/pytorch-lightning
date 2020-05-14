@@ -449,10 +449,14 @@ class TrainerDPMixin(ABC):
         if device == 'gpu':
             # base case: object can be directly moved using `cuda` or `to`
             if callable(getattr(batch, 'cuda', None)):
-                return batch.cuda(gpu_id)
+                # non_blocking will be ignored if tensor is not pinned.
+                # so we can always set it to True
+                return batch.cuda(gpu_id, non_blocking=True)
 
             if callable(getattr(batch, 'to', None)):
-                return batch.to(torch.device('cuda', gpu_id))
+                # non_blocking will be ignored if tensor is not pinned.
+                # so we can always set it to True
+                return batch.to(torch.device('cuda', gpu_id), non_blocking=True)
 
         # when list
         if isinstance(batch, list):
