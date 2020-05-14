@@ -128,11 +128,11 @@ class Trainer(
             benchmark: bool = False,
             deterministic: bool = False,
             reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: Union[bool, str] = False,
+            auto_lr_find: Union[bool, str] = None,
             replace_sampler_ddp: bool = True,
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
-            auto_scale_batch_size: Optional[Union[bool, str]] = False,
+            auto_scale_batch_size: Optional[str] = None,
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -390,7 +390,7 @@ class Trainer(
 
         # default to power
         self.auto_scale_batch_size = auto_scale_batch_size
-        if self.auto_scale_batch_size == True:
+        if self.auto_scale_batch_size == 'True':
             self.auto_scale_batch_size = 'power'
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -666,16 +666,13 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (bool, str, float, int)
+        allowed_types = (str, float, int, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
                                             if at[0] not in depr_arg_names):
 
             for allowed_type in (at for at in allowed_types if at in arg_types):
-                if arg == 'auto_lr_find':
-                    import pdb; pdb.set_trace()
-
                 if allowed_type is bool:
                     def allowed_type(x):
                         return bool(parsing.strtobool(x))
