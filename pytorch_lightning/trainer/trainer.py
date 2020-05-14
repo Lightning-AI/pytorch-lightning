@@ -804,7 +804,8 @@ class Trainer(
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
 
         # Run learning rate finder:
-        if self.auto_lr_find:
+        import pdb; pdb.set_trace()
+        if self.auto_lr_find is not None:
             self._run_lr_finder_internally(model)
 
         # route to appropriate start method
