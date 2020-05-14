@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 builtins.__LIGHTNING_SETUP__ = True
 
-SPHINX_MOCK_REQUIREMENTS = os.environ.get('SPHINX_MOCK_REQUIREMENTS', True)
+SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
 import pytorch_lightning  # noqa: E402
 
