@@ -35,7 +35,6 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
-
 try:
     from apex import amp
 except ImportError:
@@ -96,7 +95,7 @@ class Trainer(
             num_nodes: int = 1,
             num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
-            num_tpu_cores: Optional[int] = None, # backward compatible, todo: remove in v0.9.0
+            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             auto_select_gpus: bool = False,
             tpu_cores: Optional[Union[List[int], int]] = None,
             log_gpu_memory: Optional[str] = None,
@@ -355,8 +354,7 @@ class Trainer(
         self.on_tpu = tpu_cores is not None
         self.tpu_cores = tpu_cores
         assert self.tpu_cores in (1, 8, None) or (
-                isinstance(self.tpu_cores, (list, tuple, set))
-                and len(self.tpu_cores) == 1
+            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
         ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
 
         self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
