@@ -526,10 +526,6 @@ class Trainer(
         self.precision = precision
         self.scaler = None
 
-        # init amp scaler if requested (re-inits in pretrain)
-        if self.use_native_amp and self.precision == 16:
-            self.scaler = torch.cuda.amp.GradScaler()
-
         # TODO: remove for v0.8.0
         self.amp_level = amp_level
         self.init_amp(use_amp)
