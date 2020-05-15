@@ -108,43 +108,6 @@ class TrainerDPMixin(ABC):
         return self.__transfer_data_to_device(batch, device)
 
     def __transfer_data_to_device(self, batch: Any, device: torch.device):
-        if callable(getattr(batch, 'to', None)):
-            return batch.to(device)
-
-        # when list
-        if isinstance(batch, list):
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device)
-            return batch
-
-        # when tuple
-        if isinstance(batch, tuple):
-            # when namedtuple
-            if hasattr(batch, '_fields'):
-                elem_type = type(batch)
-                return elem_type(*(self.__transfer_data_to_device(x, device) for x in batch))
-            else:
-                batch = list(batch)
-                for i, x in enumerate(batch):
-                    batch[i] = self.__transfer_data_to_device(x, device)
-                return tuple(batch)
-
-        # when dict
-        if isinstance(batch, dict):
-            for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(v, device)
-
-            return batch
-
-        # check if the model hook can move the data
-        model = self.get_model()
-        if model is not None and self.is_overridden('transfer_batch_to_device', model):
-            batch = model.transfer_batch_to_device(batch, device)
-
-        # nothing matches, return the value as is without transform
-        return batch
-
-    def __transfer_data_to_device(self, batch: Any, device: torch.device):
 
         if self.is_overriden('transfer_batch_to_device'):
             return self.get_model().transfer_batch_to_device(batch, device)
