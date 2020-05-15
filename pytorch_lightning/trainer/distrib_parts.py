@@ -109,7 +109,7 @@ class TrainerDPMixin(ABC):
 
     def __transfer_data_to_device(self, batch: Any, device: torch.device):
 
-        if self.is_overriden('transfer_batch_to_device'):
+        if self.is_overridden('transfer_batch_to_device'):
             return self.get_model().transfer_batch_to_device(batch, device)
 
         # base case: object can be directly moved using `to`
