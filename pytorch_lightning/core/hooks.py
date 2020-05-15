@@ -148,7 +148,7 @@ class ModelHooks(torch.nn.Module):
                 self.trainer.scaler.scale(loss).backward()
 
             # TODO: remove in v0.8.0
-            else:
+            elif self.trainer.use_amp:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
         else:
