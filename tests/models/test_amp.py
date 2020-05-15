@@ -5,6 +5,7 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.trainer import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -92,6 +93,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
 
+# Todo: to be updated with native AMP
+@pytest.mark.skipif(not APEX_AVAILABLE, reason="missing AMP support (APEX)")
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
