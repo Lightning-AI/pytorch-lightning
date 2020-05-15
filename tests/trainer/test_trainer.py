@@ -775,7 +775,6 @@ def test_trainer_config(trainer_kwargs, expected):
 
 
 def test_trainer_subclassing():
-
     model = EvalModelTemplate()
 
     # First way of pulling out args from signature is to list them
