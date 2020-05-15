@@ -89,7 +89,7 @@ def test_transfer_batch_hook():
                 batch.targets = batch.targets.to(device)
             return batch
 
-    model = CurrentTestModel(tutils.get_default_hparams())
+    model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer()
