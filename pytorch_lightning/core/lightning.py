@@ -53,10 +53,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self.logger = None
         self.example_input_array = None
 
-        #: True if your model is currently running on GPUs.
-        #: Useful to set flags around the LightningModule for different CPU vs GPU behavior.
-        self.on_gpu = False
-
         #: True if using dp
         self.use_dp = False
 
@@ -76,6 +72,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
+
+    @property
+    def on_gpu(self):
+        """
+        True if your model is currently running on GPUs.
+        Useful to set flags around the LightningModule for different CPU vs GPU behavior.
+        """
+        return self.device.type == 'cuda'
 
     def print(self, *args, **kwargs) -> None:
         r"""

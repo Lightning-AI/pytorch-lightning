@@ -422,7 +422,6 @@ class TrainerDPMixin(ABC):
 
         for m in [model, ref_model]:
             m.trainer = self
-            m.on_gpu = self.on_gpu
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
