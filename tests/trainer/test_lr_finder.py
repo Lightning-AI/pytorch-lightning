@@ -57,7 +57,7 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'early_stop_callback', 'accumulate_grad_batches', 
+                          'early_stop_callback', 'accumulate_grad_batches',
                           'enable_early_stop', 'checkpoint_callback']
     attributes_before = {}
     for ca in changed_attributes:
