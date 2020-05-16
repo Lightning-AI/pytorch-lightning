@@ -130,7 +130,6 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
-            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
@@ -657,7 +656,6 @@ class Trainer(
              'min_steps': None,
              ...
              'profiler': None,
-             'progress_bar_callback': True,
              'progress_bar_refresh_rate': 1,
              ...}
 
