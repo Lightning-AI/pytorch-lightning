@@ -432,7 +432,6 @@ class TrainerDPMixin(ABC):
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
-            m._device = self._device
 
     def transfer_batch_to_tpu(self, batch):
         return self.__transfer_data_to_device(batch, device='tpu')
@@ -488,7 +487,6 @@ class TrainerDPMixin(ABC):
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)
-        self._device = torch.device('cuda', self.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -505,7 +503,6 @@ class TrainerDPMixin(ABC):
     def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
         model.to(xm.xla_device())
-        self._device = xm.xla_device()
 
         # get the appropriate tpu ranks
         self.tpu_local_core_rank = xm.get_local_ordinal()
@@ -545,7 +542,6 @@ class TrainerDPMixin(ABC):
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         model.cuda(self.root_gpu)
-        self._device = torch.device('cuda', self.root_gpu)
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
@@ -585,7 +581,6 @@ class TrainerDPMixin(ABC):
             assert self.root_gpu == hvd.local_rank()
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
-            self._device = torch.device('cuda', self.root_gpu)
 
         # avoid duplicating progress bar
         if hvd.rank() != 0 and self.progress_bar_callback is not None:

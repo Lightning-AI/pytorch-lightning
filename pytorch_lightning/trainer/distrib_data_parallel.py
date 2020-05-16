@@ -360,7 +360,6 @@ class TrainerDDPMixin(ABC):
         # copy model to each gpu
         if self.on_gpu:
             self.root_gpu = process_idx
-            self._device = torch.device('cuda', self.root_gpu)
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
