@@ -53,6 +53,14 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: example projects
+   :caption: Example Lightning Project Structures
+
+   Structure of ML paper code <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
+   Object detection with hydra configs <https://github.com/Erlemar/wheat>
+
+.. toctree::
+   :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
 
