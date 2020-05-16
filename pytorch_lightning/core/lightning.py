@@ -72,7 +72,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self.hparams = None
 
         #: Current dtype
-        self._dtype = torch.FloatTensor
+        self._dtype = torch.float
+
         #: device reference
         self._device = torch.device('cpu')
 
