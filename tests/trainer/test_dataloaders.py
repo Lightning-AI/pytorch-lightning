@@ -289,7 +289,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_check_interval=check_interval,
+        val_check_interval=check_interval
     )
     result = trainer.fit(model)
     # verify training completed
@@ -308,25 +308,6 @@ def test_inf_val_dataloader(tmpdir, check_interval):
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=check_interval,
-    )
-    result = trainer.fit(model)
-
-    # verify training completed
-    assert result == 1
-
-
-@pytest.mark.parametrize('check_interval', [50, 1.0])
-def test_inf_test_dataloader(tmpdir, check_interval):
-    """Test inf test data loader (e.g. IterableDataset)"""
-
-    model = EvalModelTemplate()
-    model.test_dataloader = model.test_dataloader__infinite
-
-    # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        test_check_interval=check_interval,
     )
     result = trainer.fit(model)
 

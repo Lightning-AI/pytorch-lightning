@@ -772,3 +772,41 @@ def test_trainer_config(trainer_kwargs, expected):
     assert trainer.on_gpu is expected["on_gpu"]
     assert trainer.single_gpu is expected["single_gpu"]
     assert trainer.num_processes == expected["num_processes"]
+
+
+def test_trainer_subclassing():
+    model = EvalModelTemplate()
+
+    # First way of pulling out args from signature is to list them
+    class TrainerSubclass(Trainer):
+
+        def __init__(self, custom_arg, *args, custom_kwarg='test', **kwargs):
+            super().__init__(*args, **kwargs)
+            self.custom_arg = custom_arg
+            self.custom_kwarg = custom_kwarg
+
+    trainer = TrainerSubclass(123, custom_kwarg='custom', fast_dev_run=True)
+    result = trainer.fit(model)
+    assert result == 1
+    assert trainer.custom_arg == 123
+    assert trainer.custom_kwarg == 'custom'
+    assert trainer.fast_dev_run
+
+    # Second way is to pop from the dict
+    # It's a special case because Trainer does not have any positional args
+    class TrainerSubclass(Trainer):
+
+        def __init__(self, **kwargs):
+            self.custom_arg = kwargs.pop('custom_arg', 0)
+            self.custom_kwarg = kwargs.pop('custom_kwarg', 'test')
+            super().__init__(**kwargs)
+
+    trainer = TrainerSubclass(custom_kwarg='custom', fast_dev_run=True)
+    result = trainer.fit(model)
+    assert result == 1
+    assert trainer.custom_kwarg == 'custom'
+    assert trainer.fast_dev_run
+
+    # when we pass in an unknown arg, the base class should complain
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'") as e:
+        TrainerSubclass(abcdefg='unknown_arg')
