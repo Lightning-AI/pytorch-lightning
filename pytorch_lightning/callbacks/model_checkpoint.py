@@ -139,7 +139,7 @@ class ModelCheckpoint(Callback):
 
         # delegate the saving to the model
         if self.save_function is not None:
-            self.save_function(filepath)
+            self.save_function(filepath, self.save_weights_only)
         else:
             raise ValueError(".save_function() not set")
 
