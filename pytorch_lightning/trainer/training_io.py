@@ -256,8 +256,8 @@ class TrainerIOMixin(ABC):
         torch.save(checkpoint, tmp_path)
         os.replace(tmp_path, filepath)
 
-    def save_checkpoint(self, filepath):
-        checkpoint = self.dump_checkpoint()
+    def save_checkpoint(self, filepath, weights_only: bool = False):
+        checkpoint = self.dump_checkpoint(weights_only)
 
         if self.proc_rank == 0:
             # do the actual save
@@ -306,41 +306,42 @@ class TrainerIOMixin(ABC):
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-    def dump_checkpoint(self):
+    def dump_checkpoint(self, weights_only: bool = False):
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
         }
 
-        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
-            checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
+        if not weights_only:
+            if self.checkpoint_callback:
+                checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-        if self.early_stop_callback is not None and self.checkpoint_callback is not False:
-            checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
-            checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
+            if self.early_stop_callback:
+                checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
+                checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
-        # save optimizers
-        optimizer_states = []
-        for i, optimizer in enumerate(self.optimizers):
-            optimizer_states.append(optimizer.state_dict())
+            # save optimizers
+            optimizer_states = []
+            for i, optimizer in enumerate(self.optimizers):
+                optimizer_states.append(optimizer.state_dict())
 
-        checkpoint['optimizer_states'] = optimizer_states
+            checkpoint['optimizer_states'] = optimizer_states
 
-        # save lr schedulers
-        lr_schedulers = []
-        for scheduler in self.lr_schedulers:
-            lr_schedulers.append(scheduler['scheduler'].state_dict())
+            # save lr schedulers
+            lr_schedulers = []
+            for scheduler in self.lr_schedulers:
+                lr_schedulers.append(scheduler['scheduler'].state_dict())
 
-        checkpoint['lr_schedulers'] = lr_schedulers
+            checkpoint['lr_schedulers'] = lr_schedulers
+
+            # save native amp scaling
+            if self.use_amp and self.use_native_amp:
+                checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         # add the hparams and state_dict from the model
         model = self.get_model()
 
         checkpoint['state_dict'] = model.state_dict()
-
-        # save native amp scaling
-        if self.use_amp and self.use_native_amp:
-            checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         if hasattr(model, "hparams") and model.hparams is not None:
             parsing.clean_namespace(model.hparams)
@@ -391,6 +392,12 @@ class TrainerIOMixin(ABC):
         :param checkpoint:
         :return:
         """
+        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+            raise KeyError(
+                'Trying to restore training state but checkpoint contains only the model.'
+                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
+            )
+
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 

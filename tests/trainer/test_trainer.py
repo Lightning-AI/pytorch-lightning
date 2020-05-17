@@ -270,7 +270,7 @@ def test_dp_output_reduce():
 def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_files):
     """Test ModelCheckpoint options."""
 
-    def mock_save_function(filepath):
+    def mock_save_function(filepath, *args):
         open(filepath, 'a').close()
 
     # simulated losses
@@ -294,6 +294,44 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
     # verify correct naming
     for fname in expected_files:
         assert fname in file_lists
+
+
+def test_model_checkpoint_only_weights(tmpdir):
+    """Tests use case where ModelCheckpoint is configured to save only model weights, and
+     user tries to load checkpoint to resume training.
+     """
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        max_epochs=1,
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True)
+    )
+    # fit model
+    result = trainer.fit(model)
+    # training complete
+    assert result == 1, 'training failed to complete'
+
+    checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
+
+    # assert saved checkpoint has no trainer data
+    checkpoint = torch.load(checkpoint_path)
+    assert 'optimizer_states' not in checkpoint, 'checkpoint should contain only model weights'
+    assert 'lr_schedulers' not in checkpoint, 'checkpoint should contain only model weights'
+
+    # assert loading model works when checkpoint has only weights
+    assert EvalModelTemplate.load_from_checkpoint(checkpoint_path=checkpoint_path)
+
+    # directly save model
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path, weights_only=True)
+    # assert saved checkpoint has no trainer data
+    checkpoint = torch.load(new_weights_path)
+    assert 'optimizer_states' not in checkpoint, 'checkpoint should contain only model weights'
+    assert 'lr_schedulers' not in checkpoint, 'checkpoint should contain only model weights'
+
+    # assert restoring train state fails
+    with pytest.raises(KeyError, match='checkpoint contains only the model'):
+        trainer.restore_training_state(checkpoint)
 
 
 def test_model_freeze_unfreeze():
