@@ -49,6 +49,21 @@ There are two ways to enable the EarlyStopping callback:
         )
         trainer = Trainer(early_stop_callback=early_stop_callback)
 
+In case you need early stopping in a different part of training, subclass EarlyStopping
+and change where it is called:
+
+.. code-block:: python
+
+    class MyEarlyStopping(EarlyStopping):
+
+        def on_validation_epoch_end(self, trainer, pl_module):
+            # override this to disable early stopping on val_ end
+            pass
+
+         def on_training_end(self, trainer, pl_module):
+            # instead, do it in training end
+            self._run_early_stopping_check(trainer, pl_module)
+
 .. note::
    The EarlyStopping callback runs at the end of every validation epoch,
    which, under the default configuration, happen after every training epoch.
