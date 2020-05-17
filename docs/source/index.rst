@@ -57,7 +57,7 @@ PyTorch Lightning Documentation
    :name: project structure
    :caption: Recommended Lightning Project Layout
 
-   Structure of ML paper code <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
+   Lightning project seed <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
 
 .. toctree::
    :maxdepth: 1
