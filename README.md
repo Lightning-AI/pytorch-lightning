@@ -287,7 +287,11 @@ trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
 
 Or TPUs
 ```python
-trainer = Trainer(num_tpu_cores=8)
+# Distributes TPU core training
+trainer = Trainer(tpu_cores=8)
+
+# Single TPU core training
+trainer = Trainer(tpu_cores=[1])
 ```
 
 When you're done training, run the test accuracy

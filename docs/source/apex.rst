@@ -58,7 +58,7 @@ TPU 16-bit
 .. testcode::
 
     # DEFAULT
-    trainer = Trainer(num_tpu_cores=8, precision=32)
+    trainer = Trainer(tpu_cores=8, precision=32)
 
     # turn on 16-bit
-    trainer = Trainer(num_tpu_cores=8, precision=16)
+    trainer = Trainer(tpu_cores=8, precision=16)

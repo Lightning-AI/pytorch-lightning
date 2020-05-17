@@ -130,7 +130,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel (`distributed_backend='ddp'`) (multiple-gpus across many machines).
 - DistributedDataParallel2 (`distributed_backend='ddp2'`) (dp in a machine, ddp across machines).
 - Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
-- TPUs (`num_tpu_cores=8|x`) (tpu or TPU pod)
+- TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
 
 .. note:: If you request multiple GPUs without setting a mode, ddp will be automatically used.
 

@@ -96,6 +96,9 @@ def test_tbd_remove_in_v0_9_0_trainer():
         trainer = Trainer(progress_bar_refresh_rate=50, show_progress_bar=False)
     assert getattr(trainer, 'show_progress_bar')
 
+    with pytest.deprecated_call(match='v0.9.0'):
+        _ = Trainer(num_tpu_cores=8)
+
 
 def test_tbd_remove_in_v0_9_0_module_imports():
     _soft_unimport_module("pytorch_lightning.core.decorators")
