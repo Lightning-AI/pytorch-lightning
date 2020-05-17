@@ -60,7 +60,7 @@ and change where it is called:
             # override this to disable early stopping on val_ end
             pass
 
-         def on_training_end(self, trainer, pl_module):
+         def on_train_end(self, trainer, pl_module):
             # instead, do it in training end
             self._run_early_stopping_check(trainer, pl_module)
 
