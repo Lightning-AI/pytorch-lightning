@@ -35,7 +35,6 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
-
 try:
     from apex import amp
 except ImportError:
@@ -82,7 +81,7 @@ class Trainer(
         'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
         'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
     )
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict')
+    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
             self,
@@ -97,7 +96,7 @@ class Trainer(
             num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
             auto_select_gpus: bool = False,
-            num_tpu_cores: Optional[int] = None,
+            tpu_cores: Optional[Union[List[int], int]] = None,
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
@@ -133,6 +132,7 @@ class Trainer(
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
+            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
@@ -188,7 +188,10 @@ class Trainer(
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
 
-            num_tpu_cores: How many TPU cores to train on (1 or 8).
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+
+            num_tpu_cores: How many TPU cores to train on (1 or 8)
+                .. warning:: .. deprecated:: 0.7.6. Will remove 0.9.0.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
@@ -342,9 +345,19 @@ class Trainer(
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
-        self.on_tpu = num_tpu_cores is not None
-        self.num_tpu_cores = num_tpu_cores
-        assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
+        if num_tpu_cores is not None:
+            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                           " and this argument will be removed in v0.9.0", DeprecationWarning)
+
+        if tpu_cores is None:
+            tpu_cores = num_tpu_cores
+        self.on_tpu = tpu_cores is not None
+        self.tpu_cores = tpu_cores
+        assert self.tpu_cores in (1, 8, None) or (
+            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
+        ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+
+        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
@@ -477,7 +490,6 @@ class Trainer(
         # override dist backend when using tpus
         if self.on_tpu:
             self.init_tpu()
-            self.current_tpu_idx = None
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
@@ -858,7 +870,7 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.num_tpu_cores} TPU cores')
+            log.info(f'training on {self.tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
@@ -867,7 +879,10 @@ class Trainer(
             self.model = model
 
             # train
-            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.num_tpu_cores, start_method=start_method)
+            if self.tpu_id is not None:
+                self.tpu_train(self.tpu_id, model)
+            else:
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
             self.load_spawn_weights(model)

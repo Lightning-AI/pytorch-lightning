@@ -389,7 +389,6 @@ class TrainerDPMixin(ABC):
     root_gpu: ...
     amp_level: str
     precision: ...
-    current_tpu_idx: ...
     proc_rank: int
     tpu_local_core_rank: int
     tpu_global_core_rank: int
@@ -398,6 +397,7 @@ class TrainerDPMixin(ABC):
     data_parallel_device_ids: ...
     logger: Union[LightningLoggerBase, bool]
     progress_bar_callback: ...
+    tpu_id: int
 
     @property
     @abstractmethod
@@ -442,7 +442,8 @@ class TrainerDPMixin(ABC):
         if device == 'tpu' and XLA_AVAILABLE:
             # base case: object can be directly moved using `to`
             if callable(getattr(batch, 'to', None)):
-                return batch.to(xm.xla_device())
+                xla_device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
+                return batch.to(xla_device)
 
         if device == 'gpu':
             # base case: object can be directly moved using `cuda` or `to`
@@ -501,7 +502,8 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
-        model.to(xm.xla_device())
+        self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
+        model.to(self._device)
 
         # get the appropriate tpu ranks
         self.tpu_local_core_rank = xm.get_local_ordinal()
@@ -511,8 +513,6 @@ class TrainerDPMixin(ABC):
         if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        # track current tpu
-        self.current_tpu_idx = tpu_core_idx
         self.proc_rank = self.tpu_local_core_rank
         rank_zero_only.rank = self.proc_rank
 

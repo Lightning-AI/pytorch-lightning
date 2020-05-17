@@ -185,7 +185,7 @@ EXACTLY the same as you would a PyTorch Module.
 
  Out:
 
- .. code-block:: none
+ .. code-block:: python
 
     torch.Size([1, 10])
 
@@ -519,50 +519,8 @@ First, change the runtime to TPU (and reinstall lightning).
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
-.. code-block:: python
-
-    import collections
-    from datetime import datetime, timedelta
-    import os
-    import requests
-    import threading
-
-    _VersionConfig = collections.namedtuple('_VersionConfig', 'wheels,server')
-    VERSION = "torch_xla==nightly"  #@param ["xrt==1.15.0", "torch_xla==nightly"]
-    CONFIG = {
-        'xrt==1.15.0': _VersionConfig('1.15', '1.15.0'),
-        'torch_xla==nightly': _VersionConfig('nightly', 'XRT-dev{}'.format(
-            (datetime.today() - timedelta(1)).strftime('%Y%m%d'))),
-    }[VERSION]
-    DIST_BUCKET = 'gs://tpu-pytorch/wheels'
-    TORCH_WHEEL = 'torch-{}-cp36-cp36m-linux_x86_64.whl'.format(CONFIG.wheels)
-    TORCH_XLA_WHEEL = 'torch_xla-{}-cp36-cp36m-linux_x86_64.whl'.format(CONFIG.wheels)
-    TORCHVISION_WHEEL = 'torchvision-{}-cp36-cp36m-linux_x86_64.whl'.format(CONFIG.wheels)
-
-    # Update TPU XRT version
-    def update_server_xrt():
-      print('Updating server-side XRT to {} ...'.format(CONFIG.server))
-      url = 'http://{TPU_ADDRESS}:8475/requestversion/{XRT_VERSION}'.format(
-          TPU_ADDRESS=os.environ['COLAB_TPU_ADDR'].split(':')[0],
-          XRT_VERSION=CONFIG.server,
-      )
-      print('Done updating server-side XRT: {}'.format(requests.post(url)))
-
-    update = threading.Thread(target=update_server_xrt)
-    update.start()
-
-.. code-block::
-
-    # Install Colab TPU compat PyTorch/TPU wheels and dependencies
-    !pip uninstall -y torch torchvision
-    !gsutil cp "$DIST_BUCKET/$TORCH_WHEEL" .
-    !gsutil cp "$DIST_BUCKET/$TORCH_XLA_WHEEL" .
-    !gsutil cp "$DIST_BUCKET/$TORCHVISION_WHEEL" .
-    !pip install "$TORCH_WHEEL"
-    !pip install "$TORCH_XLA_WHEEL"
-    !pip install "$TORCHVISION_WHEEL"
-    !sudo apt-get install libomp5
-    update.join()
+    !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+    !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
 
 In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU core will run a copy
 of this program. This means that without taking any care you will download the dataset N times which
@@ -609,7 +567,7 @@ Now we can train the LightningModule on a TPU without doing anything else!
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
 You'll now see the TPU cores booting up.
@@ -696,7 +654,7 @@ while checking the validation set.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
 You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 5 batches
@@ -747,7 +705,7 @@ Once you train your model simply call `.test()`.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.fit(model)
 
     # run test set
@@ -769,7 +727,7 @@ You can also run the test from a saved lightning model
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.

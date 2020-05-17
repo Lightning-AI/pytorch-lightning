@@ -189,7 +189,7 @@ However, this time you need to specifically call test (this is done so you don't
     # OPTION 2:
     # test after loading weights
     model = LitModel.load_from_checkpoint(PATH)
-    trainer = Trainer(num_tpu_cores=1)
+    trainer = Trainer(tpu_cores=1)
     trainer.test()
 
 Again, under the hood, lightning does the following in (pseudocode):
@@ -236,7 +236,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
     # train on TPUs using 16 bit precision with early stopping
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = Trainer(
-        nb_tpu_cores=8,
+        tpu_cores=8,
         precision=16,
         early_stop_checkpoint=True,
         train_percent_check=0.5,

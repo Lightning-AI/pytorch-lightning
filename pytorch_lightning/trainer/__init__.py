@@ -598,7 +598,22 @@ nb_sanity_val_steps:
 
 num_tpu_cores
 ^^^^^^^^^^^^^
-How many TPU cores to train on (1 or 8).
+.. warning:: .. deprecated:: 0.7.6
+
+    Use `tpu_cores` instead. Will remove 0.9.0.
+
+Example::
+
+    python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    --env=XLA_USE_BF16=1
+    -- python your_trainer_file.py
+
+tpu_cores
+^^^^^^^^^
+- How many TPU cores to train on (1 or 8).
+- Which TPU core to train on [1-8]
 
 A single TPU v2 or v3 has 8 cores. A TPU pod has
 up to 2048 cores. A slice of a POD means you get as many cores
@@ -615,21 +630,21 @@ Example::
     # your_trainer_file.py
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(num_tpu_cores=None)
+    trainer = Trainer(tpu_cores=None)
 
     # int: train on a single core
-    trainer = Trainer(num_tpu_cores=1)
+    trainer = Trainer(tpu_cores=1)
+
+    # list: train on a single selected core
+    trainer = Trainer(tpu_cores=[2])
 
     # int: train on all cores few cores
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
 
     # for 8+ cores must submit via xla script with
     # a max of 8 cores specified. The XLA script
     # will duplicate script onto each TPU in the POD
-    trainer = Trainer(num_tpu_cores=8)
-
-    # -1: train on all available TPUs
-    trainer = Trainer(num_tpu_cores=-1)
+    trainer = Trainer(tpu_cores=8)
 
 To train on more than 8 cores (ie: a POD),
 submit this script using the xla_dist script.
