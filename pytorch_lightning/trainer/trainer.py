@@ -95,7 +95,6 @@ class Trainer(
             num_nodes: int = 1,
             num_processes: int = 1,
             gpus: Optional[Union[List[int], str, int]] = None,
-            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             auto_select_gpus: bool = False,
             tpu_cores: Optional[Union[List[int], int]] = None,
             log_gpu_memory: Optional[str] = None,
@@ -133,6 +132,7 @@ class Trainer(
             progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
+            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
             gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
