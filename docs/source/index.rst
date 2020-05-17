@@ -31,6 +31,7 @@ PyTorch Lightning Documentation
    :caption: Community Examples
 
    Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
+   FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
    Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
    Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
    Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
@@ -53,11 +54,10 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: example projects
-   :caption: Example Lightning Project Structures
+   :name: project structure
+   :caption: Recommended Lightning Project Layout
 
    Structure of ML paper code <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
-   Object detection with hydra configs <https://github.com/Erlemar/wheat>
 
 .. toctree::
    :maxdepth: 1
