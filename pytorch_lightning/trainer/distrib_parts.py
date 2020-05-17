@@ -422,7 +422,6 @@ class TrainerDPMixin(ABC):
 
         for m in [model, ref_model]:
             m.trainer = self
-            m.on_gpu = self.on_gpu
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
@@ -432,7 +431,6 @@ class TrainerDPMixin(ABC):
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
-            m._device = self._device
 
     def transfer_batch_to_tpu(self, batch):
         return self.__transfer_data_to_device(batch, device='tpu')
@@ -450,10 +448,14 @@ class TrainerDPMixin(ABC):
         if device == 'gpu':
             # base case: object can be directly moved using `cuda` or `to`
             if callable(getattr(batch, 'cuda', None)):
-                return batch.cuda(gpu_id)
+                # non_blocking will be ignored if tensor is not pinned.
+                # so we can always set it to True
+                return batch.cuda(gpu_id, non_blocking=True)
 
             if callable(getattr(batch, 'to', None)):
-                return batch.to(torch.device('cuda', gpu_id))
+                # non_blocking will be ignored if tensor is not pinned.
+                # so we can always set it to True
+                return batch.to(torch.device('cuda', gpu_id), non_blocking=True)
 
         # when list
         if isinstance(batch, list):
@@ -485,7 +487,6 @@ class TrainerDPMixin(ABC):
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)
-        self._device = torch.device('cuda', self.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -540,7 +541,6 @@ class TrainerDPMixin(ABC):
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         model.cuda(self.root_gpu)
-        self._device = torch.device('cuda', self.root_gpu)
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
@@ -580,7 +580,6 @@ class TrainerDPMixin(ABC):
             assert self.root_gpu == hvd.local_rank()
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
-            self._device = torch.device('cuda', self.root_gpu)
 
         # avoid duplicating progress bar
         if hvd.rank() != 0 and self.progress_bar_callback is not None:

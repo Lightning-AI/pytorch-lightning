@@ -165,7 +165,7 @@ class SegModel(pl.LightningModule):
         return {'val_loss': loss_val}
 
     def validation_epoch_end(self, outputs):
-        loss_val = sum(output['val_loss'] for output in outputs) / len(outputs)
+        loss_val = torch.stack([x['val_loss'] for x in outputs]).mean()
         log_dict = {'val_loss': loss_val}
         return {'log': log_dict, 'val_loss': log_dict['val_loss'], 'progress_bar': log_dict}
 

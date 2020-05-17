@@ -344,10 +344,11 @@ class TrainerIOMixin(ABC):
 
         if hasattr(model, "hparams") and model.hparams is not None:
             parsing.clean_namespace(model.hparams)
-            checkpoint['hparams_type'] = model.hparams.__class__.__name__
-            if checkpoint['hparams_type'] == 'dict':
+            if isinstance(model.hparams, dict):
+                checkpoint['hparams_type'] = 'dict'
                 checkpoint['hparams'] = model.hparams
-            elif checkpoint['hparams_type'] == 'Namespace':
+            elif isinstance(model.hparams, Namespace):
+                checkpoint['hparams_type'] = 'Namespace'
                 checkpoint['hparams'] = vars(model.hparams)
             else:
                 raise ValueError(

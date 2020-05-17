@@ -335,20 +335,13 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def run_evaluation(self, test_mode: bool = False):
-        # when testing make sure user defined a test step
-        if test_mode and not self.is_overridden('test_step'):
-            raise MisconfigurationException(
-                "You called `.test()` without defining model's `.test_step()`."
-                " Please define and try again")
-
         # hook
         model = self.get_model()
         model.on_pre_performance_check()
 
         # select dataloaders
         if test_mode:
-            if self.test_dataloaders is None:
-                self.reset_test_dataloader(model)
+            self.reset_test_dataloader(model)
 
             dataloaders = self.test_dataloaders
             max_batches = self.num_test_batches

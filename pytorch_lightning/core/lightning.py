@@ -53,10 +53,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self.logger = None
         self.example_input_array = None
 
-        #: True if your model is currently running on GPUs.
-        #: Useful to set flags around the LightningModule for different CPU vs GPU behavior.
-        self.on_gpu = False
-
         #: True if using dp
         self.use_dp = False
 
@@ -72,9 +68,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self.hparams = None
 
         #: Current dtype
-        self._dtype = torch.FloatTensor
+        self._dtype = torch.float
+
         #: device reference
         self._device = torch.device('cpu')
+
+    @property
+    def on_gpu(self):
+        """
+        True if your model is currently running on GPUs.
+        Useful to set flags around the LightningModule for different CPU vs GPU behavior.
+        """
+        return self.device.type == 'cuda'
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -1486,7 +1491,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Args:
             checkpoint_path: Path to checkpoint.
-            model_args: Any keyword args needed to init the model.
+            args: Any positional args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -1524,6 +1529,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 Use this method to pass in a .csv file with the hparams you'd like to use.
             hparam_overrides: A dictionary with keys to override in the hparams
+            kwargs: Any keyword args needed to init the model.
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
