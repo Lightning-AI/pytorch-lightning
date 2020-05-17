@@ -23,7 +23,7 @@ Warnings:
 - LR support for DDP is not implemented yet, it is comming soon.
 
 Using Lightning's built-in LR finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the most basic use case, this feature can be enabled during trainer construction
 with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the LR finder
