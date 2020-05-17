@@ -322,8 +322,8 @@ class _LRFinder(object):
         """
         try:
             loss = np.array(self.results["loss"][skip_begin:-skip_end])
-            loss = loss[~np.isnan(loss)]
-            min_grad = (np.gradient(loss)).argmin()
+            loss = loss[np.isfinite(loss)]
+            min_grad = np.gradient(loss).argmin()
             self._optimal_idx = min_grad + skip_begin
             return self.results["lr"][self._optimal_idx]
         except Exception:
