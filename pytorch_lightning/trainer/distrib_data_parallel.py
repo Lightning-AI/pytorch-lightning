@@ -373,6 +373,14 @@ class TrainerDDPMixin(ABC):
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
 
+            # Reinitialize optimizer.step properties added by schedulers
+            for lr_scheduler in self.lr_schedulers:
+                for optimizer in self.optimizers:
+                    scheduler = lr_scheduler['scheduler']
+                    # check that we dont mix users optimizers and schedulers
+                    if scheduler.optimizer == optimizer:
+                        scheduler.__class__.__mro__[-2].__init__(scheduler, optimizer)
+
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
             device_ids = [self.root_gpu]
