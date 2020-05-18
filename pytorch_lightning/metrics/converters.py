@@ -6,7 +6,7 @@ sync tensors between different processes in a DDP scenario, when needed.
 
 import sys
 import numbers
-from typing import Union, Any, Callable
+from typing import Union, Any, Callable, Optional
 
 import numpy as np
 import torch
