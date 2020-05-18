@@ -30,6 +30,7 @@ This is the basic use of the trainer:
     trainer = Trainer()
     trainer.fit(model)
 
+
 --------
 
 Best Practices
@@ -57,7 +58,15 @@ So you can run it like so:distributed_backend
 
 .. code-block:: bash
 
-    $ python main.py --gpus 2
+    python main.py --gpus 2
+
+
+.. note::
+    If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
+    The trainer will catch the `KeyboardInterrupt` and attempt a graceful shutdown, including
+    running callbacks such as `on_train_end`. The trainer object will also set an attribute
+    `interrupted` to `True` in such cases. If you have a callback which shuts down compute
+    resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
 ------------
 
@@ -91,6 +100,24 @@ Use it to do whatever!
     # or for prediction
     out = pretrained_model(x)
     api_write({'response': out}
+
+------------
+
+Reproducibility
+---------------
+
+To ensure full reproducibility from run to run you need to set seeds for pseudo-random generators,
+and set ``deterministic``` flag in ``Trainer``.
+
+.. code-block:: python
+
+    from pytorch-lightning import Trainer, seed_everything
+
+    seed_everything(42)
+    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    model = Model()
+    trainer = Trainer(deterministic=True)
+
 
 -------
 
@@ -126,6 +153,40 @@ Example::
     # default used by the Trainer
     trainer = Trainer(amp_level='O1')
 
+auto_scale_batch_size
+^^^^^^^^^^^^^^^^^^^^^
+Automatically tries to find the largest batch size that fits into memory,
+before any training.
+
+.. code-block:: python
+
+    # default used by the Trainer (no scaling of batch size)
+    trainer = Trainer(auto_scale_batch_size=None)
+
+    # run batch size scaling, result overrides hparams.batch_size
+    trainer = Trainer(auto_scale_batch_size='binsearch')
+
+auto_lr_find
+^^^^^^^^^^^^
+Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
+before any training, to find optimal initial learning rate.
+
+.. code-block:: python
+
+    # default used by the Trainer (no learning rate finder)
+    trainer = Trainer(auto_lr_find=False)
+
+Example::
+
+    # run learning rate finder, results override hparams.learning_rate
+    trainer = Trainer(auto_lr_find=True)
+
+    # run learning rate finder, results override hparams.my_lr_arg
+    trainer = Trainer(auto_lr_find='my_lr_arg')
+
+.. note::
+    See the `learning rate finder guide <lr_finder.rst>`_
+
 benchmark
 ^^^^^^^^^
 
@@ -142,6 +203,21 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(benchmark=False)
+
+deterministic
+^^^^^^^^^^^^^
+
+If true enables cudnn.deterministic.
+Might make your system slower, but ensures reproducibility.
+Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
+
+For more info check `[pytorch docs]
+<https://pytorch.org/docs/stable/notes/randomness.html>`_.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(deterministic=False)
 
 callbacks
 ^^^^^^^^^
@@ -202,7 +278,7 @@ Example::
         prefix=''
     )
 
-default_save_path
+default_root_dir
 ^^^^^^^^^^^^^^^^^
 
 Default path for logs and weights when no logger
@@ -213,7 +289,7 @@ are stored. If you don't then use this method for convenience.
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(default_save_path=os.getcwd())
+    trainer = Trainer(default_root_path=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
@@ -221,6 +297,10 @@ The distributed backend to use.
 
 - (```dp```) is DataParallel (split batch among GPUs of same machine)
 - (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
+  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  machine.)
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
@@ -480,6 +560,21 @@ nb_gpu_nodes:
 
     Use `num_nodes` instead. Will remove 0.8.0.
 
+num_processes
+^^^^^^^^^^^^^
+
+Number of processes to train with. Automatically set to the number of GPUs
+when using ``distrbuted_backend="ddp"``. Set to a number greater than 1 when
+using ``distributed_backend="ddp_cpu"`` to mimic distributed training on a
+machine without GPUs. This is useful for debugging, but **will not** provide
+any speedup, since single-process Torch already makes effient use of multiple
+CPUs.
+
+Example::
+
+    # Simulate DDP for debugging on your GPU-less laptop
+    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
+
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -503,7 +598,22 @@ nb_sanity_val_steps:
 
 num_tpu_cores
 ^^^^^^^^^^^^^
-How many TPU cores to train on (1 or 8).
+.. warning:: .. deprecated:: 0.7.6
+
+    Use `tpu_cores` instead. Will remove 0.9.0.
+
+Example::
+
+    python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    --env=XLA_USE_BF16=1
+    -- python your_trainer_file.py
+
+tpu_cores
+^^^^^^^^^
+- How many TPU cores to train on (1 or 8).
+- Which TPU core to train on [1-8]
 
 A single TPU v2 or v3 has 8 cores. A TPU pod has
 up to 2048 cores. A slice of a POD means you get as many cores
@@ -520,28 +630,28 @@ Example::
     # your_trainer_file.py
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(num_tpu_cores=None)
+    trainer = Trainer(tpu_cores=None)
 
     # int: train on a single core
-    trainer = Trainer(num_tpu_cores=1)
+    trainer = Trainer(tpu_cores=1)
+
+    # list: train on a single selected core
+    trainer = Trainer(tpu_cores=[2])
 
     # int: train on all cores few cores
-    trainer = Trainer(num_tpu_cores=8)
+    trainer = Trainer(tpu_cores=8)
 
     # for 8+ cores must submit via xla script with
     # a max of 8 cores specified. The XLA script
     # will duplicate script onto each TPU in the POD
-    trainer = Trainer(num_tpu_cores=8)
-
-    # -1: train on all available TPUs
-    trainer = Trainer(num_tpu_cores=-1)
+    trainer = Trainer(tpu_cores=8)
 
 To train on more than 8 cores (ie: a POD),
 submit this script using the xla_dist script.
 
 Example::
 
-    $ python -m torch_xla.distributed.xla_dist
+    python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1
@@ -603,13 +713,15 @@ print_nan_grads
 
 process_position
 ^^^^^^^^^^^^^^^^
-Orders the tqdm bar. Useful when running multiple trainers
-on the same node.
+Orders the progress bar. Useful when running multiple trainers on the same node.
 
 Example::
 
     # default used by the Trainer
     trainer = Trainer(process_position=0)
+
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
@@ -649,6 +761,9 @@ Example::
     # disable progress bar
     trainer = Trainer(progress_bar_refresh_rate=0)
 
+Note:
+    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
 reload_dataloaders_every_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Set to True to reload dataloaders every epoch.
@@ -665,6 +780,23 @@ Set to True to reload dataloaders every epoch.
     for epoch in epochs:
         train_loader = model.train_dataloader()
         for batch in train_loader:
+
+replace_sampler_ddp
+^^^^^^^^^^^^^^^^^^^
+Enables auto adding of distributed sampler.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(replace_sampler_ddp=True)
+
+By setting to False, you have to add your own distributed sampler:
+
+Example::
+
+    # default used by the Trainer
+    sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
 
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -896,5 +1028,6 @@ Trainer class
 """
 
 from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.trainer.seed import seed_everything
 
-__all__ = ['Trainer']
+__all__ = ['Trainer', 'seed_everything']

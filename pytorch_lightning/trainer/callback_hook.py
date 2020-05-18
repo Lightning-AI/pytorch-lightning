@@ -1,16 +1,15 @@
 from abc import ABC
-from typing import Callable
+from typing import Callable, List
 
 from pytorch_lightning.callbacks import Callback
 
 
 class TrainerCallbackHookMixin(ABC):
 
-    def __init__(self):
-        # this is just a summary on variables used in this abstract class,
-        # the proper values/initialisation should be done in child class
-        self.callbacks: list[Callback] = []
-        self.get_model: Callable = ...
+    # this is just a summary on variables used in this abstract class,
+    # the proper values/initialisation should be done in child class
+    callbacks: List[Callback] = []
+    get_model: Callable = ...
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""
@@ -21,6 +20,16 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         for callback in self.callbacks:
             callback.on_init_end(self)
+
+    def on_sanity_check_start(self):
+        """Called when the validation sanity check starts."""
+        for callback in self.callbacks:
+            callback.on_sanity_check_start(self, self.get_model())
+
+    def on_sanity_check_end(self):
+        """Called when the validation sanity check ends."""
+        for callback in self.callbacks:
+            callback.on_sanity_check_end(self, self.get_model())
 
     def on_epoch_start(self):
         """Called when the epoch begins."""
@@ -51,6 +60,26 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the training batch ends."""
         for callback in self.callbacks:
             callback.on_batch_end(self, self.get_model())
+
+    def on_validation_batch_start(self):
+        """Called when the validation batch begins."""
+        for callback in self.callbacks:
+            callback.on_validation_batch_start(self, self.get_model())
+
+    def on_validation_batch_end(self):
+        """Called when the validation batch ends."""
+        for callback in self.callbacks:
+            callback.on_validation_batch_end(self, self.get_model())
+
+    def on_test_batch_start(self):
+        """Called when the test batch begins."""
+        for callback in self.callbacks:
+            callback.on_test_batch_start(self, self.get_model())
+
+    def on_test_batch_end(self):
+        """Called when the test batch ends."""
+        for callback in self.callbacks:
+            callback.on_test_batch_end(self, self.get_model())
 
     def on_validation_start(self):
         """Called when the validation loop begins."""

@@ -69,13 +69,13 @@ def info_packages():
 def nice_print(details, level=0):
     lines = []
     for k in sorted(details):
-        key = f'{k}:'
+        key = f'* {k}:' if level == 0 else f'- {k}:'
         if isinstance(details[k], dict):
             lines += [level * LEVEL_OFFSET + key]
             lines += nice_print(details[k], level + 1)
         elif isinstance(details[k], (set, list, tuple)):
             lines += [level * LEVEL_OFFSET + key]
-            lines += [(level + 1) * LEVEL_OFFSET + v for v in details[k]]
+            lines += [(level + 1) * LEVEL_OFFSET + '- ' + v for v in details[k]]
         else:
             template = '{:%is} {}' % KEY_PADDING
             key_val = template.format(key, details[k])
@@ -85,9 +85,9 @@ def nice_print(details, level=0):
 
 def main():
     details = {
-        "system": info_system(),
-        'cuda': info_cuda(),
-        'packages': info_packages(),
+        "System": info_system(),
+        'CUDA': info_cuda(),
+        'Packages': info_packages(),
     }
     lines = nice_print(details)
     text = os.linesep.join(lines)

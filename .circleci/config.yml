@@ -10,10 +10,11 @@ references:
     run:
       name: Install Dependences
       command: |
+        sudo apt-get update && sudo apt-get install -y cmake
         pip install "$TORCH_VERSION"
         pip install -r requirements.txt -q
-        sudo pip install pytest pytest-cov pytest-flake8 -q
-        pip install -r ./tests/requirements.txt -q
+        sudo pip install pytest -q
+        pip install -r ./tests/requirements-devel.txt -q
 
   tests: &tests
    run:
@@ -62,11 +63,19 @@ references:
    run:
      name: Make Documentation
      command: |
-       # sudo apt-get install pandoc
-       pip install -r requirements.txt --user
+       # First run the same pipeline as Read-The-Docs
+       sudo apt-get update && sudo apt-get install -y cmake
        sudo pip install -r docs/requirements.txt
-       # sphinx-apidoc -o ./docs/source ./pytorch_lightning **/test_* --force --follow-links
-       cd docs; make clean ; make html --debug --jobs 2 SPHINXOPTS="-W"
+       cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+
+  test_docs: &test_docs
+   run:
+     name: Testing Documentation
+     command: |
+       # Second run examples in docs
+       sudo apt-get update && sudo apt-get install -y cmake
+       sudo pip install -r docs/requirements.txt
+       cd docs; make doctest; make coverage
 
 jobs:
 
@@ -76,6 +85,10 @@ jobs:
     steps:
       - checkout
       - *make_docs
+      - store_artifacts:
+          # allows us to preview the generated html pages
+          path: docs/build/html/
+          destination: html
 
   Formatting:
     docker:
@@ -140,14 +153,23 @@ jobs:
       - TORCH_VERSION: "torch>=1.4, <1.5"
     steps: *steps
 
+  PyTorch-v1_5:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch>=1.5, <1.6"
+    steps: *steps
+
   Examples:
     docker:
       - image: circleci/python:3.7
     environment:
         - TORCH_VERSION: "torch"
+        - SPHINX_MOCK_REQUIREMENTS: 0
     steps:
       - checkout
       - *install_deps
+      - *test_docs
       - *examples
 
   Install-pkg:
@@ -171,5 +193,6 @@ workflows:
       - PyTorch-v1_2
       - PyTorch-v1_3
       - PyTorch-v1_4
+      - PyTorch-v1_5
       - Install-pkg
       - Examples

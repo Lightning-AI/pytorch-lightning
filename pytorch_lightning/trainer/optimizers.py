@@ -1,4 +1,3 @@
-import warnings
 from abc import ABC
 from typing import List, Tuple
 
@@ -7,6 +6,7 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerOptimizersMixin(ABC):
@@ -18,8 +18,8 @@ class TrainerOptimizersMixin(ABC):
         optim_conf = model.configure_optimizers()
 
         if optim_conf is None:
-            warnings.warn('`LightningModule.configure_optimizers` returned `None`, '
-                          'this fit will run with no optimizer', UserWarning)
+            rank_zero_warn('`LightningModule.configure_optimizers` returned `None`, '
+                           'this fit will run with no optimizer', UserWarning)
             optim_conf = _MockOptimizer()
 
         # single output, single optimizer
@@ -39,6 +39,8 @@ class TrainerOptimizersMixin(ABC):
             lr_scheduler = optim_conf.get("lr_scheduler", [])
             if lr_scheduler:
                 lr_schedulers = self.configure_schedulers([lr_scheduler])
+            else:
+                lr_schedulers = []
             return [optimizer], lr_schedulers, []
 
         # multiple dictionaries
@@ -50,7 +52,7 @@ class TrainerOptimizersMixin(ABC):
             ]
             # take only freq wif exists and ot they are defined - not None
             optimizer_frequencies = [
-                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency")
+                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency") is not None
             ]
 
             # clean scheduler list
@@ -79,7 +81,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
     def configure_schedulers(self, schedulers: list):
-        # Convert each scheduler into dict sturcture with relevant information
+        # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = {'interval': 'epoch',  # default every epoch
                           'frequency': 1,  # default every epoch/batch
@@ -88,7 +90,7 @@ class TrainerOptimizersMixin(ABC):
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:
-                    raise ValueError(f'Lr scheduler should have key `scheduler`',
+                    raise ValueError('Lr scheduler should have key `scheduler`',
                                      ' with item being a lr scheduler')
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)

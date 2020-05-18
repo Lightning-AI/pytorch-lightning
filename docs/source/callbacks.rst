@@ -1,3 +1,8 @@
+.. testsetup:: *
+
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.callbacks.base import Callback
+
 .. role:: hidden
     :class: hidden-section
 
@@ -7,7 +12,7 @@ Callbacks
 =========
 
 Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your LightningModule to run.
+logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
 An overall Lightning system should have:
 
@@ -15,13 +20,12 @@ An overall Lightning system should have:
 2. LightningModule for all research code.
 3. Callbacks for non-essential code.
 
-Example
 
-.. code-block:: python
+Example:
 
-    import pytorch_lightning as pl
+.. testcode::
 
-    class MyPrintingCallback(pl.Callback):
+    class MyPrintingCallback(Callback):
 
         def on_init_start(self, trainer):
             print('Starting to init trainer!')
@@ -32,10 +36,15 @@ Example
         def on_train_end(self, trainer, pl_module):
             print('do something when training ends')
 
-    # pass to trainer
-    trainer = pl.Trainer(callbacks=[MyPrintingCallback()])
+    trainer = Trainer(callbacks=[MyPrintingCallback()])
 
-We successfully extended functionality without polluting our super clean LightningModule research code
+.. testoutput::
+
+    Starting to init trainer!
+    trainer is init now
+
+We successfully extended functionality without polluting our super clean
+:class:`~pytorch_lightning.core.LightningModule` research code.
 
 ---------
 
@@ -76,3 +85,17 @@ We successfully extended functionality without polluting our super clean Lightni
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+---------
+
+.. automodule:: pytorch_lightning.callbacks.progress
+   :noindex:
+   :exclude-members:
+
+---------
+
+.. automodule:: pytorch_lightning.callbacks.lr_logger
+    :noindex:
+    :exclude-members:
+        _extract_lr,
+        _find_names

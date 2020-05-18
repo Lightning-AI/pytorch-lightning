@@ -5,7 +5,7 @@ Lightning can automate saving and loading checkpoints
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in::
 
-    Trainer(default_save_path='/your/path/to/save/checkpoints')
+    Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
 
 To modify the behavior of checkpointing pass in your own callback.
@@ -86,7 +86,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 import os
 import re
 import signal
-import warnings
 from abc import ABC
 from argparse import Namespace
 from subprocess import call
@@ -102,6 +101,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
+from pytorch_lightning.utilities import rank_zero_warn, parsing
 
 try:
     import torch_xla
@@ -111,6 +111,13 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
 
 
 class TrainerIOMixin(ABC):
@@ -123,6 +130,7 @@ class TrainerIOMixin(ABC):
     resume_from_checkpoint: ...
     use_ddp: bool
     use_ddp2: bool
+    use_horovod: bool
     checkpoint_callback: ...
     proc_rank: int
     weights_save_path: str
@@ -175,6 +183,10 @@ class TrainerIOMixin(ABC):
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
 
+        elif self.use_horovod:
+            # wait for all processes to catch up
+            hvd.join()
+
         # clear cache after restore
         if self.on_gpu:
             torch.cuda.empty_cache()
@@ -215,7 +227,7 @@ class TrainerIOMixin(ABC):
             if result == 0:
                 log.info(f'requeued exp {job_id}')
             else:
-                log.info('requeue failed...')
+                log.warning('requeue failed...')
 
             # close experiment to avoid issues
             self.logger.close()
@@ -244,16 +256,18 @@ class TrainerIOMixin(ABC):
         torch.save(checkpoint, tmp_path)
         os.replace(tmp_path, filepath)
 
-    def save_checkpoint(self, filepath):
-        checkpoint = self.dump_checkpoint()
+    def save_checkpoint(self, filepath, weights_only: bool = False):
+        checkpoint = self.dump_checkpoint(weights_only)
 
         if self.proc_rank == 0:
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)
-            except AttributeError:
+            except AttributeError as e:
                 if 'hparams' in checkpoint:
                     del checkpoint['hparams']
+                rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+                               f' An attribute is not picklable {e}')
 
                 self._atomic_save(checkpoint, filepath)
 
@@ -278,52 +292,73 @@ class TrainerIOMixin(ABC):
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        # give model a chance to load something
+        model.on_load_checkpoint(checkpoint)
+
         if on_gpu:
             model.cuda(self.root_gpu)
+
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-    def dump_checkpoint(self):
+    def dump_checkpoint(self, weights_only: bool = False):
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
         }
 
-        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
-            checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
+        if not weights_only:
+            if self.checkpoint_callback:
+                checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
 
-        if self.early_stop_callback is not None and self.checkpoint_callback is not False:
-            checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
-            checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
+            if self.early_stop_callback:
+                checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
+                checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
 
-        # save optimizers
-        optimizer_states = []
-        for i, optimizer in enumerate(self.optimizers):
-            optimizer_states.append(optimizer.state_dict())
+            # save optimizers
+            optimizer_states = []
+            for i, optimizer in enumerate(self.optimizers):
+                optimizer_states.append(optimizer.state_dict())
 
-        checkpoint['optimizer_states'] = optimizer_states
+            checkpoint['optimizer_states'] = optimizer_states
 
-        # save lr schedulers
-        lr_schedulers = []
-        for scheduler in self.lr_schedulers:
-            lr_schedulers.append(scheduler['scheduler'].state_dict())
+            # save lr schedulers
+            lr_schedulers = []
+            for scheduler in self.lr_schedulers:
+                lr_schedulers.append(scheduler['scheduler'].state_dict())
 
-        checkpoint['lr_schedulers'] = lr_schedulers
+            checkpoint['lr_schedulers'] = lr_schedulers
+
+            # save native amp scaling
+            if self.use_amp and self.use_native_amp:
+                checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         # add the hparams and state_dict from the model
         model = self.get_model()
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, "hparams"):
-            is_namespace = isinstance(model.hparams, Namespace)
-            checkpoint['hparams'] = vars(model.hparams) if is_namespace else model.hparams
-            checkpoint['hparams_type'] = 'namespace' if is_namespace else 'dict'
+        if hasattr(model, "hparams") and model.hparams is not None:
+            parsing.clean_namespace(model.hparams)
+            if isinstance(model.hparams, dict):
+                checkpoint['hparams_type'] = 'dict'
+                checkpoint['hparams'] = model.hparams
+            elif isinstance(model.hparams, Namespace):
+                checkpoint['hparams_type'] = 'Namespace'
+                checkpoint['hparams'] = vars(model.hparams)
+            else:
+                raise ValueError(
+                    'The acceptable hparams type is dict or argparse.Namespace,',
+                    f' not {checkpoint["hparams_type"]}'
+                )
         else:
-            warnings.warn(
-                "Did not find hyperparameters at model.hparams. Saving checkpoint without"
-                " hyperparameters"
+            rank_zero_warn(
+                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
             )
 
         # give the model a chance to add a few things
@@ -357,6 +392,12 @@ class TrainerIOMixin(ABC):
         :param checkpoint:
         :return:
         """
+        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+            raise KeyError(
+                'Trying to restore training state but checkpoint contains only the model.'
+                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
+            )
+
         if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
             self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
 
@@ -372,7 +413,7 @@ class TrainerIOMixin(ABC):
         n_accum = 1 if self.accumulate_grad_batches is None else self.accumulate_grad_batches
         expected_steps = self.num_training_batches / n_accum
         if self.num_training_batches != 0 and self.global_step % expected_steps > 1:
-            warnings.warn(
+            rank_zero_warn(
                 "You're resuming from a checkpoint that ended mid-epoch. "
                 "This can cause unreliable results if further training is done, "
                 "consider using an end of epoch checkpoint. "
@@ -422,9 +463,11 @@ class TrainerIOMixin(ABC):
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
             self._atomic_save(checkpoint, filepath)
-        except AttributeError:
+        except AttributeError as e:
             if 'hparams' in checkpoint:
                 del checkpoint['hparams']
+            rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+                           f' An attribute is not picklable {e}')
 
             self._atomic_save(checkpoint, filepath)
 
@@ -441,6 +484,10 @@ class TrainerIOMixin(ABC):
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
+
+        # restore amp scaling
+        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)

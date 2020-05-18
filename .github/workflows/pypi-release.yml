@@ -1,0 +1,48 @@
+name: PyPI Release
+
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - created
+
+# based on https://github.com/pypa/gh-action-pypi-publish
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Install dependencies
+      run: >-
+        python -m pip install --user --upgrade setuptools wheel
+    - name: Build
+      run: >-
+        python setup.py sdist bdist_wheel
+
+    # We do this, since failures on test.pypi aren't that bad
+    - name: Publish to Test PyPI
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
+        repository_url: https://test.pypi.org/legacy/
+
+    - name: Publish distribution 📦 to PyPI
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}

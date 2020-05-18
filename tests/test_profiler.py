@@ -4,9 +4,10 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 
-PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0001
+PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
 def _get_python_cprofile_total_duration(profile):
@@ -63,7 +64,7 @@ def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
-    for duration in simple_profiler.profile_iterable(iterable, action):
+    for _ in simple_profiler.profile_iterable(iterable, action):
         pass
 
     # we exclude the last item in the recorded durations since that's when StopIteration is raised
@@ -135,7 +136,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action, expecte
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
-    for duration in advanced_profiler.profile_iterable(iterable, action):
+    for _ in advanced_profiler.profile_iterable(iterable, action):
         pass
 
     recored_total_duration = _get_python_cprofile_total_duration(
