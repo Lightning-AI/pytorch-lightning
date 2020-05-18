@@ -99,8 +99,8 @@ class TrainerDPMixin(ABC):
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
 
-    def transfer_batch_to_tpu(self, batch: Any):
-        device = xm.xla_device() if XLA_AVAILABLE else torch.device('cpu')
+    def transfer_batch_to_tpu(self, batch: Any, tpu_id: int = None):
+        device = xm.xla_device(tpu_id) if XLA_AVAILABLE else torch.device('cpu')
         return self.__transfer_data_to_device(batch, device)
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):

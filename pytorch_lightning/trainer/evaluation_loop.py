@@ -434,7 +434,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TPU data  transfer
         if self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch)
+            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
 
         # CPU, TPU or gpu step
