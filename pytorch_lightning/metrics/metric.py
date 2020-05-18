@@ -49,8 +49,8 @@ class TensorMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
     def __init__(self, name: str,
-                 reduce_group: Optional[Any] = torch.distributed.group.WORLD,
-                 reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
+                 reduce_group: Optional[Any] = None,
+                 reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -80,8 +80,8 @@ class NumpyMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
     def __init__(self, name: str,
-                 reduce_group: Optional[Any] = torch.distributed.group.WORLD,
-                 reduce_op: Optional[Any] = torch.distributed.ReduceOp.SUM):
+                 reduce_group: Optional[Any] = None,
+                 reduce_op: Optional[Any] = None):
         """
 
         Args:

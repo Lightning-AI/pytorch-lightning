@@ -4,6 +4,7 @@ conversion to/from numpy.ndarray and torch.Tensor as well as utilities to
 sync tensors between different processes in a DDP scenario, when needed.
 """
 
+import sys
 import numbers
 from typing import Union, Any, Callable
 
@@ -145,8 +146,8 @@ def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
 
 
 def _sync_ddp_if_available(result: Union[torch.Tensor],
-                           group: Any = torch.distributed.group.WORLD,
-                           reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM,
+                           group: Optional[Any] = None,
+                           reduce_op: Optional[torch.distributed.ReduceOp] = None,
                            ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -162,6 +163,12 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     """
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if group is None:
+            group = torch.distributed.group.WORLD
+
+        if reduce_op is None:
+            reduce_op = torch.distributed.ReduceOp.SUM
+        
         # sync all processes before reduction
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
@@ -170,8 +177,8 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     return result
 
 
-def numpy_metric(group: Any = torch.distributed.group.WORLD,
-                 reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> Callable:
+def numpy_metric(group: Optional[Any] = None,
+                 reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on numpy arrays.
 
@@ -197,8 +204,8 @@ def numpy_metric(group: Any = torch.distributed.group.WORLD,
     return decorator_fn
 
 
-def tensor_metric(group: Any = torch.distributed.group.WORLD,
-                  reduce_op: torch.distributed.ReduceOp = torch.distributed.ReduceOp.SUM) -> Callable:
+def tensor_metric(group: Optional[Any] = None,
+                  reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on tensors.
 
