@@ -168,7 +168,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
 
         if reduce_op is None:
             reduce_op = torch.distributed.ReduceOp.SUM
-        
+
         # sync all processes before reduction
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
