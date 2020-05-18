@@ -214,7 +214,7 @@ class TrainerDataLoadingMixin(ABC):
         # shuffling in val and test set is bad practice
         for loader in dataloaders:
             if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
-                raise MisconfigurationException(
+                rank_zero_warn(
                     f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
                     ' this off for validation and test dataloaders.')
 
