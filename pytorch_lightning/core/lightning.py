@@ -65,8 +65,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using amp
         self.use_amp = False
 
-        self = None
-
         #: Current dtype
         self._dtype = torch.float
 
