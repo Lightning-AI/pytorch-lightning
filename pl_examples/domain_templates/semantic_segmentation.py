@@ -128,14 +128,11 @@ class SegModel(pl.LightningModule):
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     """
 
-    def __init__(self, hparams):
+    def __init__(self, data_path, batch_size, lr, num_layers, features_start, bilinear):
         super().__init__()
 
-        self.data_path = hparams.data_path
-        self.batch_size = hparams.batch_size
-        self.learning_rate = hparams.lr
-        self.net = UNet(num_classes=19, num_layers=hparams.num_layers,
-                        features_start=hparams.features_start, bilinear=hparams.bilinear)
+        self.net = UNet(num_classes=19, num_layers=self.num_layers,
+                        features_start=self.features_start, bilinear=self.bilinear)
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
