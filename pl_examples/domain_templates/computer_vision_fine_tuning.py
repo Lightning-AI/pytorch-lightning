@@ -148,7 +148,13 @@ class TransferLearningModel(pl.LightningModule):
         dl_path: Path where the data will be downloaded
     """
     def __init__(self,
-                 hparams: argparse.Namespace,
+                 backbone='resnet50',
+                 train_bn=True,
+                 milestones=(5, 10),
+                 batch_size=8,
+                 lr=1e-2,
+                 lr_scheduler_gamma=1e-1,
+                 num_workers=6,
                  dl_path: Union[str, Path]) -> None:
         super().__init__()
 
