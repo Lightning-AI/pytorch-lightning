@@ -1575,8 +1575,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             # overwrite hparams by the given file
             checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = hparams
 
-        # override the module_arguments with values that were passed in
-        checkpoint[CHECKPOINT_KEY_MODULE_ARGS].update(kwargs)
+        # override the hparam keys that were passed in
+        if hparam_overrides is not None:
+            update_hparams(checkpoint['hparams'], hparam_overrides)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
