@@ -498,7 +498,7 @@ class TrainerDPMixin(ABC):
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
-            
+
         self.run_pretrain_routine(model)
 
     def tpu_train(self, tpu_core_idx, model):
@@ -561,7 +561,7 @@ class TrainerDPMixin(ABC):
             else:
                 model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
                 self.reinit_scheduler_properties(optimizers, self.lr_schedulers)
-                
+
         # create list of device ids
         device_ids = self.data_parallel_device_ids
         if isinstance(device_ids, int):

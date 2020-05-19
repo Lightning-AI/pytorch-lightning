@@ -107,7 +107,7 @@ class TrainerOptimizersMixin(ABC):
                 raise ValueError(f'Input {scheduler} to lr schedulers '
                                  'is a invalid input.')
         return lr_schedulers
-    
+
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
