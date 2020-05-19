@@ -323,7 +323,7 @@ class ProgressBar(ProgressBarBase):
         super().on_batch_end(trainer, pl_module)
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
-            self.main_progress_bar.set_postfix(**trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
@@ -338,7 +338,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(**trainer.progress_bar_dict)
+        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
