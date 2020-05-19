@@ -1757,3 +1757,28 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
+
+    def _auto_register_hparams(self):
+        # two frames back is the init of the child module
+        frame = inspect.currentframe()
+        args = frame.f_back.f_back.f_locals
+
+        # we'll save hparams automatically (renamed to module_arguments)
+        module_arguments = {}
+
+        # pull out the child itself to make sure we have no issues
+        child = args['self']
+
+        # auto set the attr which enables self.attr anywhere in the code
+        for name, value in args.items():
+
+            # don't add self
+            if name not in ['self']:
+
+                # don't overwrite something already set
+                if not hasattr(child, name):
+                    setattr(child, name, value)
+                module_arguments[name] = value
+
+        # set module_arguments in child
+        setattr(child, 'module_arguments', module_arguments)
