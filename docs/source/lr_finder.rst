@@ -33,7 +33,7 @@ hyperparameters of the model.
     
 .. testcode::
         
-    # default, no automatic learning rate finder
+    # default: no automatic learning rate finder
     trainer = Trainer(auto_lr_find=False)
 
 When the ``lr`` or ``learning_rate`` key in hparams exists, this flag sets your learning_rate.
