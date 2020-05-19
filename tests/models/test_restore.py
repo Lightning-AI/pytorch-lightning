@@ -277,7 +277,7 @@ def test_model_pickle(tmpdir):
 
 
 def test_model_loading_hparam_override(tmpdir):
-    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    """Tests use case where the user overrides some hparams when loading a checkpoint."""
     model = EvalModelTemplate()
     hparams = vars(model.hparams)
 
