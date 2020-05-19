@@ -18,7 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import transfer_batch_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -111,16 +111,13 @@ class TrainerDPMixin(ABC):
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):
         device = torch.device('cuda', gpu_id)
-        return self.__transfer_data_to_device(batch, device)
+        return self.__transfer_batch_to_device(batch, device)
 
-    def __transfer_data_to_device(self, batch: Any, device: torch.device):
+    def __transfer_batch_to_device(self, batch: Any, device: torch.device):
         if self.is_overridden('transfer_batch_to_device'):
+            # user-override for custom batch types
             return self.get_model().transfer_batch_to_device(batch, device)
-
-        def to(tensor):
-            return tensor.to(device, non_blocking=True)
-
-        return apply_to_collection(batch, dtype=torch.Tensor, function=to)
+        return transfer_batch_to_device(batch, device)
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)

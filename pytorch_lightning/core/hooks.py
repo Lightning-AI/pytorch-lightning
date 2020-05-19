@@ -166,7 +166,8 @@ class ModelHooks(torch.nn.Module):
         - :class:`tuple`
         - ``torchtext.data.Batch`` (COMING SOON)
 
-        These data types (and any arbitrary nesting of them) are supported out of the box.
+        These data types (and any arbitrary nesting of them) are supported out of the box
+        (see :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`).
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
         Example::
@@ -190,4 +191,8 @@ class ModelHooks(torch.nn.Module):
             any other device than the one passed in as argument.
             The :class:`~pytorch_lightning.trainer.trainer.Trainer` already takes care of splitting the
             batch and determines the target devices.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """

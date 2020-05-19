@@ -1,6 +1,8 @@
 from collections import Mapping, Sequence
 from typing import Any, Callable, Union
 
+import torch
+
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
     """
@@ -34,3 +36,9 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
 
     # data is neither of dtype, nor a collection
     return data
+
+
+def transfer_batch_to_device(batch: Any, device: torch.device):
+    def to(tensor):
+        return tensor.to(device, non_blocking=True)
+    return apply_to_collection(batch, dtype=torch.Tensor, function=to)
