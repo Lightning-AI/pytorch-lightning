@@ -189,7 +189,10 @@ class Trainer(
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
 
-            num_tpu_cores: How many TPU cores to train on (1 or 8).
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+
+            num_tpu_cores: How many TPU cores to train on (1 or 8)
+                .. warning:: .. deprecated:: 0.7.6. Will remove 0.9.0.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
