@@ -264,9 +264,9 @@ class TrainerIOMixin(ABC):
             try:
                 self._atomic_save(checkpoint, filepath)
             except AttributeError as e:
-                if 'hparams' in checkpoint:
-                    del checkpoint['hparams']
-                rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+                if 'model_arguments' in checkpoint:
+                    del checkpoint['model_arguments']
+                rank_zero_warn('warning, `model_arguments` dropped from checkpoint.'
                                f' An attribute is not picklable {e}')
 
                 self._atomic_save(checkpoint, filepath)
@@ -338,28 +338,13 @@ class TrainerIOMixin(ABC):
             if self.use_amp and self.use_native_amp:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
-        # add the hparams and state_dict from the model
+        # add the model_arguments and state_dict from the model
         model = self.get_model()
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, "hparams") and model.hparams is not None:
-            parsing.clean_namespace(model.hparams)
-            if isinstance(model.hparams, dict):
-                checkpoint['hparams_type'] = 'dict'
-                checkpoint['hparams'] = model.hparams
-            elif isinstance(model.hparams, Namespace):
-                checkpoint['hparams_type'] = 'Namespace'
-                checkpoint['hparams'] = vars(model.hparams)
-            else:
-                raise ValueError(
-                    'The acceptable hparams type is dict or argparse.Namespace,',
-                    f' not {checkpoint["hparams_type"]}'
-                )
-        else:
-            rank_zero_warn(
-                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
-            )
+        if hasattr(model, 'module_arguments') and model.module_arguments is not None:
+            checkpoint['module_arguments'] = model.model_arguments
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -464,9 +449,9 @@ class TrainerIOMixin(ABC):
         try:
             self._atomic_save(checkpoint, filepath)
         except AttributeError as e:
-            if 'hparams' in checkpoint:
-                del checkpoint['hparams']
-            rank_zero_warn('warning, `hparams` dropped from checkpoint.'
+            if 'model_arguments' in checkpoint:
+                del checkpoint['model_arguments']
+            rank_zero_warn('warning, `model_arguments` dropped from checkpoint.'
                            f' An attribute is not picklable {e}')
 
             self._atomic_save(checkpoint, filepath)
