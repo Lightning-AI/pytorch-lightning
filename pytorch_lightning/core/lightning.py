@@ -1767,9 +1767,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         to the module with some caveats:
         1. we don't overwrite the property if it already exists
         2. we also store a module_arguments property for model loading and saving
-
-        Returns:
-
         """
         # two frames back is the init of the child module
         frame = inspect.currentframe()
