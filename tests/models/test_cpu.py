@@ -71,7 +71,7 @@ def test_lbfgs_cpu_model(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     setattr(hparams, 'optimizer_name', 'lbfgs')
     setattr(hparams, 'learning_rate', 0.002)
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
     tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
 

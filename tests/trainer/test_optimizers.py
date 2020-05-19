@@ -10,7 +10,7 @@ def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     # fit model
@@ -41,7 +41,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     # fit model
@@ -76,7 +76,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     # fit model
@@ -115,7 +115,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__reduce_lr_on_plateau
 
     # fit model
@@ -205,7 +205,7 @@ def test_none_optimizer_warning():
 def test_none_optimizer(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__empty
 
     # fit model

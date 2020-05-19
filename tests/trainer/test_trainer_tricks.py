@@ -72,7 +72,7 @@ def test_trainer_arg(tmpdir, scale_arg):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     before_batch_size = hparams.batch_size
     # logger file to get meta
@@ -94,7 +94,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     before_batch_size = hparams.batch_size
     # logger file to get meta

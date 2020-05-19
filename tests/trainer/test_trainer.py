@@ -375,7 +375,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.num_epochs_seen = 0
         model.num_batches_seen = 0
         model.num_on_load_checkpoint_called = 0
@@ -552,22 +552,22 @@ def test_testpass_overrides(tmpdir):
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         Trainer().test(model)
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_step = LightningModule.test_step
         Trainer().test(model)
 
     # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.test_step_end = LightningModule.test_step_end
     Trainer().test(model)
 
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     Trainer().test(model)
 
 

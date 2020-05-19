@@ -52,7 +52,7 @@ The main function is your entry into the program. This is where you init your mo
 
     def main(hparams, cluster, results_dict):
         # build model
-        model = MyLightningModule(hparams)
+        model = MyLightningModule(**hparams)
 
         # configure trainer
         trainer = Trainer()

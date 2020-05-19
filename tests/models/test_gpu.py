@@ -65,7 +65,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -112,7 +112,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
     )
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
     def assert_pred_same():

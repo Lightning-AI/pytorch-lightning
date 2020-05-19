@@ -28,7 +28,7 @@ To train a model using multiple-nodes do the following:
 
         # train.py
         def main(hparams):
-            model = LightningTemplateModel(hparams)
+            model = LightningTemplateModel(**hparams)
 
             trainer = pl.Trainer(
                 gpus=8,

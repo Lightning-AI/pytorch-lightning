@@ -104,7 +104,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -146,7 +146,7 @@ def test_load_model_from_checkpoint(tmpdir):
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     trainer_options = dict(
         max_epochs=1,
@@ -204,7 +204,7 @@ def test_dp_resume(tmpdir):
         tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.on_train_start = assert_good_acc
 
     # fit new model which should load hpc weights

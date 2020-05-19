@@ -78,7 +78,7 @@ def test_trainer_reset_correctly(tmpdir):
 def test_trainer_arg_bool(tmpdir):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     before_lr = hparams.learning_rate
 
     # logger file to get meta
@@ -98,7 +98,7 @@ def test_trainer_arg_str(tmpdir):
     """ Test that setting trainer arg to string works """
     hparams = EvalModelTemplate.get_default_hparams()
     hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     before_lr = hparams.my_fancy_lr
     # logger file to get meta
@@ -118,13 +118,13 @@ def test_call_to_trainer_method(tmpdir):
     """ Test that directly calling the trainer method works """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     before_lr = hparams.learning_rate
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5
+        max_epochs=5,
     )
 
     lrfinder = trainer.lr_find(model, mode='linear')
@@ -141,7 +141,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulation also works for this feature """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     before_lr = hparams.learning_rate
     # logger file to get meta
@@ -165,12 +165,12 @@ def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10
+        max_epochs=10,
     )
 
     lrfinder = trainer.lr_find(model)
@@ -179,24 +179,3 @@ def test_suggestion_parameters_work(tmpdir):
 
     assert lr1 != lr2, \
         'Skipping parameter did not influence learning rate'
-
-
-def test_suggestion_with_non_finite_values(tmpdir):
-    """ Test that non-finite values does not alter results """
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
-
-    # logger file to get meta
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=10
-    )
-
-    lrfinder = trainer.lr_find(model)
-    before_lr = lrfinder.suggestion()
-    lrfinder.results['loss'][-1] = float('nan')
-    after_lr = lrfinder.suggestion()
-
-    assert before_lr == after_lr, \
-        'Learning rate was altered because of non-finite loss values'
