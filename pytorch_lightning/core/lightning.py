@@ -1746,16 +1746,16 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         # two frames back is the init of the child module
         frame = inspect.currentframe()
-        args = frame.f_back.f_back.f_locals
+        frame_args = frame.f_back.f_back.f_locals
 
         # we'll save hparams automatically (renamed to module_arguments)
         module_arguments = {}
 
         # pull out the child itself to make sure we have no issues
-        child = args['self']
+        child = frame_args['self']
 
         # auto set the attr which enables self.attr anywhere in the code
-        for name, value in args.items():
+        for name, value in frame_args.items():
 
             # don't add self
             if name not in ['self']:
@@ -1774,17 +1774,4 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         setattr(child, 'module_arguments', module_arguments)
 
     def _is_allowed_hparam_value(self, value):
-        # allow all types of lists
-        is_dict = isinstance(value, dict)
-        is_list = isinstance(value, list)
-        is_tuple = isinstance(value, tuple)
-
-        if is_dict or is_list or is_tuple:
-            return True
-
-        # don't allow other objects
-        if isinstance(value, object):
-            return False
-
-        # allow everything else
-        return True
+        return not hasattr(value, '__dict__')
