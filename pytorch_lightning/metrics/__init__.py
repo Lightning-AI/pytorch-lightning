@@ -4,17 +4,17 @@ Metrics
 
 Metrics are generally used to monitor model performance.
 
-The following package aism to provide the most convenient ones as well
+The following package aims to provide the most convenient ones as well
 as a structure to implement your custom metrics for all the fancy research
 you want to do.
 
 For native PyTorch implementations of metrics, it is recommended to use
-the :class:`TensorMetric` which handles automatted DDP syncing and conversions
+the :class:`TensorMetric` which handles automated DDP syncing and conversions
 to tensors for all inputs and outputs.
 
 If your metrics implementation works on numpy, just use the
-:class:`NumpyMetric`, which handles the automatted conversion of
-inputs to and outputs from numpy as well as automatted ddp syncing.
+:class:`NumpyMetric`, which handles the automated conversion of
+inputs to and outputs from numpy as well as automated ddp syncing.
 
 .. warning:: Employing numpy in your metric calculation might slow
     down your training substantially, since every metric computation

@@ -13,7 +13,7 @@ __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 
 class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     """
-    Abstract Base Class for metric implementation.
+    Abstract base class for metric implementation.
 
     Should be used to implement metrics that
     1. Return multiple Outputs

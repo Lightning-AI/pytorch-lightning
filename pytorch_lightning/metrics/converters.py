@@ -1,6 +1,6 @@
 """
 This file provides functions and decorators for automated input and output
-conversion to/from numpy.ndarray and torch.Tensor as well as utilities to
+conversion to/from :class:`numpy.ndarray` and :class:`torch.Tensor` as well as utilities to
 sync tensors between different processes in a DDP scenario, when needed.
 """
 
@@ -105,9 +105,9 @@ def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> 
 
 def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
     """
-    Decorator Handling the argument conversion for metrics working on numpy.
+    Decorator handling the argument conversion for metrics working on numpy.
     All inputs of the decorated function will be converted to numpy and all
-    outputs will be converted to Tensors
+    outputs will be converted to tensors.
 
     Args:
         func_to_decorate: the function whose inputs and outputs shall be converted
@@ -155,7 +155,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
-        reduce_op: the reduction operation. Defaults to sum
+        reduce_op: the reduction operation. Defaults to :func:`torch.sum`.
 
     Returns:
         reduced value
@@ -184,7 +184,7 @@ def numpy_metric(group: Optional[Any] = None,
 
     It handles the argument conversion and DDP reduction for metrics working on numpy.
     All inputs of the decorated function will be converted to numpy and all
-    outputs will be converted to Tensors.
+    outputs will be converted to tensors.
     In DDP Training all output tensors will be reduced according to the given rules.
 
     Args:
@@ -210,7 +210,7 @@ def tensor_metric(group: Optional[Any] = None,
     This decorator shall be used on all function metrics working on tensors.
 
     It handles the argument conversion and DDP reduction for metrics working on tensors.
-    All inputs and outputs of the decorated function will be converted to tensors .
+    All inputs and outputs of the decorated function will be converted to tensors.
     In DDP Training all output tensors will be reduced according to the given rules.
 
     Args:
