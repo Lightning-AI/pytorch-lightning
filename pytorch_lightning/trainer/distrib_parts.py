@@ -18,6 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -113,41 +114,13 @@ class TrainerDPMixin(ABC):
         return self.__transfer_data_to_device(batch, device)
 
     def __transfer_data_to_device(self, batch: Any, device: torch.device):
-
         if self.is_overridden('transfer_batch_to_device'):
             return self.get_model().transfer_batch_to_device(batch, device)
 
-        # base case: object can be directly moved using `to`
-        if callable(getattr(batch, 'to', None)):
-            return batch.to(device, non_blocking=True)
+        def to(tensor):
+            return tensor.to(device, non_blocking=True)
 
-        # when list
-        if isinstance(batch, list):
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device)
-            return batch
-
-        # when tuple
-        if isinstance(batch, tuple):
-            # when namedtuple
-            if hasattr(batch, '_fields'):
-                elem_type = type(batch)
-                return elem_type(*(self.__transfer_data_to_device(x, device) for x in batch))
-            else:
-                batch = list(batch)
-                for i, x in enumerate(batch):
-                    batch[i] = self.__transfer_data_to_device(x, device)
-                return tuple(batch)
-
-        # when dict
-        if isinstance(batch, dict):
-            for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(v, device)
-
-            return batch
-
-        # nothing matches, return the value as is without transform
-        return batch
+        return apply_to_collection(batch, dtype=torch.Tensor, function=to)
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)
