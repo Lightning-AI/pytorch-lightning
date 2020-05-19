@@ -119,6 +119,15 @@ except ImportError:
 else:
     HOROVOD_AVAILABLE = True
 
+try:
+    import omegaconf
+except ImportError:
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
+
+
+
 
 class TrainerIOMixin(ABC):
 
@@ -351,10 +360,13 @@ class TrainerIOMixin(ABC):
             elif isinstance(model.hparams, Namespace):
                 checkpoint['hparams_type'] = 'Namespace'
                 checkpoint['hparams'] = vars(model.hparams)
+            elif OMEGACONF_AVAILABLE and isinstance(model.hparams, omegaconf.DictConfig):
+                    checkpoint['hparams_type'] = 'DictConfig'
+                    checkpoint['hparams'] = model.hparams
             else:
                 raise ValueError(
-                    'The acceptable hparams type is dict or argparse.Namespace,',
-                    f' not {checkpoint["hparams_type"]}'
+                    'The acceptable hparams type is dict, argparse.Namespace,',
+                    f' or omegaconf.DictConfig, not {checkpoint["hparams_type"]}'
                 )
         else:
             rank_zero_warn(
