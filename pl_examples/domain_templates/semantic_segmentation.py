@@ -182,7 +182,7 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = SegModel(hparams)
+    model = SegModel(**hparams)
 
     # ------------------------
     # 2 SET LOGGER
