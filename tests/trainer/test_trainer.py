@@ -20,30 +20,38 @@ from tests.base import EvalModelTemplate
 
 
 def test_auto_hparams(tmpdir):
+    class SubClassEvalModelTemplate(EvalModelTemplate):
+        pass
 
-    # test that the model automatically sets the args passed into init as attrs
-    model = EvalModelTemplate()
-    assert model.batch_size == 32
-    model = EvalModelTemplate(batch_size=179)
-    assert model.batch_size == 179
+    class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
+        pass
 
-    # verify that the checkpoint saved the correct values
-    trainer = Trainer(max_steps=20)
-    trainer.fit(model)
-    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
-    raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
-    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert 'model_arguments' in raw_checkpoint
-    assert raw_checkpoint['model_arguments']['batch_size'] == 179
+    classes = [SubClassEvalModelTemplate, EvalModelTemplate, SubSubClassEvalModelTemplate]
 
-    # verify that model loads correctly
-    model = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path)
-    assert model.batch_size == 179
+    for CLASS in classes:
+        # test that the model automatically sets the args passed into init as attrs
+        model = CLASS()
+        assert model.batch_size == 32
+        model = CLASS(batch_size=179)
+        assert model.batch_size == 179
 
-    # verify that we can overwrite whatever we want
-    model = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
-    assert model.batch_size == 99
+        # verify that the checkpoint saved the correct values
+        trainer = Trainer(max_steps=20)
+        trainer.fit(model)
+        raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
+        raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
+        raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+        raw_checkpoint = torch.load(raw_checkpoint_path)
+        assert 'model_arguments' in raw_checkpoint
+        assert raw_checkpoint['model_arguments']['batch_size'] == 179
+
+        # verify that model loads correctly
+        model = CLASS.load_from_checkpoint(raw_checkpoint_path)
+        assert model.batch_size == 179
+
+        # verify that we can overwrite whatever we want
+        model = CLASS.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
+        assert model.batch_size == 99
 
 
 def test_auto_hparams_subclass(tmpdir):
