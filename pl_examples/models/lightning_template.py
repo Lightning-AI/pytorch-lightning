@@ -3,7 +3,6 @@ Example template for defining a system.
 """
 import os
 from argparse import ArgumentParser
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -34,12 +33,19 @@ class LightningTemplateModel(LightningModule):
         ...     out_features=10,
         ...     hidden_dim=1000,
         ... )
-        >>> from argparse import Namespace
-        >>> hparams = Namespace(**params)
-        >>> model = LightningTemplateModel(hparams)
+        >>> model = LightningTemplateModel(**params)
     """
 
-    def __init__(self, hparams):
+    def __init__(self,
+                 drop_prob=0.2,
+                 batch_size=2,
+                 in_features=28 * 28,
+                 learning_rate=0.001 * 8,
+                 optimizer_name='adam',
+                 data_root='./datasets',
+                 out_features=10,
+                 hidden_dim=1000,
+                 ):
         """
         Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
         """
