@@ -19,6 +19,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_no_hparams(tmpdir):
+
+    model = EvalModelTemplate()
+
 def test_model_pickle(tmpdir):
     import pickle
 

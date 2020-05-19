@@ -65,7 +65,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using amp
         self.use_amp = False
 
-        self.hparams = None
+        self = None
 
         #: Current dtype
         self._dtype = torch.float
@@ -1161,7 +1161,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
                         for pg in optimizer.param_groups:
-                            pg['lr'] = lr_scale * self.hparams.learning_rate
+                            pg['lr'] = lr_scale * self.learning_rate
 
                     # update params
                     optimizer.step()
@@ -1315,7 +1315,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=True
                     )
                     return loader
@@ -1366,7 +1366,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=False
                     )
 
@@ -1411,7 +1411,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     transform=transform, download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=False
                     )
 
@@ -1622,7 +1622,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 rank_zero_warn(
                     f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
                     " contains argument 'hparams'. Will pass in an empty Namespace instead."
-                    " Did you forget to store your model hyperparameters in self.hparams?"
+                    " Did you forget to store your model hyperparameters in self?"
                 )
                 hparams = {}
         else:  # The user's LightningModule does not define a hparams argument

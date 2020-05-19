@@ -22,19 +22,19 @@ Warnings:
 - For the moment, this feature only works with models having a single optimizer.
 - LR support for DDP is not implemented yet, it is comming soon.
 
-Using Lightning's built-in LR finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using Lightnings build-in LR finder
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the most basic use case, this feature can be enabled during trainer construction
-with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the LR finder
+with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the lr finder
 will automatically be run before any training is done. The ``lr`` that is found
 and used will be written to the console and logged together with all other
 hyperparameters of the model.
     
 .. testcode::
         
-    # default: no automatic learning rate finder
-    trainer = Trainer(auto_lr_find=False)
+    # default, no automatic learning rate finder
+    trainer = Trainer(auto_lr_find=True)
 
 When the ``lr`` or ``learning_rate`` key in hparams exists, this flag sets your learning_rate.
 In both cases, if the respective fields are not found, an error will be thrown.
@@ -44,10 +44,10 @@ In both cases, if the respective fields are not found, an error will be thrown.
     class LitModel(LightningModule):
 
         def __init__(self, hparams):
-            self.hparams = hparams
+            self = hparams
 
         def configure_optimizers(self):
-            return Adam(self.parameters(), lr=self.hparams.lr|self.hparams.learning_rate)
+            return Adam(self.parameters(), lr=self.lr|self.learning_rate)
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate

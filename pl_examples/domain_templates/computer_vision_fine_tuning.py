@@ -151,7 +151,7 @@ class TransferLearningModel(pl.LightningModule):
                  hparams: argparse.Namespace,
                  dl_path: Union[str, Path]) -> None:
         super().__init__()
-        self.hparams = hparams
+        self = hparams
         self.dl_path = dl_path
         self.__build_model()
 
@@ -159,12 +159,12 @@ class TransferLearningModel(pl.LightningModule):
         """Define model layers & loss."""
 
         # 1. Load pre-trained network:
-        model_func = getattr(models, self.hparams.backbone)
+        model_func = getattr(models, self.backbone)
         backbone = model_func(pretrained=True)
 
         _layers = list(backbone.children())[:-1]
         self.feature_extractor = torch.nn.Sequential(*_layers)
-        freeze(module=self.feature_extractor, train_bn=self.hparams.train_bn)
+        freeze(module=self.feature_extractor, train_bn=self.train_bn)
 
         # 2. Classifier:
         _fc_layers = [torch.nn.Linear(2048, 256),
@@ -194,29 +194,29 @@ class TransferLearningModel(pl.LightningModule):
         super().train(mode=mode)
 
         epoch = self.current_epoch
-        if epoch < self.hparams.milestones[0] and mode:
+        if epoch < self.milestones[0] and mode:
             # feature extractor is frozen (except for BatchNorm layers)
             freeze(module=self.feature_extractor,
-                   train_bn=self.hparams.train_bn)
+                   train_bn=self.train_bn)
 
-        elif self.hparams.milestones[0] <= epoch < self.hparams.milestones[1] and mode:
+        elif self.milestones[0] <= epoch < self.milestones[1] and mode:
             # Unfreeze last two layers of the feature extractor
             freeze(module=self.feature_extractor,
                    n=-2,
-                   train_bn=self.hparams.train_bn)
+                   train_bn=self.train_bn)
 
     def on_epoch_start(self):
         """Use `on_epoch_start` to unfreeze layers progressively."""
         optimizer = self.trainer.optimizers[0]
-        if self.current_epoch == self.hparams.milestones[0]:
+        if self.current_epoch == self.milestones[0]:
             _unfreeze_and_add_param_group(module=self.feature_extractor[-2:],
                                           optimizer=optimizer,
-                                          train_bn=self.hparams.train_bn)
+                                          train_bn=self.train_bn)
 
-        elif self.current_epoch == self.hparams.milestones[1]:
+        elif self.current_epoch == self.milestones[1]:
             _unfreeze_and_add_param_group(module=self.feature_extractor[:-2],
                                           optimizer=optimizer,
-                                          train_bn=self.hparams.train_bn)
+                                          train_bn=self.train_bn)
 
     def training_step(self, batch, batch_idx):
 
@@ -246,7 +246,7 @@ class TransferLearningModel(pl.LightningModule):
                                        for output in outputs]).mean()
         train_acc_mean = torch.stack([output['num_correct']
                                       for output in outputs]).sum().float()
-        train_acc_mean /= (len(outputs) * self.hparams.batch_size)
+        train_acc_mean /= (len(outputs) * self.batch_size)
         return {'log': {'train_loss': train_loss_mean,
                         'train_acc': train_acc_mean,
                         'step': self.current_epoch}}
@@ -273,7 +273,7 @@ class TransferLearningModel(pl.LightningModule):
                                      for output in outputs]).mean()
         val_acc_mean = torch.stack([output['num_correct']
                                     for output in outputs]).sum().float()
-        val_acc_mean /= (len(outputs) * self.hparams.batch_size)
+        val_acc_mean /= (len(outputs) * self.batch_size)
         return {'log': {'val_loss': val_loss_mean,
                         'val_acc': val_acc_mean,
                         'step': self.current_epoch}}
@@ -281,11 +281,11 @@ class TransferLearningModel(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = optim.Adam(filter(lambda p: p.requires_grad,
                                       self.parameters()),
-                               lr=self.hparams.lr)
+                               lr=self.lr)
 
         scheduler = MultiStepLR(optimizer,
-                                milestones=self.hparams.milestones,
-                                gamma=self.hparams.lr_scheduler_gamma)
+                                milestones=self.milestones,
+                                gamma=self.lr_scheduler_gamma)
 
         return [optimizer], [scheduler]
 
@@ -326,8 +326,8 @@ class TransferLearningModel(pl.LightningModule):
 
         _dataset = self.train_dataset if train else self.valid_dataset
         loader = DataLoader(dataset=_dataset,
-                            batch_size=self.hparams.batch_size,
-                            num_workers=self.hparams.num_workers,
+                            batch_size=self.batch_size,
+                            num_workers=self.num_workers,
                             shuffle=True if train else False)
 
         return loader

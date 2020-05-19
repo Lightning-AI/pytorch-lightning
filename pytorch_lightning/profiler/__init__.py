@@ -99,7 +99,7 @@ to track and the profiler will record performance for code executed within this 
 
     class MyModel(LightningModule):
         def __init__(self, hparams, profiler=None):
-            self.hparams = hparams
+            self = hparams
             self.profiler = profiler or PassThroughProfiler()
 
         def custom_processing_step(self, data):

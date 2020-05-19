@@ -45,14 +45,14 @@ class LightningTemplateModel(LightningModule):
         """
         # init superclass
         super().__init__()
-        self.hparams = hparams
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
-                              out_features=self.hparams.hidden_dim)
-        self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
-        self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
+        self = hparams
+        self.c_d1 = nn.Linear(in_features=self.in_features,
+                              out_features=self.hidden_dim)
+        self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
+        self.c_d1_drop = nn.Dropout(self.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
-                              out_features=self.hparams.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hidden_dim,
+                              out_features=self.out_features)
 
     def forward(self, x):
         """
@@ -122,32 +122,32 @@ class LightningTemplateModel(LightningModule):
         Return whatever optimizers and learning rate schedulers you want here.
         At least one optimizer is required.
         """
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
         return [optimizer], [scheduler]
 
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        self.mnist_train = MNIST(self.hparams.data_root, train=True, download=True, transform=transform)
-        self.mnist_test = MNIST(self.hparams.data_root, train=False, download=True, transform=transform)
+        self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
+        self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
 
     def train_dataloader(self):
         log.info('Training data loader called.')
-        return DataLoader(self.mnist_train, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
 
     def val_dataloader(self):
         log.info('Validation data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     def test_dataloader(self):
         log.info('Test data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
-        Parameters you define here will be available to your model through `self.hparams`.
+        Parameters you define here will be available to your model through `self`.
         """
         parser = ArgumentParser(parents=[parent_parser])
 

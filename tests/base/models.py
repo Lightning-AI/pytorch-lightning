@@ -69,7 +69,7 @@ class TestGAN(LightningModule):
 
     def __init__(self, hparams):
         super().__init__()
-        self.hparams = hparams
+        self = hparams
 
         # networks
         mnist_shape = (1, 28, 28)
@@ -93,7 +93,7 @@ class TestGAN(LightningModule):
         # train generator
         if optimizer_idx == 0:
             # sample noise
-            z = torch.randn(imgs.shape[0], self.hparams.hidden_dim)
+            z = torch.randn(imgs.shape[0], self.hidden_dim)
             z = z.type_as(imgs)
 
             # generate images
@@ -142,9 +142,9 @@ class TestGAN(LightningModule):
             return output
 
     def configure_optimizers(self):
-        lr = self.hparams.learning_rate
-        b1 = self.hparams.b1
-        b2 = self.hparams.b2
+        lr = self.learning_rate
+        b1 = self.b1
+        b2 = self.b2
 
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))

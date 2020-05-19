@@ -56,7 +56,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
 
         self._experiment = None
-        self.hparams = {}
+        self = {}
         self._kwargs = kwargs
 
     @property
@@ -107,7 +107,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        self.hparams.update(params)
+        self.update(params)
 
         # format params into the suitable for tensorboard
         params = self._flatten_dict(params)
@@ -158,7 +158,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file
-        save_hparams_to_yaml(hparams_file, self.hparams)
+        save_hparams_to_yaml(hparams_file, self)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

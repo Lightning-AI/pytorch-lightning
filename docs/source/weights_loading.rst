@@ -76,7 +76,7 @@ The Lightning checkpoint also saves the hparams (hyperparams) passed into the Li
    class MyLightningModule(LightningModule):
 
        def __init__(self, hparams, *args, **kwargs):
-           self.hparams = hparams
+           self = hparams
 
 Manual saving
 ^^^^^^^^^^^^^
@@ -107,7 +107,7 @@ The above only works if you used `hparams` in your model definition
     class LitModel(LightningModule):
 
         def __init__(self, hparams):
-            self.hparams = hparams
+            self = hparams
             self.l1 = nn.Linear(hparams.in_dim, hparams.out_dim)
 
 But if you don't and instead pass individual parameters

@@ -7,11 +7,11 @@ class ModelTemplateData:
     hparams: ...
 
     def dataloader(self, train):
-        dataset = TrialMNIST(root=self.hparams.data_root, train=train, download=True)
+        dataset = TrialMNIST(root=self.data_root, train=train, download=True)
 
         loader = DataLoader(
             dataset=dataset,
-            batch_size=self.hparams.batch_size,
+            batch_size=self.batch_size,
             # test and valid shall not be shuffled
             shuffle=train,
         )

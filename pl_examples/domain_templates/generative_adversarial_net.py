@@ -74,7 +74,7 @@ class GAN(LightningModule):
 
     def __init__(self, hparams):
         super().__init__()
-        self.hparams = hparams
+        self = hparams
 
         # networks
         mnist_shape = (1, 28, 28)
@@ -98,7 +98,7 @@ class GAN(LightningModule):
         # train generator
         if optimizer_idx == 0:
             # sample noise
-            z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
+            z = torch.randn(imgs.shape[0], self.latent_dim)
             z = z.type_as(imgs)
 
             # generate images
@@ -152,9 +152,9 @@ class GAN(LightningModule):
             return output
 
     def configure_optimizers(self):
-        lr = self.hparams.lr
-        b1 = self.hparams.b1
-        b2 = self.hparams.b2
+        lr = self.lr
+        b1 = self.b1
+        b2 = self.b2
 
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
@@ -164,10 +164,10 @@ class GAN(LightningModule):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize([0.5], [0.5])])
         dataset = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-        return DataLoader(dataset, batch_size=self.hparams.batch_size)
+        return DataLoader(dataset, batch_size=self.batch_size)
 
     def on_epoch_end(self):
-        z = torch.randn(8, self.hparams.latent_dim)
+        z = torch.randn(8, self.latent_dim)
         z = z.type_as(self.last_imgs)
 
         # log sampled images

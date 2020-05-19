@@ -109,17 +109,17 @@ modify the network and read those values in the LightningModule
             super().__init__()
 
             # do this to save all arguments in any logger (tensorboard)
-            self.hparams = hparams
+            self = hparams
 
             self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
             self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
             self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
 
         def train_dataloader(self):
-            return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
+            return DataLoader(mnist_train, batch_size=self.batch_size)
 
         def configure_optimizers(self):
-            return Adam(self.parameters(), lr=self.hparams.learning_rate)
+            return Adam(self.parameters(), lr=self.learning_rate)
 
         @staticmethod
         def add_model_specific_args(parent_parser):
@@ -139,7 +139,7 @@ Now pass in the params when you init your model
     hparams = parser.parse_args()
     model = LitMNIST(hparams)
 
-The line `self.hparams = hparams` is very special. This line assigns your hparams to the LightningModule.
+The line `self = hparams` is very special. This line assigns your hparams to the LightningModule.
 This does two things:
 
 1.  It adds them automatically to TensorBoard logs under the hparams tab.

@@ -112,7 +112,7 @@ Here we add a learning-rate warm up
         if self.trainer.global_step < 500:
             lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
             for pg in optimizer.param_groups:
-                pg['lr'] = lr_scale * self.hparams.learning_rate
+                pg['lr'] = lr_scale * self.learning_rate
 
         # update params
         optimizer.step()
