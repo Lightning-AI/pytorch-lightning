@@ -1449,46 +1449,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
             tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
-            hparam_overrides: Optional[Dict] = None,
             **kwargs
     ) -> 'LightningModule':
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
-        with an argument called ``hparams`` which is an object of :class:`~dict` or
-        :class:`~argparse.Namespace` (output of :meth:`~argparse.ArgumentParser.parse_args`
-        when parsing command line arguments).
-        If you want `hparams` to have a hierarchical structure, you have to define it as :class:`~dict`.
-        Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
+        it stores the items in `__init__`  in the checkpoint under `module_arguments`
 
-        Example:
-            .. code-block:: python
-
-                # define hparams as Namespace
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
-
-                model = MyModel(hparams)
-
-                class MyModel(LightningModule):
-                    def __init__(self, hparams: Namespace):
-                        self.learning_rate = hparams.learning_rate
-
-                # ----------
-
-                # define hparams as dict
-                hparams = {
-                    drop_prob: 0.2,
-                    dataloader: {
-                        batch_size: 32
-                    }
-                }
-
-                model = MyModel(hparams)
-
-                class MyModel(LightningModule):
-                    def __init__(self, hparams: dict):
-                        self.learning_rate = hparams['learning_rate']
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1557,15 +1524,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # override some of the params with new values
                 MyLightningModule.load_from_checkpoint(
                     PATH,
-                    hparam_overrides={'num_layers': 128, 'pretrained_ckpt_path': NEW_PATH}
-                )
-
-                # or load passing whatever args the model takes to load
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    learning_rate=0.1, # These arguments will be passed to the model using **kwargs
-                    layers=2,
-                    pretrained_model=some_model
+                    num_layers=128,
+                    pretrained_ckpt_path: NEW_PATH,
                 )
 
                 # predict
@@ -1577,9 +1537,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             checkpoint = torch.load(checkpoint_path, map_location=map_location)
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        if 'module_arguments' in checkpoint:
-            hparams = checkpoint['module_arguments']
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
@@ -1600,9 +1557,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             # overwrite hparams by the given file
             checkpoint['module_arguments'] = hparams
 
-        # override the hparam keys that were passed in
-        if hparam_overrides is not None:
-            update_hparams(hparams, hparam_overrides)
+        # override the module_arguments with values that were passed in
+        for k, v in kwargs.items():
+            if k in checkpoint['module_arguments']:
+                checkpoint['module_arguments'][k] = v
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
