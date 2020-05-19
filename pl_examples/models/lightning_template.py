@@ -45,7 +45,7 @@ class LightningTemplateModel(LightningModule):
         """
         # init superclass
         super().__init__()
-        self = hparams
+
         self.c_d1 = nn.Linear(in_features=self.in_features,
                               out_features=self.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)

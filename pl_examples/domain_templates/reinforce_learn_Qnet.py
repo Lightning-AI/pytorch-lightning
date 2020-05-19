@@ -192,7 +192,7 @@ class DQNLightning(pl.LightningModule):
 
     def __init__(self, hparams: argparse.Namespace) -> None:
         super().__init__()
-        self = hparams
+
 
         self.env = gym.make(self.env)
         obs_size = self.env.observation_space.shape[0]

@@ -151,7 +151,7 @@ class TransferLearningModel(pl.LightningModule):
                  hparams: argparse.Namespace,
                  dl_path: Union[str, Path]) -> None:
         super().__init__()
-        self = hparams
+
         self.dl_path = dl_path
         self.__build_model()
 

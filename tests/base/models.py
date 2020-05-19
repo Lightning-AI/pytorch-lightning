@@ -69,7 +69,7 @@ class TestGAN(LightningModule):
 
     def __init__(self, hparams):
         super().__init__()
-        self = hparams
+
 
         # networks
         mnist_shape = (1, 28, 28)
