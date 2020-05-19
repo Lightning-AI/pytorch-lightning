@@ -27,7 +27,7 @@ def test_auto_hparams(tmpdir):
     class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
         pass
 
-    classes = [EvalModelTemplate, SubClassEvalModelTemplate, SubSubClassEvalModelTemplate]
+    classes = [SubClassEvalModelTemplate, EvalModelTemplate, SubSubClassEvalModelTemplate]
 
     for CLASS in classes:
         # test that the model automatically sets the args passed into init as attrs
