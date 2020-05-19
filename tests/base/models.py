@@ -70,7 +70,6 @@ class TestGAN(LightningModule):
     def __init__(self, hparams):
         super().__init__()
 
-
         # networks
         mnist_shape = (1, 28, 28)
         self.generator = Generator(latent_dim=hparams.hidden_dim, img_shape=mnist_shape)
