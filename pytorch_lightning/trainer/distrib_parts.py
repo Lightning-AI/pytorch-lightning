@@ -106,7 +106,7 @@ class TrainerDPMixin(ABC):
                 'Requested to transfer batch to TPU but XLA is not available.'
                 ' Are you sure this machine has TPUs?'
             )
-        device = xm.xla_device(tpu_id)
+        device = xm.xla_device(tpu_id)  # None will use all available devices
         return self.__transfer_data_to_device(batch, device)
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):
