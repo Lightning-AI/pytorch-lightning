@@ -115,5 +115,4 @@ class EvalModelTemplate(
                 hpc_exp_number=hpc_exp_number,
             )
 
-        hparams = Namespace(**args)
-        return hparams
+        return args

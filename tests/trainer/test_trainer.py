@@ -61,11 +61,20 @@ def test_model_pickle(tmpdir):
     pickle.dumps(model)
 
 
-def test_dict_param_save_load(tmpdir):
+def test_dict_namespace_param_save_load(tmpdir):
+    """
+    Verifies that a dict and a Namespace can be passed in as args to a model
+    Args:
+        tmpdir:
+
+    Returns:
+
+    """
     dict_param = vars(EvalModelTemplate.get_default_hparams())
+    namespace = Namespace(**dict_param)
 
     class SubClass(EvalModelTemplate):
-        def __init__(self, dict_param):
+        def __init__(self, dict_param, namespace):
             super().__init__()
 
     model = SubClass(dict_param)
@@ -603,7 +612,7 @@ def test_disabled_validation():
             return super().validation_epoch_end(*args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
