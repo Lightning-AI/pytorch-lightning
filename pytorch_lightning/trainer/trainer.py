@@ -346,9 +346,19 @@ class Trainer(
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
-        self.on_tpu = num_tpu_cores is not None
-        self.num_tpu_cores = num_tpu_cores
-        assert num_tpu_cores in [1, 8, None], 'num_tpu_cores can only be 1 or 8'
+        if num_tpu_cores is not None:
+            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                           " and this argument will be removed in v0.9.0", DeprecationWarning)
+
+        if tpu_cores is None:
+            tpu_cores = num_tpu_cores
+        self.on_tpu = tpu_cores is not None
+        self.tpu_cores = tpu_cores
+        assert self.tpu_cores in (1, 8, None) or (
+            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
+        ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+
+        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
