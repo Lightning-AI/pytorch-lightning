@@ -124,7 +124,7 @@ def test_no_val_module(tmpdir):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
+    assert 'module_arguments' in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -639,7 +639,7 @@ def test_disabled_validation():
         '`validation_epoch_end` should not run when `val_percent_check=0`'
 
     # check that val_percent_check has no influence when fast_dev_run is turned on
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
