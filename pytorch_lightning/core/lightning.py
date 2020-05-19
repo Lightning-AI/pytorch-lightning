@@ -73,6 +73,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
+        # register all params passed into the child module in __init__
+        self._auto_register_hparams()
+
     @property
     def on_gpu(self):
         """
