@@ -19,9 +19,31 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_hparams(tmpdir):
+def test_auto_hparams(tmpdir):
 
+    # test that the model automatically sets the args passed into init as attrs
     model = EvalModelTemplate()
+    assert model.batch_size == 32
+    model = EvalModelTemplate(batch_size=179)
+    assert model.batch_size == 179
+
+    # verify that the checkpoint saved the correct values
+    trainer = Trainer(max_steps=20)
+    trainer.fit(model)
+    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
+    raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert 'model_arguments' in raw_checkpoint
+    assert raw_checkpoint['model_arguments']['batch_size'] == 179
+
+    # verify that model loads correctly
+    model = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path)
+    assert model.batch_size == 179
+
+    # verify that we can overwrite whatever we want
+    model = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
+    assert model.batch_size == 99
+
 
 def test_model_pickle(tmpdir):
     import pickle
