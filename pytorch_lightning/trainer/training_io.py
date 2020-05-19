@@ -127,8 +127,6 @@ else:
     OMEGACONF_AVAILABLE = True
 
 
-
-
 class TrainerIOMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
