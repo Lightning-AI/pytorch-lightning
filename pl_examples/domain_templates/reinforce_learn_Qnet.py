@@ -190,9 +190,17 @@ class Agent:
 class DQNLightning(pl.LightningModule):
     """ Basic DQN Model """
 
-    def __init__(self, hparams: argparse.Namespace) -> None:
+    def __init__(self,
+                 replay_size,
+                 warm_start_steps,
+                 gamma, eps_start,
+                 eps_end,
+                 eps_last_frame,
+                 sync_rate,
+                 lr,
+                 episode_length,
+                 batch_size) -> None:
         super().__init__()
-
 
         self.env = gym.make(self.env)
         obs_size = self.env.observation_space.shape[0]
