@@ -1759,6 +1759,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         return self.get_progress_bar_dict()
 
     def _auto_register_hparams(self):
+        """
+        Removes the need to pass in hparams. Instead, we register every argument in init
+        to the module with some caveats:
+        1. we don't overwrite the property if it already exists
+        2. we also store a module_arguments property for model loading and saving
+
+        Returns:
+
+        """
         # two frames back is the init of the child module
         frame = inspect.currentframe()
         args = frame.f_back.f_back.f_locals
