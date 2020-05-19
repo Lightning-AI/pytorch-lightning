@@ -11,6 +11,8 @@ codecov:
   notify:
     # after_n_builds: 2
     wait_for_ci: yes
+  # https://docs.codecov.io/docs/codecov-yaml#section-expired-reports
+  max_report_age: off
 
 coverage:
   precision: 0  # 2 = xx.xx%, 0 = xx%
