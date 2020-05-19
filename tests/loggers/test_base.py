@@ -30,7 +30,7 @@ def test_logger_collection():
 class CustomLogger(LightningLoggerBase):
     def __init__(self):
         super().__init__()
-        self_logged = None
+        self.hparams_logged = None
         self.metrics_logged = None
         self.finalized = False
 
@@ -40,7 +40,7 @@ class CustomLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params):
-        self_logged = params
+        self.hparams_logged = params
 
     @rank_zero_only
     def log_metrics(self, metrics, step):
