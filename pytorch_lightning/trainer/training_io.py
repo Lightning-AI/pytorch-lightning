@@ -264,9 +264,9 @@ class TrainerIOMixin(ABC):
             try:
                 self._atomic_save(checkpoint, filepath)
             except AttributeError as e:
-                if 'model_arguments' in checkpoint:
-                    del checkpoint['model_arguments']
-                rank_zero_warn('warning, `model_arguments` dropped from checkpoint.'
+                if 'module_arguments' in checkpoint:
+                    del checkpoint['module_arguments']
+                rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
                                f' An attribute is not picklable {e}')
 
                 self._atomic_save(checkpoint, filepath)
@@ -338,13 +338,13 @@ class TrainerIOMixin(ABC):
             if self.use_amp and self.use_native_amp:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
-        # add the model_arguments and state_dict from the model
+        # add the module_arguments and state_dict from the model
         model = self.get_model()
 
         checkpoint['state_dict'] = model.state_dict()
 
         if hasattr(model, 'module_arguments') and model.module_arguments is not None:
-            checkpoint['module_arguments'] = model.model_arguments
+            checkpoint['module_arguments'] = model.module_arguments
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -449,9 +449,9 @@ class TrainerIOMixin(ABC):
         try:
             self._atomic_save(checkpoint, filepath)
         except AttributeError as e:
-            if 'model_arguments' in checkpoint:
-                del checkpoint['model_arguments']
-            rank_zero_warn('warning, `model_arguments` dropped from checkpoint.'
+            if 'module_arguments' in checkpoint:
+                del checkpoint['module_arguments']
+            rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
                            f' An attribute is not picklable {e}')
 
             self._atomic_save(checkpoint, filepath)

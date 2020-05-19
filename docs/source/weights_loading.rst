@@ -88,7 +88,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
 Checkpoint Loading
 ------------------
 
-To load a model along with its weights, biases and model_arguments use following method.
+To load a model along with its weights, biases and module_arguments use following method.
 
 .. code-block:: python
 

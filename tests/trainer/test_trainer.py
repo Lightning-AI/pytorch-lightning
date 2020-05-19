@@ -42,8 +42,8 @@ def test_auto_hparams(tmpdir):
         raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
         raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
         raw_checkpoint = torch.load(raw_checkpoint_path)
-        assert 'model_arguments' in raw_checkpoint
-        assert raw_checkpoint['model_arguments']['batch_size'] == 179
+        assert 'module_arguments' in raw_checkpoint
+        assert raw_checkpoint['module_arguments']['batch_size'] == 179
 
         # verify that model loads correctly
         model = CLASS.load_from_checkpoint(raw_checkpoint_path)
