@@ -22,12 +22,12 @@ Warnings:
 - For the moment, this feature only works with models having a single optimizer.
 - LR support for DDP is not implemented yet, it is comming soon.
 
-Using Lightnings build-in LR finder
+Using Lightnings built-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the most basic use case, this feature can be enabled during trainer construction
 with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the lr finder
-will automatically be run before any training is done. The ``lr`` that is found
+will automatically be run before any training is done. The ``LR`` that is found
 and used will be written to the console and logged together with all other
 hyperparameters of the model.
     
