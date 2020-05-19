@@ -81,7 +81,7 @@ def _convert_to_tensor(data: Any) -> Any:
     elif isinstance(data, torch.Tensor):
         return data
 
-    raise TypeError("The given type ('%s') cannot be converted to a tensor!" % type(data).__name__)
+    raise TypeError(f"The given type ('{type(data).__name__}') cannot be converted to a tensor!")
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
