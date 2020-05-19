@@ -403,28 +403,28 @@ class TransferLearningModel(pl.LightningModule):
         return parser
 
 
-def main(hparams: argparse.Namespace) -> None:
+def main(args: argparse.Namespace) -> None:
     """Train the model.
 
     Args:
-        hparams: Model hyper-parameters
+        args: Model hyper-parameters
 
     Note:
         For the sake of the example, the images dataset will be downloaded
         to a temporary directory.
     """
 
-    with TemporaryDirectory(dir=hparams.root_data_path) as tmp_dir:
+    with TemporaryDirectory(dir=args.root_data_path) as tmp_dir:
 
-        model = TransferLearningModel(hparams, dl_path=tmp_dir)
+        model = TransferLearningModel(**args, dl_path=tmp_dir)
 
         trainer = pl.Trainer(
             weights_summary=None,
             show_progress_bar=True,
             num_sanity_val_steps=0,
-            gpus=hparams.gpus,
-            min_epochs=hparams.nb_epochs,
-            max_epochs=hparams.nb_epochs)
+            gpus=args.gpus,
+            min_epochs=args.nb_epochs,
+            max_epochs=args.nb_epochs)
 
         trainer.fit(model)
 

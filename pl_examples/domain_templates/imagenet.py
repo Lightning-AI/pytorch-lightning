@@ -29,12 +29,11 @@ MODEL_NAMES = sorted(
 
 
 class ImageNetLightningModel(LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, arch, pretrained, lr, momentum, weight_decay, data_path, batch_size):
         """
         TODO: add docstring here
         """
         super().__init__()
-
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
 
     def forward(self, x):
