@@ -275,6 +275,7 @@ def test_model_pickle(tmpdir):
     model = EvalModelTemplate()
     pickle.dumps(model)
 
+
 def test_model_loading_hparam_override(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     model = EvalModelTemplate()
@@ -298,7 +299,10 @@ def test_model_loading_hparam_override(tmpdir):
     trainer.save_checkpoint(new_weights_path)
 
     # load model override batch_size, add new_param
-    hparam_overrides = {'batch_size':1, 'new_param':0.1}
+    hparam_overrides = {
+        'batch_size': 1,
+        'new_param': 0.1
+    }
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
         hparam_overrides=hparam_overrides
