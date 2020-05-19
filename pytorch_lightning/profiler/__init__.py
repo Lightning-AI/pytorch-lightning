@@ -98,8 +98,7 @@ to track and the profiler will record performance for code executed within this 
     from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 
     class MyModel(LightningModule):
-        def __init__(self, hparams, profiler=None):
-
+        def __init__(self, profiler=None):
             self.profiler = profiler or PassThroughProfiler()
 
         def custom_processing_step(self, data):
@@ -108,7 +107,7 @@ to track and the profiler will record performance for code executed within this 
             return data
 
     profiler = Profiler()
-    model = MyModel(hparams, profiler)
+    model = MyModel(profiler)
     trainer = Trainer(profiler=profiler, max_epochs=1)
 
 """
