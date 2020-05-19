@@ -66,7 +66,7 @@ class TensorMetric(Metric):
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=self.device, dtype=self.dtype)
+            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
         return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
                                    _to_device_dtype)
@@ -97,7 +97,7 @@ class NumpyMetric(Metric):
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=self.device, dtype=self.dtype)
+            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
         return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
                                    _to_device_dtype)
