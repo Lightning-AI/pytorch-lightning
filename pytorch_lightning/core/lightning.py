@@ -1578,6 +1578,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
 
+        if 'module_arguments' in checkpoint:
+            hparams = checkpoint['module_arguments']
+
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
             hparams_file = tags_csv
@@ -1595,7 +1598,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint['hparams'] = hparams
+            checkpoint['module_arguments'] = hparams
 
         # override the hparam keys that were passed in
         if hparam_overrides is not None:
