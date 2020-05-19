@@ -100,7 +100,12 @@ class TrainerDPMixin(ABC):
             m.tpu_global_core_rank = self.tpu_global_core_rank
 
     def transfer_batch_to_tpu(self, batch: Any, tpu_id: int = None):
-        device = xm.xla_device(tpu_id) if XLA_AVAILABLE else torch.device('cpu')
+        if not XLA_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested to transfer batch to TPU but XLA is not available.'
+                ' Are you sure this machine has TPUs?'
+            )
+        device = xm.xla_device(tpu_id)
         return self.__transfer_data_to_device(batch, device)
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):
