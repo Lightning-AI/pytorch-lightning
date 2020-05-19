@@ -322,8 +322,8 @@ class DQNLightning(pl.LightningModule):
         return batch[0].device.index if self.on_gpu else 'cpu'
 
 
-def main(hparams) -> None:
-    model = DQNLightning(hparams)
+def main(args) -> None:
+    model = DQNLightning(**args)
 
     trainer = pl.Trainer(
         gpus=1,
