@@ -1784,10 +1784,31 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             # don't add self
             if name not in ['self']:
 
+                # only track some things
+                is_trackable = self._is_allowed_hparam_value(value)
+
                 # don't overwrite something already set
-                if not hasattr(child, name):
+                if not hasattr(child, name) and is_trackable:
                     setattr(child, name, value)
-                module_arguments[name] = value
+
+                if is_trackable:
+                    module_arguments[name] = value
 
         # set module_arguments in child
         setattr(child, 'module_arguments', module_arguments)
+
+    def _is_allowed_hparam_value(self, value):
+        # allow all types of lists
+        is_dict = isinstance(value, dict)
+        is_list = isinstance(value, list)
+        is_tuple = isinstance(value, tuple)
+
+        if is_dict or is_list or is_tuple:
+            return True
+
+        # don't allow other objects
+        if isinstance(value, object):
+            return False
+
+        # allow everything else
+        return True
