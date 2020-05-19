@@ -61,8 +61,14 @@ def test_model_pickle(tmpdir):
     pickle.dumps(model)
 
 
-def test_hparams_save_load(tmpdir):
-    model = EvalModelTemplate(vars(EvalModelTemplate.get_default_hparams()))
+def test_dict_param_save_load(tmpdir):
+    dict_param = vars(EvalModelTemplate.get_default_hparams())
+
+    class SubClass(EvalModelTemplate):
+        def __init__(self, dict_param):
+            super().__init__()
+
+    model = SubClass(dict_param)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -75,7 +81,7 @@ def test_hparams_save_load(tmpdir):
     # try to load the model now
     pretrained_model = tutils.load_model_from_checkpoint(
         trainer.checkpoint_callback.dirpath,
-        module_class=EvalModelTemplate
+        module_class=SubClass
     )
     assert pretrained_model
 
