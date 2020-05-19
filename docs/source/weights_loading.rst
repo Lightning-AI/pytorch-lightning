@@ -59,24 +59,20 @@ Or disable it by passing
    trainer = Trainer(checkpoint_callback=False)
 
 
-The Lightning checkpoint also saves the hparams (hyperparams) passed into the LightningModule init.
-
-.. note:: hparams is a `Namespace <https://docs.python.org/2/library/argparse.html#argparse.Namespace>`_.
+The Lightning checkpoint also saves the arguments passed into the LightningModule init
+under the `module_arguments` key in the checkpoint.
 
 .. testcode::
 
-   from argparse import Namespace
-
-   # usually these come from command line args
-   args = Namespace(learning_rate=0.001)
-
-   # define you module to have hparams as the first arg
-   # this means your checkpoint will have everything that went into making
-   # this model (in this case, learning rate)
    class MyLightningModule(LightningModule):
 
-       def __init__(self, hparams, *args, **kwargs):
-           self = hparams
+       def __init__(self, learning_rate, *args, **kwargs):
+            super().__init__()
+
+    # all init args were saved to the checkpoint
+    checkpoint = torch.load(CKPT_PATH)
+    print(checkpoint['module_arguments'])
+    # {'learning_rate': the_value}
 
 Manual saving
 ^^^^^^^^^^^^^
@@ -92,37 +88,40 @@ You can manually save checkpoints and restore your model from the checkpointed s
 Checkpoint Loading
 ------------------
 
-To load a model along with its weights, biases and hyperparameters use following method.
+To load a model along with its weights, biases and model_arguments use following method.
 
 .. code-block:: python
 
     model = MyLightingModule.load_from_checkpoint(PATH)
+
+    print(model.learning_rate)
+    # prints the learning_rate you used in this checkpoint
+
     model.eval()
     y_hat = model(x)
 
-The above only works if you used `hparams` in your model definition
-
-.. testcode::
-
-    class LitModel(LightningModule):
-
-        def __init__(self, hparams):
-            self = hparams
-            self.l1 = nn.Linear(hparams.in_dim, hparams.out_dim)
-
-But if you don't and instead pass individual parameters
+But if you don't want to use the values saved in the checkpoint, pass in your own here
 
 .. testcode::
 
     class LitModel(LightningModule):
 
         def __init__(self, in_dim, out_dim):
-            self.l1 = nn.Linear(in_dim, out_dim)
+            super().__init__()
+            self.l1 = nn.Linear(self.in_dim, self.out_dim)
 
 you can restore the model like this
 
 .. code-block:: python
 
+    # if you train and save the model like this it will use these values when loading
+    # the weights. But you can overwrite this
+    LitModel(in_dim=32, out_dim=10)
+
+    # uses in_dim=32, out_dim=10
+    model = LitModel.load_from_checkpoint(PATH)
+
+    # uses in_dim=128, out_dim=10
     model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
 
 
