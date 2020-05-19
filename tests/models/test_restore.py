@@ -274,3 +274,38 @@ def test_model_pickle(tmpdir):
 
     model = EvalModelTemplate()
     pickle.dumps(model)
+
+def test_model_loading_hparam_override(tmpdir):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    model = EvalModelTemplate()
+    hparams = vars(model.hparams)
+
+    trainer_options = dict(
+        max_epochs=1,
+        logger=False,
+        checkpoint_callback=ModelCheckpoint(tmpdir)
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1, 'amp + ddp model failed to complete'
+
+    # save checkpoint
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load model override batch_size, add new_param
+    hparam_overrides = {'batch_size':1, 'new_param':0.1}
+    model_2 = EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        hparam_overrides=hparam_overrides
+    )
+    hparams_2 = vars(model_2.hparams)
+    # verify all params that were not overwritten are the same
+    assert all([hparams[param] == hparams_2[param] for param in hparams_2 if param not in hparam_overrides])
+    # verify overwritten params
+    assert hparams_2['batch_size'] == 1
+    assert 'new_param' in hparams_2 and hparams_2['new_param'] == 0.1
