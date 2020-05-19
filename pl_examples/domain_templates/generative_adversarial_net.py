@@ -72,13 +72,12 @@ class Discriminator(nn.Module):
 
 class GAN(LightningModule):
 
-    def __init__(self, hparams):
+    def __init__(self, latent_dim, lr=0.0002, b1=0.5, b2=0.999, batch_size=64):
         super().__init__()
-
 
         # networks
         mnist_shape = (1, 28, 28)
-        self.generator = Generator(latent_dim=hparams.latent_dim, img_shape=mnist_shape)
+        self.generator = Generator(latent_dim=latent_dim, img_shape=mnist_shape)
         self.discriminator = Discriminator(img_shape=mnist_shape)
 
         # cache for generated images
