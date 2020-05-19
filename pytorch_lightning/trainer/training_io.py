@@ -361,8 +361,8 @@ class TrainerIOMixin(ABC):
                 checkpoint['hparams_type'] = 'Namespace'
                 checkpoint['hparams'] = vars(model.hparams)
             elif OMEGACONF_AVAILABLE and isinstance(model.hparams, omegaconf.DictConfig):
-                    checkpoint['hparams_type'] = 'DictConfig'
-                    checkpoint['hparams'] = model.hparams
+                checkpoint['hparams_type'] = 'DictConfig'
+                checkpoint['hparams'] = model.hparams
             else:
                 raise ValueError(
                     'The acceptable hparams type is dict, argparse.Namespace,',
