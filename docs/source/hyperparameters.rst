@@ -105,15 +105,12 @@ modify the network and read those values in the LightningModule
 
     class LitMNIST(LightningModule):
 
-        def __init__(self, hparams):
+        def __init__(self, layer_1_dim):
             super().__init__()
 
-            # do this to save all arguments in any logger (tensorboard)
-            self = hparams
-
-            self.layer_1 = torch.nn.Linear(28 * 28, hparams.layer_1_dim)
-            self.layer_2 = torch.nn.Linear(hparams.layer_1_dim, hparams.layer_2_dim)
-            self.layer_3 = torch.nn.Linear(hparams.layer_2_dim, 10)
+            self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
+            self.layer_2 = torch.nn.Linear(self.layer_1_dim, self.layer_2_dim)
+            self.layer_3 = torch.nn.Linear(self.layer_2_dim, 10)
 
         def train_dataloader(self):
             return DataLoader(mnist_train, batch_size=self.batch_size)
@@ -136,14 +133,31 @@ Now pass in the params when you init your model
 
     parser = ArgumentParser()
     parser = LitMNIST.add_model_specific_args(parser)
-    hparams = parser.parse_args()
-    model = LitMNIST(hparams)
+    args = parser.parse_args()
+    model = LitMNIST(**args)
 
-The line `self = hparams` is very special. This line assigns your hparams to the LightningModule.
-This does two things:
+Within any LightningModule all the arguments you pass into your `__init__` will be available
+simply with `self.arg`. However, we won't overwrite any other arguments you have already defined.
+We will also add all of those values to the tensorboard hparams tab (unless it's an object which
+we won't). We also will store those values into checkpoints for you which you can use to init your
+models.
 
-1.  It adds them automatically to TensorBoard logs under the hparams tab.
-2.  Lightning will save those hparams to the checkpoint and use them to restore the module correctly.
+.. code-block:: python
+
+    class LitMNIST(LightningModule):
+
+        def __init__(self, layer_1_dim, some_other_param):
+            super().__init__()
+
+            self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
+
+            # self.some_other_param is automatically available
+            self.layer_2 = torch.nn.Linear(self.layer_1_dim, self.some_other_param)
+            self.layer_3 = torch.nn.Linear(self.some_other_param, 10)
+
+            self.some_other_param = 12
+            # but you can override it as normal
+
 
 Trainer args
 ^^^^^^^^^^^^
