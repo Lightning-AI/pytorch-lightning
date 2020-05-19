@@ -491,7 +491,6 @@ class Trainer(
         # override dist backend when using tpus
         if self.on_tpu:
             self.init_tpu()
-            self.current_tpu_idx = None
 
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
