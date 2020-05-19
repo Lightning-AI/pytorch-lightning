@@ -72,7 +72,7 @@ class Discriminator(nn.Module):
 
 class GAN(LightningModule):
 
-    def __init__(self, latent_dim, lr=0.0002, b1=0.5, b2=0.999, batch_size=64):
+    def __init__(self, latent_dim=100, lr=0.0002, b1=0.5, b2=0.999, batch_size=64):
         super().__init__()
 
         # networks
