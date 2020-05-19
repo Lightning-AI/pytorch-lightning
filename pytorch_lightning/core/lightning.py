@@ -1606,35 +1606,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
-        cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
-        ckpt_hparams = checkpoint.get('hparams')
 
-        if cls_takes_hparams:
-            if ckpt_hparams is not None:
-                hparams_type = checkpoint.get('hparams_type', 'Namespace')
-                if hparams_type.lower() == 'dict':
-                    hparams = ckpt_hparams
-                elif hparams_type.lower() == 'namespace':
-                    hparams = Namespace(**ckpt_hparams)
-            else:
-                rank_zero_warn(
-                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
-                    " contains argument 'hparams'. Will pass in an empty Namespace instead."
-                    " Did you forget to store your model hyperparameters in self?"
-                )
-                hparams = {}
-        else:  # The user's LightningModule does not define a hparams argument
-            if ckpt_hparams is None:
-                hparams = None
-            else:
-                raise MisconfigurationException(
-                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ "
-                    f"is missing the argument 'hparams'. Are you loading the correct checkpoint?"
-                )
+        # pass in the values we saved automatically
+        if 'module_arguments' in checkpoint:
+            model_args = checkpoint['module_arguments']
+            kwargs.update(**model_args)
 
         # load the state_dict on the model automatically
-        if cls_takes_hparams:
-            kwargs.update(hparams=hparams)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
