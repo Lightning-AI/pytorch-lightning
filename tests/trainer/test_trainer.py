@@ -21,7 +21,8 @@ from tests.base import EvalModelTemplate
 
 def test_auto_hparams(tmpdir):
     class SubClassEvalModelTemplate(EvalModelTemplate):
-        pass
+        def __init__(self, subclass_arg=1200):
+            super().__init__()
 
     class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
         pass
@@ -34,6 +35,9 @@ def test_auto_hparams(tmpdir):
         assert model.batch_size == 32
         model = CLASS(batch_size=179)
         assert model.batch_size == 179
+
+        if isinstance(model, SubClassEvalModelTemplate):
+            assert model.subclass_arg == 1200
 
         # verify that the checkpoint saved the correct values
         trainer = Trainer(max_steps=20)
@@ -70,14 +74,14 @@ def test_dict_namespace_param_save_load(tmpdir):
     Returns:
 
     """
-    dict_param = vars(EvalModelTemplate.get_default_hparams())
+    dict_param = EvalModelTemplate.get_default_hparams()
     namespace = Namespace(**dict_param)
 
     class SubClass(EvalModelTemplate):
         def __init__(self, dict_param, namespace):
             super().__init__()
 
-    model = SubClass(dict_param)
+    model = SubClass(dict_param, namespace)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -93,6 +97,7 @@ def test_dict_namespace_param_save_load(tmpdir):
         module_class=SubClass
     )
     assert pretrained_model
+    assert hasattr(pretrained_model, 'namespace')
 
 
 def test_no_val_module(tmpdir):

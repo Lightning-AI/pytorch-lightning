@@ -1735,4 +1735,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         setattr(child, 'module_arguments', module_arguments)
 
     def _is_allowed_hparam_value(self, value):
+        if isinstance(value, Namespace):
+            return True
         return not hasattr(value, '__dict__')
