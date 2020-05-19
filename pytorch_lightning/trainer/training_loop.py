@@ -347,12 +347,12 @@ class TrainerTrainLoopMixin(ABC):
                 # -----------------
                 self.run_training_epoch()
 
-                # update LR schedulers
-                self.update_learning_rates(interval='epoch')
-
                 if self.max_steps and self.max_steps == self.global_step:
                     self.run_training_teardown()
                     return
+
+                # update LR schedulers
+                self.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
