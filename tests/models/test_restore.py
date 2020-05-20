@@ -129,8 +129,8 @@ def test_load_model_from_checkpoint(tmpdir):
     pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
-    for k, v in vars(hparams).items():
-        assert getattr(pretrained_model.hparams, k) == v
+    for k, v in hparams.items():
+        assert getattr(pretrained_model, k) == v
 
     # assert weights are the same
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
@@ -272,16 +272,13 @@ def test_model_saving_loading(tmpdir):
 
 
 def test_load_model_with_missing_hparams(tmpdir):
-    trainer_options = dict(
+    trainer = Trainer(
         progress_bar_refresh_rate=0,
         max_epochs=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         logger=False,
         default_root_dir=tmpdir,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
 
     class CurrentModelWithoutHparams(EvalModelTemplate):
         def __init__(self):
