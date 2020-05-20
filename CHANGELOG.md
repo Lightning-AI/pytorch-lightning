@@ -650,16 +650,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed a bug where `Experiment` object was not process safe, potentially causing logs to be overwritten
 
-## [0.3.5] - 2019-MM-DD
+## [0.3.5] - 2019-07-25
 
-## [0.3.4] - 2019-MM-DD
+## [0.3.4] - 2019-07-22
 
-## [0.3.3] - 2019-MM-DD
+## [0.3.3] - 2019-07-22
 
-## [0.3.2] - 2019-MM-DD
+## [0.3.2] - 2019-07-21
 
-## [0.3.1] - 2019-MM-DD
+## [0.3.1] - 2019-07-21
 
-## [0.2.x] - YYYY-MM-DD
+## [0.2.x] - 2019-07-09
 
-## [0.1.x] - YYYY-MM-DD
+## [0.1.x] - 2019-06-DD
