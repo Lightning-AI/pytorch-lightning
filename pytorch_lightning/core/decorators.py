@@ -1,3 +1,5 @@
+from typing import Callable
+
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, transfer_batch_to_device
 
@@ -15,7 +17,7 @@ def data_loader(fn):
     return inner_fx
 
 
-def auto_move_data(fn):
+def auto_move_data(fn: Callable) -> Callable:
     """
     Decorator for :class:`~pytorch_lightning.core.lightning.LightningModule` methods for which
     input arguments should be moved automatically to the correct device.
