@@ -39,6 +39,7 @@ class EvalModelTemplate(
     """
 
     def __init__(self,
+                 *args,
                  drop_prob=0.2,
                  batch_size=32,
                  in_features=28 * 28,
@@ -49,7 +50,7 @@ class EvalModelTemplate(
                  hidden_dim=1000,
                  b1=0.5,
                  b2=0.999,
-                 *args, **kwargs) -> object:
+                 **kwargs) -> object:
         # init superclass
         super().__init__()
 

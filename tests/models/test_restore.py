@@ -309,3 +309,10 @@ def test_load_model_with_missing_hparams(tmpdir):
     # warn if user's model has hparams argument
     with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
         CurrentModelUnusedHparams.load_from_checkpoint(last_checkpoint)
+
+
+def test_model_pickle(tmpdir):
+    import pickle
+
+    model = EvalModelTemplate()
+    pickle.dumps(model)
