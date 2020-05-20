@@ -100,16 +100,42 @@ class TrainerDPMixin(ABC):
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
 
-    def transfer_batch_to_tpu(self, batch: Any, tpu_id: int = None):
+    def transfer_batch_to_tpu(self, batch: Any, tpu_id: Optional[int] = None):
+        """
+        Transfers the data to the TPU.
+
+        Args:
+            batch: A tensor or collection of tensors.
+            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
+
+        Returns:
+            the tensor on the TPU device.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+        """
         if not XLA_AVAILABLE:
             raise MisconfigurationException(
                 'Requested to transfer batch to TPU but XLA is not available.'
                 ' Are you sure this machine has TPUs?'
             )
-        device = xm.xla_device(tpu_id)  # None will use all available devices
+        device = xm.xla_device(tpu_id)
         return self.__transfer_data_to_device(batch, device)
 
-    def transfer_batch_to_gpu(self, batch: Any, gpu_id: int):
+    def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
+        """
+        Transfers the data to the GPU.
+
+        Args:
+            batch: A tensor or collection of tensors.
+            gpu_id: The id of the GPU device. If omitted, the first available GPU is chosen.
+
+        Returns:
+            the tensor on the GPU device.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+        """
         device = torch.device('cuda', gpu_id)
         return self.__transfer_batch_to_device(batch, device)
 

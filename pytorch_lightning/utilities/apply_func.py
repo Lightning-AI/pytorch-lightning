@@ -39,6 +39,21 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
 
 
 def transfer_batch_to_device(batch: Any, device: torch.device):
+    """
+    Transfers a collection of tensors to the given device.
+
+    Args:
+        batch: A tensor or collection of tensors. See :func:`apply_to_collection`
+            for a list of supported collection types.
+        device: The device to which tensors should be moved
+
+    Returns:
+        the same collection but with all contained tensors residing on the new device.
+
+    See Also:
+        - :meth:`torch.Tensor.to`
+        - :class:`torch.device`
+    """
     def to(tensor):
         return tensor.to(device, non_blocking=True)
     return apply_to_collection(batch, dtype=torch.Tensor, function=to)
