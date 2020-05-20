@@ -263,7 +263,6 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
     pytest.param(torch.tensor([1, 0]), torch.tensor([1, 0]), 1.),
     pytest.param(torch.tensor([0.5, 0.5]), torch.tensor([1, 0]), 0.5)
 ])
-# TODO: FIx
 def test_auroc(pred, target, expected):
     score = auroc(pred, target).item()
     assert score == expected
