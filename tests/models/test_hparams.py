@@ -1,4 +1,5 @@
 import os
+from argparse import Namespace
 
 import pytest
 import torch
@@ -7,33 +8,39 @@ from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
 
-class SubClassEvalModelTemplate(EvalModelTemplate):
+class SubClassEvalModel(EvalModelTemplate):
     object_that_should_not_be_saved = torch.nn.CrossEntropyLoss()
 
     def __init__(self, *args, subclass_arg=1200, **kwargs):
         super().__init__()
 
 
-class HparamsClassEvalModelTemplate(EvalModelTemplate):
+class HparamsNamespaceEvalModel(EvalModelTemplate):
+    def __init__(self, *args, hparams=Namespace(hparam_arg=123), **kwargs):
+        super().__init__()
+
+
+class HparamsDictEvalModel(EvalModelTemplate):
     def __init__(self, *args, hparams=dict(hparam_arg=123), **kwargs):
         super().__init__()
 
 
-class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
+class SubSubClassEvalModel(SubClassEvalModel):
     pass
 
 
-class PersistClassEvalModelTemplate(SubClassEvalModelTemplate):
+class PersistClassEvalModel(SubClassEvalModel):
     def __init__(self, *args, skip_arg=450, **kwargs):
         self.skip_arg = 15
         super().__init__()
 
 
 @pytest.mark.parametrize("cls", [EvalModelTemplate,
-                                 SubClassEvalModelTemplate,
-                                 SubSubClassEvalModelTemplate,
-                                 HparamsClassEvalModelTemplate,
-                                 PersistClassEvalModelTemplate])
+                                 SubClassEvalModel,
+                                 SubSubClassEvalModel,
+                                 HparamsNamespaceEvalModel,
+                                 HparamsDictEvalModel,
+                                 PersistClassEvalModel])
 def test_auto_hparams(tmpdir, cls):
     # test that the model automatically sets the args passed into init as attrs
     model = cls()
@@ -41,13 +48,13 @@ def test_auto_hparams(tmpdir, cls):
     model = cls(batch_size=179)
     assert model.batch_size == 179
 
-    if isinstance(model, SubClassEvalModelTemplate):
+    if isinstance(model, SubClassEvalModel):
         assert model.subclass_arg == 1200
 
-    if isinstance(model, HparamsClassEvalModelTemplate):
+    if isinstance(model, (HparamsNamespaceEvalModel, HparamsDictEvalModel)):
         assert model.hparam_arg == 123
 
-    if isinstance(model, PersistClassEvalModelTemplate):
+    if isinstance(model, PersistClassEvalModel):
         assert model.skip_arg == 15
 
     # verify that the checkpoint saved the correct values

@@ -1728,11 +1728,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # set module_arguments in child
         setattr(child, 'module_arguments', init_args)
 
-    # def _is_allowed_hparam_value(self, value):
-    #     if isinstance(value, Namespace):
-    #         return True
-    #     return not hasattr(value, '__dict__')
-
 
 def _collect_init_args(frame, args: dict = {}) -> dict:
     """Recursive search for all children."""
