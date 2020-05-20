@@ -280,17 +280,16 @@ def test_model_loading_hparam_override(tmpdir):
     """Tests use case where the user overrides some hparams when loading a checkpoint."""
     model = EvalModelTemplate()
     hparams = vars(model.hparams)
-    trainer_options = dict(
+
+    trainer = Trainer(
         max_epochs=1,
         logger=False,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
-
     # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1
 
     # save checkpoint
     checkpoint_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -309,8 +308,8 @@ def test_model_loading_hparam_override(tmpdir):
     # verify all params that were not overwritten are the same
     assert all([hparams[param] == hparams_2[param] for param in hparams_2 if param not in hparam_overrides])
     # verify overwritten params
-    assert hparams_2['batch_size'] == 1
-    assert 'new_param' in hparams_2 and hparams_2['new_param'] == 0.1
+    assert hparams_2.get('batch_size') == 1
+    assert hparams_2.get('new_param') == 0.1
 
     # create a checkpoint that does not have hparams
     ckpt = torch.load(checkpoint_path)
