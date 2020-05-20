@@ -14,11 +14,20 @@ class SubClassEvalModelTemplate(EvalModelTemplate):
         super().__init__()
 
 
+class HparamsClassEvalModelTemplate(EvalModelTemplate):
+
+    def __init__(self, *args, hparams=dict(hparam_arg=123), **kwargs):
+        super().__init__()
+
+
 class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
     pass
 
 
-@pytest.mark.parametrize("cls", [EvalModelTemplate, SubClassEvalModelTemplate, SubSubClassEvalModelTemplate])
+@pytest.mark.parametrize("cls", [EvalModelTemplate,
+                                 SubClassEvalModelTemplate,
+                                 SubSubClassEvalModelTemplate,
+                                 HparamsClassEvalModelTemplate])
 def test_auto_hparams(tmpdir, cls):
     # test that the model automatically sets the args passed into init as attrs
     model = cls()
@@ -28,6 +37,9 @@ def test_auto_hparams(tmpdir, cls):
 
     if isinstance(model, SubClassEvalModelTemplate):
         assert model.subclass_arg == 1200
+
+    if isinstance(model, HparamsClassEvalModelTemplate):
+        assert model.hparam_arg == 123
 
     # verify that the checkpoint saved the correct values
     trainer = Trainer(max_steps=5)

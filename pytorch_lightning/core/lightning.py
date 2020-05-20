@@ -1734,17 +1734,24 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     #     return not hasattr(value, '__dict__')
 
 
-def _collect_init_args(frame, args={}):
+def _collect_init_args(frame, args: dict = {}) -> dict:
+    """Recursive search for all children."""
     if any(k in frame.f_locals for k in ['self', '__class__']):
         local_args = frame.f_locals   # .get('frame_args')
         local_args.update(local_args.get('kwargs', {}))
+        # back compatible hparsm as single argument
+        hparams = local_args.get('hparams')
+        if hparams:
+            local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
+        # recursive update
         args.update(local_args)
         return _collect_init_args(frame.f_back, args)
     else:
         return args
 
 
-def _get_latest_child(frame, child=None):
+def _get_latest_child(frame, child: object = None) -> object:
+    """Recursive search for lowest child."""
     if 'self' in frame.f_locals:
         return _get_latest_child(frame.f_back, frame.f_locals['self'])
     else:
