@@ -1,6 +1,7 @@
 import glob
 import logging as log
 import os
+from argparse import Namespace
 
 import pytest
 import torch
@@ -316,3 +317,72 @@ def test_model_pickle(tmpdir):
 
     model = EvalModelTemplate()
     pickle.dumps(model)
+
+
+def test_dict_namespace_param_save_load(tmpdir):
+    """
+    Verifies that a dict and a Namespace can be passed in as args to a model
+    Args:
+        tmpdir:
+
+    Returns:
+
+    """
+    dict_param = EvalModelTemplate.get_default_hparams()
+    namespace = Namespace(**dict_param)
+
+    class SubClass(EvalModelTemplate):
+        def __init__(self, dict_param, namespace):
+            super().__init__()
+
+    model = SubClass(dict_param, namespace)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+    )
+    # fit model
+    result = trainer.fit(model)
+    assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(
+        trainer.checkpoint_callback.dirpath,
+        module_class=SubClass
+    )
+    assert pretrained_model
+    assert hasattr(pretrained_model, 'namespace')
+
+
+def test_invalid_param_save_load(tmpdir):
+    """
+    Verifies that a dict and a Namespace can be passed in as args to a model
+    Args:
+        tmpdir:
+
+    Returns:
+    """
+    dict_param = EvalModelTemplate.get_default_hparams()
+    namespace = Namespace(**dict_param)
+
+    class SubClass(EvalModelTemplate):
+        def __init__(self, dict_param, namespace):
+            super().__init__()
+
+    model = SubClass(dict_param, namespace)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+    )
+    # fit model
+    result = trainer.fit(model)
+    assert result == 1
+
+    # try to load the model now
+    pretrained_model = tutils.load_model_from_checkpoint(
+        trainer.checkpoint_callback.dirpath,
+        module_class=SubClass
+    )
+    assert pretrained_model
+    assert hasattr(pretrained_model, 'namespace')
