@@ -280,7 +280,6 @@ def test_model_loading_hparam_override(tmpdir):
     """Tests use case where the user overrides some hparams when loading a checkpoint."""
     model = EvalModelTemplate()
     hparams = vars(model.hparams)
-
     trainer_options = dict(
         max_epochs=1,
         logger=False,
@@ -290,21 +289,20 @@ def test_model_loading_hparam_override(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-
     # traning complete
     assert result == 1, 'amp + ddp model failed to complete'
 
     # save checkpoint
-    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
-    trainer.save_checkpoint(new_weights_path)
+    checkpoint_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(checkpoint_path)
 
-    # load model override batch_size, add new_param
+    # load the checkpoint and override batch_size, add new_param
     hparam_overrides = {
         'batch_size': 1,
         'new_param': 0.1
     }
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=checkpoint_path,
         hparam_overrides=hparam_overrides
     )
     hparams_2 = vars(model_2.hparams)
@@ -313,3 +311,18 @@ def test_model_loading_hparam_override(tmpdir):
     # verify overwritten params
     assert hparams_2['batch_size'] == 1
     assert 'new_param' in hparams_2 and hparams_2['new_param'] == 0.1
+
+    # create a checkpoint that does not have hparams
+    ckpt = torch.load(checkpoint_path)
+    del(ckpt['hparams'])
+    torch.save(ckpt, checkpoint_path)
+
+    # load the checkpoint with hparam_overrides
+    hparam_overrides_2 = vars(EvalModelTemplate.get_default_hparams())
+    model_3 = EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+        hparam_overrides=hparam_overrides_2
+    )
+    hparams_3 = vars(model_3.hparams)
+    # verify all the hparams are equal to the hparam_overrides
+    assert all([hparam_overrides_2[param] == hparams_3[param] for param in hparam_overrides_2])
