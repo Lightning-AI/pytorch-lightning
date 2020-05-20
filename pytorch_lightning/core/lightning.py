@@ -1710,6 +1710,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         # two frames back is the init of the child module
         frame = inspect.currentframe()
+        # todo: this shall be flexible to find all init in the path, recursion?
         frame_args = frame.f_back.f_back.f_locals
 
         # we'll save hparams automatically (renamed to module_arguments)

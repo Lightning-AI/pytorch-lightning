@@ -11,7 +11,7 @@ class SubClassEvalModelTemplate(EvalModelTemplate):
     object_that_should_not_be_saved = torch.nn.CrossEntropyLoss()
 
     def __init__(self, *args, subclass_arg=1200, **kwargs):
-        super().__init__(*args, subclass_arg=subclass_arg, **kwargs)
+        super().__init__()
 
 
 class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
