@@ -1713,32 +1713,39 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # todo: this shall be flexible to find all init in the path, recursion?
         frame_args = frame.f_back.f_back.f_locals
 
+        frame_args = _collect_init_args(frame)
+        init_args = {k: v for k, v in frame_args.items()
+                     if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
+        child = _get_latest_child(frame)
+
         # we'll save hparams automatically (renamed to module_arguments)
-        module_arguments = {}
-
-        # pull out the child itself to make sure we have no issues
-        child = frame_args['self']
-
-        # auto set the attr which enables self.attr anywhere in the code
-        for name, value in frame_args.items():
-
-            # don't add self
-            if name not in ['self']:
-
-                # only track some things
-                is_trackable = self._is_allowed_hparam_value(value)
-
-                # don't overwrite something already set
-                if not hasattr(child, name) and is_trackable:
-                    setattr(child, name, value)
-
-                if is_trackable:
-                    module_arguments[name] = value
+        for arg, val in init_args.items():
+            # don't overwrite something already set
+            if hasattr(child, arg):
+                continue
+            setattr(child, arg, val)
 
         # set module_arguments in child
-        setattr(child, 'module_arguments', module_arguments)
+        setattr(child, 'module_arguments', init_args)
 
-    def _is_allowed_hparam_value(self, value):
-        if isinstance(value, Namespace):
-            return True
-        return not hasattr(value, '__dict__')
+    # def _is_allowed_hparam_value(self, value):
+    #     if isinstance(value, Namespace):
+    #         return True
+    #     return not hasattr(value, '__dict__')
+
+
+def _collect_init_args(frame, args={}):
+    if any(k in frame.f_locals for k in ['self', '__class__']):
+        local_args = frame.f_locals   # .get('frame_args')
+        local_args.update(local_args.get('kwargs', {}))
+        args.update(local_args)
+        return _collect_init_args(frame.f_back, args)
+    else:
+        return args
+
+
+def _get_latest_child(frame, child=None):
+    if 'self' in frame.f_locals:
+        return _get_latest_child(frame.f_back, frame.f_locals['self'])
+    else:
+        return child
