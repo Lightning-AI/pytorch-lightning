@@ -69,8 +69,8 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
-    setattr(hparams, 'optimizer_name', 'lbfgs')
-    setattr(hparams, 'learning_rate', 0.002)
+    hparams.update(optimizer_name='lbfgs',
+                   learning_rate=0.002)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
     tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
@@ -303,10 +303,12 @@ def test_tbptt_cpu_model(tmpdir):
             )
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.batch_size = batch_size
-    hparams.in_features = truncated_bptt_steps
-    hparams.hidden_dim = truncated_bptt_steps
-    hparams.out_features = truncated_bptt_steps
+    hparams.update(
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        hidden_dim=truncated_bptt_steps,
+        out_features=truncated_bptt_steps
+    )
 
     model = BpttTestModel(hparams)
 
