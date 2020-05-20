@@ -207,7 +207,7 @@ def roc(pred: torch.Tensor, target: torch.Tensor,
         pos_label: int = 1.) -> Tuple[torch.Tensor,
                                       torch.Tensor,
                                       torch.Tensor]:
-    tps, fps, thresholds = _binary_clf_curve(pred=pred, target=target,
+    fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
                                              sample_weight=sample_weight,
                                              pos_label=pos_label)
 
@@ -215,7 +215,7 @@ def roc(pred: torch.Tensor, target: torch.Tensor,
     # to make sure that the curve starts at (0, 0)
     tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
     fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
-    thresholds = torch.cat([thresholds[0][None], thresholds])
+    thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
 
     if fps[-1] <= 0:
         raise ValueError("No negative samples in targets, "
@@ -267,10 +267,10 @@ def precision_recall_curve(pred: torch.Tensor,
     # stop when full recall attained
     # and reverse the outputs so recall is decreasing
     last_ind = torch.where(tps == tps[-1])[0][0]
-    sl = slice(0, last_ind.item())
+    sl = slice(0, last_ind.item() + 1)
 
     # need to call reversed explicitly, since including that to slice would
-    # introduce negative strides thet are not yet supported in pytorch
+    # introduce negative strides that are not yet supported in pytorch
     precision = torch.cat([reversed(precision[sl]),
                            torch.ones(1, dtype=precision.dtype,
                                       device=precision.device)])
@@ -315,7 +315,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
     else:
         dx = x[1:] - x[:-1]
         if (dx < 0).any():
-            if (dx , 0).all():
+            if (dx, 0).all():
                 direction = -1.
             else:
                 raise ValueError("Reordering is not turned on, and "
