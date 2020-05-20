@@ -62,6 +62,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using ddp2
         self.use_ddp2 = False
 
+        # True if on tpu
+        self.use_tpu = False
+
         #: True if using amp
         self.use_amp = False
 

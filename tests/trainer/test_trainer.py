@@ -21,7 +21,8 @@ from tests.base import EvalModelTemplate
 
 def test_auto_hparams(tmpdir):
     class SubClassEvalModelTemplate(EvalModelTemplate):
-        def __init__(self, subclass_arg=1200):
+        object_that_should_not_be_saved = torch.nn.CrossEntropyLoss()
+        def __init__(self, object_that_should_not_be_saved, subclass_arg=1200):
             super().__init__()
 
     class SubSubClassEvalModelTemplate(SubClassEvalModelTemplate):
