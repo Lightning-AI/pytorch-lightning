@@ -259,7 +259,7 @@ class TrainerDataLoadingMixin(ABC):
 
                 if num_batches[i] != float('inf'):
                     self._percent_range_check(f'{mode}_percent_check')
-                    num_batches[i] = int(num_batches[i] * percent_check)
+                    num_batches[i] = int(len(dataloader) * percent_check)
                 elif percent_check not in (0.0, 1.0):
                     raise MisconfigurationException(
                         'When using an infinite DataLoader (e.g. with an IterableDataset'

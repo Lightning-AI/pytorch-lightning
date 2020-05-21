@@ -222,7 +222,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(self, model: LightningModule, dataloaders, max_batches: List[int], test_mode: bool = False):
+    def _evaluate(self, model: LightningModule, dataloaders: List[DataLoader], max_batches: List[int], test_mode: bool = False):
         """Run evaluation code.
 
         Args:
@@ -359,7 +359,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
-            max_batches = [1]*len(dataloaders)
+            max_batches = [1] * len(dataloaders)
 
         # Validation/Test begin callbacks
         if test_mode:
