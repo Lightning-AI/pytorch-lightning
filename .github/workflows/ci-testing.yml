@@ -22,10 +22,10 @@ jobs:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
         python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
-        #exclude:
-        #  # excludes node 4 on macOS
-        #  - python-version: 3.8
-        #    requires: 'minimal'
+        exclude:
+          # excludes PT 1.3 as it is missing on pypi
+          - python-version: 3.8
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
