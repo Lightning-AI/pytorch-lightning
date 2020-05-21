@@ -1,6 +1,6 @@
 from typing import Callable
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, transfer_batch_to_device
 
 
