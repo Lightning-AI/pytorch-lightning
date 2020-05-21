@@ -245,7 +245,7 @@ class TrainerDataLoadingMixin(ABC):
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
 
-        num_batches = 0
+        num_batches = [0]*len(dataloaders)
 
         # determine number of batches
         # datasets could be none, 1 or 2+
