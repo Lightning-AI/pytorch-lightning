@@ -194,7 +194,7 @@ def _binary_clf_curve(pred: torch.Tensor, target: torch.Tensor,
     if sample_weight is not None:
         # express fps as a cumsum to ensure fps is increasing even in
         # the presence of floating point errors
-        fps = torch.cumsum((1 - target) * weight)[threshold_idxs]
+        fps = torch.cumsum((1 - target) * weight, dim=0)[threshold_idxs]
 
     else:
         fps = 1 + threshold_idxs - tps
@@ -359,13 +359,17 @@ def auroc(pred: torch.Tensor, target: torch.Tensor,
                pos_label=pos_label)
 
 
-@auc_decorator(reorder=True)
 def average_precision(pred: torch.Tensor, target: torch.Tensor,
                       sample_weight: Optional[Sequence] = None,
                       pos_label: int = 1.) -> torch.Tensor:
-    return precision_recall_curve(pred=pred, target=target,
-                                  sample_weight=sample_weight,
-                                  pos_label=pos_label)
+    precision, recall, _ = precision_recall_curve(pred=pred, target=target,
+                                                  sample_weight=sample_weight,
+                                                  pos_label=pos_label)
+
+    # Return the step function integral
+    # The following works because the last entry of precision is
+    # guaranteed to be 1, as returned by precision_recall_curve
+    return -torch.sum(recall[1:] - recall[:-1] * precision[:-1])
 
 
 def dice_score(pred: torch.Tensor, target: torch.Tensor, bg: bool = False,
