@@ -70,9 +70,9 @@ class TrainerDataLoadingMixin(ABC):
     num_training_batches: Union[int, float]
     val_check_batch: ...
     val_dataloaders: List[DataLoader]
-    num_val_batches: Union[int, float]
+    num_val_batches: List[int]
     test_dataloaders: List[DataLoader]
-    num_test_batches: Union[int, float]
+    num_test_batches: List[int]
     train_percent_check: float
     val_percent_check: float
     test_percent_check: float
@@ -245,7 +245,7 @@ class TrainerDataLoadingMixin(ABC):
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
 
-        num_batches = [0]*len(dataloaders)
+        num_batches = [float('inf')] * len(dataloaders)
         percent_check = getattr(self, f'{mode}_percent_check')
 
         # determine number of batches
@@ -253,11 +253,8 @@ class TrainerDataLoadingMixin(ABC):
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
-                if not _has_len(dataloader):
-                    num_batches[i] = float('inf')
 
-
-                if num_batches[i] != float('inf'):
+                if _has_len(dataloader):
                     self._percent_range_check(f'{mode}_percent_check')
                     num_batches[i] = int(len(dataloader) * percent_check)
                 elif percent_check not in (0.0, 1.0):
@@ -265,6 +262,7 @@ class TrainerDataLoadingMixin(ABC):
                         'When using an infinite DataLoader (e.g. with an IterableDataset'
                         f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
                         f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+
         return num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:

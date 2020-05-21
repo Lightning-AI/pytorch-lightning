@@ -383,9 +383,9 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
-        self.num_val_batches = 0
+        self.num_val_batches = []
         self.num_training_batches = 0
-        self.num_test_batches = 0
+        self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
@@ -984,10 +984,11 @@ class Trainer(
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model,
-                                          self.val_dataloaders,
-                                          [self.num_sanity_val_steps] * len(self.val_dataloaders)
-                                          False)
+            eval_results = self._evaluate(model=model,
+                                          dataloaders=self.val_dataloaders,
+                                          max_batches=[self.num_sanity_val_steps] * len(self.val_dataloaders),
+                                          test_mode=False)
+
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             self.on_sanity_check_end()

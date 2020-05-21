@@ -162,8 +162,8 @@ class TrainerEvaluationLoopMixin(ABC):
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
-    num_test_batches: int
-    num_val_batches: int
+    num_test_batches: List[int]
+    num_val_batches: List[int]
     fast_dev_run: ...
     process_output: ...
     progress_bar_dict: ...
@@ -226,9 +226,10 @@ class TrainerEvaluationLoopMixin(ABC):
         """Run evaluation code.
 
         Args:
-            model: PT model
-            dataloaders: list of PT dataloaders
-            max_batches: list of Scalar values
+            model: The model to evaluate.
+            dataloaders: A list of PyTorch dataloaders.
+            max_batches: A list of integers with length of the number of dataloaders. Each
+                entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
         # enable eval mode
