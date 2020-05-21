@@ -928,7 +928,7 @@ class Trainer(
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def run_pretrain_routine(self, model: LightningModule):
+    def run_pretrain_routine(self, model: LightningModule, run_train=True):
         """Sanity check a few things before starting actual training.
 
         Args:
@@ -1026,7 +1026,8 @@ class Trainer(
             torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
-        self.train()
+        if run_train:
+            self.train()
 
     def test(
             self,
