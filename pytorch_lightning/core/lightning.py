@@ -1713,7 +1713,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # todo: this shall be flexible to find all init in the path, recursion?
         frame_args = frame.f_back.f_back.f_locals
 
-        frame_args = _collect_init_args(frame)
+        frame_args = _collect_init_args(frame, {})
         init_args = {k: v for k, v in frame_args.items()
                      if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
         child = _get_latest_child(frame)
@@ -1722,6 +1722,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for arg, val in init_args.items():
             # don't overwrite something already set
             if hasattr(child, arg):
+                log.warning(f'init argument `{arg}` was skipped while auto `hparams` registering,'
+                            ' because ut match already existing attribute of this class.')
                 continue
             setattr(child, arg, val)
 
@@ -1729,7 +1731,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         setattr(child, 'module_arguments', init_args)
 
 
-def _collect_init_args(frame, args: dict = {}) -> dict:
+def _collect_init_args(frame, args: dict) -> dict:
     """Recursive search for all children."""
     if any(k in frame.f_locals for k in ['self', '__class__']):
         local_args = frame.f_locals   # .get('frame_args')
