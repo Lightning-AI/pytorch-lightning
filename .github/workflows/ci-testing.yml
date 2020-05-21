@@ -52,13 +52,13 @@ jobs:
     - name: Setup Windows on Latest
       if: runner.os == 'windows' && matrix.requires == 'latest'
       run: |
-        python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch<1.5') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements.txt').read().replace('torch>=1.3', 'torch<1.5') ; open('requirements.txt', 'w').write(req)"
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Setup MacOS Minimal
       if: runner.os == 'macOS' && matrix.requires == 'minimal'
       run : |
-        python -c "req = open('requirements.txt').read().replace('torch>=1.1', 'torch>=1.4') ; open('requirements.txt', 'w').write(req)"
+        python -c "req = open('requirements.txt').read().replace('torch>=1.3', 'torch>=1.4') ; open('requirements.txt', 'w').write(req)"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
