@@ -189,8 +189,8 @@ workflows:
     jobs:
       - Formatting
       - Build-Docs
-      - PyTorch-v1_1
-      - PyTorch-v1_2
+      #- PyTorch-v1_1
+      #- PyTorch-v1_2
       - PyTorch-v1_3
       - PyTorch-v1_4
       - PyTorch-v1_5
