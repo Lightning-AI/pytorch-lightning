@@ -21,7 +21,6 @@ from pytorch_lightning.overrides.data_parallel import (
 from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.data import transfer_data_to_device
 
 try:
     from apex import amp

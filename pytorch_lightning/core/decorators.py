@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Callable
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -39,6 +40,7 @@ def auto_move_data(fn: Callable) -> Callable:
             for x, y in loader:
                 output = model(x)
     """
+    @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
