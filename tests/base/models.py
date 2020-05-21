@@ -18,7 +18,7 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, img_shape):
+    def __init__(self, latent_dim: tuple, img_shape: tuple):
         super().__init__()
         self.img_shape = img_shape
 
@@ -45,7 +45,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, img_shape):
+    def __init__(self, img_shape: tuple):
         super().__init__()
 
         self.model = nn.Sequential(
@@ -67,12 +67,12 @@ class Discriminator(nn.Module):
 class TestGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: dict):
         super().__init__()
 
         # networks
         mnist_shape = (1, 28, 28)
-        self.generator = Generator(latent_dim=hparams.hidden_dim, img_shape=mnist_shape)
+        self.generator = Generator(latent_dim=self.hidden_dim, img_shape=mnist_shape)
         self.discriminator = Discriminator(img_shape=mnist_shape)
 
         # cache for generated images
