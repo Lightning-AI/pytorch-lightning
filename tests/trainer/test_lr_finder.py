@@ -89,7 +89,7 @@ def test_trainer_arg_bool(tmpdir):
     )
 
     trainer.fit(model)
-    after_lr = model.hparams.learning_rate
+    after_lr = model.learning_rate
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -109,7 +109,7 @@ def test_trainer_arg_str(tmpdir):
     )
 
     trainer.fit(model)
-    after_lr = model.hparams.my_fancy_lr
+    after_lr = model.my_fancy_lr
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -129,7 +129,7 @@ def test_call_to_trainer_method(tmpdir):
 
     lrfinder = trainer.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
-    model.hparams.learning_rate = after_lr
+    model.learning_rate = after_lr
     trainer.fit(model)
 
     assert before_lr != after_lr, \
