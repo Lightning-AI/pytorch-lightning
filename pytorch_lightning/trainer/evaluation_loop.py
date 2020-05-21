@@ -222,7 +222,13 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(self, model: LightningModule, dataloaders: List[DataLoader], max_batches: List[int], test_mode: bool = False):
+    def _evaluate(
+                  self,
+                  model: LightningModule,
+                  dataloaders: List[DataLoader],
+                  max_batches: List[int],
+                  test_mode: bool = False
+    ):
         """Run evaluation code.
 
         Args:
