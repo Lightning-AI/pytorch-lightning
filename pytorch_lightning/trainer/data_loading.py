@@ -246,6 +246,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
 
         num_batches = [0]*len(dataloaders)
+        percent_check = getattr(self, f'{mode}_percent_check')
 
         # determine number of batches
         # datasets could be none, 1 or 2+
@@ -253,20 +254,17 @@ class TrainerDataLoadingMixin(ABC):
             for i, dataloader in enumerate(dataloaders):
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
                 if not _has_len(dataloader):
-                    num_batches = float('inf')
+                    num_batches[i] = float('inf')
 
-            percent_check = getattr(self, f'{mode}_percent_check')
 
-            if num_batches != float('inf'):
-                self._percent_range_check(f'{mode}_percent_check')
-
-                num_batches = sum(len(dataloader) for dataloader in dataloaders)
-                num_batches = int(num_batches * percent_check)
-            elif percent_check not in (0.0, 1.0):
-                raise MisconfigurationException(
-                    'When using an infinite DataLoader (e.g. with an IterableDataset'
-                    f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
-                    f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+                if num_batches[i] != float('inf'):
+                    self._percent_range_check(f'{mode}_percent_check')
+                    num_batches[i] = int(num_batches[i] * percent_check)
+                elif percent_check not in (0.0, 1.0):
+                    raise MisconfigurationException(
+                        'When using an infinite DataLoader (e.g. with an IterableDataset'
+                        f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
+                        f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
         return num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:

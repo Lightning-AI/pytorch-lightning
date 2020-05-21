@@ -986,7 +986,7 @@ class Trainer(
 
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
-                                          self.num_sanity_val_steps,
+                                          [self.num_sanity_val_steps],
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
