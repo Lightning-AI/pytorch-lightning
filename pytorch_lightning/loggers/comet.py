@@ -79,7 +79,9 @@ class CometLogger(LightningLoggerBase):
         >>> trainer = Trainer(logger=comet_logger)
 
     Args:
-        api_key: Required in online mode. API key, found on Comet.ml
+        api_key: Required in online mode. API key, found on Comet.ml. If neither api_key nor save_dir are
+            given, this will be loaded from the environment variable COMET_API_KEY or ~/.comet_config, if
+            either exists.
         save_dir: Required in offline mode. The path for the directory to save local comet logs
         workspace: Optional. Name of workspace for this user
         project_name: Optional. Send your experiment to a specific project.
