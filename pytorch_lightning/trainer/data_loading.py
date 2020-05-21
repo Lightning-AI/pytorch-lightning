@@ -286,8 +286,9 @@ class TrainerDataLoadingMixin(ABC):
                 num_batches = 0
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
                 if not _has_len(dataloader):
-                    num_batches = float('inf')
+                    num_batches[i] = float('inf')
 
+<<<<<<< HEAD
                 # percent or num_steps
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
