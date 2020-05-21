@@ -58,7 +58,7 @@ def test_auto_hparams(tmpdir, cls):
         assert model.skip_arg == 15
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(max_steps=5)
+    trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
     trainer.fit(model)
     raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
     raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]

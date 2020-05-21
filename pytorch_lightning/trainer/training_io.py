@@ -263,12 +263,11 @@ class TrainerIOMixin(ABC):
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)
-            except AttributeError as e:
+            except AttributeError as err:
                 if 'module_arguments' in checkpoint:
                     del checkpoint['module_arguments']
-                rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
-                               f' An attribute is not picklable {e}')
-
+                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
+                               f' An attribute is not picklable {err}')
                 self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -343,8 +342,11 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, 'module_arguments') and model.module_arguments is not None:
-            checkpoint['module_arguments'] = model.module_arguments
+        if hasattr(model, 'module_arguments') and model.module_arguments:
+            # copy the actual values from model according the list
+            module_args = {k: getattr(model, k) for k in model.module_arguments}
+            # add arguments to the checkpoint
+            checkpoint['module_arguments'] = module_args
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -453,7 +455,6 @@ class TrainerIOMixin(ABC):
                 del checkpoint['module_arguments']
             rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
                            f' An attribute is not picklable {e}')
-
             self._atomic_save(checkpoint, filepath)
 
         return filepath

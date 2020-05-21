@@ -1728,7 +1728,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             setattr(child, arg, val)
 
         # set module_arguments in child
-        setattr(child, 'module_arguments', init_args)
+        setattr(child, 'module_arguments', [k for k in init_args])
 
 
 def _collect_init_args(frame, args: dict) -> dict:
