@@ -97,10 +97,10 @@ def test_trainer_arg_bool(tmpdir):
 def test_trainer_arg_str(tmpdir):
     """ Test that setting trainer arg to string works """
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
+    hparams['my_fancy_lr'] = 1.0  # update with non-standard field
     model = EvalModelTemplate(**hparams)
 
-    before_lr = hparams.my_fancy_lr
+    before_lr = hparams.get('my_fancy_lr')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -120,7 +120,7 @@ def test_call_to_trainer_method(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    before_lr = hparams.learning_rate
+    before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -143,7 +143,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    before_lr = hparams.learning_rate
+    before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,

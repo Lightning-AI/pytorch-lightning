@@ -96,7 +96,7 @@ class EvalModelTemplate(
         _ = TrialMNIST(root=self.data_root, train=True, download=True)
 
     @staticmethod
-    def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> Namespace:
+    def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> dict:
         args = dict(
             drop_prob=0.2,
             batch_size=32,

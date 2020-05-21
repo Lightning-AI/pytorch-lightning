@@ -23,7 +23,7 @@ def test_optimizer_with_scheduling(tmpdir):
     results = trainer.fit(model)
     assert results == 1
 
-    init_lr = hparams.learning_rate
+    init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
     assert len(trainer.lr_schedulers) == 1, \
@@ -54,7 +54,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     results = trainer.fit(model)
     assert results == 1
 
-    init_lr = hparams.learning_rate
+    init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
@@ -89,7 +89,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     results = trainer.fit(model)
     assert results == 1
 
-    init_lr = hparams.learning_rate
+    init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
