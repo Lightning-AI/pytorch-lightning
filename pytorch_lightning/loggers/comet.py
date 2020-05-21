@@ -124,7 +124,9 @@ class CometLogger(LightningLoggerBase):
                 self.api_key = api_key
             else:
                 # If neither api_key nor save_dir are passed as arguments, raise an exception
-                raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
+                raise MisconfigurationException(
+                    "CometLogger requires either api_key or save_dir during initialization."
+                )
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
