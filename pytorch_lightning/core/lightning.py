@@ -1563,9 +1563,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             checkpoint['module_arguments'] = hparams
 
         # override the module_arguments with values that were passed in
-        for k, v in kwargs.items():
-            if k in checkpoint['module_arguments']:
-                checkpoint['module_arguments'][k] = v
+        checkpoint['module_arguments'].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model

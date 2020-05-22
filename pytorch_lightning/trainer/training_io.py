@@ -203,7 +203,7 @@ class TrainerIOMixin(ABC):
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
-        except Exception as e:
+        except Exception:
             pass
 
         if on_slurm:
@@ -459,11 +459,11 @@ class TrainerIOMixin(ABC):
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
             self._atomic_save(checkpoint, filepath)
-        except AttributeError as e:
+        except AttributeError as err:
             if 'module_arguments' in checkpoint:
                 del checkpoint['module_arguments']
             rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
-                           f' An attribute is not picklable {e}')
+                           f' An attribute is not picklable {err}')
             self._atomic_save(checkpoint, filepath)
 
         return filepath

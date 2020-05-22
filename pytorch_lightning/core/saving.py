@@ -156,8 +156,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 def convert(val: str) -> Union[int, float, bool, str]:
     try:
         return ast.literal_eval(val)
-    except (ValueError, SyntaxError) as e:
-        log.debug(e)
+    except (ValueError, SyntaxError) as err:
+        log.debug(err)
         return val
 
 
