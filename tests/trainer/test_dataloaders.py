@@ -251,6 +251,51 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
+@pytest.mark.parametrize(
+    ['train_percent_check', 'val_percent_check', 'test_percent_check'],
+    [
+        pytest.param(0.0, 0.0, 0.3),  # test percent check can never be 0
+        pytest.param(1.0, 1.0, 1.0),
+        pytest.param(0.2, 0.4, 0.4),
+    ]
+)
+def test_dataloaders_with_percent_check(tmpdir, train_percent_check, val_percent_check, test_percent_check):
+    """Verify num_batches for val & test dataloaders passed with percent_check"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__multiple_mixed_length
+    model.test_dataloader = model.test_dataloader__multiple_mixed_length
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+    model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
+
+    # train, multiple val and multiple test passed with percent_check
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        train_percent_check=train_percent_check,
+        val_percent_check=val_percent_check,
+        test_percent_check=test_percent_check,
+    )
+    trainer.fit(model)
+    expected_train_batches = int(len(trainer.train_dataloader) * train_percent_check)
+    expected_val_batches = [
+        int(len(dataloader) * val_percent_check) for dataloader in trainer.val_dataloaders
+    ]
+    assert trainer.num_training_batches == expected_train_batches, \
+        f'train_percent_check not working with train_dataloaders, got {trainer.num_training_batches}'
+
+    assert trainer.num_val_batches == expected_val_batches, \
+        f'val_percent_check not working with val_dataloaders, got {trainer.num_val_batches}'
+
+    trainer.test()
+    expected_test_batches = [
+        int(len(dataloader) * test_percent_check) for dataloader in trainer.test_dataloaders
+    ]
+    assert trainer.num_test_batches == expected_test_batches, \
+        f'test_percent_check not working with test_dataloaders, got {trainer.num_test_batches}'
+
+
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     """Verify that dataloaders can be passed to fit"""
