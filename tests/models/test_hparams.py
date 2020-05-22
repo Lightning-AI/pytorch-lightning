@@ -29,18 +29,11 @@ class SubSubClassEvalModel(SubClassEvalModel):
     pass
 
 
-class PersistClassEvalModel(SubClassEvalModel):
-    def __init__(self, *args, skip_arg=450, **kwargs):
-        self.skip_arg = 15
-        super().__init__()
-
-
 @pytest.mark.parametrize("cls", [EvalModelTemplate,
                                  SubClassEvalModel,
                                  SubSubClassEvalModel,
                                  HparamsNamespaceEvalModel,
-                                 HparamsDictEvalModel,
-                                 PersistClassEvalModel])
+                                 HparamsDictEvalModel])
 def test_auto_hparams(tmpdir, cls):
     # test that the model automatically sets the args passed into init as attrs
     model = cls()
