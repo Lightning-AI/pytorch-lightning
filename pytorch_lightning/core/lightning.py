@@ -1727,7 +1727,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             setattr(child, arg, val)
 
         # set module_arguments in child
-        setattr(child, 'module_arguments', [k for k in init_args])
+        # skip `hparams` to uncycle with property
+        setattr(child, 'module_arguments', [k for k in init_args if k != 'hparams'])
 
     def get_hyper_params(self, save_mode: True) -> dict:
         """Copy the actual values from model according the list
