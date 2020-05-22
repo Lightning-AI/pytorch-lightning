@@ -85,7 +85,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 import os
 import re
-import pickle
 import signal
 from abc import ABC
 from subprocess import call
@@ -141,6 +140,9 @@ class TrainerIOMixin(ABC):
     on_tpu: bool
     num_training_batches: int
     accumulate_grad_batches: int
+    use_amp: bool
+    use_native_amp: bool
+    scaler: ...
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
@@ -352,15 +354,8 @@ class TrainerIOMixin(ABC):
         checkpoint['state_dict'] = model.state_dict()
 
         if hasattr(model, 'module_arguments') and model.module_arguments:
-            # copy the actual values from model according the list
-            module_args = {}
-            for k in model.module_arguments:
-                val = getattr(model, k)
-                if save_mode and not _is_serializable(val):
-                    continue
-                module_args[k] = val
             # add arguments to the checkpoint
-            checkpoint['module_arguments'] = module_args
+            checkpoint['module_arguments'] = model.get_hyper_params(save_mode=save_mode)
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -513,17 +508,3 @@ class TrainerIOMixin(ABC):
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
-
-
-def _is_serializable(obj) -> bool:
-    """Try if the object is serializable
-
-    >>> _is_serializable(5)
-    True
-    """
-    try:
-        pickle.dumps(obj)
-    except Exception:
-        return False
-    else:
-        return True

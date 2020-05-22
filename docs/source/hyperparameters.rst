@@ -88,8 +88,8 @@ Finally, make sure to start the training like so:
 .. code-block:: python
 
     # YES
-    model = LitModel(hparams)
-    trainer = Trainer.from_argparse_args(hparams, early_stopping_callback=...)
+    model = LitModel(**hparams)
+    trainer = Trainer.from_argparse_args(**hparams, early_stopping_callback=...)
 
     # NO
     # model = LitModel(learning_rate=hparams.learning_rate, ...)
@@ -169,10 +169,10 @@ To recap, add ALL possible trainer flags to the argparser and init the Trainer t
     parser = Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
 
-    trainer = Trainer.from_argparse_args(hparams)
+    trainer = Trainer.from_argparse_args(**hparams)
 
     # or if you need to pass in callbacks
-    trainer = Trainer.from_argparse_args(hparams, checkpoint_callback=..., callbacks=[...])
+    trainer = Trainer.from_argparse_args(**hparams, checkpoint_callback=..., callbacks=[...])
 
 
 Multiple Lightning Modules

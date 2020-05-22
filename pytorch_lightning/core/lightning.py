@@ -17,7 +17,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml, update_hparams
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml, update_hparams, \
+    is_picklable
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1730,6 +1731,29 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         # set module_arguments in child
         setattr(child, 'module_arguments', [k for k in init_args])
+
+    def get_hyper_params(self, save_mode: True) -> dict:
+        """Copy the actual values from model according the list
+
+        Args:
+            weights_only: saving model weights only
+            save_mode: drop all init argument which are not primitives
+
+        Return:
+             structured dictionary
+        """
+        module_args = {}
+        for k in self.module_arguments:
+            val = getattr(self, k)
+            if save_mode and not is_picklable(val):
+                continue
+            module_args[k] = val
+        return module_args
+
+    @property
+    def hparams(self) -> dict:
+        """Imitate rhe pas `hparams` attribute."""
+        return self.get_hyper_params(save_mode=True)
 
 
 def _collect_init_args(frame, args: dict) -> dict:
