@@ -748,26 +748,26 @@ def determine_root_gpu_device(gpus):
     return root_gpu
 
 
-def retry_jittered_backoff(f, num_retries=5):
-    # Based on:
-    # https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-    cap = 1.0                  # max sleep time is 1s
-    base = 0.01                # initial sleep time is 10ms
-    sleep = base               # initial sleep time is 10ms
+# def retry_jittered_backoff(f, num_retries=5):
+#     # Based on:
+#     # https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+#     cap = 1.0                  # max sleep time is 1s
+#     base = 0.01                # initial sleep time is 10ms
+#     sleep = base               # initial sleep time is 10ms
+#
+#     for i in range(num_retries):
+#         try:
+#             return f()
+#         except RuntimeError as e:
+#             if i == num_retries - 1:
+#                 raise e
+#             else:
+#                 continue
+#         time.sleep(sleep)
+#         sleep = min(cap, random.uniform(base, sleep * 3))
 
-    for i in range(num_retries):
-        try:
-            return f()
-        except RuntimeError as e:
-            if i == num_retries - 1:
-                raise e
-            else:
-                continue
-        time.sleep(sleep)
-        sleep = min(cap, random.uniform(base, sleep * 3))
 
-
-def pick_single_gpu(exclude_gpus=[]):
+def pick_single_gpu(exclude_gpus: list):
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
@@ -781,9 +781,9 @@ def pick_single_gpu(exclude_gpus=[]):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_multiple_gpus(n):
+def pick_multiple_gpus(nb):
     picked = []
-    for _ in range(n):
+    for _ in range(nb):
         picked.append(pick_single_gpu(exclude_gpus=picked))
 
     return picked
