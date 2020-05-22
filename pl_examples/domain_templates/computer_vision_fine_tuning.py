@@ -148,14 +148,14 @@ class TransferLearningModel(pl.LightningModule):
         dl_path: Path where the data will be downloaded
     """
     def __init__(self,
+                 dl_path: Union[str, Path],
                  backbone='resnet50',
                  train_bn=True,
                  milestones=(5, 10),
                  batch_size=8,
                  lr=1e-2,
                  lr_scheduler_gamma=1e-1,
-                 num_workers=6,
-                 dl_path: Union[str, Path]) -> None:
+                 num_workers=6) -> None:
         super().__init__()
 
         self.dl_path = dl_path
@@ -416,7 +416,7 @@ def main(args: argparse.Namespace) -> None:
 
     with TemporaryDirectory(dir=args.root_data_path) as tmp_dir:
 
-        model = TransferLearningModel(**args, dl_path=tmp_dir)
+        model = TransferLearningModel(dl_path=tmp_dir, **vars(args))
 
         trainer = pl.Trainer(
             weights_summary=None,

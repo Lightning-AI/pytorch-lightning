@@ -85,9 +85,9 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 import os
 import re
+import pickle
 import signal
 from abc import ABC
-from argparse import Namespace
 from subprocess import call
 from typing import Union
 
@@ -305,7 +305,16 @@ class TrainerIOMixin(ABC):
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-    def dump_checkpoint(self, weights_only: bool = False):
+    def dump_checkpoint(self, weights_only: bool = False, save_mode: bool = True) -> dict:
+        """Creating model checkpoint.
+
+        Args:
+            weights_only: saving model weights only
+            save_mode: drop all init argument which are not primitives
+
+        Return:
+             structured dictionary
+        """
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
@@ -344,7 +353,12 @@ class TrainerIOMixin(ABC):
 
         if hasattr(model, 'module_arguments') and model.module_arguments:
             # copy the actual values from model according the list
-            module_args = {k: getattr(model, k) for k in model.module_arguments}
+            module_args = {}
+            for k in model.module_arguments:
+                val = getattr(model, k)
+                if save_mode and not _is_serializable(val):
+                    continue
+                module_args[k] = val
             # add arguments to the checkpoint
             checkpoint['module_arguments'] = module_args
 
@@ -499,3 +513,17 @@ class TrainerIOMixin(ABC):
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
+
+
+def _is_serializable(obj) -> bool:
+    """Try if the object is serializable
+
+    >>> _is_serializable(5)
+    True
+    """
+    try:
+        pickle.dumps(obj)
+    except Exception:
+        return False
+    else:
+        return True
