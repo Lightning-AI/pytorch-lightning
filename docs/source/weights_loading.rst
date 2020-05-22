@@ -64,7 +64,7 @@ under the `module_arguments` key in the checkpoint.
 
 .. testcode::
 
-   class MyLightningModule(LightningModule):
+    class MyLightningModule(LightningModule):
 
        def __init__(self, learning_rate, *args, **kwargs):
             super().__init__()
