@@ -79,7 +79,7 @@ def test_trainer_arg_bool(tmpdir):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
-    before_lr = hparams.learning_rate
+    before_lr = hparams.get('learning_rate')
 
     # logger file to get meta
     trainer = Trainer(
