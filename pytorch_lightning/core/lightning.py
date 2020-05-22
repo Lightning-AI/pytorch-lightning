@@ -17,8 +17,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml, update_hparams, \
-    is_picklable
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -75,7 +74,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
-        self.module_arguments = []
         # register all params passed into the child module in __init__
         self._auto_register_hparams()
 
@@ -1712,17 +1710,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         child = _get_latest_child(frame)
 
         # set module_arguments in child
-        child.module_self_arguments = frame_args[-1]
-        child.module_parents_arguments = {}
-        for args in frame_args[-1]:
+        if not hasattr(child, 'module_self_arguments') or not child.module_self_arguments:
+            child.module_self_arguments = frame_args[-1]
+        if not hasattr(child, 'module_parents_arguments') or not child.module_parents_arguments:
+            child.module_parents_arguments = {}
+        for args in frame_args[:-1]:
             child.module_parents_arguments.update(args)
 
     @property
     def module_arguments(self) -> dict:
-        """Aggregate this module and ll parents arguments."""
-        args = dict(self.module_self_arguments)
-        args.update(self.module_parents_arguments)
+        """Aggregate this module and all parents arguments."""
+        args = dict(self.module_parents_arguments)
+        args.update(self.module_self_arguments)
         return args
+
+    @property
+    def module_hparams(self) -> Namespace:
+        return Namespace(**self.module_arguments)
 
 
 def _collect_init_args(frame, path_args: list) -> list:

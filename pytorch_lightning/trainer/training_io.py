@@ -96,7 +96,6 @@ import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.saving import is_picklable
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,

@@ -44,18 +44,18 @@ class PersistClassEvalModel(SubClassEvalModel):
 def test_auto_hparams(tmpdir, cls):
     # test that the model automatically sets the args passed into init as attrs
     model = cls()
-    assert model.batch_size == 32
+    assert model.module_hparams.batch_size == 32
     model = cls(batch_size=179)
-    assert model.batch_size == 179
+    assert model.module_hparams.batch_size == 179
 
     if isinstance(model, SubClassEvalModel):
-        assert model.subclass_arg == 1200
+        assert model.module_hparams.subclass_arg == 1200
 
     if isinstance(model, (HparamsNamespaceEvalModel, HparamsDictEvalModel)):
-        assert model.hparam_arg == 123
+        assert model.module_hparams.hparam_arg == 123
 
     if isinstance(model, PersistClassEvalModel):
-        assert model.skip_arg == 15
+        assert model.module_hparams.skip_arg == 15
 
     # verify that the checkpoint saved the correct values
     trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
@@ -69,8 +69,8 @@ def test_auto_hparams(tmpdir, cls):
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model.batch_size == 179
+    assert model.module_hparams.batch_size == 179
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
-    assert model.batch_size == 99
+    assert model.module_hparams.batch_size == 99

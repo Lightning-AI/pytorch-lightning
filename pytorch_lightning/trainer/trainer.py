@@ -953,7 +953,7 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             if hasattr(ref_model, "module_arguments"):
-                self.logger.log_hyperparams({k: getattr(ref_model, k) for k in ref_model.module_arguments})
+                self.logger.log_hyperparams(ref_model.module_arguments)
 
             self.logger.save()
 
