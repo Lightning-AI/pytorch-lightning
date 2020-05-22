@@ -62,7 +62,7 @@ Or disable it by passing
 The Lightning checkpoint also saves the arguments passed into the LightningModule init
 under the `module_arguments` key in the checkpoint.
 
-.. testcode::
+.. code-block:: python
 
     class MyLightningModule(LightningModule):
 
