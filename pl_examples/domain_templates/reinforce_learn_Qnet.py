@@ -323,7 +323,7 @@ class DQNLightning(pl.LightningModule):
 
 
 def main(args) -> None:
-    model = DQNLightning(**args)
+    model = DQNLightning(args)
 
     trainer = pl.Trainer(
         gpus=1,

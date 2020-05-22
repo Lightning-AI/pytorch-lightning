@@ -1458,7 +1458,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     ) -> 'LightningModule':
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the items in `__init__`  in the checkpoint under `module_arguments`
+        it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
 
         Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
 

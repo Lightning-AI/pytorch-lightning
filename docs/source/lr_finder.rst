@@ -36,14 +36,14 @@ hyperparameters of the model.
     # default: no automatic learning rate finder
     trainer = Trainer(auto_lr_find=False)
 
-This flag sets your learning_rate which can be accessed via `self.lr|self.learning_rate`.
+This flag sets your learning rate which can be accessed via ``self.lr`` or ``self.learning_rate``.
 
 .. testcode::
 
     class LitModel(LightningModule):
 
         def configure_optimizers(self):
-            return Adam(self.parameters(), lr=self.lr|self.learning_rate)
+            return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate

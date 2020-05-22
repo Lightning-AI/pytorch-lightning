@@ -88,8 +88,8 @@ Finally, make sure to start the training like so:
 .. code-block:: python
 
     # YES
-    model = LitModel(**hparams)
-    trainer = Trainer.from_argparse_args(**hparams, early_stopping_callback=...)
+    model = LitModel(hparams)
+    trainer = Trainer.from_argparse_args(hparams, early_stopping_callback=...)
 
     # NO
     # model = LitModel(learning_rate=hparams.learning_rate, ...)
@@ -134,11 +134,11 @@ Now pass in the params when you init your model
     parser = ArgumentParser()
     parser = LitMNIST.add_model_specific_args(parser)
     args = parser.parse_args()
-    model = LitMNIST(**args)
+    model = LitMNIST(args)
 
 Within any LightningModule all the arguments you pass into your `__init__` will be available
 simply with `self.arg`. However, we won't overwrite any other arguments you have already defined.
-We will also add all of those values to the tensorboard hparams tab (unless it's an object which
+We will also add all of those values to the TensorBoard hparams tab (unless it's an object which
 we won't). We also will store those values into checkpoints for you which you can use to init your
 models.
 
@@ -169,10 +169,10 @@ To recap, add ALL possible trainer flags to the argparser and init the Trainer t
     parser = Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
 
-    trainer = Trainer.from_argparse_args(**hparams)
+    trainer = Trainer.from_argparse_args(hparams)
 
     # or if you need to pass in callbacks
-    trainer = Trainer.from_argparse_args(**hparams, checkpoint_callback=..., callbacks=[...])
+    trainer = Trainer.from_argparse_args(hparams, checkpoint_callback=..., callbacks=[...])
 
 
 Multiple Lightning Modules

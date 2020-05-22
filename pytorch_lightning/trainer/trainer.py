@@ -289,7 +289,7 @@ class Trainer(
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.lr | self.learning_rate in the lightning module.
+                rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
