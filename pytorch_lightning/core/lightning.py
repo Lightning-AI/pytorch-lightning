@@ -1710,10 +1710,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         1. we don't overwrite the property if it already exists
         2. we also store a module_arguments property for model loading and saving
         """
-        # two frames back is the init of the child module
         frame = inspect.currentframe()
-        # todo: this shall be flexible to find all init in the path, recursion?
-        frame_args = frame.f_back.f_back.f_locals
 
         frame_args = _collect_init_args(frame, {})
         init_args = {k: v for k, v in frame_args.items()
@@ -1752,7 +1749,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @property
     def hparams(self) -> dict:
-        """Imitate rhe pas `hparams` attribute."""
+        """Imitate the past `hparams` attribute."""
         return self.get_hyper_params(save_mode=True)
 
 
