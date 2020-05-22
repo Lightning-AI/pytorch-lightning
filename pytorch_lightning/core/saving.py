@@ -1,7 +1,6 @@
 import ast
 import csv
 import os
-import pickle
 
 import yaml
 from argparse import Namespace
@@ -159,17 +158,3 @@ def convert(val: str) -> Union[int, float, bool, str]:
     except (ValueError, SyntaxError) as err:
         log.debug(err)
         return val
-
-
-def is_picklable(obj) -> bool:
-    """Try if the object is serializable
-
-    >>> is_picklable(5)
-    True
-    """
-    try:
-        pickle.dumps(obj)
-    except Exception:
-        return False
-    else:
-        return True

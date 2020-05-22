@@ -84,6 +84,7 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 """
 
 import os
+import pickle
 import re
 import signal
 from abc import ABC
@@ -95,6 +96,7 @@ import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.saving import is_picklable
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -307,12 +309,11 @@ class TrainerIOMixin(ABC):
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-    def dump_checkpoint(self, weights_only: bool = False, save_mode: bool = True) -> dict:
+    def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating model checkpoint.
 
         Args:
             weights_only: saving model weights only
-            save_mode: drop all init argument which are not primitives
 
         Return:
              structured dictionary
@@ -355,7 +356,8 @@ class TrainerIOMixin(ABC):
 
         if hasattr(model, 'module_arguments') and model.module_arguments:
             # add arguments to the checkpoint
-            checkpoint['module_arguments'] = model.get_hyper_params(save_mode=save_mode)
+            checkpoint['module_arguments'] = {k: v for k, v in model.module_arguments.items()
+                                              if is_picklable(v)}
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -508,3 +510,17 @@ class TrainerIOMixin(ABC):
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
+
+
+def is_picklable(obj) -> bool:
+    """Try if the object is serializable
+
+    >>> is_picklable(5)
+    True
+    """
+    try:
+        pickle.dumps(obj)
+    except Exception:
+        return False
+    else:
+        return True

@@ -1705,67 +1705,41 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         Removes the need to pass in hparams. Instead, we register every argument in init
         to the module with some caveats:
-        1. we don't overwrite the property if it already exists
-        2. we also store a module_arguments property for model loading and saving
         """
         frame = inspect.currentframe()
 
-        frame_args = _collect_init_args(frame, {})
-        init_args = {k: v for k, v in frame_args.items()
-                     if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
+        frame_args = _collect_init_args(frame, [])
         child = _get_latest_child(frame)
 
-        # we'll save hparams automatically (renamed to module_arguments)
-        for arg, val in init_args.items():
-            # don't overwrite something already set
-            if hasattr(child, arg):
-                log.warning(f'init argument `{arg}` was skipped while auto `hparams` registering,'
-                            ' because ut match already existing attribute of this class.')
-                continue
-            setattr(child, arg, val)
-
         # set module_arguments in child
-        # skip `hparams` to uncycle with property
-        setattr(child, 'module_arguments', [k for k in init_args if k != 'hparams'])
-
-    def get_hyper_params(self, save_mode: True) -> dict:
-        """Copy the actual values from model according the list
-
-        Args:
-            weights_only: saving model weights only
-            save_mode: drop all init argument which are not primitives
-
-        Return:
-             structured dictionary
-        """
-        module_args = {}
-        for k in self.module_arguments:
-            val = getattr(self, k)
-            if save_mode and not is_picklable(val):
-                continue
-            module_args[k] = val
-        return module_args
+        child.module_self_arguments = frame_args[-1]
+        child.module_parents_arguments = {}
+        for args in frame_args[-1]:
+            child.module_parents_arguments.update(args)
 
     @property
-    def hparams(self) -> dict:
-        """Imitate the past `hparams` attribute."""
-        return self.get_hyper_params(save_mode=True)
+    def module_arguments(self) -> dict:
+        """Aggregate this module and ll parents arguments."""
+        args = dict(self.module_self_arguments)
+        args.update(self.module_parents_arguments)
+        return args
 
 
-def _collect_init_args(frame, args: dict) -> dict:
+def _collect_init_args(frame, path_args: list) -> list:
     """Recursive search for all children."""
-    if any(k in frame.f_locals for k in ['self', '__class__']):
-        local_args = frame.f_locals   # .get('frame_args')
+    if 'self' in frame.f_locals:
+        local_args = {k: v for k, v in frame.f_locals.items()
+                      if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
         local_args.update(local_args.get('kwargs', {}))
-        # back compatible hparsm as single argument
-        hparams = local_args.get('hparams')
-        if hparams:
+        if 'hparams' in local_args:
+            # back compatible hparams as single argument
+            hparams = local_args.get('hparams')
             local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
         # recursive update
-        args.update(local_args)
-        return _collect_init_args(frame.f_back, args)
+        path_args.append(local_args)
+        return _collect_init_args(frame.f_back, path_args)
     else:
-        return args
+        return path_args
 
 
 def _get_latest_child(frame, child: object = None) -> object:
