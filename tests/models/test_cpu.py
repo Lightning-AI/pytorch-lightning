@@ -272,8 +272,8 @@ def test_tbptt_cpu_model(tmpdir):
             return 1
 
     class BpttTestModel(EvalModelTemplate):
-        def __init__(self, hparams):
-            super().__init__(hparams)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.test_hidden = None
 
         def training_step(self, batch, batch_idx, hiddens):
@@ -310,7 +310,7 @@ def test_tbptt_cpu_model(tmpdir):
         out_features=truncated_bptt_steps
     )
 
-    model = BpttTestModel(hparams)
+    model = BpttTestModel(**hparams)
 
     # fit model
     trainer = Trainer(

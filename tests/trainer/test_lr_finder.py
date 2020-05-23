@@ -96,11 +96,10 @@ def test_trainer_arg_bool(tmpdir):
 
 def test_trainer_arg_str(tmpdir):
     """ Test that setting trainer arg to string works """
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams['my_fancy_lr'] = 1.0  # update with non-standard field
-    model = EvalModelTemplate(**hparams)
+    model = EvalModelTemplate()
+    model.my_fancy_lr = 1.0  # update with non-standard field
 
-    before_lr = hparams.get('my_fancy_lr')
+    before_lr = model.my_fancy_lr
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,

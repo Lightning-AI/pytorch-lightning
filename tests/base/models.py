@@ -67,8 +67,9 @@ class Discriminator(nn.Module):
 class TestGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
-    def __init__(self, hparams: dict):
+    def __init__(self, hidden_dim):
         super().__init__()
+        self.hidden_dim = hidden_dim
 
         # networks
         mnist_shape = (1, 28, 28)
