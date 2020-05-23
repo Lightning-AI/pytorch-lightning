@@ -742,7 +742,12 @@ class Trainer(
         params = vars(args)
         params.update(**kwargs)
 
-        return cls(**params)
+        # we only want to pass in valid Trainer args, the rest may be user specific
+        valid_kwargs = cls.__init__.__code__.co_varnames
+        valid_kwargs = valid_kwargs[1:]  # remove self
+        kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+
+        return cls(**kwargs)
 
     @property
     def num_gpus(self) -> int:
