@@ -107,7 +107,10 @@ modify the network and read those values in the LightningModule
 
         def __init__(self, layer_1_dim, layer_2_dim, learning_rate, batch_size):
             super().__init__()
-            self._auto_reguster_arguments()
+            self.layer_1_dim = layer_1_dim
+            self.layer_2_dim = layer_2_dim
+            self.learning_rate = learning_rate
+            self.batch_size = batch_size
 
             self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
             self.layer_2 = torch.nn.Linear(self.layer_1_dim, self.layer_2_dim)
