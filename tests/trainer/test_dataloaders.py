@@ -430,7 +430,7 @@ def test_batch_size_smaller_than_num_gpus():
 
     hparams = EvalModelTemplate.get_default_hparams()
     hparams['batch_size'] = batch_size
-    model = CurrentTestModel(hparams)
+    model = CurrentTestModel(**hparams)
 
     trainer = Trainer(
         max_epochs=1,

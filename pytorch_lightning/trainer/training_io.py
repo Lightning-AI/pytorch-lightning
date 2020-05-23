@@ -204,7 +204,7 @@ class TrainerIOMixin(ABC):
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
-        except Exception:
+        except Exception as e:
             pass
 
         if on_slurm:

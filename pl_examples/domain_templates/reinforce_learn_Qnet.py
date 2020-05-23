@@ -192,15 +192,17 @@ class DQNLightning(pl.LightningModule):
 
     def __init__(self,
                  replay_size,
-                 warm_start_steps,
-                 gamma, eps_start,
-                 eps_end,
-                 eps_last_frame,
+                 warm_start_steps: int,
+                 gamma: float,
+                 eps_start: int,
+                 eps_end: int,
+                 eps_last_frame: int,
                  sync_rate,
-                 lr,
+                 lr: float,
                  episode_length,
                  batch_size) -> None:
         super().__init__()
+        self._auto_register_arguments()
 
         self.env = gym.make(self.env)
         obs_size = self.env.observation_space.shape[0]
@@ -307,10 +309,11 @@ class DQNLightning(pl.LightningModule):
     def __dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
         dataset = RLDataset(self.buffer, self.episode_length)
-        dataloader = DataLoader(dataset=dataset,
-                                batch_size=self.batch_size,
-                                sampler=None
-                                )
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            sampler=None,
+        )
         return dataloader
 
     def train_dataloader(self) -> DataLoader:

@@ -37,20 +37,21 @@ class LightningTemplateModel(LightningModule):
     """
 
     def __init__(self,
-                 drop_prob=0.2,
-                 batch_size=2,
-                 in_features=28 * 28,
-                 learning_rate=0.001 * 8,
-                 optimizer_name='adam',
-                 data_root='./datasets',
-                 out_features=10,
-                 hidden_dim=1000,
+                 drop_prob: float = 0.2,
+                 batch_size: int = 2,
+                 in_features: int = 28 * 28,
+                 learning_rate: float = 0.001 * 8,
+                 optimizer_name: str = 'adam',
+                 data_root: str = './datasets',
+                 out_features: int = 10,
+                 hidden_dim: int = 1000,
                  ):
         """
         Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
         """
         # init superclass
         super().__init__()
+        self._auto_register_arguments()
 
         self.c_d1 = nn.Linear(in_features=self.in_features,
                               out_features=self.hidden_dim)

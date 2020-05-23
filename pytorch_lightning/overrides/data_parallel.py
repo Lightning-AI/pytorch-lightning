@@ -177,9 +177,9 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
             with lock:
                 results[i] = output
-        except Exception as ex:
+        except Exception as e:
             with lock:
-                results[i] = ex
+                results[i] = e
 
     # TODO: fix hack (maybe not a hack)
     # make sure each module knows what training state it's in...

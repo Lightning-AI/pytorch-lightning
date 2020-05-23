@@ -1,7 +1,6 @@
 import ast
 import csv
 import os
-
 import yaml
 from argparse import Namespace
 from typing import Union, Dict, Any
@@ -155,6 +154,6 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 def convert(val: str) -> Union[int, float, bool, str]:
     try:
         return ast.literal_eval(val)
-    except (ValueError, SyntaxError) as err:
-        log.debug(err)
+    except (ValueError, SyntaxError) as e:
+        log.debug(e)
         return val

@@ -42,8 +42,11 @@ This flag sets your learning rate which can be accessed via ``self.lr`` or ``sel
 
     class LitModel(LightningModule):
 
+        def __init__(self, hparams):
+            self._auto_register_arguments()
+
         def configure_optimizers(self):
-            return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
+            return Adam(self.parameters(), lr=(self.hparams.lr or self.hparams.learning_rate))
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
@@ -53,7 +56,7 @@ To use an arbitrary value set it in the parameter.
 
 .. testcode::
 
-    # to set to your own `self.my_value`
+    # to set to your own hparams.my_value
     trainer = Trainer(auto_lr_find='my_value')
 
 Under the hood, when you call fit, this is what happens.  
@@ -75,7 +78,7 @@ of this would look like
 
 .. code-block:: python
 
-    model = MyModelClass()
+    model = MyModelClass(hparams)
     trainer = Trainer()
     
     # Run learning rate finder
@@ -92,8 +95,7 @@ of this would look like
     new_lr = lr_finder.suggestion()
     
     # update hparams of the model
-    model.lr = new_lr
-    model.learning_rate = new_lr
+    model.hparams.lr = new_lr
 
     # Fit model
     trainer.fit(model)

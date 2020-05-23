@@ -40,19 +40,20 @@ class EvalModelTemplate(
 
     def __init__(self,
                  *args,
-                 drop_prob=0.2,
-                 batch_size=32,
-                 in_features=28 * 28,
-                 learning_rate=0.001 * 8,
-                 optimizer_name='adam',
-                 data_root=PATH_DATASETS,
-                 out_features=10,
-                 hidden_dim=1000,
-                 b1=0.5,
-                 b2=0.999,
+                 drop_prob: float = 0.2,
+                 batch_size: int = 32,
+                 in_features: int = 28 * 28,
+                 learning_rate: float = 0.001 * 8,
+                 optimizer_name: str = 'adam',
+                 data_root: str = PATH_DATASETS,
+                 out_features: int = 10,
+                 hidden_dim: int = 1000,
+                 b1: float = 0.5,
+                 b2: float = 0.999,
                  **kwargs) -> object:
         # init superclass
         super().__init__()
+        self._auto_register_arguments()
 
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)
@@ -66,15 +67,15 @@ class EvalModelTemplate(
         :return:
         """
         self.c_d1 = nn.Linear(
-            in_features=self.module_hparams.in_features,
-            out_features=self.module_hparams.hidden_dim
+            in_features=self.in_features,
+            out_features=self.hidden_dim
         )
-        self.c_d1_bn = nn.BatchNorm1d(self.module_hparams.hidden_dim)
-        self.c_d1_drop = nn.Dropout(self.module_hparams.drop_prob)
+        self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
+        self.c_d1_drop = nn.Dropout(self.drop_prob)
 
         self.c_d2 = nn.Linear(
-            in_features=self.module_hparams.hidden_dim,
-            out_features=self.module_hparams.out_features
+            in_features=self.hidden_dim,
+            out_features=self.out_features
         )
 
     def forward(self, x):
@@ -93,7 +94,7 @@ class EvalModelTemplate(
         return nll
 
     def prepare_data(self):
-        _ = TrialMNIST(root=self.module_hparams.data_root, train=True, download=True)
+        _ = TrialMNIST(root=self.data_root, train=True, download=True)
 
     @staticmethod
     def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> dict:

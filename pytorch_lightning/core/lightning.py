@@ -75,7 +75,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self._device = torch.device('cpu')
 
         # register all params passed into the child module in __init__
-        self._auto_register_hparams()
+        self._auto_collect_arguments()
 
     @property
     def on_gpu(self):
@@ -1699,11 +1699,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_register_hparams(self):
-        """
-        Removes the need to pass in hparams. Instead, we register every argument in init
-        to the module with some caveats:
-        """
+    def _auto_register_arguments(self, include_parents=False):
+        """Automatically register all init arguments to `self`."""
+        if not hasattr(self, '_module_self_arguments'):
+            self._auto_collect_arguments()
+
+        args = dict(self._module_parents_arguments) if include_parents else {}
+        args.update(self._module_self_arguments)
+        for k, v in ((k, v ) for k, v in args.items() if not hasattr(self, k)):
+            setattr(self, 'k', v)
+
+    def _auto_collect_arguments(self):
+        """Collect all arguments module arguments."""
         frame = inspect.currentframe()
 
         frame_args = _collect_init_args(frame, [])
@@ -1718,13 +1725,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @property
     def module_arguments(self) -> dict:
         """Aggregate this module and all parents arguments."""
-        args = dict(self.module_parents_arguments)
-        args.update(self.module_self_arguments)
+        args = dict(self._module_parents_arguments)
+        args.update(self._module_self_arguments)
         return args
-
-    @property
-    def module_hparams(self) -> Namespace:
-        return Namespace(**self.module_arguments)
 
 
 def _collect_init_args(frame, path_args: list) -> list:

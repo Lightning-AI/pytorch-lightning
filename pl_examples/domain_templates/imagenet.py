@@ -34,6 +34,7 @@ class ImageNetLightningModel(LightningModule):
         TODO: add docstring here
         """
         super().__init__()
+        self._auto_register_arguments()
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
 
     def forward(self, x):

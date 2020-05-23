@@ -758,9 +758,9 @@ def retry_jittered_backoff(f, num_retries=5):
     for i in range(num_retries):
         try:
             return f()
-        except RuntimeError as err:
+        except RuntimeError as e:
             if i == num_retries - 1:
-                raise err
+                raise e
             else:
                 continue
         time.sleep(sleep)

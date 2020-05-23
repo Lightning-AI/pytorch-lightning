@@ -105,8 +105,9 @@ modify the network and read those values in the LightningModule
 
     class LitMNIST(LightningModule):
 
-        def __init__(self, layer_1_dim):
+        def __init__(self, layer_1_dim, layer_2_dim, learning_rate, batch_size):
             super().__init__()
+            self._auto_reguster_arguments()
 
             self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
             self.layer_2 = torch.nn.Linear(self.layer_1_dim, self.layer_2_dim)
@@ -127,6 +128,8 @@ modify the network and read those values in the LightningModule
             parser.add_argument('--learning_rate', type=float, default=0.002)
             return parser
 
+    model = LitMNIST(10, 20, 0.0001, 5)
+
 Now pass in the params when you init your model
 
 .. code-block:: python
@@ -137,7 +140,7 @@ Now pass in the params when you init your model
     model = LitMNIST(args)
 
 Within any LightningModule all the arguments you pass into your `__init__` will be available
-simply with `self.arg`. However, we won't overwrite any other arguments you have already defined.
+simply with `self._module_arguments`. However, we won't overwrite any other arguments you have already defined.
 We will also add all of those values to the TensorBoard hparams tab (unless it's an object which
 we won't). We also will store those values into checkpoints for you which you can use to init your
 models.
@@ -148,6 +151,8 @@ models.
 
         def __init__(self, layer_1_dim, some_other_param):
             super().__init__()
+            self.layer_1_dim = layer_1_dim
+            self.some_other_param = some_other_param
 
             self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
 
@@ -157,6 +162,8 @@ models.
 
             self.some_other_param = 12
             # but you can override it as normal
+
+    model = LitMNIST(10, 20)
 
 
 Trainer args

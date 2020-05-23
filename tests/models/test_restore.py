@@ -1,7 +1,6 @@
 import glob
 import logging as log
 import os
-from argparse import Namespace
 
 import pytest
 import torch
@@ -9,7 +8,6 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 

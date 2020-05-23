@@ -952,8 +952,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            if hasattr(ref_model, "module_arguments"):
-                self.logger.log_hyperparams(ref_model.module_arguments)
+            self.logger.log_hyperparams(ref_model.module_arguments)
 
             self.logger.save()
 

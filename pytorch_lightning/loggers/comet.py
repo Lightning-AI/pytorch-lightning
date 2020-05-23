@@ -125,7 +125,7 @@ class CometLogger(LightningLoggerBase):
         if experiment_name:
             try:
                 self.name = experiment_name
-            except TypeError:
+            except TypeError as e:
                 log.exception("Failed to set experiment name for comet.ml logger")
         self._kwargs = kwargs
 
