@@ -52,7 +52,7 @@ class EarlyStopping(Callback):
     }
 
     def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
-                 verbose: bool = False, mode: str = 'auto', strict: bool = False):
+                 verbose: bool = False, mode: str = 'auto', strict: bool = True):
         super().__init__()
         self.monitor = monitor
         self.patience = patience

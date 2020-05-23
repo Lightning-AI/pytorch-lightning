@@ -348,8 +348,9 @@ class Trainer(
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
 
-        # TODO refactor codebase (tests) to not directly reach into this callback
+        # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.checkpoint_callback = checkpoint_callback
+        self.early_stop_callback = early_stop_callback
 
         self.on_init_start()
 
