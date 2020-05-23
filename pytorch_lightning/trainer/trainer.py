@@ -400,6 +400,7 @@ class Trainer(
 
         self.auto_lr_find = auto_lr_find
         self.auto_scale_batch_size = auto_scale_batch_size
+        self._is_data_prepared = False
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -822,17 +823,21 @@ class Trainer(
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
-        model.prepare_data()
+        if not self._is_data_prepared:
+            model.prepare_data()
+            self._is_data_prepared = True
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            model.logger = self.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.auto_lr_find:
             self._run_lr_finder_internally(model)
+            model.logger = self.logger  # reset logger binding
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process

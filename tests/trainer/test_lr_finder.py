@@ -200,3 +200,26 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+def test_logger_reset_correctly(tmpdir):
+    """ Test that logger is updated correctly """
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(hparams)
+
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=10,
+        auto_lr_find=True
+    )
+    logger1 = trainer.logger
+    trainer.fit(model)
+    logger2 = trainer.logger
+    logger3 = model.logger
+
+    assert logger1 == logger2, \
+        'Learning rate finder altered the logger of trainer'
+    assert logger2 == logger3, \
+        'Learning rate finder altered the logger of model'
