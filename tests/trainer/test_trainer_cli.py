@@ -126,5 +126,5 @@ def test_init_from_argparse_args(cli_args, extra_args):
         init.assert_called_with(trainer, **cli_args)
 
     # passing in unknown manual args should throw an error
-    with pytest.raises(TypeError, match=rf"__init__\(\) got an unexpected keyword argument 'unknown_arg'"):
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'unknown_arg'"):
         Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
