@@ -143,7 +143,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    model = TestGAN(hidden_dim=1000)
+    model = TestGAN(**EvalModelTemplate.get_default_hparams())
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),

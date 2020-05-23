@@ -67,9 +67,12 @@ class Discriminator(nn.Module):
 class TestGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
-    def __init__(self, hidden_dim):
+    def __init__(self, hidden_dim, learning_rate, b1, b2, **kwargs):
         super().__init__()
         self.hidden_dim = hidden_dim
+        self.learning_rate = learning_rate
+        self.b1 = b1
+        self.b2 = b2
 
         # networks
         mnist_shape = (1, 28, 28)
@@ -128,8 +131,7 @@ class TestGAN(LightningModule):
             fake = torch.zeros(imgs.size(0), 1)
             fake = fake.type_as(fake)
 
-            fake_loss = self.adversarial_loss(
-                self.discriminator(self.generated_imgs.detach()), fake)
+            fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2

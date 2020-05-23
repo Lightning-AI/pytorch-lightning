@@ -128,8 +128,6 @@ modify the network and read those values in the LightningModule
             parser.add_argument('--learning_rate', type=float, default=0.002)
             return parser
 
-    model = LitMNIST(10, 20, 0.0001, 5)
-
 Now pass in the params when you init your model
 
 .. code-block:: python
