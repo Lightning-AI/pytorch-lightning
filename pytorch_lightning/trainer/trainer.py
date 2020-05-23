@@ -750,8 +750,7 @@ class Trainer(
         params = vars(args)
 
         # we only want to pass in valid Trainer args, the rest may be user specific
-        valid_kwargs = cls.__init__.__code__.co_varnames
-        valid_kwargs = valid_kwargs[1:]  # remove self, it is always the first arg
+        valid_kwargs = inspect.signature(Trainer).parameters
         trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
         trainer_kwargs.update(**kwargs)
 
