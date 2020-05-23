@@ -1,5 +1,6 @@
 import pytest
 
+import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
@@ -9,31 +10,58 @@ from tests.base import EvalModelTemplate
 from pathlib import Path
 
 
-# TODO remove this test
-def test_early_stopping_no_val_step(tmpdir):
-    """Test that early stopping callback falls back to training metrics when no validation defined."""
+def test_resume_early_stopping_from_checkpoint(tmpdir):
+    """
+    Prevent regressions to bugs:
+    https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
+    https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
+    """
+    class EarlyStoppingTestRestore(EarlyStopping):
+        def __init__(self, expected_state):
+            super().__init__()
+            self.expected_state = expected_state
 
-    class CurrentModel(EvalModelTemplate):
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
-            return output
+        def on_train_start(self, trainer, pl_module):
+            assert self.state_dict() == self.expected_state
 
-    model = CurrentModel()
-    model.validation_step = None
-    model.val_dataloader = None
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(save_top_k=1)
+    early_stop_callback = EarlyStopping()
+    trainer = Trainer(checkpoint_callback=checkpoint_callback, early_stop_callback=early_stop_callback, max_epochs=4)
+    trainer.fit(model)
+    early_stop_callback_state = early_stop_callback.state_dict()
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_pct=0.20,
-        max_epochs=5,
-    )
-    result = trainer.fit(model)
+    checkpoint_filepath = checkpoint_callback.kth_best_model
+    # ensure state is persisted properly
+    checkpoint = torch.load(checkpoint_filepath)
+    assert checkpoint['early_stop_callback_state_dict'] == early_stop_callback_state
+    # ensure state is reloaded properly (assertion in the callback)
+    early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
+    new_trainer = Trainer(max_epochs=2,
+                          resume_from_checkpoint=checkpoint_filepath,
+                          early_stop_callback=early_stop_callback)
+    new_trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs
+
+def test_early_stopping_no_extraneous_invocations():
+    """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+    class EarlyStoppingTestInvocations(EarlyStopping):
+        def __init__(self, expected_count):
+            super().__init__()
+            self.count = 0
+            self.expected_count = expected_count
+
+        def on_validation_end(self, trainer, pl_module):
+            self.count += 1
+
+        def on_train_end(self, trainer, pl_module):
+            assert self.count == self.expected_count
+
+    model = EvalModelTemplate()
+    expected_count = 4
+    early_stop_callback = EarlyStoppingTestInvocations(expected_count)
+    trainer = Trainer(early_stop_callback=early_stop_callback, val_check_interval=1.0, max_epochs=expected_count)
+    trainer.fit(model)
 
 
 def test_pickling(tmpdir):
