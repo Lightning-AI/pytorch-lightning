@@ -74,7 +74,7 @@ class GAN(LightningModule):
 
     def __init__(self, latent_dim=100, lr=0.0002, b1=0.5, b2=0.999, batch_size=64):
         super().__init__()
-        self._auto_register_arguments()
+        self.auto_register_init_arguments()
 
         # networks
         mnist_shape = (1, 28, 28)

@@ -157,7 +157,7 @@ class TransferLearningModel(pl.LightningModule):
                  lr_scheduler_gamma=1e-1,
                  num_workers=6) -> None:
         super().__init__()
-        self._auto_register_arguments()
+        self.auto_register_init_arguments()
 
         self.dl_path = dl_path
         self.__build_model()

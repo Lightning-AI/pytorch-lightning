@@ -1699,15 +1699,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_register_arguments(self, include_parents=False):
-        """Automatically register all init arguments to `self`."""
-        if not hasattr(self, '_module_self_arguments'):
-            self._auto_collect_arguments()
-
-        args = dict(self._module_parents_arguments) if include_parents else {}
-        args.update(self._module_self_arguments)
-        for k, v in ((k, v ) for k, v in args.items() if not hasattr(self, k)):
-            setattr(self, 'k', v)
+    # def auto_register_init_arguments(self, include_parents=False):
+    #     """Automatically register all init arguments to `self`."""
+    #     if not hasattr(self, '_module_self_arguments'):
+    #         self._auto_collect_arguments()
+    #
+    #     args = dict(self._module_parents_arguments) if include_parents else {}
+    #     args.update(self._module_self_arguments)
+    #     for k, v in ((k, v ) for k, v in args.items() if not hasattr(self, k)):
+    #         setattr(self, k, v)
 
     def _auto_collect_arguments(self):
         """Collect all arguments module arguments."""

@@ -53,7 +53,16 @@ class EvalModelTemplate(
                  **kwargs) -> object:
         # init superclass
         super().__init__()
-        self._auto_register_arguments()
+        self.drop_prob = drop_prob
+        self.batch_size = batch_size
+        self.in_features = in_features
+        self.learning_rate = learning_rate
+        self.optimizer_name = optimizer_name
+        self.data_root = data_root
+        self.out_features = out_features
+        self.hidden_dim = hidden_dim
+        self.b1 = b1
+        self.b2 = b2
 
         # if you specify an example input, the summary will show input/output for each layer
         self.example_input_array = torch.rand(5, 28 * 28)

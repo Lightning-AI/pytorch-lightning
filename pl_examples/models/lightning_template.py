@@ -51,7 +51,7 @@ class LightningTemplateModel(LightningModule):
         """
         # init superclass
         super().__init__()
-        self._auto_register_arguments()
+        self.auto_register_init_arguments()
 
         self.c_d1 = nn.Linear(in_features=self.in_features,
                               out_features=self.hidden_dim)

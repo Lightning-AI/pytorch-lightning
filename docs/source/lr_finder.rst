@@ -43,7 +43,7 @@ This flag sets your learning rate which can be accessed via ``self.lr`` or ``sel
     class LitModel(LightningModule):
 
         def __init__(self, hparams):
-            self._auto_register_arguments()
+            self.auto_register_init_arguments()
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=(self.hparams.lr or self.hparams.learning_rate))

@@ -108,7 +108,7 @@ But if you don't want to use the values saved in the checkpoint, pass in your ow
 
         def __init__(self, in_dim, out_dim):
             super().__init__()
-            self._auto_register_arguments()
+            self.auto_register_init_arguments()
             self.l1 = nn.Linear(self.in_dim, self.out_dim)
 
 you can restore the model like this
