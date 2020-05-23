@@ -437,6 +437,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
+- Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 
 #### Funding    
 Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
