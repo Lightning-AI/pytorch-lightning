@@ -729,13 +729,21 @@ class Trainer(
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
-        """create an instance from CLI arguments
+        """
+        Create an instance from CLI arguments.
+
+        Args:
+            args: The parser or namespace to take arguments from. Only known arguments will be
+                parsed and passed to the :class:`Trainer`.
+            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
+                These must be valid Trainer arguments.
 
         Example:
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
+            >>> parser.add_argument('--my_custom_arg', default='something')
             >>> args = Trainer.parse_argparser(parser.parse_args(""))
-            >>> trainer = Trainer.from_argparse_args(args)
+            >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
         if isinstance(args, ArgumentParser):
             args = Trainer.parse_argparser(args)
