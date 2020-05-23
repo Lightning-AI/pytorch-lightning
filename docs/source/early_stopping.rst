@@ -61,9 +61,9 @@ and change where it is called:
             # override this to disable early stopping at the end of val loop
             pass
 
-         def on_train_end(self, trainer, pl_module):
-             # instead, do it at the end of training loop
-             self._run_early_stopping_check(trainer, pl_module)
+        def on_train_end(self, trainer, pl_module):
+            # instead, do it at the end of training loop
+            self._run_early_stopping_check(trainer, pl_module)
 
 .. note::
    The EarlyStopping callback runs at the end of every validation epoch,
