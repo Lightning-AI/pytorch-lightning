@@ -226,7 +226,7 @@ class ModelCheckpoint(Callback):
         return filepath
 
     @rank_zero_only
-    def on_epoch_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.proc_rank != 0:
             return
