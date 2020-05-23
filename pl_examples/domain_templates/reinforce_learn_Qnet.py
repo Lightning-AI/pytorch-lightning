@@ -202,7 +202,16 @@ class DQNLightning(pl.LightningModule):
                  episode_length,
                  batch_size) -> None:
         super().__init__()
-        self.auto_register_init_arguments()
+        self.replay_size = replay_size
+        self.warm_start_steps = warm_start_steps
+        self.gamma = gamma
+        self.eps_start = eps_start
+        self.eps_end = eps_end
+        self.eps_last_frame = eps_last_frame
+        self.sync_rate = sync_rate
+        self.lr = lr
+        self.episode_length = episode_length
+        self.batch_size = batch_size
 
         self.env = gym.make(self.env)
         obs_size = self.env.observation_space.shape[0]

@@ -149,15 +149,22 @@ class TransferLearningModel(pl.LightningModule):
     """
     def __init__(self,
                  dl_path: Union[str, Path],
-                 backbone='resnet50',
-                 train_bn=True,
-                 milestones=(5, 10),
-                 batch_size=8,
-                 lr=1e-2,
-                 lr_scheduler_gamma=1e-1,
-                 num_workers=6) -> None:
+                 backbone: str = 'resnet50',
+                 train_bn: bool = True,
+                 milestones: tuple = (5, 10),
+                 batch_size: int = 8,
+                 lr: float = 1e-2,
+                 lr_scheduler_gamma: float = 1e-1,
+                 num_workers: int = 6) -> None:
         super().__init__()
-        self.auto_register_init_arguments()
+        self.dl_path = dl_path
+        self.backbone = backbone
+        self.train_bn = train_bn
+        self.milestones = milestones
+        self.batch_size = batch_size
+        self.lr = lr
+        self.lr_scheduler_gamma = lr_scheduler_gamma
+        self.num_workers = num_workers
 
         self.dl_path = dl_path
         self.__build_model()

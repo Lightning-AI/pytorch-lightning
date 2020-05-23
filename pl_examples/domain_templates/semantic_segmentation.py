@@ -136,7 +136,12 @@ class SegModel(pl.LightningModule):
                  features_start: int,
                  bilinear: bool):
         super().__init__()
-        self.auto_register_init_arguments()
+        self.data_path = data_path
+        self.batch_size = batch_size
+        self.lr = lr
+        self.num_layers = num_layers
+        self.features_start = features_start
+        self.bilinear = bilinear
 
         self.net = UNet(num_classes=19, num_layers=self.num_layers,
                         features_start=self.features_start, bilinear=self.bilinear)
