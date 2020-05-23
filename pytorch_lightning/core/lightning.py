@@ -1710,12 +1710,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         child = _get_latest_child(frame)
 
         # set module_arguments in child
-        if not hasattr(child, 'module_self_arguments') or not child.module_self_arguments:
-            child.module_self_arguments = frame_args[-1]
-        if not hasattr(child, 'module_parents_arguments') or not child.module_parents_arguments:
-            child.module_parents_arguments = {}
+        child._module_self_arguments = frame_args[-1]
+        child._module_parents_arguments = {}
         for args in frame_args[:-1]:
-            child.module_parents_arguments.update(args)
+            child._module_parents_arguments.update(args)
 
     @property
     def module_arguments(self) -> dict:
@@ -1736,10 +1734,10 @@ def _collect_init_args(frame, path_args: list) -> list:
         local_args.update(local_args.get('kwargs', {}))
         local_args = {k: v for k, v in local_args.items()
                       if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
-        if 'hparams' in local_args:
-            # back compatible hparams as single argument
-            hparams = local_args.get('hparams')
-            local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
+        # if 'hparams' in local_args:
+        #     # back compatible hparams as single argument
+        #     hparams = local_args.get('hparams')
+        #     local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
         # recursive update
         path_args.append(local_args)
         return _collect_init_args(frame.f_back, path_args)

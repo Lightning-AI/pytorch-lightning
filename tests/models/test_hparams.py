@@ -47,9 +47,6 @@ def test_auto_hparams(tmpdir, cls):
     if isinstance(model, (HparamsNamespaceEvalModel, HparamsDictEvalModel)):
         assert model.module_hparams.hparam_arg == 123
 
-    if isinstance(model, PersistClassEvalModel):
-        assert model.module_hparams.skip_arg == 15
-
     # verify that the checkpoint saved the correct values
     trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
     trainer.fit(model)
