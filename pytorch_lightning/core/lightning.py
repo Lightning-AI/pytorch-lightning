@@ -1705,7 +1705,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """Collect all arguments module arguments."""
         frame = inspect.currentframe()
 
-        frame_args = _collect_init_args(frame, [])
+        frame_args = _collect_init_args(frame.f_back, [])
         child = _get_latest_child(frame)
 
         # set module_arguments in child
@@ -1724,7 +1724,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
 def _collect_init_args(frame, path_args: list) -> list:
     """Recursive search for all children."""
-    if 'self' in frame.f_locals:
+    if '__class__' in frame.f_locals:
         local_args = dict(frame.f_locals)
         local_args.update(local_args.get('kwargs', {}))
         local_args = {k: v for k, v in local_args.items()

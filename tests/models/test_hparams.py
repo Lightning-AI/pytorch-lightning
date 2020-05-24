@@ -23,7 +23,7 @@ class SubSubClassEvalModel(SubClassEvalModel):
 @pytest.mark.parametrize("cls", [EvalModelTemplate,
                                  SubClassEvalModel,
                                  SubSubClassEvalModel])
-def test_auto_hparams(tmpdir, cls):
+def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     model = cls()
     assert model.batch_size == 32
