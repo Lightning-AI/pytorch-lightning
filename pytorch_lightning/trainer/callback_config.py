@@ -44,7 +44,7 @@ class TrainerCallbackConfigMixin(ABC):
                             or self.default_root_dir)
 
                 # weights_save_path overrides anything
-                if self.weights_save_path is not None:
+                if self.weights_save_path is not None and self.weights_save_path is not True:
                     save_dir = self.weights_save_path
 
                 version = self.logger.version if isinstance(

@@ -29,7 +29,7 @@ class TrainerLoggingMixin(ABC):
         if logger is True:
             # default logger
             self.logger = TensorBoardLogger(
-                save_dir=str(self.default_root_dir),
+                save_dir=self.default_root_dir,
                 version=self.slurm_job_id,
                 name='lightning_logs'
             )

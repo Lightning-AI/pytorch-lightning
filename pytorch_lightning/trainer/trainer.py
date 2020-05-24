@@ -342,7 +342,7 @@ class Trainer(
         self.should_stop = False
 
         # set default save path if user didn't provide one
-        if default_root_dir is None:
+        if default_root_dir is None or default_root_dir is True:
             # Backward compatibility, TODO: remove default_save_path in v0.8.0
             default_root_dir = default_save_path or os.getcwd()
         self.default_root_dir = default_root_dir

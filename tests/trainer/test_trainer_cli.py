@@ -10,10 +10,10 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
 
-@mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=Namespace(**Trainer.default_attributes()))
-def test_default_args(tmpdir):
+@mock.patch('argparse.ArgumentParser.parse_args')
+def test_default_args(mock_argparse, tmpdir):
     """Tests default argument parser for Trainer"""
+    mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
