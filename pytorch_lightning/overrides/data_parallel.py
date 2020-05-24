@@ -1,11 +1,13 @@
 import itertools
 import threading
 from itertools import chain
+from collections.abc import Iterable
 
 import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel._functions import Gather
 from pytorch_lightning.core.step_result import Result
 
 
@@ -93,6 +95,38 @@ class LightningDataParallel(DataParallel):
         result['meta'] = meta
         return result
 
+    def gather(self, outputs):
+        r"""
+        Override the gather method to support scalars as well.
+        """
+        def gather_map(outputs):
+            out = outputs[0]
+            if isinstance(out, torch.Tensor):
+                return Gather.apply(self.output_device, self.dim, *outputs)
+
+            elif out is None:
+                return None
+
+            elif isinstance(out, dict):
+                if not all((len(out) == len(d) for d in outputs)):
+                    raise ValueError('All dicts must have the same number of keys')
+                return type(out)(((k, gather_map([d[k] for d in outputs]))
+                                  for k in out))
+
+            elif isinstance(out, Iterable):
+                return type(out)(map(gather_map, zip(*outputs)))
+
+            # assume "out" is a scalar
+            return outputs
+
+        # Recursive function calls like this create reference cycles.
+        # Setting the function to None clears the refcycle.
+        try:
+            res = gather_map(outputs)
+        finally:
+            gather_map = None
+        return res
+
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
@@ -126,9 +160,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
                 output = self.gather(outputs, self.output_device)
         else:
-            # normal
             # output = self.module(*inputs, **kwargs)
-            # lightning (ddp_cpu)
+            # normal lightning (ddp_cpu)
             if self.module.training:
                 output = self.module.training_step(*inputs, **kwargs)
             elif self.module.testing:
