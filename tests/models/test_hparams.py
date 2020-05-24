@@ -23,7 +23,7 @@ class SubSubClassEvalModel(SubClassEvalModel):
                                  SubClassEvalModel,
                                  SubSubClassEvalModel])
 def test_auto_hparams(tmpdir, cls):
-    # test that the model automatically sets the args passed into init as attrs
+    """ Test that the model automatically saves the arguments passed into the constructor """
     model = cls()
     assert model.batch_size == 32
     model = cls(batch_size=179)

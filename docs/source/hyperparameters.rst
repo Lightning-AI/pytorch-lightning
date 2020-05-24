@@ -141,7 +141,7 @@ Now pass in the params when you init your model
     model = LitMNIST(args)
 
 Within any LightningModule all the arguments you pass into your `__init__` will be available
-simply with `self._module_arguments`. However, we won't overwrite any other arguments you have already defined.
+simply with `self.module_arguments`. 
 We will also add all of those values to the TensorBoard hparams tab (unless it's an object which
 we won't). We also will store those values into checkpoints for you which you can use to init your
 models.
@@ -157,12 +157,9 @@ models.
 
             self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_dim)
 
-            # self.some_other_param is automatically available
             self.layer_2 = torch.nn.Linear(self.layer_1_dim, self.some_other_param)
             self.layer_3 = torch.nn.Linear(self.some_other_param, 10)
 
-            self.some_other_param = 12
-            # but you can override it as normal
 
     model = LitMNIST(10, 20)
 

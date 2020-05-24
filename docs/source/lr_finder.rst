@@ -46,7 +46,7 @@ This flag sets your learning rate which can be accessed via ``self.lr`` or ``sel
             self.learning_rate = learning_rate
 
         def configure_optimizers(self):
-            return Adam(self.parameters(), lr=(self.hparams.lr or self.hparams.learning_rate))
+            return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
