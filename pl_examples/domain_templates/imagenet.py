@@ -36,7 +36,7 @@ class ImageNetLightningModel(LightningModule):
                  momentum: float,
                  weight_decay: int,
                  data_path: str,
-                 batch_size: int):
+                 batch_size: int, **kwargs):
         """
         TODO: add docstring here
         """

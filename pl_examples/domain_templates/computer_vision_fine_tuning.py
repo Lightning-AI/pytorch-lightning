@@ -155,7 +155,7 @@ class TransferLearningModel(pl.LightningModule):
                  batch_size: int = 8,
                  lr: float = 1e-2,
                  lr_scheduler_gamma: float = 1e-1,
-                 num_workers: int = 6) -> None:
+                 num_workers: int = 6, **kwargs) -> None:
         super().__init__()
         self.dl_path = dl_path
         self.backbone = backbone

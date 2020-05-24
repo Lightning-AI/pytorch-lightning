@@ -77,7 +77,7 @@ class GAN(LightningModule):
                  lr: float = 0.0002,
                  b1: float = 0.5,
                  b2: float = 0.999,
-                 batch_size: int = 64):
+                 batch_size: int = 64, **kwargs):
         super().__init__()
         self.latent_dim = latent_dim
         self.lr = lr

@@ -200,7 +200,7 @@ class DQNLightning(pl.LightningModule):
                  sync_rate,
                  lr: float,
                  episode_length,
-                 batch_size) -> None:
+                 batch_size, **kwargs) -> None:
         super().__init__()
         self.replay_size = replay_size
         self.warm_start_steps = warm_start_steps
