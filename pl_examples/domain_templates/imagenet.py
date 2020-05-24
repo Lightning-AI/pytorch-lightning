@@ -29,13 +29,26 @@ MODEL_NAMES = sorted(
 
 
 class ImageNetLightningModel(LightningModule):
-    def __init__(self, hparams):
+    def __init__(self,
+                 arch,
+                 pretrained,
+                 lr: float,
+                 momentum: float,
+                 weight_decay: int,
+                 data_path: str,
+                 batch_size: int, **kwargs):
         """
         TODO: add docstring here
         """
         super().__init__()
-        self.hparams = hparams
-        self.model = models.__dict__[self.hparams.arch](pretrained=self.hparams.pretrained)
+        self.arch = arch
+        self.pretrained = pretrained
+        self.lr = lr
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.data_path = data_path
+        self.batch_size = batch_size
+        self.model = models.__dict__[self.arch](pretrained=self.pretrained)
 
     def forward(self, x):
         return self.model(x)
@@ -112,9 +125,9 @@ class ImageNetLightningModel(LightningModule):
     def configure_optimizers(self):
         optimizer = optim.SGD(
             self.parameters(),
-            lr=self.hparams.lr,
-            momentum=self.hparams.momentum,
-            weight_decay=self.hparams.weight_decay
+            lr=self.lr,
+            momentum=self.momentum,
+            weight_decay=self.weight_decay
         )
         scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
         return [optimizer], [scheduler]
@@ -125,7 +138,7 @@ class ImageNetLightningModel(LightningModule):
             std=[0.229, 0.224, 0.225],
         )
 
-        train_dir = os.path.join(self.hparams.data_path, 'train')
+        train_dir = os.path.join(self.data_path, 'train')
         train_dataset = datasets.ImageFolder(
             train_dir,
             transforms.Compose([
@@ -142,7 +155,7 @@ class ImageNetLightningModel(LightningModule):
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset,
-            batch_size=self.hparams.batch_size,
+            batch_size=self.batch_size,
             shuffle=(train_sampler is None),
             num_workers=0,
             sampler=train_sampler
@@ -154,7 +167,7 @@ class ImageNetLightningModel(LightningModule):
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225],
         )
-        val_dir = os.path.join(self.hparams.data_path, 'val')
+        val_dir = os.path.join(self.data_path, 'val')
         val_loader = torch.utils.data.DataLoader(
             datasets.ImageFolder(val_dir, transforms.Compose([
                 transforms.Resize(256),
@@ -162,7 +175,7 @@ class ImageNetLightningModel(LightningModule):
                 transforms.ToTensor(),
                 normalize,
             ])),
-            batch_size=self.hparams.batch_size,
+            batch_size=self.batch_size,
             shuffle=False,
             num_workers=0,
         )

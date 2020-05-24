@@ -134,3 +134,4 @@ mnist/
 ml-runs/
 *.zip
 pytorch\ lightning
+test-reports/

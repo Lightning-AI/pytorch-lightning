@@ -67,7 +67,7 @@ a binary search.
     .. code-block:: python
         
         def train_dataloader(self):
-            return DataLoader(train_dataset, batch_size=self.hparams.batch_size)
+            return DataLoader(train_dataset, batch_size=self.batch_size)
 
 .. warning::
             

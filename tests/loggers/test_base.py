@@ -61,7 +61,7 @@ class CustomLogger(LightningLoggerBase):
 
 def test_custom_logger(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     logger = CustomLogger()
 
@@ -80,7 +80,7 @@ def test_custom_logger(tmpdir):
 
 def test_multiple_loggers(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     logger1 = CustomLogger()
     logger2 = CustomLogger()

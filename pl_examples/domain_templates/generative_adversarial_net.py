@@ -72,13 +72,22 @@ class Discriminator(nn.Module):
 
 class GAN(LightningModule):
 
-    def __init__(self, hparams):
+    def __init__(self,
+                 latent_dim: int = 100,
+                 lr: float = 0.0002,
+                 b1: float = 0.5,
+                 b2: float = 0.999,
+                 batch_size: int = 64, **kwargs):
         super().__init__()
-        self.hparams = hparams
+        self.latent_dim = latent_dim
+        self.lr = lr
+        self.b1 = b1
+        self.b2 = b2
+        self.batch_size = batch_size
 
         # networks
         mnist_shape = (1, 28, 28)
-        self.generator = Generator(latent_dim=hparams.latent_dim, img_shape=mnist_shape)
+        self.generator = Generator(latent_dim=self.latent_dim, img_shape=mnist_shape)
         self.discriminator = Discriminator(img_shape=mnist_shape)
 
         # cache for generated images
@@ -98,7 +107,7 @@ class GAN(LightningModule):
         # train generator
         if optimizer_idx == 0:
             # sample noise
-            z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
+            z = torch.randn(imgs.shape[0], self.latent_dim)
             z = z.type_as(imgs)
 
             # generate images
@@ -152,9 +161,9 @@ class GAN(LightningModule):
             return output
 
     def configure_optimizers(self):
-        lr = self.hparams.lr
-        b1 = self.hparams.b1
-        b2 = self.hparams.b2
+        lr = self.lr
+        b1 = self.b1
+        b2 = self.b2
 
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
@@ -164,10 +173,10 @@ class GAN(LightningModule):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize([0.5], [0.5])])
         dataset = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-        return DataLoader(dataset, batch_size=self.hparams.batch_size)
+        return DataLoader(dataset, batch_size=self.batch_size)
 
     def on_epoch_end(self):
-        z = torch.randn(8, self.hparams.latent_dim)
+        z = torch.randn(8, self.latent_dim)
         z = z.type_as(self.last_imgs)
 
         # log sampled images
