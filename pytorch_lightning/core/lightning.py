@@ -30,6 +30,8 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
+
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
 
@@ -1558,10 +1560,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint['module_arguments'] = hparams
+            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = hparams
 
         # override the module_arguments with values that were passed in
-        checkpoint['module_arguments'].update(kwargs)
+        checkpoint[CHECKPOINT_KEY_MODULE_ARGS].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
@@ -1570,8 +1572,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
 
         # pass in the values we saved automatically
-        if 'module_arguments' in checkpoint:
-            model_args = checkpoint['module_arguments']
+        if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+            model_args = checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
             kwargs.update(**model_args)
 
         # load the state_dict on the model automatically
@@ -1698,16 +1700,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
-
-    # def auto_register_init_arguments(self, include_parents=False):
-    #     """Automatically register all init arguments to `self`."""
-    #     if not hasattr(self, '_module_self_arguments'):
-    #         self._auto_collect_arguments()
-    #
-    #     args = dict(self._module_parents_arguments) if include_parents else {}
-    #     args.update(self._module_self_arguments)
-    #     for k, v in ((k, v ) for k, v in args.items() if not hasattr(self, k)):
-    #         setattr(self, k, v)
 
     def _auto_collect_arguments(self):
         """Collect all arguments module arguments."""

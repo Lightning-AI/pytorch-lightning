@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from tests.base import EvalModelTemplate
 
 
@@ -39,8 +40,8 @@ def test_auto_hparams(tmpdir, cls):
     raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
     raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
     raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert 'module_arguments' in raw_checkpoint
-    assert raw_checkpoint['module_arguments']['batch_size'] == 179
+    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
+    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['batch_size'] == 179
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)

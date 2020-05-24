@@ -95,7 +95,7 @@ import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule, CHECKPOINT_KEY_MODULE_ARGS
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -267,8 +267,8 @@ class TrainerIOMixin(ABC):
             try:
                 self._atomic_save(checkpoint, filepath)
             except AttributeError as err:
-                if 'module_arguments' in checkpoint:
-                    del checkpoint['module_arguments']
+                if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+                    del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
                 rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
                                f' An attribute is not picklable {err}')
                 self._atomic_save(checkpoint, filepath)
@@ -353,10 +353,10 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, 'module_arguments') and model.module_arguments:
+        if hasattr(model, CHECKPOINT_KEY_MODULE_ARGS) and model.module_arguments:
             # add arguments to the checkpoint
-            checkpoint['module_arguments'] = {k: v for k, v in model.module_arguments.items()
-                                              if is_picklable(v)}
+            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = {k: v for k, v in model.module_arguments.items()
+                                                      if is_picklable(v)}
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -461,8 +461,8 @@ class TrainerIOMixin(ABC):
         try:
             self._atomic_save(checkpoint, filepath)
         except AttributeError as err:
-            if 'module_arguments' in checkpoint:
-                del checkpoint['module_arguments']
+            if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+                del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
             rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
                            f' An attribute is not picklable {err}')
             self._atomic_save(checkpoint, filepath)
