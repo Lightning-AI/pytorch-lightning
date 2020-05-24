@@ -178,3 +178,24 @@ def test_suggestion_parameters_work(tmpdir):
 
     assert lr1 != lr2, \
         'Skipping parameter did not influence learning rate'
+
+
+def test_suggestion_with_non_finite_values(tmpdir):
+    """ Test that non-finite values does not alter results """
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(hparams)
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=10
+    )
+
+    lrfinder = trainer.lr_find(model)
+    before_lr = lrfinder.suggestion()
+    lrfinder.results['loss'][-1] = float('nan')
+    after_lr = lrfinder.suggestion()
+
+    assert before_lr == after_lr, \
+        'Learning rate was altered because of non-finite loss values'
