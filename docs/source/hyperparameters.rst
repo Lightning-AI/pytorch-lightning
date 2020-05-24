@@ -138,7 +138,7 @@ Now pass in the params when you init your model
     parser = ArgumentParser()
     parser = LitMNIST.add_model_specific_args(parser)
     args = parser.parse_args()
-    model = LitMNIST(args)
+    model = LitMNIST(**vars(args))
 
 Within any LightningModule all the arguments you pass into your `__init__` will be available
 simply with `self.module_arguments`. 
