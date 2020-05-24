@@ -746,11 +746,11 @@ class Trainer(
             >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
         if isinstance(args, ArgumentParser):
-            args = Trainer.parse_argparser(args)
+            args = cls.parse_argparser(args)
         params = vars(args)
 
         # we only want to pass in valid Trainer args, the rest may be user specific
-        valid_kwargs = inspect.signature(Trainer).parameters
+        valid_kwargs = inspect.signature(cls.__init__).parameters
         trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
         trainer_kwargs.update(**kwargs)
 

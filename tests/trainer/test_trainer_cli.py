@@ -1,5 +1,6 @@
 import inspect
 import pickle
+import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
@@ -112,6 +113,10 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 7),
+    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
+)
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),
