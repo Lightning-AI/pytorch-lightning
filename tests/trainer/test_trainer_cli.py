@@ -115,6 +115,7 @@ def test_argparse_args_parsing(cli_args, expected):
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),
+    pytest.param({'logger': False}, {'logger': True}),
     pytest.param({'logger': False}, {'checkpoint_callback': True}),
 ])
 def test_init_from_argparse_args(cli_args, extra_args):
@@ -122,8 +123,10 @@ def test_init_from_argparse_args(cli_args, extra_args):
 
     # unkown args in the argparser/namespace should be ignored
     with mock.patch('pytorch_lightning.Trainer.__init__', autospec=True, return_value=None) as init:
-        trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args))
-        init.assert_called_with(trainer, **cli_args)
+        trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
+        expected = dict(cli_args)
+        expected.update(extra_args)  # extra args should override any cli arg
+        init.assert_called_with(trainer, **expected)
 
     # passing in unknown manual args should throw an error
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'unknown_arg'"):
