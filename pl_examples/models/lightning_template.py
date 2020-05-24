@@ -45,6 +45,7 @@ class LightningTemplateModel(LightningModule):
                  data_root: str = './datasets',
                  out_features: int = 10,
                  hidden_dim: int = 1000,
+                 **kwargs
                  ) -> 'LightningTemplateModel':
         """
         Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
