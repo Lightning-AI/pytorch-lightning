@@ -9,6 +9,7 @@ from tests.base import EvalModelTemplate
 
 
 class SubClassEvalModel(EvalModelTemplate):
+    any_other_loss = torch.nn.CrossEntropyLoss()
 
     def __init__(self, *args, subclass_arg=1200, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,12 +57,12 @@ def test_collect_init_arguments(tmpdir, cls):
     assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
     assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['batch_size'] == 179
 
-    if isinstance(model, AggSubClassEvalModel):
-        assert isinstance(model.my_loss, torch.nn.CrossEntropyLoss)
-
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.batch_size == 179
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.my_loss, torch.nn.CrossEntropyLoss)
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
