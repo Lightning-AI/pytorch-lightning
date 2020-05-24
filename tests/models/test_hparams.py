@@ -9,7 +9,6 @@ from tests.base import EvalModelTemplate
 
 
 class SubClassEvalModel(EvalModelTemplate):
-    object_that_should_not_be_saved = torch.nn.CrossEntropyLoss()
 
     def __init__(self, *args, subclass_arg=1200, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,18 +19,31 @@ class SubSubClassEvalModel(SubClassEvalModel):
     pass
 
 
+class AggSubClassEvalModel(SubClassEvalModel):
+
+    def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.my_loss = my_loss
+
+
 @pytest.mark.parametrize("cls", [EvalModelTemplate,
                                  SubClassEvalModel,
-                                 SubSubClassEvalModel])
+                                 SubSubClassEvalModel,
+                                 AggSubClassEvalModel])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
-    model = cls()
+    extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}
+
+    model = cls(**extra_args)
     assert model.batch_size == 32
-    model = cls(batch_size=179)
+    model = cls(batch_size=179, **extra_args)
     assert model.batch_size == 179
 
     if isinstance(model, SubClassEvalModel):
         assert model.subclass_arg == 1200
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
     trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
@@ -39,9 +51,13 @@ def test_collect_init_arguments(tmpdir, cls):
     raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
     raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
     raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+
     raw_checkpoint = torch.load(raw_checkpoint_path)
     assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
     assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['batch_size'] == 179
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.my_loss, torch.nn.CrossEntropyLoss)
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)
