@@ -18,7 +18,7 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, img_shape):
+    def __init__(self, latent_dim: tuple, img_shape: tuple):
         super().__init__()
         self.img_shape = img_shape
 
@@ -45,7 +45,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, img_shape):
+    def __init__(self, img_shape: tuple):
         super().__init__()
 
         self.model = nn.Sequential(
@@ -67,13 +67,16 @@ class Discriminator(nn.Module):
 class TestGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
-    def __init__(self, hparams):
+    def __init__(self, hidden_dim, learning_rate, b1, b2, **kwargs):
         super().__init__()
-        self.hparams = hparams
+        self.hidden_dim = hidden_dim
+        self.learning_rate = learning_rate
+        self.b1 = b1
+        self.b2 = b2
 
         # networks
         mnist_shape = (1, 28, 28)
-        self.generator = Generator(latent_dim=hparams.hidden_dim, img_shape=mnist_shape)
+        self.generator = Generator(latent_dim=self.hidden_dim, img_shape=mnist_shape)
         self.discriminator = Discriminator(img_shape=mnist_shape)
 
         # cache for generated images
@@ -93,7 +96,7 @@ class TestGAN(LightningModule):
         # train generator
         if optimizer_idx == 0:
             # sample noise
-            z = torch.randn(imgs.shape[0], self.hparams.hidden_dim)
+            z = torch.randn(imgs.shape[0], self.hidden_dim)
             z = z.type_as(imgs)
 
             # generate images
@@ -128,8 +131,7 @@ class TestGAN(LightningModule):
             fake = torch.zeros(imgs.size(0), 1)
             fake = fake.type_as(fake)
 
-            fake_loss = self.adversarial_loss(
-                self.discriminator(self.generated_imgs.detach()), fake)
+            fake_loss = self.adversarial_loss(self.discriminator(self.generated_imgs.detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
@@ -142,9 +144,9 @@ class TestGAN(LightningModule):
             return output
 
     def configure_optimizers(self):
-        lr = self.hparams.learning_rate
-        b1 = self.hparams.b1
-        b2 = self.hparams.b2
+        lr = self.learning_rate
+        b1 = self.b1
+        b2 = self.b2
 
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))

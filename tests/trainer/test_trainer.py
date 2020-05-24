@@ -6,43 +6,17 @@ from argparse import Namespace
 
 import pytest
 import torch
-import yaml
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-
-
-def test_model_pickle(tmpdir):
-    import pickle
-
-    model = EvalModelTemplate()
-    pickle.dumps(model)
-
-
-def test_hparams_save_load(tmpdir):
-    model = EvalModelTemplate(vars(EvalModelTemplate.get_default_hparams()))
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-    )
-    # fit model
-    result = trainer.fit(model)
-    assert result == 1
-
-    # try to load the model now
-    pretrained_model = tutils.load_model_from_checkpoint(
-        trainer.checkpoint_callback.dirpath,
-        module_class=EvalModelTemplate
-    )
-    assert pretrained_model
 
 
 def test_no_val_module(tmpdir):
@@ -69,7 +43,7 @@ def test_no_val_module(tmpdir):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
+    assert CHECKPOINT_KEY_MODULE_ARGS in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -349,7 +323,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.num_epochs_seen = 0
         model.num_batches_seen = 0
         model.num_on_load_checkpoint_called = 0
@@ -526,22 +500,22 @@ def test_testpass_overrides(tmpdir):
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         Trainer().test(model)
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_step = LightningModule.test_step
         Trainer().test(model)
 
     # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.test_step_end = LightningModule.test_step_end
     Trainer().test(model)
 
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     Trainer().test(model)
 
 
@@ -562,7 +536,7 @@ def test_disabled_validation():
             return super().validation_epoch_end(*args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -584,7 +558,7 @@ def test_disabled_validation():
         '`validation_epoch_end` should not run when `val_percent_check=0`'
 
     # check that val_percent_check has no influence when fast_dev_run is turned on
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)

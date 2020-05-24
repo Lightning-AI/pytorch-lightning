@@ -72,9 +72,9 @@ def test_trainer_arg(tmpdir, scale_arg):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_batch_size = hparams.batch_size
+    before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -83,7 +83,7 @@ def test_trainer_arg(tmpdir, scale_arg):
     )
 
     trainer.fit(model)
-    after_batch_size = model.hparams.batch_size
+    after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
@@ -94,9 +94,9 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_batch_size = hparams.batch_size
+    before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -104,7 +104,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     )
 
     after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
-    model.hparams.batch_size = after_batch_size
+    model.batch_size = after_batch_size
     trainer.fit(model)
 
     assert before_batch_size != after_batch_size, \

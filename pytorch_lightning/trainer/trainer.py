@@ -35,6 +35,7 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
+
 try:
     from apex import amp
 except ImportError:
@@ -288,7 +289,7 @@ class Trainer(
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
+                rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
@@ -303,7 +304,7 @@ class Trainer(
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.hparams.batch_size in the LightningModule.
+                The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
@@ -951,8 +952,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            if hasattr(ref_model, "hparams"):
-                self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_hyperparams(ref_model.module_arguments)
 
             self.logger.save()
 

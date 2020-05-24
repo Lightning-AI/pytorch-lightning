@@ -1,5 +1,5 @@
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 
 import numpy as np
 import torch
@@ -128,14 +128,23 @@ class SegModel(pl.LightningModule):
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     """
 
-    def __init__(self, hparams):
+    def __init__(self,
+                 data_path: str,
+                 batch_size: int,
+                 lr: float,
+                 num_layers: int,
+                 features_start: int,
+                 bilinear: bool, **kwargs):
         super().__init__()
-        self.hparams = hparams
-        self.data_path = hparams.data_path
-        self.batch_size = hparams.batch_size
-        self.learning_rate = hparams.lr
-        self.net = UNet(num_classes=19, num_layers=hparams.num_layers,
-                        features_start=hparams.features_start, bilinear=hparams.bilinear)
+        self.data_path = data_path
+        self.batch_size = batch_size
+        self.lr = lr
+        self.num_layers = num_layers
+        self.features_start = features_start
+        self.bilinear = bilinear
+
+        self.net = UNet(num_classes=19, num_layers=self.num_layers,
+                        features_start=self.features_start, bilinear=self.bilinear)
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
@@ -181,11 +190,11 @@ class SegModel(pl.LightningModule):
         return DataLoader(self.validset, batch_size=self.batch_size, shuffle=False)
 
 
-def main(hparams):
+def main(hparams: Namespace):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = SegModel(hparams)
+    model = SegModel(**vars(hparams))
 
     # ------------------------
     # 2 SET LOGGER

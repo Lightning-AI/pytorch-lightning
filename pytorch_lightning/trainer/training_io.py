@@ -84,6 +84,7 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 """
 
 import os
+import pickle
 import re
 import signal
 from abc import ABC
@@ -95,7 +96,7 @@ import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule, CHECKPOINT_KEY_MODULE_ARGS
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -119,6 +120,12 @@ except ImportError:
 else:
     HOROVOD_AVAILABLE = True
 
+PRIMITIVE_TYPES = (
+    bool, int, float, str,
+    list, tuple, set, dict,
+    Namespace,  # for back compatibility
+)
+
 
 class TrainerIOMixin(ABC):
 
@@ -141,6 +148,9 @@ class TrainerIOMixin(ABC):
     on_tpu: bool
     num_training_batches: int
     accumulate_grad_batches: int
+    use_amp: bool
+    use_native_amp: bool
+    scaler: ...
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
@@ -263,12 +273,11 @@ class TrainerIOMixin(ABC):
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)
-            except AttributeError as e:
-                if 'hparams' in checkpoint:
-                    del checkpoint['hparams']
-                rank_zero_warn('warning, `hparams` dropped from checkpoint.'
-                               f' An attribute is not picklable {e}')
-
+            except AttributeError as err:
+                if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+                    del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
+                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
+                               f' An attribute is not picklable {err}')
                 self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -306,7 +315,15 @@ class TrainerIOMixin(ABC):
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-    def dump_checkpoint(self, weights_only: bool = False):
+    def dump_checkpoint(self, weights_only: bool = False) -> dict:
+        """Creating model checkpoint.
+
+        Args:
+            weights_only: saving model weights only
+
+        Return:
+             structured dictionary
+        """
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
@@ -338,28 +355,15 @@ class TrainerIOMixin(ABC):
             if self.use_amp and self.use_native_amp:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
-        # add the hparams and state_dict from the model
+        # add the module_arguments and state_dict from the model
         model = self.get_model()
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, "hparams") and model.hparams is not None:
-            parsing.clean_namespace(model.hparams)
-            if isinstance(model.hparams, dict):
-                checkpoint['hparams_type'] = 'dict'
-                checkpoint['hparams'] = model.hparams
-            elif isinstance(model.hparams, Namespace):
-                checkpoint['hparams_type'] = 'Namespace'
-                checkpoint['hparams'] = vars(model.hparams)
-            else:
-                raise ValueError(
-                    'The acceptable hparams type is dict or argparse.Namespace,',
-                    f' not {checkpoint["hparams_type"]}'
-                )
-        else:
-            rank_zero_warn(
-                "Did not find hyperparameters at model hparams. Saving checkpoint without hyperparameters."
-            )
+        if hasattr(model, CHECKPOINT_KEY_MODULE_ARGS) and model.module_arguments:
+            # add arguments to the checkpoint
+            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = {k: v for k, v in model.module_arguments.items()
+                                                      if isinstance(v, PRIMITIVE_TYPES)}
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -463,12 +467,11 @@ class TrainerIOMixin(ABC):
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
             self._atomic_save(checkpoint, filepath)
-        except AttributeError as e:
-            if 'hparams' in checkpoint:
-                del checkpoint['hparams']
-            rank_zero_warn('warning, `hparams` dropped from checkpoint.'
-                           f' An attribute is not picklable {e}')
-
+        except AttributeError as err:
+            if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+                del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
+            rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
+                           f' An attribute is not picklable {err}')
             self._atomic_save(checkpoint, filepath)
 
         return filepath
