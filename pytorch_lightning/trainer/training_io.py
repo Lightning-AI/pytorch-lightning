@@ -88,6 +88,7 @@ import pickle
 import re
 import signal
 from abc import ABC
+from argparse import Namespace
 from subprocess import call
 from typing import Union
 
@@ -118,6 +119,12 @@ except ImportError:
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
+
+PRIMITIVE_TYPES = (
+    bool, int, float, str,
+    list, tuple, set, dict,
+    Namespace,  # for back compatibility
+)
 
 
 class TrainerIOMixin(ABC):
@@ -356,7 +363,7 @@ class TrainerIOMixin(ABC):
         if hasattr(model, CHECKPOINT_KEY_MODULE_ARGS) and model.module_arguments:
             # add arguments to the checkpoint
             checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = {k: v for k, v in model.module_arguments.items()
-                                                      if is_picklable(v)}
+                                                      if isinstance(v, PRIMITIVE_TYPES)}
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -509,17 +516,3 @@ class TrainerIOMixin(ABC):
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
-
-
-def is_picklable(obj) -> bool:
-    """Try if the object is serializable
-
-    >>> is_picklable(5)
-    True
-    """
-    try:
-        pickle.dumps(obj)
-    except Exception:
-        return False
-    else:
-        return True

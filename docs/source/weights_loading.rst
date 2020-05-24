@@ -2,7 +2,7 @@
 
     import os
     from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule, CHECKPOINT_KEY_MODULE_ARGS
+    from pytorch_lightning.core.lightning import LightningModule
 
 
 Saving and loading weights
@@ -71,7 +71,7 @@ under the `module_arguments` key in the checkpoint.
 
     # all init args were saved to the checkpoint
     checkpoint = torch.load(CKPT_PATH)
-    print(checkpoint[CHECKPOINT_KEY_MODULE_ARGS])
+    print(checkpoint['module_arguments'])
     # {'learning_rate': the_value}
 
 Manual saving
