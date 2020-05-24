@@ -47,9 +47,6 @@ class LightningTemplateModel(LightningModule):
                  hidden_dim: int = 1000,
                  **kwargs
                  ) -> 'LightningTemplateModel':
-        """
-        Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
-        """
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
