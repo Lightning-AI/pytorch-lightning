@@ -209,7 +209,7 @@ class TrainerLoggingMixin(ABC):
                 output[k] = self.reduce_distributed_output(output[k], num_gpus)
 
             # compute the average of scalars
-            if isinstance(output[k], list):
+            elif isinstance(output[k], list):
                 output[k] = sum(output[k]) / len(output[k])
 
             # do nothing when there's a scalar
