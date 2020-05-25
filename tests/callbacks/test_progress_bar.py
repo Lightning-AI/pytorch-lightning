@@ -179,7 +179,7 @@ def test_progress_bar_progress_refresh(refresh_rate):
         num_sanity_val_steps=2,
         max_epochs=3,
     )
-    assert trainer.progress_bar_callback.refresh_rate == refresh_rate != trainer.progress_bar_refresh_rate
+    assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
     assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
