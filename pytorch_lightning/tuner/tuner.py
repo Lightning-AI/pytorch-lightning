@@ -29,15 +29,16 @@ class Tuner(
                  auto_scale_batch_size: Union[str, bool] = False,
                  auto_lr_find: Union[bool, str] = False):
         
-        
-
-        Args:
         # User instance of trainer
         self.trainer = trainer
         
         # Parameters to optimize
         self.auto_scale_batch_size = auto_scale_batch_size
         self.auto_lr_find = auto_lr_find
+        
+        # For checking dependency
+        self._scale_batch_size_called = False
+        self._lr_find_called = False
     
     def optimize(self, 
                  model: LightningModule,

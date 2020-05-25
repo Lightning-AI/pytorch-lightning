@@ -17,12 +17,19 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
-
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TunerBatchScalerMixin(ABC):
-    pass
-
+    def _check_dependency(self):
+        if self._lr_find_called:
+            rank_zero_warn(
+                'You called learning rate finder before batch scaler. Please note'
+                ' that the result of the learning rate finder is influenced by the'
+                ' batch size, and the batch size should therefore be called before'
+                ' the learning rate finder',
+                UserWarning)
+    
     def scale_batch_size(self,
                          model: LightningModule,
                          mode: str = 'power',
@@ -54,6 +61,8 @@ class TunerBatchScalerMixin(ABC):
                algorithm is terminated
 
         """
+        self._check_dependency()
+        
         if not hasattr(model, batch_arg_name):
             raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
 
@@ -96,6 +105,8 @@ class TunerBatchScalerMixin(ABC):
         if self.progress_bar_callback:
             self.progress_bar_callback.enable()
 
+
+        self._scale_batch_size_called = True
         return new_size
 
     def __scale_batch_dump_params(self):

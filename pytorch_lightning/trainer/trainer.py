@@ -73,7 +73,6 @@ class Trainer(
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
-    TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_8,
     TrainerDeprecatedAPITillVer0_9,
 ):

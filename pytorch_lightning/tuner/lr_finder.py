@@ -23,7 +23,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerLRFinderMixin(ABC):
-    default_root_dir: str
+    def _check_dependency(self):
+        pass  # no dependency
 
     @abstractmethod
     def save_checkpoint(self, *args):
@@ -191,7 +192,8 @@ class TrainerLRFinderMixin(ABC):
         self.__lr_finder_restore_params(model)
         if self.progress_bar_callback:
             self.progress_bar_callback.enable()
-
+            
+        self._lr_find_called = True
         return lr_finder
 
     def __lr_finder_dump_params(self, model):
