@@ -10,9 +10,11 @@ from PIL.Image import Image
 try:
     import neptune
     from neptune.experiments import Experiment
+    _NEPTUNE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
-    raise ImportError('You want to use `neptune` logger which is not installed yet,'  # pragma: no-cover
-                      ' install it with `pip install neptune-client`.')
+    neptune = None
+    Experiment = None
+    _NEPTUNE_AVAILABLE = False
 
 import torch
 from torch import is_tensor
@@ -179,6 +181,9 @@ class NeptuneLogger(LightningLoggerBase):
                  properties: Optional[Dict[str, Any]] = None,
                  tags: Optional[List[str]] = None,
                  **kwargs):
+        if not _NEPTUNE_AVAILABLE:
+            raise ImportError('You want to use `neptune` logger which is not installed yet,'
+                              ' install it with `pip install neptune-client`.')
         super().__init__()
         self.api_key = api_key
         self.project_name = project_name

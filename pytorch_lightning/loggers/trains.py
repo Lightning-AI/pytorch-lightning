@@ -14,7 +14,11 @@ from PIL.Image import Image
 try:
     import trains
     from trains import Task
+    _TRAINS_AVAILABLE = True
 except ImportError:  # pragma: no-cover
+    trains = None
+    Task = None
+    _TRAINS_AVAILABLE = False
     raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
                       ' install it with `pip install trains`.')
 
@@ -91,6 +95,9 @@ class TrainsLogger(LightningLoggerBase):
             auto_connect_frameworks: bool = True,
             auto_resource_monitoring: bool = True
     ) -> None:
+        if not _TRAINS_AVAILABLE:
+            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
+                              ' install it with `pip install test-tube`.')
         super().__init__()
         if self.bypass_mode():
             self._trains = None
