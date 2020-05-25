@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data._utils.collate import default_convert
 
-from pytorch_lightning.utilities.apply_to_collection import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 def _apply_to_inputs(func_to_apply, *dec_args, **dec_kwargs):
