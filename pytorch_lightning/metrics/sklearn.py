@@ -23,18 +23,19 @@ __all__ = [
 
 
 class SklearnMetric(NumpyMetric):
+    """
+    Bridge between PyTorch Lightning and scikit-learn metrics
+
+    .. warning::
+        Every metric call will cause a GPU synchronization, which may slow down your code
+
+    .. note::
+        The order of targets and predictions may be different from the order typically used in PyTorch
+    """
     def __init__(self, metric_name: str,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM, **kwargs):
         """
-        Bridge between PyTorch Lightning and scikit-learn metrics
-
-        .. warning::
-            Every metric call will cause a GPU synchronization, which may slow down your code
-
-        .. note::
-            The order of targets and predictions may be different from the order typically used in PyTorch
-
         Args:
             metric_name: the metric name to import anc compute from scikit-learn.metrics
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -57,8 +58,8 @@ class SklearnMetric(NumpyMetric):
         return getattr(sklearn.metrics, self.name)
 
     def forward(self, *args, **kwargs) -> Union[np.ndarray, int, float]:
-        """
-        Carries the actual metric computation
+        """ Carries the actual metric computation
+
         Args:
             *args: Positional arguments forwarded to metric call (should be already converted to numpy)
             **kwargs: keyword arguments forwarded to metric call (should be already converted to numpy)
@@ -71,15 +72,16 @@ class SklearnMetric(NumpyMetric):
 
 
 class Accuracy(SklearnMetric):
+    """
+    Calculates the Accuracy Score
+
+    .. warning::
+        Every metric call will cause a GPU synchronization, which may slow down your code
+    """
     def __init__(self, normalize: bool = True,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-        Calculates the Accuracy Score
-
-        .. warning::
-            Every metric call will cause a GPU synchronization, which may slow down your code
-
         Args:
             normalize: If ``False``, return the number of correctly classified samples.
                 Otherwise, return the fraction of correctly classified samples.
@@ -95,8 +97,8 @@ class Accuracy(SklearnMetric):
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
-        """
-        Computes the accuracy
+        """ Computes the accuracy
+
         Args:
             y_pred: the array containing the predictions (already in categorical form)
             y_true: the array containing the targets (in categorical form)
@@ -104,23 +106,22 @@ class Accuracy(SklearnMetric):
 
         Returns:
             Accuracy Score
-
-
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class AUC(SklearnMetric):
+    """
+    Calculates the Area Under the Curve using the trapoezoidal rule
+
+    .. warning::
+        Every metric call will cause a GPU synchronization, which may slow down your code
+    """
     def __init__(self,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM
                  ):
         """
-        Calculates the Area Under the Curve using the trapoezoidal rule
-
-        .. warning::
-            Every metric call will cause a GPU synchronization, which may slow down your code
-
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
@@ -134,8 +135,8 @@ class AUC(SklearnMetric):
                          )
 
     def forward(self, x: np.ndarray, y: np.ndarray) -> float:
-        """
-        Computes the AUC
+        """ Computes the AUC
+
         Args:
             x: x coordinates.
             y: y coordinates.
@@ -148,12 +149,14 @@ class AUC(SklearnMetric):
 
 
 class AveragePrecision(SklearnMetric):
+    """
+    Calculates the average precision (AP) score.
+    """
     def __init__(self, average: Optional[str] = 'macro',
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM
                  ):
         """
-        Calculates the average precision (AP) score.
         Args:
             average: If None, the scores for each class are returned.
                 Otherwise, this determines the type of averaging performed on the data:
@@ -177,7 +180,6 @@ class AveragePrecision(SklearnMetric):
     def forward(self, y_score: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
-
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
                 confidence values, or binary decisions.
@@ -191,16 +193,17 @@ class AveragePrecision(SklearnMetric):
 
 
 class ConfusionMatrix(SklearnMetric):
+    """
+    Compute confusion matrix to evaluate the accuracy of a classification
+    By definition a confusion matrix :math:`C` is such that :math:`C_{i, j}`
+    is equal to the number of observations known to be in group :math:`i` but
+    predicted to be in group :math:`j`.
+    """
     def __init__(self, labels: Optional[Sequence] = None,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM
                  ):
         """
-        Compute confusion matrix to evaluate the accuracy of a classification
-        By definition a confusion matrix :math:`C` is such that :math:`C_{i, j}`
-        is equal to the number of observations known to be in group :math:`i` but
-        predicted to be in group :math:`j`.
-
         Args:
             labels: List of labels to index the matrix. This may be used to reorder
                 or select a subset of labels.
@@ -218,7 +221,6 @@ class ConfusionMatrix(SklearnMetric):
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> np.ndarray:
         """
-
         Args:
             y_pred: Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
@@ -251,7 +253,6 @@ class F1(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             labels: Integer array of labels.
             pos_label: The class to report if ``average='binary'``.
@@ -294,12 +295,10 @@ class F1(SklearnMetric):
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             y_pred : Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-
 
         Returns: F1 score of the positive class in binary classification or weighted
             average of the F1 scores of each class for the multiclass task.
@@ -315,12 +314,12 @@ class FBeta(SklearnMetric):
     favors recall (``beta -> 0`` considers only precision, ``beta -> inf``
     only recall).
 
-        References:
-            .. [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
-                Modern Information Retrieval. Addison Wesley, pp. 327-328.
-            .. [2] `Wikipedia entry for the F1-score
-                   <http://en.wikipedia.org/wiki/F1_score>`_
-        """
+    References:
+        .. [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
+            Modern Information Retrieval. Addison Wesley, pp. 327-328.
+        .. [2] `Wikipedia entry for the F1-score
+               <http://en.wikipedia.org/wiki/F1_score>`_
+    """
 
     def __init__(self, beta: float, labels: Optional[Sequence] = None,
                  pos_label: Union[str, int] = 1,
@@ -328,7 +327,6 @@ class FBeta(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             beta: Weight of precision in harmonic mean.
             labels: Integer array of labels.
@@ -373,12 +371,10 @@ class FBeta(SklearnMetric):
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             y_pred : Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-
 
         Returns: FBeta score of the positive class in binary classification or weighted
             average of the FBeta scores of each class for the multiclass task.
@@ -395,7 +391,6 @@ class Precision(SklearnMetric):
     intuitively the ability of the classifier not to label as positive a sample
     that is negative.
     The best value is 1 and the worst value is 0.
-
     """
 
     def __init__(self, labels: Optional[Sequence] = None,
@@ -404,7 +399,6 @@ class Precision(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             labels: Integer array of labels.
             pos_label: The class to report if ``average='binary'``.
@@ -447,16 +441,13 @@ class Precision(SklearnMetric):
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             y_pred : Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-
         Returns:  Precision of the positive class in binary classification or weighted
         average of the precision of each class for the multiclass task.
-
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
@@ -468,7 +459,6 @@ class Recall(SklearnMetric):
     true positives and ``fn`` the number of false negatives. The recall is
     intuitively the ability of the classifier to find all the positive samples.
     The best value is 1 and the worst value is 0.
-
     """
 
     def __init__(self, labels: Optional[Sequence] = None,
@@ -477,7 +467,6 @@ class Recall(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             labels: Integer array of labels.
             pos_label: The class to report if ``average='binary'``.
@@ -520,16 +509,13 @@ class Recall(SklearnMetric):
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             y_pred : Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-
         Returns:  Recall of the positive class in binary classification or weighted
         average of the recall of each class for the multiclass task.
-
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
@@ -551,7 +537,6 @@ class PrecisionRecallCurve(SklearnMetric):
     The last precision and recall values are 1. and 0. respectively and do not
     have a corresponding threshold.  This ensures that the graph starts on the
     x axis.
-
     """
 
     def __init__(self,
@@ -559,7 +544,6 @@ class PrecisionRecallCurve(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             pos_label: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -575,12 +559,10 @@ class PrecisionRecallCurve(SklearnMetric):
     def forward(self, probas_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             probas_pred : Estimated probabilities or decision function.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-
 
         Returns:
             precision:
@@ -606,7 +588,6 @@ class ROC(SklearnMetric):
 
     Note:
         this implementation is restricted to the binary classification task.
-
     """
 
     def __init__(self,
@@ -614,7 +595,6 @@ class ROC(SklearnMetric):
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM):
         """
-
         Args:
             pos_labels: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -634,7 +614,6 @@ class ROC(SklearnMetric):
     def forward(self, y_score: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
         """
-
         Args:
             y_score : Target scores, can either be probability estimates of the positive
                 class or confidence values.
@@ -660,6 +639,7 @@ class ROC(SklearnMetric):
 class AUROC(SklearnMetric):
     """
     Compute Area Under the Curve (AUC) from prediction scores
+
     Note:
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
@@ -693,12 +673,12 @@ class AUROC(SklearnMetric):
     def forward(self, y_score: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
-
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
                 confidence values, or binary decisions.
             y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
+
         Returns:
             Area Under Receiver Operating Characteristic Curve
         """
