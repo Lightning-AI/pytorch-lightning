@@ -842,7 +842,10 @@ class Trainer(
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
-            task = int(os.environ['SLURM_LOCALID'])
+            if self.is_slurm_managing_tasks:
+                task = int(os.environ['SLURM_LOCALID'])
+            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+                task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
