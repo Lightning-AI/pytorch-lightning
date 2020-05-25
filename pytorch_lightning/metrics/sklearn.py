@@ -99,7 +99,7 @@ class Accuracy(SklearnMetric):
 
 
 class AUC(SklearnMetric):
-    def __init__(self, reorder: bool = False,
+    def __init__(self,
                  reduce_group: Any = torch.distributed.group.WORLD,
                  reduce_op: Any = torch.distributed.ReduceOp.SUM
                  ):
@@ -110,8 +110,6 @@ class AUC(SklearnMetric):
             Every metric call will cause a GPU synchronization, which may slow down your code
 
         Args:
-            reorder: If ``True``, assume that the curve is ascending in the case of ties, as for an ROC curve.
-                If the curve is non-ascending, the result will be wrong.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
@@ -121,7 +119,7 @@ class AUC(SklearnMetric):
         super().__init__(metric_name='auc',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
-                         reorder=reorder)
+                         )
 
     def forward(self, x: np.ndarray, y: np.ndarray) -> float:
         """
