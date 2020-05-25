@@ -35,6 +35,7 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
+
 try:
     from apex import amp
 except ImportError:
@@ -288,7 +289,7 @@ class Trainer(
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
+                rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
@@ -303,7 +304,7 @@ class Trainer(
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.hparams.batch_size in the LightningModule.
+                The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
@@ -400,6 +401,7 @@ class Trainer(
 
         self.auto_lr_find = auto_lr_find
         self.auto_scale_batch_size = auto_scale_batch_size
+        self._is_data_prepared = False
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -822,17 +824,21 @@ class Trainer(
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
-        model.prepare_data()
+        if not self._is_data_prepared:
+            model.prepare_data()
+            self._is_data_prepared = True
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            model.logger = self.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.auto_lr_find:
             self._run_lr_finder_internally(model)
+            model.logger = self.logger  # reset logger binding
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
@@ -951,8 +957,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            if hasattr(ref_model, "hparams"):
-                self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_hyperparams(ref_model.module_arguments)
 
             self.logger.save()
 

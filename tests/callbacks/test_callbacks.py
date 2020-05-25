@@ -13,7 +13,7 @@ def test_trainer_callback_system(tmpdir):
     """Test the callback system."""
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     def _check_args(trainer, pl_module):
         assert isinstance(trainer, Trainer)

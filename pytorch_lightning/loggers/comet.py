@@ -16,9 +16,16 @@ try:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
+
+    _COMET_AVAILABLE = True
 except ImportError:  # pragma: no-cover
-    raise ImportError('You want to use `comet_ml` logger which is not installed yet,'  # pragma: no-cover
-                      ' install it with `pip install comet-ml`.')
+    CometExperiment = None
+    CometExistingExperiment = None
+    CometOfflineExperiment = None
+    CometBaseExperiment = None
+    API = None
+    _COMET_AVAILABLE = False
+
 
 import torch
 from torch import is_tensor
@@ -93,6 +100,9 @@ class CometLogger(LightningLoggerBase):
                  experiment_key: Optional[str] = None,
                  **kwargs):
 
+        if not _COMET_AVAILABLE:
+            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
+                              ' install it with `pip install comet-ml`.')
         super().__init__()
         self._experiment = None
 

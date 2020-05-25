@@ -6,43 +6,17 @@ from argparse import Namespace
 
 import pytest
 import torch
-import yaml
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-
-
-def test_model_pickle(tmpdir):
-    import pickle
-
-    model = EvalModelTemplate()
-    pickle.dumps(model)
-
-
-def test_hparams_save_load(tmpdir):
-    model = EvalModelTemplate(vars(EvalModelTemplate.get_default_hparams()))
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-    )
-    # fit model
-    result = trainer.fit(model)
-    assert result == 1
-
-    # try to load the model now
-    pretrained_model = tutils.load_model_from_checkpoint(
-        trainer.checkpoint_callback.dirpath,
-        module_class=EvalModelTemplate
-    )
-    assert pretrained_model
 
 
 def test_no_val_module(tmpdir):
@@ -69,7 +43,7 @@ def test_no_val_module(tmpdir):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert 'hparams' in ckpt.keys(), 'hparams missing from checkpoints'
+    assert CHECKPOINT_KEY_MODULE_ARGS in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -255,19 +229,21 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-@pytest.mark.parametrize(["save_top_k", "file_prefix", "expected_files"], [
-    pytest.param(-1, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
+@pytest.mark.parametrize(["save_top_k", "save_last", "file_prefix", "expected_files"], [
+    pytest.param(-1, False, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
                  id="CASE K=-1  (all)"),
-    pytest.param(1, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
+    pytest.param(1, False, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
                  id="CASE K=1 (2.5, epoch 4)"),
-    pytest.param(2, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
+    pytest.param(2, False, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
-    pytest.param(4, '', {'epoch=1.ckpt', 'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt'},
+    pytest.param(4, False, '', {'epoch=1.ckpt', 'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=4 (save all 4 base)"),
-    pytest.param(3, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
+    pytest.param(3, False, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
                  id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
+    pytest.param(1, True, '', {'epoch=4.ckpt', 'last.ckpt'},
+                 id="CASE K=1 (save the 4th model and the last model)"),
 ])
-def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_files):
+def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, expected_files):
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
@@ -276,7 +252,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, prefix=file_prefix, verbose=1)
+    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last,
+                                          prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
@@ -349,7 +326,7 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     def _new_model():
         # Create a model that tracks epochs and batches seen
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.num_epochs_seen = 0
         model.num_batches_seen = 0
         model.num_on_load_checkpoint_called = 0
@@ -526,22 +503,22 @@ def test_testpass_overrides(tmpdir):
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         Trainer().test(model)
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(hparams)
+        model = EvalModelTemplate(**hparams)
         model.test_step = LightningModule.test_step
         Trainer().test(model)
 
     # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.test_step_end = LightningModule.test_step_end
     Trainer().test(model)
 
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     Trainer().test(model)
 
 
@@ -562,7 +539,7 @@ def test_disabled_validation():
             return super().validation_epoch_end(*args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -584,7 +561,7 @@ def test_disabled_validation():
         '`validation_epoch_end` should not run when `val_percent_check=0`'
 
     # check that val_percent_check has no influence when fast_dev_run is turned on
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)

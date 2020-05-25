@@ -11,9 +11,11 @@ import torch.nn as nn
 try:
     import wandb
     from wandb.wandb_run import Run
+    _WANDB_AVAILABLE = True
 except ImportError:  # pragma: no-cover
-    raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
-                      ' install it with `pip install wandb`.')
+    wandb = None
+    Run = None
+    _WANDB_AVAILABLE = False
 
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
@@ -67,6 +69,9 @@ class WandbLogger(LightningLoggerBase):
                  experiment=None,
                  entity=None,
                  group: Optional[str] = None):
+        if not _WANDB_AVAILABLE:
+            raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
+                              ' install it with `pip install wandb`.')
         super().__init__()
         self._name = name
         self._save_dir = save_dir

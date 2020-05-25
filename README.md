@@ -384,22 +384,6 @@ conda activate my_env
 pip install pytorch-lightning
 ```
 
-**Which PyTorch versions do you support?**    
-- **PyTorch 1.1.0**
-    ```bash
-    # install pytorch 1.1.0 using the official instructions
-
-    # install test-tube 0.6.7.6 which supports 1.1.0
-    pip install test-tube==0.6.7.6
-
-    # install latest Lightning version without upgrading deps
-    pip install -U --no-deps pytorch-lightning
-    ```
-- **PyTorch 1.2.0+**
-   ```python
-   pip install pytorch-lightning
-   ```
-
 ## Custom installation
 
 ### Bleeding edge
@@ -437,6 +421,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
+- Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 
 #### Funding    
 Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can

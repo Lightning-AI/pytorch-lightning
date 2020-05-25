@@ -72,9 +72,9 @@ def test_trainer_arg(tmpdir, scale_arg):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_batch_size = hparams.batch_size
+    before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -83,7 +83,7 @@ def test_trainer_arg(tmpdir, scale_arg):
     )
 
     trainer.fit(model)
-    after_batch_size = model.hparams.batch_size
+    after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
@@ -94,9 +94,9 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_batch_size = hparams.batch_size
+    before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -104,7 +104,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     )
 
     after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
-    model.hparams.batch_size = after_batch_size
+    model.batch_size = after_batch_size
     trainer.fit(model)
 
     assert before_batch_size != after_batch_size, \
@@ -128,3 +128,26 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         trainer.fit(model, **fit_options)
+
+
+def test_logger_reset_correctly(tmpdir):
+    """ Test that logger is updated correctly """
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(hparams)
+
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=True
+    )
+    logger1 = trainer.logger
+    trainer.fit(model)
+    logger2 = trainer.logger
+    logger3 = model.logger
+
+    assert logger1 == logger2, \
+        'Batch size finder altered the logger of trainer'
+    assert logger2 == logger3, \
+        'Batch size finder altered the logger of model'

@@ -3,7 +3,6 @@ Example template for defining a system.
 """
 import os
 from argparse import ArgumentParser
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -34,25 +33,38 @@ class LightningTemplateModel(LightningModule):
         ...     out_features=10,
         ...     hidden_dim=1000,
         ... )
-        >>> from argparse import Namespace
-        >>> hparams = Namespace(**params)
-        >>> model = LightningTemplateModel(hparams)
+        >>> model = LightningTemplateModel(**params)
     """
 
-    def __init__(self, hparams):
-        """
-        Pass in hyperparameters as a `argparse.Namespace` or a `dict` to the model.
-        """
+    def __init__(self,
+                 drop_prob: float = 0.2,
+                 batch_size: int = 2,
+                 in_features: int = 28 * 28,
+                 learning_rate: float = 0.001 * 8,
+                 optimizer_name: str = 'adam',
+                 data_root: str = './datasets',
+                 out_features: int = 10,
+                 hidden_dim: int = 1000,
+                 **kwargs
+                 ) -> 'LightningTemplateModel':
         # init superclass
         super().__init__()
-        self.hparams = hparams
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
-                              out_features=self.hparams.hidden_dim)
-        self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
-        self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
+        self.drop_prob = drop_prob
+        self.batch_size = batch_size
+        self.in_features = in_features
+        self.learning_rate = learning_rate
+        self.optimizer_name = optimizer_name
+        self.data_root = data_root
+        self.out_features = out_features
+        self.hidden_dim = hidden_dim
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
-                              out_features=self.hparams.out_features)
+        self.c_d1 = nn.Linear(in_features=self.in_features,
+                              out_features=self.hidden_dim)
+        self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
+        self.c_d1_drop = nn.Dropout(self.drop_prob)
+
+        self.c_d2 = nn.Linear(in_features=self.hidden_dim,
+                              out_features=self.out_features)
 
     def forward(self, x):
         """
@@ -122,32 +134,32 @@ class LightningTemplateModel(LightningModule):
         Return whatever optimizers and learning rate schedulers you want here.
         At least one optimizer is required.
         """
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
         return [optimizer], [scheduler]
 
     def prepare_data(self):
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        self.mnist_train = MNIST(self.hparams.data_root, train=True, download=True, transform=transform)
-        self.mnist_test = MNIST(self.hparams.data_root, train=False, download=True, transform=transform)
+        self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
+        self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
 
     def train_dataloader(self):
         log.info('Training data loader called.')
-        return DataLoader(self.mnist_train, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
 
     def val_dataloader(self):
         log.info('Validation data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     def test_dataloader(self):
         log.info('Test data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.hparams.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
         """
-        Parameters you define here will be available to your model through `self.hparams`.
+        Define parameters that only apply to this model
         """
         parser = ArgumentParser(parents=[parent_parser])
 

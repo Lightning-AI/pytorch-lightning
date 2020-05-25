@@ -16,3 +16,4 @@ Core Maintainers
 - Jeremy Jordan (`jeremyjordan <https://github.com/jeremyjordan>`_)
 - Tullie Murrell (`tullie <https://github.com/tullie>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
+- Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)

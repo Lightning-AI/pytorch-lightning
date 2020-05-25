@@ -125,20 +125,6 @@ jobs:
       - store_artifacts:
           path: test-reports
 
-  PyTorch-v1_1:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch>=1.1, <1.2"
-    steps: *steps
-
-  PyTorch-v1_2:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch>=1.2, <1.3"
-    steps: *steps
-
   PyTorch-v1_3:
     docker:
       - image: circleci/python:3.6
@@ -189,8 +175,6 @@ workflows:
     jobs:
       - Formatting
       - Build-Docs
-      #- PyTorch-v1_1
-      #- PyTorch-v1_2
       - PyTorch-v1_3
       - PyTorch-v1_4
       - PyTorch-v1_5
