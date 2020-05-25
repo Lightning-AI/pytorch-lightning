@@ -19,36 +19,63 @@ By default early stopping will be enabled if `'val_loss'`
 is found in :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`'s
 return dict. Otherwise training will proceed with early stopping disabled.
 
-Enable Early Stopping using Callbacks on epoch end
---------------------------------------------------
-There are two ways to enable early stopping using callbacks on epoch end.
+Enable Early Stopping using the EarlyStopping Callback
+------------------------------------------------------
+The
+:class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+callback can be used to monitor a validation metric and stop the training when no improvement is observed.
 
--   Set early_stop_callback to True. Will look for 'val_loss' in validation_epoch_end() return dict.
-    If it is not found an error is raised.
+There are two ways to enable the EarlyStopping callback:
+
+-   Set `early_stop_callback=True`.
+    The callback will look for 'val_loss' in the dict returned by 
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`
+    and raise an error if `val_loss` is not present.
 
     .. testcode::
 
         trainer = Trainer(early_stop_callback=True)
 
--   Or configure your own callback
+-   Create the callback object and pass it to the trainer.
+    This allows for further customization.
 
     .. testcode::
 
         early_stop_callback = EarlyStopping(
-            monitor='val_loss',
-            min_delta=0.00,
-            patience=3,
-            verbose=False,
-            mode='min'
+           monitor='val_accuracy',
+           min_delta=0.00,
+           patience=3,
+           verbose=False,
+           mode='max'
         )
         trainer = Trainer(early_stop_callback=early_stop_callback)
 
-In any case, the callback will fall back to the training metrics (returned in
-:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`)
-looking for a key to monitor if validation is disabled or
-:meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`
-is not defined.
+In case you need early stopping in a different part of training, subclass EarlyStopping
+and change where it is called:
+
+.. testcode::
+
+    class MyEarlyStopping(EarlyStopping):
+
+        def on_validation_end(self, trainer, pl_module):
+            # override this to disable early stopping at the end of val loop
+            pass
+
+        def on_train_end(self, trainer, pl_module):
+            # instead, do it at the end of training loop
+            self._run_early_stopping_check(trainer, pl_module)
+
+.. note::
+   The EarlyStopping callback runs at the end of every validation epoch,
+   which, under the default configuration, happen after every training epoch.
+   However, the frequency of validation can be modified by setting various parameters
+   on the :class:`~pytorch_lightning.trainer.trainer.Trainer`,
+   for example :paramref:`~pytorch_lightning.trainer.trainer.Trainer.check_val_every_n_epoch`
+   and :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval`.
+   It must be noted that the `patience` parameter counts the number of
+   validation epochs with no improvement, and not the number of training epochs.
+   Therefore, with parameters `check_val_every_n_epoch=10` and `patience=3`, the trainer
+   will perform at least 40 training epochs before being stopped.
 
 .. seealso::
     - :class:`~pytorch_lightning.trainer.trainer.Trainer`
