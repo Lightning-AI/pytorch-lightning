@@ -6,8 +6,20 @@ import torch
 from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
 
-__all__ = ['SklearnMetric', 'Accuracy', 'AveragePrecision', 'AUC', 'ConfusionMatrix', 'F1', 'FBeta',
-           'Precision', 'Recall', 'PrecisionRecallCurve', 'ROC', 'AUROC']
+__all__ = [
+    'SklearnMetric',
+    'Accuracy',
+    'AveragePrecision',
+    'AUC',
+    'ConfusionMatrix',
+    'F1',
+    'FBeta',
+    'Precision',
+    'Recall',
+    'PrecisionRecallCurve',
+    'ROC',
+    'AUROC'
+]
 
 
 class SklearnMetric(NumpyMetric):
@@ -143,15 +155,15 @@ class AveragePrecision(SklearnMetric):
         """
         Calculates the average precision (AP) score.
         Args:
-            average: If None, the scores for each class are returned. Otherwise, this determines the type of
-                averaging performed on the data:
-                * If 'micro': Calculate metrics globally by considering each element of the label indicator
-                    matrix as a label.
-                * If 'macro': Calculate metrics for each label, and find their unweighted mean.
-                    This does not take label imbalance into account.
-                * If 'weighted': Calculate metrics for each label, and find their average, weighted by
-                    support (the number of true instances for each label).
-                * If 'samples': Calculate metrics for each instance, and find their average.
+            average: If None, the scores for each class are returned.
+                Otherwise, this determines the type of averaging performed on the data:
+                    * If 'micro': Calculate metrics globally by considering each element
+                        of the label indicator matrix as a label.
+                    * If 'macro': Calculate metrics for each label, and find their unweighted mean.
+                        This does not take label imbalance into account.
+                    * If 'weighted': Calculate metrics for each label, and find their average,
+                        weighted by support (the number of true instances for each label).
+                    * If 'samples': Calculate metrics for each instance, and find their average.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
