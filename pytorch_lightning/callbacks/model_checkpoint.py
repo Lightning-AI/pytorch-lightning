@@ -43,6 +43,7 @@ class ModelCheckpoint(Callback):
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
+        save_last: always saves the model at the end of the epoch. Default: ``False``.
         save_top_k: if `save_top_k == k`,
             the best k models according to
             the quantity monitored will be saved.
@@ -83,7 +84,7 @@ class ModelCheckpoint(Callback):
     """
 
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
-                 save_top_k: int = 1, save_weights_only: bool = False,
+                 save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
         if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
@@ -103,6 +104,7 @@ class ModelCheckpoint(Callback):
             else:
                 self.dirpath, self.filename = os.path.split(filepath)
             os.makedirs(self.dirpath, exist_ok=True)
+        self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
@@ -216,6 +218,10 @@ class ModelCheckpoint(Callback):
             return
 
         self.epoch_last_check = epoch
+
+        if self.save_last:
+            filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
+            self._save_model(filepath)
 
         filepath = self.format_checkpoint_name(epoch, metrics)
         version_cnt = 0

@@ -229,19 +229,21 @@ def test_dp_output_reduce():
     assert reduced['b']['c'] == out['b']['c']
 
 
-@pytest.mark.parametrize(["save_top_k", "file_prefix", "expected_files"], [
-    pytest.param(-1, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
+@pytest.mark.parametrize(["save_top_k", "save_last", "file_prefix", "expected_files"], [
+    pytest.param(-1, False, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
                  id="CASE K=-1  (all)"),
-    pytest.param(1, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
+    pytest.param(1, False, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
                  id="CASE K=1 (2.5, epoch 4)"),
-    pytest.param(2, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
+    pytest.param(2, False, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
-    pytest.param(4, '', {'epoch=1.ckpt', 'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt'},
+    pytest.param(4, False, '', {'epoch=1.ckpt', 'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=4 (save all 4 base)"),
-    pytest.param(3, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
+    pytest.param(3, False, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
                  id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
+    pytest.param(1, True, '', {'epoch=4.ckpt', 'last.ckpt'},
+                 id="CASE K=1 (save the 4th model and the last model)"),
 ])
-def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_files):
+def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, expected_files):
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
@@ -250,7 +252,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, file_prefix, expected_file
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, prefix=file_prefix, verbose=1)
+    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last,
+                                          prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
