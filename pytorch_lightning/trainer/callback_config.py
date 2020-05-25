@@ -18,8 +18,6 @@ class TrainerCallbackConfigMixin(ABC):
     weights_save_path: str
     ckpt_path: str
     checkpoint_callback: ModelCheckpoint
-    progress_bar_refresh_rate: int
-    process_position: int
 
     @property
     @abstractmethod
@@ -109,7 +107,7 @@ class TrainerCallbackConfigMixin(ABC):
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
 
-    def configure_progress_bar(self):
+    def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -117,12 +115,14 @@ class TrainerCallbackConfigMixin(ABC):
                 ' progress bar is supported.'
             )
         elif len(progress_bars) == 1:
-            self.progress_bar_callback = progress_bars[0]
-        elif self.progress_bar_refresh_rate > 0:
-            self.progress_bar_callback = ProgressBar(
-                refresh_rate=self.progress_bar_refresh_rate,
-                process_position=self.process_position,
+            progress_bar_callback = progress_bars[0]
+        elif refresh_rate > 0:
+            progress_bar_callback = ProgressBar(
+                refresh_rate=refresh_rate,
+                process_position=process_position,
             )
-            self.callbacks.append(self.progress_bar_callback)
+            self.callbacks.append(progress_bar_callback)
         else:
-            self.progress_bar_callback = None
+            progress_bar_callback = None
+
+        return progress_bar_callback

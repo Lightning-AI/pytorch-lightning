@@ -130,7 +130,6 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
-            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
@@ -364,7 +363,6 @@ class Trainer(
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
         self.num_processes = num_processes
 
-        self.process_position = process_position
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
@@ -506,9 +504,7 @@ class Trainer(
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
 
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = progress_bar_callback
-        self.configure_progress_bar()
+        self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
         self.log_save_interval = log_save_interval
@@ -661,7 +657,6 @@ class Trainer(
              'min_steps': None,
              ...
              'profiler': None,
-             'progress_bar_callback': True,
              'progress_bar_refresh_rate': 1,
              ...}
 
@@ -730,20 +725,32 @@ class Trainer(
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
-        """create an instance from CLI arguments
+        """
+        Create an instance from CLI arguments.
+
+        Args:
+            args: The parser or namespace to take arguments from. Only known arguments will be
+                parsed and passed to the :class:`Trainer`.
+            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
+                These must be valid Trainer arguments.
 
         Example:
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
+            >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
             >>> args = Trainer.parse_argparser(parser.parse_args(""))
-            >>> trainer = Trainer.from_argparse_args(args)
+            >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
         if isinstance(args, ArgumentParser):
-            args = Trainer.parse_argparser(args)
+            args = cls.parse_argparser(args)
         params = vars(args)
-        params.update(**kwargs)
 
-        return cls(**params)
+        # we only want to pass in valid Trainer args, the rest may be user specific
+        valid_kwargs = inspect.signature(cls.__init__).parameters
+        trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+        trainer_kwargs.update(**kwargs)
+
+        return cls(**trainer_kwargs)
 
     @property
     def num_gpus(self) -> int:
@@ -755,6 +762,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self.use_dp or self.use_ddp or self.use_ddp2
+
+    @property
+    def progress_bar_callback(self):
+        return self._progress_bar_callback
 
     @property
     def progress_bar_dict(self) -> dict:
@@ -843,7 +854,10 @@ class Trainer(
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
-            task = int(os.environ['SLURM_LOCALID'])
+            if self.is_slurm_managing_tasks:
+                task = int(os.environ['SLURM_LOCALID'])
+            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+                task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -886,7 +900,7 @@ class Trainer(
 
             # train
             if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
+                self.tpu_train(model)
             else:
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 

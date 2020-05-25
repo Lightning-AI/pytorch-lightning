@@ -198,11 +198,9 @@ class TrainerLRFinderMixin(ABC):
             'callbacks': self.callbacks,
             'logger': self.logger,
             'max_steps': self.max_steps,
-            'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
             'enable_early_stop': self.enable_early_stop,
-            'progress_bar_callback': self.progress_bar_callback,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -211,11 +209,9 @@ class TrainerLRFinderMixin(ABC):
         self.logger = self.__dumped_params['logger']
         self.callbacks = self.__dumped_params['callbacks']
         self.max_steps = self.__dumped_params['max_steps']
-        self.progress_bar_refresh_rate = self.__dumped_params['progress_bar_refresh_rate']
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
         self.enable_early_stop = self.__dumped_params['enable_early_stop']
-        self.progress_bar_callback = self.__dumped_params['progress_bar_callback']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 

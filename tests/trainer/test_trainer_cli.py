@@ -1,5 +1,6 @@
 import inspect
 import pickle
+import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
@@ -110,3 +111,28 @@ def test_argparse_args_parsing(cli_args, expected):
     for k, v in expected.items():
         assert getattr(args, k) == v
     assert Trainer.from_argparse_args(args)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 7),
+    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
+)
+@pytest.mark.parametrize(['cli_args', 'extra_args'], [
+    pytest.param({}, {}),
+    pytest.param({'logger': False}, {}),
+    pytest.param({'logger': False}, {'logger': True}),
+    pytest.param({'logger': False}, {'checkpoint_callback': True}),
+])
+def test_init_from_argparse_args(cli_args, extra_args):
+    unknown_args = dict(unknown_arg=0)
+
+    # unkown args in the argparser/namespace should be ignored
+    with mock.patch('pytorch_lightning.Trainer.__init__', autospec=True, return_value=None) as init:
+        trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
+        expected = dict(cli_args)
+        expected.update(extra_args)  # extra args should override any cli arg
+        init.assert_called_with(trainer, **expected)
+
+    # passing in unknown manual args should throw an error
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'unknown_arg'"):
+        Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
