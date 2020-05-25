@@ -101,7 +101,7 @@ class CometLogger(LightningLoggerBase):
                  **kwargs):
 
         if not _COMET_AVAILABLE:
-            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'  # pragma: no-cover
+            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
                               ' install it with `pip install comet-ml`.')
         super().__init__()
         self._experiment = None

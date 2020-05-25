@@ -182,7 +182,7 @@ class NeptuneLogger(LightningLoggerBase):
                  tags: Optional[List[str]] = None,
                  **kwargs):
         if not _NEPTUNE_AVAILABLE:
-            raise ImportError('You want to use `neptune` logger which is not installed yet,'  # pragma: no-cover
+            raise ImportError('You want to use `neptune` logger which is not installed yet,'
                             ' install it with `pip install neptune-client`.')
         super().__init__()
         self.api_key = api_key

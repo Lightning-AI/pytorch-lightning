@@ -64,7 +64,7 @@ class MLFlowLogger(LightningLoggerBase):
                  save_dir: Optional[str] = None):
 
         if not _MLFLOW_AVAILABLE:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'  # pragma: no-cover
+            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
         if not tracking_uri and save_dir:

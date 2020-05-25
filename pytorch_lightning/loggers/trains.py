@@ -96,7 +96,7 @@ class TrainsLogger(LightningLoggerBase):
             auto_resource_monitoring: bool = True
     ) -> None:
         if not _TRAINS_AVAILABLE:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'  # pragma: no-cover
+            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
         if self.bypass_mode():

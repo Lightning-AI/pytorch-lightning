@@ -65,7 +65,7 @@ class TestTubeLogger(LightningLoggerBase):
                  create_git_tag: bool = False):
 
         if not _TEST_TUBE_AVAILABLE:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'  # pragma: no-cover
+            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
         self.save_dir = save_dir
