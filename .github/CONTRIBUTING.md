@@ -67,6 +67,12 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 ## Guidelines
 
+### Original code
+
+All added or edited code shall be own original work of the particular contributor.
+If you use come third-party implementation, all such blocks/functions/modules shall be properly referred and if possible also agreed by code's author. For example - `This code is inpired from http://...`.
+In case you adding new dependencies, make sure that they go well with the actual PyTorchLightning license.
+
 ### Coding Style
 
 1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!`, name).
