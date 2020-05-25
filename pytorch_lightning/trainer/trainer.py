@@ -285,10 +285,11 @@ class Trainer(
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
-            auto_lr_find: If set to True, will `initially` run a learning rate finder,
-                trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key, set a string instead of True with the key name.
+            auto_lr_find: 
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Has no effect. Please use tuner class instead.
+                    Will remove 0.9.0.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
                 If not specified this will toggled automatically ddp is used
@@ -300,11 +301,11 @@ class Trainer(
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
-            auto_scale_batch_size: If set to True, will `initially` run a batch size
-                finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.batch_size in the LightningModule.
-                Additionally, can be set to either `power` that estimates the batch size through
-                a power search or `binsearch` that estimates the batch size through a binary search.
+            auto_scale_batch_size: 
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Has no effect. Please use tuner class instead.
+                    Will remove 0.9.0.
         """
         super().__init__()
 
