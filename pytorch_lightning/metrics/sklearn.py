@@ -26,11 +26,11 @@ class SklearnMetric(NumpyMetric):
     """
     Bridge between PyTorch Lightning and scikit-learn metrics
 
-        Warning:
-            Every metric call will cause a GPU synchronization, which may slow down your code
+    Warning:
+        Every metric call will cause a GPU synchronization, which may slow down your code
 
-        Note:
-            The order of targets and predictions may be different from the order typically used in PyTorch
+    Note:
+        The order of targets and predictions may be different from the order typically used in PyTorch
     """
     def __init__(self, metric_name: str,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -77,7 +77,7 @@ class Accuracy(SklearnMetric):
     Calculates the Accuracy Score
 
     Warning:
-        Every metric call will cause a GPU synchronization, which may slow down your code
+            Every metric call will cause a GPU synchronization, which may slow down your code
     """
     def __init__(self, normalize: bool = True,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -117,8 +117,8 @@ class AUC(SklearnMetric):
     """
     Calculates the Area Under the Curve using the trapoezoidal rule
 
-        Warning:
-            Every metric call will cause a GPU synchronization, which may slow down your code
+    Warning:
+        Every metric call will cause a GPU synchronization, which may slow down your code
     """
     def __init__(self,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -396,7 +396,7 @@ class FBeta(SklearnMetric):
 
         Return:
             FBeta score of the positive class in binary classification or weighted
-                average of the FBeta scores of each class for the multiclass task.
+            average of the FBeta scores of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -469,7 +469,7 @@ class Precision(SklearnMetric):
 
         Return:
             Precision of the positive class in binary classification or weighted
-                average of the precision of each class for the multiclass task.
+            average of the precision of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -541,7 +541,7 @@ class Recall(SklearnMetric):
 
         Return:
             Recall of the positive class in binary classification or weighted
-                average of the recall of each class for the multiclass task.
+            average of the recall of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
