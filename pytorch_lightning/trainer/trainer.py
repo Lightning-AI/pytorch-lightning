@@ -128,10 +128,10 @@ class Trainer(
             benchmark: bool = False,
             deterministic: bool = False,
             reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
             terminate_on_nan: bool = False,
-            auto_scale_batch_size: Union[str, bool] = False,
+            auto_lr_find: Optional[Union[bool, str]] = None,  # backward compatible, todo: remove in v0.9.0
+            auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward compatible, todo: remove in v0.9.0
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
@@ -397,8 +397,18 @@ class Trainer(
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
-        self.auto_lr_find = auto_lr_find
-        self.auto_scale_batch_size = auto_scale_batch_size
+        if auto_lr_find is not None:
+            rank_zero_warn("Argument `auto_lr_find` has no effect since v0.8.0"
+                           " and will be removed in v0.9.0. Tuning the learning"
+                           " rate can instead be achieved using the Tuner class.", 
+                           DeprecationWarning)
+        
+        if auto_scale_batch_size is not None:
+            rank_zero_warn("Argument `auto_scale_batch_size` has no effect since v0.8.0"
+                           " and will be removed in v0.9.0. Tuning the batch size"
+                           " can instead be achieved using the Tuner class.", 
+                           DeprecationWarning)
+        
         self._is_data_prepared = False
         self.replace_sampler_ddp = replace_sampler_ddp
 
