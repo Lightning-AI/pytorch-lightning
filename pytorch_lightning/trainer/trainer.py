@@ -130,7 +130,6 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
-            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
@@ -364,7 +363,6 @@ class Trainer(
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
         self.num_processes = num_processes
 
-        self.process_position = process_position
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
@@ -506,9 +504,7 @@ class Trainer(
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
 
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = progress_bar_callback
-        self.configure_progress_bar()
+        self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
         self.log_save_interval = log_save_interval
@@ -661,7 +657,6 @@ class Trainer(
              'min_steps': None,
              ...
              'profiler': None,
-             'progress_bar_callback': True,
              'progress_bar_refresh_rate': 1,
              ...}
 
@@ -755,6 +750,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self.use_dp or self.use_ddp or self.use_ddp2
+
+    @property
+    def progress_bar_callback(self):
+        return self._progress_bar_callback
 
     @property
     def progress_bar_dict(self) -> dict:
