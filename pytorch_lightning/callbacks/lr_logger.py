@@ -59,7 +59,7 @@ class LearningRateLogger(Callback):
         names = self._find_names(trainer.lr_schedulers)
 
         # Initialize for storing values
-        self.lrs = dict.fromkeys(names, [])
+        self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
