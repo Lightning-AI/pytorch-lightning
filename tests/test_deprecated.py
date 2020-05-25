@@ -73,6 +73,7 @@ def test_tbd_remove_in_v0_8_0_trainer():
     }
     # skip 0 since it may be interested as False
     kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
+    kwargs['default_save_path'] = 'lightning_logs'
 
     trainer = Trainer(**kwargs)
 
