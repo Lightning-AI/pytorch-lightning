@@ -7,9 +7,10 @@ from typing import Optional, Dict, Any, Union
 
 try:
     from test_tube import Experiment
+    _TEST_TUBE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
-    raise ImportError('You want to use `test_tube` logger which is not installed yet,'  # pragma: no-cover
-                      ' install it with `pip install test-tube`.')
+    Experiment = None
+    _TEST_TUBE_AVAILABLE = False
 
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.utilities.distributed import rank_zero_only
@@ -62,6 +63,10 @@ class TestTubeLogger(LightningLoggerBase):
                  debug: bool = False,
                  version: Optional[int] = None,
                  create_git_tag: bool = False):
+
+        if not _TEST_TUBE_AVAILABLE:
+            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
+                              ' install it with `pip install test-tube`.')
         super().__init__()
         self.save_dir = save_dir
         self._name = name
