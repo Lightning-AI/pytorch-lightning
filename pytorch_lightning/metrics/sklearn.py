@@ -17,14 +17,14 @@ class SklearnMetric(NumpyMetric):
         """
         Bridge between PyTorch Lightning and scikit-learn metrics
 
-        .. warning::
+        Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
-        .. note::
+        Note:
             The order of targets and predictions may be different from the order typically used in PyTorch
 
         Args:
-            metric_name: the metric name to import anc compute from scikit-learn.metrics
+            metric_name: the metric name to import and compute from scikit-learn.metrics
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
@@ -47,12 +47,13 @@ class SklearnMetric(NumpyMetric):
     def forward(self, *args, **kwargs) -> Union[np.ndarray, int, float]:
         """
         Carries the actual metric computation
+
         Args:
             *args: Positional arguments forwarded to metric call (should be already converted to numpy)
             **kwargs: keyword arguments forwarded to metric call (should be already converted to numpy)
 
         Returns:
-            the metric value (will be converted to tensor by baseclass
+            the metric value (will be converted to tensor by baseclass)
 
         """
         return self.metric_fn(*args, **kwargs, **self.metric_kwargs)
@@ -65,7 +66,7 @@ class Accuracy(SklearnMetric):
         """
         Calculates the Accuracy Score
 
-        .. warning::
+        Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
         Args:
@@ -85,14 +86,14 @@ class Accuracy(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Computes the accuracy
+
         Args:
             y_pred: the array containing the predictions (already in categorical form)
             y_true: the array containing the targets (in categorical form)
-            sample_weight:
+            sample_weight:  Sample weights.
 
         Returns:
             Accuracy Score
-
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -106,7 +107,7 @@ class AUC(SklearnMetric):
         """
         Calculates the Area Under the Curve using the trapoezoidal rule
 
-        .. warning::
+        Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
         Args:
@@ -124,6 +125,7 @@ class AUC(SklearnMetric):
     def forward(self, x: np.ndarray, y: np.ndarray) -> float:
         """
         Computes the AUC
+
         Args:
             x: x coordinates.
             y: y coordinates.
@@ -142,16 +144,19 @@ class AveragePrecision(SklearnMetric):
                  ):
         """
         Calculates the average precision (AP) score.
+
         Args:
             average: If None, the scores for each class are returned. Otherwise, this determines the type of
                 averaging performed on the data:
+
                 * If 'micro': Calculate metrics globally by considering each element of the label indicator
-                    matrix as a label.
+                  matrix as a label.
                 * If 'macro': Calculate metrics for each label, and find their unweighted mean.
-                    This does not take label imbalance into account.
+                  This does not take label imbalance into account.
                 * If 'weighted': Calculate metrics for each label, and find their average, weighted by
-                    support (the number of true instances for each label).
+                  support (the number of true instances for each label).
                 * If 'samples': Calculate metrics for each instance, and find their average.
+
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
@@ -171,6 +176,7 @@ class AveragePrecision(SklearnMetric):
                 confidence values, or binary decisions.
             y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
+
         Returns:
             average precision score
         """
@@ -211,26 +217,31 @@ class ConfusionMatrix(SklearnMetric):
             y_pred: Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
 
-        Returns: Confusion matrix (array of shape [n_classes, n_classes])
+        Returns:
+            Confusion matrix (array of shape [n_classes, n_classes])
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true)
 
 
 class F1(SklearnMetric):
-    """
+    r"""
     Compute the F1 score, also known as balanced F-score or F-measure
     The F1 score can be interpreted as a weighted average of the precision and
     recall, where an F1 score reaches its best value at 1 and worst score at 0.
     The relative contribution of precision and recall to the F1 score are
-    equal. The formula for the F1 score is::
-        F1 = 2 * (precision * recall) / (precision + recall)
+    equal. The formula for the F1 score is:
+
+    .. math::
+
+        F_1 = 2 \cdot \frac{precision \cdot recall}{precision + recall}
+
     In the multi-class and multi-label case, this is the weighted average of
     the F1 score of each class.
 
-    References:
-        .. [1] `Wikipedia entry for the F1-score
-           <http://en.wikipedia.org/wiki/F1_score>`_
+    References
+        - [1] `Wikipedia entry for the F1-score
+          <http://en.wikipedia.org/wiki/F1_score>`_
     """
 
     def __init__(self, labels: Optional[Sequence] = None,
@@ -246,24 +257,26 @@ class F1(SklearnMetric):
             average: This parameter is required for multiclass/multilabel targets.
                 If ``None``, the scores for each class are returned. Otherwise, this
                 determines the type of averaging performed on the data:
-                ``'binary'``:
-                    Only report results for the class specified by ``pos_label``.
-                    This is applicable only if targets (``y_{true,pred}``) are binary.
-                ``'micro'``:
-                    Calculate metrics globally by counting the total true positives,
-                    false negatives and false positives.
-                ``'macro'``:
-                    Calculate metrics for each label, and find their unweighted
-                    mean.  This does not take label imbalance into account.
-                ``'weighted'``:
-                    Calculate metrics for each label, and find their average, weighted
-                    by support (the number of true instances for each label). This
-                    alters 'macro' to account for label imbalance; it can result in an
-                    F-score that is not between precision and recall.
-                ``'samples'``:
-                    Calculate metrics for each instance, and find their average (only
-                    meaningful for multilabel classification where this differs from
-                    :func:`accuracy_score`).
+
+                * ``'binary'``:
+                  Only report results for the class specified by ``pos_label``.
+                  This is applicable only if targets (``y_{true,pred}``) are binary.
+                * ``'micro'``:
+                  Calculate metrics globally by counting the total true positives,
+                  false negatives and false positives.
+                * ``'macro'``:
+                  Calculate metrics for each label, and find their unweighted
+                  mean.  This does not take label imbalance into account.
+                * ``'weighted'``:
+                  Calculate metrics for each label, and find their average, weighted
+                  by support (the number of true instances for each label). This
+                  alters 'macro' to account for label imbalance; it can result in an
+                  F-score that is not between precision and recall.
+                * ``'samples'``:
+                  Calculate metrics for each instance, and find their average (only
+                  meaningful for multilabel classification where this differs from
+                  :func:`accuracy_score`).
+
                 Note that if ``pos_label`` is given in binary classification with
                 `average != 'binary'`, only that positive class is reported. This
                 behavior is deprecated and will change in version 0.18.
@@ -289,7 +302,8 @@ class F1(SklearnMetric):
             sample_weight: Sample weights.
 
 
-        Returns: F1 score of the positive class in binary classification or weighted
+        Returns:
+            F1 score of the positive class in binary classification or weighted
             average of the F1 scores of each class for the multiclass task.
 
         """
@@ -298,17 +312,17 @@ class F1(SklearnMetric):
 
 class FBeta(SklearnMetric):
     """
-    Compute the F-beta score.The `beta` parameter determines the weight of precision in the combined
+    Compute the F-beta score. The `beta` parameter determines the weight of precision in the combined
     score. ``beta < 1`` lends more weight to precision, while ``beta > 1``
     favors recall (``beta -> 0`` considers only precision, ``beta -> inf``
     only recall).
 
-        References:
-            .. [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
-                Modern Information Retrieval. Addison Wesley, pp. 327-328.
-            .. [2] `Wikipedia entry for the F1-score
-                   <http://en.wikipedia.org/wiki/F1_score>`_
-        """
+    References:
+        - [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
+          Modern Information Retrieval. Addison Wesley, pp. 327-328.
+        - [2] `Wikipedia entry for the F1-score
+          <http://en.wikipedia.org/wiki/F1_score>`_
+    """
 
     def __init__(self, beta: float, labels: Optional[Sequence] = None,
                  pos_label: Union[str, int] = 1,
@@ -324,24 +338,26 @@ class FBeta(SklearnMetric):
             average: This parameter is required for multiclass/multilabel targets.
                 If ``None``, the scores for each class are returned. Otherwise, this
                 determines the type of averaging performed on the data:
-                ``'binary'``:
-                    Only report results for the class specified by ``pos_label``.
-                    This is applicable only if targets (``y_{true,pred}``) are binary.
-                ``'micro'``:
-                    Calculate metrics globally by counting the total true positives,
-                    false negatives and false positives.
-                ``'macro'``:
-                    Calculate metrics for each label, and find their unweighted
-                    mean.  This does not take label imbalance into account.
-                ``'weighted'``:
-                    Calculate metrics for each label, and find their average, weighted
-                    by support (the number of true instances for each label). This
-                    alters 'macro' to account for label imbalance; it can result in an
-                    F-score that is not between precision and recall.
-                ``'samples'``:
-                    Calculate metrics for each instance, and find their average (only
-                    meaningful for multilabel classification where this differs from
-                    :func:`accuracy_score`).
+
+                * ``'binary'``:
+                  Only report results for the class specified by ``pos_label``.
+                  This is applicable only if targets (``y_{true,pred}``) are binary.
+                * ``'micro'``:
+                  Calculate metrics globally by counting the total true positives,
+                  false negatives and false positives.
+                * ``'macro'``:
+                  Calculate metrics for each label, and find their unweighted
+                  mean.  This does not take label imbalance into account.
+                * ``'weighted'``:
+                  Calculate metrics for each label, and find their average, weighted
+                  by support (the number of true instances for each label). This
+                  alters 'macro' to account for label imbalance; it can result in an
+                  F-score that is not between precision and recall.
+                * ``'samples'``:
+                  Calculate metrics for each instance, and find their average (only
+                  meaningful for multilabel classification where this differs from
+                  :func:`accuracy_score`).
+
                 Note that if ``pos_label`` is given in binary classification with
                 `average != 'binary'`, only that positive class is reported. This
                 behavior is deprecated and will change in version 0.18.
@@ -368,7 +384,8 @@ class FBeta(SklearnMetric):
             sample_weight: Sample weights.
 
 
-        Returns: FBeta score of the positive class in binary classification or weighted
+        Returns:
+            FBeta score of the positive class in binary classification or weighted
             average of the FBeta scores of each class for the multiclass task.
 
         """
@@ -399,24 +416,26 @@ class Precision(SklearnMetric):
             average: This parameter is required for multiclass/multilabel targets.
                 If ``None``, the scores for each class are returned. Otherwise, this
                 determines the type of averaging performed on the data:
-                ``'binary'``:
-                    Only report results for the class specified by ``pos_label``.
-                    This is applicable only if targets (``y_{true,pred}``) are binary.
-                ``'micro'``:
-                    Calculate metrics globally by counting the total true positives,
-                    false negatives and false positives.
-                ``'macro'``:
-                    Calculate metrics for each label, and find their unweighted
-                    mean.  This does not take label imbalance into account.
-                ``'weighted'``:
-                    Calculate metrics for each label, and find their average, weighted
-                    by support (the number of true instances for each label). This
-                    alters 'macro' to account for label imbalance; it can result in an
-                    F-score that is not between precision and recall.
-                ``'samples'``:
-                    Calculate metrics for each instance, and find their average (only
-                    meaningful for multilabel classification where this differs from
-                    :func:`accuracy_score`).
+
+                * ``'binary'``:
+                  Only report results for the class specified by ``pos_label``.
+                  This is applicable only if targets (``y_{true,pred}``) are binary.
+                * ``'micro'``:
+                  Calculate metrics globally by counting the total true positives,
+                  false negatives and false positives.
+                * ``'macro'``:
+                  Calculate metrics for each label, and find their unweighted
+                  mean.  This does not take label imbalance into account.
+                * ``'weighted'``:
+                  Calculate metrics for each label, and find their average, weighted
+                  by support (the number of true instances for each label). This
+                  alters 'macro' to account for label imbalance; it can result in an
+                  F-score that is not between precision and recall.
+                * ``'samples'``:
+                  Calculate metrics for each instance, and find their average (only
+                  meaningful for multilabel classification where this differs from
+                  :func:`accuracy_score`).
+
                 Note that if ``pos_label`` is given in binary classification with
                 `average != 'binary'`, only that positive class is reported. This
                 behavior is deprecated and will change in version 0.18.
@@ -442,8 +461,9 @@ class Precision(SklearnMetric):
             sample_weight: Sample weights.
 
 
-        Returns:  Precision of the positive class in binary classification or weighted
-        average of the precision of each class for the multiclass task.
+        Returns:
+            Precision of the positive class in binary classification or weighted
+            average of the precision of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -472,24 +492,26 @@ class Recall(SklearnMetric):
             average: This parameter is required for multiclass/multilabel targets.
                 If ``None``, the scores for each class are returned. Otherwise, this
                 determines the type of averaging performed on the data:
-                ``'binary'``:
-                    Only report results for the class specified by ``pos_label``.
-                    This is applicable only if targets (``y_{true,pred}``) are binary.
-                ``'micro'``:
-                    Calculate metrics globally by counting the total true positives,
-                    false negatives and false positives.
-                ``'macro'``:
-                    Calculate metrics for each label, and find their unweighted
-                    mean.  This does not take label imbalance into account.
-                ``'weighted'``:
-                    Calculate metrics for each label, and find their average, weighted
-                    by support (the number of true instances for each label). This
-                    alters 'macro' to account for label imbalance; it can result in an
-                    F-score that is not between precision and recall.
-                ``'samples'``:
-                    Calculate metrics for each instance, and find their average (only
-                    meaningful for multilabel classification where this differs from
-                    :func:`accuracy_score`).
+
+                * ``'binary'``:
+                  Only report results for the class specified by ``pos_label``.
+                  This is applicable only if targets (``y_{true,pred}``) are binary.
+                * ``'micro'``:
+                  Calculate metrics globally by counting the total true positives,
+                  false negatives and false positives.
+                * ``'macro'``:
+                  Calculate metrics for each label, and find their unweighted
+                  mean.  This does not take label imbalance into account.
+                * ``'weighted'``:
+                  Calculate metrics for each label, and find their average, weighted
+                  by support (the number of true instances for each label). This
+                  alters 'macro' to account for label imbalance; it can result in an
+                  F-score that is not between precision and recall.
+                * ``'samples'``:
+                  Calculate metrics for each instance, and find their average (only
+                  meaningful for multilabel classification where this differs from
+                  :func:`accuracy_score`).
+
                 Note that if ``pos_label`` is given in binary classification with
                 `average != 'binary'`, only that positive class is reported. This
                 behavior is deprecated and will change in version 0.18.
@@ -514,9 +536,9 @@ class Recall(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-
-        Returns:  Recall of the positive class in binary classification or weighted
-        average of the recall of each class for the multiclass task.
+        Returns:
+            Recall of the positive class in binary classification or weighted
+            average of the recall of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -527,7 +549,7 @@ class PrecisionRecallCurve(SklearnMetric):
     Compute precision-recall pairs for different probability thresholds
 
     Note:
-        this implementation is restricted to the binary classification task.
+        This implementation is restricted to the binary classification task.
 
     The precision is the ratio ``tp / (tp + fp)`` where ``tp`` is the number of
     true positives and ``fp`` the number of false positives. The precision is
@@ -568,7 +590,6 @@ class PrecisionRecallCurve(SklearnMetric):
             probas_pred : Estimated probabilities or decision function.
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-
 
         Returns:
             precision:
@@ -611,8 +632,8 @@ class ROC(SklearnMetric):
                 Defaults to sum.
 
         References:
-            .. [1] `Wikipedia entry for the Receiver operating characteristic
-                <http://en.wikipedia.org/wiki/Receiver_operating_characteristic>`_
+            - [1] `Wikipedia entry for the Receiver operating characteristic
+              <http://en.wikipedia.org/wiki/Receiver_operating_characteristic>`_
         """
         super().__init__('roc_curve',
                          reduce_group=reduce_group,
@@ -648,6 +669,7 @@ class ROC(SklearnMetric):
 class AUROC(SklearnMetric):
     """
     Compute Area Under the Curve (AUC) from prediction scores
+
     Note:
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
@@ -661,13 +683,15 @@ class AUROC(SklearnMetric):
         Args:
             average: If None, the scores for each class are returned. Otherwise, this determines the type of
                 averaging performed on the data:
+
                 * If 'micro': Calculate metrics globally by considering each element of the label indicator
-                    matrix as a label.
+                  matrix as a label.
                 * If 'macro': Calculate metrics for each label, and find their unweighted mean.
-                    This does not take label imbalance into account.
+                  This does not take label imbalance into account.
                 * If 'weighted': Calculate metrics for each label, and find their average, weighted by
-                    support (the number of true instances for each label).
+                  support (the number of true instances for each label).
                 * If 'samples': Calculate metrics for each instance, and find their average.
+
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
@@ -687,6 +711,7 @@ class AUROC(SklearnMetric):
                 confidence values, or binary decisions.
             y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
+
         Returns:
             Area Under Receiver Operating Characteristic Curve
         """
