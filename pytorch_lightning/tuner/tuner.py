@@ -12,22 +12,22 @@ class Tuner(
     def __init__(self, trainer: Trainer,
                  auto_scale_batch_size: Union[str, bool] = False,
                  auto_lr_find: Union[bool, str] = False):
-        self.auto_lr_find = auto_lr_find
+        
+        # User instance of trainer
+        self.trainer = trainer
+        
+        # Parameters to optimize
         self.auto_scale_batch_size = auto_scale_batch_size
+        self.auto_lr_find = auto_lr_find
     
     def optimize(self, 
                  model: LightningModule,
-                 ):
-        pass
-    
+                 train_dataloader = train_dataloader
+                 ):    
         # Run auto batch size scaling
-        if self.auto_scale_batch_size:
-            if isinstance(self.auto_scale_batch_size, bool):
-                self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
-            model.logger = self.logger  # reset logger binding
-
+        if self.auto_scale_batch_size:      
+            self.scale_batch_size(model)
+            
         # Run learning rate finder:
         if self.auto_lr_find:
-            self._run_lr_finder_internally(model)
-            model.logger = self.logger  # reset logger binding
+            self.lr_find(model)
