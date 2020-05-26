@@ -163,7 +163,8 @@ class TrainerLRFinderMixin(ABC):
         self.__lr_finder_restore_params(model)
         if self.progress_bar_callback:
             self.progress_bar_callback.enable()
-            
+        
+        # Log that method was called and return object
         self._lr_find_called = True
         return lr_finder
 

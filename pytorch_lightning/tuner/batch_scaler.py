@@ -9,7 +9,6 @@ from typing import Optional
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -36,7 +35,7 @@ class TunerBatchScalerMixin(ABC):
                          steps_per_trial: int = 3,
                          init_val: int = 2,
                          max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size'):
+                         attribute_name: str = 'batch_size'):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -59,13 +58,15 @@ class TunerBatchScalerMixin(ABC):
 
             max_trials: max number of increase in batch size done before
                algorithm is terminated
+               
+            attribute_name: name of field that changes the batch_size of model
 
         """
         # Check for correct call order
         self._batch_scaler_call_order()
         
-        if not hasattr(model, batch_arg_name):
-            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
+        if not hasattr(model, attribute_name):
+            raise MisconfigurationException(f'Field {attribute_name} not found in `model` namespace')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
@@ -79,34 +80,32 @@ class TunerBatchScalerMixin(ABC):
         self.__scale_batch_reset_params(model, steps_per_trial)
 
         # Save initial model, that is loaded after batch size is found
-        save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
-        self.save_checkpoint(str(save_path))
+        save_path = os.path.join(self.trainer.default_root_dir, 'temp_model.ckpt')
+        self.trainer.save_checkpoint(str(save_path))
 
-        if self.progress_bar_callback:
-            self.progress_bar_callback.disable()
+        if self.trainer.progress_bar_callback:
+            self.trainer.progress_bar_callback.disable()
 
         # Initially we just double in size until an OOM is encountered
         new_size = _adjust_batch_size(self, value=init_val)  # initially set to init_val
         if mode == 'power':
-            new_size = _run_power_scaling(self, model, new_size, batch_arg_name, max_trials)
+            new_size = _run_power_scaling(self, model, new_size, attribute_name, max_trials)
         elif mode == 'binsearch':
-            new_size = _run_binsearch_scaling(self, model, new_size, batch_arg_name, max_trials)
+            new_size = _run_binsearch_scaling(self, model, new_size, attribute_name, max_trials)
         else:
             raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
-
         garbage_collection_cuda()
-        log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
-
+        
         # Restore initial state of model
-        self.restore(str(save_path), on_gpu=self.on_gpu)
+        self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)
         os.remove(save_path)
 
         # Finish by resetting variables so trainer is ready to fit model
         self.__scale_batch_restore_params()
-        if self.progress_bar_callback:
-            self.progress_bar_callback.enable()
-
-
+        if self.trainer.progress_bar_callback:
+            self.trainer.progress_bar_callback.enable()
+        
+        # Log that method was called and return object
         self._scale_batch_size_called = True
         return new_size
 

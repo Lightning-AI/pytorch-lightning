@@ -18,16 +18,15 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
     call each tuner algorithm by its own method.
     
     Args:
-        auto_lr_find: If set to True, will `initially` run a learning rate finder,
+        auto_lr_find: If set to True, will run a learning rate finder,
             trying to optimize initial learning for faster convergence. Sets learning
             rate in self.lr or self.learning_rate in the LightningModule.
-            To use a different key, set a string instead of True with the key name.
+            To use a different key, set a string instead of True with the field name.
 
-        auto_scale_batch_size: If set to True, will `initially` run a batch size
-            finder trying to find the largest batch size that fits into memory.
-            The result will be stored in self.batch_size in the LightningModule.
-            Additionally, can be set to either `power` that estimates the batch size through
-            a power search or `binsearch` that estimates the batch size through a binary search.
+        auto_scale_batch_size: If set to True, will run a batch size scaler
+            trying to find the largest batch size that fits into memory.
+            The result will be stored in self.lr or self.batch_size in the LightningModule.
+            To use a different key, set a string instead of True with the field name.
     """
     
     def __init__(self, trainer: Trainer,
@@ -95,15 +94,24 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
         model.logger = self.trainer.logger
     
     def _call_internally(self, model, method, attribute, default):
-        obj = method(model)
-        value = obj.suggestion()
         attribute = [attribute] if isinstance(attribute, str) else default
+        
+        # Check that user has the wanted attribute in their model
+        found = False
         for a in attribute:
             if nested_hasattr(model, a):
-                nested_setattr(model, a, value)
-                log.info(f'{a} set to {value}')
-                return
-        else:
+                arg, found = a, True
+        if not found:
             raise MisconfigurationException('Model does not have a field called'
                     f' {attribute} which is required by tuner algorithm {method}')
         
+        # Call method
+        obj = method(model, attribute_name=arg)
+        
+        # Get suggested value
+        value = obj.suggestion()
+        
+        # Set value in model
+        nested_setattr(model, arg, value)
+        log.info(f'Attribute {a} set to {value}')
+       

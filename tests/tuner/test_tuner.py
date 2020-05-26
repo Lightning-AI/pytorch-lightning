@@ -9,5 +9,10 @@ from tests.base import EvalModelTemplate
 def test_call_order(tmpdir):
     """ Check that an warning occurs if the methods are called in a different
         order than expected """
-        
     
+    tuner = pl.Tuner()
+    
+    # Wrong call order, should give warning
+    with pytest.warning():
+        _ = tuner.lr_find()
+        _ = tuner.scale_batch_size()
