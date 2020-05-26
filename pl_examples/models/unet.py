@@ -99,7 +99,10 @@ class Up(nn.Module):
         super().__init__()
         self.upsample = None
         if bilinear:
-            self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            self.upsample = nn.Sequential(
+                nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
+                nn.Conv2d(in_ch, in_ch // 2, kernel_size=1),
+            )
         else:
             self.upsample = nn.ConvTranspose2d(in_ch, in_ch // 2, kernel_size=2, stride=2)
 
