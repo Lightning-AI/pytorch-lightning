@@ -1,0 +1,2 @@
+class ExperimentalWarning(Warning):
+    pass

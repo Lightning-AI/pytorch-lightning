@@ -23,41 +23,9 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerLRFinderMixin(ABC):
-    def _check_dependency(self):
-        pass  # no dependency
-
-    @abstractmethod
-    def save_checkpoint(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def restore(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    def _run_lr_finder_internally(self, model: LightningModule):
-        """ Call lr finder internally during Trainer.fit() """
-        lr_finder = self.lr_find(model)
-        lr = lr_finder.suggestion()
-        # TODO: log lr.results to self.logger
-        if isinstance(self.auto_lr_find, str):
-            # Try to find requested field, may be nested
-            if _nested_hasattr(model, self.auto_lr_find):
-                _nested_setattr(model, self.auto_lr_find, lr)
-            else:
-                raise MisconfigurationException(
-                    f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                    ' could not find this as a field in `model.hparams`.')
-        else:
-            if hasattr(model, 'lr'):
-                model.lr = lr
-            elif hasattr(model, 'learning_rate'):
-                model.learning_rate = lr
-            else:
-                raise MisconfigurationException(
-                    'When auto_lr_find is set to True, expects that hparams'
-                    ' either has field `lr` or `learning_rate` that can overridden')
-        log.info(f'Learning rate set to {lr}')
-
+    def _lr_finder_call_order(self):
+        pass  # 
+    
     def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
@@ -118,6 +86,9 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
+        # Check for correct call order
+        self._lr_finder_call_order()
+        
         if num_accumulation_steps is not None:
             rank_zero_warn("Argument `num_accumulation_steps` has been deprepecated"
                            " since v0.7.6 and will be removed in 0.9. Please"
@@ -486,21 +457,3 @@ class _ExponentialLR(_LRScheduler):
     def lr(self):
         return self._lr
 
-
-def _nested_hasattr(obj, path):
-    parts = path.split(".")
-    for part in parts:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-        else:
-            return False
-    else:
-        return True
-
-
-def _nested_setattr(obj, path, val):
-    parts = path.split(".")
-    for part in parts[:-1]:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-    setattr(obj, parts[-1], val)

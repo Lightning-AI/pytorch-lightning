@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TunerBatchScalerMixin(ABC):
-    def _check_dependency(self):
+    def _batch_scaler_call_order(self):
         if self._lr_find_called:
             rank_zero_warn(
                 'You called learning rate finder before batch scaler. Please note'
@@ -61,7 +61,8 @@ class TunerBatchScalerMixin(ABC):
                algorithm is terminated
 
         """
-        self._check_dependency()
+        # Check for correct call order
+        self._batch_scaler_call_order()
         
         if not hasattr(model, batch_arg_name):
             raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')

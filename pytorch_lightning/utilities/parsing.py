@@ -47,3 +47,50 @@ def clean_namespace(hparams):
 
         for k in del_attrs:
             del hparams[k]
+
+
+def nested_hasattr(namespace, attribute):
+    """
+    Recursively check if a namespace has a certain attribute
+    """
+    parts = attribute.split(".")
+    for part in parts:
+        if hasattr(namespace, part):
+            namespace = getattr(namespace, part)
+        else:
+            return False
+    else:
+        return True
+
+
+def nested_setattr(namespace, attribute, value):
+    """
+    Recursively look through a namespace for a certain attribute and set
+    to a given value
+    """
+    parts = attribute.split(".")
+    for part in parts[:-1]:
+        if hasattr(namespace, part):
+            namespace = getattr(namespace, part)
+    setattr(namespace, parts[-1], value)
+    
+    
+def nested_getattr(namespace, attribute):
+    """
+    Recursively look through a namespace for certain attribute and return
+    the given value
+    """
+    parts = attribute.split(".")
+    found = False
+    for part in parts:
+        if hasattr(namespace, part):
+            namespace = getattr(namespace, part)
+        else:
+            found = False
+    else:
+        found = True
+    
+    if found:    
+        return namespace
+    else:
+        raise AttributeError(f'{namespace} object has no attribute {attribute}')
