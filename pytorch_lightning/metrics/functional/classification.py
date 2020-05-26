@@ -1,5 +1,6 @@
 from collections import Sequence
 from typing import Optional, Tuple, Callable
+from functools import wraps
 
 import torch
 
@@ -326,6 +327,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
 
 def auc_decorator(reorder: bool = True) -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
+        @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             x, y = func_to_decorate(*args, **kwargs)[:2]
 
