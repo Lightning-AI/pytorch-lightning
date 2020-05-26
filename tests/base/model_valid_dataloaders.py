@@ -6,11 +6,16 @@ from tests.base.dataloaders import CustomInfDataloader
 class ValDataloaderVariations(ABC):
 
     @abstractmethod
-    def dataloader(self, train: bool):
+    def dataloader(self, *args, **kwargs):
         """placeholder"""
 
     def val_dataloader(self):
         return self.dataloader(train=False)
+
+    def val_dataloader__multiple_mixed_length(self):
+        lengths = [100, 30]
+        dataloaders = [self.dataloader(train=False, num_samples=n) for n in lengths]
+        return dataloaders
 
     def val_dataloader__multiple(self):
         return [self.dataloader(train=False),
