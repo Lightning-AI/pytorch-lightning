@@ -27,7 +27,8 @@ else:
     Batch = type(None)
 
 
-def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
+def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args,
+                        wrong_dtype: Optional[Union[type, tuple]] = None, **kwargs) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
 
@@ -36,6 +37,8 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         dtype: the given function will be applied to all elements of this dtype
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
+            the :attr:`wrong_type` even if it is of type :attr`dtype`
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
@@ -45,7 +48,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     elem_type = type(data)
 
     # Breaking condition
-    if isinstance(data, dtype):
+    if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
 
     # Recursively apply to collection items
