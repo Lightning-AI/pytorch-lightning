@@ -25,6 +25,7 @@ PyTorch Lightning Documentation
    loggers
    metrics
    trainer
+   tuner
 
 .. toctree::
    :maxdepth: 1
@@ -75,7 +76,6 @@ PyTorch Lightning Documentation
    fast_training
    hooks
    hyperparameters
-   lr_finder
    multi_gpu
    multiple_loaders
    weights_loading

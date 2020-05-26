@@ -44,7 +44,7 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
         self._scale_batch_size_called = False
         self._lr_find_called = False
         
-        rank_zero_warn('Tuner class is `experimental`, meaning that that some of'
+        rank_zero_warn('Tuner class is `experimental`, meaning that some of'
                        ' its functionality is under tested and its interface may'
                        ' change drastically within the next few releases',
                        ExperimentalWarning)
