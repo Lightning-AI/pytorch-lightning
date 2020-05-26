@@ -844,6 +844,8 @@ class Trainer(
         if self.use_ddp2:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
+
+            # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
