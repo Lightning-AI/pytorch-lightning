@@ -7,6 +7,7 @@ import gc
 import os
 from typing import Optional
 
+import numpy as np
 import torch
 from torch import Tensor
 
@@ -78,20 +79,19 @@ class TunerBatchScalerMixin(ABC):
 
         # Set to values that are required by the algorithm
         self.__scale_batch_reset_params(model, steps_per_trial)
-
+        if self.trainer.progress_bar_callback:
+            self.trainer.progress_bar_callback.disable()
+            
         # Save initial model, that is loaded after batch size is found
         save_path = os.path.join(self.trainer.default_root_dir, 'temp_model.ckpt')
         self.trainer.save_checkpoint(str(save_path))
 
-        if self.trainer.progress_bar_callback:
-            self.trainer.progress_bar_callback.disable()
-
         # Initially we just double in size until an OOM is encountered
-        new_size = _adjust_batch_size(self, value=init_val)  # initially set to init_val
+        new_size = _adjust_batch_size(self.trainer, value=init_val)  # initially set to init_val
         if mode == 'power':
-            new_size = _run_power_scaling(self, model, new_size, attribute_name, max_trials)
+            batch_scaler = _run_power_scaling(self.trainer, model, new_size, attribute_name, max_trials)
         elif mode == 'binsearch':
-            new_size = _run_binsearch_scaling(self, model, new_size, attribute_name, max_trials)
+            batch_scaler = _run_binsearch_scaling(self.trainer, model, new_size, attribute_name, max_trials)
         else:
             raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
         garbage_collection_cuda()
@@ -107,49 +107,89 @@ class TunerBatchScalerMixin(ABC):
         
         # Log that method was called and return object
         self._scale_batch_size_called = True
-        return new_size
+        return batch_scaler
 
     def __scale_batch_dump_params(self):
         # Prevent going into infinite loop
         self.__dumped_params = {
-            'max_steps': self.max_steps,
-            'weights_summary': self.weights_summary,
-            'logger': self.logger,
-            'callbacks': self.callbacks,
-            'checkpoint_callback': self.checkpoint_callback,
-            'early_stop_callback': self.early_stop_callback,
-            'enable_early_stop': self.enable_early_stop,
-            'auto_scale_batch_size': self.auto_scale_batch_size,
-            'train_percent_check': self.train_percent_check,
-            'model': self.model,
+            'max_steps': self.trainer.max_steps,
+            'weights_summary': self.trainer.weights_summary,
+            'logger': self.trainer.logger,
+            'callbacks': self.trainer.callbacks,
+            'checkpoint_callback': self.trainer.checkpoint_callback,
+            'early_stop_callback': self.trainer.early_stop_callback,
+            'enable_early_stop': self.trainer.enable_early_stop,
+            'train_percent_check': self.trainer.train_percent_check,
         }
 
     def __scale_batch_reset_params(self, model, steps_per_trial):
-        self.auto_scale_batch_size = None  # prevent recursion
-        self.max_steps = steps_per_trial  # take few steps
-        self.weights_summary = None  # not needed before full run
-        self.logger = DummyLogger()
-        self.callbacks = []  # not needed before full run
-        self.checkpoint_callback = False  # required for saving
-        self.early_stop_callback = None
-        self.enable_early_stop = False
-        self.train_percent_check = 1.0
-        self.optimizers, self.schedulers = [], []  # required for saving
-        self.model = model  # required for saving
+        self.trainer.max_steps = steps_per_trial  # take few steps
+        self.trainer.weights_summary = None  # not needed before full run
+        self.trainer.logger = DummyLogger()
+        self.trainer.callbacks = []  # not needed before full run
+        self.trainer.checkpoint_callback = False  # required for saving
+        self.trainer.early_stop_callback = None
+        self.trainer.enable_early_stop = False
+        self.trainer.train_percent_check = 1.0
+        self.trainer.optimizers, self.trainer.schedulers = [], []  # required for saving
+        self.trainer.model = model  # required for saving
 
     def __scale_batch_restore_params(self):
-        self.max_steps = self.__dumped_params['max_steps']
-        self.weights_summary = self.__dumped_params['weights_summary']
-        self.logger = self.__dumped_params['logger']
-        self.callbacks = self.__dumped_params['callbacks']
-        self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
-        self.auto_scale_batch_size = self.__dumped_params['auto_scale_batch_size']
-        self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.enable_early_stop = self.__dumped_params['enable_early_stop']
-        self.train_percent_check = self.__dumped_params['train_percent_check']
-        self.model = self.__dumped_params['model']
+        self.trainer.max_steps = self.__dumped_params['max_steps']
+        self.trainer.weights_summary = self.__dumped_params['weights_summary']
+        self.trainer.logger = self.__dumped_params['logger']
+        self.trainer.callbacks = self.__dumped_params['callbacks']
+        self.trainer.checkpoint_callback = self.__dumped_params['checkpoint_callback']
+        self.trainer.early_stop_callback = self.__dumped_params['early_stop_callback']
+        self.trainer.enable_early_stop = self.__dumped_params['enable_early_stop']
+        self.trainer.train_percent_check = self.__dumped_params['train_percent_check']
         del self.__dumped_params
 
+class BatchScaler(object):
+    def __init__(self):
+        pass
+    
+    def plot(self, suggest=True, show=False):
+        """ Plot results from batch_size_scaler run
+        Args:
+            suggest: if True, will mark suggested lr to use with a red point
+
+            show: if True, will show figure
+        """
+        import matplotlib.pyplot as plt
+
+        bs = self.results["bs"]
+        times = self.results["times"]
+        succes = self.results["fits_in_memory"]
+        max_bs = np.argmax(bs[succes])
+        
+        fig, ax = plt.subplots()
+
+        # Plot loss as a function of the learning rate
+        ax.plot(bs, times)
+        ax.axvline(x=max_bs, ymin=0, ymax=max(times))  # plot maximum
+        ax.set_xlabel("Batch size")
+        ax.set_ylabel("Time")
+
+        if suggest:
+            _ = self.suggestion()
+            ax.plot(bs[self._optimal_idx], times[self._optimal_idx],
+                    markersize=10, marker='o', color='red')
+
+        if show:
+            plt.show()
+
+        return fig
+        
+    def suggestion(self, mode='size'):
+        assert mode in ['size', 'speed']
+        if mode == 'size':
+            self._optimal_idx = np.argmax(self.results["bs"][self.results["fits_in_memory"]])
+            return self.results["bs"][self._optimal_idx]
+        else:
+            self._optimal_idx = np.argmin(self.results["times"][self.results["fits_in_memory"]])
+            return self.results["bs"][self._optimal_idx]
+        
 
 def _adjust_batch_size(trainer,
                        batch_arg_name: str = 'batch_size',
