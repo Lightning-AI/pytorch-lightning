@@ -1,6 +1,8 @@
 from typing import Optional
 
 import torch
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 
 
 class TensorRunningAccum(object):
@@ -76,3 +78,51 @@ class TensorRunningAccum(object):
                 return getattr(self.memory, how)()
             else:
                 return getattr(self.memory[:self.current_idx], how)()
+
+
+class CombinedLoaderIterator(object):
+    def __init__(self, loaders: Any):
+        self.loaders = loaders
+        self._loader_iters = None
+
+    @property
+    def loader_iters(self):
+        if self._loader_iters is None:
+            self._loader_iters = self.create_loader_iters(self.loaders)
+
+        return self._loader_iters
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.request_next_batch(self.loader_iters)
+
+    @staticmethod
+    def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]):
+        return apply_to_collection(loader_iters, Iterator, next)
+
+    @staticmethod
+    def _calc_num_batches(loader_iters):
+        all_lengths = apply_to_collection(loader_iters, Iterator, len)
+
+        if isinstance(all_lengths, int):
+            return all_lengths
+
+        elif isinstance(all_lengths, Mapping):
+            return min(all_lengths.values())
+
+        elif isinstance(all_lengths, Sequence):
+            return min(all_lengths)
+
+        raise TypeError(f'Got Type {type(all_lengths).__name__}, but expected one of Sequence, int or Mapping')
+
+    @staticmethod
+    def create_loader_iters(loaders: Union[Any, Iterator,
+                                           Sequence, Mapping]) -> Union[Any, Iterator, Sequence, Mapping]:
+
+        # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
+        return apply_to_collection(loaders, Iterable, iter, wrong_dtype=Sequence)
+
+    def __len__(self):
+        return self._calc_num_batches(self.loader_iters)
