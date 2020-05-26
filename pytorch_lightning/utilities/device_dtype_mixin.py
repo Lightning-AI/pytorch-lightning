@@ -4,7 +4,7 @@ import torch
 
 
 class DeviceDtypeModuleMixin(torch.nn.Module):
-    _device: ...
+    _device: torch.device
     _dtype: Union[str, torch.dtype]
 
     @property
@@ -17,7 +17,7 @@ class DeviceDtypeModuleMixin(torch.nn.Module):
         raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
 
     @property
-    def device(self) -> Union[str, torch.device]:
+    def device(self) -> torch.device:
         return self._device
 
     @device.setter
