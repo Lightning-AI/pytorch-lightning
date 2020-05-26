@@ -734,20 +734,32 @@ class Trainer(
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
-        """create an instance from CLI arguments
+        """
+        Create an instance from CLI arguments.
+
+        Args:
+            args: The parser or namespace to take arguments from. Only known arguments will be
+                parsed and passed to the :class:`Trainer`.
+            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
+                These must be valid Trainer arguments.
 
         Example:
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
+            >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
             >>> args = Trainer.parse_argparser(parser.parse_args(""))
-            >>> trainer = Trainer.from_argparse_args(args)
+            >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
         if isinstance(args, ArgumentParser):
-            args = Trainer.parse_argparser(args)
+            args = cls.parse_argparser(args)
         params = vars(args)
-        params.update(**kwargs)
 
-        return cls(**params)
+        # we only want to pass in valid Trainer args, the rest may be user specific
+        valid_kwargs = inspect.signature(cls.__init__).parameters
+        trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+        trainer_kwargs.update(**kwargs)
+
+        return cls(**trainer_kwargs)
 
     @property
     def num_gpus(self) -> int:
@@ -839,7 +851,10 @@ class Trainer(
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
-            task = int(os.environ['SLURM_LOCALID'])
+            if self.is_slurm_managing_tasks:
+                task = int(os.environ['SLURM_LOCALID'])
+            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+                task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -882,7 +897,7 @@ class Trainer(
 
             # train
             if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
+                self.tpu_train(model)
             else:
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
