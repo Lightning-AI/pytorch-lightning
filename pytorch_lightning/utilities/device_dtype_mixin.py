@@ -5,10 +5,10 @@ import torch
 
 class DeviceDtypeModuleMixin(torch.nn.Module):
     _device: torch.device
-    _dtype: Union[str, torch.dtype]
+    _dtype: torch.dtype
 
     @property
-    def dtype(self) -> Union[str, torch.dtype]:
+    def dtype(self) -> torch.dtype:
         return self._dtype
 
     @dtype.setter
@@ -125,6 +125,8 @@ class DeviceDtypeModuleMixin(torch.nn.Module):
         Returns:
             Module: self
         """
+        if isinstance(dst_type, str):
+            dst_type = getattr(torch, dst_type)
         self._dtype = dst_type
         return super().type(dst_type=dst_type)
 
