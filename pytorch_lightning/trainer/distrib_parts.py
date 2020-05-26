@@ -501,7 +501,7 @@ class TrainerDPMixin(ABC):
 
         self.run_pretrain_routine(model)
 
-    def tpu_train(self, model):
+    def tpu_train(self, tpu_core_idx, model):
         # put model on tpu
         self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
         model.to(self._device)
