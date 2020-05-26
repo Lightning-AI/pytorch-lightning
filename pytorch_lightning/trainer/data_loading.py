@@ -10,6 +10,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 try:
     from torch.utils.data import IterableDataset
@@ -193,7 +194,8 @@ class TrainerDataLoadingMixin(ABC):
         self.num_training_batches = 0
 
         # automatically add samplers
-        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
+        self.train_dataloader = apply_to_collection(
+            self.train_dataloader, DataLoader, self.auto_add_sampler, train=True)
 
         self._worker_check(self.train_dataloader, 'train dataloader')
         self._check_batch_limits('limit_train_batches')
