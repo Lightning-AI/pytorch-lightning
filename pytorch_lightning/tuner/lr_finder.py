@@ -261,7 +261,7 @@ class LRFinderCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].lr[0])
+        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].last_lr)
 
     @rank_zero_only
     def on_batch_end(self, trainer, pl_module):
@@ -302,7 +302,8 @@ class PatchOptimizer(object):
             param_group["initial_lr"] = new_lr
         args = (optimizers, max_lr, num_training)
         self.optimizer = optimizers
-        self.scheduler = _LinearLR(*args) if mode == 'linear' else _ExponentialLR(*args)
+        self.scheduler = LinearLearningRateScheduler(*args) if mode == 'linear' \
+            else ExponentialLearningRateScheduler(*args)
 
         self.patch_loader_code = str(self.__call__.__code__)
 
@@ -310,7 +311,7 @@ class PatchOptimizer(object):
         return [self.optimizer], [{'scheduler': self.scheduler, 'interval': 'step'}]
 
 
-class _LinearLR(_LRScheduler):
+class LinearLearningRateScheduler(_LRScheduler):
     """Linearly increases the learning rate between two boundaries
     over a number of iterations.
     Arguments:
@@ -327,7 +328,7 @@ class _LinearLR(_LRScheduler):
                  last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(_LinearLR, self).__init__(optimizer, last_epoch)
+        super(LinearLearningRateScheduler, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
@@ -339,7 +340,7 @@ class _LinearLR(_LRScheduler):
             val = [base_lr for base_lr in self.base_lrs]
         return val
 
-class _ExponentialLR(_LRScheduler):
+class ExponentialLearningRateScheduler(_LRScheduler):
     """Exponentially increases the learning rate between two boundaries
     over a number of iterations.
     Arguments:
@@ -356,7 +357,7 @@ class _ExponentialLR(_LRScheduler):
                  last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(_ExponentialLR, self).__init__(optimizer, last_epoch)
+        super(ExponentialLearningRateScheduler, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
