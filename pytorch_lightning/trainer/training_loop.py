@@ -374,9 +374,9 @@ class TrainerTrainLoopMixin(ABC):
                         self.run_training_teardown()
                         return
                     else:
-                        log.info(f'''Trainer was signaled to stop but required minimum epochs
-                                 ({self.min_epochs}) or minimum steps ({self.min_steps}) has
-                                 not been met. Training will continue...''')
+                        log.info(f'Trainer was signaled to stop but required minimum epochs '
+                                 f'({self.min_epochs}) or minimum steps ({self.min_steps}) has '
+                                 f'not been met. Training will continue...')
 
             self.run_training_teardown()
 
