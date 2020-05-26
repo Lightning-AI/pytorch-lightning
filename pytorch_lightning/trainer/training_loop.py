@@ -452,7 +452,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
                 self.call_checkpoint_callback()
-                self.call_early_stop_callback()
 
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
@@ -498,7 +497,6 @@ class TrainerTrainLoopMixin(ABC):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
             self.call_checkpoint_callback()
-            self.call_early_stop_callback()
 
         # Epoch end events
         with self.profiler.profile('on_epoch_end'):
@@ -790,10 +788,6 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
-
-    def call_early_stop_callback(self):
-        if self.early_stop_callback:
-            self.early_stop_callback.on_epoch_end(self, self.get_model())
 
 
 def _with_is_last(iterable):
