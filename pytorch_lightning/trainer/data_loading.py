@@ -150,7 +150,8 @@ class TrainerDataLoadingMixin(ABC):
         self.num_training_batches = 0
 
         # automatically add samplers
-        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, shuffle=True)
+        self.train_dataloader = apply_to_collection(
+            self.train_dataloader, DataLoader, self.auto_add_sampler, train=True)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
