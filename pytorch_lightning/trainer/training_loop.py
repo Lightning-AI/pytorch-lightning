@@ -162,6 +162,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
 
@@ -435,9 +436,12 @@ class TrainerTrainLoopMixin(ABC):
         epoch_output = []
         should_check_val = False
 
+        # support multiple loaders (either as mapping or sequence)
+        combined_loader_iter = CombinedLoaderIterator(train_dataloader)
+
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+            enumerate(_with_is_last(combined_loader_iter)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
