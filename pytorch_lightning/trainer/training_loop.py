@@ -362,7 +362,7 @@ class TrainerTrainLoopMixin(ABC):
                 # TODO wrap this logic into the callback
                 if self.enable_early_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        should_stop = self.early_stop_callback.on_epoch_end(self, self.get_model())
+                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
                         # stop training
                         stop = should_stop and met_min_epochs
                         if stop:
