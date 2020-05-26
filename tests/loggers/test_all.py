@@ -103,7 +103,7 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     pytest.param(dict(max_epochs=10, auto_lr_find=True), id='LR-Finder'),
 ])
 def test_logger_reset_correctly(tmpdir, extra_params):
-    """ Test that logger is updated correctly """
+    """ Test that the tuners do not alter the logger reference """
     tutils.reset_seed()
 
     model = EvalModelTemplate()
