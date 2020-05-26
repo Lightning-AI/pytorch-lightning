@@ -7,7 +7,7 @@ class ModelTemplateData:
     hparams: ...
 
     def dataloader(self, train: bool, num_samples: int = 100):
-        dataset = TrialMNIST(root=self.hparams.data_root, train=train, num_samples=num_samples, download=True)
+        dataset = TrialMNIST(root=self.data_root, train=train, num_samples=num_samples, download=True)
 
         loader = DataLoader(
             dataset=dataset,
