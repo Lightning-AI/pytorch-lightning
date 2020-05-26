@@ -771,7 +771,7 @@ def retry_jittered_backoff(func: Callable, num_retries: int = 5, cap_delay: floa
             else:
                 continue
         time.sleep(sleep_delay)
-        sleep_delay = min(cap_delay, random.uniform(base_delay, sleep * 3))
+        sleep_delay = min(cap_delay, random.uniform(base_delay, sleep_delay * 3))
 
 
 def pick_single_gpu(exclude_gpus: list):
