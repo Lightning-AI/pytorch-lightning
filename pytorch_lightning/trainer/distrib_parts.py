@@ -343,7 +343,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union
+from typing import Union, Callable
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -748,26 +748,33 @@ def determine_root_gpu_device(gpus):
     return root_gpu
 
 
-def retry_jittered_backoff(f, num_retries=5):
-    # Based on:
-    # https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-    cap = 1.0                  # max sleep time is 1s
-    base = 0.01                # initial sleep time is 10ms
-    sleep = base               # initial sleep time is 10ms
+def retry_jittered_backoff(func: Callable, num_retries: int = 5, cap_delay: float = 1.0, base_delay: float = 0.01):
+    """Retry jittered backoff.
+
+    Based on:
+    https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+
+    Args:
+        func: tested function
+        num_retries: number of tries
+        cap_delay: max sleep time
+        base_delay: initial sleep time is 10ms
+    """
+    sleep_delay = base_delay         # initial sleep time is 10ms
 
     for i in range(num_retries):
         try:
-            return f()
-        except RuntimeError as e:
+            return func()
+        except RuntimeError as err:
             if i == num_retries - 1:
-                raise e
+                raise err
             else:
                 continue
-        time.sleep(sleep)
-        sleep = min(cap, random.uniform(base, sleep * 3))
+        time.sleep(sleep_delay)
+        sleep_delay = min(cap_delay, random.uniform(base_delay, sleep_delay * 3))
 
 
-def pick_single_gpu(exclude_gpus=[]):
+def pick_single_gpu(exclude_gpus: list):
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
@@ -781,9 +788,9 @@ def pick_single_gpu(exclude_gpus=[]):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_multiple_gpus(n):
+def pick_multiple_gpus(nb):
     picked = []
-    for _ in range(n):
+    for _ in range(nb):
         picked.append(pick_single_gpu(exclude_gpus=picked))
 
     return picked

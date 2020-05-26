@@ -84,7 +84,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 """
 
 import os
-import pickle
 import re
 import signal
 from abc import ABC
@@ -211,7 +210,7 @@ class TrainerIOMixin(ABC):
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
-        except Exception as e:
+        except Exception:
             pass
 
         if on_slurm:
