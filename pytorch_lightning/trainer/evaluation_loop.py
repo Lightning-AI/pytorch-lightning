@@ -223,11 +223,11 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def _evaluate(
-                  self,
-                  model: LightningModule,
-                  dataloaders: List[DataLoader],
-                  max_batches: List[int],
-                  test_mode: bool = False
+        self,
+        model: LightningModule,
+        dataloaders: List[DataLoader],
+        max_batches: List[int],
+        test_mode: bool = False
     ):
         """Run evaluation code.
 
