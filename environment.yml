@@ -27,7 +27,7 @@ dependencies:
     - check-manifest
     - twine==1.13.0
     - pillow<7.0.0
-    - scipy>=0.13.3,<1.4.0
+    - scipy>=0.13.3
     - scikit-learn>=0.20.0
 
 
