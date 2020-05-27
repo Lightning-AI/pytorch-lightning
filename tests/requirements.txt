@@ -7,5 +7,5 @@ flake8
 flake8-black
 check-manifest
 twine==1.13.0
-black==19.3b0
+black==19.10b0
 pre-commit>=1.21.0
