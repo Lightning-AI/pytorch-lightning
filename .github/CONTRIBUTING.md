@@ -69,9 +69,9 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 ### Original code
 
-All added or edited code shall be own original work of the particular contributor.
+All added or edited code shall be the own original work of the particular contributor.
 If you use come third-party implementation, all such blocks/functions/modules shall be properly referred and if possible also agreed by code's author. For example - `This code is inpired from http://...`.
-In case you adding new dependencies, make sure that they go well with the actual PyTorchLightning license.
+In case you adding new dependencies, make sure that they are compatible the actual PyTorch Lightning license (ie. dependencies should be _at least_ as permissive as the PyTorch Lightning license).
 
 ### Coding Style
 
