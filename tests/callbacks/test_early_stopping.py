@@ -16,6 +16,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
+
     class EarlyStoppingTestRestore(EarlyStopping):
         def __init__(self, expected_state):
             super().__init__()
