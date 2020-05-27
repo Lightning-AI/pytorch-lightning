@@ -39,9 +39,9 @@ class TrainerCallbackConfigMixin(ABC):
         if checkpoint_callback:
             # init a default one
             if self.logger is not None:
-                save_dir = (getattr(self.logger, 'save_dir', None)
-                            or getattr(self.logger, '_save_dir', None)
-                            or self.default_root_dir)
+                save_dir = (getattr(self.logger, 'save_dir', None) or
+                            getattr(self.logger, '_save_dir', None) or
+                            self.default_root_dir)
 
                 # weights_save_path overrides anything
                 if self.weights_save_path is not None and self.weights_save_path is not True:
