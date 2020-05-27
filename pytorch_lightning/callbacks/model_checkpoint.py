@@ -20,7 +20,10 @@ from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch.
+    Save the model after every epoch if it improves.
+    
+    After training finishes, use :attr:`best_model` to retrieve the path to the
+    best checkpoint file.
 
     Args:
         filepath: path to save the model file.
@@ -79,6 +82,13 @@ class ModelCheckpoint(Callback):
         >>> checkpoint_callback = ModelCheckpoint(
         ...     filepath='my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}'
         ... )
+        
+        # retrieve the best checkpoint after training
+        >>> checkpoint_callback = ModelCheckpoint(filepath='my/path/')
+        >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        >>> model = ...
+        >>> trainer.fit(model)
+        >>> print(checkpoint_callback.best_model)
 
     """
 
