@@ -15,4 +15,4 @@ jobs:
       - name: Install Black
         run: pip install black==19.3b0
       - name: Run Black
-        run: echo "LGTM"; # black --config=pyproject.toml --check .
+        run: echo "LGTM"; #  TODO, uncommen: black --config=pyproject.toml --check .
