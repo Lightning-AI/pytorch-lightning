@@ -5,20 +5,6 @@ from collections import OrderedDict
 
 class Result(dict):
 
-    def __init__(self,
-                 logs: Optional[Dict] = None,
-                 early_stop_on: Tensor = None,
-                 checkpoint_on: Tensor = None,
-                 progress_bar_logs: Optional[Dict] = None,
-                 hiddens: Optional[Tensor] = None):
-        super().__init__()
-
-        self.logs = logs
-        self.progress_bar_logs = progress_bar_logs
-        self.hiddens = hiddens
-        self.checkpoint_on = checkpoint_on
-        self.early_stop_on = early_stop_on
-
     def log(self, key, value):
         if self.logs is None:
             self.logs = {}
