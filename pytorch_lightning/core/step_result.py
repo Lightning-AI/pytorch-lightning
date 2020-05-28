@@ -13,7 +13,15 @@ class Result(OrderedDict):
                  progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
-        Structured output for any *_step (training_step, validation_step, ...).
+        Result is an OrderedDict that gives typehints, allowed fields and validation for bad user input.
+
+        Use as the return value for:
+        - training_step
+        - validation_epoch_end
+        - training_epoch_end
+
+        .. note:: Plain dictionary returns are supported but are more prone to errors
+
         We automatically detach anything here for you to avoid holding references to graphs
 
         Args:
@@ -23,6 +31,35 @@ class Result(OrderedDict):
             checkpoint_on: Metric for checkpointing. If none set, will use minimize by default.
             progress_bar: dictionary of values to add to the progress bar
             hiddens: tensor of hiddens to pass to next step when using TBPTT
+
+        .. code-block: python
+
+            # all options:
+            def training_step(...):
+                return Result(
+                    minimize=loss,
+                    checkpoint_on=loss,
+                    early_stop_on=loss,
+                    logs={'train_loss': loss},
+                    progress_bar={'train_loss': loss}
+                )
+
+            # most of the time
+            # will early stop and save checkpoints based on this metric by default
+            return Result(loss)
+
+            # to change what to early stop on
+            return Result(loss, early_stop_on=accuracy)
+
+            # to change what to checkpoint on
+            return Result(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
+
+            # shorthand for logging
+            result = Result(loss)
+            result.log('train_nce_loss', loss)
+
+            # shorthand to put on progress bar
+            result.to_bar('train_nce_loss', loss)
         """
         super().__init__()
 
@@ -33,7 +70,7 @@ class Result(OrderedDict):
         self.hiddens = hiddens
         self.minimize = minimize
 
-    def to_progress_bar(self, key: str, value: Tensor):
+    def to_bar(self, key: str, value: Tensor):
         """
         Adds this key-value pair to the progress bar
 
