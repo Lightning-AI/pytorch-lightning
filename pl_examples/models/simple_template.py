@@ -77,6 +77,8 @@ class SuperLitModel(LightningModule):
         step_result.minimize = loss
         step_result.checkpoint_on = loss
         step_result.log('train_loss', loss)
+
+        import pdb; pdb.set_trace()
         return step_result
 
     def configure_optimizers(self):
