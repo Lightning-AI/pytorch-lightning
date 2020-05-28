@@ -190,7 +190,7 @@ class TrainerLoggingMixin(ABC):
 
         # for callbacks we only use two metrics right now
         # checkpoint_on and early_stop_on
-        callback_metrics = dict()
+        callback_metrics = dict(step_result=)
         if step_result.checkpoint_on:
             callback_metrics.step_result = step_result.checkpoint_on
         if step_result.early_stop_on:

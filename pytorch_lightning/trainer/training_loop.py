@@ -735,32 +735,15 @@ class TrainerTrainLoopMixin(ABC):
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
-        # add step result
-        args.append(step_result)
-
         # distributed forward
         if self.use_ddp or self.use_ddp2 or self.use_dp:
-            try:
-                output = self.model(*args)
-            except TypeError as e:
-                # backward compatible for users without step_result
-                # TODO: remove in 1.0.0
-                args = args[:-1]
-                output = self.model(*args)
+            output = self.model(*args)
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
             batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
             args[0] = batch
-
-            try:
-                output = self.model.training_step(*args)
-
-            except TypeError as e:
-                # backward compatible for users without step_result
-                # TODO: remove in 1.0.0
-                args = args[:-1]
-                output = self.model.training_step(*args)
+            output = self.model.training_step(*args)
 
         # single GPU forward
         elif self.single_gpu:
@@ -773,40 +756,17 @@ class TrainerTrainLoopMixin(ABC):
             # wind up copying it to the same device repeatedly.
             batch = self.transfer_batch_to_gpu(batch, gpu_id)
             args[0] = batch
-
-            try:
-                output = self.model.training_step(*args)
-
-            except TypeError as e:
-                # backward compatible for users without step_result
-                # TODO: remove in 1.0.0
-                args = args[:-1]
-                output = self.model.training_step(*args)
+            output = self.model.training_step(*args)
 
         # TPU support
         elif self.use_tpu:
             batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
-
-            try:
-                output = self.model.training_step(*args)
-
-            except TypeError as e:
-                # backward compatible for users without step_result
-                # TODO: remove in 1.0.0
-                args = args[:-1]
-                output = self.model.training_step(*args)
+            output = self.model.training_step(*args)
 
         # CPU forward
         else:
-            try:
-                output = self.model.training_step(*args)
-
-            except TypeError as e:
-                # backward compatible for users without step_result
-                # TODO: remove in 1.0.0
-                args = args[:-1]
-                output = self.model.training_step(*args)
+            output = self.model.training_step(*args)
 
         # allow any mode to define training_step_end
         # do something will all the dp outputs (like softmax)
