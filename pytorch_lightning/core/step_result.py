@@ -101,7 +101,8 @@ class EvalStepResult(Result):
 
     def reduce_across_batches(self, key: str, value: Tensor, operation: str = 'mean', log: bool = True):
         """
-        This metric will be reduced across batches and logged if requested
+        This metric will be reduced across batches and logged if requested.
+        If you use this, there's no need to add the **_epoch_end method
 
         Args:
             key: name of this metric
