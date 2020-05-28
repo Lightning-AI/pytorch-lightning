@@ -6,6 +6,7 @@ class Result(Dict):
 
     def __init__(self,
                  logs: Optional[Dict] = None,
+                 early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  progress_bar_logs: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
@@ -19,6 +20,12 @@ class Result(Dict):
 
         self.hiddens = hiddens
         self.__setitem__('hiddens', self.hiddens)
+
+        self.checkpoint_on = checkpoint_on
+        self.__setitem__('checkpoint_on', checkpoint_on)
+
+        self.early_stop_on = early_stop_on
+        self.__setitem__('early_stop_on', early_stop_on)
 
     def log(self, key, value):
         self.logs[key] = value
@@ -38,6 +45,18 @@ class Result(Dict):
         self._hiddens = x
         self.__setitem__('hiddens', x)
 
+    @property
+    def checkpoint_on(self):
+        return self._checkpoint_on
+
+    @checkpoint_on.setter
+    def checkpoint_on(self, x):
+        if x is not None:
+            assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
+
+        self._checkpoint_on = x
+        self.__setitem__('checkpoint_on', self._checkpoint_on)
+
 
 class TrainStepResult(Result):
     """
@@ -46,6 +65,7 @@ class TrainStepResult(Result):
     """
 
     def __init__(self,
+                 early_stop_on: Tensor = None,
                  minimize: Tensor = None,
                  checkpoint_on: Tensor = None,
                  logs: Optional[Dict] = None,
@@ -59,9 +79,8 @@ class TrainStepResult(Result):
             progress_bar_logs: a dictionary to pass to the progress bar
             hiddens: when using TBPTT return the hidden states here
         """
-        super().__init__(logs, progress_bar_logs, hiddens)
+        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar_logs, hiddens)
         self.minimize = minimize
-        self.checkpoint_on = checkpoint_on
 
     @property
     def minimize(self):
@@ -74,17 +93,6 @@ class TrainStepResult(Result):
 
         self._minimize = x
         self.__setitem__('minimize', x)
-
-    @property
-    def checkpoint_on(self):
-        return self._checkpoint_on
-
-    @checkpoint_on.setter
-    def checkpoint_on(self, x):
-        assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
-
-        self._checkpoint_on = x
-        self.__setitem__('checkpoint_on', self._checkpoint_on)
 
 
 class EvalStepResult(Result):
@@ -108,9 +116,7 @@ class EvalStepResult(Result):
             hiddens: when using TBPTT return the hidden states here
         """
 
-        super().__init__(logs, progress_bar_logs, hiddens)
-        self.early_stop_on = early_stop_on
-        self.checkpoint_on = checkpoint_on
+        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar_logs, hiddens)
 
         # metrics to reduce
         self.__setitem__('reduce', {})

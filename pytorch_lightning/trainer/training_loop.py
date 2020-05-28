@@ -585,7 +585,10 @@ class TrainerTrainLoopMixin(ABC):
                                                                 self.hiddens, step_result)
 
                         # format and reduce outputs accordingly
-                        processed_output = self.process_output(output, train=True)
+                        if isinstance(output, TrainStepResult):
+                            processed_output = self.process_step_result(output, train=True)
+                        else:
+                            processed_output = self.process_output(output, train=True)
 
                     closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = processed_output
 

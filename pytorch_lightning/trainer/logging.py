@@ -6,6 +6,7 @@ import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.core.step_result import TrainStepResult
 
 
 class TrainerLoggingMixin(ABC):
@@ -178,14 +179,22 @@ class TrainerLoggingMixin(ABC):
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
-    def process_step_result(self, output, train=False):
+    def process_step_result(self, step_result: TrainStepResult, train=False):
         """
         Reduces output according to the training mode.
         Separates loss from logging and progress bar metrics
         """
+        dp_reduce_values = dict(
+            checkpoint_on=step_result.checkpoint_on,
+            early_stop_on=step_result.early_stop_on,
+            minimize=step_result.minimize
+        )
+
         if train and (self.use_dp or self.use_ddp2):
             num_gpus = self.num_gpus
-            callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
+            dp_reduce_values = self.reduce_distributed_output(dp_reduce_values, num_gpus)
+
+        # TODO: finish processing
 
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
