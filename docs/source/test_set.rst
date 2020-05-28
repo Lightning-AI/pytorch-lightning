@@ -40,10 +40,9 @@ running the test set (ie: 16-bit, dp, ddp, etc...)
 
 Test additional data loaders
 ----------------------------
-If no test sets were passed in to `trainer.fit()` or otherwise declared inside your
-LightningModule class, use this method to specify a test set to run. This is often
-the case in production systems where the model has already been trained and
-inference is being ran on novel test sets.
+You can still run inference on a test set even if `test_dataloader` hasn't been declared
+in your LightningModule class. This would be the case when your testing data isn't available
+at the time your model is declared.
 
 .. code-block:: python
 
@@ -53,6 +52,5 @@ inference is being ran on novel test sets.
     # test (pass in the loader)
     trainer.test(test_dataloaders=test)
 
-You can either pass in either a single dataloader or a list of them. This
-optional named parameter can be used in conjunction with any of the above use
-cases.
+You can either pass in a single dataloader or a list of them. This optional named
+parameter can be used in conjunction with any of the above use cases.
