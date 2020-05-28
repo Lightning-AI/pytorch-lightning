@@ -7,7 +7,7 @@ Simplify the API as much as possible from the user perspective.
  Any additions or improvements should minimize the things the user needs to remember.   
 
 For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval().
- This helps users avoide all sorts of subtle errors.
+ This helps users avoid all sorts of subtle errors.
 
 ## Lightning Design Principles
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.   
@@ -141,7 +141,7 @@ bash .run_local_tests.sh
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
 For convenience, you can also use your own CircleCI building which will be triggered with each commit.
-This is useful if you do not test against all required dependencies versions.
+This is useful if you do not test against all required dependency versions.
 To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked project in the dashboard. It will just work after that.
 
 ### Pull Request
@@ -171,7 +171,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 3. **How to rebase my PR?**
     
-    We recommend creating a PR in a separate branch, othen than `master`, especially if you plan on submitting several changes at once and do not want to wait until the first one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+    We recommend creating a PR from a separate branch other than `master`, especially if you plan on submitting several changes at once and do not want to wait until the first one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
     ```bash
     git fetch --all --prune
     git checkout master
