@@ -61,7 +61,7 @@ else:
         'Trainer',
         'LightningModule',
         'Callback',
-        'data_loader'
+        'data_loader',
         'seed_everything',
         'Result'
     ]

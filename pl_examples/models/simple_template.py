@@ -90,11 +90,15 @@ class SuperLitModel(LightningModule):
         loss = F.cross_entropy(y_hat, y)
 
         # structure the return from the training loop
+        return {'loss': loss}
+
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         step_result = Result(
-            checkpoint_on=loss,
-            early_stop_on=loss,
-            logs={'train_loss': loss},
-            progress_bar={'train_loss': loss}
+            checkpoint_on=avg_loss,
+            early_stop_on=avg_loss,
+            logs={'avg_loss': avg_loss},
+            progress_bar={'avg_loss': avg_loss}
         )
 
         return step_result
@@ -144,5 +148,6 @@ if __name__ == '__main__':
 
     trainer.fit(
         model,
-        train_dataloader=mnist_train
+        train_dataloader=mnist_train,
+        val_dataloaders=mnist_train
     )

@@ -131,8 +131,8 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.core.step_result import Result
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -165,7 +165,6 @@ class TrainerEvaluationLoopMixin(ABC):
     num_test_batches: int
     num_val_batches: int
     fast_dev_run: ...
-    process_output: ...
     progress_bar_dict: ...
     proc_rank: int
     current_epoch: int
@@ -369,7 +368,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
+
+        if isinstance(eval_results, Result):
+            eval_results = self.process_step_result(eval_results)
+        else:
+            eval_results = self.process_output(eval_results)
+
+        _, prog_bar_metrics, log_metrics, callback_metrics, _ = eval_results
 
         # add metrics to prog bar
         self.add_progress_bar_metrics(prog_bar_metrics)
