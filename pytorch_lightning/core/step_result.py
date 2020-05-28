@@ -12,6 +12,18 @@ class Result(OrderedDict):
                  checkpoint_on: Tensor = None,
                  progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
+        """
+        Structured output for any *_step (training_step, validation_step, ...).
+        We automatically detach anything here for you to avoid holding references to graphs
+
+        Args:
+            minimize: Metric to minimize
+            logs: dictionary that will be added to your logger(s)
+            early_stop_on: Metric for early stopping. If none set, will use minimize by default.
+            checkpoint_on: Metric for checkpointing. If none set, will use minimize by default.
+            progress_bar: dictionary of values to add to the progress bar
+            hiddens: tensor of hiddens to pass to next step when using TBPTT
+        """
         super().__init__()
 
         self.logs = logs
@@ -20,6 +32,39 @@ class Result(OrderedDict):
         self.progress_bar = progress_bar
         self.hiddens = hiddens
         self.minimize = minimize
+
+    def to_progress_bar(self, key: str, value: Tensor):
+        """
+        Adds this key-value pair to the progress bar
+
+        Args:
+            key: a string
+            value: a tensor
+
+        Returns:
+
+        """
+        if 'progress_bar' not in self:
+            self.__setitem__('progress_bar', {})
+
+        progress_bar = self.__getitem__('progress_bar')
+        progress_bar[key] = value
+
+    def log(self, key: str, value: Tensor):
+        """
+        Adds this key-value pair to your logger(s)
+        Args:
+            key: a string
+            value: a tensor
+
+        Returns:
+
+        """
+        if 'logs' not in self:
+            self.__setitem__('logs', {})
+
+        logs = self.__getitem__('logs')
+        logs[key] = value
 
     @property
     def progress_bar(self):
@@ -41,20 +86,6 @@ class Result(OrderedDict):
             assert isinstance(x, dict), 'logs must be a dict'
             self.__setitem__('logs', x)
 
-    def log(self, key, value):
-        if 'logs' not in self:
-            self.__setitem__('logs', {})
-
-        logs = self.__getitem__('logs')
-        logs[key] = value
-
-    def display(self, key, value):
-        if 'progress_bar' not in self:
-            self.__setitem__('progress_bar', {})
-
-        progress_bar = self.__getitem__('progress_bar')
-        progress_bar[key] = value
-
     @property
     def hiddens(self):
         return self._hiddens
@@ -68,7 +99,12 @@ class Result(OrderedDict):
 
     @property
     def checkpoint_on(self):
-        return self._checkpoint_on
+        # use minimize as default if no checkpoint_on is passed
+        if 'checkpoint_on' not in self:
+            minimize = self.__getitem__('minimize')
+            self.__setitem__('checkpoint_on', minimize)
+
+        return self.__getitem__('checkpoint_on')
 
     @checkpoint_on.setter
     def checkpoint_on(self, x):
@@ -79,6 +115,11 @@ class Result(OrderedDict):
 
     @property
     def early_stop_on(self):
+        # use minimize as default if no checkpoint_on is passed
+        if 'early_stop_on' not in self:
+            minimize = self.__getitem__('minimize')
+            self.__setitem__('early_stop_on', minimize)
+
         return self.__getitem__('early_stop_on')
 
     @early_stop_on.setter
