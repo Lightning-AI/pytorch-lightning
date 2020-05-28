@@ -4,10 +4,10 @@ Welcome to the PyTorch Lightning community! We're building the most advanced res
 ## Main Core Value: One less thing to remember
 
 Simplify the API as much as possible from the user perspective.
- Any additions or improvements should minimize things the user needs to remember.   
+ Any additions or improvements should minimize the things the user needs to remember.   
 
 For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval().
- This avoids all sorts of subtle errors the user could make.  
+ This helps users avoide all sorts of subtle errors.
 
 ## Lightning Design Principles
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.   
@@ -22,17 +22,17 @@ It's useful for users to look at the code and understand very quickly what's hap
  While that's super cool, this isn't the project for that :)      
 
 #### Force User Decisions To Best Practices
-There are 1,000 ways to do something. However, something eventually becomes standard practice that everyone does.
- Thus we pick one way of doing it and force everyone to do it this way.
+There are 1,000 ways to do something. However, eventually one popular solution becomes standard practice, and everyone follows.
+ We try to find the best way to solve a particular problem, and then force our users to use it for readability and simplicity.
  A good example is accumulated gradients.
- There are many ways to implement, we just pick one and force users to use that one.
+ There are many different ways to implement it, we just pick one and force users to use it.
  A bad forced decision would be to make users use a specific library to do something.    
 
-When something becomes a best practice, we add it to the framework. This likely looks like code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
+When something becomes a best practice, we add it to the framework. This is usually something like bits of code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
 
 #### Simple External API
-What makes sense to you may not make sense to others. Create an issue with an API change suggestion and validate that it makes sense for others.
- Treat code changes how you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.
+What makes sense to you may not make sense to others. When creating an issue with an API change suggestion, please validate that it makes sense for others.
+ Treat code changes the way you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.
 
 #### Backward-compatible API
 We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backwards compatible with good deprecation warnings.
@@ -40,7 +40,7 @@ We all hate updating our deep learning packages because we don't want to refacto
 **You shouldn't be afraid to upgrade Lightning :)**
 
 #### Gain User Trust
-As a researcher you can't have any part of your code going wrong. So, make thorough tests that ensure an implementation of a new trick or subbtle change is correct.
+As a researcher you can't have any part of your code going wrong. So, make thorough tests to ensure that every implementation of a new trick or subtle change is correct.
 
 #### Interoperability
 Have a favorite feature from other libraries like fast.ai or transformers? Those should just work with lightning as well. Grab your favorite model or learning rate scheduler from your favorite library and run it in Lightning.
@@ -48,20 +48,20 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 ---
 
 ## Contribution Types
-Currently looking for help implementing new features or adding bug fixes.
+We are currently looking for help implementing new features or adding bug fixes.
 
-A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) we're in a good state there thanks to all the early contributors (even pre-beta release)!
+A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
-1. Submit a github issue - try to decried what happen so other can reproduce it too.
-2. Try to ix it or recommend a solution...
+1. Submit a github issue - try to describe what happened so others can reproduce it too (config, code samples, expected vs. actual behaviour).
+2. Try to fix it or recommend a solution...
 3. Submit a PR!
 
 
 ### New Features:
-1. Submit a github issue - describe what is motivation of such feature (plus an use-case).
-2. Let's discuss to agree on the feature scope.
-3. Submit a PR! (with updated docs and tests 🙃).
+1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
+2. Let's discuss to determine the feature scope.
+3. Submit a PR! (with updated docs and tests🙃).
 
 ---
 
@@ -125,7 +125,7 @@ _Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build
 
 ### Testing
 
-Test your work locally to speed up your work since so you can focus only in particular (failing) test-cases.
+Testing your work locally will help you speed up the process since it allows you to focus on particular (failing) test-cases.
  To setup a local development environment, install both local and test dependencies:
 ```bash
 pip install -r requirements.txt
@@ -140,21 +140,21 @@ bash .run_local_tests.sh
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
-For convenience, you can use also your own CircleCI building which will be triggered with each commit.
-This is useful if you do not test against all required dependencies version.
+For convenience, you can also use your own CircleCI building which will be triggered with each commit.
+This is useful if you do not test against all required dependencies versions.
 To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked project in the dashboard. It will just work after that.
 
 ### Pull Request
 
-We welcome any useful contribution! For convinece here's a recommended workflow:
+We welcome any useful contribution! For your convenience here's a recommended workflow:
 
 0. Think about what you want to do - fix a bug, repair docs, etc. 
 1. Start your work locally (usually until you need our CI testing)
     - create a branch and prepare your changes
     - hint: do not work with your master directly, it may become complicated when you need to rebase
     - hint: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs
-2. Create a "Draft PR" which is clearly marked which lets us know you don't need feedback yet.
-3. When you feel like you are ready for integrating your work, turn your PR to "Ready for review".
+2. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
+3. When you feel ready for integrating your work, mark your PR "Ready for review".
 4. Use tags in PR name for following cases:
     - **[blocked by #<number>]** if you work is depending on others changes
     - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime
@@ -163,15 +163,15 @@ We welcome any useful contribution! For convinece here's a recommended workflow:
 
 1. **How can I help/contribute?**
 
-    All help is very welcome - reporting bug, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
+    All help is very welcome - reporting bugs, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
 
 2. **Is there a recommendation for branch names?**
     
-    We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feaure`, `docs`, `tests`, ...
+    We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
 
 3. **How to rebase my PR?**
     
-    We recommend to create a PR in separate branch different from `master`, especially if you plan to submit several changes and do not want to wait until the fist one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+    We recommend creating a PR in a separate branch, othen than `master`, especially if you plan on submitting several changes at once and do not want to wait until the first one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
     ```bash
     git fetch --all --prune
     git checkout master
