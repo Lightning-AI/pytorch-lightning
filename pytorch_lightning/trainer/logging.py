@@ -186,12 +186,13 @@ class TrainerLoggingMixin(ABC):
         Reduces output according to the training mode.
         Separates loss from logging and progress bar metrics
         """
-        import pdb; pdb.set_trace()
-        callback_metrics = dict(
-            checkpoint_on=step_result.checkpoint_on,
-            early_stop_on=step_result.early_stop_on,
-        )
+        callback_metrics = dict()
+        if step_result.checkpoint_on:
+            callback_metrics.step_result = step_result.checkpoint_on
+        if step_result.early_stop_on:
+            callback_metrics.early_stop_on = step_result.early_stop_on
 
+        import pdb; pdb.set_trace()
         if train and (self.use_dp or self.use_ddp2):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
