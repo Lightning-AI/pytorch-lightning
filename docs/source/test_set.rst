@@ -1,6 +1,6 @@
 Test set
 ========
-Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake
+Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.
 
 
 Test after fit
@@ -14,6 +14,7 @@ To run the test set after training completes, use this method
 
     # run test set
     trainer.test()
+
 
 Test pre-trained model
 ----------------------
@@ -35,3 +36,22 @@ To run the test set on a pre-trained model, use this method.
 
 In this  case, the options you pass to trainer will be used when
 running the test set (ie: 16-bit, dp, ddp, etc...)
+
+
+Test additional data loaders
+----------------------------
+If no test sets were passed in to `trainer.fit()` or otherwise declared inside your
+LightningModule class, use this method to specify a test set to run. This is often
+the case in production systems where the model has already been trained and
+inference is being ran on novel test sets.
+
+.. code-block:: python
+    # setup your data loader
+    test = DataLoader(...)
+
+    # test (pass in the loader)
+    trainer.test(test_dataloaders=test)
+
+You can either pass in either a single dataloader or a list of them. This
+optional named parameter can be used in conjunction with any of the above use
+cases.
