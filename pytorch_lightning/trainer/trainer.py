@@ -856,17 +856,21 @@ class Trainer(
         if self.use_ddp2:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+
+            # torchelastic or general non_slurm ddp2
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
-            # torchelastic
-            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+
+            # torchelastic or general non_slurm ddp
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
+
             else:
                 self.__set_random_port()
                 # track for predict
@@ -900,7 +904,7 @@ class Trainer(
 
             # train
             if self.tpu_id is not None:
-                self.tpu_train(model)
+                self.tpu_train(self.tpu_id, model)
             else:
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
