@@ -6,6 +6,7 @@ import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from pytorch_lightning.core.step_result import Result
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -63,8 +64,14 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        import pdb; pdb.set_trace()
-        return self.gather(outputs, self.output_device)
+
+        # structured responses break gather when not dict
+        if isinstance(outputs[0], Result):
+            outputs = [dict(x) for x in outputs]
+
+        outputs = self.gather(outputs, self.output_device)
+        return outputs
+
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
@@ -172,8 +179,8 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 else:
                     output = module.validation_step(*input, **kwargs)
 
-                # if module.use_dp or module.use_ddp2:
-                #     auto_squeeze_dim_zeros(output)
+                if module.use_dp or module.use_ddp2:
+                    auto_squeeze_dim_zeros(output)
                 # ---------------
 
             with lock:
