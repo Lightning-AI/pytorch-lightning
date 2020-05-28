@@ -426,8 +426,8 @@ class TrainerDDPMixin(ABC):
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
-            name = root_node.split('[')[0]
-            number = root_node.split(',')[0]
+            name, numbers = root_node.split('[', maxsplit=1)
+            number = numbers.split(',', maxsplit=1)[0]
             if '-' in number:
                 number = number.split('-')[0]
 
