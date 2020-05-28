@@ -9,14 +9,14 @@ class Result(OrderedDict):
                  logs: Optional[Dict] = None,
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
-                 progress_bar_logs: Optional[Dict] = None,
+                 progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         super().__init__()
 
         self.logs = logs
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
-        self.progress_bar_logs = progress_bar_logs
+        self.progress_bar = progress_bar
         self.hiddens = hiddens
 
     @property
@@ -98,17 +98,17 @@ class TrainStepResult(Result):
                  minimize: Tensor = None,
                  checkpoint_on: Tensor = None,
                  logs: Optional[Dict] = None,
-                 progress_bar_logs: Optional[Dict] = None,
+                 progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
 
         Args:
             minimize: the metric to minimize (usually the loss) (Tensor)
             logs: a dictionary to pass to the logger
-            progress_bar_logs: a dictionary to pass to the progress bar
+            progress_bar: a dictionary to pass to the progress bar
             hiddens: when using TBPTT return the hidden states here
         """
-        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar_logs, hiddens)
+        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar, hiddens)
         self.minimize = minimize
 
     @property
@@ -133,7 +133,7 @@ class EvalStepResult(Result):
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  logs: Optional[Dict] = None,
-                 progress_bar_logs: Optional[Dict] = None,
+                 progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
 
@@ -141,11 +141,11 @@ class EvalStepResult(Result):
             early_stop_on: the metric used for early Stopping
             checkpoint_on: the metric used for Model checkpoint
             logs: a dictionary to pass to the logger
-            progress_bar_logs: a dictionary to pass to the progress bar
+            progress_bar: a dictionary to pass to the progress bar
             hiddens: when using TBPTT return the hidden states here
         """
 
-        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar_logs, hiddens)
+        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar, hiddens)
 
     def reduce_across_batches(self, key: str, value: Tensor, operation: str = 'mean', log: bool = True):
         """

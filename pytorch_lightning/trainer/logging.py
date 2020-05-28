@@ -95,16 +95,14 @@ class TrainerLoggingMixin(ABC):
         return new_metrics
 
     def process_output(self, output, train=False):
+        # TODO: DEPRECATE FULL FUNCTION IN 1.0.0. Use process_step_result instead
         """Reduces output according to the training mode.
-
         Separates loss from logging and progress bar metrics
         """
         # ---------------
         # EXTRACT CALLBACK KEYS
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
-        import pdb; pdb.set_trace()
-
         callback_metrics = {}
         for k, v in output.items():
             if k not in ['progress_bar', 'log', 'hiddens']:
