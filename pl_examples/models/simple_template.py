@@ -4,6 +4,8 @@ Example template for defining a system.
 import os
 
 import torch
+from torch import Tensor
+from pytorch_lightning import TrainStepResult
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
@@ -60,7 +62,7 @@ class SuperLitModel(LightningModule):
         x = self.c_d2(x)
         return x
 
-    def training_step(self, batch, batch_idx, step_result):
+    def training_step(self, batch: Tensor, batch_idx: int, step_result: TrainStepResult):
         """
         Lightning calls this inside the training loop with the data from the training dataloader
         passed in as `batch`.
@@ -69,8 +71,11 @@ class SuperLitModel(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+
+        # structure the return from the training loop
+        step_result.minimize = loss
+        step_result.log('train_loss', loss)
+        return step_result
 
     def configure_optimizers(self):
         """
@@ -109,7 +114,7 @@ if __name__ == '__main__':
 
     # init data, model
     mnist_train = MNIST(args.data_dir, train=True, download=True, transform=transforms.ToTensor())
-    mnist_train = DataLoader(mnist_train, batch_size=args.batch_size, num_workers=4)
+    mnist_train = DataLoader(mnist_train, batch_size=args.batch_size, num_workers=0)
     model = SuperLitModel(**vars(args))
 
     # init trainer
