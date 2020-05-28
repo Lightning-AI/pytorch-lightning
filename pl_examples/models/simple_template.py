@@ -74,7 +74,7 @@ class SuperLitModel(LightningModule):
 
         step_result = {'loss': loss}
         # structure the return from the training loop
-        # step_result.minimize = loss
+        step_result.minimize = loss
         # step_result.checkpoint_on = loss
         # step_result.log('train_loss', loss)
 
