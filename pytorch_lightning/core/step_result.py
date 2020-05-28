@@ -20,15 +20,14 @@ class Result(OrderedDict):
         self.hiddens = hiddens
 
     @property
-    def progress_bar_logs(self):
-        return self._progress_bar_logs
+    def progress_bar(self):
+        return self.__getitem__('progress_bar')
 
-    @progress_bar_logs.setter
-    def progress_bar_logs(self, x):
+    @progress_bar.setter
+    def progress_bar(self, x):
         if x is not None:
             assert isinstance(x, dict), 'progress_bar_logs must be a dict'
-            self._progress_bar_logs = x
-            self.__setitem__('progress_bar_logs', x)
+            self.__setitem__('progress_bar', x)
 
     @property
     def logs(self):

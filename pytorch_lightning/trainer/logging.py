@@ -186,15 +186,14 @@ class TrainerLoggingMixin(ABC):
         Reduces output according to the training mode.
         Separates loss from logging and progress bar metrics
         """
-        # TODO: good place to dist all_reduce to aggregate metrics across gpus
 
         # for callbacks we only use two metrics right now
         # checkpoint_on and early_stop_on
-        callback_metrics = dict(step_result=)
-        if step_result.checkpoint_on:
-            callback_metrics.step_result = step_result.checkpoint_on
-        if step_result.early_stop_on:
-            callback_metrics.early_stop_on = step_result.early_stop_on
+        callback_metrics = dict()
+        if 'checkpoint_on' in step_result:
+            callback_metrics['step_result'] = step_result.checkpoint_on
+        if 'early_stop_on' in step_result:
+            callback_metrics['early_stop_on'] = step_result.early_stop_on
 
         if train and (self.use_dp or self.use_ddp2):
             # {val: [x1, x2], ...} -> {val: x1_2_mean}
@@ -204,9 +203,8 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
         # ---------------
-        import pdb; pdb.set_trace()
         try:
-            progress_output = step_result.progress_bar_logs
+            progress_output = step_result.progress_bar
 
             # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
@@ -222,7 +220,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # extract metrics to log to experiment
         try:
-            log_output = output['log']
+            log_output = step_result.logs
 
             # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
@@ -241,10 +239,10 @@ class TrainerLoggingMixin(ABC):
         loss = None
         if train:
             try:
-                loss = output['loss']
+                loss = step_result.minimize
             except Exception:
-                if isinstance(output, torch.Tensor):
-                    loss = output
+                if isinstance(step_result, torch.Tensor):
+                    loss = step_result
                 else:
                     raise RuntimeError(
                         'No `loss` value in the dictionary returned from `model.training_step()`.'
@@ -257,7 +255,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens')
+        hiddens = step_result.get('hiddens')
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
@@ -267,6 +265,7 @@ class TrainerLoggingMixin(ABC):
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
 
+        # TODO: good place to dist all_reduce to aggregate metrics across gpus
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
     def reduce_distributed_output(self, output, num_gpus):

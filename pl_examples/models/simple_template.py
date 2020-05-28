@@ -79,7 +79,7 @@ class SuperLitModel(LightningModule):
         step_result.early_stop_on = loss
         step_result.log('log_metric_1', loss)
         step_result.display('prog_bar_metric_1', loss)
-        step_result.hiddens = loss
+        # step_result.hiddens = loss
 
         # step_result = {'loss': loss}
 
