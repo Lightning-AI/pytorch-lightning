@@ -96,3 +96,28 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({'acc': 1.0})
+
+
+@pytest.mark.parametrize("extra_params", [
+    pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
+    pytest.param(dict(max_epochs=10, auto_lr_find=True), id='LR-Finder'),
+])
+def test_logger_reset_correctly(tmpdir, extra_params):
+    """ Test that the tuners do not alter the logger reference """
+    tutils.reset_seed()
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_save_path=tmpdir,
+        **extra_params
+    )
+    logger1 = trainer.logger
+    trainer.fit(model)
+    logger2 = trainer.logger
+    logger3 = model.logger
+
+    assert logger1 == logger2, \
+        'Finder altered the logger of trainer'
+    assert logger2 == logger3, \
+        'Finder altered the logger of model'
