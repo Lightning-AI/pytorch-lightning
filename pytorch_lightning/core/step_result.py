@@ -13,25 +13,21 @@ class Result(OrderedDict):
                  hiddens: Optional[Tensor] = None):
         super().__init__()
 
-        self.logs = {} if logs is None else logs
-        self.__setitem__('logs', self.logs)
-
-        self.progress_bar_logs = {} if progress_bar_logs is None else progress_bar_logs
-        self.__setitem__('progress_bar_logs', self.progress_bar_logs)
-
+        self.logs = None
+        self.progress_bar_logs = None
         self.hiddens = hiddens
-        self.__setitem__('hiddens', self.hiddens)
-
         self.checkpoint_on = checkpoint_on
-        self.__setitem__('checkpoint_on', checkpoint_on)
-
         self.early_stop_on = early_stop_on
-        self.__setitem__('early_stop_on', early_stop_on)
 
     def log(self, key, value):
+        if self.logs is None:
+            self.logs = {}
         self.logs[key] = value
 
     def display_in_progress_bar(self, key, value):
+        if self.progress_bar_logs is None:
+            self.progress_bar_logs = {}
+
         self.progress_bar_logs[key] = value
 
     @property
