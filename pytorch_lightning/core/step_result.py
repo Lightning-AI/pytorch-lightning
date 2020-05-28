@@ -1,8 +1,9 @@
 from typing import Optional, Dict
 from torch import Tensor
+from collections import OrderedDict
 
 
-class Result(Dict):
+class Result(OrderedDict):
 
     def __init__(self,
                  logs: Optional[Dict] = None,
