@@ -65,6 +65,11 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
+# Options for the linkcode extension
+# ----------------------------------
+github_user = 'PyTorchLightning'
+github_repo = project
+
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -336,12 +341,6 @@ MOCK_MANUAL_PACKAGES = [
     'neptune',
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
-
-
-# Options for the linkcode extension
-# ----------------------------------
-github_user = 'PyTorchLightning'
-github_repo = project
 
 
 # Resolve function
