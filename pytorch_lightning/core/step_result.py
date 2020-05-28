@@ -144,5 +144,5 @@ class EvalStepResult(Result):
 
 if __name__ == '__main__':
     import torch
-    result = TrainStepResult()
+    result = EvalStepResult()
     result.minimize = torch.tensor(1)

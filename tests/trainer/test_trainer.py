@@ -19,6 +19,17 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_return_object(tmpdir):
+    # test the simple training step with a result object
+    model = EvalModelTemplate()
+    model.training_step = model.training_step__result_object
+
+    logger = tutils.get_default_logger(tmpdir)
+    trainer = Trainer(fast_dev_run=True, logger=logger)
+    result = trainer.fit(model)
+    assert result == 1, 'training_step with step result failed'
+
+
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 

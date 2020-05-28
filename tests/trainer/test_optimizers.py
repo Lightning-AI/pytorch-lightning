@@ -72,6 +72,40 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
 
 
+def test_multi_optimizers(tmpdir):
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    model.configure_optimizers = model.configure_optimizers__multiple_optimizers
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+    results = trainer.fit(model)
+    assert results == 1
+
+
+def test_multi_optimizers_structured_result(tmpdir):
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    model.configure_optimizers = model.configure_optimizers__multiple_optimizers
+    model.training_step = model.training_step__result_object_multiple_optimizers
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+    results = trainer.fit(model)
+    assert results == 1
+
+
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
