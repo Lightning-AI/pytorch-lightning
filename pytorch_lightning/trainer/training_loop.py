@@ -585,7 +585,7 @@ class TrainerTrainLoopMixin(ABC):
                                                                 self.hiddens, step_result)
 
                         # format and reduce outputs accordingly
-                        if 'minimize' in output:
+                        if isinstance(output, TrainStepResult):
                             processed_output = self.process_step_result(output, train=True)
                         else:
                             processed_output = self.process_output(output, train=True)
