@@ -171,8 +171,8 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 else:
                     output = module.validation_step(*input, **kwargs)
 
-                if module.use_dp or module.use_ddp2:
-                    auto_squeeze_dim_zeros(output)
+                # if module.use_dp or module.use_ddp2:
+                #     auto_squeeze_dim_zeros(output)
                 # ---------------
 
             with lock:
