@@ -104,6 +104,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         import pdb; pdb.set_trace()
+
         callback_metrics = {}
         for k, v in output.items():
             if k not in ['progress_bar', 'log', 'hiddens']:
