@@ -11,8 +11,13 @@ class Result(Dict):
         super().__init__()
 
         self.logs = {} if logs is None else logs
+        self.__setitem__('logs', self.logs)
+
         self.progress_bar_logs = {} if progress_bar_logs is None else progress_bar_logs
+        self.__setitem__('progress_bar_logs', self.progress_bar_logs)
+
         self.hiddens = hiddens
+        self.__setitem__('hiddens', self.hiddens)
 
     def log(self, key, value):
         self.logs[key] = value
@@ -26,42 +31,45 @@ class Result(Dict):
 
     @hiddens.setter
     def hiddens(self, x):
-        assert isinstance(x, Tensor), 'hiddens must be a torch.Tensor'
+        if x is not None:
+            assert isinstance(x, Tensor), 'hiddens must be a torch.Tensor'
 
         self._hiddens = x
-        self.__setitem__('hiddens', self.hiddens)
+        self.__setitem__('hiddens', x)
 
 
 class TrainStepResult(Result):
     """
-    Return this in the training step
+    A dictionary with type checking and error checking
+    Return this in the training step.
     """
 
-    def __init__(self, loss: Tensor = None,
+    def __init__(self, minimize: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
 
         Args:
-            loss: the loss to minimize (Tensor)
+            minimize: the metric to minimize (usually the loss) (Tensor)
             logs: a dictionary to pass to the logger
             progress_bar_logs: a dictionary to pass to the progress bar
             hiddens: when using TBPTT return the hidden states here
         """
         super().__init__(logs, progress_bar_logs, hiddens)
-        self.loss = loss
+        self.minimize = minimize
 
     @property
-    def loss(self):
-        return self._loss
+    def minimize(self):
+        return self._minimize
 
-    @loss.setter
-    def loss(self, x):
-        assert isinstance(x, Tensor), 'loss must be a torch.Tensor'
+    @minimize.setter
+    def minimize(self, x):
+        if x is not None:
+            assert isinstance(x, Tensor), 'metric to minimize must be a torch.Tensor'
 
-        self._loss = x
-        self.__setitem__('loss', self.loss)
+        self._minimize = x
+        self.__setitem__('minimize', x)
 
 
 class EvalStepResult(Result):
@@ -87,6 +95,28 @@ class EvalStepResult(Result):
         super().__init__(logs, progress_bar_logs, hiddens)
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
+
+        # metrics to reduce
+        self.__setitem__('reduce', {})
+
+    def reduce_across_batches(self, key: str, value: Tensor, operation: str = 'mean', log: bool = True):
+        """
+        This metric will be reduced across batches and logged if requested
+
+        Args:
+            key: name of this metric
+            value: value of this metric
+            operation: mean, sum
+            log: bool
+        Returns:
+
+        """
+        assert isinstance(value, Tensor), 'the value to reduce must be a torch.Tensor'
+
+        reduce = self.__getitem__('reduce')
+        options = dict(value=value, operation=operation, log=log)
+        reduce[key] = options
+        self.__setitem__('reduce', reduce)
 
     @property
     def checkpoint_on(self):
@@ -114,5 +144,4 @@ class EvalStepResult(Result):
 if __name__ == '__main__':
     import torch
     result = TrainStepResult()
-    result.loss = torch.tensor(1)
-    result['loss']
+    result.minimize = torch.tensor(1)
