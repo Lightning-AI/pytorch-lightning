@@ -113,6 +113,7 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
+        # TODO: use the metric from result and update this whole class
         logs = trainer.callback_metrics
         stop_training = False
         if not self._validate_condition_metric(logs):
