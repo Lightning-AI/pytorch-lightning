@@ -55,7 +55,7 @@ else:
     from pytorch_lightning.trainer.seed import seed_everything
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
-    from pytorch_lightning.core.step_result import EvalStepResult, TrainStepResult
+    from pytorch_lightning.core.step_result import Result
 
     __all__ = [
         'Trainer',
@@ -63,8 +63,7 @@ else:
         'Callback',
         'data_loader'
         'seed_everything',
-        'EvalStepResult',
-        'TrainStepResult'
+        'Result'
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

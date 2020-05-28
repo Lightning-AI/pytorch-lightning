@@ -6,6 +6,7 @@ from collections import OrderedDict
 class Result(OrderedDict):
 
     def __init__(self,
+                 minimize:Optional[Tensor] = None,
                  logs: Optional[Dict] = None,
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
@@ -18,6 +19,7 @@ class Result(OrderedDict):
         self.checkpoint_on = checkpoint_on
         self.progress_bar = progress_bar
         self.hiddens = hiddens
+        self.minimize = minimize
 
     @property
     def progress_bar(self):
@@ -77,101 +79,26 @@ class Result(OrderedDict):
 
     @property
     def early_stop_on(self):
-        return self._early_stop_on
+        return self.__getitem__('early_stop_on')
 
     @early_stop_on.setter
     def early_stop_on(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'early_stop_on must be a torch.Tensor'
-            self._early_stop_on = x
-            self.__setitem__('early_stop_on', self._early_stop_on)
-
-
-class TrainStepResult(Result):
-    """
-    A dictionary with type checking and error checking
-    Return this in the training step.
-    """
-
-    def __init__(self,
-                 early_stop_on: Tensor = None,
-                 minimize: Tensor = None,
-                 checkpoint_on: Tensor = None,
-                 logs: Optional[Dict] = None,
-                 progress_bar: Optional[Dict] = None,
-                 hiddens: Optional[Tensor] = None):
-        """
-
-        Args:
-            minimize: the metric to minimize (usually the loss) (Tensor)
-            logs: a dictionary to pass to the logger
-            progress_bar: a dictionary to pass to the progress bar
-            hiddens: when using TBPTT return the hidden states here
-        """
-        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar, hiddens)
-        self.minimize = minimize
+            self.__setitem__('early_stop_on', x)
 
     @property
     def minimize(self):
-        return self._minimize
+        return self.__getitem__('minimize')
 
     @minimize.setter
     def minimize(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'metric to minimize must be a torch.Tensor'
-
-        self._minimize = x
-        self.__setitem__('minimize', x)
-
-
-class EvalStepResult(Result):
-    """
-    Return this in the validation step
-    """
-
-    def __init__(self,
-                 early_stop_on: Tensor = None,
-                 checkpoint_on: Tensor = None,
-                 logs: Optional[Dict] = None,
-                 progress_bar: Optional[Dict] = None,
-                 hiddens: Optional[Tensor] = None):
-        """
-
-        Args:
-            early_stop_on: the metric used for early Stopping
-            checkpoint_on: the metric used for Model checkpoint
-            logs: a dictionary to pass to the logger
-            progress_bar: a dictionary to pass to the progress bar
-            hiddens: when using TBPTT return the hidden states here
-        """
-
-        super().__init__(logs, early_stop_on, checkpoint_on, progress_bar, hiddens)
-
-    def reduce_across_batches(self, key: str, value: Tensor, operation: str = 'mean', log: bool = True):
-        """
-        This metric will be reduced across batches and logged if requested.
-        If you use this, there's no need to add the **_epoch_end method
-
-        Args:
-            key: name of this metric
-            value: value of this metric
-            operation: mean, sum
-            log: bool
-        Returns:
-
-        """
-        assert isinstance(value, Tensor), 'the value to reduce must be a torch.Tensor'
-
-        if 'reduce' not in self:
-            self.__setitem__('reduce', {})
-
-        reduce = self.__getitem__('reduce')
-        options = dict(value=value, operation=operation, log=log)
-        reduce[key] = options
-        self.__setitem__('reduce', reduce)
+            self.__setitem__('minimize', x)
 
 
 if __name__ == '__main__':
     import torch
-    result = EvalStepResult()
+    result = Result()
     result.minimize = torch.tensor(1)

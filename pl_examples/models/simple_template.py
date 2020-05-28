@@ -5,7 +5,7 @@ import os
 
 import torch
 from torch import Tensor
-from pytorch_lightning import TrainStepResult
+from pytorch_lightning import Result
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
@@ -73,8 +73,24 @@ class SuperLitModel(LightningModule):
         loss = F.cross_entropy(y_hat, y)
 
         # structure the return from the training loop
-        step_result = TrainStepResult(
+        step_result = Result(
             minimize=loss,
+            checkpoint_on=loss,
+            early_stop_on=loss,
+            logs={'train_loss': loss},
+            progress_bar={'train_loss': loss}
+        )
+
+        return step_result
+
+    def validation_step(self, batch: Tensor, batch_idx: int):
+        # forward pass
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+
+        # structure the return from the training loop
+        step_result = Result(
             checkpoint_on=loss,
             early_stop_on=loss,
             logs={'train_loss': loss},
