@@ -578,14 +578,14 @@ class TrainerTrainLoopMixin(ABC):
                     with self.profiler.profile('model_forward'):
                         if self.use_amp and self.use_native_amp:
                             with torch.cuda.amp.autocast():
-                                output_dict = self.training_forward(split_batch, batch_idx,
+                                output = self.training_forward(split_batch, batch_idx,
                                                                     opt_idx, self.hiddens, step_result)
                         else:
-                            output_dict = self.training_forward(split_batch, batch_idx, opt_idx,
+                            output = self.training_forward(split_batch, batch_idx, opt_idx,
                                                                 self.hiddens, step_result)
 
                         # format and reduce outputs accordingly
-                        processed_output = self.process_output(output_dict, train=True)
+                        processed_output = self.process_output(output, train=True)
 
                     closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = processed_output
 
@@ -740,7 +740,7 @@ class TrainerTrainLoopMixin(ABC):
             try:
                 output = self.model(*args)
             except TypeError as e:
-                # backward compatible for users without ste_result
+                # backward compatible for users without step_result
                 # TODO: remove in 1.0.0
                 args = args[:-1]
                 output = self.model(*args)
@@ -754,7 +754,7 @@ class TrainerTrainLoopMixin(ABC):
                 output = self.model.training_step(*args)
 
             except TypeError as e:
-                # backward compatible for users without ste_result
+                # backward compatible for users without step_result
                 # TODO: remove in 1.0.0
                 args = args[:-1]
                 output = self.model.training_step(*args)
@@ -775,7 +775,7 @@ class TrainerTrainLoopMixin(ABC):
                 output = self.model.training_step(*args)
 
             except TypeError as e:
-                # backward compatible for users without ste_result
+                # backward compatible for users without step_result
                 # TODO: remove in 1.0.0
                 args = args[:-1]
                 output = self.model.training_step(*args)
@@ -789,7 +789,7 @@ class TrainerTrainLoopMixin(ABC):
                 output = self.model.training_step(*args)
 
             except TypeError as e:
-                # backward compatible for users without ste_result
+                # backward compatible for users without step_result
                 # TODO: remove in 1.0.0
                 args = args[:-1]
                 output = self.model.training_step(*args)
@@ -800,7 +800,7 @@ class TrainerTrainLoopMixin(ABC):
                 output = self.model.training_step(*args)
 
             except TypeError as e:
-                # backward compatible for users without ste_result
+                # backward compatible for users without step_result
                 # TODO: remove in 1.0.0
                 args = args[:-1]
                 output = self.model.training_step(*args)
