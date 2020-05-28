@@ -6,6 +6,7 @@ class Result(Dict):
 
     def __init__(self,
                  logs: Optional[Dict] = None,
+                 checkpoint_on: Tensor = None,
                  progress_bar_logs: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         super().__init__()
@@ -44,7 +45,9 @@ class TrainStepResult(Result):
     Return this in the training step.
     """
 
-    def __init__(self, minimize: Tensor = None,
+    def __init__(self,
+                 minimize: Tensor = None,
+                 checkpoint_on: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
@@ -58,6 +61,7 @@ class TrainStepResult(Result):
         """
         super().__init__(logs, progress_bar_logs, hiddens)
         self.minimize = minimize
+        self.checkpoint_on = checkpoint_on
 
     @property
     def minimize(self):
@@ -71,13 +75,25 @@ class TrainStepResult(Result):
         self._minimize = x
         self.__setitem__('minimize', x)
 
+    @property
+    def checkpoint_on(self):
+        return self._checkpoint_on
+
+    @checkpoint_on.setter
+    def checkpoint_on(self, x):
+        assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
+
+        self._checkpoint_on = x
+        self.__setitem__('checkpoint_on', self._checkpoint_on)
+
 
 class EvalStepResult(Result):
     """
     Return this in the validation step
     """
 
-    def __init__(self, early_stop_on: Tensor = None,
+    def __init__(self,
+                 early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None,
@@ -118,17 +134,6 @@ class EvalStepResult(Result):
         options = dict(value=value, operation=operation, log=log)
         reduce[key] = options
         self.__setitem__('reduce', reduce)
-
-    @property
-    def checkpoint_on(self):
-        return self._checkpoint_on
-
-    @checkpoint_on.setter
-    def checkpoint_on(self, x):
-        assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
-
-        self._checkpoint_on = x
-        self.__setitem__('checkpoint_on', self._checkpoint_on)
 
     @property
     def early_stop_on(self):
