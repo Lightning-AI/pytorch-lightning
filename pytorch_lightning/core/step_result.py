@@ -4,7 +4,7 @@ from torch import Tensor
 
 class Result:
 
-    def __init__(self, loss: Tensor,
+    def __init__(self, loss: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None):
         self.loss = loss
@@ -23,7 +23,7 @@ class TrainStepResult(Result):
     Return this in the training step
     """
 
-    def __init__(self, loss: Tensor,
+    def __init__(self, loss: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None):
         """
@@ -41,7 +41,7 @@ class EvalStepResult(Result):
     Return this in the validation step
     """
 
-    def __init__(self, monitor_metric: Tensor,
+    def __init__(self, monitor_metric: Tensor = None,
                  logs: Optional[Dict] = None,
                  progress_bar_logs: Optional[Dict] = None):
         """
