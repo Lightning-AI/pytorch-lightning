@@ -3,7 +3,7 @@ from torch import Tensor
 from collections import OrderedDict
 
 
-class Result(OrderedDict):
+class Result(dict):
 
     def __init__(self,
                  logs: Optional[Dict] = None,
