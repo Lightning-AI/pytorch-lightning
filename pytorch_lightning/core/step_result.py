@@ -38,9 +38,8 @@ class Result(OrderedDict):
     def hiddens(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'hiddens must be a torch.Tensor'
-
-        self._hiddens = x
-        self.__setitem__('hiddens', x)
+            self._hiddens = x
+            self.__setitem__('hiddens', x)
 
     @property
     def checkpoint_on(self):
