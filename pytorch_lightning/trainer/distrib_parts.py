@@ -120,7 +120,7 @@ class TrainerDPMixin(ABC):
                 ' Are you sure this machine has TPUs?'
             )
         device = xm.xla_device(tpu_id)
-        return transfer_batch_to_device(batch, device)
+        return self.__transfer_batch_to_device(batch, device)
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
         """
