@@ -72,7 +72,7 @@ class SuperLitModel(LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
 
-        step_result = {'loss': loss}
+        # step_result = {'loss': loss}
         # structure the return from the training loop
         step_result.minimize = loss
         # step_result.checkpoint_on = loss
