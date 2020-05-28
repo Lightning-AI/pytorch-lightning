@@ -89,6 +89,7 @@ class ModelCheckpoint(Callback):
         >>> # model = ...
         >>> # trainer.fit(model)
         >>> print(checkpoint_callback.best_model)
+        <BLANKLINE>
 
     """
 
