@@ -71,8 +71,7 @@ class LightningDataParallel(DataParallel):
             original_class = outputs[0].__class__
             outputs = [dict(x) for x in outputs]
             outputs = self.gather(outputs, self.output_device)
-            outputs = [original_class(**x) for x in outputs]
-
+            outputs = original_class(**outputs)
 
         else:
             outputs = self.gather(outputs, self.output_device)
