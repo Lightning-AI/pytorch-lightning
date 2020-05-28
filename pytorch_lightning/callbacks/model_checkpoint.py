@@ -86,8 +86,8 @@ class ModelCheckpoint(Callback):
         # retrieve the best checkpoint after training
         checkpoint_callback = ModelCheckpoint(filepath='my/path/')
         trainer = Trainer(checkpoint_callback=checkpoint_callback)
-        # model = ...
-        # trainer.fit(model)
+        model = ...
+        trainer.fit(model)
         checkpoint_callback.best_model
 
     """
