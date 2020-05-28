@@ -83,7 +83,10 @@ def test_transfer_batch_hook():
 
     class CurrentTestModel(EvalModelTemplate):
 
+        hook_called = False
+
         def transfer_batch_to_device(self, batch, device):
+            self.hook_called = True
             if isinstance(batch, CustomBatch):
                 batch.samples = batch.samples.to(device)
                 batch.targets = batch.targets.to(device)
@@ -95,7 +98,7 @@ def test_transfer_batch_hook():
     trainer = Trainer()
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
-
     batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)
-    device = torch.device('cuda', 0)
-    assert batch_gpu.samples.device == batch_gpu.targets.device == device
+    expected = torch.device('cuda', 0)
+    assert model.hook_called
+    assert batch_gpu.samples.device == batch_gpu.targets.device == expected
