@@ -13,8 +13,8 @@ class Result(OrderedDict):
                  hiddens: Optional[Tensor] = None):
         super().__init__()
 
-        self.logs = None
-        self.progress_bar_logs = None
+        self.logs = logs
+        self.progress_bar_logs = progress_bar_logs
         self.hiddens = hiddens
         self.checkpoint_on = checkpoint_on
         self.early_stop_on = early_stop_on
@@ -115,9 +115,6 @@ class EvalStepResult(Result):
 
         super().__init__(logs, early_stop_on, checkpoint_on, progress_bar_logs, hiddens)
 
-        # metrics to reduce
-        self.__setitem__('reduce', {})
-
     def reduce_across_batches(self, key: str, value: Tensor, operation: str = 'mean', log: bool = True):
         """
         This metric will be reduced across batches and logged if requested.
@@ -132,6 +129,9 @@ class EvalStepResult(Result):
 
         """
         assert isinstance(value, Tensor), 'the value to reduce must be a torch.Tensor'
+
+        if 'reduce' not in self:
+            self.__setitem__('reduce', {})
 
         reduce = self.__getitem__('reduce')
         options = dict(value=value, operation=operation, log=log)
