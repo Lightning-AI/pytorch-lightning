@@ -202,3 +202,12 @@ class AllenNlpLightningModule(LightningModule):
     @pytorch_lightning.data_loader
     def val_dataloader(self):
         return self.validation_data_loader
+
+    # Not used for now, since we initialize training parameters using Pytorch-Lightning
+    def configure_optimizers(self):
+        from allennlp.training.optimizers import Optimizer
+        parameters = [[n, p] for n, p in self.model.named_parameters() if p.requires_grad]
+        return Optimizer.from_params(
+            params=params['trainer']['optimizer'],
+            model_parameters=parameters
+        )
