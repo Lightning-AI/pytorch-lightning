@@ -13,7 +13,7 @@ class Result(OrderedDict):
                  progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
-        Result is an OrderedDict that gives typehints, allowed fields and validation for bad user input.
+        Result is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
 
         Use as the return value for:
         - training_step
