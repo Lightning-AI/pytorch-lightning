@@ -62,7 +62,7 @@ class SuperLitModel(LightningModule):
         x = self.c_d2(x)
         return x
 
-    def training_step(self, batch: Tensor, batch_idx: int, step_result: TrainStepResult):
+    def training_step(self, batch: Tensor, batch_idx: int):
         """
         Lightning calls this inside the training loop with the data from the training dataloader
         passed in as `batch`.
@@ -72,14 +72,16 @@ class SuperLitModel(LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
 
-        # step_result = {'loss': loss}
         # structure the return from the training loop
+        step_result = TrainStepResult()
         step_result.minimize = loss
         step_result.checkpoint_on = loss
         step_result.early_stop_on = loss
         step_result.log('log_metric_1', loss)
         step_result.display('prog_bar_metric_1', loss)
         step_result.hiddens = loss
+
+        # step_result = {'loss': loss}
 
         return step_result
 
