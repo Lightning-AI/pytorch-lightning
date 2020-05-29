@@ -66,7 +66,7 @@ def test_pytorch_parity(tmpdir):
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
         np.testing.assert_almost_equal(pl_out, pt_out, 8)
 
-    tutils.assert_speed_parity(pl_times, pt_times, num_epochs)
+    tutils.assert_speed_parity(pl_times, pt_times)
 
 
 def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
