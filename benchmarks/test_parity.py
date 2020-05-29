@@ -3,59 +3,22 @@ import time
 import numpy as np
 import pytest
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-# from torchvision import transforms
+
 import tests.base.utils as tutils
-
-from pytorch_lightning import Trainer, LightningModule, seed_everything
-from tests.base.datasets import MNIST
-
-
-class ParityModuleMNIST(LightningModule):
-
-    def __init__(self):
-        super().__init__()
-        self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
-        self.c_d1_bn = nn.BatchNorm1d(128)
-        self.c_d1_drop = nn.Dropout(0.3)
-        self.c_d2 = nn.Linear(in_features=128, out_features=10)
-
-    def forward(self, x):
-        x = x.view(x.size(0), -1)
-        x = self.c_d1(x)
-        x = torch.tanh(x)
-        x = self.c_d1_bn(x)
-        x = self.c_d1_drop(x)
-        x = self.c_d2(x)
-        return x
-
-    def training_step(self, batch, batch_nb):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        return {'loss': loss}
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-    def train_dataloader(self):
-        return DataLoader(MNIST(train=True, download=True,),
-                          batch_size=128)
+from benchmarks.parity_modules import ParityModuleRNN, ParityModuleMNIST
+from pytorch_lightning import Trainer, seed_everything
 
 
+@pytest.mark.parametrize('cls_model', [ParityModuleRNN, ParityModuleMNIST])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_pytorch_parity(tmpdir):
+def test_pytorch_parity(tmpdir, cls_model):
     """
     Verify that the same  pytorch and lightning models achieve the same results
-    :param tmpdir:
-    :return:
     """
     num_epochs = 4
     num_rums = 3
-    lightning_outs, pl_times = lightning_loop(ParityModuleMNIST, num_rums, num_epochs)
-    manual_outs, pt_times = vanilla_loop(ParityModuleMNIST, num_rums, num_epochs)
+    lightning_outs, pl_times = lightning_loop(cls_model, num_rums, num_epochs)
+    manual_outs, pt_times = vanilla_loop(cls_model, num_rums, num_epochs)
 
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
