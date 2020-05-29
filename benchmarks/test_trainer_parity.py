@@ -62,7 +62,7 @@ def test_pytorch_parity(tmpdir):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
     # the fist run initialize dataset (download & filter)
-    tutils.assert_speed_parity(pl_times[1:], pt_times[1:])
+    tutils.assert_speed_parity(pl_times[1:], pt_times[1:], max_diff_per_epoch=0.2)
 
 
 def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
