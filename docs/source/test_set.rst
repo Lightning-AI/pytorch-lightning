@@ -40,8 +40,8 @@ running the test set (ie: 16-bit, dp, ddp, etc...)
 
 Test additional data loaders
 ----------------------------
-You can still run inference on a test set even if the `test_dataloader` method hasn't been
-defined within your LightningModule instance. This would be the case when your test data
+You can still run inference on a test set even if the `test_dataloaders` method hasn't been
+defined within your :class:`~pytorch_lightning.core.LightningModule` instance. This would be the case when your test data
 is not available at the time your model was declared.
 
 .. code-block:: python
