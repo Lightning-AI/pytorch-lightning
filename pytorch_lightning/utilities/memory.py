@@ -32,24 +32,29 @@ def is_oom_error(exception):
         or is_out_of_cpu_memory(exception)
 
 
+# based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def is_cuda_out_of_memory(exception):
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
         and "CUDA out of memory." in exception.args[0]
 
 
+# based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def is_cudnn_snafu(exception):
+    # For/because of https://github.com/pytorch/pytorch/issues/4107
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
         and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
 
 
+# based on https://github.com/BlackHC/toma/blob/master/toma/cpu_memory.py
 def is_out_of_cpu_memory(exception):
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
         and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
 
 
+# based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def garbage_collection_cuda():
     """Garbage collection Torch (CUDA) memory."""
     gc.collect()

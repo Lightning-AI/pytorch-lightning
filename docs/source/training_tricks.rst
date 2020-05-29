@@ -39,7 +39,7 @@ Auto scaling of batch size
 --------------------------
 Auto scaling of batch size may be enabled to find the largest batch size that fits into
 memory. Larger batch size often yields better estimates of gradients, but may also result in
-longer training time.
+longer training time. Inspired by https://github.com/BlackHC/toma.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
