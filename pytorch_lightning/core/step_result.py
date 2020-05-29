@@ -72,25 +72,17 @@ class Result(Dict):
         self.minimize = minimize
 
     def reduce_on_batch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
-        keys = ['reduce_on_batch_end']
-        if log:
-            keys.append('log_on_batch_end')
-        if pbar:
-            keys.append('pbar_on_batch_end')
-
-        for key in keys:
-            if key not in self:
-                self[key] = {}
-
-            metrics = self[key]
-            metrics[name] = metric
+        self.__reduce_on_callback('on_batch_end', metric, name, log, pbar, reduce_fx)
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
-        keys = ['reduce_on_epoch_end']
+        self.__reduce_on_callback('on_epoch_end', metric, name, log, pbar, reduce_fx)
+
+    def __reduce_on_callback(self, callback_name, metric, name, log, pbar, reduce_fx):
+        keys = [f'reduce_{callback_name}']
         if log:
-            keys.append('log_on_epoch_end')
+            keys.append(f'log_{callback_name}')
         if pbar:
-            keys.append('pbar_on_epoch_end')
+            keys.append(f'pbar_{callback_name}')
 
         for key in keys:
             if key not in self:
@@ -98,6 +90,13 @@ class Result(Dict):
 
             metrics = self[key]
             metrics[name] = metric
+
+        key = f'reduce_fx_{callback_name}'
+        if key not in self:
+            self[key] = {}
+
+        metrics = self[key]
+        metrics[name] = reduce_fx
 
     def to_bar(self, key: str, value: Tensor):
         """
