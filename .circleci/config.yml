@@ -22,7 +22,7 @@ references:
      command: |
        python --version ; pip --version ; pip list
        py.test pytorch_lightning tests -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 30m
+     no_output_timeout: 15m
 
   examples: &examples
    run:
