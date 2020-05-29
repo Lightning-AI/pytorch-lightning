@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
@@ -97,7 +97,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
     model = EvalModelTemplate()

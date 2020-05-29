@@ -137,7 +137,7 @@ def test_progress_bar_fast_dev_run():
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_progress_bar_progress_refresh(refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 

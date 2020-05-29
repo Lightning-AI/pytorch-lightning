@@ -6,7 +6,7 @@ from pytorch_lightning.callbacks import LearningRateLogger
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_lr_logger_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
@@ -51,7 +51,7 @@ def test_lr_logger_no_lr(tmpdir):
         assert result
 
 
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_lr_logger_multi_lrs(tmpdir):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
@@ -79,7 +79,7 @@ def test_lr_logger_multi_lrs(tmpdir):
         'Length of logged learning rates exceeds the number of epochs'
 
 
-@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
+@pytest.mark.filterwarnings("ignore:.*must be a Torch.Tensor instance, checkpoint not saved.*")
 def test_lr_logger_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
