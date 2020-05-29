@@ -12,16 +12,16 @@ from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
 
 
-def assert_speed_parity(pl_times, pt_times, max_diff_per_epoch=0.1):
+def assert_speed_parity(pl_times, pt_times, max_relative_diff: float = 0.1):
     # assert speeds
     diffs = np.asarray(pl_times) - np.asarray(pt_times)
     # norm by vanila time
     diffs = diffs / np.asarray(pt_times)
-    assert np.alltrue(diffs < max_diff_per_epoch), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff_per_epoch})"
+    assert np.alltrue(diffs < max_relative_diff), \
+        f"lightning {diffs} was slower than PT (threshold {max_relative_diff})"
 
 
-def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
+def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
     reset_seed()
 
     # fit model
@@ -50,7 +50,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=True):
+def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
