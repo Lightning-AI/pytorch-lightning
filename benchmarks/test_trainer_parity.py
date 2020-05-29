@@ -52,7 +52,7 @@ def test_pytorch_parity(tmpdir):
     :param tmpdir:
     :return:
     """
-    num_epochs = 4
+    num_epochs = 5
     num_rums = 3
     lightning_outs, pl_times = lightning_loop(ParityModuleMNIST, num_rums, num_epochs)
     manual_outs, pt_times = vanilla_loop(ParityModuleMNIST, num_rums, num_epochs)
@@ -90,7 +90,8 @@ def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
         model = model.to(device)
 
         epoch_losses = []
-        for epoch in range(num_epochs):
+        # as the first run is skipped, no need to run it long
+        for epoch in range(num_epochs if i > 0 else 1):
 
             # run through full training set
             for j, batch in enumerate(dl):
@@ -126,7 +127,8 @@ def lightning_loop(cls_model, num_runs=10, num_epochs=10):
         model = cls_model()
         # init model parts
         trainer = Trainer(
-            max_epochs=num_epochs,
+            # as the first run is skipped, no need to run it long
+            max_epochs=num_epochs if i > 0 else 1,
             progress_bar_refresh_rate=0,
             weights_summary=None,
             gpus=1,
