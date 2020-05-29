@@ -14,10 +14,10 @@ from pytorch_lightning import Trainer, LightningModule, seed_everything
 from tests.base.datasets import MNIST
 
 
-class ParityMNIST(LightningModule):
+class ParityModuleMNIST(LightningModule):
 
     def __init__(self):
-        super(ParityMNIST, self).__init__()
+        super().__init__()
         self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
         self.c_d1_bn = nn.BatchNorm1d(128)
         self.c_d1_drop = nn.Dropout(0.3)
@@ -55,8 +55,8 @@ def test_pytorch_parity(tmpdir):
     """
     num_epochs = 2
     num_rums = 3
-    lightning_outs, pl_times = lightning_loop(ParityMNIST, num_rums, num_epochs)
-    manual_outs, pt_times = vanilla_loop(ParityMNIST, num_rums, num_epochs)
+    lightning_outs, pl_times = lightning_loop(ParityModuleMNIST, num_rums, num_epochs)
+    manual_outs, pt_times = vanilla_loop(ParityModuleMNIST, num_rums, num_epochs)
 
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
@@ -138,6 +138,8 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
             early_stop_callback=False,
             checkpoint_callback=False,
             deterministic=True,
+            logger=False,
+            replace_sampler_ddp=False,
         )
         trainer.fit(model)
 

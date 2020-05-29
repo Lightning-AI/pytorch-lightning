@@ -12,19 +12,12 @@ from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
 
 
-def assert_speed_parity(pl_times, pt_times, num_epochs):
-
+def assert_speed_parity(pl_times, pt_times, num_epochs, max_diff_per_epoch=0.1):
     # assert speeds
-    max_diff_per_epoch = 0.10
     pl_times = np.asarray(pl_times)
     pt_times = np.asarray(pt_times)
     diffs = pl_times - pt_times
     diffs = diffs / num_epochs
-
-    print('------------------DIFFS---------------------')
-    print(diffs)
-    print('---------------------------------------')
-
     assert np.alltrue(diffs < max_diff_per_epoch), \
         f"lightning {diffs} was slower than PT (threshold {max_diff_per_epoch})"
 
