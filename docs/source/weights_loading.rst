@@ -31,7 +31,7 @@ To change the checkpoint path pass in:
 
 .. testcode::
 
-    trainer = Trainer(default_save_path='/your/path/to/save/checkpoints')
+    trainer = Trainer(default_save_path='lightning_checkpoints')
 
 To modify the behavior of checkpointing pass in your own callback.
 
