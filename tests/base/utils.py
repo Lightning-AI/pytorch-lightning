@@ -12,7 +12,7 @@ from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
 
 
-def assert_speed_parity(pl_times, pt_times, num_epochs, max_diff_per_epoch=0.1):
+def assert_speed_parity(pl_times, pt_times, num_epochs, max_diff_per_epoch=0.05):
     # assert speeds
     diffs = np.asarray(pl_times) - np.asarray(pt_times)
     # norm by nb epochs and tha vanila time

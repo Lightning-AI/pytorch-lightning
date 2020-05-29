@@ -65,7 +65,7 @@ def test_pytorch_parity(tmpdir):
     tutils.assert_speed_parity(pl_times[1:], pt_times[1:], num_epochs)
 
 
-def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
+def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
     """
@@ -82,7 +82,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
         seed_everything(seed)
 
         # init model parts
-        model = MODEL()
+        model = cls_model()
         dl = model.train_dataloader()
         optimizer = model.configure_optimizers()
 
@@ -112,7 +112,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
     return errors, times
 
 
-def lightning_loop(MODEL, num_runs=10, num_epochs=10):
+def lightning_loop(cls_model, num_runs=10, num_epochs=10):
     errors = []
     times = []
 
@@ -123,7 +123,7 @@ def lightning_loop(MODEL, num_runs=10, num_epochs=10):
         seed = i
         seed_everything(seed)
 
-        model = MODEL()
+        model = cls_model()
         # init model parts
         trainer = Trainer(
             max_epochs=num_epochs,
