@@ -76,7 +76,7 @@ class Result(Dict):
         metrics = dict(
             metric=metric,
             name=name,
-            # log=log,
+            log=log,
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
@@ -86,7 +86,7 @@ class Result(Dict):
         metrics = dict(
             metric=metric,
             name=name,
-            # log=log,
+            log=log,
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
